@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """The classic solver implementation."""
+
 from __future__ import annotations
 
 import copy
@@ -9,14 +10,10 @@ from itertools import chain
 from logging import DEBUG, getLogger
 from os.path import join
 from textwrap import dedent
-from typing import Iterable
+from typing import TYPE_CHECKING
 
+from boltons.setutils import IndexedSet
 from genericpath import exists
-
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
@@ -24,7 +21,7 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
@@ -38,13 +35,22 @@ from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import Resolve
 from .index import _supplement_index_with_system, get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..auxlib.collection import frozendict
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from ..models.records import PackageRecord
 
 log = getLogger(__name__)
 
@@ -601,7 +607,7 @@ class Solver:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
-                log.trace("using PrefixGraph to remove records for %s", spec)
+                log.log(TRACE, "using PrefixGraph to remove records for %s", spec)
                 removed_records = graph.remove_spec(spec)
                 if removed_records:
                     all_removed_records.extend(removed_records)
@@ -625,7 +631,13 @@ class Solver:
                 rec_has_a_feature = set(rec.features or ()) & feature_names
                 if rec_has_a_feature and rec.name in ssc.specs_from_history_map:
                     spec = ssc.specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop("features", None)
+                    spec._match_components = frozendict(
+                        {
+                            key: value
+                            for key, value in spec._match_components.items()
+                            if key != "features"
+                        }
+                    )
                     ssc.specs_map[spec.name] = spec
                 else:
                     ssc.specs_map.pop(rec.name, None)

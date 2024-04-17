@@ -130,6 +130,7 @@ Authors are sorted alphabetically.
 * Evo
 * Faustin Carter
 * FelisNivalis
+* Filipe Laíns
 * Flavio Martins
 * Florenz A. P. Hollebrandse
 * Floris Bruynooghe
@@ -219,6 +220,7 @@ Authors are sorted alphabetically.
 * Kevin Deldycke
 * Kfir Zvi
 * Kian-Meng Ang
+* Klaus Zimmermann
 * Korijn van Golen
 * Kurt Wheeler
 * Kyle Gerard Felker
@@ -345,6 +347,7 @@ Authors are sorted alphabetically.
 * Saad Parwaiz
 * Sachin G Biradar
 * Sam Davis
+* Sam Haese
 * Sam Nicholls
 * Samson Yeung
 * Samuel Debionne
@@ -356,6 +359,7 @@ Authors are sorted alphabetically.
 * Saranya Mahalingam
 * Satyam Vyas
 * Sauco Cano Navarro
+* Schuyler Martin
 * Scott Evtuch
 * Scruel Tao
 * Sean Ross-Ross

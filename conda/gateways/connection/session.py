@@ -1,8 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Requests session configured with all accepted scheme adapters."""
+
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from functools import lru_cache
 from logging import getLogger
 from threading import local
@@ -71,7 +73,24 @@ def get_session(url: str):
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
-        if settings.get("channel") == channel_name:
+        channel = settings.get("channel", "")
+        if channel == channel_name:
+            # First we check for exact match
+            channel_settings = settings
+            continue
+
+        # If we don't have an exact match, we attempt to match a URL pattern
+        parsed_url = urlparse(url)
+        parsed_setting = urlparse(channel)
+
+        # We require that the schemes must be identical to prevent downgrade attacks.
+        # This includes the case of a scheme-less pattern like "*", which is not allowed.
+        if parsed_setting.scheme != parsed_url.scheme:
+            continue
+
+        url_without_schema = parsed_url.netloc + parsed_url.path
+        pattern = parsed_setting.netloc + parsed_setting.path
+        if fnmatch(url_without_schema, pattern):
             channel_settings = settings
 
     auth_handler = channel_settings.get("auth", "").strip() or None
@@ -169,6 +188,14 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 if callable(adapter):
                     adapter = adapter()
             self.mount(f"{transport_adapter.scheme}://", adapter)
+
+    @classmethod
+    def cache_clear(cls):
+        try:
+            cls._thread_local.sessions.clear()
+        except AttributeError:
+            # AttributeError: thread's session cache has not been initialized
+            pass
 
 
 class CondaHttpAuth(AuthBase):

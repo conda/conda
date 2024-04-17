@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Configure logging for conda."""
+
 import logging
 import re
 import sys
@@ -18,6 +19,7 @@ from logging import (
 )
 
 from .. import CondaError
+from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
 from ..deprecations import deprecated
 
@@ -28,7 +30,7 @@ _VERBOSITY_LEVELS = {
     1: WARN,  # -v, detailed output
     2: INFO,  # -vv, info logging
     3: DEBUG,  # -vvv, debug logging
-    4: (TRACE := 5),  # -vvvv, trace logging
+    4: TRACE,  # -vvvv, trace logging
 }
 deprecated.constant("24.3", "24.9", "VERBOSITY_LEVELS", _VERBOSITY_LEVELS)
 
@@ -232,6 +234,11 @@ def set_log_level(log_level: int):
     log.debug("log_level set to %d", log_level)
 
 
+@deprecated(
+    "24.5",
+    "24.11",
+    addendum="Use `logging.getLogger(__name__)(conda.common.constants.TRACE, ...)` instead.",
+)
 def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
         self._log(TRACE, message, args, **kwargs)

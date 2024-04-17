@@ -1,7 +1,9 @@
-conda-sphinx-theme==0.2.0
+Pillow==10.1.0
+Sphinx<8
+boltons==23.1.1
+conda-sphinx-theme==0.2.1
 linkify-it-py==2.0.2
 myst-parser==2.0.0
-Pillow==10.1.0
 pluggy==1.3.0
 pylint==3.0.2
 requests==2.31.0
@@ -12,7 +14,6 @@ sphinx-autobuild==2021.3.14
 sphinx-reredirects==0.1.3
 sphinx-sitemap==2.5.1
 sphinx_design==0.5.0
-Sphinx<8
 sphinxcontrib-applehelp==1.0.7
 sphinxcontrib-devhelp==1.0.5
 sphinxcontrib-htmlhelp==2.0.4

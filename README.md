@@ -9,7 +9,6 @@
 [![Conda Logo][conda-logo]](https://github.com/conda/conda)
 
 [![Tests (GitHub Actions)][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml)
-[![Images (GitHub Actions)][images-badge]](https://github.com/conda/conda/actions/workflows/images.yml)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
 [![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
 [![latest release version][release-badge]](https://github.com/conda/conda/releases)
@@ -29,7 +28,7 @@ the amazing members of the conda community. Some of them can be found
 ## Installation
 
 Conda is a part of the [Anaconda Distribution](https://repo.anaconda.com).
-Use [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to bootstrap a minimal installation
+Use [Miniconda](https://docs.anaconda.com/free/miniconda/) to bootstrap a minimal installation
 that only includes conda and its dependencies.
 
 

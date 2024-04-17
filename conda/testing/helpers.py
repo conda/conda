@@ -1,10 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of helper functions used in conda tests."""
+
 import json
 import os
-import re
-import sys
 from contextlib import contextmanager
 from functools import lru_cache
 from os.path import abspath, dirname, join
@@ -15,18 +14,14 @@ from uuid import uuid4
 
 import pytest
 
-from ..auxlib.compat import shlex_split_unicode
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from ..cli.main import main_subshell
-from ..common.compat import encode_arguments
-from ..common.io import argv, env_var
+from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
+from ..common.io import env_var
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
 from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
-from ..gateways.logging import initialize_logging
 from ..history import History
 from ..models.channel import Channel
 from ..models.records import PackageRecord, PrefixRecord
@@ -36,7 +31,8 @@ from ..resolve import Resolve
 TEST_DATA_DIR = os.environ.get(
     "CONDA_TEST_DATA_DIR", abspath(join(dirname(__file__), "..", "..", "tests", "data"))
 )
-CHANNEL_DIR = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR = CHANNEL_DIR_V1 = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR_V2 = abspath(join(TEST_DATA_DIR, "base_url_channel"))
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
@@ -72,23 +68,6 @@ def captured(disallow_stderr=True):
             raise Exception("Got stderr output: %s" % c.stderr)
 
 
-def capture_json_with_argv(
-    command, disallow_stderr=True, ignore_stderr=False, **kwargs
-):
-    stdout, stderr, exit_code = run_inprocess_conda_command(command, disallow_stderr)
-    if kwargs.get("relaxed"):
-        match = re.match(r"\A.*?({.*})", stdout, re.DOTALL)
-        if match:
-            stdout = match.groups()[0]
-    elif stderr and not ignore_stderr:
-        # TODO should be exception
-        return stderr
-    try:
-        return json.loads(stdout.strip())
-    except ValueError:
-        raise
-
-
 @deprecated(
     "24.3",
     "24.9",
@@ -111,35 +90,15 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "{} {!r} should not be found in {!r}".format(
-        output,
-        a.lower(),
-        b.lower(),
-    )
+    assert (
+        a.lower() not in b.lower()
+    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "{} {!r} cannot be found in {!r}".format(
-        output, a.lower(), b.lower()
-    )
-
-
-@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
-def run_inprocess_conda_command(command, disallow_stderr: bool = True):
-    # anything that uses this function is an integration test
-    reset_context(())
-
-    with argv(encode_arguments(shlex_split_unicode(command))), captured(
-        disallow_stderr
-    ) as c:
-        initialize_logging()
-        try:
-            exit_code = main_subshell()
-        except SystemExit:
-            pass
-    print(c.stderr, file=sys.stderr)
-    print(c.stdout)
-    return c.stdout, c.stderr, exit_code
+    assert (
+        a.lower() in b.lower()
+    ), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
 
 
 def add_subdir(dist_string):

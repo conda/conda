@@ -7,38 +7,46 @@ This module contains a subclass implementation of pluggy's
 Additionally, it contains a function we use to construct the ``PluginManager`` object and
 register all plugins during conda's startup process.
 """
+
 from __future__ import annotations
 
 import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
-from typing import Literal, overload
+from typing import TYPE_CHECKING, overload
 
 import pluggy
-from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
-from ..base.context import context
-from ..core.solve import Solver
+from ..base.context import add_plugin_setting, context
 from ..exceptions import CondaValueError, PluginError
-from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
 from . import post_solves, solvers, subcommands, transport_adapters, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
-from .types import (
-    CondaAuthHandler,
-    CondaHealthCheck,
-    CondaPostCommand,
-    CondaPostSolve,
-    CondaPreCommand,
-    CondaPreSolve,
-    CondaSolver,
-    CondaSubcommand,
-    CondaTransportAdapter,
-    CondaVirtualPackage,
-)
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from requests.auth import AuthBase
+
+    from ..common.configuration import ParameterLoader
+    from ..core.solve import Solver
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
+    from .types import (
+        CondaAuthHandler,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaSetting,
+        CondaSolver,
+        CondaSubcommand,
+        CondaTransportAdapter,
+        CondaVirtualPackage,
+    )
 
 log = logging.getLogger(__name__)
 
@@ -146,48 +154,48 @@ class CondaPluginManager(pluggy.PluginManager):
         return count
 
     @overload
-    def get_hook_results(self, name: Literal["subcommands"]) -> list[CondaSubcommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["subcommands"]
+    ) -> list[CondaSubcommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["virtual_packages"]
-    ) -> list[CondaVirtualPackage]:
-        ...
+    ) -> list[CondaVirtualPackage]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]:
-        ...
+    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["pre_commands"]) -> list[CondaPreCommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["pre_commands"]
+    ) -> list[CondaPreCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["post_commands"]
-    ) -> list[CondaPostCommand]:
-        ...
+    ) -> list[CondaPostCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["auth_handlers"]
-    ) -> list[CondaAuthHandler]:
-        ...
+    ) -> list[CondaAuthHandler]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["health_checks"]
-    ) -> list[CondaHealthCheck]:
-        ...
+    ) -> list[CondaHealthCheck]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]:
-        ...
+    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["post_solves"]) -> list[CondaPostSolve]:
-        ...
+    def get_hook_results(
+        self, name: Literal["post_solves"]
+    ) -> list[CondaPostSolve]: ...
+
+    @overload
+    def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
     @overload
     def get_hook_results(
@@ -293,6 +301,17 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
+    def get_settings(self) -> dict[str, ParameterLoader]:
+        """
+        Return a mapping of plugin setting name to ParameterLoader class
+
+        This method intentionally overwrites any duplicates that may be present
+        """
+        return {
+            config_param.name.lower(): (config_param.parameter, config_param.aliases)
+            for config_param in self.get_hook_results("settings")
+        }
+
     def invoke_pre_commands(self, command: str) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
@@ -373,6 +392,14 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def load_settings(self) -> None:
+        """
+        Iterates through all registered settings and adds them to the
+        :class:`conda.common.configuration.PluginConfig` class.
+        """
+        for name, (parameter, aliases) in self.get_settings().items():
+            add_plugin_setting(name, parameter, aliases)
 
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache

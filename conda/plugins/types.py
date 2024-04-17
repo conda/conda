@@ -6,18 +6,23 @@ Definition of specific return types for use when defining a conda plugin hook.
 Each type corresponds to the plugin hook for which it is used.
 
 """
+
 from __future__ import annotations
 
-from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
-from typing import Callable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from requests.adapters import BaseAdapter
 from requests.auth import AuthBase
 
-from ..core.solve import Solver
-from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace
+    from typing import Callable
+
+    from ..common.configuration import Parameter
+    from ..core.solve import Solver
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
 
 
 @dataclass
@@ -202,3 +207,24 @@ class CondaPostSolve:
 
     name: str
     action: Callable[[str, tuple[PackageRecord, ...], tuple[PackageRecord, ...]], None]
+
+
+@dataclass
+class CondaSetting:
+    """
+    Return type to use when defining a conda setting plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_settings`.
+
+    :param name: name of the setting (e.g., ``config_param``)
+    :param description: description of the setting that should be targeted
+                        towards users of the plugin
+    :param parameter: Parameter instance containing the setting definition
+    :param aliases: alternative names of the setting
+    """
+
+    name: str
+    description: str
+    parameter: Parameter
+    aliases: tuple[str, ...] = tuple()

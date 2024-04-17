@@ -2,6 +2,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Conda entry point for testing."""
+
 import sys
 from os.path import abspath, join
 
@@ -12,6 +13,10 @@ if __name__ == "__main__":
     from conda.cli import main
     from conda.deprecations import deprecated
 
-    deprecated.topic("24.3", "24.9")
+    deprecated.module(
+        "24.3",
+        "24.9",
+        addendum="This script is intended for testing only. Use `dev/start[.bat]` instead.",
+    )
 
     sys.exit(main())

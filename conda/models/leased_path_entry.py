@@ -5,6 +5,7 @@
 Since private environments are an unrealized feature of conda and has been deprecated this data
 model no longer serves a purpose and has also been deprecated.
 """
+
 from logging import getLogger
 
 from ..auxlib.entity import Entity, EnumField, StringField

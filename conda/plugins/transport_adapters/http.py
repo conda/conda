@@ -21,7 +21,7 @@ def conda_transport_adapters():
         except ImportError:
             raise CondaError(
                 "The `ssl_verify: truststore` setting is only supported on"
-                + "Python 3.10 or later."
+                "Python 3.10 or later."
             )
         # making sure we verify now that we know truststore is enabled
         context.ssl_verify = True

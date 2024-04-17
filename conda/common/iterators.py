@@ -1,11 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Replacements for parts of the toolz library."""
+
 from __future__ import annotations
 
 import collections
 import itertools
-from typing import Any, Generator, Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any, Generator, Sequence
 
 
 def groupby_to_dict(keyfunc, sequence):

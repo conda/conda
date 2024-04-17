@@ -1,3 +1,6 @@
+from ...deprecations import deprecated
+deprecated.module("24.9", "25.3", addendum="Use `frozendict` instead.")
+
 from collections.abc import Mapping
 
 try:

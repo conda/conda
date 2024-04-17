@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for reading and processing file contents."""
+
 from __future__ import annotations
 
 import hashlib
@@ -14,7 +15,7 @@ from itertools import chain
 from logging import getLogger
 from os.path import isdir, isfile, join  # noqa
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING
 
 from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
@@ -27,7 +28,6 @@ from ...common.pkg_formats.python import (
     PythonEggLinkDistribution,
     PythonInstalledDistribution,
 )
-from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PackageType, PathType
@@ -35,6 +35,9 @@ from ...models.package_info import PackageInfo, PackageMetadata
 from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 log = getLogger(__name__)
 
@@ -65,13 +68,6 @@ def yield_lines(path):
             raise
 
 
-@deprecated(
-    "23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead."
-)
-def _digest_path(algo: Literal["md5", "sha256"], path: str | os.PathLike) -> str:
-    return compute_sum(path, algo)
-
-
 def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
     path = Path(path)
     if not path.is_file():
@@ -83,24 +79,6 @@ def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
         for chunk in iter(partial(fh.read, 8192), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
-)
-def compute_md5sum(path: str | os.PathLike) -> str:
-    return compute_sum(path, "md5")
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead.',
-)
-def compute_sha256sum(path: str | os.PathLike) -> str:
-    return compute_sum(path, "sha256")
 
 
 # ####################################################

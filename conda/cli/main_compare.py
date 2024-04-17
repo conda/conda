@@ -4,12 +4,16 @@
 
 Compare the packages in an environment with the packages listed in an environment file.
 """
+
 from __future__ import annotations
 
 import logging
 import os
-from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import abspath, expanduser, expandvars
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 log = logging.getLogger(__name__)
 

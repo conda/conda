@@ -4,6 +4,7 @@
 
 Dynamic installer loading.
 """
+
 from conda.deprecations import deprecated
 from conda.env.installers.base import get_installer  # noqa
 from conda.exceptions import InvalidInstaller  # noqa

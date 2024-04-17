@@ -1,13 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Conda-flavored installer."""
+
 import tempfile
 from os.path import basename
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from ..._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ...base.constants import UpdateModifier
 from ...base.context import context

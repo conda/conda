@@ -1,18 +1,23 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Notices network fetch logic."""
+
 from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Sequence
+from typing import TYPE_CHECKING
 
 import requests
 
+from ..base.context import context
 from ..common.io import Spinner
 from ..gateways.connection.session import get_session
 from .cache import cached_response
 from .types import ChannelNoticeResponse
+
+if TYPE_CHECKING:
+    from typing import Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +40,7 @@ def get_notice_responses(
     """
     executor = ThreadPoolExecutor(max_workers=max_workers)
 
-    with Spinner("Retrieving notices", enabled=not silent):
+    with Spinner("Retrieving notices", enabled=not silent, json=context.json):
         return tuple(
             filter(
                 None,

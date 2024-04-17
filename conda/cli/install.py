@@ -7,6 +7,7 @@ Core logic for `conda [create|install|update|remove]` commands.
 See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
+
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
@@ -16,6 +17,7 @@ from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
+from ..common.io import Spinner
 from ..common.path import is_package_file, paths_equal
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
@@ -198,40 +200,33 @@ def install(args, parser, command="install"):
                 "Creating new environment for a non-native platform %s",
                 context.subdir,
             )
-    else:
-        if isdir(prefix):
-            delete_trash(prefix)
-            if not isfile(join(prefix, "conda-meta", "history")):
-                if paths_equal(prefix, context.conda_prefix):
-                    raise NoBaseEnvironmentError()
-                else:
-                    if not path_is_clean(prefix):
-                        raise DirectoryNotACondaEnvironmentError(prefix)
+    elif isdir(prefix):
+        delete_trash(prefix)
+        if not isfile(join(prefix, "conda-meta", "history")):
+            if paths_equal(prefix, context.conda_prefix):
+                raise NoBaseEnvironmentError()
             else:
-                # fall-through expected under normal operation
-                pass
+                if not path_is_clean(prefix):
+                    raise DirectoryNotACondaEnvironmentError(prefix)
         else:
-            if hasattr(args, "mkdir") and args.mkdir:
-                try:
-                    mkdir_p(prefix)
-                except OSError as e:
-                    raise CondaOSError(
-                        "Could not create directory: %s" % prefix, caused_by=e
-                    )
-            else:
-                raise EnvironmentLocationNotFound(prefix)
+            # fall-through expected under normal operation
+            pass
+    elif getattr(args, "mkdir", False):
+        # --mkdir is deprecated and marked for removal in conda 25.3
+        try:
+            mkdir_p(prefix)
+        except OSError as e:
+            raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
+    else:
+        raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
-        # TODO: rework in 4.4 branch using MatchSpec
-        args_packages_names = [
-            pkg.replace(" ", "=").split("=", 1)[0] for pkg in args_packages
-        ]
-        for default_pkg in context.create_default_packages:
-            default_pkg_name = default_pkg.replace(" ", "=").split("=", 1)[0]
-            if default_pkg_name not in args_packages_names:
-                args_packages.append(default_pkg)
+        names = [MatchSpec(pkg).name for pkg in args_packages]
+        for default_package in context.create_default_packages:
+            if MatchSpec(default_package).name not in names:
+                args_packages.append(default_package)
 
     index_args = {
         "use_cache": args.use_index_cache,
@@ -327,19 +322,30 @@ def install(args, parser, command="install"):
     for repodata_fn in repodata_fns:
         try:
             if isinstall and args.revision:
-                index = get_index(
-                    channel_urls=index_args["channel_urls"],
-                    prepend=index_args["prepend"],
-                    platform=None,
-                    use_local=index_args["use_local"],
-                    use_cache=index_args["use_cache"],
-                    unknown=index_args["unknown"],
-                    prefix=prefix,
-                    repodata_fn=repodata_fn,
-                )
-                unlink_link_transaction = revert_actions(
-                    prefix, get_revision(args.revision), index
-                )
+                with Spinner(
+                    f"Collecting package metadata ({repodata_fn})",
+                    not context.verbose and not context.quiet,
+                    context.json,
+                ):
+                    index = get_index(
+                        channel_urls=index_args["channel_urls"],
+                        prepend=index_args["prepend"],
+                        platform=None,
+                        use_local=index_args["use_local"],
+                        use_cache=index_args["use_cache"],
+                        unknown=index_args["unknown"],
+                        prefix=prefix,
+                        repodata_fn=repodata_fn,
+                    )
+                revision_idx = get_revision(args.revision)
+                with Spinner(
+                    f"Reverting to revision {revision_idx}",
+                    not context.verbose and not context.quiet,
+                    context.json,
+                ):
+                    unlink_link_transaction = revert_actions(
+                        prefix, revision_idx, index
+                    )
             else:
                 solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(

@@ -1,11 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of pytest fixtures used in conda tests."""
+
+from __future__ import annotations
+
+import os
 import warnings
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 import py
 import pytest
-from pytest import FixtureRequest, MonkeyPatch
 
 from ..auxlib.ish import dals
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
@@ -14,6 +18,11 @@ from ..common.io import env_vars
 from ..common.serialize import yaml_round_trip_load
 from ..core.subdir_data import SubdirData
 from ..gateways.disk.create import TemporaryDirectory
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest import FixtureRequest, MonkeyPatch
 
 
 @pytest.fixture(autouse=True)
@@ -86,8 +95,14 @@ def temp_package_cache(tmp_path_factory):
         yield pkgs_dir
 
 
-@pytest.fixture(params=["libmamba", "classic"])
-def parametrized_solver_fixture(request: FixtureRequest, monkeypatch: MonkeyPatch):
+@pytest.fixture(
+    # allow CI to set the solver backends via the CONDA_TEST_SOLVERS env var
+    params=os.environ.get("CONDA_TEST_SOLVERS", "libmamba,classic").split(",")
+)
+def parametrized_solver_fixture(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+) -> Iterable[Literal["libmamba", "classic"]]:
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
     and (2) classic for each test. It's using autouse=True, so only import it in
@@ -110,9 +125,39 @@ def parametrized_solver_fixture(request: FixtureRequest, monkeypatch: MonkeyPatc
                 pytest.skip("...")
             ...
     """
-    monkeypatch.setenv("CONDA_SOLVER", request.param)
-    reset_context()
+    yield from _solver_helper(request, monkeypatch, request.param)
+
+
+@pytest.fixture
+def solver_classic(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+) -> Iterable[Literal["classic"]]:
+    yield from _solver_helper(request, monkeypatch, "classic")
+
+
+@pytest.fixture
+def solver_libmamba(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+) -> Iterable[Literal["libmamba"]]:
+    yield from _solver_helper(request, monkeypatch, "libmamba")
+
+
+Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
+
+
+def _solver_helper(
+    request: FixtureRequest,
+    monkeypatch: MonkeyPatch,
+    solver: Solver,
+) -> Iterable[Solver]:
+    # clear cached solver backends before & after each test
     context.plugin_manager.get_cached_solver_backend.cache_clear()
-    yield
+    request.addfinalizer(context.plugin_manager.get_cached_solver_backend.cache_clear)
+
+    monkeypatch.setenv("CONDA_SOLVER", solver)
     reset_context()
-    context.plugin_manager.get_cached_solver_backend.cache_clear()
+    assert context.solver == solver
+
+    yield solver

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Error handling and error reporting."""
+
 import os
 import sys
 from functools import lru_cache, partial
@@ -52,7 +53,6 @@ class ExceptionHandler:
             CondaError,
             CondaMemoryError,
             NoSpaceLeftError,
-            _format_exc,
         )
 
         if isinstance(exc_val, CondaError):
@@ -68,7 +68,7 @@ class ExceptionHandler:
         if isinstance(exc_val, MemoryError):
             return self.handle_application_exception(CondaMemoryError(exc_val), exc_tb)
         if isinstance(exc_val, KeyboardInterrupt):
-            self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
+            self._print_conda_exception(CondaError("KeyboardInterrupt"), exc_tb)
             return 1
         if isinstance(exc_val, SystemExit):
             return exc_val.code

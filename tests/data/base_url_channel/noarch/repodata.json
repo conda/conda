@@ -1,0 +1,10 @@
+{
+  "info": {
+    "subdir": "noarch",
+    "base_url": "https://repo.anaconda.com/pkgs/main/noarch"
+  },
+  "packages": {},
+  "packages.conda": {},
+  "removed": [],
+  "repodata_version": 2
+}

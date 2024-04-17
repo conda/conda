@@ -3,13 +3,15 @@
 import datetime
 import glob
 import hashlib
+import json
 import os
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.exceptions import CondaError, PackagesNotFoundError
@@ -69,6 +71,43 @@ def test_main_notices(
             assert message in captured.out
         else:
             assert message not in captured.out
+
+
+def test_main_notices_json(
+    capsys,
+    conda_notices_args_n_parser,
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    status_code=200,
+):
+    channel_str = "test"
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(channel_str,),
+    )
+    args, parser = conda_notices_args_n_parser
+    messages = ("Test One", "Test Two")
+    messages_json = get_test_notices(messages)
+    json_list = messages_json.get("notices")
+
+    for item in json_list:
+        item.update({"channel_name": channel_str, "interval": "null"})
+
+    messages_json = {"notices": json_list}
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
+
+    monkeypatch.setenv("CONDA_JSON", "true")
+    reset_context()
+    assert context.json
+
+    notices.execute(args, parser)
+
+    captured = capsys.readouterr()
+    json_data = json.loads(captured.out)
+    assert messages_json.get("notices") == json_data
 
 
 def test_main_notices_reads_from_cache(

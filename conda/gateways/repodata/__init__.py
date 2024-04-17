@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Repodata interface."""
+
 from __future__ import annotations
 
 import abc
@@ -17,8 +18,7 @@ import warnings
 from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
@@ -42,12 +42,17 @@ from ..connection import (
     InsecureRequestWarning,
     InvalidSchema,
     RequestsProxyError,
-    Response,
     SSLError,
 )
 from ..connection.session import get_session
 from ..disk import mkdir_p_sudo_safe
 from ..disk.lock import lock
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Any
+
+    from ..connection import Response
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
@@ -62,6 +67,9 @@ ETAG_KEY = "etag"
 CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
 CACHE_STATE_SUFFIX = ".info.json"
+
+# show some unparseable json in error
+ERROR_SNIPPET_LENGTH = 32
 
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
@@ -106,7 +114,7 @@ def get_repo_interface() -> type[RepoInterface]:
                 f"Is the required jsonpatch package installed?  {e}"
             )
 
-    if not context.no_repodata_zst:
+    if context.repodata_use_zst:
         try:
             from .jlap.interface import ZstdRepoInterface
 
@@ -721,7 +729,14 @@ class RepodataFetch:
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
-            return json.loads(parsed), state
+            try:
+                return json.loads(parsed), state
+            except json.JSONDecodeError as e:
+                e.args = (
+                    f'{e.args[0]}; got "{parsed[:ERROR_SNIPPET_LENGTH]}"',
+                    *e.args[1:],
+                )
+                raise
         else:
             return parsed, state
 
@@ -937,7 +952,8 @@ def cache_fn_url(url, repodata_fn=REPODATA_FN):
     return f"{md5.hexdigest()[:8]}.json"
 
 
-def get_cache_control_max_age(cache_control_value: str):
+def get_cache_control_max_age(cache_control_value: str | None):
+    cache_control_value = cache_control_value or ""
     max_age = re.search(r"max-age=(\d+)", cache_control_value)
     return int(max_age.groups()[0]) if max_age else 0
 

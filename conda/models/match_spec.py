@@ -5,6 +5,7 @@
 The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.7`,
 `cryptography * *_0`) and is used to communicate the desired packages to install.
 """
+
 import re
 import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -15,7 +16,6 @@ from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 
-from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..base.context import context
@@ -24,49 +24,62 @@ from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
-from ..exceptions import CondaValueError, InvalidMatchSpec
+from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..auxlib.collection import frozendict
 
 log = getLogger(__name__)
 
 
 class MatchSpecType(type):
     def __call__(cls, spec_arg=None, **kwargs):
-        if spec_arg:
-            if isinstance(spec_arg, MatchSpec) and not kwargs:
-                return spec_arg
-            elif isinstance(spec_arg, MatchSpec):
-                new_kwargs = dict(spec_arg._match_components)
-                new_kwargs.setdefault("optional", spec_arg.optional)
-                new_kwargs.setdefault("target", spec_arg.target)
-                new_kwargs["_original_spec_str"] = spec_arg.original_spec_str
-                new_kwargs.update(**kwargs)
-                return super().__call__(**new_kwargs)
-            elif isinstance(spec_arg, str):
-                parsed = _parse_spec_str(spec_arg)
-                if kwargs:
-                    parsed = dict(parsed, **kwargs)
-                    if set(kwargs) - {"optional", "target"}:
-                        # if kwargs has anything but optional and target,
-                        # strip out _original_spec_str from parsed
-                        parsed.pop("_original_spec_str", None)
-                return super().__call__(**parsed)
-            elif isinstance(spec_arg, Mapping):
-                parsed = dict(spec_arg, **kwargs)
-                return super().__call__(**parsed)
-            elif hasattr(spec_arg, "to_match_spec"):
-                spec = spec_arg.to_match_spec()
-                if kwargs:
-                    return MatchSpec(spec, **kwargs)
+        try:
+            if spec_arg:
+                if isinstance(spec_arg, MatchSpec) and not kwargs:
+                    return spec_arg
+                elif isinstance(spec_arg, MatchSpec):
+                    new_kwargs = dict(spec_arg._match_components)
+                    new_kwargs.setdefault("optional", spec_arg.optional)
+                    new_kwargs.setdefault("target", spec_arg.target)
+                    new_kwargs["_original_spec_str"] = spec_arg.original_spec_str
+                    new_kwargs.update(**kwargs)
+                    return super().__call__(**new_kwargs)
+                elif isinstance(spec_arg, str):
+                    parsed = _parse_spec_str(spec_arg)
+                    if kwargs:
+                        parsed = dict(parsed, **kwargs)
+                        if set(kwargs) - {"optional", "target"}:
+                            # if kwargs has anything but optional and target,
+                            # strip out _original_spec_str from parsed
+                            parsed.pop("_original_spec_str", None)
+                    return super().__call__(**parsed)
+                elif isinstance(spec_arg, Mapping):
+                    parsed = dict(spec_arg, **kwargs)
+                    return super().__call__(**parsed)
+                elif hasattr(spec_arg, "to_match_spec"):
+                    spec = spec_arg.to_match_spec()
+                    if kwargs:
+                        return MatchSpec(spec, **kwargs)
+                    else:
+                        return spec
                 else:
-                    return spec
+                    raise InvalidSpec(
+                        f"Invalid MatchSpec:\n  spec_arg={spec_arg}\n  kwargs={kwargs}"
+                    )
             else:
-                raise CondaValueError(
-                    f"Invalid MatchSpec:\n  spec_arg={spec_arg}\n  kwargs={kwargs}"
-                )
-        else:
-            return super().__call__(**kwargs)
+                return super().__call__(**kwargs)
+        except InvalidSpec as e:
+            msg = ""
+            if spec_arg:
+                msg += f"{spec_arg}"
+            if kwargs:
+                msg += " " + ", ".join(f"{k}={v}" for k, v in kwargs.items())
+            raise InvalidMatchSpec(msg, details=e) from e
 
 
 class MatchSpec(metaclass=MatchSpecType):

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Define the instruction set (constants) for conda operations."""
+
 from logging import getLogger
 from os.path import isfile, join
 
@@ -19,7 +20,7 @@ CHECK_EXTRACT = "CHECK_EXTRACT"
 EXTRACT = "EXTRACT"
 RM_EXTRACTED = "RM_EXTRACTED"
 RM_FETCHED = "RM_FETCHED"
-PREFIX = "PREFIX"
+deprecated.constant("24.9", "25.3", "PREFIX", "PREFIX")
 PRINT = "PRINT"
 PROGRESS = "PROGRESS"
 SYMLINK_CONDA = "SYMLINK_CONDA"
@@ -41,11 +42,6 @@ ACTION_CODES = (
     RM_EXTRACTED,
     RM_FETCHED,
 )
-
-
-@deprecated("23.9", "24.3", addendum="Unused.")
-def PREFIX_CMD(state, prefix):
-    state["prefix"] = prefix
 
 
 def PRINT_CMD(state, arg):  # pragma: no cover
@@ -84,7 +80,6 @@ def check_files_in_package(source_dir, files):
 
 # Map instruction to command (a python function)
 commands = {
-    PREFIX: PREFIX_CMD,
     PRINT: PRINT_CMD,
     FETCH: FETCH_CMD,
     PROGRESS: lambda x, y: None,

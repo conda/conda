@@ -8,14 +8,12 @@ Object inheritance:
    :top-classes: conda.models.channel.Channel
    :parts: 1
 """
+
 from copy import copy
 from itertools import chain
 from logging import getLogger
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ..base.constants import (
     DEFAULTS_CHANNEL_NAME,
@@ -212,8 +210,8 @@ class Channel(metaclass=ChannelType):
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            cn = self.__canonical_name = "{}://{}".format(
-                self.scheme, join_url(self.location, self.name)
+            cn = self.__canonical_name = (
+                f"{self.scheme}://{join_url(self.location, self.name)}"
             )
             return cn
         else:

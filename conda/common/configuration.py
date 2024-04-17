@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+
 from __future__ import annotations
 
 import copy
@@ -25,26 +26,22 @@ from logging import getLogger
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from re import IGNORECASE, VERBOSE, Match, compile
+from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:  # pragma: no cover
+    from re import Match
     from typing import Any, Hashable, Iterable, Sequence
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
-
+from boltons.setutils import IndexedSet
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from .._vendor.frozendict import frozendict
 from ..auxlib.collection import AttrDict, first, last, make_immutable
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
@@ -52,6 +49,11 @@ from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 
@@ -116,14 +118,8 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = (
-                "Parameter {} = {!r} declared in {} has type {}.\n"
-                "Valid types:\n{}".format(
-                    parameter_name,
-                    parameter_value,
-                    source,
-                    wrong_type,
-                    pretty_list(valid_types),
-                )
+                f"Parameter {parameter_name} = {parameter_value!r} declared in {source} has type {wrong_type}.\n"
+                f"Valid types:\n{pretty_list(valid_types)}"
             )
         super().__init__(parameter_name, parameter_value, source, msg=msg)
 

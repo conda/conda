@@ -7,24 +7,29 @@ Each hookspec defined in :class:`~conda.plugins.hookspec.CondaSpecs` contains
 an example of how to use it.
 
 """
+
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import pluggy
 
-from .types import (
-    CondaAuthHandler,
-    CondaHealthCheck,
-    CondaPostCommand,
-    CondaPostSolve,
-    CondaPreCommand,
-    CondaPreSolve,
-    CondaSolver,
-    CondaSubcommand,
-    CondaTransportAdapter,
-    CondaVirtualPackage,
-)
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .types import (
+        CondaAuthHandler,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaSetting,
+        CondaSolver,
+        CondaSubcommand,
+        CondaTransportAdapter,
+        CondaVirtualPackage,
+    )
 
 spec_name = "conda"
 """Name used for organizing conda hook specifications"""
@@ -144,7 +149,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_commands():
-               yield CondaPreCommand(
+               yield plugins.CondaPreCommand(
                    name="example-pre-command",
                    action=example_pre_command,
                    run_for={"install", "create"},
@@ -169,7 +174,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_commands():
-               yield CondaPostCommand(
+               yield plugins.CondaPostCommand(
                    name="example-post-command",
                    action=example_post_command,
                    run_for={"install", "create"},
@@ -263,19 +268,20 @@ class CondaSpecs:
         **Example:**
 
         .. code-block:: python
-                from conda import plugins
+
+            from conda import plugins
 
 
-                def example_health_check(prefix: str, verbose: bool):
-                    print("This is an example health check!")
+            def example_health_check(prefix: str, verbose: bool):
+                print("This is an example health check!")
 
 
-                @plugins.hookimpl
-                def conda_health_checks():
-                    yield CondaHealthCheck(
-                        name="example-health-check",
-                        action=example_health_check,
-                    )
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="example-health-check",
+                    action=example_health_check,
+                )
         """
 
     @_hookspec
@@ -338,5 +344,30 @@ class CondaSpecs:
                yield plugins.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
+               )
+        """
+
+    @_hookspec
+    def conda_settings(self) -> Iterable[CondaSetting]:
+        """
+        Register new setting
+
+        The example below defines a simple string type parameter
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.common.configuration import PrimitiveParameter, SequenceParameter
+
+
+           @plugins.hookimpl
+           def conda_settings():
+               yield plugins.CondaSetting(
+                   name="example_option",
+                   description="This is an example option",
+                   parameter=PrimitiveParameter("default_value", element_type=str),
+                   aliases=("example_option_alias",),
                )
         """

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common path utilities."""
+
 from __future__ import annotations
 
 import os
@@ -19,11 +20,14 @@ from os.path import (
     split,
     splitext,
 )
-from typing import Iterable, Sequence
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from .. import CondaError
 from .compat import on_win
+
+if TYPE_CHECKING:
+    from typing import Iterable, Sequence
 
 log = getLogger(__name__)
 

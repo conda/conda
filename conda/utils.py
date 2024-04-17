@@ -1,26 +1,23 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Utility functions."""
+
 from __future__ import annotations
 
 import logging
 import re
 import sys
-from contextlib import contextmanager
 from functools import lru_cache, wraps
-from os import PathLike, environ
+from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
-from typing import Literal
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
-from .deprecations import deprecated
-from .gateways.disk.read import compute_sum
 
 log = logging.getLogger(__name__)
 
@@ -233,22 +230,6 @@ else:
 # ##########################################
 
 urlpath = url_path = path_to_url
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
-)
-def md5_file(path: str | PathLike) -> str:
-    return compute_sum(path, "md5")
-
-
-@deprecated(
-    "23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead."
-)
-def hashsum_file(path: str | PathLike, mode: Literal["md5", "sha256"] = "md5") -> str:
-    return compute_sum(path, mode)
 
 
 @lru_cache(maxsize=None)
@@ -540,25 +521,3 @@ def ensure_dir_exists(func):
         return result
 
     return wrapper
-
-
-@deprecated("23.9", "24.3", addendum="Use `open` instead.")
-@contextmanager
-def safe_open(*args, **kwargs):
-    """
-    Allows us to open files while catching any exceptions
-    and raise them as CondaErrors instead.
-
-    We do this to provide a more informative/actionable error output.
-    """
-    try:
-        fp = open(*args, **kwargs)
-        yield fp
-    except OSError as exc:
-        raise CondaError(
-            "Error encountered while reading or writing from cache."
-            f"\n  File: {args[0]}"
-            f"\n  Exception: {exc}"
-        )
-
-    fp.close()

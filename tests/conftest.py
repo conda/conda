@@ -3,8 +3,9 @@
 from pathlib import Path
 
 import pytest
-from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
+import conda
 from conda.base.context import context, reset_context
 
 from . import http_test_server
@@ -23,16 +24,27 @@ pytest_plugins = (
 )
 
 
-@pytest.fixture
-def test_recipes_channel(monkeypatch: MonkeyPatch) -> Path:
-    local = Path(__file__).parent / "test-recipes"
-    monkeypatch.setenv("CONDA_BLD_PATH", str(local))
-    monkeypatch.setenv("CONDA_USE_LOCAL", "true")
-    reset_context()
-    assert local.samefile(context.bld_path)
-    assert context.use_local
+@pytest.hookimpl
+def pytest_report_header(config: pytest.Config):
+    # ensuring the expected development conda is being run
+    expected = Path(__file__).parent.parent / "conda" / "__init__.py"
+    assert expected.samefile(conda.__file__)
+    return f"conda.__file__: {conda.__file__}"
 
-    return local
+
+@pytest.fixture
+def test_recipes_channel(mocker: MockerFixture) -> Path:
+    channel = Path(__file__).parent / "test-recipes"
+
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(channel_str := str(channel),),
+    )
+    reset_context()
+    assert context.channels == (channel_str,)
+
+    return channel
 
 
 @pytest.fixture

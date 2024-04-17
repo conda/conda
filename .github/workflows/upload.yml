@@ -1,0 +1,55 @@
+name: Upload release
+
+on:
+  # https://docs.github.com/en/webhooks/webhook-events-and-payloads#release
+  release:
+    types: [published]
+
+concurrency:
+  # Concurrency group that uses the workflow name and PR number if available
+  # or commit SHA as a fallback. If a new build is triggered under that
+  # concurrency group while a previous build is running it will be canceled.
+  # Repeated pushes to a PR will cancel all previous builds, while multiple
+  # merges to main will not cancel.
+  group: ${{ github.workflow }}-${{ github.ref_name || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  # create source archive and upload it to the published release
+  # URL to the archive: https://github.com/conda/<repo>/releases/download/<tag>/<repo>-<tag>.tar.gz
+  upload:
+    if: '!github.event.repository.fork'
+    runs-on: ubuntu-latest
+    env:
+      ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.ref_name }}
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+
+      - name: Create Release Directory
+        run: mkdir -p release
+
+      - name: Archive Source
+        run: >
+          git archive
+          --prefix="${{ env.ARCHIVE_NAME }}/"
+          --output="release/${{ env.ARCHIVE_NAME }}.tar.gz"
+          HEAD
+
+      - name: Compute Checksum
+        run: >
+          sha256sum "release/${{ env.ARCHIVE_NAME }}.tar.gz"
+          | awk '{print $1}'
+          > "release/${{ env.ARCHIVE_NAME }}.tar.gz.sha256sum"
+
+      - name: Upload Archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release upload
+          --clobber "${{ github.ref_name }}"
+          --repo "${{ github.repository }}"
+          release/*

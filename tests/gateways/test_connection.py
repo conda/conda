@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import hashlib
 from logging import getLogger
 from pathlib import Path
 from unittest.mock import patch
@@ -14,6 +15,7 @@ from conda.common.io import env_vars
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
+from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
@@ -185,6 +187,80 @@ def test_get_session_with_channel_settings(mocker):
     )
 
 
+@pytest.mark.parametrize(
+    "channel_settings_url, expect_match",
+    [
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
+            True,
+            id="exact-url",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/*",
+            True,
+            id="url-prefix",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/another-channel",
+            False,
+            id="no-match",
+        ),
+        pytest.param(
+            "https://*.com/*",
+            True,
+            id="wildcard-match-same-schema",
+        ),
+        pytest.param(
+            "http://*.com/*",
+            False,
+            id="wildcard-no-match-different-scheme",
+        ),
+        pytest.param(
+            "*",
+            False,
+            id="wildcard-no-match-missing-scheme",
+        ),
+    ],
+)
+def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match):
+    """
+    For channels specified by URL, we can configure channel_settings with a URL containing
+    either an exact URL match or with a glob-like pattern. In the latter case we require the
+    HTTP schemes to be identical.
+    """
+    channel_url = "https://repo.some-hostname.com/channel-name"
+    mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url",
+        return_value=channel_url,
+    )
+    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context.channel_settings = (
+        {"channel": channel_settings_url, "auth": "dummy_one"},
+    )
+
+    session_obj = get_session(channel_url)
+    get_session.cache_clear()  # ensuring cleanup
+
+    # In all cases, the returned type is CondaSession
+    assert type(session_obj) is CondaSession
+
+    if expect_match:
+        # For session objects with a custom auth handler it will not be set to CondaHttpAuth
+        assert type(session_obj.auth) is not CondaHttpAuth
+
+        # Make sure we tried to retrieve our auth handler in this function
+        assert (
+            mocker.call("dummy_one")
+            in mock_context.plugin_manager.get_auth_handler.mock_calls
+        )
+    else:
+        # If we do not match, then we default to CondaHttpAuth
+        assert type(session_obj.auth) is CondaHttpAuth
+
+        # We have not tried to retrieve our auth handler
+        assert not mock_context.plugin_manager.get_auth_handler.mock_calls
+
+
 def test_get_session_with_channel_settings_multiple(mocker):
     """
     Tests to make sure the get_session function works when ``channel_settings``
@@ -299,3 +375,43 @@ def test_get_channel_name_from_url(url, channels, expected, monkeypatch):
     channel_name = get_channel_name_from_url(url)
 
     assert expected == channel_name
+
+
+def test_accept_range_none(package_server, tmp_path):
+    """
+    Ensure when "accept-ranges" is "none" we are able to truncate a partially downloaded file.
+    """
+    test_content = "test content test content test content"
+
+    host, port = package_server.getsockname()
+    url = f"http://{host}:{port}/none-accept-ranges"
+    expected_sha256 = hashlib.sha256(test_content.encode("utf-8")).hexdigest()
+
+    # assert range request not supported
+    response = CondaSession().get(url, headers={"Range": "bytes=10-"})
+    assert response.status_code == 200
+
+    tmp_dir = tmp_path / "sub"
+    tmp_dir.mkdir()
+    filename = "test-file"
+
+    partial_file = Path(tmp_dir / f"{filename}.partial")
+    complete_file = Path(tmp_dir / filename)
+
+    partial_file.write_text(test_content[:12])
+
+    download_inner(url, complete_file, "md5", expected_sha256, 38, lambda x: x)
+
+    assert complete_file.read_text() == test_content
+    assert not partial_file.exists()
+
+    # What if the partial file was wrong? (Since this endpoint always returns
+    # 200 not 206, this doesn't test complete-download, then hash mismatch.
+    # Another test in test_fetch.py asserts that we check the hash.)
+    complete_file.unlink()
+    partial_file.write_text("wrong content")
+
+    download_inner(url, complete_file, None, expected_sha256, len(test_content), None)
+
+    assert complete_file.read_text() == test_content
+    assert not partial_file.exists()
