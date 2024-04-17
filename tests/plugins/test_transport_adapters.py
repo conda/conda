@@ -14,6 +14,12 @@ from conda.gateways.connection.session import get_session
 
 PLUGIN_NAME = "http-custom"
 
+@pytest.fixture(autouse=True)
+def clear_cache():
+    get_session.cache_clear()
+    yield
+    get_session.cache_clear()
+
 
 class CustomHTTPAdapter(HTTPAdapter):
     def send(self, request, *args, **kwargs):
@@ -50,7 +56,6 @@ def test_get_transport_adapters(plugin_manager):
     transport_adapters = plugin_manager.get_transport_adapters()
     assert len(transport_adapters) == 1
     assert transport_adapters[PLUGIN_NAME].adapter is CustomHTTPAdapter
-    get_session.cache_clear()  # ensuring cleanup
 
 
 def test_duplicated(plugin_manager):
@@ -64,7 +69,6 @@ def test_duplicated(plugin_manager):
         PluginError, match=re.escape("Conflicting `transport_adapters` plugins found")
     ):
         plugin_manager.get_transport_adapters()
-    get_session.cache_clear()  # ensuring cleanup
 
 
 def test_transport_adapter_is_called(plugin_manager, capsys: CaptureFixture):
@@ -76,9 +80,9 @@ def test_transport_adapter_is_called(plugin_manager, capsys: CaptureFixture):
 
     url = f"{PLUGIN_NAME}://example.com/some-file"
     session = get_session(url)
+    assert f"{PLUGIN_NAME}://" in session.adapters
     response = session.get(url)
     assert response.text == "testing"
-    get_session.cache_clear()  # ensuring cleanup
 
     stdout, stderr = capsys.readouterr()
     assert f"Requesting: {url}" in stdout
