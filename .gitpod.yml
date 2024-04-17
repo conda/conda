@@ -1,4 +1,3 @@
----
 image: ghcr.io/conda/conda-ci:main-linux-python3.9
 tasks:
   - name: initialize
