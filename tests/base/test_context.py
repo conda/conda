@@ -73,7 +73,7 @@ TEST_CONDARC = dals(
     channel_priority: false
     reporters:
       - backend: json
-        output: test.json
+        output: stdout
       - backend: console
         output: stdout
     """
@@ -772,7 +772,7 @@ def test_reporters_from_config_file(testdata):
     Ensure that the ``reporters`` property returns the correct values
     """
     assert context.reporters == (
-        {"backend": "json", "output": "test.json"},
+        {"backend": "json", "output": "stdout"},
         {"backend": "console", "output": "stdout"},
     )
 
@@ -824,7 +824,7 @@ def test_reporters_default_value():
     """
     assert context.reporters == (
         {
-            "backend": "stdlib",
+            "backend": "console",
             "output": "stdout",
             "quiet": False,
             "verbosity": context.verbosity,
