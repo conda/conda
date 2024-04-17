@@ -1184,7 +1184,7 @@ class Context(Configuration):
         if not self._reporters:
             return (
                 {
-                    "backend": "json" if self.json else "stdlib",
+                    "backend": "json" if self.json else "console",
                     "output": "stdout",
                     "verbosity": self.verbosity,
                     "quiet": self.quiet,

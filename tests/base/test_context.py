@@ -74,7 +74,7 @@ TEST_CONDARC = dals(
     reporters:
       - backend: json
         output: test.json
-      - backend: stdlib
+      - backend: console
         output: stdout
     """
 )
@@ -773,7 +773,7 @@ def test_reporters_from_config_file(testdata):
     """
     assert context.reporters == (
         {"backend": "json", "output": "test.json"},
-        {"backend": "stdlib", "output": "stdout"},
+        {"backend": "console", "output": "stdout"},
     )
 
 
@@ -807,7 +807,7 @@ def test_reporters_quiet_is_true(testdata):
 
     assert context.reporters == (
         {
-            "backend": "stdlib",
+            "backend": "console",
             "output": "stdout",
             "verbosity": context.verbosity,
             "quiet": True,
