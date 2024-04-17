@@ -12,12 +12,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, NamedTuple
 
-from requests.adapters import BaseAdapter
 from requests.auth import AuthBase
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from typing import Callable
+
+    from requests.adapters import BaseAdapter
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver

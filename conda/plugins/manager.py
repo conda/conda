@@ -200,8 +200,7 @@ class CondaPluginManager(pluggy.PluginManager):
     @overload
     def get_hook_results(
         self, name: Literal["transport_adapters"]
-    ) -> list[CondaTransportAdapter]:
-        ...
+    ) -> list[CondaTransportAdapter]: ...
 
     def get_hook_results(self, name):
         """
