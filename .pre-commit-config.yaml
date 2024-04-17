@@ -68,6 +68,12 @@ repos:
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.28.2
+    hooks:
+      # verify github syntaxes
+      - id: check-github-workflows
+      - id: check-dependabot
   - repo: meta
     # see https://pre-commit.com/#meta-hooks
     hooks:
