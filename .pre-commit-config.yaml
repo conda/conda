@@ -40,7 +40,11 @@ repos:
       - id: check-merge-conflict
       # sort requirements files
       - id: file-contents-sorter
-        files: ^tests/requirements.*\.txt
+        files: |
+          (?x)^(
+            docs/requirements.txt |
+            tests/requirements.*\.txt
+          )
         args: [--unique]
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
@@ -68,6 +72,23 @@ repos:
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.13.0
+    hooks:
+      - id: pretty-format-toml
+        args: [--autofix, --trailing-commas]
+  - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+    rev: 0.2.3
+    hooks:
+      - id: yamlfmt
+        # ruamel.yaml doesn't line wrap correctly (?) so set width to 1M to avoid issues
+        args: [--mapping=2, --offset=2, --sequence=4, --width=1000000, --implicit_start]
+        exclude: |
+          (?x)^(
+            .authors.yml |
+            recipe/meta.yaml |
+            tests/
+          )
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.28.2
     hooks:
