@@ -105,7 +105,13 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
+exclude = [
+  "conda/_vendor",
+  "conda/auxlib",
+  "tests/data/conda_format_repo",
+  "tests/data/env_metadata",
+  "tools/vendoring",
+]
 target-version = "py38"
 
 [tool.ruff.lint]
