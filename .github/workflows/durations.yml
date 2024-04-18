@@ -4,7 +4,7 @@ on:
   # every Sunday at 00:00 UTC
   # https://crontab.guru/#0_0_*_*_0
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: 0 0 * * 0
 
   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:

@@ -24,7 +24,7 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     env:
-      ARCHIVE_NAME: "${{ github.event.repository.name }}-${{ github.ref_name }}"
+      ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.ref_name }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
@@ -33,20 +33,23 @@ jobs:
         run: mkdir -p release
 
       - name: Archive Source
-        run: git archive
+        run: >
+          git archive
           --prefix="${{ env.ARCHIVE_NAME }}/"
           --output="release/${{ env.ARCHIVE_NAME }}.tar.gz"
           HEAD
 
       - name: Compute Checksum
-        run: sha256sum "release/${{ env.ARCHIVE_NAME }}.tar.gz"
+        run: >
+          sha256sum "release/${{ env.ARCHIVE_NAME }}.tar.gz"
           | awk '{print $1}'
           > "release/${{ env.ARCHIVE_NAME }}.tar.gz.sha256sum"
 
       - name: Upload Archive
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload
+        run: >
+          gh release upload
           --clobber "${{ github.ref_name }}"
           --repo "${{ github.repository }}"
           release/*
