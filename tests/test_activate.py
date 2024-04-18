@@ -3106,131 +3106,80 @@ def test_activate_and_deactivate_for_uninitialized_env(conda_cli):
 # several) possible MSYS2 environments have been installed; secondly,
 # conda will pass a Windows pathname prefix but conda-build will pass
 # a Unix pathname prefix (in particular, an MSYS2 pathname).
-
-
-def assert_MSYS2_PATH(create_dirs=None, exp_paths=None, no_paths=None):
-    with tempdir() as td:
-        mkdir_p(join(td, "conda-meta"))
-        activate_d_dir = mkdir_p(join(td, "etc", "conda", "activate.d"))
-        activate_d_1 = join(activate_d_dir, "see-me.sh")
-        activate_d_2 = join(activate_d_dir, "dont-see-me.bat")
-        touch(join(activate_d_1))
-        touch(join(activate_d_2))
-
-        write_state_file(td)
-
-        library_dir = join(td, "Library")
-        mkdir_p(dirname(library_dir))
-
-        if create_dirs:
-            for dir in create_dirs:
-                mkdir_p(dirname(join(library_dir, dir, "bin")))
-
-        # td is a Windows pathname
-        ce_act = CmdExeActivator()
-        builder = ce_act.build_activate(td)
-        paths = ce_act._replace_prefix_in_path(td, td)
-        new_path = ce_act.pathsep_join(paths)
-
-        export_vars, unset_vars = ce_act.get_export_unset_vars(
-            PATH=new_path,
-            CONDA_PREFIX=td,
-            CONDA_SHLVL=1,
-            CONDA_DEFAULT_ENV=td,
-            CONDA_PROMPT_MODIFIER=get_prompt_modifier(td),
-            # write_state_file
-            ENV_ONE=ENV_ONE,
-            ENV_TWO=ENV_TWO,
-            ENV_THREE=ENV_THREE,
-            ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
-        )
-        assert builder["unset_vars"] == unset_vars
-        assert builder["export_vars"] == export_vars
-
-        if exp_paths:
-            for dir in exp_paths:
-                exp_dir = join(library_dir, dir, "bin")
-                assert ce_act.path_conversion(exp_dir) in paths
-
-        if no_paths:
-            for dir in no_paths:
-                exp_dir = join(library_dir, dir, "bin")
-                assert ce_act.path_conversion(exp_dir) not in paths
-
-        ps_act = PowerShellActivator()
-        builder = ps_act.build_activate(td)
-        paths = ps_act._replace_prefix_in_path(td, td)
-        new_path = ps_act.pathsep_join(paths)
-
-        export_vars, unset_vars = ps_act.get_export_unset_vars(
-            PATH=new_path,
-            CONDA_PREFIX=td,
-            CONDA_SHLVL=1,
-            CONDA_DEFAULT_ENV=td,
-            CONDA_PROMPT_MODIFIER=get_prompt_modifier(td),
-            # write_state_file
-            ENV_ONE=ENV_ONE,
-            ENV_TWO=ENV_TWO,
-            ENV_THREE=ENV_THREE,
-            ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
-        )
-        assert builder["unset_vars"] == unset_vars
-        assert builder["export_vars"] == export_vars
-
-        if exp_paths:
-            for dir in exp_paths:
-                exp_dir = join(library_dir, dir, "bin")
-                assert ps_act.path_conversion(exp_dir) in paths
-
-        if no_paths:
-            for dir in no_paths:
-                exp_dir = join(library_dir, dir, "bin")
-                assert ps_act.path_conversion(exp_dir) not in paths
+MINGW_W64 = ["mingw-w64"]
+UCRT64 = ["ucrt64"]
+CLANG64 = ["clang64"]
+MINGW64 = ["mingw64"]
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_nothing(reset_environ: None):
-    # No Library/* => Library/mingw-w64/bin
-    assert_MSYS2_PATH(None, ["mingw-w64"], ["ucrt64"])
+@pytest.mark.parametrize(
+    "create,expected,unexpected",
+    [
+        # No Library/* => Library/mingw-w64/bin
+        pytest.param([], MINGW_W64, UCRT64, id="nothing"),
+        # Library/mingw-w64 => Library/mingw-w64/bin
+        pytest.param(MINGW_W64, MINGW_W64, UCRT64, id="legacy"),
+        # Library/ucrt64 => Library/ucrt64/bin
+        pytest.param(UCRT64, UCRT64 + MINGW_W64, CLANG64, id="ucrt64"),
+        # Library/ucrt64 and Library/mingw-w64 => Library/ucrt64/bin
+        pytest.param(
+            UCRT64 + MINGW_W64,
+            UCRT64 + MINGW_W64,
+            CLANG64,
+            id="ucrt64 legacy",
+        ),
+        # Library/clang64 and Library/mingw-w64 => Library/clang64/bin
+        pytest.param(
+            CLANG64 + MINGW_W64,
+            CLANG64 + MINGW_W64,
+            UCRT64,
+            id="clang64 legacy",
+        ),
+        # Library/ucrt64 and Library/clang64 => Library/ucrt64/bin
+        pytest.param(
+            UCRT64 + CLANG64,
+            UCRT64 + MINGW_W64,
+            CLANG64,
+            id="ucrt64 clang64",
+        ),
+        # Library/clang64 and Library/mingw64 => Library/clang64/bin
+        pytest.param(
+            CLANG64 + MINGW64,
+            CLANG64 + MINGW_W64,
+            MINGW64,
+            id="clang64 mingw64",
+        ),
+        # Library/mingw64 and Library/mingw-w64 => Library/mingw64/bin
+        pytest.param(
+            MINGW64 + MINGW_W64,
+            MINGW64 + MINGW_W64,
+            UCRT64,
+            id="mingw64 legacy",
+        ),
+    ],
+)
+@pytest.mark.parametrize("activator_cls", [CmdExeActivator, PowerShellActivator])
+def test_MSYS2_PATH(
+    tmp_env: TmpEnvFixture,
+    create: list[str],
+    expected: list[str],
+    unexpected: list[str],
+    activator_cls: type[_Activator],
+) -> None:
+    with tmp_env() as prefix:
+        # create MSYS2 directories
+        (library := prefix / "Library").mkdir()
+        for path in create:
+            (library / path / "bin").mkdir(parents=True)
 
+        activator = activator_cls()
+        paths = activator._replace_prefix_in_path(str(prefix), str(prefix))
 
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_legacy(reset_environ: None):
-    # Library/mingw-w64 => Library/mingw-w64/bin
-    assert_MSYS2_PATH(["mingw-w64"], ["mingw-w64"], ["ucrt64"])
+        # ensure expected bin directories are included in %PATH%/$env:PATH
+        for path in expected:
+            assert activator.path_conversion(str(library / path / "bin")) in paths
 
-
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_ucrt64(reset_environ: None):
-    # Library/ucrt64 => Library/ucrt64/bin
-    assert_MSYS2_PATH(["ucrt64"], ["ucrt64", "mingw-w64"], ["clang64"])
-
-
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_ucrt64_legacy(reset_environ: None):
-    # Library/ucrt64 and Library/mingw-w64 => Library/ucrt64/bin
-    assert_MSYS2_PATH(["ucrt64", "mingw-w64"], ["ucrt64", "mingw-w64"], ["clang64"])
-
-
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_clang64_legacy(reset_environ: None):
-    # Library/clang64 and Library/mingw-w64 => Library/clang64/bin
-    assert_MSYS2_PATH(["clang64", "mingw-w64"], ["clang64", "mingw-w64"], ["ucrt64"])
-
-
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_ucrt64_clang64(reset_environ: None):
-    # Library/ucrt64 and Library/clang64 => Library/ucrt64/bin
-    assert_MSYS2_PATH(["ucrt64", "clang64"], ["ucrt64", "mingw-w64"], ["clang64"])
-
-
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_clang64_mingw64(reset_environ: None):
-    # Library/clang64 and Library/mingw64 => Library/clang64/bin
-    assert_MSYS2_PATH(["clang64", "mingw64"], ["clang64", "mingw-w64"], ["mingw64"])
-
-
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_MSYS2_PATH_from_mingw64_legacy(reset_environ: None):
-    # Library/mingw64 and Library/mingw-w64 => Library/mingw64/bin
-    assert_MSYS2_PATH(["mingw64", "mingw-w64"], ["mingw64", "mingw-w64"], ["ucrt64"])
+        # ensure unexpected bin directories are not included in %PATH%/$env:PATH
+        for path in unexpected:
+            assert activator.path_conversion(str(library / path / "bin")) not in paths
