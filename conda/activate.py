@@ -619,8 +619,6 @@ class _Activator(metaclass=abc.ABCMeta):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
 
-            msystem = False
-
             # We need to stat(2) for possible environments because
             # tests can't be told where to look!
             #
@@ -628,18 +626,16 @@ class _Activator(metaclass=abc.ABCMeta):
             #
             # We could include clang32 and mingw32 variants
             variants = []
-            for pmsystem in ["ucrt64", "clang64", "mingw64", "clangarm64"]:
-                pdir = self.sep.join((prefix, "Library", pmsystem))
+            for variant in ["ucrt64", "clang64", "mingw64", "clangarm64"]:
+                path = self.sep.join((prefix, "Library", variant))
 
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
                 if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
-                    pdir = unix_path_to_native(pdir)
+                    path = unix_path_to_native(path)
 
-                if isdir(pdir):
-                    variants.append(pmsystem)
-                    if not msystem:
-                        msystem = pmsystem
+                if isdir(path):
+                    variants.append(variant)
 
             if len(variants) > 1:
                 print(
@@ -651,8 +647,8 @@ class _Activator(metaclass=abc.ABCMeta):
                     file=sys.stderr,
                 )
 
-            if msystem:
-                yield self.sep.join((prefix, "Library", msystem, "bin"))
+            if variants:
+                yield self.sep.join((prefix, "Library", variants[0], "bin"))
 
             yield self.sep.join((prefix, "Library", "mingw-w64", "bin"))
             yield self.sep.join((prefix, "Library", "usr", "bin"))
