@@ -21,6 +21,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
+from functools import wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
@@ -1604,3 +1605,43 @@ class Configuration(metaclass=ConfigurationType):
 
     def get_descriptions(self):
         raise NotImplementedError()
+
+
+def unique_sequence_map(*, unique_key: str):
+    """
+    Used to validate properties on :class:`Configuration` subclasses defined as a
+    ``SequenceParameter(MapParameter())`` where the map contains a single key that
+    should be regarded as unique. This decorator will handle removing duplicates and
+    merging to a single sequence.
+    """
+
+    def inner_wrap(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            sequence_map = func(*args, **kwargs)
+            new_sequence_mapping = {}
+
+            for mapping in sequence_map:
+                unique_key_value = mapping.get(unique_key)
+
+                if unique_key_value is None:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; unique key '
+                        f'"{unique_key}" not present on mapping'
+                    )
+                    continue
+
+                if unique_key_value in new_sequence_mapping:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; value '
+                        f'"{unique_key_value}" already present'
+                    )
+                    continue
+
+                new_sequence_mapping[unique_key_value] = mapping
+
+            return tuple(new_sequence_mapping.values())
+
+        return wrapper
+
+    return inner_wrap
