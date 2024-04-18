@@ -26,7 +26,6 @@ from boltons.setutils import IndexedSet
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
-from .._vendor.frozendict import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..common._os.linux import linux_get_libc_version
@@ -41,6 +40,7 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    unique_sequence_map,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -73,13 +73,17 @@ from .constants import (
     UpdateModifier,
 )
 
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
+
 if TYPE_CHECKING:
     from pathlib import Path
     from typing import Literal
 
     from ..common.configuration import Parameter, RawParameter
     from ..plugins.manager import CondaPluginManager
-
 
 try:
     os.getcwd()
@@ -333,6 +337,11 @@ class Context(Configuration):
 
     add_anaconda_token = ParameterLoader(
         PrimitiveParameter(True), aliases=("add_binstar_token",)
+    )
+
+    _reporters = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
+        aliases=("reporters",),
     )
 
     ####################################################
@@ -1166,6 +1175,25 @@ class Context(Configuration):
         info = _get_cpu_info()
         return info["flags"]
 
+    @memoizedproperty
+    @unique_sequence_map(unique_key="backend")
+    def reporters(self) -> tuple[Mapping[str, str]]:
+        """
+        Determine the value of reporters based on other settings and the ``self._reporters``
+        value itself.
+        """
+        if not self._reporters:
+            return (
+                {
+                    "backend": "json" if self.json else "console",
+                    "output": "stdout",
+                    "verbosity": self.verbosity,
+                    "quiet": self.quiet,
+                },
+            )
+
+        return self._reporters
+
     @property
     def category_map(self):
         return {
@@ -1292,6 +1320,7 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
+                "reporters",
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1669,6 +1698,12 @@ class Context(Configuration):
             quiet=dals(
                 """
                 Disable progress bar display and other output.
+                """
+            ),
+            reporters=dals(
+                """
+                A list of mappings that allow the configuration of one or more output streams
+                (e.g. stdout or file).
                 """
             ),
             remote_connect_timeout_secs=dals(
@@ -2110,7 +2145,7 @@ def _first_writable_envs_dir():
                 open(envs_dir_magic_file, "a").close()
                 return envs_dir
             except OSError:
-                log.trace("Tried envs_dir but not writable: %s", envs_dir)
+                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
         else:
             from ..gateways.disk.create import create_envs_directory
 

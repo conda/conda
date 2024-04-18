@@ -200,40 +200,33 @@ def install(args, parser, command="install"):
                 "Creating new environment for a non-native platform %s",
                 context.subdir,
             )
-    else:
-        if isdir(prefix):
-            delete_trash(prefix)
-            if not isfile(join(prefix, "conda-meta", "history")):
-                if paths_equal(prefix, context.conda_prefix):
-                    raise NoBaseEnvironmentError()
-                else:
-                    if not path_is_clean(prefix):
-                        raise DirectoryNotACondaEnvironmentError(prefix)
+    elif isdir(prefix):
+        delete_trash(prefix)
+        if not isfile(join(prefix, "conda-meta", "history")):
+            if paths_equal(prefix, context.conda_prefix):
+                raise NoBaseEnvironmentError()
             else:
-                # fall-through expected under normal operation
-                pass
+                if not path_is_clean(prefix):
+                    raise DirectoryNotACondaEnvironmentError(prefix)
         else:
-            if hasattr(args, "mkdir") and args.mkdir:
-                try:
-                    mkdir_p(prefix)
-                except OSError as e:
-                    raise CondaOSError(
-                        "Could not create directory: %s" % prefix, caused_by=e
-                    )
-            else:
-                raise EnvironmentLocationNotFound(prefix)
+            # fall-through expected under normal operation
+            pass
+    elif getattr(args, "mkdir", False):
+        # --mkdir is deprecated and marked for removal in conda 25.3
+        try:
+            mkdir_p(prefix)
+        except OSError as e:
+            raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
+    else:
+        raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
-        # TODO: rework in 4.4 branch using MatchSpec
-        args_packages_names = [
-            pkg.replace(" ", "=").split("=", 1)[0] for pkg in args_packages
-        ]
-        for default_pkg in context.create_default_packages:
-            default_pkg_name = default_pkg.replace(" ", "=").split("=", 1)[0]
-            if default_pkg_name not in args_packages_names:
-                args_packages.append(default_pkg)
+        names = [MatchSpec(pkg).name for pkg in args_packages]
+        for default_package in context.create_default_packages:
+            if MatchSpec(default_package).name not in names:
+                args_packages.append(default_package)
 
     index_args = {
         "use_cache": args.use_index_cache,
