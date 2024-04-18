@@ -11,6 +11,7 @@ except ImportError:
     from .._vendor.frozendict import frozendict
 
 
+@deprecated("24.9", "25.3", addendum="Use `frozendict.deepfreeze` instead.")
 def make_immutable(value):
     # this function is recursive, and if nested data structures fold back on themselves,
     #   there will likely be recursion errors
