@@ -1,10 +1,20 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 import sys
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
 
-from conda.common.io import CaptureTarget, attach_stderr_handler, captured
+from pytest import CaptureFixture
+
+from conda.common.io import (
+    CaptureTarget,
+    ConsoleHandler,
+    JSONHandler,
+    StdoutHandler,
+    attach_stderr_handler,
+    captured,
+)
 
 
 def test_captured():
@@ -80,3 +90,31 @@ def test_attach_stderr_handler():
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message in c.stderr
+
+
+def test_console_handler():
+    test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
+    test_str = "a string value"
+    expected_table_str = "one   : value_one\ntwo   : value_two\nthree : value_three\n"
+    console_handler_object = ConsoleHandler()
+    table_str = console_handler_object.detail_view(test_data)
+
+    assert table_str == expected_table_str
+    assert console_handler_object.string_view(test_str) == test_str
+
+
+def test_json_handler():
+    test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
+    test_str = "a string value"
+    json_handler_object = JSONHandler()
+    assert json_handler_object.detail_view(test_data) == json.dumps(test_data)
+    assert json_handler_object.string_view(test_str) == json.dumps(test_str)
+
+
+def test_std_out_handler(capsys: CaptureFixture):
+    test_str = "a string value"
+    std_out_handler_object = StdoutHandler()
+    assert std_out_handler_object.name == "stdout"
+    std_out_handler_object.render(test_str)
+    stdout = capsys.readouterr()
+    assert test_str in stdout
