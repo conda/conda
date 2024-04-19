@@ -95,6 +95,31 @@ def register_env(location: str) -> None:
             raise
 
 
+def unregister_env(location: str) -> None:
+    """
+    Unregisters an environment by removing its entry from the environments.txt file if certain conditions are met.
+
+    The environment is only unregistered if its associated 'conda-meta' directory exists and contains no significant files other than 'history'. If these conditions are met, the environment's path is removed from environments.txt.
+
+    :param location: The file path of the environment to unregister.
+    :type location: str
+    :return: None
+    """
+    if isdir(location):
+        meta_dir = join(location, "conda-meta")
+        if isdir(meta_dir):
+            meta_dir_contents = tuple(entry.name for entry in os.scandir(meta_dir))
+            # Check if 'history' is the only file in the conda-meta directory
+            if len(meta_dir_contents) > 1 or (
+                len(meta_dir_contents) == 1 and meta_dir_contents[0] != "history"
+            ):
+                # More files other than 'history' exist, do not unregister
+                return
+
+    # Call to _clean_environments_txt to actually remove the entry
+    _clean_environments_txt(get_user_environments_txt_file(), location)
+
+
 def list_all_known_prefixes() -> list[str]:
     """
     Lists all known conda environment prefixes.
