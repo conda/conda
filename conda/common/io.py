@@ -703,13 +703,25 @@ class ReporterHandlerBase(ABC):
     """
 
     @abstractmethod
-    def detail_view(self, data: DetailRecord, **kwargs) -> str: ...
+    def detail_view(self, data: DetailRecord, **kwargs) -> str:
+        """
+        This method is responsible for generating the output in a "tabular" format.
+        """
+        ...
 
     @abstractmethod
-    def string_view(self, data: str, **kwargs) -> str: ...
+    def string_view(self, data: str, **kwargs) -> str:
+        """
+        This method returns simple string output.
+        """
+        ...
 
 
 class ConsoleHandler(ReporterHandlerBase):
+    """
+    Reporter handler for standard output (classic output).
+    """
+
     def detail_view(self, data: DetailRecord, **kwargs) -> str:
         table_str = ""
         longest_header = len(sorted(data.keys(), key=len).pop())
@@ -725,6 +737,10 @@ class ConsoleHandler(ReporterHandlerBase):
 
 
 class JSONHandler(ReporterHandlerBase):
+    """
+    Reporter handler for JSON output.
+    """
+
     def detail_view(self, data: DetailRecord, **kwargs) -> str:
         json_str = json.dumps(data)
 
@@ -758,7 +774,7 @@ class OutputHandlerBase(ABC):
 
 class StdoutHandler(OutputHandlerBase):
     """
-    Handles writing output strings to stdout
+    Handles writing output strings to stdout.
     """
 
     @property
@@ -771,8 +787,8 @@ class StdoutHandler(OutputHandlerBase):
 
 class ReporterManager:
     """
-    This is the glue that holds together our ``ReporterHandler`` implementations with our
-    ``OutputHandler`` implementations. We provide a single ``render`` method for rendering
+    This is the glue that holds together the ``ReporterHandler`` implementations with the
+    ``OutputHandler`` implementations. A single ``render`` method is provided for rendering
     our configured reporter handlers.
     """
 

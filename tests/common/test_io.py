@@ -95,6 +95,9 @@ def test_attach_stderr_handler():
 
 
 def test_console_handler():
+    """
+    Tests the ConsoleHandler ReporterHandler class
+    """
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
     test_str = "a string value"
     expected_table_str = "one   : value_one\ntwo   : value_two\nthree : value_three\n"
@@ -106,6 +109,9 @@ def test_console_handler():
 
 
 def test_json_handler():
+    """
+    Tests the JsonHandler ReporterHandler class
+    """
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
     test_str = "a string value"
     json_handler_object = JSONHandler()
@@ -114,6 +120,9 @@ def test_json_handler():
 
 
 def test_std_out_handler(capsys: CaptureFixture):
+    """
+    Tests the StdoutHandler OutputHandler class
+    """
     test_str = "a string value"
     std_out_handler_object = StdoutHandler()
     assert std_out_handler_object.name == "stdout"
@@ -123,6 +132,9 @@ def test_std_out_handler(capsys: CaptureFixture):
 
 
 def test_reporter_manager(capsys: CaptureFixture):
+    """
+    Tests the ReporterManager class
+    """
     reporters = (
         {"backend": "console", "output": "stdout"},
         {"backend": "json", "output": "stdout"},
