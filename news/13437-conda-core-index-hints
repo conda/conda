@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Added type hints and doc strings to `conda.core.index`. (#13816)
 
 ### Other
 
