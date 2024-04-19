@@ -694,7 +694,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
 
 
 Reporter = Dict[str, Union[bool, int, str]]
-DetailRecord = dict[str, Union[str, int, bool]]
+DetailRecord = Dict[str, Union[str, int, bool]]
 
 
 class ReporterHandlerBase(ABC):
