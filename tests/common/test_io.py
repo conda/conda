@@ -5,12 +5,14 @@ import sys
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
 
+import pytest
 from pytest import CaptureFixture
 
 from conda.common.io import (
     CaptureTarget,
     ConsoleHandler,
     JSONHandler,
+    ReporterManager,
     StdoutHandler,
     attach_stderr_handler,
     captured,
@@ -118,3 +120,36 @@ def test_std_out_handler(capsys: CaptureFixture):
     std_out_handler_object.render(test_str)
     stdout = capsys.readouterr()
     assert test_str in stdout
+
+
+def test_reporter_manager(capsys: CaptureFixture):
+    reporters = (
+        {"backend": "console", "output": "stdout"},
+        {"backend": "json", "output": "stdout"},
+    )
+    test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
+    test_str = "a string value"
+
+    # the expected output is output via ConsoleHandler.detail_view  plus JsonHandler.detail_view.
+    expected_detail_view_str = f"one   : value_one\ntwo   : value_two\nthree : value_three\n{json.dumps(test_data)}"
+    expected_string_view_str = f"a string value{json.dumps(test_str)}"
+
+    reporter_manager_object = ReporterManager(reporters)
+
+    # test detail view passes
+    reporter_manager_object.render("detail_view", test_data)
+    stdout = capsys.readouterr()
+    assert expected_detail_view_str in stdout
+
+    # test string view passes
+    reporter_manager_object.render("string_view", test_str)
+    stdout = capsys.readouterr()
+    assert expected_string_view_str in stdout
+
+    # test fails
+    with pytest.raises(AttributeError) as err:
+        reporter_manager_object.render("non_existent_view", test_data)
+    assert (
+        str(err.value)
+        == "'non_existent_view' is not a valid reporter handler component"
+    )
