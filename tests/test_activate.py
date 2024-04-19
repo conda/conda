@@ -33,6 +33,7 @@ from conda.activate import (
     _build_activator_cls,
     activator_map,
     native_path_to_unix,
+    unix_path_to_native,
 )
 from conda.auxlib.ish import dals
 from conda.base.constants import (
@@ -57,6 +58,7 @@ if TYPE_CHECKING:
     from typing import Callable, Iterable
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.activate import _Activator
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
@@ -1105,40 +1107,115 @@ def make_dot_d_files(prefix, extension):
     touch(join(prefix, "etc", "conda", "deactivate.d", f"deactivate1{extension}"))
 
 
+@pytest.mark.skipif(
+    not on_win, reason="native_path_to_unix is path_identity on non-windows"
+)
 @pytest.mark.parametrize(
-    "paths",
+    "paths,expected",
     [
-        pytest.param(None, id="None"),
-        pytest.param("", id="empty string"),
-        pytest.param((), id="empty tuple"),
-        pytest.param("path/number/one", id="single path"),
-        pytest.param(["path/number/one"], id="list with path"),
-        pytest.param(("path/number/one", "path/two", "three"), id="tuple with paths"),
+        # falsy
+        pytest.param(None, [None], id="None"),
+        pytest.param("", ["."], id="empty string"),
+        pytest.param((), [()], id="empty tuple"),
+        # native
+        pytest.param(
+            "C:\\path\\to\\One",
+            [
+                "/c/path/to/One",  # MSYS2
+                "/cygdrive/c/path/to/One",  # cygwin
+            ],
+            id="path",
+        ),
+        pytest.param(
+            ["C:\\path\\to\\One"],
+            [
+                ("/c/path/to/One",),  # MSYS2
+                ("/cygdrive/c/path/to/One",),  # cygwin
+            ],
+            id="list[path]",
+        ),
+        pytest.param(
+            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+            [
+                ("/c/path/to/One", "/c/path/Two", "//mount/Three"),  # MSYS2
+                (
+                    "/cygdrive/c/path/to/One",
+                    "/cygdrive/c/path/Two",
+                    "//mount/Three",
+                ),  # cygwin
+            ],
+            id="tuple[path, ...]",
+        ),
     ],
 )
-def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
-    def assert_unix_path(path):
-        return "\\" not in path and ":" not in path
+def test_native_path_to_unix(
+    mocker: MockerFixture,
+    paths: str | Iterable[str] | None,
+    expected: str | list[str] | None,
+) -> None:
+    # test with cygpath
+    assert native_path_to_unix(paths) in expected
 
-    # convert all path stubs to full paths (localized to current OS)
-    if not paths:
-        pass
-    elif isinstance(paths, str):
-        paths = str(tmp_path / paths)
-    else:
-        paths = tuple(str(tmp_path / path) for path in paths)
+    # test without cygpath
+    mocker.patch("subprocess.run", side_effect=FileNotFoundError)
+    assert native_path_to_unix(paths) in expected
 
-    # test that we receive a unix path
-    if isinstance(paths, str) and not paths:
-        assert native_path_to_unix(paths) == "."
-    elif not on_win:
-        assert native_path_to_unix(paths) == paths
-    elif paths is None:
-        assert native_path_to_unix(paths) is None
-    elif isinstance(paths, str):
-        assert assert_unix_path(native_path_to_unix(paths))
-    else:
-        assert all(assert_unix_path(path) for path in native_path_to_unix(paths))
+
+@pytest.mark.skipif(
+    not on_win, reason="native_path_to_unix is path_identity on non-windows"
+)
+@pytest.mark.parametrize(
+    "paths,expected",
+    [
+        # falsy
+        pytest.param(None, None, id="None"),
+        pytest.param("", ".", id="empty string"),
+        pytest.param((), (), id="empty tuple"),
+        # MSYS2
+        pytest.param(
+            "/c/path/to/One",
+            "C:\\path\\to\\One",
+            id="path (MSYS2)",
+        ),
+        pytest.param(
+            ["/c/path/to/One"],
+            ("C:\\path\\to\\One",),
+            id="list[path] (MSYS2)",
+        ),
+        pytest.param(
+            ("/c/path/to/One", "/c/path/Two", "//mount/Three"),
+            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+            id="tuple[path, ...] (MSYS2)",
+        ),
+        # cygwin
+        pytest.param(
+            "/cygdrive/c/path/to/One",
+            "C:\\path\\to\\One",
+            id="path (cygwin)",
+        ),
+        pytest.param(
+            ["/cygdrive/c/path/to/One"],
+            ("C:\\path\\to\\One",),
+            id="list[path] (cygwin)",
+        ),
+        pytest.param(
+            ("/cygdrive/c/path/to/One", "/cygdrive/c/path/Two", "//mount/Three"),
+            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+            id="tuple[path, ...] (cygwin)",
+        ),
+    ],
+)
+def test_unix_path_to_native(
+    mocker: MockerFixture,
+    paths: str | Iterable[str] | None,
+    expected: str | tuple[str, ...] | None,
+) -> None:
+    # test with cygpath
+    assert unix_path_to_native(paths) == expected
+
+    # test without cygpath
+    mocker.patch("subprocess.run", side_effect=FileNotFoundError)
+    assert unix_path_to_native(paths) == expected
 
 
 def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):

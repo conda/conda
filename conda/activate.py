@@ -892,17 +892,21 @@ def native_path_to_unix(
     try:
         # if present, use cygpath to convert paths since its more reliable
         unix_path = run(
-            [cygpath, "--path", joined],
+            [cygpath, "--unix", "--path", joined],
             text=True,
             capture_output=True,
             check=True,
         ).stdout.strip()
     except FileNotFoundError:
+        log.warning(
+            "cygpath not available, falling back to less reliable path conversion"
+        )
+
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
         def _translation(match):
             return "/" + (
-                match.group(1)
+                ((match.group("drive") or "").lower() + match.group("path"))
                 .replace("\\", "/")
                 .replace(":", "")
                 .replace("//", "/")
@@ -910,7 +914,15 @@ def native_path_to_unix(
             )
 
         unix_path = (
-            re.sub(r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)", _translation, joined)
+            re.sub(
+                r"""
+                (?P<drive>[a-z]:)?
+                (?P<path>[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)
+                """,
+                _translation,
+                joined,
+                flags=re.VERBOSE | re.IGNORECASE,
+            )
             .replace(";", ":")
             .rstrip(";")
         )
@@ -950,18 +962,22 @@ def unix_path_to_native(
     # expect the results to work with the other.  It does not.
 
     bash = which("bash")
-    cygpath = (Path(bash).parent / "cygpath") if bash else "cygpath"
+    cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
     joined = paths if isinstance(paths, str) else ":".join(paths)
 
     try:
         # if present, use cygpath to convert paths since its more reliable
         win_path = run(
-            [cygpath, "--windows", joined],
+            [cygpath, "--windows", "--path", joined],
             text=True,
             capture_output=True,
             check=True,
         ).stdout.strip()
     except FileNotFoundError:
+        log.warning(
+            "cygpath not available, falling back to less reliable path conversion"
+        )
+
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
         def _translation(found_path):
@@ -975,17 +991,21 @@ def unix_path_to_native(
 
         win_path = (
             re.sub(
-                r"([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)",
-                _translation,
-                joined,
+                r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)", _translation, joined
             )
             .replace(":/", ";/")
             .rstrip(";")
         )
+    except Exception as err:
+        log.error("Unexpected cygpath error (%s)", err)
+        raise
 
-    win_path = win_path.split(os.pathsep) if win_path else ()
-
-    return win_path[0] if isinstance(paths, str) else tuple(win_path)
+    if isinstance(paths, str):
+        return win_path
+    elif not win_path:
+        return ()
+    else:
+        return tuple(win_path.split(os.pathsep))
 
 
 def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
