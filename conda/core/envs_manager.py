@@ -109,14 +109,11 @@ def unregister_env(location: str) -> None:
         meta_dir = join(location, "conda-meta")
         if isdir(meta_dir):
             meta_dir_contents = tuple(entry.name for entry in os.scandir(meta_dir))
-            # Check if 'history' is the only file in the conda-meta directory
-            if len(meta_dir_contents) > 1 or (
-                len(meta_dir_contents) == 1 and meta_dir_contents[0] != "history"
-            ):
-                # More files other than 'history' exist, do not unregister
+            if len(meta_dir_contents) > 1:
+                # if there are any files left other than 'conda-meta/history'
+                #   then don't unregister
                 return
 
-    # Call to _clean_environments_txt to actually remove the entry
     _clean_environments_txt(get_user_environments_txt_file(), location)
 
 
