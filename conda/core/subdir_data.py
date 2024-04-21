@@ -13,18 +13,7 @@ from logging import getLogger
 from os.path import exists, join, splitext
 from pathlib import Path
 from time import time
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 from genericpath import getmtime, isfile
@@ -58,6 +47,7 @@ from .index import PackageRef
 
 if TYPE_CHECKING:
     from ..gateways.repodata import RepodataCache, RepoInterface
+    from typing import Any, Dict, Generator, Iterable, Iterator, Optional, Tuple, Type
 
 log = getLogger(__name__)
 
@@ -94,11 +84,10 @@ class SubdirDataType:
     :return: A SubdirData instance.
     :rtype: SubdirData
     """
-
     def __call__(cls, channel: Channel, repodata_fn: str = REPODATA_FN) -> SubdirData:
         """
         Returns a SubdirData instance for the given channel and repodata_fn.
-
+        
         :param channel: The channel object.
         :type channel: Channel
         :param repodata_fn: The name of the repodata file. Defaults to REPODATA_FN.
@@ -140,16 +129,15 @@ class PackageRecordList(UserList):
     PackageRecord object and stores it in the data list.
 
     :param data: The list of items.
-    :type data: List[Union[Dict[str, Any], PackageRecord]]
+    :type data: List[dict[str, Any] | PackageRecord]
     """
-
-    def __getitem__(self, i: int) -> PackageRecord:
+    def __getitem__(self, i: int) -> "PackageRecord":
         """
         Returns the PackageRecord at index i. If i is a slice, returns a new instance of
         PackageRecordList containing the PackageRecords at the indices in i. If the PackageRecord
         at index i is not already an instance of PackageRecord, it is converted to one and stored
         back in the data list.
-
+        
         :param i: An integer or slice object indicating the index or indices of the PackageRecord(s)
                   to be returned.
         :type i: int or slice
@@ -181,8 +169,7 @@ class SubdirData(metaclass=SubdirDataType):
     :return: A SubdirData instance.
     :rtype: SubdirData
     """
-
-    _cache_: Dict[Tuple[str, str], Union[PackageRecordList, SubdirData]] = {}
+    _cache_: dict[tuple[str, str], "PackageRecordList" | "SubdirData"] = {}
 
     @classmethod
     def clear_cached_local_channel_data(cls, exclude_file: bool = True) -> None:
@@ -208,26 +195,26 @@ class SubdirData(metaclass=SubdirDataType):
 
     @staticmethod
     def query_all(
-        package_ref_or_match_spec: Union[PackageRef, MatchSpec, str],
-        channels: Optional[Iterable[Union[Channel, str]]] = None,
-        subdirs: Optional[Iterable[str]] = None,
-        repodata_fn: str = REPODATA_FN,
-    ) -> Tuple[PackageRecord, ...]:
+    package_ref_or_match_spec: PackageRef | MatchSpec | str,
+    channels: Optional[Iterable[Channel | str]] = None,
+    subdirs: Optional[Iterable[str]] = None,
+    repodata_fn: str = REPODATA_FN,
+) -> tuple[PackageRecord, ...]:
         """
         Executes a query against all repodata instances in the channel/subdir matrix.
-
+        
         :param package_ref_or_match_spec: Either an exact `PackageRef` to match against, or a `MatchSpec` query object.  A `str` will be turned into a `MatchSpec` automatically.
-        :type package_ref_or_match_spec: Union[PackageRef, MatchSpec, str]
+        :type package_ref_or_match_spec: PackageRef | MatchSpec | str
         :param channels: An iterable of urls for channels or `Channel` objects. If None, will fall back to context.channels.
-        :type channels: Optional[Iterable[Union[Channel, str]]]
+        :type channels: Optional[Iterable[Channel | str]]
         :param subdirs: If None, will fall back to context.subdirs.
         :type subdirs: Optional[Iterable[str]]
         :param repodata_fn: The filename of the repodata.
         :type repodata_fn: str
         :return: A tuple of `PackageRecord` objects.
-        :rtype: Tuple[PackageRecord, ...]
+        :rtype: tuple[PackageRecord, ...]
         """
-
+    
         from .index import check_allowlist  # TODO: fix in-line import
 
         # ensure that this is not called by threaded code
@@ -249,14 +236,14 @@ class SubdirData(metaclass=SubdirDataType):
 
         check_allowlist(channel_urls)
 
-        def subdir_query(url: str) -> Tuple[PackageRecord, ...]:
+        def subdir_query(url: str) -> tuple[PackageRecord, ...]:
             """
             Queries the SubdirData for a given URL and returns a tuple of PackageRecord objects.
 
             :param url: The URL of the SubdirData to query.
             :type url: str
             :return: A tuple of PackageRecord objects representing the query results.
-            :rtype: Tuple[PackageRecord, ...]
+            :rtype: tuple[PackageRecord, ...]
             """
             return tuple(
                 SubdirData(Channel(url), repodata_fn=repodata_fn).query(
@@ -278,14 +265,12 @@ class SubdirData(metaclass=SubdirDataType):
             )
         return result
 
-    def query(
-        self, package_ref_or_match_spec: Union[str, MatchSpec]
-    ) -> Generator[PackageRecord, None, None]:
+    def query(self, package_ref_or_match_spec: str | MatchSpec) -> Generator[PackageRecord, None, None]:
         """
         A function that queries for a specific package reference or MatchSpec object.
-
+        
         :param package_ref_or_match_spec: The package reference or MatchSpec object to query.
-        :type package_ref_or_match_spec: Union[str, MatchSpec]
+        :type package_ref_or_match_spec: str | MatchSpec]
         :return: A generator yielding PackageRecord objects.
         :rtype: Generator[PackageRecord, None, None]
         """
@@ -314,11 +299,11 @@ class SubdirData(metaclass=SubdirDataType):
         self,
         channel: Channel,
         repodata_fn: str = REPODATA_FN,
-        RepoInterface: Type[RepoInterface] = CondaRepoInterface,
+        RepoInterface: Type[RepoInterface] = CondaRepoInterface
     ) -> None:
         """
         Initializes a new instance of the SubdirData class.
-
+        
         :param channel: The channel object.
         :type channel: Channel
         :param repodata_fn: The repodata filename.
@@ -349,9 +334,9 @@ class SubdirData(metaclass=SubdirDataType):
     def _repo(self) -> RepoInterface:
         """
         Changes as we mutate self.repodata_fn.
-
+        
         Returns the RepoInterface object.
-
+        
         :return: The RepoInterface object.
         :rtype: RepoInterface
         """
@@ -384,7 +369,7 @@ class SubdirData(metaclass=SubdirDataType):
             repo_interface_cls=self.RepoInterface,
         )
 
-    def reload(self) -> SubdirData:
+    def reload(self) -> 'SubdirData':
         """
         Update the instance with new information.
 
@@ -440,7 +425,7 @@ class SubdirData(metaclass=SubdirDataType):
     def cache_path_state(self) -> str:
         """
         Out-of-band etag and other state needed by the RepoInterface.
-
+        
         Get the path to the cache state file.
 
         This method returns the path to the cache state file.
@@ -532,14 +517,14 @@ class SubdirData(metaclass=SubdirDataType):
         for i in self._names_index[name]:
             yield self._package_records[i]
 
-    def _load(self) -> Dict[str, Any]:
+    def _load(self) -> dict[str, Any]:
         """
         Try to load repodata. If e.g. we are downloading
         `current_repodata.json`, fall back to `repodata.json` when the former is
         unavailable.
 
         :return: A dictionary containing the loaded repodata.
-        :rtype: Dict[str, Any]
+        :rtype: dict[str, Any]
         """
         try:
             fetcher = self.repo_fetch
@@ -570,14 +555,14 @@ class SubdirData(metaclass=SubdirDataType):
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
 
-    def _read_local_repodata(self, state: RepodataState) -> Dict[str, Any]:
+    def _read_local_repodata(self, state: RepodataState) -> dict[str, Any]:
         """
         Read local repodata from the cache and process it.
 
         :param state: The repodata state.
         :type state: RepodataState
         :return: A dictionary containing the processed repodata.
-        :rtype: Dict[str, Any]
+        :rtype: dict[str, Any]
         """
         # first try reading pickled data
         _pickled_state = self._read_pickled(state)
@@ -591,20 +576,18 @@ class SubdirData(metaclass=SubdirDataType):
         self._pickle_me()
         return _internal_state
 
-    def _pickle_valid_checks(
-        self, pickled_state: Dict[str, Any], mod: str, etag: str
-    ) -> Generator[Tuple[str, Any, Any], None, None]:
+    def _pickle_valid_checks(self, pickled_state: dict[str, Any], mod: str, etag: str) -> Generator[tuple[str, Any, Any], None, None]:
         """
         Throw away the pickle if these don't all match.
 
         :param pickled_state: The pickled state to compare against.
-        :type pickled_state: Dict[str, Any]
+        :type pickled_state: dict[str, Any]
         :param mod: The modification information to check.
         :type mod: str
         :param etag: The etag to compare against.
         :type etag: str
         :return: A generator that yields tuples of the form (check_name, pickled_value, current_value).
-        :rtype: Generator[Tuple[str, Any, Any], None, None]
+        :rtype: Generator[tuple[str, Any, Any], None, None]
         """
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
@@ -622,14 +605,14 @@ class SubdirData(metaclass=SubdirDataType):
         )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
-    def _read_pickled(self, state: RepodataState) -> Optional[Dict[str, Any]]:
+    def _read_pickled(self, state: RepodataState) -> Optional[dict[str, Any]]:
         """
         Read pickled repodata from the cache and process it.
 
         :param state: The repodata state.
         :type state: RepodataState
         :return: A dictionary containing the processed pickled repodata, or None if the repodata is not pickled.
-        :rtype: Optional[Dict[str, Any]]
+        :rtype: Optional[dict[str, Any]]
         """
         if not isinstance(state, RepodataState):
             state = RepodataState(
@@ -658,7 +641,7 @@ class SubdirData(metaclass=SubdirDataType):
             Generate a list of checks to verify the validity of a pickled state.
 
             :return: A list of tuples, where each tuple contains a check name, the value from the pickled state, and the current value.
-            :rtype: List[Tuple[str, Any, Any]]
+            :rtype: List[tuple[str, Any, Any]]
             """
             return self._pickle_valid_checks(_pickled_state, state.mod, state.etag)
 
@@ -688,9 +671,9 @@ class SubdirData(metaclass=SubdirDataType):
         self,
         raw_repodata_str: str,
         state: RepodataState | None = None,
-    ) -> Iterator[Tuple[str, str, str]]:
+    ) -> Iterator[tuple[str, str, str]]:
         """State contains information that was previously in-band in raw_repodata_str.
-
+        
         Process the raw repodata string and yield the results of checking the validity of a pickled state.
 
         :param raw_repodata_str: The raw repodata string.
@@ -699,23 +682,21 @@ class SubdirData(metaclass=SubdirDataType):
         :return: An iterator that yields tuples containing the results of checking the validity of a pickled state.
                 Each tuple contains three strings: the left side of the comparison, the right side of the comparison,
                 and the result of the comparison (True if equal, False otherwise).
-        :rtype: Iterator[Tuple[str, str, str]]
+        :rtype: Iterator[tuple[str, str, str]]
         """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(
-        self, repodata: Dict[str, Any], state: Optional[RepodataState] = None
-    ) -> Dict[str, Any]:
+    def _process_raw_repodata(self, repodata: dict[str, Any], state: Optional[RepodataState] = None) -> dict[str, Any]:
         """
         Process the raw repodata dictionary and return the processed repodata.
 
         :param repodata: The raw repodata dictionary.
-        :type repodata: Dict[str, Any]
+        :type repodata: dict[str, Any]
         :param state: The repodata state. Defaults to None.
         :type state: Optional[RepodataState]
         :return: A dictionary containing the processed repodata.
-        :rtype: Dict[str, Any]
+        :rtype: dict[str, Any]
         """
         if not isinstance(state, RepodataState):
             state = RepodataState(
