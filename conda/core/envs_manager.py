@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-def get_user_environments_txt_file(userhome: str) -> str:
+def get_user_environments_txt_file(userhome: str = "~") -> str:
     """
     Gets the path to the user's environments.txt file.
 
@@ -36,7 +36,7 @@ def get_user_environments_txt_file(userhome: str) -> str:
     return expand(join(userhome, ".conda", "environments.txt"))
 
 
-def register_env(location: str = "~") -> None:
+def register_env(location: str) -> None:
     """
     Registers an environment by adding it to environments.txt file.
 
