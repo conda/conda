@@ -74,7 +74,7 @@ def get_cache_control_max_age(cache_control_value: str) -> int:
     return _get_cache_control_max_age(cache_control_value)
 
 
-class SubdirDataType:
+class SubdirDataType(type):
     """
     A class representing the SubdirDataType.
 
