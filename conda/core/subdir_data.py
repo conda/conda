@@ -43,12 +43,13 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from .index import PackageRef
 
 if TYPE_CHECKING:
     from typing import Any, Generator, Iterable, Iterator, Optional, Type
 
     from ..gateways.repodata import RepodataCache, RepoInterface
+
+    from .index import PackageRef
 
 log = getLogger(__name__)
 
@@ -305,7 +306,7 @@ class SubdirData(metaclass=SubdirDataType):
         self,
         channel: Channel,
         repodata_fn: str = REPODATA_FN,
-        RepoInterface: Type[RepoInterface] = CondaRepoInterface,
+        RepoInterface: type[RepoInterface] = CondaRepoInterface,
     ) -> None:
         """
         Initializes a new instance of the SubdirData class.
