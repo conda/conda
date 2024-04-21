@@ -45,10 +45,9 @@ from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from typing import Any, Generator, Iterable, Iterator, Optional, Type
+    from typing import Any, Generator, Iterable, Iterator, Optional
 
     from ..gateways.repodata import RepodataCache, RepoInterface
-
     from .index import PackageRef
 
 log = getLogger(__name__)
