@@ -71,7 +71,7 @@ def update_prefix(
     new_prefix: str,
     placeholder: str = PREFIX_PLACEHOLDER,
     mode: FileMode = FileMode.text,
-    subdir: str = context.subdir
+    subdir: str = context.subdir,
 ) -> None:
     """
     Update the prefix in a file or directory.
@@ -270,7 +270,9 @@ def has_pyzzer_entry_point(data: bytes) -> bool:
     return pos >= 0
 
 
-def replace_pyzzer_entry_point_shebang(all_data: bytes, placeholder: bytes, new_prefix: str) -> bytes:
+def replace_pyzzer_entry_point_shebang(
+    all_data: bytes, placeholder: bytes, new_prefix: str
+) -> bytes:
     """
     Code adapted from pyzzer. This is meant to deal with entry point exe's created by distlib,
     which consist of a launcher, then a shebang, then a zip archive of the entry point code to run.
@@ -364,7 +366,9 @@ def replace_long_shebang(mode: FileMode, data: bytes) -> bytes:
     return data
 
 
-def generate_shebang_for_entry_point(executable: str, with_usr_bin_env: bool = False) -> str:
+def generate_shebang_for_entry_point(
+    executable: str, with_usr_bin_env: bool = False
+) -> str:
     """
     This function can be used to generate a shebang line for Python entry points.
 
