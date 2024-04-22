@@ -513,7 +513,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        uses: actions/download-artifact@8caf195ad4b1dee92908e23f56eeb0696f1dd42d
 
       - name: Upload Combined Test Results
         # provides one downloadable archive of all matrix run test results for further analysis
