@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from collections import UserDict
 from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -48,6 +49,90 @@ def check_allowlist(channel_urls: list[str]) -> None:
                 raise ChannelNotAllowed(Channel(url))
 
 
+class Index(UserDict):
+    def __init__(
+        self,
+        channels=(),
+        prepend=True,
+        platform=None,
+        use_local=False,
+        use_cache=False,
+        unknown=None,
+        prefix=None,
+        repodata_fn=context.repodata_fns[-1],
+    ) -> None:
+        if use_local:
+            channels = ["local"] + list(channels)
+        if prepend:
+            channels += context.channels
+        subdirs = (platform, "noarch") if platform is not None else context.subdirs
+        self.channels = {}
+        for channel in channels:
+            urls = Channel(channel).urls(True, subdirs)
+            check_allowlist(urls)
+            self.channels[channel] = [
+                SubdirData(Channel(url), repodata_fn=repodata_fn)
+                for url in urls
+            ]
+        self.prefix = PrefixData(prefix) if prefix else None
+        # if context.offline and unknown is None:
+        #     supplement cache
+        # if context.track_features:
+        #     supplement features
+
+    @property
+    def data(self):
+        try:
+            return self._data
+        except AttributeError:
+            self._realize()
+            return self._data
+
+    def _realize(self):
+        _data = {}
+        for subdir_datas in self.channels.values():
+            for subdir_data in subdir_datas:
+                _data.update((prec, prec) for prec in subdir_data.iter_records())
+        self._data = _data
+
+    def __getitem__(self, key):
+        assert isinstance(key, PackageRecord)
+        prec = None
+        for subdir_datas in reversed(self.channels.values()):
+            for subdir_data in subdir_datas:
+                if key.subdir != subdir_data.channel.subdir:
+                    continue
+                prec_candidates = list(subdir_data.query(key))
+                if not prec_candidates:
+                    continue
+                if len(prec_candidates) != 1:
+                    print(prec_candidates)
+                assert len(prec_candidates) == 1
+                prec = prec_candidates[0]
+                if prec:
+                    break
+            if prec:
+                break
+        prefix_prec = self.prefix.get(key) if self.prefix else None
+        if prefix_prec:
+            if prec:
+                if prec.channel == prefix_prec.channel:
+                    link = prefix_prec.get("link") or EMPTY_LINK
+                    prec = PrefixRecord.from_objects(
+                        prec, prefix_prec, link=link
+                    )
+                else:
+                    prefix_channel = prefix_prec.channel
+                    prefix_channel._Channel__canonical_name = prefix_channel.url()
+                    del prefix_prec._PackageRecord__pkey
+                    prec = prefix_prec
+            else:
+                prec = prefix_prec
+        if prec is None:
+            raise KeyError()
+        return prec
+
+
 LAST_CHANNEL_URLS = []
 
 
@@ -79,6 +164,7 @@ def get_index(
     :param repodata_fn: Filename of the repodata file.
     :return: A dictionary representing the package index.
     """
+    return Index(channel_urls, prepend, platform, use_local, use_cache, unknown, prefix, repodata_fn)
     initialize_logging()  # needed in case this function is called directly as a public API
 
     if context.offline and unknown is None:
