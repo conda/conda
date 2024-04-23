@@ -23,7 +23,6 @@ from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
-from typing import Dict, Union
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
@@ -693,8 +692,8 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             os.makedirs(dirname(self.record_file))
 
 
-Reporter = Dict[str, Union[bool, int, str]]
-DetailRecord = Dict[str, Union[str, int, bool]]
+Reporter = dict[str, bool | int | str]
+DetailRecord = dict[str, str | int | bool]
 
 
 class ReporterHandlerBase(ABC):
@@ -705,14 +704,14 @@ class ReporterHandlerBase(ABC):
     @abstractmethod
     def detail_view(self, data: DetailRecord, **kwargs) -> str:
         """
-        This method is responsible for generating the output in a "tabular" format.
+        Render the output in a "tabular" format.
         """
         ...
 
     @abstractmethod
     def string_view(self, data: str, **kwargs) -> str:
         """
-        This method returns simple string output.
+        Render a simple string.
         """
         ...
 
@@ -724,7 +723,7 @@ class ConsoleHandler(ReporterHandlerBase):
 
     def detail_view(self, data: DetailRecord, **kwargs) -> str:
         table_str = ""
-        longest_header = len(sorted(data.keys(), key=len).pop())
+        longest_header = max(map(len, data.keys()))
 
         for header, value in data.items():
             row_header = header.ljust(longest_header, " ")

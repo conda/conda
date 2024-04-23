@@ -159,9 +159,8 @@ def test_reporter_manager(capsys: CaptureFixture):
     assert expected_string_view_str in stdout
 
     # test fails
-    with pytest.raises(AttributeError) as err:
+    with pytest.raises(
+        AttributeError,
+        match="'non_existent_view' is not a valid reporter handler component",
+    ):
         reporter_manager_object.render("non_existent_view", test_data)
-    assert (
-        str(err.value)
-        == "'non_existent_view' is not a valid reporter handler component"
-    )
