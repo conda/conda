@@ -1,9 +1,5 @@
-@REM Copyright (C) 2012 Anaconda, Inc
-@REM SPDX-License-Identifier: BSD-3-Clause
-
-@REM echo _CE_CONDA is %_CE_CONDA%
-@REM echo _CE_M is %_CE_M%
-@REM echo CONDA_EXE is %CONDA_EXE%
+:: Copyright (C) 2012 Anaconda, Inc
+:: SPDX-License-Identifier: BSD-3-Clause
 
 @IF NOT DEFINED _CE_CONDA (
   @SET _CE_M=
