@@ -14,7 +14,6 @@
 @SET _args1_last=%_args1:~-1%
 @SET _args1_first=%_args1_first:"=+%
 @SET _args1_last=%_args1_last:"=+%
-@SET _args1=
 
 @IF [%_args1_first%]==[+] IF NOT [%_args1_last%]==[+] (
     @CALL "%~dp0\..\condabin\conda.bat" activate
@@ -24,6 +23,7 @@
 :: This may work if there are spaces in anything in %*
 @CALL "%~dp0\..\condabin\conda.bat" activate %*
 
-:: cleanup
+:CLEANUP
+@SET _args1=
 @SET _args1_first=
 @SET _args1_last=
