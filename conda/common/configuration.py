@@ -55,6 +55,9 @@ try:
         # leave enums as is, deepfreeze will flatten it into a dict
         # see https://github.com/Marco-Sulla/python-frozendict/issues/98
         _register(Enum, lambda x: x)
+
+    del _getFreezeTypes
+    del _register
 except ImportError:
     from .._vendor.frozendict import frozendict
     from ..auxlib.collection import make_immutable as deepfreeze
