@@ -4,7 +4,7 @@
 :: the latter as a 'conda hook' command.
 
 :: check if conda DOSKEY is already defined
-@DOSKEY /MACROS | @FINDSTR /R /C:"^conda="
+@DOSKEY /MACROS | @FINDSTR /R /C:"^conda=" > NUL
 @IF [%ERRORLEVEL%]==[0] GOTO :EOF
 
 :: get root & condabin
@@ -20,6 +20,6 @@
 @DOSKEY conda="%CONDA_BAT%" $*
 @SET CONDA_SHLVL=0
 
-:CLEANUP
+: cleanup
 @SET __condabin=
 @SET __condaroot=

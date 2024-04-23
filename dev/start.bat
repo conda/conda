@@ -74,8 +74,7 @@
 @SET "_BASEEXE=%_DEVENV%\Scripts\conda.exe"
 @SET "_ENVEXE=%_ENV%\Scripts\conda.exe"
 @SET "_PYTHONEXE=%_ENV%\python.exe"
-@SET "_CONDABAT=%_ENV%\condabin\conda.bat"
-@SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
+@SET "_CONDAHOOK=%_SRC%\conda\shell\condabin\conda_hook.bat"
 
 :: dry-run printout
 @IF [%_DRYRUN%]==[0] @GOTO :DRYRUN
@@ -165,11 +164,14 @@
 :: clear any previously configured conda DOSKEY
 @DOSKEY conda=
 @SET CONDA_SHLVL=
+:: use source code's conda_hook.bat so we can properly test changes to CMD.exe's activation scripts
 @CALL "%_CONDAHOOK%"
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to initialize shell integration 1>&2
     @EXIT /B 1
 )
+:: although we use the source code's conda_hook.bat we still need to use the installed conda.exe
+@SET "CONDA_EXE=%_ENVEXE%"
 
 :: activate env
 @ECHO Activating %_NAME%...
@@ -178,16 +180,14 @@
     @ECHO Error: failed to activate %_NAME% 1>&2
     @EXIT /B 1
 )
-@SET "CONDA_BAT=%_CONDABAT%"
-@DOSKEY conda="%CONDA_BAT%" $*
 
 :: "install" conda
+:: tricks conda.exe into importing from our source code and not from site-packages
 @SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
 
 :CLEANUP
 @SET _ARG=
 @SET _BASEEXE=
-@SET _CONDABAT=
 @SET _DEVENV=
 @SET _DRYRUN=
 @SET _ENV=
