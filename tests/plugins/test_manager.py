@@ -18,8 +18,9 @@ from conda.plugins.manager import CondaPluginManager
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
 
-# detect if this is an older pluggy
+# detect if this is an older/newer pluggy
 pluggy_v100 = Version(pluggy.__version__) <= Version("1.0.0")
+pluggy_v150 = Version(pluggy.__version__) >= Version("1.5.0")
 
 
 class VerboseSolver(solve.Solver):
@@ -131,7 +132,7 @@ def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
@@ -193,7 +194,7 @@ def test_disable_external_plugins(plugin_manager: CondaPluginManager, plugin: ob
     assert plugin_manager.load_plugins(plugin) == 1
     assert plugin_manager.get_plugins() == {plugin}
     plugin_manager.disable_external_plugins()
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
