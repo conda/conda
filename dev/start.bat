@@ -176,6 +176,7 @@
 :: activate env
 @ECHO Activating %_NAME%...
 @CALL conda activate "%_ENV%" > NUL
+@CALL conda activate "%_ENV%"
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to activate %_NAME% 1>&2
     @EXIT /B 1
@@ -209,7 +210,7 @@
 @SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
 @CALL %*
-@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B %ErrorLevel%
+@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B %ERRORLEVEL%
 
 :: restore %PATH%
 @SET "PATH=%_PATH%"
@@ -232,7 +233,7 @@
 @IF %_UPDATE%==0 @EXIT /B 0
 @IF NOT EXIST "%_UPDATED%" @EXIT /B 0
 @powershell.exe "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
-@EXIT /B %ErrorLevel%
+@EXIT /B %ERRORLEVEL%
 
 :DRYRUN
 :: dry-run printout
