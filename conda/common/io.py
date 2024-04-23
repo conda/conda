@@ -23,7 +23,7 @@ from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
-from typing import Union
+from typing import Dict, Union
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
@@ -693,8 +693,8 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             os.makedirs(dirname(self.record_file))
 
 
-Reporter = dict[str, Union[bool, int, str]]
-DetailRecord = dict[str, Union[str, int, bool]]
+Reporter = Dict[str, Union[bool, int, str]]
+DetailRecord = Dict[str, Union[str, int, bool]]
 
 
 class ReporterHandlerBase(ABC):
