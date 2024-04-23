@@ -8,34 +8,34 @@
 
 :: parse args
 :ARGS_LOOP
-@IF "%~1"=="" @GOTO :ARGS_END
+@IF [%~1]==[] @GOTO :ARGS_END
 
 :: convert to uppercase
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "'%~1'.toUpper()"`) DO @SET "_ARG=%%~I"
 
-@IF "%_ARG%"=="/P" (
+@IF [%_ARG%]==[/P] (
     @SET "_PYTHON=%~2"
     @SHIFT
     @SHIFT
     @GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/U" (
+@IF [%_ARG%]==[/U] (
     @SET "_UPDATE=0"
     @SHIFT
     @GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/D" (
+@IF [%_ARG%]==[/D] (
     @SET "_DEVENV=%~2"
     @SHIFT
     @SHIFT
     @GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/N" (
+@IF [%_ARG%]==[/N] (
     @SET "_DRYRUN=0"
     @SHIFT
     @GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/?" (
+@IF [%_ARG%]==[/?] (
     @ECHO Usage: %_SCRIPT% [options]
     @ECHO.
     @ECHO Options:
@@ -52,20 +52,20 @@
 :ARGS_END
 
 :: fallback to default values
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
-@IF "%_UPDATE%"=="" @SET "_UPDATE=1"
-@IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
+@IF NOT DEFINED _PYTHON @SET "_PYTHON=3.10"
+@IF NOT DEFINED _UPDATE @SET "_UPDATE=1"
+@IF NOT DEFINED _DRYRUN @SET "_DRYRUN=1"
 
 :: read devenv from ~\.condarc
-@IF "%_DEVENV%"=="" @CALL :CONDARC
+@IF NOT DEFINED _DEVENV @CALL :CONDARC
 :: fallback to devenv in source default
-@IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
+@IF NOT DEFINED _DEVENV @SET "_DEVENV=%_SRC%\devenv"
 :: installer location
 @SET "_INSTALLER=%_DEVENV%"
 :: include OS
 @SET "_DEVENV=%_DEVENV%\Windows"
 :: ensure exists
-@IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
+@IF [%_DRYRUN%]==[1] @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
 
 :: other environment variables
 @SET "_NAME=devenv-%_PYTHON%-c"
@@ -78,30 +78,31 @@
 @SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
 
 :: dry-run printout
-@IF %_DRYRUN%==0 @GOTO :DRYRUN
+@IF [%_DRYRUN%]==[0] @GOTO :DRYRUN
 
-:: deactivate any prior envs
-@IF "%CONDA_SHLVL%"=="" @GOTO DEACTIVATED
-@IF %CONDA_SHLVL%==0 @GOTO DEACTIVATED
+:: deactivate any prior envs (and unset CONDA_SHLVL)
+@IF NOT DEFINED CONDA_SHLVL @GOTO :DEACTIVATED
+@IF [%CONDA_SHLVL%]==[0] @GOTO :DEACTIVATED
 @ECHO Deactivating %CONDA_SHLVL% environment(s)...
 :DEACTIVATING
-@IF "%CONDA_SHLVL%"=="0" @GOTO DEACTIVATED
+@IF [%CONDA_SHLVL%]==[0] @GOTO :DEACTIVATED
 @CALL conda deactivate
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to deactivate environment^(s^) 1>&2
     @EXIT /B 1
 )
-@GOTO DEACTIVATING
+@GOTO :DEACTIVATING
 :DEACTIVATED
+@SET CONDA_SHLVL=
 
 :: does miniconda install exist?
-@IF EXIST "%_DEVENV%\conda-meta\history" @GOTO INSTALLED
+@IF EXIST "%_DEVENV%\conda-meta\history" @GOTO :INSTALLED
 
 :: downloading miniconda
-@IF EXIST "%_INSTALLER%\miniconda.exe" @GOTO DOWNLOADED
+@IF EXIST "%_INSTALLER%\miniconda.exe" @GOTO :DOWNLOADED
 @ECHO Downloading miniconda...
 @powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_INSTALLER%\miniconda.exe' | Out-Null"
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to download miniconda 1>&2
     @EXIT /B 1
 )
@@ -110,7 +111,7 @@
 :: installing miniconda
 @ECHO Installing development environment...
 @START /wait "" "%_INSTALLER%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to install development environment 1>&2
     @EXIT /B 1
 )
@@ -119,11 +120,11 @@
 :INSTALLED
 
 :: create empty env if it doesn't exist
-@IF EXIST "%_ENV%" @GOTO ENVEXISTS
+@IF EXIST "%_ENV%" @GOTO :ENVEXISTS
 @ECHO Creating %_NAME%...
 
 @CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to create %_NAME% 1>&2
     @EXIT /B 1
 )
@@ -131,11 +132,11 @@
 
 :: check if explicitly updating or if 24 hrs since last update
 @CALL :UPDATING
-@IF NOT %ErrorLevel%==0 @GOTO UPTODATE
+@IF NOT [%ERRORLEVEL%]==[0] @GOTO :UPTODATE
 @ECHO Updating %_NAME%...
 
 @CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to update development environment 1>&2
     @EXIT /B 1
 )
@@ -150,7 +151,7 @@
     "--file=%_SRC%\tests\requirements-ci.txt" ^
     "--file=%_SRC%\tests\requirements-Windows.txt" ^
     "python=%_PYTHON%" > NUL
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to update %_NAME% 1>&2
     @EXIT /B 1
 )
@@ -163,7 +164,7 @@
 :: initialize conda command
 @ECHO Initializing shell integration...
 @CALL "%_CONDAHOOK%"
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to initialize shell integration 1>&2
     @EXIT /B 1
 )
@@ -171,7 +172,7 @@
 :: activate env
 @ECHO Activating %_NAME%...
 @CALL conda activate "%_ENV%" > NUL
-@IF NOT %ErrorLevel%==0 (
+@IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to activate %_NAME% 1>&2
     @EXIT /B 1
 )
@@ -206,7 +207,7 @@
 @SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
 @CALL %*
-@IF NOT %ErrorLevel%==0 @EXIT /B %ErrorLevel%
+@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B %ErrorLevel%
 
 :: restore %PATH%
 @SET "PATH=%_PATH%"
@@ -219,7 +220,7 @@
 @IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
 :: check if devenv key is defined
 @FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
-@IF NOT %ErrorLevel%==0 @EXIT /B 1
+@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B 1
 :: read devenv key
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
 @GOTO :EOF
@@ -235,7 +236,7 @@
 :: dry-run printout
 @ECHO Python: %_PYTHON%
 @CALL :UPDATING
-@IF %ErrorLevel%==0 (
+@IF [%ERRORLEVEL%]==[0] (
     @ECHO Updating: [yes]
 ) ELSE (
     @ECHO Updating: [no]
