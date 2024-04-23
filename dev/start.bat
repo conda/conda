@@ -93,7 +93,6 @@
 )
 @GOTO :DEACTIVATING
 :DEACTIVATED
-@SET CONDA_SHLVL=
 
 :: does miniconda install exist?
 @IF EXIST "%_DEVENV%\conda-meta\history" @GOTO :INSTALLED
@@ -163,6 +162,9 @@
 
 :: initialize conda command
 @ECHO Initializing shell integration...
+:: clear any previously configured conda DOSKEY
+@DOSKEY conda=
+@SET CONDA_SHLVL=
 @CALL "%_CONDAHOOK%"
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to initialize shell integration 1>&2

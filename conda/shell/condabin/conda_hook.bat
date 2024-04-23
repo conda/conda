@@ -3,7 +3,9 @@
 :: The file name is conda_hook.bat rather than conda-hook.bat because conda will see
 :: the latter as a 'conda hook' command.
 
-@IF DEFINED CONDA_SHLVL GOTO :EOF
+:: check if conda DOSKEY is already defined
+@DOSKEY /MACROS | @FINDSTR /R /C:"^conda="
+@IF [%ERRORLEVEL%]==[0] GOTO :EOF
 
 :: get root & condabin
 @FOR %%P IN ("%~dp0\..") DO @SET "__condaroot=%%~fP"
