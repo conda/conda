@@ -53,7 +53,7 @@ LAST_CHANNEL_URLS = []
 
 @time_recorder("get_index")
 def get_index(
-    channel_urls: list[str] = (),
+    channel_urls: tuple[str] = (),
     prepend: bool = True,
     platform: str | None = None,
     use_local: bool = False,
@@ -222,7 +222,7 @@ def _make_virtual_package(
 
 
 def _supplement_index_with_features(
-    index: dict[Any, Any], features: list[str] = []
+    index: dict[PackageRecord, PackageRecord], features: list[str] = []
 ) -> None:
     """
     Supplement the given index with virtual feature records.
@@ -235,7 +235,7 @@ def _supplement_index_with_features(
         index[rec] = rec
 
 
-def _supplement_index_with_system(index: dict[Any, Any]) -> None:
+def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
     """
     Loads and populates virtual package records from conda plugins
     and adds them to the provided index, unless there is a naming
@@ -278,7 +278,7 @@ def get_archspec_name() -> str | None:
 
 
 def calculate_channel_urls(
-    channel_urls: list[str] = (),
+    channel_urls: tuple[str] = (),
     prepend: bool = True,
     platform: str | None = None,
     use_local: bool = False,
@@ -342,7 +342,7 @@ def get_reduced_index(
                 if ftr_name not in collected_track_features:
                     pending_track_features.add(ftr_name)
 
-    def push_record(record: Any) -> None:
+    def push_record(record: PackageRecord) -> None:
         """
         Process a package record to collect its dependencies and features.
 
