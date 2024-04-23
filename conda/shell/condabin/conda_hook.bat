@@ -15,6 +15,8 @@
 @SET "PATH=%__condabin%;%PATH%"
 @SET "CONDA_BAT=%__condabin%\conda.bat"
 @SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
+@SET _CE_M=
+@SET _CE_CONDA=
 
 :: set conda alias
 @DOSKEY conda="%CONDA_BAT%" $*
