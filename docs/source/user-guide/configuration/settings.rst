@@ -84,7 +84,7 @@ containing channel names or URLs. Channels specified here will have lower priori
     my_channel: https://mychannel.example.com
     another_channel: file:///path/to/local/channel
 
-Note that this not a substitute for mirrors. 
+Note: This is not a substitute for mirrors
 
 .. _auto-update-conda:
 
