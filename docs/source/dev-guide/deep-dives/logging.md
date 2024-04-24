@@ -1,8 +1,8 @@
 (deep_dive_logging)=
 # Logging
 
-Logging in Conda is based on the [Python logging framework](https://docs.python.org/3/library/logging.html).
-In this guide, we'll describe the loggers and handlers used in Conda, as well as how they are used.
+Logging in conda is based on the [Python logging framework](https://docs.python.org/3/library/logging.html).
+In this guide, we'll describe the loggers and handlers used in conda, as well as how they are used.
 
 ## Logger hierarchy
 Python logging uses loggers as the source of logging messages.
