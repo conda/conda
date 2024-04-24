@@ -10,8 +10,7 @@
 
 * @dholth
 * @jezdez
-* @callek
-
+* @Callek made their first contribution in https://github.com/conda/conda/pull/13721
 
 
 ## 24.3.0 (2024-03-12)
