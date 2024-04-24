@@ -939,7 +939,7 @@ def native_path_to_unix(
 
 
 def unix_path_to_native(
-    paths: str | Iterable[str] | None, prefix : str
+    paths: str | Iterable[str] | None, prefix: str
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
@@ -1000,7 +1000,7 @@ def unix_path_to_native(
             found = (
                 found_path.group("drive").upper(),
                 ":",
-                found_path.group("path").replace("/", "\\")
+                found_path.group("path").replace("/", "\\"),
             )
             return "".join(found) + ";"
 
@@ -1012,7 +1012,7 @@ def unix_path_to_native(
                 """,
                 _translation_drive,
                 elem,
-                flags=re.VERBOSE
+                flags=re.VERBOSE,
             )
 
         def _translation_mount(found_path):
@@ -1026,7 +1026,7 @@ def unix_path_to_native(
                 """,
                 _translation_mount,
                 elem,
-                flags=re.VERBOSE
+                flags=re.VERBOSE,
             )
 
         def _translation_root(found_path):
@@ -1040,7 +1040,7 @@ def unix_path_to_native(
                 """,
                 _translation_root,
                 elem,
-                flags = re.VERBOSE
+                flags=re.VERBOSE,
             )
 
         def up2n_per(elem):
