@@ -1171,7 +1171,7 @@ if windows_prefix.startswith("/"):
     # toggle the prefixes
     unix_prefix = windows_prefix
     # yes, this is inception
-    windows_prefix = unix_path_to_native(unix_prefix)
+    windows_prefix = unix_path_to_native(unix_prefix, unix_prefix)
 else:
     unix_prefix = native_path_to_unix(windows_prefix)
 
