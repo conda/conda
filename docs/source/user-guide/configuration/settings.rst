@@ -62,30 +62,6 @@ repository, an administrator can set both :ref:`channel alias <channel-alias>` a
     - http://some.custom/channel
     - file:///some/local/directory
 
-.. _custom_mutlichannels:
-
-``custom_multichannels``: Custom channels
------------------------------------------
-
-A multichannel is a metachannel composed of multiple channels. The two reserved multichannels are 
-'defaults' and 'local'. The 'defaults' multichannel is customized using the ``default_channels``
-parameter. The 'local' multichannel is a list of file:// channel locations where conda-build 
-stashes built packages. 
-
-Other multichannels can be defined with ``custom_multichannels`` in your conda configuration file
-``.condarc`` using a dictionary format where keys are names of multichannels and the value is a list
-containing channel names or URLs. Channels specified here will have lower priority than default channels. 
-
-**Example:**
-
-.. code-block:: yaml 
-  
-  custom_multichannels:
-    my_channel: https://mychannel.example.com
-    another_channel: file:///path/to/local/channel
-
-Note that this not a substitute for mirrors. 
-
 .. _auto-update-conda:
 
 
