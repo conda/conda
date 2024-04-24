@@ -1,5 +1,5 @@
 (deep_dive_logging)=
-# Logging in Conda
+# Logging
 
 Logging in Conda is based on the [Python logging framework](https://docs.python.org/3/library/logging.html).
 In this guide, we'll describe the loggers and handlers used in Conda, as well as how they are used.
