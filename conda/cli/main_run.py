@@ -115,9 +115,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # display stdout/stderr if it was captured
     if not args.no_capture_output:
         if response.stdout:
-            print(response.stdout, file=sys.stdout)
+            print(response.stdout, file=sys.stdout,end='')
         if response.stderr:
-            print(response.stderr, file=sys.stderr)
+            print(response.stderr, file=sys.stderr,end='')
 
     # log error
     if response.rc != 0:
