@@ -323,7 +323,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@1dbf41f0ae41cebfe61e084e535aebe533409b4d
+        uses: CodSpeedHQ/action@aa9939428da62f095e83438509c41499e7a2d751
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/pytest --codspeed
