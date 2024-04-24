@@ -254,11 +254,17 @@ from .logz import DumpEncoder
 from .type_coercion import maybecall
 
 try:
-    from frozendict import deepfreeze, frozendict, register as _register
+    from frozendict import deepfreeze, frozendict
+    from frozendict import getFreezeConversionMap as _getFreezeConversionMap
+    from frozendict import register as _register
 
-    # leave enums as is, deepfreeze will flatten it into a dict
-    # see https://github.com/Marco-Sulla/python-frozendict/issues/98
-    _register(Enum, lambda x : x)
+    if Enum not in _getFreezeConversionMap():
+        # leave enums as is, deepfreeze will flatten it into a dict
+        # see https://github.com/Marco-Sulla/python-frozendict/issues/98
+        _register(Enum, lambda x : x)
+
+    del _getFreezeConversionMap
+    del _register
 except ImportError:
     from .._vendor.frozendict import frozendict
     from ..auxlib.collection import make_immutable as deepfreeze
