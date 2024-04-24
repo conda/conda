@@ -1,5 +1,18 @@
 [//]: # (current developments)
 
+## 24.4.0 (2024-04-24)
+
+### Enhancements
+
+* For Windows users, the stub executables used for Python entrypoints in packages are now codesigned. (#13721)
+
+### Contributors
+
+* @dholth
+* @jezdez
+* @Callek made their first contribution in https://github.com/conda/conda/pull/13721
+
+
 ## 24.3.0 (2024-03-12)
 
 ### Enhancements
