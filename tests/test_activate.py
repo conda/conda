@@ -1161,61 +1161,131 @@ def test_native_path_to_unix(
     assert native_path_to_unix(paths) in expected
 
 
+# Notionally, unix_path_to_native() is only called from
+# _get_path_dirs() with a Unix-style prefix.  However, once the
+# function is known it may get called with all variants.
+#
+# The only tests where *_prefix are used are root filesystem ones.
+windows_prefix = context.target_prefix
+if windows_prefix.startswith("/"):
+    # toggle the prefixes
+    unix_prefix = windows_prefix
+    # yes, this is inception
+    windows_prefix = unix_path_to_native(unix_prefix)
+else:
+    unix_prefix = native_path_to_unix(windows_prefix)
+
 @pytest.mark.skipif(
     not on_win, reason="native_path_to_unix is path_identity on non-windows"
 )
 @pytest.mark.parametrize(
-    "paths,expected",
+    "paths,prefix,expected",
     [
         # falsy
-        pytest.param(None, None, id="None"),
-        pytest.param("", ".", id="empty string"),
-        pytest.param((), (), id="empty tuple"),
+        pytest.param(None, "", None, id="None"),
+        pytest.param("", "", ".", id="empty string"),
+        pytest.param((), "", (), id="empty tuple"),
+
         # MSYS2
         pytest.param(
             "/c/path/to/One",
+            windows_prefix,
             "C:\\path\\to\\One",
-            id="path (MSYS2)",
+            id="MSYS2 drive letter path (MSYS2)",
+        ),
+        pytest.param(
+            "/c/",
+            windows_prefix,
+            "C:\\",
+            id="MSYS2 drive letter only (MSYS2)",
+        ),
+        pytest.param(
+            "//path/to/One",
+            windows_prefix,
+            "\\\\path\\to\\One",
+            id="UNC path (MSYS2)",
+        ),
+        pytest.param(
+            "/path/to/One",
+            windows_prefix,
+            windows_prefix + "\\Library\\path\\to\\One",
+            id="root filesystem path + windows prefix (MSYS2)",
+        ),
+        pytest.param(
+            "/path/to/One",
+            unix_prefix,
+            windows_prefix + "\\Library\\path\\to\\One",
+            id="root filesystem path + unix prefix (MSYS2)",
+        ),
+        pytest.param(
+            "/",
+            windows_prefix,
+            windows_prefix + "\\Library\\",
+            id="root filesystem only (MSYS2)",
+        ),
+        pytest.param(
+            "relative/path/to/One",
+            windows_prefix,
+            "relative\\path\\to\\One",
+            id="relative filesystem path (MSYS2)",
+        ),
+        pytest.param(
+            "/c/path/to/One://path/to/One:/path/to/One:relative/path/to/One",
+            windows_prefix,
+            "C:\\path\\to\\One;\\\\path\\to\\One;" +
+            windows_prefix + "\\Library\\path\\to\\One;relative\\path\\to\\One",
+            id="PATH-like (MSYS2)",
         ),
         pytest.param(
             ["/c/path/to/One"],
+            windows_prefix,
             ("C:\\path\\to\\One",),
             id="list[path] (MSYS2)",
         ),
         pytest.param(
             ("/c/path/to/One", "/c/path/Two", "//mount/Three"),
+            windows_prefix,
             ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
             id="tuple[path, ...] (MSYS2)",
         ),
+        # XXX Cygwin and MSYS2's cygpath programs are not mutually
+        # aware meaning that MSYS2's cygpath treats
+        # /cygrive/c/here/there as a regular absolute path and returns
+        # {prefix}\Library\cygdrive\c\here\there.  And vice versa.
+        #
         # cygwin
-        pytest.param(
-            "/cygdrive/c/path/to/One",
-            "C:\\path\\to\\One",
-            id="path (cygwin)",
-        ),
-        pytest.param(
-            ["/cygdrive/c/path/to/One"],
-            ("C:\\path\\to\\One",),
-            id="list[path] (cygwin)",
-        ),
-        pytest.param(
-            ("/cygdrive/c/path/to/One", "/cygdrive/c/path/Two", "//mount/Three"),
-            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
-            id="tuple[path, ...] (cygwin)",
-        ),
+        # pytest.param(
+        #     "/cygdrive/c/path/to/One",
+        #     windows_prefix,
+        #     "C:\\path\\to\\One",
+        #     id="Cygwin drive letter path (cygwin)",
+        # ),
+        # pytest.param(
+        #     ["/cygdrive/c/path/to/One"],
+        #     windows_prefix,
+        #     ("C:\\path\\to\\One",),
+        #     id="list[path] (cygwin)",
+        # ),
+        # pytest.param(
+        #     ("/cygdrive/c/path/to/One", "/cygdrive/c/path/Two", "//mount/Three"),
+        #     windows_prefix,
+        #     ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+        #     id="tuple[path, ...] (cygwin)",
+        # ),
     ],
 )
 def test_unix_path_to_native(
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
+    prefix: str,
     expected: str | tuple[str, ...] | None,
 ) -> None:
     # test with cygpath
-    assert unix_path_to_native(paths) == expected
+    assert unix_path_to_native(paths, prefix) == expected
 
     # test without cygpath
     mocker.patch("subprocess.run", side_effect=FileNotFoundError)
-    assert unix_path_to_native(paths) == expected
+    assert unix_path_to_native(paths, prefix) == expected
 
 
 def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):

@@ -632,7 +632,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
                 if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
-                    path = unix_path_to_native(path)
+                    path = unix_path_to_native(path, prefix)
 
                 if isdir(path):
                     variants.append(variant)
@@ -940,6 +940,7 @@ def native_path_to_unix(
 
 def unix_path_to_native(
     paths: str | Iterable[str] | None,
+    prefix : str
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
@@ -980,22 +981,96 @@ def unix_path_to_native(
 
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
-        def _translation(found_path):
-            found = (
-                found_path.group(1)
-                .replace("/", "\\")
-                .replace("", ":")
-                .replace("/", "//")
-            )
-            return "\\" + found.rstrip("\\")
 
-        win_path = (
-            re.sub(
-                r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)", _translation, joined
+        # Reverting a Unix path means unpicking MSYS2/Cygwin
+        # conventions -- in order!
+        # 1. drive letter forms:
+        #      /x/here/there - MSYS2
+        #      /cygdrive/x/here/there - Cygwin
+        #    transformed to X:\here\there -- note the uppercase drive letter!
+        # 2. either:
+        #    a. mount forms:
+        #         //here/there
+        #       transformed to \\here\there
+        #    b. root filesystem forms:
+        #         /here/there
+        #       transformed to {prefix}\Library\here\there
+        # 3. anything else
+
+        def _translation_drive(found_path):
+            found = (
+                found_path.group('drive').upper(),
+                ":",
+                found_path.group('path')
+                .replace("/", "\\")
             )
-            .replace(":/", ";/")
-            .rstrip(";")
-        )
+            return "".join(found) + ";"
+
+
+        def drive_match(elem):
+            return re.sub(
+                r"""
+                ^(?:(?:/cygdrive)?/+(?P<drive>[A-Za-z]))
+                (?P<path>/[^:]*)
+                """,
+                _translation_drive,
+                elem,
+                flags = re.VERBOSE
+            )
+
+
+        def _translation_mount(found_path):
+            found = (
+                found_path.group('path')
+                .replace("/", "\\")
+            )
+            return "".join(found) + ";"
+
+
+        def mount_match(elem):
+            return re.sub(
+                r"""
+                ^(?P<path>//[^/]+/[^:]+)
+                """,
+                _translation_mount,
+                elem,
+                flags = re.VERBOSE
+            )
+
+
+        def _translation_root(found_path):
+            found = (
+                found_path.group('path')
+                .replace("/", "\\")
+            )
+            return prefix + "\\Library" + "".join(found) + ";"
+
+
+        def root_match(elem):
+            return re.sub(
+                r"""
+                ^(?P<path>/[^:]*)
+                """,
+                _translation_root,
+                elem,
+                flags = re.VERBOSE
+            )
+
+
+        def up2n_per(elem):
+            elem = drive_match(elem)
+            if re.match("^//[^/]+/[^/].*", elem):
+                elem = mount_match(elem)
+            else:
+                elem = root_match(elem)
+            return elem.replace("/", "\\").rstrip(";")
+
+
+        # The conda prefix can be in a drive letter form
+        if re.match("^/.*", prefix):
+            prefix = drive_match(prefix).rstrip(";")
+
+        win_path = ";".join(map(up2n_per, joined.split(":")))
     except Exception as err:
         log.error("Unexpected cygpath error (%s)", err)
         raise
