@@ -939,8 +939,7 @@ def native_path_to_unix(
 
 
 def unix_path_to_native(
-    paths: str | Iterable[str] | None,
-    prefix : str
+    paths: str | Iterable[str] | None, prefix : str
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
@@ -999,13 +998,11 @@ def unix_path_to_native(
 
         def _translation_drive(found_path):
             found = (
-                found_path.group('drive').upper(),
+                found_path.group("drive").upper(),
                 ":",
-                found_path.group('path')
-                .replace("/", "\\")
+                found_path.group("path").replace("/", "\\")
             )
             return "".join(found) + ";"
-
 
         def drive_match(elem):
             return re.sub(
@@ -1015,17 +1012,12 @@ def unix_path_to_native(
                 """,
                 _translation_drive,
                 elem,
-                flags = re.VERBOSE
+                flags=re.VERBOSE
             )
-
 
         def _translation_mount(found_path):
-            found = (
-                found_path.group('path')
-                .replace("/", "\\")
-            )
+            found = found_path.group("path").replace("/", "\\")
             return "".join(found) + ";"
-
 
         def mount_match(elem):
             return re.sub(
@@ -1034,17 +1026,12 @@ def unix_path_to_native(
                 """,
                 _translation_mount,
                 elem,
-                flags = re.VERBOSE
+                flags=re.VERBOSE
             )
-
 
         def _translation_root(found_path):
-            found = (
-                found_path.group('path')
-                .replace("/", "\\")
-            )
+            found = found_path.group("path").replace("/", "\\")
             return prefix + "\\Library" + "".join(found) + ";"
-
 
         def root_match(elem):
             return re.sub(
@@ -1056,7 +1043,6 @@ def unix_path_to_native(
                 flags = re.VERBOSE
             )
 
-
         def up2n_per(elem):
             elem = drive_match(elem)
             if re.match("^//[^/]+/[^/].*", elem):
@@ -1064,7 +1050,6 @@ def unix_path_to_native(
             else:
                 elem = root_match(elem)
             return elem.replace("/", "\\").rstrip(";")
-
 
         # The conda prefix can be in a drive letter form
         if re.match("^/.*", prefix):

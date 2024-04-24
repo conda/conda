@@ -1175,6 +1175,7 @@ if windows_prefix.startswith("/"):
 else:
     unix_prefix = native_path_to_unix(windows_prefix)
 
+
 @pytest.mark.skipif(
     not on_win, reason="native_path_to_unix is path_identity on non-windows"
 )
@@ -1232,8 +1233,9 @@ else:
         pytest.param(
             "/c/path/to/One://path/to/One:/path/to/One:relative/path/to/One",
             windows_prefix,
-            "C:\\path\\to\\One;\\\\path\\to\\One;" +
-            windows_prefix + "\\Library\\path\\to\\One;relative\\path\\to\\One",
+            "C:\\path\\to\\One;\\\\path\\to\\One;"
+            + windows_prefix
+            + "\\Library\\path\\to\\One;relative\\path\\to\\One",
             id="PATH-like (MSYS2)",
         ),
         pytest.param(
