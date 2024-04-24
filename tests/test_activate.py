@@ -1186,7 +1186,6 @@ else:
         pytest.param(None, "", None, id="None"),
         pytest.param("", "", ".", id="empty string"),
         pytest.param((), "", (), id="empty tuple"),
-
         # MSYS2
         pytest.param(
             "/c/path/to/One",
