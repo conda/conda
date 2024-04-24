@@ -105,8 +105,6 @@ class Index(UserDict):
                 prec_candidates = list(subdir_data.query(key))
                 if not prec_candidates:
                     continue
-                if len(prec_candidates) != 1:
-                    print(prec_candidates)
                 assert len(prec_candidates) == 1
                 prec = prec_candidates[0]
                 if prec:
