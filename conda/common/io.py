@@ -728,8 +728,7 @@ class ConsoleHandler(ReporterHandlerBase):
         longest_header = max(map(len, data.keys()))
 
         for header, value in data.items():
-            row_header = header.ljust(longest_header, " ")
-            table_str += f"{row_header} : {value}\n"
+            table_str += f"{header:<{longest_header}} : {value}\n"
 
         return table_str
 
