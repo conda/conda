@@ -90,7 +90,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to deactivate environment^(s^) 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 @GOTO :DEACTIVATING
 :DEACTIVATED
@@ -105,7 +105,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to download miniconda 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 :DOWNLOADED
 
@@ -115,7 +115,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to install development environment 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
 @CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git >NUL
@@ -129,7 +129,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to create %_NAME% 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 :ENVEXISTS
 
@@ -142,7 +142,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to update development environment 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 
 @CALL :CONDA "%_BASEEXE%" install ^
@@ -158,7 +158,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to update %_NAME% 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 
 :: update timestamp
@@ -176,7 +176,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to initialize shell integration 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 :: although we use the source code's conda_hook.bat we still need to use the installed conda.exe
 @SET "CONDA_EXE=%_ENVEXE%"
@@ -188,7 +188,7 @@
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to activate %_NAME% 1>&2
     @CALL :CLEANUP
-    @EXIT /B %ERRORLEVEL%
+    @EXIT /B 1
 )
 
 :: "install" conda
@@ -218,7 +218,7 @@
 @SET "_PATH=%PATH%"
 @SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
-@CALL %* || @EXIT /B %ERRORLEVEL%
+@CALL %* || @EXIT /B 1
 
 :: restore %PATH%
 @SET "PATH=%_PATH%"
@@ -231,7 +231,7 @@
 @IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
 
 :: check if devenv key is defined
-@FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" >NUL || @EXIT /B %ERRORLEVEL%
+@FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" >NUL || @EXIT /B 1
 
 :: read devenv key
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
