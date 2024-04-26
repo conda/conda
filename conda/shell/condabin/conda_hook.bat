@@ -7,7 +7,7 @@
 @ECHO OFF
 
 :: check if conda DOSKEY is already defined
-DOSKEY /MACROS | FINDSTR /R /C:"^conda=" >NUL 2>NUL && GOTO :EOF
+(DOSKEY /MACROS | FINDSTR /R /C:"^conda=" >NUL 2>NUL) && GOTO :EOF
 
 :: get root & condabin
 FOR %%P IN ("%~dp0\..") DO SET "__condaroot=%%~fP"
