@@ -2,5 +2,8 @@
 :: SPDX-License-Identifier: BSD-3-Clause
 :: Rename src to dest
 
-@PUSHD "%1"
-@RENAME "%2" "%3" >NUL 2>NUL
+:: disable displaying the command before execution
+@ECHO OFF
+
+PUSHD "%1"
+RENAME "%2" "%3" >NUL 2>NUL
