@@ -31,8 +31,7 @@
 :TMP_FILE_CREATED
 
 :: call conda
-@"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%
-@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B %ERRORLEVEL%
+@"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE% || @EXIT /B 1
 
 :: get temporary script to run
 @FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
@@ -42,9 +41,8 @@
 
 :: call temporary script
 @IF DEFINED CONDA_PROMPT_MODIFIER @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%%"
-@CALL "%_TEMP_SCRIPT_PATH%"
+@CALL "%_TEMP_SCRIPT_PATH%" || @EXIT /B 1
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
-@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B %ERRORLEVEL%
 
 :: cleanup
 @IF DEFINED CONDA_TEST_SAVE_TEMPS @ECHO CONDA_TEST_SAVE_TEMPS :: retaining activate_batch %_TEMP_SCRIPT_PATH% 1>&2

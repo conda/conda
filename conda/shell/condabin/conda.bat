@@ -22,6 +22,3 @@
 @IF [%1]==[upgrade]   "%~dp0\_conda_activate.bat" reactivate
 @IF [%1]==[remove]    "%~dp0\_conda_activate.bat" reactivate
 @IF [%1]==[uninstall] "%~dp0\_conda_activate.bat" reactivate
-
-:: bubble up any errors
-@EXIT /B %ERRORLEVEL%
