@@ -184,6 +184,10 @@ IF NOT [%ERRORLEVEL%]==[0] (
 :: although we use the source code's conda_hook.bat we still need to use the installed conda.exe
 SET "CONDA_EXE=%_ENVEXE%"
 
+:: "install" conda
+:: tricks conda.exe into importing from our source code and not from site-packages
+@SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+
 :: activate env
 ECHO Activating %_NAME%...
 CALL conda activate "%_ENV%" >NUL
@@ -192,10 +196,6 @@ IF NOT [%ERRORLEVEL%]==[0] (
     CALL :CLEANUP
     EXIT /B 1
 )
-
-:: "install" conda
-:: tricks conda.exe into importing from our source code and not from site-packages
-SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
 
 :CLEANUP
 SET _ARG=
