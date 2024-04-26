@@ -32,6 +32,10 @@ from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
 
+if TYPE_CHECKING:
+    Reporter = dict[str, bool | int | str]
+    DetailRecord = dict[str, str | int | bool]
+
 log = getLogger(__name__)
 IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
@@ -691,11 +695,6 @@ class time_recorder(ContextDecorator):  # pragma: no cover
     def _ensure_dir(self):
         if not isdir(dirname(self.record_file)):
             os.makedirs(dirname(self.record_file))
-
-
-if TYPE_CHECKING:
-    Reporter = dict[str, bool | int | str]
-    DetailRecord = dict[str, str | int | bool]
 
 
 class ReporterHandlerBase(ABC):
