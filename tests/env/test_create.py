@@ -268,21 +268,19 @@ def test_fail_to_create_env_in_dir_with_colon(
 
 
 @pytest.mark.parametrize(
-    "env_file", ["example/environment.yml", "example/environment_with_pip.yml"]
+    "env_file",
+    ["example/environment.yml", "example/environment_with_pip.yml"],
 )
 def test_create_env_json(
-    env_file, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+    env_file,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
 ):
     prefix = path_factory()
     stdout, stderr, err = conda_cli(
         *("env", "update"),
         *("--prefix", prefix),
-        *(
-            "--file",
-            support_file(
-                env_file,
-            ),
-        ),
+        *("--file", support_file(env_file)),
         "--json",
     )
 
