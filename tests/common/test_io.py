@@ -102,9 +102,8 @@ def test_console_handler():
     test_str = "a string value"
     expected_table_str = "one   : value_one\ntwo   : value_two\nthree : value_three\n"
     console_handler_object = ConsoleHandler()
-    table_str = console_handler_object.detail_view(test_data)
 
-    assert table_str == expected_table_str
+    assert console_handler_object.detail_view(test_data) == expected_table_str
     assert console_handler_object.string_view(test_str) == test_str
 
 
@@ -127,8 +126,8 @@ def test_std_out_handler(capsys: CaptureFixture):
     std_out_handler_object = StdoutHandler()
     assert std_out_handler_object.name == "stdout"
     std_out_handler_object.render(test_str)
-    stdout = capsys.readouterr()
-    assert test_str in stdout
+    stdout, _ = capsys.readouterr()
+    assert stdout == test_str
 
 
 def test_reporter_manager(capsys: CaptureFixture):
@@ -150,13 +149,13 @@ def test_reporter_manager(capsys: CaptureFixture):
 
     # test detail view passes
     reporter_manager_object.render("detail_view", test_data)
-    stdout = capsys.readouterr()
-    assert expected_detail_view_str in stdout
+    stdout, _ = capsys.readouterr()
+    assert stdout == expected_detail_view_str
 
     # test string view passes
     reporter_manager_object.render("string_view", test_str)
-    stdout = capsys.readouterr()
-    assert expected_string_view_str in stdout
+    stdout, _ = capsys.readouterr()
+    assert stdout == expected_string_view_str
 
     # test fails
     with pytest.raises(
