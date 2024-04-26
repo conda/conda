@@ -7,10 +7,12 @@ This reporter handler is used to provide JSON strings for output rendering. It i
 essentially just a wrapper around ``json.dumps``.
 """
 
+from __future__ import annotations
+
 import json
 
 from .. import CondaReporterHandler, hookimpl
-from ..types import DetailRecord, ReporterHandlerBase
+from ..types import ReporterHandlerBase
 
 
 class JSONReporterHandler(ReporterHandlerBase):
@@ -21,7 +23,7 @@ class JSONReporterHandler(ReporterHandlerBase):
     def string_view(self, data: str, **kwargs) -> str:
         return json.dumps(data, **kwargs)
 
-    def detail_view(self, data: DetailRecord, **kwargs) -> str:
+    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         return json.dumps(data, **kwargs)
 
 
@@ -33,7 +35,7 @@ def conda_reporter_handlers():
     This is the default reporter handler that returns objects as JSON strings
     that can be passed to output handlers.
     """
-    return CondaReporterHandler(
+    yield CondaReporterHandler(
         name="json",
         description="Default implementation for JSON reporting in conda",
         handler=JSONReporterHandler(),

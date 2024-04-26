@@ -6,8 +6,10 @@ Defines a "console" reporter handler
 This reporter handler provides the default output for conda.
 """
 
+from __future__ import annotations
+
 from .. import CondaReporterHandler, hookimpl
-from ..types import DetailRecord, ReporterHandlerBase
+from ..types import ReporterHandlerBase
 
 
 class ConsoleReporterHandler(ReporterHandlerBase):
@@ -18,7 +20,7 @@ class ConsoleReporterHandler(ReporterHandlerBase):
     def string_view(self, data: str, **kwargs) -> str:
         return data
 
-    def detail_view(self, data: DetailRecord, **kwargs) -> str:
+    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         table_str = ""
         longest_header = max(map(len, data.keys()))
 
@@ -35,7 +37,7 @@ def conda_reporter_handlers():
 
     This is the default reporter handler that returns what is displayed by default in conda
     """
-    return CondaReporterHandler(
+    yield CondaReporterHandler(
         name="console",
         description="Default implementation for console reporting in conda",
         handler=ConsoleReporterHandler(),

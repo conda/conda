@@ -336,7 +336,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_reporter_handler(self) -> Iterable[CondaReporterHandler]:
+    def conda_reporter_handlers(self) -> Iterable[CondaReporterHandler]:
         """
         Register new reporter handler
 
@@ -372,7 +372,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_output_handler(self) -> Iterable[CondaOutputHandler]:
+    def conda_output_handlers(self) -> Iterable[CondaOutputHandler]:
         """
         Register new output handler
 

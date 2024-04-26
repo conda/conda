@@ -228,7 +228,7 @@ class ReporterHandlerBase(ABC):
     """
 
     @abstractmethod
-    def detail_view(self, data: DetailRecord, **kwargs) -> str:
+    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         """
         Render the output in a "tabular" format.
         """

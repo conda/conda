@@ -28,7 +28,7 @@ def conda_output_handlers():
     """
     render = StdoutRender()
 
-    return CondaOutputHandler(
+    yield CondaOutputHandler(
         name="stdout",
         description="Default implementation of a output handler that acts as a proxy to "
         "``sys.stdout.write``",
