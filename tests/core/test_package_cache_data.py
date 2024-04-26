@@ -22,11 +22,12 @@ from conda.core.package_cache_data import (
     ProgressiveFetchExtract,
 )
 from conda.core.path_actions import CacheUrlAction
-from conda.exports import MatchSpec, url_path
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
+from conda.models.match_spec import MatchSpec
 from conda.testing.helpers import CHANNEL_DIR_V1
+from conda.utils import url_path
 
 assert CHANNEL_DIR_V1 == abspath(
     join(dirname(__file__), "..", "data", "conda_format_repo")
