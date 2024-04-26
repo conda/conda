@@ -3,4 +3,4 @@
 :: Rename src to dest
 
 @PUSHD "%1"
-@RENAME "%2" "%3" > NUL 2> NUL
+@RENAME "%2" "%3" >NUL 2>NUL

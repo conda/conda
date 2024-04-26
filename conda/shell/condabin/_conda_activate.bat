@@ -19,7 +19,7 @@
 :: This method will not work if %TMP% contains any spaces.
 @FOR /L %%I IN (1,1,100) DO @(
     @SET UNIQUE_DIR=%TMP%\conda-!RANDOM!
-    @MKDIR !UNIQUE_DIR! > NUL 2>&1
+    @MKDIR !UNIQUE_DIR! >NUL 2>NUL
     @IF [%ERRORLEVEL%]==[0] (
         @SET UNIQUE=!UNIQUE_DIR!\conda.tmp
         @TYPE NUL 1> !UNIQUE!
@@ -31,8 +31,7 @@
 :TMP_FILE_CREATED
 
 :: call conda
-@"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%
-@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B %ERRORLEVEL%
+@"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE% || @EXIT /B %ERRORLEVEL%
 
 :: get temporary script to run
 @FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i

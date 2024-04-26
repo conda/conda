@@ -8,16 +8,14 @@
   @SET _CE_CONDA=
   @SET __condaroot=
 )
-@IF [%1]==[activate]   "%~dp0\_conda_activate.bat" %*
-@IF [%1]==[deactivate] "%~dp0\_conda_activate.bat" %*
+@IF [%1]==[activate]   "%~dp0\_conda_activate.bat" %* || @EXIT /B %ERRORLEVEL%
+@IF [%1]==[deactivate] "%~dp0\_conda_activate.bat" %* || @EXIT /B %ERRORLEVEL%
 
-@CALL "%CONDA_EXE%" %_CE_M% %_CE_CONDA% %*
-@IF NOT [%ERRORLEVEL%]==[0] EXIT /B %ERRORLEVEL%
+@CALL "%CONDA_EXE%" %_CE_M% %_CE_CONDA% %* || @EXIT /B %ERRORLEVEL%
 
 @IF [%1]==[install]   "%~dp0\_conda_activate.bat" reactivate
 @IF [%1]==[update]    "%~dp0\_conda_activate.bat" reactivate
 @IF [%1]==[upgrade]   "%~dp0\_conda_activate.bat" reactivate
 @IF [%1]==[remove]    "%~dp0\_conda_activate.bat" reactivate
 @IF [%1]==[uninstall] "%~dp0\_conda_activate.bat" reactivate
-
 @EXIT /B %ERRORLEVEL%

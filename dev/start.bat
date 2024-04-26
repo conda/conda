@@ -48,6 +48,7 @@
     @EXIT /B 0
 )
 @ECHO Error: unknown option %~1 1>&2
+@CALL :CLEANUP
 @EXIT /B 1
 :ARGS_END
 
@@ -88,7 +89,8 @@
 @CALL conda deactivate
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to deactivate environment^(s^) 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 @GOTO :DEACTIVATING
 :DEACTIVATED
@@ -102,29 +104,32 @@
 @powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_INSTALLER%\miniconda.exe' | Out-Null"
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to download miniconda 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 :DOWNLOADED
 
 :: installing miniconda
 @ECHO Installing development environment...
-@START /wait "" "%_INSTALLER%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
+@START /wait "" "%_INSTALLER%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% >NUL
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to install development environment 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git > NUL
+@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git >NUL
 :INSTALLED
 
 :: create empty env if it doesn't exist
 @IF EXIST "%_ENV%" @GOTO :ENVEXISTS
 @ECHO Creating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
+@CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" >NUL
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to create %_NAME% 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 :ENVEXISTS
 
@@ -133,10 +138,11 @@
 @IF NOT [%ERRORLEVEL%]==[0] @GOTO :UPTODATE
 @ECHO Updating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
+@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all >NUL
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to update development environment 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 
 @CALL :CONDA "%_BASEEXE%" install ^
@@ -148,10 +154,11 @@
     "--file=%_SRC%\tests\requirements.txt" ^
     "--file=%_SRC%\tests\requirements-ci.txt" ^
     "--file=%_SRC%\tests\requirements-Windows.txt" ^
-    "python=%_PYTHON%" > NUL
+    "python=%_PYTHON%" >NUL
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to update %_NAME% 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 
 :: update timestamp
@@ -168,18 +175,20 @@
 @CALL "%_CONDAHOOK%"
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to initialize shell integration 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 :: although we use the source code's conda_hook.bat we still need to use the installed conda.exe
 @SET "CONDA_EXE=%_ENVEXE%"
 
 :: activate env
 @ECHO Activating %_NAME%...
-@CALL conda activate "%_ENV%" > NUL
+@CALL conda activate "%_ENV%" >NUL
 @CALL conda activate "%_ENV%"
 @IF NOT [%ERRORLEVEL%]==[0] (
     @ECHO Error: failed to activate %_NAME% 1>&2
-    @EXIT /B 1
+    @CALL :CLEANUP
+    @EXIT /B %ERRORLEVEL%
 )
 
 :: "install" conda
@@ -209,8 +218,7 @@
 @SET "_PATH=%PATH%"
 @SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
-@CALL %*
-@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B %ERRORLEVEL%
+@CALL %* || @EXIT /B %ERRORLEVEL%
 
 :: restore %PATH%
 @SET "PATH=%_PATH%"
@@ -221,16 +229,17 @@
 :: read devenv from ~\.condarc
 :: check if ~\.condarc exists
 @IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
+
 :: check if devenv key is defined
-@FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
-@IF NOT [%ERRORLEVEL%]==[0] @EXIT /B 1
+@FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" >NUL || @EXIT /B %ERRORLEVEL%
+
 :: read devenv key
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
 @GOTO :EOF
 
 :UPDATING
 :: check if explicitly updating or if 24 hrs since last update
-@IF %_UPDATE%==0 @EXIT /B 0
+@IF [%_UPDATE%]==[0] @EXIT /B 0
 @IF NOT EXIST "%_UPDATED%" @EXIT /B 0
 @powershell.exe "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
 @EXIT /B %ERRORLEVEL%
