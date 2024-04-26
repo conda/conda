@@ -187,7 +187,6 @@ SET "CONDA_EXE=%_ENVEXE%"
 :: activate env
 ECHO Activating %_NAME%...
 CALL conda activate "%_ENV%" >NUL
-CALL conda activate "%_ENV%"
 IF NOT [%ERRORLEVEL%]==[0] (
     ECHO Error: failed to activate %_NAME% 1>&2
     CALL :CLEANUP
