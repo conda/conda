@@ -13,12 +13,12 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import PackagesNotFoundError
-from conda.exports import execute_plan
+from conda.instructions import _update_old_plan as update_old_plan
+from conda.instructions import execute_plan
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
-from conda.plan import _update_old_plan as update_old_plan
 from conda.plan import add_unlink, display_actions
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.helpers import captured, get_index_r_1
