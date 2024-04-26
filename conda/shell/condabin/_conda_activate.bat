@@ -31,7 +31,7 @@ SET "UNIQUE=%UNIQUE_DIR%\conda.tmp"
 TYPE NUL >%UNIQUE%
 
 :: call conda
-"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE% || EXIT /B 1
+("%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%) || EXIT /B 1
 
 :: get temporary script to run
 FOR /F %%i IN (%UNIQUE%) DO SET _TEMP_SCRIPT_PATH=%%i
