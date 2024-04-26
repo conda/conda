@@ -21,7 +21,14 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.context import add_plugin_setting, context
 from ..exceptions import CondaValueError, PluginError
-from . import post_solves, solvers, subcommands, virtual_packages
+from . import (
+    output_handlers,
+    post_solves,
+    reporter_handlers,
+    solvers,
+    subcommands,
+    virtual_packages,
+)
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
@@ -37,10 +44,12 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
+        CondaOutputHandler,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaReporterHandler,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -196,6 +205,16 @@ class CondaPluginManager(pluggy.PluginManager):
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["reporter_handlers"]
+    ) -> list[CondaReporterHandler]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["output_handlers"]
+    ) -> list[CondaOutputHandler]: ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -342,6 +361,12 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
+    def get_reporter_handlers(self) -> tuple[CondaReporterHandler, ...]:
+        return tuple(self.get_hook_results("reporter_handlers"))
+
+    def get_output_handlers(self) -> tuple[CondaOutputHandler, ...]:
+        return tuple(self.get_hook_results("output_handlers"))
+
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
             try:
@@ -403,6 +428,8 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         health_checks,
         *post_solves.plugins,
+        *reporter_handlers.plugins,
+        *output_handlers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

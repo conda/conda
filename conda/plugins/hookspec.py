@@ -20,10 +20,12 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
+        CondaOutputHandler,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaReporterHandler,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -331,4 +333,73 @@ class CondaSpecs:
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
+        """
+
+    @_hookspec
+    def conda_reporter_handler(self) -> Iterable[CondaReporterHandler]:
+        """
+        Register new reporter handler
+
+        The example below defines a reporter handler that uses the ``pprint`` module in Python.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from pprint import pformat
+
+           from conda import plugins
+           from conda.plugins.types import CondaReporterHandler, ReporterHandlerBase
+
+
+           class PprintReporter(ReporterHandlerBase):
+
+               def detail_view(self, data):
+                   return pformat(data)
+
+               def string_view(self, data):
+                   return pformat(data)
+
+
+           @plugins.hookimpl
+           def conda_reporter_handler():
+               yield CondaReporterHandler(
+                   name="pprint",
+                   description="Reporter handler based off of the pprint module",
+                   handler=PprintReporter(),
+               )
+
+        """
+
+    @_hookspec
+    def conda_output_handler(self) -> Iterable[CondaOutputHandler]:
+        """
+        Register new output handler
+
+        The example below defines an output handler that saves output to a file
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.plugins.types import CondaOutputHandler
+
+
+           def render(renderable: str, **kwargs) -> None:
+               try:
+                   with open(filename, "w") as fp:
+                       fp.write(renderable)
+               except OSError as exc:
+                   print(f"Unable to create file: {exc}")
+
+
+           @plugins.hookimpl
+           def conda_output_handler():
+               yield CondaOutputHandler(
+                   name="file",
+                   description="Output handler that writes output to a file",
+                   render=render,
+               )
+
         """
