@@ -33,7 +33,7 @@ optional arguments:
 conda-env allows creating environments using the `environment.yml`
 specification file. This allows you to specify a name, channels to use when
 creating the environment, and the dependencies. For example, to create an
-environment named `stats` with numpy and pandas, create an `environment.yml`
+environment named `stats` with Numpy and Pandas, create an `environment.yml`
 file with this as the contents:
 
 ```yaml
