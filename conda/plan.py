@@ -564,7 +564,7 @@ def get_blank_actions(prefix):  # pragma: no cover
     return actions
 
 
-@deprecated("24.9", "24.5")
+@deprecated("24.9", "25.3")
 @time_recorder("execute_plan")
 def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
     """Deprecated: This should `conda.instructions.execute_instructions` instead."""
@@ -572,7 +572,7 @@ def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
     execute_instructions(plan, index, verbose)
 
 
-@deprecated("24.9", "24.5")
+@deprecated("24.9", "25.3")
 def execute_instructions(
     plan, index=None, verbose=False, _commands=None
 ):  # pragma: no cover
@@ -614,7 +614,7 @@ def execute_instructions(
             getLogger("progress.stop").info(None)
 
 
-@deprecated("24.9", "24.5")
+@deprecated("24.9", "25.3")
 def _update_old_plan(old_plan):  # pragma: no cover
     """
     Update an old plan object to work with
