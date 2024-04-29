@@ -24,9 +24,10 @@ from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
+from .deprecations import deprecated
 from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
-from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK, execute_instructions
+from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -561,6 +562,76 @@ def get_blank_actions(prefix):  # pragma: no cover
         SYMLINK_CONDA,
     )
     return actions
+
+
+@deprecated("24.9", "24.5")
+@time_recorder("execute_plan")
+def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
+    """Deprecated: This should `conda.instructions.execute_instructions` instead."""
+    plan = _update_old_plan(old_plan)
+    execute_instructions(plan, index, verbose)
+
+
+@deprecated("24.9", "24.5")
+def execute_instructions(
+    plan, index=None, verbose=False, _commands=None
+):  # pragma: no cover
+    """Execute the instructions in the plan
+    :param plan: A list of (instruction, arg) tuples
+    :param index: The meta-data index
+    :param verbose: verbose output
+    :param _commands: (For testing only) dict mapping an instruction to executable if None
+    then the default commands will be used
+    """
+    from .base.context import context
+    from .instructions import PROGRESS_COMMANDS, commands
+    from .models.dist import Dist
+
+    if _commands is None:
+        _commands = commands
+
+    log.debug("executing plan %s", plan)
+
+    state = {"i": None, "prefix": context.root_prefix, "index": index}
+
+    for instruction, arg in plan:
+        log.debug(" %s(%r)", instruction, arg)
+
+        if state["i"] is not None and instruction in PROGRESS_COMMANDS:
+            state["i"] += 1
+            getLogger("progress.update").info((Dist(arg).dist_name, state["i"] - 1))
+        cmd = _commands[instruction]
+
+        if callable(cmd):
+            cmd(state, arg)
+
+        if (
+            state["i"] is not None
+            and instruction in PROGRESS_COMMANDS
+            and state["maxval"] == state["i"]
+        ):
+            state["i"] = None
+            getLogger("progress.stop").info(None)
+
+
+@deprecated("24.9", "24.5")
+def _update_old_plan(old_plan):  # pragma: no cover
+    """
+    Update an old plan object to work with
+    `conda.instructions.execute_instructions`
+    """
+    plan = []
+    for line in old_plan:
+        if line.startswith("#"):
+            continue
+        if " " not in line:
+            from .exceptions import ArgumentError
+
+            raise ArgumentError(f"The instruction {line!r} takes at least one argument")
+
+        instruction, arg = line.split(" ", 1)
+        plan.append((instruction, arg))
+    return plan
 
 
 if __name__ == "__main__":

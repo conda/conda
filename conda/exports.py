@@ -58,7 +58,6 @@ from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
 from .gateways.disk.delete import rm_rf as _rm_rf
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
-from .instructions import execute_instructions, execute_plan  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
@@ -68,6 +67,8 @@ from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .plan import display_actions as _display_actions
 from .plan import (  # noqa: F401
     execute_actions,
+    execute_instructions,
+    execute_plan,
     install_actions,
 )
 from .resolve import (  # noqa: F401
