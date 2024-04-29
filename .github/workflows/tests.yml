@@ -144,6 +144,7 @@ jobs:
         uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
+          token: ${{ secrets.CODECOV_TOKEN }}  # required
 
       - name: Upload Test Results
         if: '!cancelled()'
@@ -247,6 +248,7 @@ jobs:
         uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
+          token: ${{ secrets.CODECOV_TOKEN }}  # required
 
       - name: Upload Test Results
         if: '!cancelled()'
@@ -490,6 +492,7 @@ jobs:
         uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
+          token: ${{ secrets.CODECOV_TOKEN }}  # required
 
       - name: Upload Test Results
         if: '!cancelled()'
