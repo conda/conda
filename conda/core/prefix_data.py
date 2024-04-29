@@ -108,15 +108,15 @@ class PrefixData(metaclass=PrefixDataType):
                 known_ext = True
         if not known_ext:
             raise ValueError(
-                "Attempted to make prefix record for unknown package type: %s" % fn
+                f"Attempted to make prefix record for unknown package type: {fn}"
             )
         return fn + ".json"
 
     def insert(self, prefix_record):
         assert prefix_record.name not in self._prefix_records, (
-            "Prefix record insertion error: a record with name %s already exists "
+            f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
             "in the prefix. This is a bug in conda. Please report it at "
-            "https://github.com/conda/conda/issues" % prefix_record.name
+            "https://github.com/conda/conda/issues"
         )
 
         prefix_record_json_path = (
@@ -442,9 +442,7 @@ def get_python_version_for_prefix(prefix):
         return None
     next_record = next(py_record_iter, None)
     if next_record is not None:
-        raise CondaDependencyError(
-            "multiple python records found in prefix %s" % prefix
-        )
+        raise CondaDependencyError(f"multiple python records found in prefix {prefix}")
     elif record.version[3].isdigit():
         return record.version[:4]
     else:

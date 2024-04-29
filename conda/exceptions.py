@@ -48,7 +48,7 @@ class ResolvePackageNotFound(CondaError):
         )
         self._formatted_chains = formatted_chains
         message = "\n" + "\n".join(
-            ("  - %s" % bad_chain) for bad_chain in formatted_chains
+            (f"  - {bad_chain}") for bad_chain in formatted_chains
         )
         super().__init__(message)
 
@@ -58,7 +58,7 @@ NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
 class LockError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -122,7 +122,7 @@ class DeactivateHelp(Help):
 
 class GenericHelp(Help):
     def __init__(self, command):
-        message = "help requested for %s" % command
+        message = f"help requested for {command}"
         super().__init__(message)
 
 
@@ -347,7 +347,7 @@ class CommandNotFoundError(CondaError):
             )
             close = get_close_matches(command, choices)
             if close:
-                message += "\nDid you mean 'conda %s'?" % close[0]
+                message += f"\nDid you mean 'conda {close[0]}'?"
         super().__init__(message, command=command)
 
 
@@ -406,7 +406,7 @@ class DirectoryNotACondaEnvironmentError(CondaError):
 
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg, *args)
 
 
@@ -439,7 +439,7 @@ class LinkError(CondaError):
 
 class CondaOSError(CondaError, OSError):
     def __init__(self, message, **kwargs):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg, **kwargs)
 
 
@@ -458,7 +458,7 @@ class ProxyError(CondaError):
 
 class CondaIOError(CondaError, IOError):
     def __init__(self, message, *args):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -564,13 +564,13 @@ class OperationNotAllowed(CondaError):
 
 class CondaImportError(CondaError, ImportError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
 class ParseError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -852,7 +852,7 @@ conda config --set unsatisfiable_hints True
                         msg += "\nOutput in format: Requested package -> Available versions"
                         for dep, chain in dep_constraint_map.items():
                             if len(chain) > 1:
-                                msg += "\n\nPackage %s conflicts for:\n" % dep
+                                msg += f"\n\nPackage {dep} conflicts for:\n"
                                 msg += "\n".join(
                                     [" -> ".join([str(i) for i in c]) for c in chain]
                                 )
@@ -885,7 +885,7 @@ conda config --set unsatisfiable_hints True
 
 class RemoveError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -929,7 +929,7 @@ class SpecsConfigurationConflictError(CondaError):
 
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -945,8 +945,8 @@ class CyclicalDependencyError(CondaError, ValueError):
         packages_with_cycles = tuple(
             PackageRecord.from_objects(p) for p in packages_with_cycles
         )
-        message = "Cyclic dependencies exist among these items: %s" % dashlist(
-            p.dist_str() for p in packages_with_cycles
+        message = "Cyclic dependencies exist among these items: {}".format(
+            dashlist(p.dist_str() for p in packages_with_cycles)
         )
         super().__init__(message, packages_with_cycles=packages_with_cycles, **kwargs)
 
@@ -972,13 +972,13 @@ class CorruptedEnvironmentError(CondaError):
 
 class CondaHistoryError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
 class CondaUpgradeError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -1041,13 +1041,13 @@ class NotWritableError(CondaError, OSError):
 
 class NoWritableEnvsDirError(CondaError):
     def __init__(self, envs_dirs, **kwargs):
-        message = "No writeable envs directories configured.%s" % dashlist(envs_dirs)
+        message = f"No writeable envs directories configured.{dashlist(envs_dirs)}"
         super().__init__(message, envs_dirs=envs_dirs, **kwargs)
 
 
 class NoWritablePkgsDirError(CondaError):
     def __init__(self, pkgs_dirs, **kwargs):
-        message = "No writeable pkgs directories configured.%s" % dashlist(pkgs_dirs)
+        message = f"No writeable pkgs directories configured.{dashlist(pkgs_dirs)}"
         super().__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
 
@@ -1160,7 +1160,7 @@ class NoSpaceLeftError(CondaError):
 
 class CondaEnvException(CondaError):
     def __init__(self, message, *args, **kwargs):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg, *args, **kwargs)
 
 
@@ -1256,7 +1256,7 @@ def print_conda_exception(exc_val, exc_tb=None):
         exc_json = json.dumps(
             exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder
         )
-        logger.info("%s\n" % exc_json)
+        logger.info(f"{exc_json}\n")
     else:
         stderrlog = getLogger("conda.stderr")
         stderrlog.error("\n%r\n", exc_val)

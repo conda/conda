@@ -125,7 +125,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
         "-V",
         "--version",
         action="version",
-        version="conda %s" % __version__,
+        version=f"conda {__version__}",
         help="Show the conda version number and exit.",
     )
 
