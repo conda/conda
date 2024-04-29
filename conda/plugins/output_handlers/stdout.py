@@ -13,7 +13,7 @@ from .. import CondaOutputHandler, hookimpl
 from ..types import OutputRenderer
 
 
-class StdoutRender(OutputRenderer):
+class StdoutRenderer(OutputRenderer):
     def __call__(self, renderable: str, **kwargs: Any) -> None:
         sys.stdout.write(renderable)
 
@@ -26,7 +26,7 @@ def conda_output_handlers():
     This is a default output handler provided by conda and writes the renderables it
     receives to stdout using the ``sys`` module.
     """
-    render = StdoutRender()
+    render = StdoutRenderer()
 
     yield CondaOutputHandler(
         name="stdout",
