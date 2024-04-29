@@ -1,0 +1,22 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.plan.execute_plan` as pending deprecation. (#13869)
+* Mark `conda.plan.execute_instructions` as pending deprecation. (#13869)
+* Mark `conda.plan._update_old_plan` as pending deprecation. (#13869)
+
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Remove and update any imports inside conda that is importing from `conda/exports.py`. (#13869)
