@@ -945,9 +945,7 @@ class CyclicalDependencyError(CondaError, ValueError):
         packages_with_cycles = tuple(
             PackageRecord.from_objects(p) for p in packages_with_cycles
         )
-        message = "Cyclic dependencies exist among these items: {}".format(
-            dashlist(p.dist_str() for p in packages_with_cycles)
-        )
+        message = f"Cyclic dependencies exist among these items: {dashlist(p.dist_str() for p in packages_with_cycles)}"
         super().__init__(message, packages_with_cycles=packages_with_cycles, **kwargs)
 
 

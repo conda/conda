@@ -505,8 +505,9 @@ def test_install_conda_xsh(verbose):
 
         first_line, remainder = created_file_contents.split("\n", 1)
         if on_win:
-            assert first_line == '$CONDA_EXE = "{}"'.format(
-                XonshActivator.path_conversion(conda_exe)
+            assert (
+                first_line
+                == f'$CONDA_EXE = "{XonshActivator.path_conversion(conda_exe)}"'
             )
         else:
             assert first_line == f'$CONDA_EXE = "{conda_exe}"'
