@@ -5,11 +5,11 @@
 @ECHO OFF
 
 IF NOT DEFINED CONDA_EXE (
-  FOR %%P IN ("%~dp0\..") DO SET "__condaroot=%%~fP"
-  SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
-  SET _CE_M=
-  SET _CE_CONDA=
-  SET __condaroot=
+    FOR %%P IN ("%~dp0\..") DO SET "__condaroot=%%~fP"
+    SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
+    SET _CE_M=
+    SET _CE_CONDA=
+    SET __condaroot=
 )
 
 :: "source" _conda_activate.bat script, we do not return from this script
