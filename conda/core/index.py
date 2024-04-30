@@ -76,8 +76,7 @@ class Index(UserDict):
             ]
         self.prefix = PrefixData(prefix) if prefix else None
         self.unknown = True if unknown is None and context.offline else unknown
-        # if context.track_features:
-        #     supplement features
+        self.track_features = context.track_features
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
@@ -142,6 +141,10 @@ class Index(UserDict):
 
     def __getitem__(self, key):
         assert isinstance(key, PackageRecord)
+        if self.track_features and key.name.endswith("@"):
+            for feature in self.track_features:
+                if feature == key.name[:-1]:
+                    return make_feature_record(feature)
         prec = self._retrieve_from_channels(key)
         prec = self._update_from_prefix(key, prec)
         if self.unknown:
