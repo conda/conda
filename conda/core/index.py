@@ -75,8 +75,7 @@ class Index(UserDict):
                 for url in urls
             ]
         self.prefix = PrefixData(prefix) if prefix else None
-        # if context.offline and unknown is None:
-        #     supplement cache
+        self.unknown = True if unknown is None and context.offline else unknown
         # if context.track_features:
         #     supplement features
 
@@ -131,10 +130,22 @@ class Index(UserDict):
                 prec = prefix_prec
         return prec
 
+    def _update_from_cache(self, key, prec):
+        for pcrec in PackageCacheData.get_all_extracted_entries():
+            if pcrec == key:
+                if prec:
+                    # The downloaded repodata takes priority
+                    return PackageCacheRecord.from_objects(prec, pcrec)
+                else:
+                    return pcrec
+        return prec
+
     def __getitem__(self, key):
         assert isinstance(key, PackageRecord)
         prec = self._retrieve_from_channels(key)
         prec = self._update_from_prefix(key, prec)
+        if self.unknown:
+            prec = self._update_from_cache(key, prec)
         if prec is None:
             raise KeyError()
         return prec
