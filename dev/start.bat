@@ -186,7 +186,7 @@ SET "CONDA_EXE=%_ENVEXE%"
 
 :: "install" conda
 :: tricks conda.exe into importing from our source code and not from site-packages
-@SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
 
 :: activate env
 ECHO Activating %_NAME%...
