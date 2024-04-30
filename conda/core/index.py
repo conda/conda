@@ -99,9 +99,7 @@ class Index(UserDict):
                 _data.update((prec, prec) for prec in subdir_data.iter_records())
         self._data = _data
 
-    def __getitem__(self, key):
-        assert isinstance(key, PackageRecord)
-        prec = None
+    def _retrieve_from_channels(self, key):
         for subdir_datas in reversed(self.channels.values()):
             for subdir_data in subdir_datas:
                 if key.subdir != subdir_data.channel.subdir:
@@ -112,9 +110,10 @@ class Index(UserDict):
                 assert len(prec_candidates) == 1
                 prec = prec_candidates[0]
                 if prec:
-                    break
-            if prec:
-                break
+                    return prec
+        return None
+
+    def _update_from_prefix(self, key, prec):
         prefix_prec = self.prefix.get(key) if self.prefix else None
         if prefix_prec:
             if prec:
@@ -130,6 +129,12 @@ class Index(UserDict):
                     prec = prefix_prec
             else:
                 prec = prefix_prec
+        return prec
+
+    def __getitem__(self, key):
+        assert isinstance(key, PackageRecord)
+        prec = self._retrieve_from_channels(key)
+        prec = self._update_from_prefix(key, prec)
         if prec is None:
             raise KeyError()
         return prec
