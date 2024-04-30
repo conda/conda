@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -10,7 +11,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
-from conda.testing import CondaCLIFixture
+from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.integration import package_is_installed
 
 from . import support_file
@@ -264,3 +265,24 @@ def test_fail_to_create_env_in_dir_with_colon(
         match="Cannot create a conda environment with ':' in the prefix.",
     ):
         conda_cli("create", f"--prefix={colon_dir}/tester")
+
+
+@pytest.mark.parametrize(
+    "env_file",
+    ["example/environment.yml", "example/environment_with_pip.yml"],
+)
+def test_create_env_json(
+    env_file,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    prefix = path_factory()
+    stdout, stderr, err = conda_cli(
+        *("env", "update"),
+        *("--prefix", prefix),
+        *("--file", support_file(env_file)),
+        "--json",
+    )
+
+    for string in stdout and stdout.split("\0") or ():
+        json.loads(string)
