@@ -80,6 +80,10 @@ class Index(UserDict):
         # if context.track_features:
         #     supplement features
 
+    def __repr__(self):
+        channels = ", ".join(self.channels.keys())
+        return f"Index(channels=[{channels}])"
+
     @property
     def data(self):
         try:
