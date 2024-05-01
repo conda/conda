@@ -24,6 +24,7 @@ from .common.iterators import groupby_to_dict as groupby
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
+from .deprecations import deprecated
 from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
 from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
@@ -563,6 +564,7 @@ def get_blank_actions(prefix):  # pragma: no cover
     return actions
 
 
+@deprecated("24.9", "25.3")
 @time_recorder("execute_plan")
 def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
     """Deprecated: This should `conda.instructions.execute_instructions` instead."""
@@ -570,11 +572,11 @@ def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
     execute_instructions(plan, index, verbose)
 
 
+@deprecated("24.9", "25.3")
 def execute_instructions(
     plan, index=None, verbose=False, _commands=None
 ):  # pragma: no cover
     """Execute the instructions in the plan
-
     :param plan: A list of (instruction, arg) tuples
     :param index: The meta-data index
     :param verbose: verbose output
@@ -612,6 +614,7 @@ def execute_instructions(
             getLogger("progress.stop").info(None)
 
 
+@deprecated("24.9", "25.3")
 def _update_old_plan(old_plan):  # pragma: no cover
     """
     Update an old plan object to work with

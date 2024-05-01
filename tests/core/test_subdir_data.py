@@ -15,7 +15,6 @@ from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
 from conda.core.subdir_data import SubdirData, cache_fn_url
 from conda.exceptions import CondaUpgradeError
-from conda.exports import url_path
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataCache,
@@ -26,6 +25,7 @@ from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR_V1, CHANNEL_DIR_V2
 from conda.testing.integration import make_temp_env
+from conda.utils import url_path
 
 log = getLogger(__name__)
 
