@@ -18,7 +18,6 @@ from boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
-from .cli.install import revert_actions as _revert_actions
 from .common.constants import TRACE
 from .common.io import dashlist, env_vars, time_recorder
 from .common.iterators import groupby_to_dict as groupby
@@ -26,7 +25,6 @@ from .core.index import LAST_CHANNEL_URLS
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .deprecations import deprecated
 from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
-from .misc import _get_best_prec_match as __get_best_prec_match
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -275,20 +273,26 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     return
 
 
-deprecated.constant(
+@deprecated(
     "24.9",
     "25.3",
-    "_get_best_prec_match",
-    __get_best_prec_match,
     addendum="Use `conda.misc._get_best_prec_match` instead.",
 )
-deprecated.constant(
+def _get_best_prec_match(precs):
+    from .misc import _get_best_prec_match
+
+    return _get_best_prec_match(precs)
+
+
+@deprecated(
     "24.9",
     "25.3",
-    "revert_actions",
-    _revert_actions,
     addendum="Use `conda.cli.install.revert_actions` instead.",
 )
+def revert_actions(prefix, revision=-1, index=None):
+    from .cli.install import revert_actions
+
+    return revert_actions(prefix, revision, index)
 
 
 @deprecated("24.9", "25.3", addendum="Unused.")
@@ -598,6 +602,8 @@ if __name__ == "__main__":
     # for testing new revert_actions() only
     from pprint import pprint
 
+    from .cli.install import revert_actions
+
     deprecated.topic("24.9", "25.3", topic="`conda.plan` as an entrypoint")
 
-    pprint(dict(_revert_actions(sys.prefix, int(sys.argv[1]))))
+    pprint(dict(revert_actions(sys.prefix, int(sys.argv[1]))))
