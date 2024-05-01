@@ -220,7 +220,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                     raise CondaError(
                         "Unable to determine python site-packages "
                         "dir in target_prefix!\nPlease make sure "
-                        "python is installed in %s" % target_prefix
+                        f"python is installed in {target_prefix}"
                     )
                 target_short_path = get_python_noarch_target_path(
                     source_path_data.path, sp_dir
@@ -305,7 +305,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_directory = context.conda_prefix
         source_short_path = "Scripts/conda.exe"
         command, _, _ = parse_entry_point_def(entry_point_def)
-        target_short_path = "Scripts/%s.exe" % command
+        target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
             _path=target_short_path,
             path_type=PathType.windows_python_entry_point_exe,
@@ -866,7 +866,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         all_link_path_actions,
     ):
         extracted_package_dir = package_info.extracted_package_dir
-        target_short_path = "conda-meta/%s.json" % basename(extracted_package_dir)
+        target_short_path = f"conda-meta/{basename(extracted_package_dir)}.json"
         return (
             cls(
                 transaction_context,
@@ -1392,9 +1392,9 @@ class ExtractPackageAction(PathAction):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print(
-                "ERROR: Encountered corrupt package tarball at %s. Conda has "
+                f"ERROR: Encountered corrupt package tarball at {self.source_full_path}. Conda has "
                 "left it in place. Please report this to the maintainers "
-                "of the package." % self.source_full_path
+                "of the package."
             )
             sys.exit(1)
 

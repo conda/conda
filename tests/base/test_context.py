@@ -112,7 +112,7 @@ def test_old_channel_alias(testdata: None):
     platform = context.subdir
 
     cf_urls = [
-        "ftp://new.url:8082/conda-forge/%s" % platform,
+        f"ftp://new.url:8082/conda-forge/{platform}",
         "ftp://new.url:8082/conda-forge/noarch",
     ]
     assert Channel("conda-forge").urls() == cf_urls
