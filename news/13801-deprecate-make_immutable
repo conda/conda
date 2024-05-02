@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.auxlib.collections.make_immutable` as pending deprecation. Use `frozendict.deepfreeze` instead. (#13801)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

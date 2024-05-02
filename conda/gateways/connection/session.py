@@ -55,11 +55,10 @@ CONDA_SESSION_SCHEMES = frozenset(
 class EnforceUnusedAdapter(BaseAdapter):
     def send(self, request, *args, **kwargs):
         message = dals(
-            """
-        EnforceUnusedAdapter called with url %s
+            f"""
+        EnforceUnusedAdapter called with url {request.url}
         This command is using a remote connection in offline mode.
         """
-            % request.url
         )
         raise RuntimeError(message)
 

@@ -2511,7 +2511,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     _CE_CONDA = shell.get_env_var("_CE_CONDA")
 
     log.debug("activating ..")
-    shell.sendline("conda" + activate + '"%s"' % prefix_p)
+    shell.sendline("conda" + activate + f'"{prefix_p}"')
 
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
@@ -2541,7 +2541,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.expect("CONDA_")
     shell.sendline('echo "PATH=$PATH"')
     shell.expect("PATH=")
-    shell.sendline("conda" + activate + '"%s"' % prefix2_p)
+    shell.sendline("conda" + activate + f'"{prefix2_p}"')
     shell.sendline("env | sort | grep CONDA")
     shell.expect("CONDA_")
     shell.sendline('echo "PATH=$PATH"')
@@ -2613,19 +2613,19 @@ def basic_posix(shell, prefix, prefix2, prefix3):
 
     PATH0 = shell.get_env_var("PATH")
 
-    shell.sendline("conda" + activate + '"%s"' % prefix2_p)
+    shell.sendline("conda" + activate + f'"{prefix2_p}"')
     shell.assert_env_var("CONDA_SHLVL", "1")
     PATH1 = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH1.split(":"))
 
-    shell.sendline("conda" + activate + '"%s" --stack' % prefix3)
+    shell.sendline("conda" + activate + f'"{prefix3}" --stack')
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH2 = shell.get_env_var("PATH")
     assert "charizard" in PATH2
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline("conda" + activate + '"%s"' % prefix_p)
+    shell.sendline("conda" + activate + f'"{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
@@ -2649,14 +2649,14 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     # Test auto_stack
     shell.sendline(shell.activator.export_var_tmpl % ("CONDA_AUTO_STACK", "1"))
 
-    shell.sendline("conda" + activate + '"%s"' % prefix3)
+    shell.sendline("conda" + activate + f'"{prefix3}"')
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH2 = shell.get_env_var("PATH")
     assert "charizard" in PATH2
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline("conda" + activate + '"%s"' % prefix_p)
+    shell.sendline("conda" + activate + f'"{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
@@ -2671,7 +2671,7 @@ def basic_csh(shell, prefix, prefix2, prefix3):
     shell.sendline("conda activate base")
     shell.assert_env_var("prompt", "(base).*")
     shell.assert_env_var("CONDA_SHLVL", "1")
-    shell.sendline('conda activate "%s"' % prefix)
+    shell.sendline(f'conda activate "{prefix}"')
     shell.assert_env_var("CONDA_SHLVL", "2")
     shell.assert_env_var("CONDA_PREFIX", prefix, True)
     shell.sendline("conda deactivate")
@@ -2758,7 +2758,7 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
         shell.assert_env_var("CONDA_SHLVL", "0")
         shell.sendline("conda activate base")
         shell.assert_env_var("CONDA_SHLVL", "1")
-        shell.sendline('conda activate "%s"' % prefix)
+        shell.sendline(f'conda activate "{prefix}"')
         shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
         shell.sendline("conda deactivate")
@@ -2793,20 +2793,20 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
         shell.sendline("(Get-Command Invoke-Conda).Definition")
 
         log.debug("## [PowerShell integration] Activating.")
-        shell.sendline('conda activate "%s"' % charizard)
+        shell.sendline(f'conda activate "{charizard}"')
         shell.assert_env_var("CONDA_SHLVL", "1")
         PATH = shell.get_env_var("PATH")
         assert "charizard" in PATH
         shell.sendline("conda --version")
         shell.expect_exact("conda " + conda_version)
-        shell.sendline('conda activate "%s"' % prefix)
+        shell.sendline(f'conda activate "{prefix}"')
         shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
 
         shell.sendline("conda deactivate")
         PATH = shell.get_env_var("PATH")
         assert "charizard" in PATH
-        shell.sendline('conda activate -stack "%s"' % venusaur)
+        shell.sendline(f'conda activate -stack "{venusaur}"')
         PATH = shell.get_env_var("PATH")
         assert "venusaur" in PATH
         assert "charizard" in PATH
@@ -2991,7 +2991,7 @@ def test_legacy_activate_deactivate_bash(
         CONDA_PACKAGE_ROOT_p = shell.path_conversion(CONDA_PACKAGE_ROOT)
         prefix2_p = shell.path_conversion(prefix2)
         prefix3_p = shell.path_conversion(prefix3)
-        shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT_p)
+        shell.sendline(f"export _CONDA_ROOT='{CONDA_PACKAGE_ROOT_p}/shell'")
         shell.sendline(
             f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix2_p}"'
         )
@@ -3032,11 +3032,11 @@ def test_legacy_activate_deactivate_cmd_exe(
         conda__ce_conda = shell.get_env_var("_CE_CONDA")
         assert conda__ce_conda == "conda"
 
-        PATH = "%s\\shell\\Scripts;%%PATH%%" % CONDA_PACKAGE_ROOT
+        PATH = f"{CONDA_PACKAGE_ROOT}\\shell\\Scripts;%PATH%"
 
         shell.sendline("SET PATH=" + PATH)
 
-        shell.sendline('activate --dev "%s"' % prefix2)
+        shell.sendline(f'activate --dev "{prefix2}"')
         shell.clear()
 
         conda_shlvl = shell.get_env_var("CONDA_SHLVL")
@@ -3051,7 +3051,7 @@ def test_legacy_activate_deactivate_cmd_exe(
         shell.sendline("conda --version")
         shell.expect_exact("conda " + conda_version)
 
-        shell.sendline('activate.bat --dev "%s"' % prefix3)
+        shell.sendline(f'activate.bat --dev "{prefix3}"')
         PATH = shell.get_env_var("PATH")
         assert "venusaur" in PATH
 
@@ -3114,7 +3114,7 @@ def test_activate_deactivate_modify_path(
     )
 
     with InteractiveShell(shell) as sh:
-        sh.sendline('conda activate "%s"' % prefix)
+        sh.sendline(f'conda activate "{prefix}"')
         activated_env_path = sh.get_env_var("PATH")
         sh.sendline("conda deactivate")
 
