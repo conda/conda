@@ -353,9 +353,13 @@ def print_config_item(key, value):
                 stdout_write(" ".join(("--add", key, repr(item))))
 
 
-def get_key(
-    key: str, config: dict, *, json: dict[str, Any] = {}, warnings: list[str] = []
-):
+def _get_key(
+    key: str,
+    config: dict,
+    *,
+    json: dict[str, Any] = {},
+    warnings: list[str] = [],
+) -> None:
     from ..base.context import context
 
     key_parts = key.split(".")
@@ -381,7 +385,7 @@ def get_key(
             print_config_item(key, sub_config)
 
 
-def set_key(key: str, item: Any, config: dict):
+def _set_key(key: str, item: Any, config: dict) -> None:
     from ..base.context import context
 
     key_parts = key.split(".")
@@ -405,7 +409,7 @@ def set_key(key: str, item: Any, config: dict):
         raise CondaValueError(f"Key '{key}' is not a known primitive parameter.")
 
 
-def remove_item(key: str, item: Any, config: dict):
+def _remove_item(key: str, item: Any, config: dict) -> None:
     from ..base.context import context
 
     key_parts = key.split(".")
@@ -439,7 +443,7 @@ def remove_item(key: str, item: Any, config: dict):
         raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
 
 
-def remove_key(key: str, config: dict):
+def _remove_key(key: str, config: dict) -> None:
     key_parts = key.split(".")
 
     sub_config = config
@@ -454,7 +458,7 @@ def remove_key(key: str, config: dict):
         raise CondaKeyError(key, f"key {key!r} is not in the config file")
 
 
-def read_rc(path: str | os.PathLike | Path) -> dict:
+def _read_rc(path: str | os.PathLike | Path) -> dict:
     from ..common.serialize import yaml_round_trip_load
 
     try:
@@ -464,7 +468,7 @@ def read_rc(path: str | os.PathLike | Path) -> dict:
         return {}
 
 
-def write_rc(path: str | os.PathLike | Path, config: dict) -> None:
+def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
     from .. import CondaError
     from ..base.constants import (
         ChannelPriority,
@@ -509,10 +513,10 @@ def write_rc(path: str | os.PathLike | Path, config: dict) -> None:
 
 
 def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
-    config = read_rc(path)
+    config = _read_rc(path)
     for key, value in args:
-        set_key(key, value, config)
-    write_rc(path, config)
+        _set_key(key, value, config)
+    _write_rc(path, config)
 
 
 def execute_config(args, parser):
@@ -712,7 +716,7 @@ def execute_config(args, parser):
         context.validate_all()
 
         for key in args.get or sorted(rc_config.keys()):
-            get_key(key, rc_config, json=json_get, warnings=json_warnings)
+            _get_key(key, rc_config, json=json_get, warnings=json_warnings)
 
     if args.stdin:
         content = timeout(5, sys.stdin.read)
@@ -766,19 +770,19 @@ def execute_config(args, parser):
 
     # Set
     for key, item in args.set:
-        set_key(key, item, rc_config)
+        _set_key(key, item, rc_config)
 
     # Remove
     for key, item in args.remove:
-        remove_item(key, item, rc_config)
+        _remove_item(key, item, rc_config)
 
     # Remove Key
     for key in args.remove_key:
-        remove_key(key, rc_config)
+        _remove_key(key, rc_config)
 
     # config.rc_keys
     if not args.get:
-        write_rc(rc_path, rc_config)
+        _write_rc(rc_path, rc_config)
 
     if context.json:
         from .common import stdout_json_success

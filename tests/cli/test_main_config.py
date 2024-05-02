@@ -7,6 +7,7 @@ from typing import Iterable
 import pytest
 
 from conda.base.context import context
+from conda.cli.main_config import set_keys
 from conda.testing import CondaCLIFixture, PathFactoryFixture
 
 
@@ -73,3 +74,16 @@ def test_config_show_sources_json(conda_cli: CondaCLIFixture):
     assert "error" not in parsed  # not an error rendered as a json
     assert not stderr
     assert not err
+
+
+def test_config_set_keys(tmp_path: Path) -> None:
+    condarc = tmp_path / ".condarc"
+
+    set_keys(("changeps1", True), path=condarc)
+    assert condarc.read_text() == "changeps1: true\n"
+
+    set_keys(("changeps1", False), path=condarc)
+    assert condarc.read_text() == "changeps1: false\n"
+
+    set_keys(("auto_stack", 5), path=condarc)
+    assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
