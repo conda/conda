@@ -40,45 +40,21 @@ The `conda` subhierarchy consists of all loggers whose name starts with `conda.`
 Additionally, the following five loggers are used for other output.
 These are likely to be replaced and should not be used in new code.
 - `conda.stdout`
-  - conda/exceptions.py:1255 -> print_conda_exception
-  - conda/cli/common.py:201 -> stdout_json
-  - conda/cli/main_config.py:322 -> print_config_item
-  - conda/cli/main_config.py:365 -> execute_config
 - `conda.stderr`
-  - conda/exceptions.py:1255 -> print_conda_exception
-  - conda/exceptions.py:1261 -> print_conda_exception
-  - conda/cli/main_config.py:366 -> execute_config
-  - conda/cli/install.py:53 -> check_prefix
-  - conda/exception_handler.py:29 -> ExceptionHandler.write_out
 - `conda.stdoutlog`
-  - conda/resolve.py:47 -> Resolve.solve
-  - conda/gateways/disk/create.py:79 -> make_menu (exception reporting)
 - `conda.stderrlog`
-  - conda/gateways/connection/adapters/s3.py:20 -> S3Adapter.send (reporting of import boto3 error)
-  - conda/gateways/repodata/jlap/interface.py:50 -> Not used
-  - conda/gateways/repodata/__init__.py:58 -> conda_http_errors
 - `conda.stdout.verbose`
-  - conda/instructions.py:50 -> PRINT_CMD
 
 ### Other loggers
 
-Three more loggers are used in `conda`:
-- `progress.update`
-- `progress.stop`
-- `auxlib`
+Three more loggers appear in conda, namely `progress.update`and `progress.stop`, which only appear in `conda.plan.execute_actions`, which in turn is
+being deprecated (c.f. https://github.com/conda/conda/pull/13881); and `auxlib` which likely is a remnant from before the auxlib code was completely
+absorbed into conda, since it only appears to be adorned with {class}`conda.auxlib.NullHandler` in `conda.auxlib.__init__`.
 
-## Handlers
-
-### Auxlib
-
-The `'auxlib'` logger get's a {class}`conda.auxlib.NullHandler`.
-
-## Open questions
-
-### Potential effect on other loggers
+## Potential effect on other loggers
 
 There are three other functions that use {func}`logging.getLogger` and hence might affect other loggers. They are {func}`conda.gateways.logging.set_file_logging` that is never used in the code base and the context managers {func}`conda.common.io.disable_logger` and {func}`conda.common.io.stderr_log_level`, which are only used in testing.
 
-### Root logger in auxlib
+## Root logger in auxlib
 
 In {module}`conda.auxlib.logz`, the root logger is modified.
