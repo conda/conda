@@ -348,8 +348,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
 def _get_best_prec_match(precs):
     assert precs
-    for chn in context.channels:
-        channel_matcher = ChannelMatch(chn)
+    for channel in context.channels:
+        channel_matcher = ChannelMatch(channel)
         prec_matches = tuple(
             prec for prec in precs if channel_matcher.match(prec.channel.name)
         )
@@ -357,5 +357,5 @@ def _get_best_prec_match(precs):
             break
     else:
         prec_matches = precs
-    log.warn("Multiple packages found:%s", dashlist(prec_matches))
+    log.warn("Multiple packages found: %s", dashlist(prec_matches))
     return prec_matches[0]

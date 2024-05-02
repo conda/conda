@@ -488,9 +488,8 @@ def revert_actions(prefix, revision=-1, index=None):
 
     final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
-    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
-    txn = UnlinkLinkTransaction(stp)
-    return txn
+    setup = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
+    return UnlinkLinkTransaction(setup)
 
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
