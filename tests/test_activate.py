@@ -1108,7 +1108,8 @@ def make_dot_d_files(prefix, extension):
 
 
 @pytest.mark.skipif(
-    not on_win, reason="native_path_to_unix is path_identity on non-windows"
+    not on_win,
+    reason="native_path_to_unix is path_identity on non-windows",
 )
 @pytest.mark.parametrize(
     "paths,expected",
@@ -1146,6 +1147,14 @@ def make_dot_d_files(prefix, extension):
             ],
             id="tuple[path, ...]",
         ),
+        pytest.param(
+            "C:\\path\\to\\One;C:\\path\\Two;\\\\mount\\Three",
+            [
+                "/c/path/to/One:/c/path/Two://mount/Three",  # MSYS2
+                "/cygdrive/c/path/to/One:/cygdrive/c/path/Two://mount/Three",  # cygwin
+            ],
+            id="path;...",
+        ),
     ],
 )
 def test_native_path_to_unix(
@@ -1161,23 +1170,9 @@ def test_native_path_to_unix(
     assert native_path_to_unix(paths) in expected
 
 
-# Notionally, unix_path_to_native() is only called from
-# _get_path_dirs() with a Unix-style prefix.  However, once the
-# function is known it may get called with all variants.
-#
-# The only tests where *_prefix are used are root filesystem ones.
-windows_prefix = context.target_prefix
-if windows_prefix.startswith("/"):
-    # toggle the prefixes
-    unix_prefix = windows_prefix
-    # yes, this is inception
-    windows_prefix = unix_path_to_native(unix_prefix, unix_prefix)
-else:
-    unix_prefix = native_path_to_unix(windows_prefix)
-
-
 @pytest.mark.skipif(
-    not on_win, reason="native_path_to_unix is path_identity on non-windows"
+    not on_win,
+    reason="native_path_to_unix is path_identity on non-windows",
 )
 @pytest.mark.parametrize(
     "paths,prefix,expected",
@@ -1189,63 +1184,66 @@ else:
         # MSYS2
         pytest.param(
             "/c/path/to/One",
-            windows_prefix,
+            "{WINDOWS}",
             "C:\\path\\to\\One",
-            id="MSYS2 drive letter path (MSYS2)",
+            id="drive letter + path (MSYS2)",
         ),
         pytest.param(
             "/c/",
-            windows_prefix,
+            "{WINDOWS}",
             "C:\\",
-            id="MSYS2 drive letter only (MSYS2)",
+            id="drive letter only (MSYS2)",
         ),
         pytest.param(
             "//path/to/One",
-            windows_prefix,
+            "{WINDOWS}",
             "\\\\path\\to\\One",
             id="UNC path (MSYS2)",
         ),
         pytest.param(
             "/path/to/One",
-            windows_prefix,
-            windows_prefix + "\\Library\\path\\to\\One",
-            id="root filesystem path + windows prefix (MSYS2)",
+            "{WINDOWS}",
+            "{WINDOWS}\\Library\\path\\to\\One",
+            id="root filesystem + windows prefix (MSYS2)",
         ),
         pytest.param(
             "/path/to/One",
-            unix_prefix,
-            windows_prefix + "\\Library\\path\\to\\One",
-            id="root filesystem path + unix prefix (MSYS2)",
+            "{UNIX}",
+            "{WINDOWS}\\Library\\path\\to\\One",
+            id="root filesystem + unix prefix (MSYS2)",
         ),
         pytest.param(
             "/",
-            windows_prefix,
-            windows_prefix + "\\Library\\",
+            "{WINDOWS}",
+            "{WINDOWS}\\Library\\",
             id="root filesystem only (MSYS2)",
         ),
         pytest.param(
             "relative/path/to/One",
-            windows_prefix,
+            "{WINDOWS}",
             "relative\\path\\to\\One",
-            id="relative filesystem path (MSYS2)",
+            id="relative filesystem (MSYS2)",
         ),
         pytest.param(
             "/c/path/to/One://path/to/One:/path/to/One:relative/path/to/One",
-            windows_prefix,
-            "C:\\path\\to\\One;\\\\path\\to\\One;"
-            + windows_prefix
-            + "\\Library\\path\\to\\One;relative\\path\\to\\One",
-            id="PATH-like (MSYS2)",
+            "{WINDOWS}",
+            (
+                "C:\\path\\to\\One;"
+                "\\\\path\\to\\One;"
+                "{WINDOWS}\\Library\\path\\to\\One;"
+                "relative\\path\\to\\One"
+            ),
+            id="path;... (MSYS2)",
         ),
         pytest.param(
             ["/c/path/to/One"],
-            windows_prefix,
+            "{WINDOWS}",
             ("C:\\path\\to\\One",),
             id="list[path] (MSYS2)",
         ),
         pytest.param(
             ("/c/path/to/One", "/c/path/Two", "//mount/Three"),
-            windows_prefix,
+            "{WINDOWS}",
             ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
             id="tuple[path, ...] (MSYS2)",
         ),
@@ -1257,30 +1255,45 @@ else:
         # cygwin
         # pytest.param(
         #     "/cygdrive/c/path/to/One",
-        #     windows_prefix,
+        #     "{WINDOWS}",
         #     "C:\\path\\to\\One",
         #     id="Cygwin drive letter path (cygwin)",
         # ),
         # pytest.param(
         #     ["/cygdrive/c/path/to/One"],
-        #     windows_prefix,
+        #     "{WINDOWS}",
         #     ("C:\\path\\to\\One",),
         #     id="list[path] (cygwin)",
         # ),
         # pytest.param(
         #     ("/cygdrive/c/path/to/One", "/cygdrive/c/path/Two", "//mount/Three"),
-        #     windows_prefix,
+        #     "{WINDOWS}",
         #     ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
         #     id="tuple[path, ...] (cygwin)",
         # ),
     ],
 )
 def test_unix_path_to_native(
+    tmp_env: TmpEnvFixture,
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
     prefix: str,
     expected: str | tuple[str, ...] | None,
 ) -> None:
+    windows_prefix = context.target_prefix
+    unix_prefix = native_path_to_unix(windows_prefix)
+
+    def format(path: str) -> str:
+        return path.format(UNIX=unix_prefix, WINDOWS=windows_prefix)
+
+    prefix = format(prefix)
+    if expected:
+        expected = (
+            tuple(map(format, expected))
+            if isinstance(expected, tuple)
+            else format(expected)
+        )
+
     # test with cygpath
     assert unix_path_to_native(paths, prefix) == expected
 
