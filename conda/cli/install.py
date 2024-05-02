@@ -12,6 +12,8 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 
+from boltons.setutils import IndexedSet
+
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
@@ -19,11 +21,18 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.io import Spinner
 from ..common.path import is_package_file, paths_equal
-from ..core.index import calculate_channel_urls, get_index
+from ..core.index import (
+    _supplement_index_with_prefix,
+    calculate_channel_urls,
+    get_index,
+)
+from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
+from ..core.solve import diff_for_unlink_link_precs
 from ..exceptions import (
     CondaExitZero,
     CondaImportError,
+    CondaIndexError,
     CondaOSError,
     CondaSystemExit,
     CondaValueError,
@@ -42,9 +51,10 @@ from ..exceptions import (
 )
 from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
-from ..misc import clone_env, explicit, touch_nonadmin
+from ..history import History
+from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
-from ..plan import revert_actions
+from ..models.prefix_graph import PrefixGraph
 from . import common
 from .common import check_non_admin
 from .python_api import Commands, run_command
@@ -442,6 +452,44 @@ def install(args, parser, command="install"):
                     raise CondaImportError(str(e))
                 raise e
     handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+
+def revert_actions(prefix, revision=-1, index=None):
+    # TODO: If revision raise a revision error, should always go back to a safe revision
+    h = History(prefix)
+    # TODO: need a History method to get user-requested specs for revision number
+    #       Doing a revert right now messes up user-requested spec history.
+    #       Either need to wipe out history after ``revision``, or add the correct
+    #       history information to the new entry about to be created.
+    # TODO: This is wrong!!!!!!!!!!
+    user_requested_specs = h.get_requested_specs_map().values()
+    try:
+        target_state = {
+            MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)
+        }
+    except IndexError:
+        raise CondaIndexError("no such revision: %d" % revision)
+
+    _supplement_index_with_prefix(index, prefix)
+
+    not_found_in_index_specs = set()
+    link_precs = set()
+    for spec in target_state:
+        precs = tuple(prec for prec in index.values() if spec.match(prec))
+        if not precs:
+            not_found_in_index_specs.add(spec)
+        elif len(precs) > 1:
+            link_precs.add(_get_best_prec_match(precs))
+        else:
+            link_precs.add(precs[0])
+
+    if not_found_in_index_specs:
+        raise PackagesNotFoundError(not_found_in_index_specs)
+
+    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
+    setup = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
+    return UnlinkLinkTransaction(setup)
 
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
