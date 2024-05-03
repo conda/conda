@@ -16,4 +16,4 @@
 
 ### Other
 
-* Remove setuptools remainings (MANIFEST.in, wheel build dependency) not required since the move to hatch in #12509. (#13684)
+* Remove `setuptools` remainings (`MANIFEST.in`, `wheel` build dependency) not required since the move to `hatch` in #12509. (#13684)
