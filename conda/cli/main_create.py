@@ -118,8 +118,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "Cannot `create --dry-run` with an existing conda environment"
             )
         confirm_yn(
-            "WARNING: A conda environment already exists at '%s'\n"
-            "Remove existing environment" % context.target_prefix,
+            f"WARNING: A conda environment already exists at '{context.target_prefix}'\n"
+            "Remove existing environment",
             default="no",
             dry_run=False,
         )
@@ -127,9 +127,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         rm_rf(context.target_prefix)
     elif isdir(context.target_prefix):
         confirm_yn(
-            "WARNING: A directory already exists at the target location '%s'\n"
+            f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
             "but it is not a conda environment.\n"
-            "Continue creating environment" % context.target_prefix,
+            "Continue creating environment",
             default="no",
             dry_run=False,
         )

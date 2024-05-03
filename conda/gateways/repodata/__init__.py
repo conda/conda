@@ -302,8 +302,8 @@ will need to
         followed by collecting a new token with `anaconda login`, or
     (b) provide conda with a valid token directly.
 
-Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             else:
                 help_message = """\
@@ -311,8 +311,8 @@ The credentials you have provided for this URL are invalid.
 
 You will need to modify your conda configuration to proceed.
 Use `conda config --show` to view your configuration's current state.
-Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = """\
@@ -326,22 +326,22 @@ of the remote server.
 
         else:
             if url.startswith("https://repo.anaconda.com/"):
-                help_message = """\
+                help_message = f"""\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
-%s
-""" % maybe_unquote(repr(url))
+{maybe_unquote(repr(url))}
+"""
 
             else:
-                help_message = """\
+                help_message = f"""\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
-%s
-""" % maybe_unquote(repr(url))
+{maybe_unquote(repr(url))}
+"""
 
         raise CondaHTTPError(
             help_message,

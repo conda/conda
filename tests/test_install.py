@@ -29,7 +29,7 @@ patch = mock.patch if mock else None
 
 
 def generate_random_path():
-    return "/some/path/to/file%s" % random.randint(100, 200)
+    return f"/some/path/to/file{random.randint(100, 200)}"
 
 
 @pytest.fixture
