@@ -1,22 +1,40 @@
-===========
-Cheat sheet
-===========
+==========
+Cheatsheet
+==========
 
-See the :download:`conda cheatsheet <conda-cheatsheet.pdf>` PDF
-(1 MB) for a single-page summary of the most important
-information about using conda (link always points to the latest version).
+Refer to the conda cheatsheet for basic commands for creating and managing environments, installing packages, and importing and exporting environments.
 
-Versions
-========
+.. csv-table:: Quickstart
+    :widths: 42 58
+    :header-rows: 0
+    :file: csv/quickstart.csv
 
-..
-    Maintainers! When updating the following list, please make sure to
-    update the filesystem symlink "conda-cheatsheet.pdf" to the latest
-    version as well, to keep the URL of the conda cheetsheet the same.
-    Thank you!
+.. csv-table:: Channels and Packages
+    :widths: 42 58
+    :header-rows: 0
+    :file: csv/channels-and-packages.csv
 
-- :download:`conda 4.14.x <cheatsheets/conda-4.14.pdf>` (latest)
+.. csv-table:: Working with Conda Environments
+    :widths: 42 58
+    :header-rows: 0
+    :file: csv/working-with-environments.csv
 
-- :download:`conda 4.12.x <cheatsheets/conda-4.12.pdf>`
+.. csv-table:: Environment Management
+    :widths: 42 58
+    :header-rows: 0
+    :file: csv/environment-management.csv
 
-- :download:`conda 4.6.x <cheatsheets/conda-4.6.pdf>`
+.. csv-table:: Exporting Environments
+    :widths: 42 58
+    :header-rows: 0
+    :file: csv/exporting-environments.csv
+
+.. csv-table:: Importing Environments
+    :widths: 42 58
+    :header-rows: 0
+    :file: csv/importing-environments.csv
+
+.. csv-table:: Additional Hints
+    :widths: 42 58
+    :header-rows: 0
+    :file: csv/additional-hints.csv
