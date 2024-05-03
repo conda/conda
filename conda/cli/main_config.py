@@ -366,9 +366,9 @@ def _get_key(
 
     if key_parts[0] not in context.list_parameters():
         if context.json:
-            warnings.append(f"Unknown key: {key_parts[0]}")
+            warnings.append(f"Unknown key: {key_parts[0]!r}")
         else:
-            print(f"Unknown key: {key_parts[0]}", file=sys.stderr)
+            print(f"Unknown key: {key_parts[0]!r}", file=sys.stderr)
         return
 
     sub_config = config
@@ -392,10 +392,10 @@ def _set_key(key: str, item: Any, config: dict) -> None:
     try:
         parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
     except KeyError:
-        # KeyError: key_parts[0] is not a known parameter
-        from ..exceptions import CondaValueError
+        # KeyError: key_parts[0] is an unknown parameter
+        from ..exceptions import CondaKeyError
 
-        raise CondaValueError(f"Key '{key}' is not a known primitive parameter.")
+        raise CondaKeyError(key, "unknown parameter")
 
     if parameter_type == "primitive" and len(key_parts) == 1:
         (key,) = key_parts
@@ -404,9 +404,9 @@ def _set_key(key: str, item: Any, config: dict) -> None:
         key, subkey = key_parts
         config.setdefault(key, {})[subkey] = item
     else:
-        from ..exceptions import CondaValueError
+        from ..exceptions import CondaKeyError
 
-        raise CondaValueError(f"Key '{key}' is not a known primitive parameter.")
+        raise CondaKeyError(key, "invalid parameter")
 
 
 def _remove_item(key: str, item: Any, config: dict) -> None:
@@ -416,10 +416,10 @@ def _remove_item(key: str, item: Any, config: dict) -> None:
     try:
         parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
     except KeyError:
-        # KeyError: key_parts[0] is not a known parameter
-        from ..exceptions import CondaValueError
+        # KeyError: key_parts[0] is an unknown parameter
+        from ..exceptions import CondaKeyError
 
-        raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
+        raise CondaKeyError(key, "unknown parameter")
 
     if parameter_type == "sequence" and len(key_parts) == 1:
         (key,) = key_parts
@@ -427,20 +427,18 @@ def _remove_item(key: str, item: Any, config: dict) -> None:
             if key != "channels":
                 from ..exceptions import CondaKeyError
 
-                raise CondaKeyError(key, f"key {key!r} is not in the config file")
+                raise CondaKeyError(key, "undefined in config")
             config[key] = ["defaults"]
 
         if item not in config[key]:
             from ..exceptions import CondaKeyError
 
-            raise CondaKeyError(
-                key, f"{item!r} is not in the {key!r} key of the config file"
-            )
+            raise CondaKeyError(key, f"value {item!r} not present in config")
         config[key] = [i for i in config[key] if i != item]
     else:
-        from ..exceptions import CondaValueError
+        from ..exceptions import CondaKeyError
 
-        raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
+        raise CondaKeyError(key, "invalid parameter")
 
 
 def _remove_key(key: str, config: dict) -> None:
@@ -455,7 +453,7 @@ def _remove_key(key: str, config: dict) -> None:
         # KeyError: part not found, nothing to remove
         from ..exceptions import CondaKeyError
 
-        raise CondaKeyError(key, f"key {key!r} is not in the config file")
+        raise CondaKeyError(key, "undefined in config")
 
 
 def _read_rc(path: str | os.PathLike | Path) -> dict:
