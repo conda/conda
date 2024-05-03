@@ -996,7 +996,7 @@ def unix_path_to_native(
         #       transformed to {prefix}\Library\here\there
         # 3. anything else
 
-        def _translation_drive(match):
+        def _translation_drive(match: re.Match) -> str:
             drive = match.group("drive").upper()
             path = match.group("path") or ""
             return f"{drive}:\\{path}"
@@ -1012,7 +1012,7 @@ def unix_path_to_native(
             flags=re.VERBOSE,
         )
 
-        def _translation_mount(match):
+        def _translation_mount(match: re.Match) -> str:
             mount = match.group("mount") or ""
             path = match.group("path") or ""
             return f"\\\\{mount}{path}"
@@ -1029,7 +1029,7 @@ def unix_path_to_native(
             flags=re.VERBOSE,
         )
 
-        def _translation_root(match):
+        def _translation_root(match: re.Match) -> str:
             path = match.group("path")
             return f"{prefix}\\Library{path}"
 
@@ -1042,7 +1042,7 @@ def unix_path_to_native(
             flags=re.VERBOSE,
         )
 
-        def up2n_per(elem):
+        def translate(elem: str) -> str:
             if "/" not in elem:
                 # nothing to translate
                 return elem
@@ -1057,9 +1057,9 @@ def unix_path_to_native(
             return re.sub(r"/+", r"\\", elem)
 
         # The conda prefix can be in a drive letter form
-        prefix = up2n_per(prefix)
+        prefix = translate(prefix)
 
-        win_path = ";".join(map(up2n_per, joined.split(":")))
+        win_path = ";".join(map(translate, joined.split(":")))
     except Exception as err:
         log.error("Unexpected cygpath error (%s)", err)
         raise
