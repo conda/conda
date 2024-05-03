@@ -228,7 +228,7 @@ def test_channels_remove_duplicate(conda_cli: CondaCLIFixture):
 
         with pytest.raises(
             CondaKeyError,
-            match="'channels': 'test' is not in the 'channels' key of the config file",
+            match=r"'channels': value 'test' not present in config",
         ):
             conda_cli(
                 "config",
@@ -273,7 +273,7 @@ def test_get_all(conda_cli: CondaCLIFixture):
             --add create_default_packages 'ipython'
             """
         )
-        assert stderr.strip() == "Unknown key: invalid_key"
+        assert stderr.strip() == "Unknown key: 'invalid_key'"
 
 
 def test_get_all_inc_maps(conda_cli: CondaCLIFixture):
@@ -291,7 +291,7 @@ def test_get_all_inc_maps(conda_cli: CondaCLIFixture):
             --set proxy_servers.https 1.2.3.4:5678
             """
         )
-        assert stderr.strip() == "Unknown key: invalid_key"
+        assert stderr.strip() == "Unknown key: 'invalid_key'"
 
 
 def test_get_channels_list(conda_cli: CondaCLIFixture):
@@ -408,7 +408,7 @@ def test_get_invalid_key(conda_cli: CondaCLIFixture):
     with make_temp_condarc(condarc) as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "invalid_key")
         assert stdout == ""
-        assert stderr.strip() == "Unknown key: invalid_key"
+        assert stderr.strip() == "Unknown key: 'invalid_key'"
 
 
 def test_set_key(conda_cli: CondaCLIFixture):
@@ -456,9 +456,7 @@ def test_set_unconfigured_key(conda_cli: CondaCLIFixture):
 def test_set_invalid_key(conda_cli: CondaCLIFixture):
     key, to_val = "invalid_key", "a_bogus_value"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        with pytest.raises(
-            CondaValueError, match=f"Key '{key}' is not a known primitive parameter."
-        ):
+        with pytest.raises(CondaKeyError, match=r"'invalid_key': unknown parameter"):
             conda_cli("config", "--file", rc, "--set", key, to_val)
 
         assert _read_test_condarc(rc) == CONDARC_BASE
@@ -501,9 +499,7 @@ def test_remove_key_duplicate(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
         conda_cli("config", "--file", rc, "--remove-key", key)
 
-        with pytest.raises(
-            CondaKeyError, match=f"'{key}': key '{key}' is not in the config file"
-        ):
+        with pytest.raises(CondaKeyError, match=r"'changeps1': undefined in config"):
             conda_cli("config", "--file", rc, "--remove-key", key)
 
         assert f"{key}: {value}\n" not in _read_test_condarc(rc)
@@ -513,7 +509,8 @@ def test_remove_unconfigured_key(conda_cli: CondaCLIFixture):
     key = "restore_free_channel"
     with make_temp_condarc(CONDARC_BASE) as rc:
         with pytest.raises(
-            CondaKeyError, match=f"'{key}': key '{key}' is not in the config file"
+            CondaKeyError,
+            match=r"'restore_free_channel': undefined in config",
         ):
             conda_cli("config", "--file", rc, "--remove-key", key)
 
