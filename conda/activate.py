@@ -996,64 +996,68 @@ def unix_path_to_native(
         #       transformed to {prefix}\Library\here\there
         # 3. anything else
 
-        def _translation_drive(found_path):
-            found = (
-                found_path.group("drive").upper(),
-                ":",
-                found_path.group("path").replace("/", "\\"),
-            )
-            return "".join(found) + ";"
+        def _translation_drive(match):
+            drive = match.group("drive").upper()
+            path = match.group("path") or ""
+            return f"{drive}:\\{path}"
 
-        def drive_match(elem):
-            return re.sub(
-                r"""
-                ^(?:(?:/cygdrive)?/+(?P<drive>[A-Za-z]))
-                (?P<path>/[^:]*)
-                """,
-                _translation_drive,
-                elem,
-                flags=re.VERBOSE,
-            )
+        RE_DRIVE = re.compile(
+            r"""
+            ^
+            (/cygdrive)?
+            /(?P<drive>[A-Za-z])
+            (/+(?P<path>.*)?)?
+            $
+            """,
+            flags=re.VERBOSE,
+        )
 
-        def _translation_mount(found_path):
-            found = found_path.group("path").replace("/", "\\")
-            return "".join(found) + ";"
+        def _translation_mount(match):
+            mount = match.group("mount") or ""
+            path = match.group("path") or ""
+            return f"\\\\{mount}{path}"
 
-        def mount_match(elem):
-            return re.sub(
-                r"""
-                ^(?P<path>//[^/]+/[^:]+)
-                """,
-                _translation_mount,
-                elem,
-                flags=re.VERBOSE,
-            )
+        RE_MOUNT = re.compile(
+            r"""
+            ^
+            //(
+                (?P<mount>[^/]+)
+                (?P<path>/+.*)?
+            )?
+            $
+            """,
+            flags=re.VERBOSE,
+        )
 
-        def _translation_root(found_path):
-            found = found_path.group("path").replace("/", "\\")
-            return prefix + "\\Library" + "".join(found) + ";"
+        def _translation_root(match):
+            path = match.group("path")
+            return f"{prefix}\\Library{path}"
 
-        def root_match(elem):
-            return re.sub(
-                r"""
-                ^(?P<path>/[^:]*)
-                """,
-                _translation_root,
-                elem,
-                flags=re.VERBOSE,
-            )
+        RE_ROOT = re.compile(
+            r"""
+            ^
+            (?P<path>/[^:]*)
+            $
+            """,
+            flags=re.VERBOSE,
+        )
 
         def up2n_per(elem):
-            elem = drive_match(elem)
-            if re.match("^//[^/]+/[^/].*", elem):
-                elem = mount_match(elem)
-            else:
-                elem = root_match(elem)
-            return elem.replace("/", "\\").rstrip(";")
+            if "/" not in elem:
+                # nothing to translate
+                return elem
+
+            # continue performing substitutions until a match is found
+            elem, subs = RE_DRIVE.subn(_translation_drive, elem)
+            if not subs:
+                elem, subs = RE_MOUNT.subn(_translation_mount, elem)
+            if not subs:
+                elem, subs = RE_ROOT.subn(_translation_root, elem)
+
+            return re.sub(r"/+", r"\\", elem)
 
         # The conda prefix can be in a drive letter form
-        if re.match("^/.*", prefix):
-            prefix = drive_match(prefix).rstrip(";")
+        prefix = up2n_per(prefix)
 
         win_path = ";".join(map(up2n_per, joined.split(":")))
     except Exception as err:
