@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Deprecate `Logger.trace(msg)` patch. Use `Logger.log(conda.common.constants.TRACE, msg)` instead. (#13732)
+* Mark `conda.gateways.logging.trace` as pending deprecation. Use `Logger.log(conda.common.constants.TRACE, msg)` instead. (#13732)
 
 ### Docs
 

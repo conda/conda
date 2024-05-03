@@ -235,8 +235,8 @@ def set_log_level(log_level: int):
 
 
 @deprecated(
-    "24.5",
-    "24.11",
+    "24.9",
+    "25.3",
     addendum="Use `logging.getLogger(__name__)(conda.common.constants.TRACE, ...)` instead.",
 )
 def trace(self, message, *args, **kwargs):
