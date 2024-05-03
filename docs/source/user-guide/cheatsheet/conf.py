@@ -55,10 +55,13 @@ html_static_path = ["../../_static"]
 simplepdf_vars = {
     'primary': '#43b049',
     'secondary': '#43b049',
+    'primary-opaque': 'rgba(67, 176, 73, 0.7)',
     'white': '#ffffff',
-    'links': '43b049',
+    'links': '#43b049',
 }
 
 simplepdf_theme_options = {
     'nocover': 'true',
 }
+
+simplepdf_file_name = "cheatsheet.pdf"
