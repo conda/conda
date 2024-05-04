@@ -9,13 +9,12 @@ import sys
 from functools import lru_cache
 from itertools import chain
 from logging import getLogger
-from os.path import dirname, isdir, join
+from os.path import dirname, join
 from pathlib import Path
 from re import escape
 from shutil import which
 from signal import SIGINT
 from subprocess import CalledProcessError, check_output
-from tempfile import gettempdir
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -49,14 +48,13 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
-from conda.testing.helpers import tempdir
 from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable
+    from typing import Callable, Iterable, Iterator
 
-    from pytest import MonkeyPatch
+    from pytest import MonkeyPatch, TempPathFactory
 
     from conda.activate import _Activator
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
@@ -285,12 +283,11 @@ def get_scripts_export_unset_vars(
     )
 
 
-def test_activate_environment_not_found(reset_environ: None):
+def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
-    with tempdir() as td:
-        with pytest.raises(EnvironmentLocationNotFound):
-            activator.build_activate(td)
+    with pytest.raises(EnvironmentLocationNotFound):
+        activator.build_activate(str(tmp_path))
 
     with pytest.raises(EnvironmentLocationNotFound):
         activator.build_activate("/not/an/environment")
@@ -320,10 +317,11 @@ def test_PS1_no_changeps1(monkeypatch: MonkeyPatch, tmp_path: Path):
     assert instructions["export_vars"]["CONDA_PROMPT_MODIFIER"] == ""
 
 
+@pytest.mark.skipif(
+    on_win and "PWD" not in os.environ,
+    reason="This test cannot be run from the cmd.exe shell.",
+)
 def test_add_prefix_to_path_posix():
-    if on_win and "PWD" not in os.environ:
-        pytest.skip("This test cannot be run from the cmd.exe shell.")
-
     activator = PosixActivator()
 
     path_dirs = activator.path_conversion(
@@ -332,14 +330,12 @@ def test_add_prefix_to_path_posix():
     assert len(path_dirs) == 5
     test_prefix = "/usr/mytest/prefix"
     added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-    if isinstance(added_paths, str):
-        added_paths = (added_paths,)
 
     new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
     condabin_dir = activator.path_conversion(
         os.path.join(context.conda_prefix, "condabin")
     )
-    assert new_path == added_paths + (condabin_dir,) + path_dirs
+    assert new_path == (*added_paths, condabin_dir, *path_dirs)
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
@@ -352,8 +348,6 @@ def test_add_prefix_to_path_cmdexe():
     assert len(path_dirs) == 3
     test_prefix = "/usr/mytest/prefix"
     added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
-    if isinstance(added_paths, str):
-        added_paths = (added_paths,)
 
     new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
     assert new_path[: len(added_paths)] == added_paths
@@ -366,12 +360,12 @@ def test_remove_prefix_from_path_1():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + original_path
+    final_path = (keep_path, *original_path)
     final_path = activator.path_conversion(final_path)
 
     test_prefix = join(os.getcwd(), "mytestpath")
     new_paths = tuple(activator._get_path_dirs(test_prefix))
-    prefix_added_path = (keep_path,) + new_paths + original_path
+    prefix_added_path = (keep_path, *new_paths, *original_path)
     new_path = activator._remove_prefix_from_path(test_prefix, prefix_added_path)
     assert final_path == new_path
 
@@ -381,11 +375,11 @@ def test_remove_prefix_from_path_2():
     activator = PosixActivator()
     original_path = tuple(activator._get_starting_path_list())
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + original_path
+    final_path = (keep_path, *original_path)
     final_path = activator.path_conversion(final_path)
 
     test_prefix = join(os.getcwd(), "mytestpath")
-    prefix_added_path = (keep_path,) + original_path
+    prefix_added_path = (keep_path, *original_path)
     new_path = activator._remove_prefix_from_path(test_prefix, prefix_added_path)
 
     assert final_path == new_path
@@ -396,15 +390,13 @@ def test_replace_prefix_in_path_1():
     original_path = tuple(activator._get_starting_path_list())
     new_prefix = join(os.getcwd(), "mytestpath-new")
     new_paths = activator.path_conversion(activator._get_path_dirs(new_prefix))
-    if isinstance(new_paths, str):
-        new_paths = (new_paths,)
     keep_path = activator.path_conversion("/keep/this/path")
-    final_path = (keep_path,) + new_paths + original_path
+    final_path = (keep_path, *new_paths, *original_path)
     final_path = activator.path_conversion(final_path)
 
     replace_prefix = join(os.getcwd(), "mytestpath")
     replace_paths = tuple(activator._get_path_dirs(replace_prefix))
-    prefix_added_path = (keep_path,) + replace_paths + original_path
+    prefix_added_path = (keep_path, *replace_paths, *original_path)
     new_path = activator._replace_prefix_in_path(
         replace_prefix, new_prefix, prefix_added_path
     )
@@ -434,21 +426,17 @@ def test_replace_prefix_in_path_2(monkeypatch: MonkeyPatch):
     assert len(path_elements) == len(old_path.split(";"))
 
 
-def test_default_env(reset_environ: None):
+def test_default_env(tmp_path: Path):
     activator = PosixActivator()
     assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
 
-    with tempdir() as td:
-        assert td == activator._default_env(td)
+    assert str(tmp_path) == activator._default_env(str(tmp_path))
 
-        p = mkdir_p(join(td, "envs", "named-env"))
-        assert "named-env" == activator._default_env(p)
+    (prefix := tmp_path / "envs" / "named-env").mkdir(parents=True)
+    assert "named-env" == activator._default_env(str(prefix))
 
 
-def test_build_activate_dont_activate_unset_var(
-    monkeypatch: MonkeyPatch,
-    env_activate: tuple[str, str, str],
-):
+def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
     write_pkgs(prefix)
@@ -460,12 +448,9 @@ def test_build_activate_dont_activate_unset_var(
     )
 
     activator = PosixActivator()
-    builder = activator.build_activate(prefix)
-    new_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
 
-    set_vars = {"PS1": get_prompt(prefix)}
     export_vars, unset_vars = activator.get_export_unset_vars(
-        PATH=new_path,
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
         CONDA_PREFIX=prefix,
         CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=prefix,
@@ -477,17 +462,18 @@ def test_build_activate_dont_activate_unset_var(
         ENV_ONE=ENV_ONE,
         ENV_TWO=ENV_TWO,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_activate(prefix) == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
 
-def test_build_activate_shlvl_warn_clobber_vars(
-    monkeypatch: MonkeyPatch,
-    env_activate: tuple[str, str, str],
-):
+def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
     write_pkgs(prefix)
@@ -500,12 +486,9 @@ def test_build_activate_shlvl_warn_clobber_vars(
     )
 
     activator = PosixActivator()
-    builder = activator.build_activate(prefix)
-    new_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
 
-    set_vars = {"PS1": get_prompt(prefix)}
     export_vars, unset_vars = activator.get_export_unset_vars(
-        PATH=new_path,
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
         CONDA_PREFIX=prefix,
         CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=prefix,
@@ -518,29 +501,27 @@ def test_build_activate_shlvl_warn_clobber_vars(
         ENV_THREE=ENV_THREE,
         PKG_A_ENV=overwrite_a,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_activate(prefix) == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
 
-def test_build_activate_shlvl_0(
-    monkeypatch: MonkeyPatch,
-    env_activate: tuple[str, str, str],
-):
+def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
     write_pkgs(prefix)
     write_state_file(prefix)
 
     activator = PosixActivator()
-    builder = activator.build_activate(prefix)
-    new_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
 
-    set_vars = {"PS1": get_prompt(prefix)}
     export_vars, unset_vars = activator.get_export_unset_vars(
-        PATH=new_path,
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
         CONDA_PREFIX=prefix,
         CONDA_SHLVL=1,
         CONDA_DEFAULT_ENV=prefix,
@@ -554,11 +535,15 @@ def test_build_activate_shlvl_0(
         ENV_THREE=ENV_THREE,
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_activate(prefix) == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
 
 @skip_unsupported_posix_path
@@ -571,24 +556,21 @@ def test_build_activate_shlvl_1(
     write_pkgs(prefix)
     write_state_file(prefix)
 
-    old_prefix = "/old/prefix"
     activator = PosixActivator()
+
+    old_prefix = "/old/prefix"
     old_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
 
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("CONDA_PREFIX", old_prefix)
     monkeypatch.setenv("PATH", old_path)
 
-    activator = PosixActivator()
-    builder = activator.build_activate(prefix)
     new_path = activator.pathsep_join(
         activator._replace_prefix_in_path(old_prefix, prefix)
     )
-
     assert activator.path_conversion(prefix) in new_path
     assert old_prefix not in new_path
 
-    set_vars = {"PS1": get_prompt(prefix)}
     export_vars, unset_vars = activator.get_export_unset_vars(
         PATH=new_path,
         CONDA_PREFIX=prefix,
@@ -605,11 +587,15 @@ def test_build_activate_shlvl_1(
         ENV_THREE=ENV_THREE,
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_activate(prefix) == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
@@ -626,11 +612,6 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("ENV_THREE", ENV_THREE)
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
-    activator = PosixActivator()
-    builder = activator.build_deactivate()
-
-    set_vars = {"PS1": get_prompt(old_prefix)}
-    export_path = {"PATH": old_path}
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
         CONDA_SHLVL=1,
@@ -646,12 +627,15 @@ def test_build_activate_shlvl_1(
         ENV_THREE=None,
         ENV_WITH_SAME_VALUE=None,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["export_path"] == export_path
-    assert builder["activate_scripts"] == ()
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_deactivate() == {
+        "export_path": {"PATH": old_path},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(old_prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (),
+    }
 
 
 @skip_unsupported_posix_path
@@ -664,22 +648,19 @@ def test_build_stack_shlvl_1(
     write_pkgs(prefix)
     write_state_file(prefix)
 
-    old_prefix = "/old/prefix"
     activator = PosixActivator()
+
+    old_prefix = "/old/prefix"
     old_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
 
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("CONDA_PREFIX", old_prefix)
     monkeypatch.setenv("PATH", old_path)
 
-    activator = PosixActivator()
-    builder = activator.build_stack(prefix)
     new_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
-
     assert prefix in new_path
     assert old_prefix in new_path
 
-    set_vars = {"PS1": get_prompt(prefix)}
     export_vars, unset_vars = activator.get_export_unset_vars(
         PATH=new_path,
         CONDA_PREFIX=prefix,
@@ -697,11 +678,15 @@ def test_build_stack_shlvl_1(
         ENV_THREE=ENV_THREE,
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_stack(prefix) == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
@@ -718,10 +703,6 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("ENV_TWO", ENV_TWO)
     monkeypatch.setenv("ENV_THREE", ENV_THREE)
 
-    activator = PosixActivator()
-    builder = activator.build_deactivate()
-
-    set_vars = {"PS1": get_prompt(old_prefix)}
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
         CONDA_SHLVL=1,
@@ -738,11 +719,15 @@ def test_build_stack_shlvl_1(
         ENV_THREE=None,
         ENV_WITH_SAME_VALUE=None,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == ()
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_deactivate() == {
+        "export_path": {"PATH": old_path},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(old_prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (),
+    }
 
 
 def test_activate_same_environment(
@@ -756,21 +741,20 @@ def test_activate_same_environment(
 
     activator = PosixActivator()
 
-    builder = activator.build_activate(prefix)
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=activator.pathsep_join(activator._replace_prefix_in_path(prefix, prefix)),
+        CONDA_SHLVL=1,
+        CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
+    )
 
-    new_path_parts = activator._replace_prefix_in_path(prefix, prefix)
-
-    set_vars = {"PS1": get_prompt(prefix)}
-    export_vars = {
-        "PATH": activator.pathsep_join(new_path_parts),
-        "CONDA_SHLVL": 1,
-        "CONDA_PROMPT_MODIFIER": get_prompt_modifier(prefix),
+    assert activator.build_activate(prefix) == {
+        # "export_path": {},
+        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
     }
-    assert builder["unset_vars"] == ()
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
 
 
 @skip_unsupported_posix_path
@@ -798,7 +782,6 @@ def test_build_deactivate_shlvl_2_from_stack(
 
     monkeypatch.setenv("PATH", original_path)
 
-    activator = PosixActivator()
     starting_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
 
     monkeypatch.setenv("CONDA_SHLVL", "2")
@@ -819,11 +802,6 @@ def test_build_deactivate_shlvl_2_from_stack(
     monkeypatch.setenv("ENV_THREE", ENV_THREE)
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
-    activator = PosixActivator()
-    builder = activator.build_deactivate()
-
-    set_vars = {"PS1": get_prompt(old_prefix)}
-    export_path = {"PATH": original_path}
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
         CONDA_SHLVL=1,
@@ -844,12 +822,15 @@ def test_build_deactivate_shlvl_2_from_stack(
         ENV_THREE=None,
         ENV_WITH_SAME_VALUE=None,
     )
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["export_path"] == export_path
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
+
+    assert activator.build_deactivate() == {
+        "export_path": {"PATH": original_path},
+        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(old_prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
 
 @skip_unsupported_posix_path
@@ -873,6 +854,7 @@ def test_build_deactivate_shlvl_2_from_activate(
     write_state_file(prefix)
 
     activator = PosixActivator()
+
     original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
     new_path = activator.pathsep_join(activator._add_prefix_to_path(prefix))
 
@@ -888,11 +870,6 @@ def test_build_deactivate_shlvl_2_from_activate(
     monkeypatch.setenv("ENV_THREE", ENV_THREE)
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
-    activator = PosixActivator()
-    builder = activator.build_deactivate()
-
-    set_vars = {"PS1": get_prompt(old_prefix)}
-    export_path = {"PATH": original_path}
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
         CONDA_SHLVL=1,
@@ -913,12 +890,14 @@ def test_build_deactivate_shlvl_2_from_activate(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["export_path"] == export_path
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
+    assert activator.build_deactivate() == {
+        "export_path": {"PATH": original_path},
+        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(old_prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
 
 def test_build_deactivate_shlvl_1(
@@ -934,11 +913,7 @@ def test_build_deactivate_shlvl_1(
     monkeypatch.setenv("CONDA_PREFIX", prefix)
 
     activator = PosixActivator()
-    original_path = tuple(activator._get_starting_path_list())
-    builder = activator.build_deactivate()
 
-    new_path = activator.pathsep_join(activator.path_conversion(original_path))
-    set_vars = {"PS1": get_prompt()}
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_SHLVL=0,
         CONDA_PREFIX=None,
@@ -953,12 +928,17 @@ def test_build_deactivate_shlvl_1(
         ENV_THREE=None,
         ENV_WITH_SAME_VALUE=None,
     )
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["unset_vars"] == unset_vars
-    assert builder["export_path"] == {"PATH": new_path}
-    assert builder["activate_scripts"] == ()
-    assert builder["deactivate_scripts"] == (activator.path_conversion(deactivate_sh),)
+
+    assert activator.build_deactivate() == {
+        "export_path": {
+            "PATH": activator.pathsep_join(activator._get_starting_path_list())
+        },
+        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt()},
+        "export_vars": export_vars,
+        "activate_scripts": (),
+    }
 
 
 def test_get_env_vars_big_whitespace(tmp_env: TmpEnvFixture):
@@ -994,8 +974,9 @@ def test_build_activate_restore_unset_env_vars(
     write_pkgs(prefix)
     write_state_file(prefix)
 
-    old_prefix = "/old/prefix"
     activator = PosixActivator()
+
+    old_prefix = "/old/prefix"
     old_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
 
     monkeypatch.setenv("CONDA_SHLVL", "1")
@@ -1004,16 +985,12 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("ENV_ONE", "already_set_env_var")
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
-    activator = PosixActivator()
-    builder = activator.build_activate(prefix)
     new_path = activator.pathsep_join(
         activator._replace_prefix_in_path(old_prefix, prefix)
     )
-
     assert activator.path_conversion(prefix) in new_path
     assert old_prefix not in new_path
 
-    set_vars = {"PS1": get_prompt(prefix)}
     export_vars, unset_vars = activator.get_export_unset_vars(
         PATH=new_path,
         CONDA_PREFIX=prefix,
@@ -1033,11 +1010,14 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["activate_scripts"] == (activator.path_conversion(activate_sh),)
-    assert builder["deactivate_scripts"] == ()
+    assert activator.build_activate(prefix) == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (activator.path_conversion(activate_sh),),
+    }
 
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
@@ -1055,11 +1035,6 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("ENV_THREE", ENV_THREE)
     monkeypatch.setenv("ENV_WITH_SAME_VALUE", ENV_WITH_SAME_VALUE)
 
-    activator = PosixActivator()
-    builder = activator.build_deactivate()
-
-    set_vars = {"PS1": get_prompt(old_prefix)}
-    export_path = {"PATH": old_path}
     export_vars, unset_vars = activator.get_export_unset_vars(
         CONDA_PREFIX=old_prefix,
         CONDA_SHLVL=1,
@@ -1070,18 +1045,20 @@ def test_build_activate_restore_unset_env_vars(
         PKG_A_ENV=None,
         PKG_B_ENV=None,
         # write_state_file
-        ENV_ONE=None,
+        ENV_ONE="already_set_env_var",
         ENV_TWO=None,
         ENV_THREE=None,
         ENV_WITH_SAME_VALUE=None,
     )
-    export_vars["ENV_ONE"] = "already_set_env_var"
-    assert builder["unset_vars"] == unset_vars
-    assert builder["set_vars"] == set_vars
-    assert builder["export_vars"] == export_vars
-    assert builder["export_path"] == export_path
-    assert builder["activate_scripts"] == ()
-    assert builder["deactivate_scripts"] == ()
+
+    assert activator.build_deactivate() == {
+        "export_path": {"PATH": old_path},
+        "deactivate_scripts": (),
+        "unset_vars": unset_vars,
+        "set_vars": {"PS1": get_prompt(old_prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": (),
+    }
 
 
 @pytest.fixture
@@ -1901,12 +1878,9 @@ def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 
 def test_unicode(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PS1", "%{\xc2\xbb".encode())
+    monkeypatch.setenv("prompt", "%{\xc2\xbb".encode())
 
-    # use a file as output stream to simulate PY2 default stdout
-    with tempdir() as td:
-        with open(join(td, "stdout"), "w") as stdout:
-            with captured(stdout=stdout):
-                main_sourced("shell.posix", *activate_args, shell_wrapper_unit)
+    main_sourced("shell.posix", *activate_args, shell_wrapper_unit)
 
 
 def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
@@ -2917,22 +2891,19 @@ def test_legacy_activate_deactivate_cmd_exe(
 
 
 @pytest.fixture(scope="module")
-def prefix():
-    tempdirdir = gettempdir()
+def prefix(tmp_path_factory: TempPathFactory) -> Iterator[Path]:
+    name = f"{uuid4().hex[:4]}{SPACER_CHARACTER}{uuid4().hex[:4]}"
+    root = tmp_path_factory.mktemp(name)
 
-    root_dirname = str(uuid4())[:4] + SPACER_CHARACTER + str(uuid4())[:4]
-    root = join(tempdirdir, root_dirname)
-    mkdir_p(join(root, "conda-meta"))
-    assert isdir(root)
-    touch(join(root, "conda-meta", "history"))
+    (root / "conda-meta").mkdir(parents=True)
+    (root / "conda-meta" / "history").touch()
 
-    prefix = join(root, "envs", "charizard")
-    mkdir_p(join(prefix, "conda-meta"))
-    touch(join(prefix, "conda-meta", "history"))
+    prefix = root / "envs" / "charizard"
+
+    (prefix / "conda-meta").mkdir(parents=True)
+    (prefix / "conda-meta" / "history").touch()
 
     yield prefix
-
-    rm_rf(root)
 
 
 @pytest.mark.integration
