@@ -112,7 +112,7 @@ class Index(UserDict):
         return None
 
     def _update_from_prefix(self, key, prec):
-        prefix_prec = self.prefix.get(key) if self.prefix else None
+        prefix_prec = self.prefix.get(key, None) if self.prefix else None
         if prefix_prec:
             if prec:
                 if prec.channel == prefix_prec.channel:
