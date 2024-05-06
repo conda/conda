@@ -18,6 +18,7 @@ from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
 from tests.core.test_subdir_data import platform_in_record
 
 log = getLogger(__name__)
@@ -137,6 +138,30 @@ def test_get_index_linux64_platform():
     index = get_index(platform=linux64)
     for dist, record in index.items():
         assert platform_in_record(linux64, record), (linux64, record.url)
+
+
+@pytest.mark.integration
+def test_get_index_lazy():
+    linux64 = "linux-64"
+    index = get_index(channel_urls=["conda-forge"], platform=linux64)
+    main_pkg = PackageRecord(
+        channel="pkgs/main/linux-64",
+        name="aiohttp",
+        version="2.3.9",
+        build="py35_0",
+        build_number=0,
+    )
+    cf_pkg = PackageRecord(
+        channel="conda-forge",
+        name="esmf",
+        version="8.6.0",
+        build="nompi_h7b237b1_0",
+        build_number=0,
+    )
+    main_result = index[main_pkg]
+    cf_result = index[cf_pkg]
+    assert main_result == main_pkg
+    assert cf_result == cf_pkg
 
 
 @pytest.mark.integration
