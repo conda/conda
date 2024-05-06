@@ -153,6 +153,13 @@ class Index(UserDict):
             raise PackagesNotFoundError((key,))
         return prec
 
+    def __contains__(self, key):
+        try:
+            _ = self[key]
+            return True
+        except PackagesNotFoundError:
+            return False
+
 
 LAST_CHANNEL_URLS = []
 
