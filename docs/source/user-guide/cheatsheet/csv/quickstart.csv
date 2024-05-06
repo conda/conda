@@ -1,0 +1,5 @@
+verify conda install and check version,``conda info``
+update conda in base environment,``conda update -n base conda``
+install latest anaconda distribution (see release notes),``conda install anaconda``
+create a new environment (tip: name environment descriptively),``conda create --name ENVNAME``
+activate environment (do this before installing packages),``conda activate ENVNAME``

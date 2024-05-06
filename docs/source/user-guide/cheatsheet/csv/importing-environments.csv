@@ -1,0 +1,2 @@
+from a .yml file,``conda env create -n ENVNAME --file ENV.yml``
+from a .txt file,``conda create -n ENVNAME --file ENV.txt``

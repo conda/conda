@@ -1,0 +1,7 @@
+get help for any command,``conda COMMAND --help``
+get info for any package,``conda search PKGNAME --info``
+"run commands w/o user prompt, e.g., installing multiple packages","``conda COMMAND ARG --yes``
+
+``conda install PKGNAME1 PKGNAME2 --yes``"
+remove all unused files,``conda clean --all``
+examine conda configuration,``conda config --show``
