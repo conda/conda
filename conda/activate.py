@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import abc
 import json
+import ntpath
 import os
+import posixpath
 import re
 import sys
 from logging import getLogger
@@ -862,6 +864,119 @@ def ensure_fs_path_encoding(value):
         return value
 
 
+class _Cygpath:
+    @classmethod
+    def nt_to_posix(cls, paths: str) -> str:
+        return cls.RE_UNIX.sub(cls.translate_unix, paths).replace(
+            ntpath.pathsep, posixpath.pathsep
+        )
+
+    RE_UNIX = re.compile(
+        r"""
+        (?P<drive>[A-Za-z]:)?
+        (?P<path>[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translate_unix(match: re.Match) -> str:
+        return "/" + (
+            ((match.group("drive") or "").lower() + match.group("path"))
+            .replace("\\", "/")
+            .replace(":", "")  # remove drive letter delimiter
+            .replace("//", "/")
+            .rstrip("/")
+        )
+
+    @classmethod
+    def posix_to_nt(cls, paths: str, prefix: str) -> str:
+        if posixpath.sep not in paths:
+            # nothing to translate
+            return paths
+
+        if posixpath.pathsep in paths:
+            return ntpath.pathsep.join(
+                cls.posix_to_nt(path, prefix) for path in paths.split(posixpath.pathsep)
+            )
+        path = paths
+
+        # Reverting a Unix path means unpicking MSYS2/Cygwin
+        # conventions -- in order!
+        # 1. drive letter forms:
+        #      /x/here/there - MSYS2
+        #      /cygdrive/x/here/there - Cygwin
+        #    transformed to X:\here\there -- note the uppercase drive letter!
+        # 2. either:
+        #    a. mount forms:
+        #         //here/there
+        #       transformed to \\here\there
+        #    b. root filesystem forms:
+        #         /here/there
+        #       transformed to {prefix}\Library\here\there
+        # 3. anything else
+
+        # continue performing substitutions until a match is found
+        path, subs = cls.RE_DRIVE.subn(cls.translation_drive, path)
+        if not subs:
+            path, subs = cls.RE_MOUNT.subn(cls.translation_mount, path)
+        if not subs:
+            path, _ = cls.RE_ROOT.subn(
+                lambda match: cls.translation_root(match, prefix), path
+            )
+
+        return re.sub(r"/+", r"\\", path)
+
+    RE_DRIVE = re.compile(
+        r"""
+        ^
+        (/cygdrive)?
+        /(?P<drive>[A-Za-z])
+        (/+(?P<path>.*)?)?
+        $
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translation_drive(match: re.Match) -> str:
+        drive = match.group("drive").upper()
+        path = match.group("path") or ""
+        return f"{drive}:\\{path}"
+
+    RE_MOUNT = re.compile(
+        r"""
+        ^
+        //(
+            (?P<mount>[^/]+)
+            (?P<path>/+.*)?
+        )?
+        $
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translation_mount(match: re.Match) -> str:
+        mount = match.group("mount") or ""
+        path = match.group("path") or ""
+        return f"\\\\{mount}{path}"
+
+    RE_ROOT = re.compile(
+        r"""
+        ^
+        (?P<path>/[^:]*)
+        $
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translation_root(match: re.Match, prefix: str) -> str:
+        path = match.group("path")
+        return f"{prefix}\\Library{path}"
+
+
 def native_path_to_unix(
     paths: str | Iterable[str] | None,
 ) -> str | tuple[str, ...] | None:
@@ -898,34 +1013,11 @@ def native_path_to_unix(
             check=True,
         ).stdout.strip()
     except FileNotFoundError:
-        log.warning(
-            "cygpath not available, falling back to less reliable path conversion"
-        )
-
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
-        def _translation(match):
-            return "/" + (
-                ((match.group("drive") or "").lower() + match.group("path"))
-                .replace("\\", "/")
-                .replace(":", "")
-                .replace("//", "/")
-                .rstrip("/")
-            )
+        log.warning("cygpath is not available, fallback to manual path conversion")
 
-        unix_path = (
-            re.sub(
-                r"""
-                (?P<drive>[a-z]:)?
-                (?P<path>[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)
-                """,
-                _translation,
-                joined,
-                flags=re.VERBOSE | re.IGNORECASE,
-            )
-            .replace(";", ":")
-            .rstrip(";")
-        )
+        unix_path = _Cygpath.nt_to_posix(joined)
     except Exception as err:
         log.error("Unexpected cygpath error (%s)", err)
         raise
@@ -974,92 +1066,14 @@ def unix_path_to_native(
             check=True,
         ).stdout.strip()
     except FileNotFoundError:
-        log.warning(
-            "cygpath not available, falling back to less reliable path conversion"
-        )
-
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
-
-        # Reverting a Unix path means unpicking MSYS2/Cygwin
-        # conventions -- in order!
-        # 1. drive letter forms:
-        #      /x/here/there - MSYS2
-        #      /cygdrive/x/here/there - Cygwin
-        #    transformed to X:\here\there -- note the uppercase drive letter!
-        # 2. either:
-        #    a. mount forms:
-        #         //here/there
-        #       transformed to \\here\there
-        #    b. root filesystem forms:
-        #         /here/there
-        #       transformed to {prefix}\Library\here\there
-        # 3. anything else
-
-        def _translation_drive(match: re.Match) -> str:
-            drive = match.group("drive").upper()
-            path = match.group("path") or ""
-            return f"{drive}:\\{path}"
-
-        RE_DRIVE = re.compile(
-            r"""
-            ^
-            (/cygdrive)?
-            /(?P<drive>[A-Za-z])
-            (/+(?P<path>.*)?)?
-            $
-            """,
-            flags=re.VERBOSE,
-        )
-
-        def _translation_mount(match: re.Match) -> str:
-            mount = match.group("mount") or ""
-            path = match.group("path") or ""
-            return f"\\\\{mount}{path}"
-
-        RE_MOUNT = re.compile(
-            r"""
-            ^
-            //(
-                (?P<mount>[^/]+)
-                (?P<path>/+.*)?
-            )?
-            $
-            """,
-            flags=re.VERBOSE,
-        )
-
-        def _translation_root(match: re.Match) -> str:
-            path = match.group("path")
-            return f"{prefix}\\Library{path}"
-
-        RE_ROOT = re.compile(
-            r"""
-            ^
-            (?P<path>/[^:]*)
-            $
-            """,
-            flags=re.VERBOSE,
-        )
-
-        def translate(elem: str) -> str:
-            if "/" not in elem:
-                # nothing to translate
-                return elem
-
-            # continue performing substitutions until a match is found
-            elem, subs = RE_DRIVE.subn(_translation_drive, elem)
-            if not subs:
-                elem, subs = RE_MOUNT.subn(_translation_mount, elem)
-            if not subs:
-                elem, subs = RE_ROOT.subn(_translation_root, elem)
-
-            return re.sub(r"/+", r"\\", elem)
+        log.warning("cygpath is not available, fallback to manual path conversion")
 
         # The conda prefix can be in a drive letter form
-        prefix = translate(prefix)
+        prefix = _Cygpath.posix_to_nt(prefix, prefix)
 
-        win_path = ";".join(map(translate, joined.split(":")))
+        win_path = _Cygpath.posix_to_nt(joined, prefix)
     except Exception as err:
         log.error("Unexpected cygpath error (%s)", err)
         raise
