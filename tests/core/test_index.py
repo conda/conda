@@ -140,6 +140,7 @@ def test_get_index_linux64_platform():
         assert platform_in_record(linux64, record), (linux64, record.url)
 
 
+@pytest.mark.memray
 @pytest.mark.integration
 def test_get_index_lazy():
     linux64 = "linux-64"
