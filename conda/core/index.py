@@ -13,7 +13,7 @@ from boltons.setutils import IndexedSet
 
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..exceptions import ChannelNotAllowed, InvalidSpec
+from ..exceptions import ChannelNotAllowed, InvalidSpec, PackagesNotFoundError
 from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
@@ -150,7 +150,7 @@ class Index(UserDict):
         if self.unknown:
             prec = self._update_from_cache(key, prec)
         if prec is None:
-            raise KeyError()
+            raise PackagesNotFoundError((key,))
         return prec
 
 
