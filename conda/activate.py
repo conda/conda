@@ -30,6 +30,8 @@ from os.path import (
     join,
 )
 from pathlib import Path
+from shutil import which
+from subprocess import run
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -991,8 +993,6 @@ def native_path_to_unix(
         return "." if isinstance(paths, str) else ()
 
     # on windows, uses cygpath to convert windows native paths to posix paths
-    from shutil import which
-    from subprocess import run
 
     # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
     # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
@@ -1002,7 +1002,7 @@ def native_path_to_unix(
 
     bash = which("bash")
     cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
-    joined = paths if isinstance(paths, str) else os.pathsep.join(paths)
+    joined = paths if isinstance(paths, str) else ntpath.pathsep.join(paths)
 
     try:
         # if present, use cygpath to convert paths since its more reliable
@@ -1027,7 +1027,7 @@ def native_path_to_unix(
     elif not unix_path:
         return ()
     else:
-        return tuple(unix_path.split(":"))
+        return tuple(unix_path.split(posixpath.pathsep))
 
 
 def unix_path_to_native(
@@ -1044,8 +1044,6 @@ def unix_path_to_native(
         return "." if isinstance(paths, str) else ()
 
     # on windows, uses cygpath to convert posix paths to windows native paths
-    from shutil import which
-    from subprocess import run
 
     # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
     # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
@@ -1055,7 +1053,7 @@ def unix_path_to_native(
 
     bash = which("bash")
     cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
-    joined = paths if isinstance(paths, str) else ":".join(paths)
+    joined = paths if isinstance(paths, str) else posixpath.pathsep.join(paths)
 
     try:
         # if present, use cygpath to convert paths since its more reliable
@@ -1083,7 +1081,7 @@ def unix_path_to_native(
     elif not win_path:
         return ()
     else:
-        return tuple(win_path.split(os.pathsep))
+        return tuple(win_path.split(ntpath.pathsep))
 
 
 def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
