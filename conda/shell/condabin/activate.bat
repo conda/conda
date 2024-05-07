@@ -4,5 +4,5 @@
 :: disable displaying the command before execution
 @ECHO OFF
 
-CALL "%~dp0\conda_hook.bat"
-conda activate %*
+:: invoke conda
+CALL "%~dp0\conda.bat" activate %*

@@ -166,7 +166,7 @@ IF NOT [%ERRORLEVEL%]==[0] (
 
 :: update timestamp
 IF EXIST "%_UPDATED%" DEL "%_UPDATED%"
-ECHO > "%_UPDATED%"
+TYPE NUL >"%_UPDATED%"
 :UPTODATE
 
 :: initialize conda command
@@ -186,11 +186,15 @@ SET "CONDA_EXE=%_ENVEXE%"
 
 :: "install" conda
 :: tricks conda.exe into importing from our source code and not from site-packages
-SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+IF DEFINED PYTHONPATH (
+    SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+) ELSE (
+    SET "PYTHONPATH=%_SRC%"
+)
 
 :: activate env
 ECHO Activating %_NAME%...
-CALL conda activate "%_ENV%" >NUL
+CALL conda activate "%_ENV%"
 IF NOT [%ERRORLEVEL%]==[0] (
     ECHO Error: failed to activate %_NAME% 1>&2
     CALL :CLEANUP
@@ -200,6 +204,7 @@ IF NOT [%ERRORLEVEL%]==[0] (
 :CLEANUP
 SET _ARG=
 SET _BASEEXE=
+SET _CONDAHOOK=
 SET _DEVENV=
 SET _DRYRUN=
 SET _ENV=
@@ -220,7 +225,7 @@ GOTO :EOF
 SET "_PATH=%PATH%"
 SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
-CALL %* || EXIT /B 1
+(CALL %*) || EXIT /B 1
 
 :: restore %PATH%
 SET "PATH=%_PATH%"
@@ -233,7 +238,7 @@ GOTO :EOF
 IF NOT EXIST "%USERPROFILE%\.condarc" EXIT /B 2
 
 :: check if devenv key is defined
-FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" >NUL || EXIT /B 1
+(FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" >NUL) || EXIT /B 1
 
 :: read devenv key
 FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO SET "_DEVENV=%%~fI"

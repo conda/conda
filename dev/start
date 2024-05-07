@@ -264,15 +264,20 @@ if ! [ $? = 0 ]; then
     return 1
 fi
 
+# "install" conda
+# tricks conda into importing from our source code and not from site-packages
+if [ -z "${PYTHONPATH+x}" ]; then
+    export PYTHONPATH="${_SRC}"
+else
+    export PYTHONPATH="${_SRC}:${PYTHONPATH}"
+fi
+
 # activate env
 echo "Activating ${_NAME}..."
 if ! conda activate "${_ENV}" > /dev/null; then
     echo "Error: failed to activate ${_NAME}" 1>&2
     return 1
 fi
-
-# "install" conda
-export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
 cleanup
 unset -f cleanup

@@ -5,5 +5,6 @@
 @ECHO OFF
 
 ECHO DeprecationWarning: 'deactivate' is deprecated. Use 'conda deactivate'. 1>&2
-CALL "%~dp0\conda_hook.bat"
-conda deactivate %*
+
+:: invoke conda
+CALL "%~dp0\conda.bat" deactivate %*

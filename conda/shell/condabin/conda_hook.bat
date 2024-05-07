@@ -9,21 +9,21 @@
 :: check if conda DOSKEY is already defined
 (DOSKEY /MACROS | FINDSTR /R /C:"^conda=" >NUL 2>NUL) && GOTO :EOF
 
+:: enter localized variable scope
+SETLOCAL
+
 :: get root & condabin
 FOR %%P IN ("%~dp0\..") DO SET "__condaroot=%%~fP"
 SET __condabin=%__condaroot%\condabin
 
-:: set PATH, CONDA_BAT, CONDA_EXE
-SET "PATH=%__condabin%;%PATH%"
-SET "CONDA_BAT=%__condabin%\conda.bat"
-SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
-SET _CE_M=
-SET _CE_CONDA=
-
 :: set conda alias
-DOSKEY conda="%CONDA_BAT%" $*
-SET CONDA_SHLVL=0
+DOSKEY conda="%__condabin%\conda.bat" $*
 
-: cleanup
-SET __condabin=
-SET __condaroot=
+:: exit localized variable scope
+ENDLOCAL & (
+    SET "PATH=%__condabin%;%PATH%"
+    SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
+    SET _CE_M=
+    SET _CE_CONDA=
+    SET CONDA_SHLVL=0
+)

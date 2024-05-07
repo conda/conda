@@ -4,4 +4,5 @@
 :: disable displaying the command before execution
 @ECHO OFF
 
+:: invoke conda
 CALL "%~dp0\..\..\condabin\conda.bat" %*
