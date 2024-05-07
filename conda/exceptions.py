@@ -473,7 +473,7 @@ class CondaFileIOError(CondaIOError):
 class CondaKeyError(CondaError, KeyError):
     def __init__(self, key, message, *args):
         self.key = key
-        self.msg = f"'{key}': {message}"
+        self.msg = f"{key!r}: {message}"
         super().__init__(self.msg, *args)
 
 

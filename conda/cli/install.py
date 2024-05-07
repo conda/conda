@@ -11,6 +11,7 @@ conda.cli.main_remove for the entry points into this module.
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
+from pathlib import Path
 
 from boltons.setutils import IndexedSet
 
@@ -57,7 +58,7 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from . import common
 from .common import check_non_admin
-from .python_api import Commands, run_command
+from .main_config import set_keys
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -530,13 +531,9 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if newenv:
         touch_nonadmin(prefix)
         if context.subdir != context._native_subdir():
-            run_command(
-                Commands.CONFIG,
-                "--file",
-                os.path.join(prefix, ".condarc"),
-                "--set",
-                "subdir",
-                context.subdir,
+            set_keys(
+                ("subdir", context.subdir),
+                path=Path(prefix, ".condarc"),
             )
         print_activate(args.name or prefix)
 
