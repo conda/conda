@@ -4,6 +4,9 @@
 :: disable displaying the command before execution
 @ECHO OFF
 
+:: skip checking for quotes if there are no arguments
+IF [%1]==[] GOTO :SKIP_CHECK
+
 :: enter localized variable scope
 SETLOCAL
 
@@ -15,19 +18,24 @@ SETLOCAL
 :: Rather than the correct
 ::    %windir%\system32\cmd.exe /K ""C:\Users\builder\Miniconda3\Scripts\activate.bat" "C:\Users\builder\Miniconda3""
 :: this solution taken from https://stackoverflow.com/a/31359867
-SET "_args1=%1"
-IF DEFINED _args1 (
-    SET _args1_first=%_args1:~0,1%
-    SET _args1_last=%_args1:~-1%
-    SET _args1_first=%_args1_first:"=+%
-    SET _args1_last=%_args1_last:"=+%
-    IF [%_args1_first%]==[+] IF NOT [%_args1_last%]==[+] (
-        ENDLOCAL
-        CALL "%~dp0\..\condabin\conda.bat" activate
-        GOTO :EOF
-    )
-)
 
-:: This may work if there are spaces in anything in %*
-ENDLOCAL
+SET "_ARG=%1"
+SET _ARG_FIRST=%_ARG:~0,1%
+SET _ARG_LAST=%_ARG:~-1%
+SET _ARG_FIRST=%_ARG_FIRST:"=+%
+SET _ARG_LAST=%_ARG_LAST:"=+%
+
+:: if the first character is not a quote we can skip further quote checking
+IF NOT [%_ARG_FIRST%]==[+] ENDLOCAL & GOTO :SKIP_CHECK
+
+:: the first and last characters appear to be matching quotes so we can activate normally
+IF [%_ARG_LAST%]==[+] ENDLOCAL & GOTO :SKIP_CHECK
+
+:: found a quote mismatch, we assume this is a bug in the downstream code
+ENDLOCAL & CALL "%~dp0\..\condabin\conda.bat" activate
+GOTO :EOF
+
+:SKIP_CHECK
+
+:: invoke conda
 CALL "%~dp0\..\condabin\conda.bat" activate %*

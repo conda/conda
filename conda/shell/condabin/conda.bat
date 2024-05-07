@@ -4,15 +4,16 @@
 :: disable displaying the command before execution
 @ECHO OFF
 
-:: enter localized variable scope and delay variable expansion until runtime
-SETLOCAL EnableDelayedExpansion
+:: set CONDA_EXE if undefined
+IF DEFINED CONDA_EXE GOTO :SKIP_INIT
 
-IF NOT DEFINED CONDA_EXE (
-    FOR %%P IN ("%~dp0\..") DO SET "__condaroot=%%~fP"
-    SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
-    SET _CE_M=
-    SET _CE_CONDA=
-)
+:: enter localized variable scope
+SETLOCAL
+
+FOR %%P IN ("%~dp0\..") DO SET "__condaroot=%%~fP"
+SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
+SET _CE_M=
+SET _CE_CONDA=
 
 :: exit localized variable scope
 ENDLOCAL & (
@@ -20,6 +21,8 @@ ENDLOCAL & (
     SET "_CE_M=%_CE_M%"
     SET "_CE_CONDA=%_CE_CONDA%"
 )
+
+:SKIP_INIT
 
 :: "source" _conda_activate.bat script, we do not return from this script
 IF [%1]==[activate]   "%~dp0\_conda_activate.bat" %*
