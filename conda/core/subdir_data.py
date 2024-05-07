@@ -569,7 +569,7 @@ class SubdirData(metaclass=SubdirDataType):
 
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = "%s@" % feature_name
+    pkg_name = f"{feature_name}@"
     return PackageRecord(
         name=pkg_name,
         version="0",

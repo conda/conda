@@ -40,9 +40,11 @@ class CondaHistoryWarning(Warning):
 
 
 def write_head(fo):
-    fo.write("==> %s <==\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
-    fo.write("# cmd: %s\n" % (" ".join(ensure_text_type(s) for s in sys.argv)))
-    fo.write("# conda version: %s\n" % ".".join(islice(CONDA_VERSION.split("."), 3)))
+    fo.write("==> {} <==\n".format(time.strftime("%Y-%m-%d %H:%M:%S")))
+    fo.write("# cmd: {}\n".format(" ".join(ensure_text_type(s) for s in sys.argv)))
+    fo.write(
+        "# conda version: {}\n".format(".".join(islice(CONDA_VERSION.split("."), 3)))
+    )
 
 
 def is_diff(content):
@@ -56,7 +58,7 @@ def pretty_diff(diff):
         fn = s[1:]
         name, version, _, channel = dist_str_to_quad(fn)
         if channel != DEFAULTS_CHANNEL_NAME:
-            version += " (%s)" % channel
+            version += f" ({channel})"
         if s.startswith("-"):
             removed[name.lower()] = version
         elif s.startswith("+"):
@@ -312,7 +314,7 @@ class History:
                     elif s.startswith("+"):
                         cur.add(s[1:])
                     else:
-                        raise CondaHistoryError("Did not expect: %s" % s)
+                        raise CondaHistoryError(f"Did not expect: {s}")
             res.append((dt, cur.copy()))
         return res
 
@@ -334,7 +336,7 @@ class History:
         for i, (date, content, unused_com) in enumerate(self.parse()):
             print("%s  (rev %d)" % (date, i))
             for line in pretty_content(content):
-                print("    %s" % line)
+                print(f"    {line}")
             print()
 
     def object_log(self):
@@ -391,9 +393,9 @@ class History:
         with codecs.open(self.path, mode="ab", encoding="utf-8") as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
-                fo.write("-%s\n" % fn)
+                fo.write(f"-{fn}\n")
             for fn in sorted(current_state - last_state):
-                fo.write("+%s\n" % fn)
+                fo.write(f"+{fn}\n")
 
     def write_specs(self, remove_specs=(), update_specs=(), neutered_specs=()):
         remove_specs = [str(MatchSpec(s)) for s in remove_specs]
@@ -402,11 +404,11 @@ class History:
         if any((update_specs, remove_specs, neutered_specs)):
             with codecs.open(self.path, mode="ab", encoding="utf-8") as fh:
                 if remove_specs:
-                    fh.write("# remove specs: %s\n" % remove_specs)
+                    fh.write(f"# remove specs: {remove_specs}\n")
                 if update_specs:
-                    fh.write("# update specs: %s\n" % update_specs)
+                    fh.write(f"# update specs: {update_specs}\n")
                 if neutered_specs:
-                    fh.write("# neutered specs: %s\n" % neutered_specs)
+                    fh.write(f"# neutered specs: {neutered_specs}\n")
 
 
 if __name__ == "__main__":

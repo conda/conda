@@ -129,7 +129,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def print_export_header(subdir):
     print("# This file may be used to create an environment using:")
     print("# $ conda create --name <env> --file <this file>")
-    print("# platform: %s" % subdir)
+    print(f"# platform: {subdir}")
 
 
 def get_packages(installed, regex):
@@ -172,7 +172,7 @@ def list_packages(
 
         features = set(prec.get("features") or ())
         disp = "%(name)-25s %(version)-15s %(build)15s" % prec
-        disp += "  %s" % disp_features(features)
+        disp += f"  {disp_features(features)}"
         schannel = prec.get("schannel")
         show_channel_urls = show_channel_urls or context.show_channel_urls
         if (
@@ -180,7 +180,7 @@ def list_packages(
             or show_channel_urls is None
             and schannel != DEFAULTS_CHANNEL_NAME
         ):
-            disp += "  %s" % schannel
+            disp += f"  {schannel}"
 
         packages.append(disp)
 
@@ -190,7 +190,7 @@ def list_packages(
     result = []
     if format == "human":
         result = [
-            "# packages in environment at %s:" % prefix,
+            f"# packages in environment at {prefix}:",
             "#",
             "# %-23s %-15s %15s  Channel" % ("Name", "Version", "Build"),
         ]
@@ -250,10 +250,10 @@ def print_explicit(prefix, add_md5=False):
     for prefix_record in PrefixData(prefix).iter_records_sorted():
         url = prefix_record.get("url")
         if not url or url.startswith(UNKNOWN_CHANNEL):
-            print("# no URL for: %s" % prefix_record["fn"])
+            print("# no URL for: {}".format(prefix_record["fn"]))
             continue
         md5 = prefix_record.get("md5")
-        print(url + ("#%s" % md5 if add_md5 and md5 else ""))
+        print(url + (f"#{md5}" if add_md5 and md5 else ""))
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
@@ -270,7 +270,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     regex = args.regex
     if args.full_name:
-        regex = r"^%s$" % regex
+        regex = rf"^{regex}$"
 
     if args.revisions:
         h = History(prefix)
