@@ -402,7 +402,7 @@ def test_metadata():
     # Check versions
     for fpath in METADATA_VERSION_PATHS:
         if not lexists(fpath):
-            pytest.skip("test files not found: %s" % fpath)
+            pytest.skip(f"test files not found: {fpath}")
         meta = PythonDistributionMetadata(fpath)
         a = meta.get_dist_requirements()
         b = meta.get_python_requirements()
