@@ -227,6 +227,9 @@ class ReporterHandlerBase(ABC):
     used interactively.
     """
 
+    def render(self, data: Any, **kwargs) -> str:
+        return str(data)
+
     @abstractmethod
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         """
@@ -234,9 +237,9 @@ class ReporterHandlerBase(ABC):
         """
 
     @abstractmethod
-    def string_view(self, data: str, **kwargs) -> str:
+    def envs_list(self, data, **kwargs) -> str:
         """
-        Render a simple string.
+        Render a list of environments
         """
 
 

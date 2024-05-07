@@ -7,7 +7,6 @@ Display information about current conda installation.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
@@ -342,7 +341,7 @@ def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict: dict[str, Any]) -> str:
+def get_main_info_str(info_dict: dict[str, Any]) -> dict[str, str]:
     """
     Returns a printable string of the contents of ``info_dict``.
 
@@ -396,7 +395,81 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
         yield ("netrc file", info_dict["netrc_file"])
         yield ("offline mode", info_dict["offline"])
 
-    return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
+    return {key: value for key, value in builder()}
+
+    # return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
+
+
+def get_display_data(
+    args: Namespace, context
+) -> tuple[dict[str, str] | str, str | None]:
+    """
+    Determines the data the ``conda info`` command will display
+    """
+    if args.base:
+        if context.json:
+            return {"root_prefix": context.root_prefix}, None
+        else:
+            return f"{context.root_prefix}\n", None
+
+    if args.unsafe_channels:
+        if context.json:
+            return {"channels": context.channels}, None
+        else:
+            return "\n".join(context.channels), None
+
+    options = "envs", "system"
+
+    if context.verbose or context.json:
+        for option in options:
+            setattr(args, option, True)
+    info_dict = get_info_dict()
+
+    if (
+        context.verbose or all(not getattr(args, opt) for opt in options)
+    ) and not context.json:
+        return get_main_info_str(info_dict), "detail_view"
+
+    if args.envs:
+        from ..core.envs_manager import list_all_known_prefixes
+
+        info_dict["envs"] = list_all_known_prefixes()
+
+        if not context.json:
+            return list_all_known_prefixes(), "envs_list"
+
+    if args.system and not context.json:
+        from .find_commands import find_commands, find_executable
+
+        output = [
+            f"sys.version: {sys.version[:40]}...",
+            f"sys.prefix: {sys.prefix}",
+            f"sys.executable: {sys.executable}",
+            "conda location: {}".format(info_dict["conda_location"]),
+        ]
+
+        for cmd in sorted(set(find_commands() + ("build",))):
+            output.append("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
+
+        site_dirs = info_dict["site_dirs"]
+        if site_dirs:
+            output.append(f"user site dirs: {site_dirs[0]}")
+        else:
+            output.append("user site dirs:")
+
+        for site_dir in site_dirs[1:]:
+            output.append(f"                {site_dir}")
+
+        output.append("")
+
+        for name, value in sorted(info_dict["env_vars"].items()):
+            output.append(f"{name}: {value}")
+
+        output.append("")
+
+        return "\n".join(output), None
+
+    return info_dict, None
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
@@ -412,64 +485,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
 
     from ..base.context import context
-    from .common import print_envs_list, stdout_json
+    from ..common.io import get_reporter_manager
 
-    if args.base:
-        if context.json:
-            stdout_json({"root_prefix": context.root_prefix})
-        else:
-            print(f"{context.root_prefix}")
-        return 0
+    reporter_manager = get_reporter_manager()
+    display_dict, component = get_display_data(args, context)
 
-    if args.unsafe_channels:
-        if not context.json:
-            print("\n".join(context.channels))
-        else:
-            print(json.dumps({"channels": context.channels}))
-        return 0
+    reporter_manager.render(display_dict, component=component, context=context)
 
-    options = "envs", "system"
-
-    if context.verbose or context.json:
-        for option in options:
-            setattr(args, option, True)
-    info_dict = get_info_dict()
-
-    if (
-        context.verbose or all(not getattr(args, opt) for opt in options)
-    ) and not context.json:
-        print(get_main_info_str(info_dict) + "\n")
-
-    if args.envs:
-        from ..core.envs_manager import list_all_known_prefixes
-
-        info_dict["envs"] = list_all_known_prefixes()
-        print_envs_list(info_dict["envs"], not context.json)
-
-    if args.system:
-        if not context.json:
-            from .find_commands import find_commands, find_executable
-
-            print(f"sys.version: {sys.version[:40]}...")
-            print(f"sys.prefix: {sys.prefix}")
-            print(f"sys.executable: {sys.executable}")
-            print("conda location: {}".format(info_dict["conda_location"]))
-            for cmd in sorted(set(find_commands() + ("build",))):
-                print("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
-            print("user site dirs: ", end="")
-            site_dirs = info_dict["site_dirs"]
-            if site_dirs:
-                print(site_dirs[0])
-            else:
-                print()
-            for site_dir in site_dirs[1:]:
-                print(f"                {site_dir}")
-            print()
-
-            for name, value in sorted(info_dict["env_vars"].items()):
-                print(f"{name}: {value}")
-            print()
-
-    if context.json:
-        stdout_json(info_dict)
     return 0
