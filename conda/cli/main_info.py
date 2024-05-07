@@ -341,14 +341,10 @@ def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict: dict[str, Any]) -> dict[str, str]:
+def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
     """
-    Returns a printable string of the contents of ``info_dict``.
-
-    :param info_dict:  The output of ``get_info_dict()``.
-    :returns:  String to print.
+    Returns the data that can be used to display information for conda info
     """
-
     from ..common.compat import on_win
 
     def flatten(lines: Iterable[str]) -> str:
@@ -397,7 +393,19 @@ def get_main_info_str(info_dict: dict[str, Any]) -> dict[str, str]:
 
     return {key: value for key, value in builder()}
 
-    # return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
+
+def get_main_info_str(info_dict: dict[str, Any]) -> str:
+    """
+    Returns a printable string of the contents of ``info_dict``.
+
+    :param info_dict:  The output of ``get_info_dict()``.
+    :returns:  String to print.
+    """
+    display_info = get_main_info_display(info_dict)
+
+    return "\n".join(
+        ("", *(f"{key:>23} : {value}" for key, value in display_info.items()), "")
+    )
 
 
 def get_display_data(
@@ -428,7 +436,7 @@ def get_display_data(
     if (
         context.verbose or all(not getattr(args, opt) for opt in options)
     ) and not context.json:
-        return get_main_info_str(info_dict), "detail_view"
+        return get_main_info_display(info_dict), "detail_view"
 
     if args.envs:
         from ..core.envs_manager import list_all_known_prefixes
