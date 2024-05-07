@@ -51,8 +51,7 @@ IF [%_ARG%]==[/?] (
     EXIT /B 0
 )
 ECHO Error: unknown option %~1 1>&2
-CALL :CLEANUP
-EXIT /B 1
+GOTO :ERROR
 :ARGS_END
 
 :: fallback to default values
@@ -89,11 +88,9 @@ IF [%CONDA_SHLVL%]==[0] GOTO :DEACTIVATED
 ECHO Deactivating %CONDA_SHLVL% environment(s)...
 :DEACTIVATING
 IF [%CONDA_SHLVL%]==[0] GOTO :DEACTIVATED
-CALL conda deactivate
-IF NOT [%ERRORLEVEL%]==[0] (
+(CALL conda deactivate) || (
     ECHO Error: failed to deactivate environment^(s^) 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 GOTO :DEACTIVATING
 :DEACTIVATED
@@ -104,21 +101,23 @@ IF EXIST "%_DEVENV%\conda-meta\history" GOTO :INSTALLED
 :: downloading miniconda
 IF EXIST "%_INSTALLER%\miniconda.exe" GOTO :DOWNLOADED
 ECHO Downloading miniconda...
-powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_INSTALLER%\miniconda.exe' | Out-Null"
-IF NOT [%ERRORLEVEL%]==[0] (
+(powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_INSTALLER%\miniconda.exe' | Out-Null") || (
     ECHO Error: failed to download miniconda 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 :DOWNLOADED
 
 :: installing miniconda
 ECHO Installing development environment...
-START /wait "" "%_INSTALLER%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% >NUL
-IF NOT [%ERRORLEVEL%]==[0] (
+(START /WAIT "" ^
+    "%_INSTALLER%\miniconda.exe" ^
+    /InstallationType=JustMe ^
+    /RegisterPython=0 ^
+    /AddToPath=0 ^
+    /S ^
+    /D=%_DEVENV% >NUL) || (
     ECHO Error: failed to install development environment 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
 CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git >NUL
@@ -128,11 +127,9 @@ CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git >NUL
 IF EXIST "%_ENV%" GOTO :ENVEXISTS
 ECHO Creating %_NAME%...
 
-CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" >NUL
-IF NOT [%ERRORLEVEL%]==[0] (
+(CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" >NUL) || (
     ECHO Error: failed to create %_NAME% 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 :ENVEXISTS
 
@@ -141,14 +138,12 @@ CALL :UPDATING
 IF NOT [%ERRORLEVEL%]==[0] GOTO :UPTODATE
 ECHO Updating %_NAME%...
 
-CALL :CONDA "%_BASEEXE%" update --yes --quiet --all >NUL
-IF NOT [%ERRORLEVEL%]==[0] (
+(CALL :CONDA "%_BASEEXE%" update --yes --quiet --all >NUL) || (
     ECHO Error: failed to update development environment 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 
-CALL :CONDA "%_BASEEXE%" install ^
+(CALL :CONDA "%_BASEEXE%" install ^
     --yes ^
     --quiet ^
     "--prefix=%_ENV%" ^
@@ -157,11 +152,9 @@ CALL :CONDA "%_BASEEXE%" install ^
     "--file=%_SRC%\tests\requirements.txt" ^
     "--file=%_SRC%\tests\requirements-ci.txt" ^
     "--file=%_SRC%\tests\requirements-Windows.txt" ^
-    "python=%_PYTHON%" >NUL
-IF NOT [%ERRORLEVEL%]==[0] (
+    "python=%_PYTHON%" >NUL) || (
     ECHO Error: failed to update %_NAME% 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 
 :: update timestamp
@@ -175,11 +168,9 @@ ECHO Initializing shell integration...
 DOSKEY conda=
 SET CONDA_SHLVL=
 :: use source code's conda_hook.bat so we can properly test changes to CMD.exe's activation scripts
-CALL "%_CONDAHOOK%"
-IF NOT [%ERRORLEVEL%]==[0] (
+(CALL "%_CONDAHOOK%") || (
     ECHO Error: failed to initialize shell integration 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 :: although we use the source code's conda_hook.bat we still need to use the installed conda.exe
 SET "CONDA_EXE=%_ENVEXE%"
@@ -194,11 +185,9 @@ IF DEFINED PYTHONPATH (
 
 :: activate env
 ECHO Activating %_NAME%...
-CALL conda activate "%_ENV%"
-IF NOT [%ERRORLEVEL%]==[0] (
+(CALL conda activate "%_ENV%") || (
     ECHO Error: failed to activate %_NAME% 1>&2
-    CALL :CLEANUP
-    EXIT /B 1
+    GOTO :ERROR
 )
 
 :CLEANUP
@@ -225,12 +214,12 @@ GOTO :EOF
 SET "_PATH=%PATH%"
 SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
-(CALL %*) || EXIT /B 1
+CALL %*
 
 :: restore %PATH%
 SET "PATH=%_PATH%"
 SET _PATH=
-GOTO :EOF
+EXIT /B %ERRORLEVEL%
 
 :CONDARC
 :: read devenv from ~\.condarc
@@ -275,3 +264,7 @@ IF EXIST "%_ENV%" (
 ECHO.
 ECHO Source: %_SRC%
 EXIT /B 0
+
+:ERROR
+CALL :CLEANUP
+EXIT /B 1
