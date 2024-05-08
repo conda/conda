@@ -3117,3 +3117,22 @@ def test_keep_case(monkeypatch: MonkeyPatch):
     assert "TWO" in export_vars
     assert "three" in unset_vars
     assert "FOUR" in unset_vars
+
+
+def test_not_keep_case(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_KEEP_CASE", False)
+    reset_context()
+    assert not context.keep_case
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        one=1,
+        TWO=2,
+        three=None,
+        FOUR=None,
+    )
+    assert "one" not in export_vars
+    assert "ONE" in export_vars
+    assert "TWO" in export_vars
+    assert "three" not in unset_vars
+    assert "THREE" in unset_vars
+    assert "FOUR" in unset_vars
