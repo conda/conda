@@ -57,7 +57,7 @@
 * @beeankha
 * @conda-bot
 * @dbast
-* @ifitchet
+* @ifitchet made their first contribution in https://github.com/conda/conda/pull/13649
 * @isuruf
 * @jaimergp
 * @jezdez
@@ -65,8 +65,8 @@
 * @zklaus
 * @ForgottenProgramme
 * @mattkram
-* @Nathann03
-* @dwr-psandhu
+* @Nathann03 made their first contribution in https://github.com/conda/conda/pull/13816
+* @dwr-psandhu made their first contribution in https://github.com/conda/conda/pull/13770
 * @travishathaway
 * @dependabot[bot]
 * @pre-commit-ci[bot]
