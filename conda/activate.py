@@ -611,6 +611,9 @@ class _Activator(metaclass=abc.ABCMeta):
             "PATH",
             clean_paths[sys.platform] if sys.platform in clean_paths else "/usr/bin",
         )
+        if sys.platform == "win32":
+            # Windows 10+ has a trailing semicolon by default, remove it to prevent empty entry
+            path = path.strip(os.pathsep)
         path_split = path.split(os.pathsep)
         return path_split
 
