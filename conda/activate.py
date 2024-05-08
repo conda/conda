@@ -111,18 +111,30 @@ class _Activator(metaclass=abc.ABCMeta):
         for name, value in kwargs.items():
             if value is None:
                 unset_vars.append(name.upper())
+                if context.keep_case:
+                    unset_vars.append(name)
+
             else:
                 export_vars[name.upper()] = value
+                if context.keep_case:
+                    export_vars[name] = value
 
         if export_metavars:
             # split meta variables into exports vs unsets
             for name, value in context.conda_exe_vars_dict.items():
                 if value is None:
                     unset_vars.append(name.upper())
+                    if context.keep_case:
+                        unset_vars.append(name)
+
                 elif "/" in value or "\\" in value:
                     export_vars[name.upper()] = self.path_conversion(value)
+                    if context.keep_case:
+                        export_vars[name] = self.path_conversion(value)
                 else:
                     export_vars[name.upper()] = value
+                    if context.keep_case:
+                        export_vars[name] = value
         else:
             # unset all meta variables
             unset_vars.extend(context.conda_exe_vars_dict)

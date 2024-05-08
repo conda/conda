@@ -441,6 +441,7 @@ class Context(Configuration):
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    keep_case = ParameterLoader(PrimitiveParameter(False))
 
     ####################################################
     #               Solver Configuration               #

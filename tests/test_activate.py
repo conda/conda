@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
+from pytest import MonkeyPatch
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError
 from conda import __version__ as conda_version
@@ -3099,3 +3100,20 @@ def test_activate_and_deactivate_for_uninitialized_env(conda_cli):
     assert conda_error.value.message.startswith(
         "Run 'conda init' before 'conda deactivate'"
     )
+
+
+def test_keep_case(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_KEEP_CASE", True)
+    reset_context()
+    assert context.keep_case
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        one=1,
+        TWO=2,
+        three=None,
+        FOUR=None,
+    )
+    assert "one" in export_vars
+    assert "TWO" in export_vars
+    assert "three" in unset_vars
+    assert "FOUR" in unset_vars
