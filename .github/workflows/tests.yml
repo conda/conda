@@ -455,7 +455,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run memray
-        run: $CONDA/envs/test/bin/pytest -k memray --memray
+        run: python -m pytest -k memray --memray
 
   # macos test suite
   macos:
