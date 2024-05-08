@@ -2336,10 +2336,12 @@
   num_commits: 1
   first_commit: 2023-05-30 08:40:51
 - name: Matt Kramer
-  email: matthew.robert.kramer@gmail.com
+  email: mkramer@anaconda.com
   github: mattkram
   num_commits: 1
   first_commit: 2023-05-30 11:54:48
+  alternate_emails:
+  - matthew.robert.kramer@gmail.com
 - name: Johannes Köster
   email: johannes.koester@uni-due.de
   github: johanneskoester
@@ -2449,12 +2451,23 @@
   first_commit: 2024-02-26 22:40:25
   github: FFY00
 - name: Klaus Zimmermann
-  email: klaus_zimmermann@gmx.de
+  email: klaus.zimmermann@quansight.com
   num_commits: 1
   first_commit: 2024-02-12 19:08:14
   github: zklaus
+  alternate_emails:
+  - klaus_zimmermann@gmx.de
 - name: Justin Wood (Callek)
   email: callek@gmail.com
   num_commits: 1
   first_commit: 2024-04-10 21:22:06
   github: callek
+- name: Nathan Nguyen
+  email: 90486674+Nathann03@users.noreply.github.com
+  github: Nathann03
+- name: Nicky Sandhu
+  email: dwr-psandhu@users.noreply.github.com
+  github: dwr-psandhu
+- name: Ian Fitchet
+  email: 123584373+ifitchet@users.noreply.github.com
+  github: ifitchet
