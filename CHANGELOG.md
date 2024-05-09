@@ -6,14 +6,14 @@
 
 * Report which `MatchSpec` item caused `Invalid*Spec` exceptions for more informative error messages. (#11203 via #13598)
 * MSYS2 packages can now use the upstream installation prefixes. (#13649)
-* Adds a new `reporters` setting for configure output. (#13736)
+* Add a new `reporters` setting for configure output. (#13736)
 * Add support for CEP-15 `base_url` field in `repodata.json`. (#13137 via #13744)
-* In custom channel settings allow specification of channel URLs using a glob-like wildcard pattern, e.g. for user with auth handler plugins. (#13778 via #13779)
+* In custom channel settings, allow specification of channel URLs using a glob-like wildcard pattern, e.g. for user with auth handler plugins. (#13778 via #13779)
 
 ### Bug fixes
 
 * Fix `conda notices --json` to correctly output JSON. (#13561)
-* Fix prefix replacement for Windows subdir on unixes. (#13689)
+* Fix prefix replacement for Windows `subdir` on Unix. (#13689)
 
 ### Deprecations
 
@@ -32,7 +32,7 @@
 * Mark `conda.plan` as an entrypoint as pending deprecation. (#12421)
 * Mark `conda.activate._Activator.add_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
 * Mark `conda.activate._Activator.get_scripts_export_unset_vars` as pending deprecation. Use `get_scripts_export_unset_vars` helper function in `test_activate.py` instead. (#13720)
-* Mark `conda.activate._Activator._get_path_dirs(extra_library_bin)` as pending deprecation. Unused argument. (#13720)
+* Mark `conda.activate._Activator._get_path_dirs(extra_library_bin)` as pending deprecation. (#13720)
 * Mark `conda.activate.JSONFormatMixin.get_scripts_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
 * Mark `conda.gateways.logging.trace` as pending deprecation. Use `Logger.log(conda.common.constants.TRACE, msg)` instead. (#13732)
 * Mark `conda create --mkdir` as pending deprecation. The argument is redundant and unnecessary. (#13751)
@@ -45,7 +45,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.core.index`. (#13816)
+* Add type hints and doc strings to `conda.core.index`. (#13816)
 
 ### Other
 
