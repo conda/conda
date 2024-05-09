@@ -7,7 +7,6 @@ Renames an existing environment by cloning it and then removing the original env
 
 from __future__ import annotations
 
-import os
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -83,42 +82,29 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @deprecated.argument("24.3", "24.9", "prefix")
 def validate_src() -> str:
     """
-    Validate that we are receiving at least one valid value for --name or
-    --prefix and ensure that the "base" environment is not being renamed
+    Ensure that we are receiving at least one valid value for the environment
+    to be renamed and that the "base" environment is not being renamed
     """
     from ..base.context import context
     from ..exceptions import CondaEnvException
+    from .install import validate_prefix_exists
 
     prefix = Path(context.target_prefix)
-    if not prefix.exists():
-        raise CondaEnvException(
-            "The environment you are trying to rename does not exist."
-        )
+    validate_prefix_exists(prefix)
+
     if prefix.samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
     if context.active_prefix and prefix.samefile(context.active_prefix):
         raise CondaEnvException("Cannot rename the active environment")
 
-    return context.target_prefix
+    return str(prefix)
 
 
 def validate_destination(dest: str, force: bool = False) -> str:
-    """Ensure that our destination does not exist"""
-    from ..base.context import context, validate_prefix_name
-    from ..common.path import expand
-    from ..exceptions import CondaEnvException
+    """Ensure that our destination prefix does not exist"""
+    from .install import validate_new_prefix
 
-    if os.sep in dest:
-        dest = expand(dest)
-    else:
-        dest = validate_prefix_name(dest, ctx=context, allow_base=False)
-
-    if not force and os.path.exists(dest):
-        env_name = os.path.basename(os.path.normpath(dest))
-        raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --force."
-        )
-    return dest
+    return validate_new_prefix(dest, force=force)
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
