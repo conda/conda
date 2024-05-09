@@ -150,6 +150,10 @@ class Index(UserDict):
 
     def __getitem__(self, key):
         assert isinstance(key, PackageRecord)
+        try:
+            return self._data[key]
+        except AttributeError:
+            pass
         if self.track_features and key.name.endswith("@"):
             for feature in self.track_features:
                 if feature == key.name[:-1]:
