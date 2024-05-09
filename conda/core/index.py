@@ -266,7 +266,10 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
-def _supplement_index_with_prefix(index: dict[Any, Any], prefix: str) -> None:
+def _supplement_index_with_prefix(
+        index: Index | dict[Any, Any],
+        prefix: str | PrefixData,
+    ) -> None:
     """
     Supplement the given index with information from the specified environment prefix.
 
@@ -275,7 +278,13 @@ def _supplement_index_with_prefix(index: dict[Any, Any], prefix: str) -> None:
     """
     # supplement index with information from prefix/conda-meta
     assert prefix
-    for prefix_record in PrefixData(prefix).iter_records():
+    if isinstance(index, Index):
+        return
+    if isinstance(prefix, PrefixData):
+        prefix_data = prefix
+    else:
+        prefix_data = PrefixData(prefix)
+    for prefix_record in prefix_data.iter_records():
         if prefix_record in index:
             current_record = index[prefix_record]
             if current_record.channel == prefix_record.channel:
