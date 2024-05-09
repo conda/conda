@@ -126,9 +126,7 @@ class Index(UserDict):
             if prec:
                 if prec.channel == prefix_prec.channel:
                     link = prefix_prec.get("link") or EMPTY_LINK
-                    prec = PrefixRecord.from_objects(
-                        prec, prefix_prec, link=link
-                    )
+                    prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
                 else:
                     prefix_channel = prefix_prec.channel
                     prefix_channel._Channel__canonical_name = prefix_channel.url()
@@ -205,7 +203,16 @@ def get_index(
     :param repodata_fn: Filename of the repodata file.
     :return: A dictionary representing the package index.
     """
-    return Index(channel_urls, prepend, platform, use_local, use_cache, unknown, prefix, repodata_fn)
+    return Index(
+        channel_urls,
+        prepend,
+        platform,
+        use_local,
+        use_cache,
+        unknown,
+        prefix,
+        repodata_fn,
+    )
     initialize_logging()  # needed in case this function is called directly as a public API
 
     if context.offline and unknown is None:
@@ -267,9 +274,9 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
 
 
 def _supplement_index_with_prefix(
-        index: Index | dict[Any, Any],
-        prefix: str | PrefixData,
-    ) -> None:
+    index: Index | dict[Any, Any],
+    prefix: str | PrefixData,
+) -> None:
     """
     Supplement the given index with information from the specified environment prefix.
 
