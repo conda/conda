@@ -153,6 +153,7 @@ Authors are sorted alphabetically.
 * Hsin-Hsiang Peng
 * Hugo Buddelmeijer
 * Iain Gillis
+* Ian Fitchet
 * Ian Stokes-Rees
 * Igor Igamberdiev
 * Ikko Eltociear Ashimine
@@ -295,12 +296,14 @@ Authors are sorted alphabetically.
 * Murray Read
 * NaincyKumariKnoldus
 * Nate Coraor
+* Nathan Nguyen
 * Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
 * Nicholas Pierotti
 * Nick Eubank
+* Nicky Sandhu
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
