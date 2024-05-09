@@ -98,6 +98,12 @@ class Index(UserDict):
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
                 _data.update((prec, prec) for prec in subdir_data.iter_records())
+        if self.prefix:
+            _supplement_index_with_prefix(_data, self.prefix)
+        if self.unknown:
+            _supplement_index_with_cache(_data)
+        if self.track_features:
+            _supplement_index_with_features(_data)
         self._data = _data
 
     def _retrieve_from_channels(self, key):
