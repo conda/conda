@@ -163,7 +163,7 @@ class Index(UserDict):
         if self.unknown:
             prec = self._update_from_cache(key, prec)
         if prec is None:
-            raise PackagesNotFoundError((key,))
+            raise KeyError((key,))
         return prec
 
     def __contains__(self, key):
