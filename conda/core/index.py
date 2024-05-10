@@ -14,7 +14,6 @@ from boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..exceptions import ChannelNotAllowed, InvalidSpec, PackagesNotFoundError
-from ..gateways.logging import initialize_logging
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
@@ -213,26 +212,6 @@ def get_index(
         prefix,
         repodata_fn,
     )
-    initialize_logging()  # needed in case this function is called directly as a public API
-
-    if context.offline and unknown is None:
-        unknown = True
-
-    channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-    LAST_CHANNEL_URLS.clear()
-    LAST_CHANNEL_URLS.extend(channel_urls)
-
-    check_allowlist(channel_urls)
-
-    index = fetch_index(channel_urls, use_cache=use_cache, repodata_fn=repodata_fn)
-
-    if prefix:
-        _supplement_index_with_prefix(index, prefix)
-    if unknown:
-        _supplement_index_with_cache(index)
-    if context.track_features:
-        _supplement_index_with_features(index)
-    return index
 
 
 def fetch_index(
