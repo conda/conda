@@ -175,7 +175,7 @@ def test_get_index_lazy():
         ("Linux", "x86_64"): "linux-64",
         ("Darwin", "x86_64"): "osx-64",
         ("Darwin", "arm64"): "osx-arm64",
-        ("Windows", "x86_64"): "win-64",
+        ("Windows", "AMD64"): "win-64",
     }
     PLATFORM_SAMPLE_PACKAGES = {
         "linux-64": dict(
@@ -195,8 +195,8 @@ def test_get_index_lazy():
         "osx-arm64": dict(
             channel="pkgs/main/osx-arm64",
             name="aiohttp",
-            version="2.3.9",
-            build="py35_0",
+            version="3.9.3",
+            build="py310h80987f9_0",
             build_number=0,
         ),
         "win-64": dict(
