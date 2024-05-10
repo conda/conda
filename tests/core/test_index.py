@@ -177,7 +177,7 @@ def test_get_index_lazy():
         ("Darwin", "arm64"): "osx-arm64",
         ("Windows", "AMD64"): "win-64",
     }
-    PLATFORM_SAMPLE_PACKAGES = {
+    DEFAULTS_SAMPLE_PACKAGES = {
         "linux-64": dict(
             channel="pkgs/main/linux-64",
             name="aiohttp",
@@ -207,16 +207,40 @@ def test_get_index_lazy():
             build_number=0,
         ),
     }
+    CONDAFORGE_SAMPLE_PACKAGES = {
+        "linux-64": dict(
+            channel="conda-forge",
+            name="vim",
+            version="9.1.0356",
+            build="py310pl5321hfe26b83_0",
+            build_number=0,
+        ),
+        "osx-64": dict(
+            channel="conda-forge",
+            name="vim",
+            version="9.1.0356",
+            build="py38pl5321h6d91244_0",
+            build_number=0,
+        ),
+        "osx-arm64": dict(
+            channel="conda-forge",
+            name="vim",
+            version="9.1.0356",
+            build="py39pl5321h878be05_0",
+            build_number=0,
+        ),
+        "win-64": dict(
+            channel="conda-forge",
+            name="vim",
+            version="9.1.0356",
+            build="py312h275cf98_0",
+            build_number=0,
+        ),
+    }
     subdir = PLATFORMS[(platform.system(), platform.machine())]
     index = get_index(channel_urls=["conda-forge"], platform=subdir)
-    main_pkg = PackageRecord(**PLATFORM_SAMPLE_PACKAGES[subdir])
-    cf_pkg = PackageRecord(
-        channel="conda-forge",
-        name="esmf",
-        version="8.6.0",
-        build="nompi_h7b237b1_0",
-        build_number=0,
-    )
+    main_pkg = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
+    cf_pkg = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
     main_result = index[main_pkg]
     cf_result = index[cf_pkg]
     assert main_result == main_pkg
