@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import sys
 from logging import getLogger
 
 import pytest
@@ -140,31 +141,6 @@ def test_get_index_linux64_platform():
         assert platform_in_record(linux64, record), (linux64, record.url)
 
 
-@pytest.mark.memray
-@pytest.mark.integration
-def test_get_index_lazy():
-    linux64 = "linux-64"
-    index = get_index(channel_urls=["conda-forge"], platform=linux64)
-    main_pkg = PackageRecord(
-        channel="pkgs/main/linux-64",
-        name="aiohttp",
-        version="2.3.9",
-        build="py35_0",
-        build_number=0,
-    )
-    cf_pkg = PackageRecord(
-        channel="conda-forge",
-        name="esmf",
-        version="8.6.0",
-        build="nompi_h7b237b1_0",
-        build_number=0,
-    )
-    main_result = index[main_pkg]
-    cf_result = index[cf_pkg]
-    assert main_result == main_pkg
-    assert cf_result == cf_pkg
-
-
 @pytest.mark.integration
 def test_get_index_osx64_platform():
     osx64 = "osx-64"
@@ -190,3 +166,37 @@ def test_basic_get_reduced_index():
         (MatchSpec("flask"),),
         "repodata.json",
     )
+
+
+@pytest.mark.memray
+@pytest.mark.integration
+def test_get_index_lazy():
+    PLATFORMS = {
+        ("linux", "x86_64"): "linux-64",
+        ("osx", "x86_64"): "osx-64",
+        ("osx", "arm64"): "osx-arm64",
+        ("win32", "x86_64"): "win-64",
+    }
+    PLATFORM_SAMPLE_PACKAGES = {
+        "linux-64": dict(
+            channel="pkgs/main/linux-64",
+            name="aiohttp",
+            version="2.3.9",
+            build="py35_0",
+            build_number=0,
+        ),
+    }
+    platform = PLATFORMS[(sys.platform, sys.machine())]
+    index = get_index(channel_urls=["conda-forge"], platform=platform)
+    main_pkg = PackageRecord(**PLATFORM_SAMPLE_PACKAGES[platform])
+    cf_pkg = PackageRecord(
+        channel="conda-forge",
+        name="esmf",
+        version="8.6.0",
+        build="nompi_h7b237b1_0",
+        build_number=0,
+    )
+    main_result = index[main_pkg]
+    cf_result = index[cf_pkg]
+    assert main_result == main_pkg
+    assert cf_result == cf_pkg
