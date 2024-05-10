@@ -13,6 +13,7 @@ from boltons.setutils import IndexedSet
 
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
+from ..deprecations import deprecated
 from ..exceptions import ChannelNotAllowed, InvalidSpec, PackagesNotFoundError
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
@@ -175,6 +176,7 @@ LAST_CHANNEL_URLS = []
 
 
 @time_recorder("get_index")
+@deprecated("24.9", "25.3", addendum="Use `Index` instead.")
 def get_index(
     channel_urls: tuple[str] = (),
     prepend: bool = True,
@@ -214,6 +216,7 @@ def get_index(
     )
 
 
+@deprecated("24.9", "25.3", addendum="Use `Index` instead.")
 def fetch_index(
     channel_urls: list[str],
     use_cache: bool = False,
