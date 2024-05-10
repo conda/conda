@@ -175,7 +175,7 @@ def create_application_entry_point(
     with open(target_full_path, "w") as fo:
         if " " in python_full_path:
             python_full_path = ensure_pad(python_full_path, '"')
-        fo.write("#!%s\n" % python_full_path)
+        fo.write(f"#!{python_full_path}\n")
         fo.write(entry_point)
     make_executable(target_full_path)
 
@@ -311,7 +311,7 @@ def create_fake_executable_softlink(src, dst):
     src_root, _ = splitext(src)
     # TODO: this open will clobber, consider raising
     with open(dst, "w") as f:
-        f.write('@echo off\ncall "%s" %%*\n' % src_root)
+        f.write(f'@echo off\ncall "{src_root}" %*\n')
     return dst
 
 
@@ -355,26 +355,26 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if lexists(dst) and not isdir(dst):
             if not force:
                 maybe_raise(BasicClobberError(src, dst, context), context)
-            log.info("file exists, but clobbering for directory: %r" % dst)
+            log.info(f"file exists, but clobbering for directory: {dst!r}")
             rm_rf(dst)
         mkdir_p(dst)
         return
 
     if not lexists(src):
         raise CondaError(
-            "Cannot link a source that does not exist. %s\n"
-            "Running `conda clean --packages` may resolve your problem." % src
+            f"Cannot link a source that does not exist. {src}\n"
+            "Running `conda clean --packages` may resolve your problem."
         )
 
     if lexists(dst):
         if not force:
             maybe_raise(BasicClobberError(src, dst, context), context)
-        log.info("file exists, but clobbering: %r" % dst)
+        log.info(f"file exists, but clobbering: {dst!r}")
         rm_rf(dst)
 
     if link_type == LinkType.hardlink:
         if isdir(src):
-            raise CondaError("Cannot hard link a directory. %s" % src)
+            raise CondaError(f"Cannot hard link a directory. {src}")
         try:
             log.log(TRACE, "hard linking %s => %s", src, dst)
             link(src, dst)
@@ -396,7 +396,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     elif link_type == LinkType.copy:
         copy(src, dst)
     else:
-        raise CondaError("Did not expect linktype=%r" % link_type)
+        raise CondaError(f"Did not expect linktype={link_type!r}")
 
 
 def compile_multiple_pyc(

@@ -55,18 +55,16 @@ def display_actions(
     prefix = actions.get("PREFIX")
     builder = ["", "## Package Plan ##\n"]
     if prefix:
-        builder.append("  environment location: %s" % prefix)
+        builder.append(f"  environment location: {prefix}")
         builder.append("")
     if specs_to_remove:
         builder.append(
-            "  removed specs: %s"
-            % dashlist(sorted(str(s) for s in specs_to_remove), indent=4)
+            f"  removed specs: {dashlist(sorted(str(s) for s in specs_to_remove), indent=4)}"
         )
         builder.append("")
     if specs_to_add:
         builder.append(
-            "  added / updated specs: %s"
-            % dashlist(sorted(str(s) for s in specs_to_add), indent=4)
+            f"  added / updated specs: {dashlist(sorted(str(s) for s in specs_to_add), indent=4)}"
         )
         builder.append("")
     print("\n".join(builder))
@@ -161,21 +159,21 @@ def display_actions(
             # string with new-style string formatting.
             oldfmt[pkg] = f"{{pkg:<{maxpkg}}} {{vers[0]:<{maxoldver}}}"
             if maxoldchannels:
-                oldfmt[pkg] += " {channels[0]:<%s}" % maxoldchannels
+                oldfmt[pkg] += f" {{channels[0]:<{maxoldchannels}}}"
             if features[pkg][0]:
-                oldfmt[pkg] += " [{features[0]:<%s}]" % maxoldfeatures
+                oldfmt[pkg] += f" [{{features[0]:<{maxoldfeatures}}}]"
 
             lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
-            lt = "" if lt == LinkType.hardlink else (" (%s)" % lt)
+            lt = "" if lt == LinkType.hardlink else (f" ({lt})")
             if pkg in removed or pkg in new:
                 oldfmt[pkg] += lt
                 continue
 
-            newfmt[pkg] = "{vers[1]:<%s}" % maxnewver
+            newfmt[pkg] = f"{{vers[1]:<{maxnewver}}}"
             if maxnewchannels:
-                newfmt[pkg] += " {channels[1]:<%s}" % maxnewchannels
+                newfmt[pkg] += f" {{channels[1]:<{maxnewchannels}}}"
             if features[pkg][1]:
-                newfmt[pkg] += " [{features[1]:<%s}]" % maxnewfeatures
+                newfmt[pkg] += f" [{{features[1]:<{maxnewfeatures}}}]"
             newfmt[pkg] += lt
 
             P0 = records[pkg][0]
@@ -313,7 +311,7 @@ def _plan_from_actions(actions, index):  # pragma: no cover
 
     assert PREFIX in actions and actions[PREFIX]
     prefix = actions[PREFIX]
-    plan = [("PREFIX", "%s" % prefix)]
+    plan = [("PREFIX", f"{prefix}")]
 
     unlink_link_transaction = actions.get("UNLINKLINKTRANSACTION")
     if unlink_link_transaction:
@@ -336,10 +334,10 @@ def _plan_from_actions(actions, index):  # pragma: no cover
             log.log(TRACE, f"action {op} has None value")
             continue
         if "_" not in op:
-            plan.append((PRINT, "%sing packages ..." % op.capitalize()))
+            plan.append((PRINT, f"{op.capitalize()}ing packages ..."))
         elif op.startswith("RM_"):
             plan.append(
-                (PRINT, "Pruning %s packages from the cache ..." % op[3:].lower())
+                (PRINT, f"Pruning {op[3:].lower()} packages from the cache ...")
             )
         if op in PROGRESS_COMMANDS:
             plan.append((PROGRESS, "%d" % len(actions[op])))

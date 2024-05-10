@@ -150,7 +150,7 @@ def replace_prefix(
                 subdir=subdir,
             )
         else:
-            raise CondaIOError("Invalid mode: %r" % mode)
+            raise CondaIOError(f"Invalid mode: {mode!r}")
     return data
 
 

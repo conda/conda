@@ -269,7 +269,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         if pc_entry is not None:
             return pc_entry
         raise CondaError(
-            "No package '%s' found in cache directories." % package_ref.dist_str()
+            f"No package '{package_ref.dist_str()}' found in cache directories."
         )
 
     @classmethod

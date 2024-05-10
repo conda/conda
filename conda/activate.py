@@ -246,7 +246,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 "command must be given"
             )
             if actual_command:
-                message += ". Instead got '%s'." % actual_command
+                message += f". Instead got '{actual_command}'."
             raise ArgumentError(message)
 
         if arguments is None or len(arguments) < 1:
@@ -840,7 +840,7 @@ class _Activator(metaclass=abc.ABCMeta):
                         "will overwrite those from packages",
                         file=sys.stderr,
                     )
-                    print("variable %s duplicated" % dup, file=sys.stderr)
+                    print(f"variable {dup} duplicated", file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
 
         return env_vars
@@ -1235,7 +1235,7 @@ class XonshActivator(_Activator):
     hook_source_path = Path(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
     def _hook_preamble(self) -> str:
-        return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
+        return f'$CONDA_EXE = "{self.path_conversion(context.conda_exe)}"'
 
 
 class CmdExeActivator(_Activator):

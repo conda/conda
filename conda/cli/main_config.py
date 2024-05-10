@@ -99,14 +99,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # TODO: use argparse.FileType
     config_file_location_group = p.add_argument_group(
         "Config File Location Selection",
-        "Without one of these flags, the user config file at '%s' is used."
-        % escaped_user_rc_path,
+        f"Without one of these flags, the user config file at '{escaped_user_rc_path}' is used.",
     )
     location = config_file_location_group.add_mutually_exclusive_group()
     location.add_argument(
         "--system",
         action="store_true",
-        help="Write to the system .condarc file at '%s'." % escaped_sys_rc_path,
+        help=f"Write to the system .condarc file at '{escaped_sys_rc_path}'.",
     )
     location.add_argument(
         "--env",
@@ -245,16 +244,16 @@ def format_dict(d):
     for k, v in d.items():
         if isinstance(v, Mapping):
             if v:
-                lines.append("%s:" % k)
+                lines.append(f"{k}:")
                 lines.append(pretty_map(v))
             else:
-                lines.append("%s: {}" % k)
+                lines.append(f"{k}: {{}}")
         elif isiterable(v):
             if v:
-                lines.append("%s:" % k)
+                lines.append(f"{k}:")
                 lines.append(pretty_list(v))
             else:
-                lines.append("%s: []" % k)
+                lines.append(f"{k}: []")
         else:
             lines.append("{}: {}".format(k, v if v is not None else "None"))
     return lines
@@ -286,9 +285,9 @@ def parameter_description_builder(name):
         )
 
     if aliases:
-        builder.append("  aliases: %s" % ", ".join(aliases))
+        builder.append("  aliases: {}".format(", ".join(aliases)))
     if string_delimiter:
-        builder.append("  env var string delimiter: '%s'" % string_delimiter)
+        builder.append(f"  env var string delimiter: '{string_delimiter}'")
 
     builder.extend("  " + line for line in wrap(details["description"], 70))
 
@@ -547,7 +546,7 @@ def execute_config(args, parser):
         else:
             lines = []
             for source, reprs in context.collect_all().items():
-                lines.append("==> %s <==" % source)
+                lines.append(f"==> {source} <==")
                 lines.extend(format_dict(reprs))
                 lines.append("")
             stdout_write("\n".join(lines))
@@ -563,7 +562,7 @@ def execute_config(args, parser):
                 from ..exceptions import ArgumentError
 
                 raise ArgumentError(
-                    "Invalid configuration parameters: %s" % dashlist(not_params)
+                    f"Invalid configuration parameters: {dashlist(not_params)}"
                 )
         else:
             paramater_names = context.list_parameters()
@@ -614,7 +613,7 @@ def execute_config(args, parser):
                 from ..exceptions import ArgumentError
 
                 raise ArgumentError(
-                    "Invalid configuration parameters: %s" % dashlist(not_params)
+                    f"Invalid configuration parameters: {dashlist(not_params)}"
                 )
             if context.json:
                 stdout_write(
@@ -679,11 +678,10 @@ def execute_config(args, parser):
                 data = fh.read().strip()
             if data:
                 raise CondaError(
-                    "The file '%s' "
+                    f"The file '{rc_path}' "
                     "already contains configuration information.\n"
                     "Remove the file to proceed.\n"
                     "Use `conda config --describe` to display default configuration."
-                    % rc_path
                 )
 
         with open(rc_path, "w") as fh:
@@ -727,7 +725,7 @@ def execute_config(args, parser):
         except Exception:  # pragma: no cover
             from ..exceptions import ParseError
 
-            raise ParseError("invalid yaml content:\n%s" % content)
+            raise ParseError(f"invalid yaml content:\n{content}")
 
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
@@ -742,9 +740,7 @@ def execute_config(args, parser):
             else:
                 from ..exceptions import CondaValueError
 
-                raise CondaValueError(
-                    "Key '%s' is not a known sequence parameter." % key
-                )
+                raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
             if not (isinstance(arglist, Sequence) and not isinstance(arglist, str)):
                 from ..exceptions import CouldntParseError
 

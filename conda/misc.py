@@ -80,7 +80,7 @@ def explicit(
         # parse URL
         m = url_pat.match(spec)
         if m is None:
-            raise ParseError("Could not parse explicit URL: %s" % spec)
+            raise ParseError(f"Could not parse explicit URL: {spec}")
         url_p, fn, md5sum = m.group("url_p"), m.group("fn"), m.group("md5")
         url = join_url(url_p, fn)
         # url_p is everything but the tarball_basename and the md5sum
