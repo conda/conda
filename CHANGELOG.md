@@ -6,7 +6,6 @@
 
 * Report which `MatchSpec` item caused `Invalid*Spec` exceptions for more informative error messages. (#11203 via #13598)
 * MSYS2 packages can now use the upstream installation prefixes. (#13649)
-* Add a new `reporters` setting for configure output. (#13736)
 * Add support for CEP-15 `base_url` field in `repodata.json`. (#13137 via #13744)
 * In custom channel settings, allow specification of channel URLs using a glob-like wildcard pattern, e.g. for user with auth handler plugins. (#13778 via #13779)
 
