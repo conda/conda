@@ -209,7 +209,7 @@ def test_get_index_lazy():
     }
     subdir = PLATFORMS[(platform.system(), platform.machine())]
     index = get_index(channel_urls=["conda-forge"], platform=subdir)
-    main_pkg = PackageRecord(**PLATFORM_SAMPLE_PACKAGES[platform])
+    main_pkg = PackageRecord(**PLATFORM_SAMPLE_PACKAGES[subdir])
     cf_pkg = PackageRecord(
         channel="conda-forge",
         name="esmf",
