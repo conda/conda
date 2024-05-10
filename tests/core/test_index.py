@@ -207,8 +207,8 @@ def test_get_index_lazy():
             build_number=0,
         ),
     }
-    platform = PLATFORMS[(platform.system(), platform.machine())]
-    index = get_index(channel_urls=["conda-forge"], platform=platform)
+    subdir = PLATFORMS[(platform.system(), platform.machine())]
+    index = get_index(channel_urls=["conda-forge"], platform=subdir)
     main_pkg = PackageRecord(**PLATFORM_SAMPLE_PACKAGES[platform])
     cf_pkg = PackageRecord(
         channel="conda-forge",
