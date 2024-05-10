@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import sys
+import platform
 from logging import getLogger
 
 import pytest
@@ -172,10 +172,10 @@ def test_basic_get_reduced_index():
 @pytest.mark.integration
 def test_get_index_lazy():
     PLATFORMS = {
-        ("linux", "x86_64"): "linux-64",
-        ("osx", "x86_64"): "osx-64",
-        ("osx", "arm64"): "osx-arm64",
-        ("win32", "x86_64"): "win-64",
+        ("Linux", "x86_64"): "linux-64",
+        ("Darwin", "x86_64"): "osx-64",
+        ("Darwin", "arm64"): "osx-arm64",
+        ("Windows", "x86_64"): "win-64",
     }
     PLATFORM_SAMPLE_PACKAGES = {
         "linux-64": dict(
@@ -185,8 +185,29 @@ def test_get_index_lazy():
             build="py35_0",
             build_number=0,
         ),
+        "osx-64": dict(
+            channel="pkgs/main/osx-64",
+            name="aiohttp",
+            version="2.3.9",
+            build="py35_0",
+            build_number=0,
+        ),
+        "osx-arm64": dict(
+            channel="pkgs/main/osx-arm64",
+            name="aiohttp",
+            version="2.3.9",
+            build="py35_0",
+            build_number=0,
+        ),
+        "win-64": dict(
+            channel="pkgs/main/win-64",
+            name="aiohttp",
+            version="2.3.9",
+            build="py35_0",
+            build_number=0,
+        ),
     }
-    platform = PLATFORMS[(sys.platform, sys.machine())]
+    platform = PLATFORMS[(platform.system(), platform.machine())]
     index = get_index(channel_urls=["conda-forge"], platform=platform)
     main_pkg = PackageRecord(**PLATFORM_SAMPLE_PACKAGES[platform])
     cf_pkg = PackageRecord(
