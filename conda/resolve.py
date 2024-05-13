@@ -728,7 +728,7 @@ class Resolve:
                         and prec not in explicit_spec_package_pool[name]
                     ):
                         filter_out[prec] = (
-                            "incompatible with required spec %s" % top_level_spec
+                            f"incompatible with required spec {top_level_spec}"
                         )
                         continue
                     unsatisfiable_dep_specs = set()
@@ -740,8 +740,8 @@ class Resolve:
                         ):
                             unsatisfiable_dep_specs.add(ms)
                     if unsatisfiable_dep_specs:
-                        filter_out[prec] = "unsatisfiable dependencies %s" % " ".join(
-                            str(s) for s in unsatisfiable_dep_specs
+                        filter_out[prec] = "unsatisfiable dependencies {}".format(
+                            " ".join(str(s) for s in unsatisfiable_dep_specs)
                         )
                         continue
                     filter_out[prec] = False

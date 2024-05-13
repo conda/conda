@@ -239,7 +239,7 @@ else:  # pragma: no cover
             return _is_symlink(next(find_files(path)))
         except OSError as orig_error:  # NOQA
             tmpl = "Error accessing {path}: {orig_error.message}"
-            raise builtins.WindowsError(local_format(tmpl))
+            raise OSError(local_format(tmpl))
 
     def find_files(spec):
         r"""

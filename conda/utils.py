@@ -85,9 +85,9 @@ def human_bytes(n):
         return "%d KB" % round(k)
     m = k / 1024
     if m < 1024:
-        return "%.1f MB" % m
+        return f"{m:.1f} MB"
     g = m / 1024
-    return "%.2f GB" % g
+    return f"{g:.2f} GB"
 
 
 # TODO: this should be done in a more extensible way

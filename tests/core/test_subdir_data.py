@@ -40,7 +40,7 @@ OVERRIDE_PLATFORM = (
 def platform_in_record(platform, record):
     return (
         record.name.endswith("@")
-        or ("/%s/" % platform in record.url)
+        or (f"/{platform}/" in record.url)
         or ("/noarch/" in record.url)
     )
 

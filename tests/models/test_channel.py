@@ -36,7 +36,7 @@ def test_channel_alias_channels():
     assert channel.package_filename is None
     assert channel.canonical_name == "binstar/label/dev"
     assert channel.urls() == [
-        "https://conda.anaconda.org/binstar/label/dev/%s" % context.subdir,
+        f"https://conda.anaconda.org/binstar/label/dev/{context.subdir}",
         "https://conda.anaconda.org/binstar/label/dev/noarch",
     ]
 
@@ -60,7 +60,7 @@ def test_channel_host_port():
     assert channel.package_filename is None
     assert channel.canonical_name == "https://192.168.0.0:8000"
     assert channel.urls() == [
-        "https://192.168.0.0:8000/%s" % context.subdir,
+        f"https://192.168.0.0:8000/{context.subdir}",
         "https://192.168.0.0:8000/noarch",
     ]
 
@@ -1000,9 +1000,9 @@ def test_file_urls():
     assert c.package_filename is None
 
     assert c.canonical_name == "file:///machine/shared_folder"
-    assert c.url() == "file:///machine/shared_folder/%s" % context.subdir
+    assert c.url() == f"file:///machine/shared_folder/{context.subdir}"
     assert c.urls() == [
-        "file:///machine/shared_folder/%s" % context.subdir,
+        f"file:///machine/shared_folder/{context.subdir}",
         "file:///machine/shared_folder/noarch",
     ]
 
@@ -1019,9 +1019,9 @@ def test_file_url_with_backslashes():
     assert c.package_filename is None
 
     assert c.canonical_name == "file:///machine/shared_folder/path/conda"
-    assert c.url() == "file:///machine/shared_folder/path/conda/%s" % context.subdir
+    assert c.url() == f"file:///machine/shared_folder/path/conda/{context.subdir}"
     assert c.urls() == [
-        "file:///machine/shared_folder/path/conda/%s" % context.subdir,
+        f"file:///machine/shared_folder/path/conda/{context.subdir}",
         "file:///machine/shared_folder/path/conda/noarch",
     ]
 
@@ -1191,7 +1191,7 @@ def test_channels_with_dashes(testdata4: None):
     channel_urls = prioritize_channels(context.channels)
     channel_urls = tuple(channel_urls.items())
     assert channel_urls[0] == (
-        "http://test/conda/anaconda-cluster/%s" % context.subdir,
+        f"http://test/conda/anaconda-cluster/{context.subdir}",
         ("http://test/conda/anaconda-cluster", 0),
     )
     assert channel_urls[1] == (
