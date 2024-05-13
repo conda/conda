@@ -3407,7 +3407,7 @@ def test_not_keep_case(monkeypatch: MonkeyPatch):
     assert "TWO" in export_vars
     assert "FOUR" in unset_vars
 
-    
+
 # The MSYS2_PATH tests are slightly unusual in two regards: firstly
 # they stat(2) for potential directories which indicate which (of
 # several) possible MSYS2 environments have been installed; secondly,
