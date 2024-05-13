@@ -178,64 +178,64 @@ def test_get_index_lazy():
         ("Windows", "AMD64"): "win-64",
     }
     DEFAULTS_SAMPLE_PACKAGES = {
-        "linux-64": dict(
-            channel="pkgs/main/linux-64",
-            name="aiohttp",
-            version="2.3.9",
-            build="py35_0",
-            build_number=0,
-        ),
-        "osx-64": dict(
-            channel="pkgs/main/osx-64",
-            name="aiohttp",
-            version="2.3.9",
-            build="py35_0",
-            build_number=0,
-        ),
-        "osx-arm64": dict(
-            channel="pkgs/main/osx-arm64",
-            name="aiohttp",
-            version="3.9.3",
-            build="py310h80987f9_0",
-            build_number=0,
-        ),
-        "win-64": dict(
-            channel="pkgs/main/win-64",
-            name="aiohttp",
-            version="2.3.9",
-            build="py35_0",
-            build_number=0,
-        ),
-    }
+        "linux-64": {
+            "channel": "pkgs/main/linux-64",
+            "name": "aiohttp",
+            "version": "2.3.9",
+            "build": "py35_0",
+            "build_number": 0,
+        },
+        "osx-64": {
+            "channel": "pkgs/main/osx-64",
+            "name": "aiohttp",
+            "version": "2.3.9",
+            "build": "py35_0",
+            "build_number": 0,
+        },
+        "osx-arm64": {
+            "channel": "pkgs/main/osx-arm64",
+            "name": "aiohttp",
+            "version": "3.9.3",
+            "build": "py310h80987f9_0",
+            "build_number": 0,
+        },
+        "win-64": {
+            "channel": "pkgs/main/win-64",
+            "name": "aiohttp",
+            "version": "2.3.9",
+            "build": "py35_0",
+            "build_number": 0,
+        },
+    },
     CONDAFORGE_SAMPLE_PACKAGES = {
-        "linux-64": dict(
-            channel="conda-forge",
-            name="vim",
-            version="9.1.0356",
-            build="py310pl5321hfe26b83_0",
-            build_number=0,
-        ),
-        "osx-64": dict(
-            channel="conda-forge",
-            name="vim",
-            version="9.1.0356",
-            build="py38pl5321h6d91244_0",
-            build_number=0,
-        ),
-        "osx-arm64": dict(
-            channel="conda-forge",
-            name="vim",
-            version="9.1.0356",
-            build="py39pl5321h878be05_0",
-            build_number=0,
-        ),
-        "win-64": dict(
-            channel="conda-forge",
-            name="vim",
-            version="9.1.0356",
-            build="py312h275cf98_0",
-            build_number=0,
-        ),
+        "linux-64": {
+            "channel": "conda-forge",
+            "name": "vim",
+            "version": "9.1.0356",
+            "build": "py310pl5321hfe26b83_0",
+            "build_number": 0,
+        },
+        "osx-64": {
+            "channel": "conda-forge",
+            "name": "vim",
+            "version": "9.1.0356",
+            "build": "py38pl5321h6d91244_0",
+            "build_number": 0,
+        },
+        "osx-arm64": {
+            "channel": "conda-forge",
+            "name": "vim",
+            "version": "9.1.0356",
+            "build": "py39pl5321h878be05_0",
+            "build_number": 0,
+        },
+        "win-64": {
+            "channel": "conda-forge",
+            "name": "vim",
+            "version": "9.1.0356",
+            "build": "py312h275cf98_0",
+            "build_number": 0,
+        },
     }
     subdir = PLATFORMS[(platform.system(), platform.machine())]
     index = get_index(channel_urls=["conda-forge"], platform=subdir)
