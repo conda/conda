@@ -3106,6 +3106,7 @@ def test_keep_case(monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_KEEP_CASE", True)
     reset_context()
     assert context.keep_case
+
     activator = PosixActivator()
     export_vars, unset_vars = activator.get_export_unset_vars(
         one=1,
@@ -3131,6 +3132,7 @@ def test_not_keep_case(monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_KEEP_CASE", False)
     reset_context()
     assert not context.keep_case
+
     activator = PosixActivator()
     export_vars, unset_vars = activator.get_export_unset_vars(
         one=1,
