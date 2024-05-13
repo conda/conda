@@ -31,6 +31,7 @@ PLATFORMS = {
     ("Darwin", "arm64"): "osx-arm64",
     ("Windows", "AMD64"): "win-64",
 }
+
 DEFAULTS_SAMPLE_PACKAGES = {
     "linux-64": {
         "channel": "pkgs/main/linux-64",
@@ -60,7 +61,8 @@ DEFAULTS_SAMPLE_PACKAGES = {
         "build": "py35_0",
         "build_number": 0,
     },
-},
+}
+
 CONDAFORGE_SAMPLE_PACKAGES = {
     "linux-64": {
         "channel": "conda-forge",
