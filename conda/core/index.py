@@ -216,7 +216,7 @@ def get_index(
     )
 
 
-@deprecated("24.9", "25.3", addendum="Use `Index` instead.")
+@deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
 def fetch_index(
     channel_urls: list[str],
     use_cache: bool = False,
@@ -273,6 +273,7 @@ def _supplement_index_with_prefix(
         prefix_data = prefix
     else:
         prefix_data = PrefixData(prefix)
+
     for prefix_record in prefix_data.iter_records():
         if prefix_record in index:
             current_record = index[prefix_record]
