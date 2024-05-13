@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add a new `reporters` setting for configure output. (#13736)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda._vendor.frozendict` as pending deprecation. Use `frozendict` instead. (#13767 via #13766)
+* <news item>
 
 ### Docs
 
