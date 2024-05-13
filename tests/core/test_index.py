@@ -241,9 +241,8 @@ def test_basic_get_reduced_index():
 def test_get_index_lazy():
     subdir = PLATFORMS[(platform.system(), platform.machine())]
     index = get_index(channel_urls=["conda-forge"], platform=subdir)
-    main_pkg = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
-    cf_pkg = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
-    main_result = index[main_pkg]
-    cf_result = index[cf_pkg]
-    assert main_result == main_pkg
-    assert cf_result == cf_pkg
+    main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
+    conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
+
+    assert main_prec == index[main_prec]
+    assert conda_forge_prec == index[conda_forge_prec]
