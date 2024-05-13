@@ -3113,9 +3113,17 @@ def test_keep_case(monkeypatch: MonkeyPatch):
         three=None,
         FOUR=None,
     )
+
+    # original lowercase
     assert "one" in export_vars
-    assert "TWO" in export_vars
     assert "three" in unset_vars
+
+    # to uppercase
+    assert "ONE" in export_vars
+    assert "THREE" in unset_vars
+
+    # original uppercase
+    assert "TWO" in export_vars
     assert "FOUR" in unset_vars
 
 
@@ -3130,9 +3138,15 @@ def test_not_keep_case(monkeypatch: MonkeyPatch):
         three=None,
         FOUR=None,
     )
+
+    # original lowercase
     assert "one" not in export_vars
-    assert "ONE" in export_vars
-    assert "TWO" in export_vars
     assert "three" not in unset_vars
+
+    # to uppercase
+    assert "ONE" in export_vars
     assert "THREE" in unset_vars
+
+    # original uppercase
+    assert "TWO" in export_vars
     assert "FOUR" in unset_vars
