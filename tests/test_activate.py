@@ -21,6 +21,7 @@ from uuid import uuid4
 
 import pytest
 from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError
 from conda import __version__ as conda_version
@@ -3406,6 +3407,74 @@ def test_not_keep_case(monkeypatch: MonkeyPatch):
     # original uppercase
     assert "TWO" in export_vars
     assert "FOUR" in unset_vars
+
+
+def test_metavars_keep_case(mocker: MockerFixture, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_KEEP_CASE", True)
+    reset_context()
+    assert context.keep_case
+
+    returned_dict = {
+        "ONE": "1",
+        "two": "2",
+        "three": None,
+        "FOUR": None,
+    }
+    mocker.patch(
+        "conda.base.context.Context.conda_exe_vars_dict",
+        new_callable=mocker.PropertyMock,
+        return_value=returned_dict,
+    )
+    assert context.conda_exe_vars_dict == returned_dict
+
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars()
+
+    # original uppercase
+    assert "ONE" in export_vars
+    assert "FOUR" in unset_vars
+
+    # original lowercase
+    assert "two" in export_vars
+    assert "three" in unset_vars
+
+    # to uppercase
+    assert "TWO" in export_vars
+    assert "THREE" in unset_vars
+
+
+def test_metavars_not_keep_case(mocker: MockerFixture, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_KEEP_CASE", False)
+    reset_context()
+    assert not context.keep_case
+
+    returned_dict = {
+        "ONE": "1",
+        "two": "2",
+        "three": None,
+        "FOUR": None,
+    }
+    mocker.patch(
+        "conda.base.context.Context.conda_exe_vars_dict",
+        new_callable=mocker.PropertyMock,
+        return_value=returned_dict,
+    )
+    assert context.conda_exe_vars_dict == returned_dict
+
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars()
+
+    # original uppercase
+    assert "ONE" in export_vars
+    assert "FOUR" in unset_vars
+
+    # original lowercase
+    assert "two" not in export_vars
+    assert "three" not in unset_vars
+
+    # to uppercase
+    assert "TWO" in export_vars
+    assert "THREE" in unset_vars
 
 
 # The MSYS2_PATH tests are slightly unusual in two regards: firstly
