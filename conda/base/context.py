@@ -1901,6 +1901,11 @@ class Context(Configuration):
                 Disable check for `repodata.json.zst`; use `repodata.json` only.
                 """
             ),
+            keep_case=dals(
+                """
+                Ensure the original case for new environment variables is retained.
+                """
+            ),
         )
 
 
