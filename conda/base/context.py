@@ -1285,6 +1285,7 @@ class Context(Configuration):
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
+                "keep_case",
             ),
             "CLI-only": (
                 "deps_modifier",
