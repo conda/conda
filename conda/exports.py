@@ -280,7 +280,7 @@ if on_win:  # pragma: no cover
         # bat file redirect
         if not os.path.isfile(dst + ".bat"):
             with open(dst + ".bat", "w") as f:
-                f.write('@echo off\ncall "%s" %%*\n' % src)
+                f.write(f'@echo off\ncall "{src}" %*\n')
 
         # TODO: probably need one here for powershell at some point
 
@@ -294,9 +294,9 @@ if on_win:  # pragma: no cover
             with open(dst, "w") as f:
                 f.write("#!/usr/bin/env bash \n")
                 if src.endswith("conda"):
-                    f.write('%s "$@"' % shells[shell]["path_to"](src + ".exe"))
+                    f.write('{} "$@"'.format(shells[shell]["path_to"](src + ".exe")))
                 else:
-                    f.write('source %s "$@"' % shells[shell]["path_to"](src))
+                    f.write('source {} "$@"'.format(shells[shell]["path_to"](src)))
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
             mode = os.stat(dst).st_mode

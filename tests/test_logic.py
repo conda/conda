@@ -150,7 +150,7 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 assert qsol == TRUE, (
                     ij,
                     sol,
-                    "Require(%s)" % Cfunc.__name__,
+                    f"Require({Cfunc.__name__})",
                     Cpos.as_list(),
                 )
             for sol in C.itersolve([(C.Not(x),)]):
@@ -161,7 +161,7 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 assert qsol == FALSE, (
                     ij,
                     sol,
-                    "Prevent(%s)" % Cfunc.__name__,
+                    f"Prevent({Cfunc.__name__})",
                     Cneg.as_list(),
                 )
 

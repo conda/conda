@@ -61,13 +61,13 @@ def check_prefix(prefix, json=False):
     name = basename(prefix)
     error = None
     if name == ROOT_ENV_NAME:
-        error = "'%s' is a reserved environment name" % name
+        error = f"'{name}' is a reserved environment name"
     if exists(prefix):
         if isdir(prefix) and "conda-meta" not in tuple(
             entry.name for entry in os.scandir(prefix)
         ):
             return None
-        error = "prefix already exists: %s" % prefix
+        error = f"prefix already exists: {prefix}"
 
     if error:
         raise CondaValueError(error, json)
@@ -90,8 +90,8 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         src_prefix = locate_prefix_by_name(src_arg)
 
     if not json:
-        print("Source:      %s" % src_prefix)
-        print("Destination: %s" % dst_prefix)
+        print(f"Source:      {src_prefix}")
+        print(f"Destination: {dst_prefix}")
 
     actions, untracked_files = clone_env(
         src_prefix, dst_prefix, verbose=not json, quiet=quiet, index_args=index_args
@@ -129,7 +129,7 @@ def get_revision(arg, json=False):
     try:
         return int(arg)
     except ValueError:
-        raise CondaValueError("expected revision number, not: '%s'" % arg, json)
+        raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
 def install(args, parser, command="install"):
@@ -216,7 +216,7 @@ def install(args, parser, command="install"):
         try:
             mkdir_p(prefix)
         except OSError as e:
-            raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
+            raise CondaOSError(f"Could not create directory: {prefix}", caused_by=e)
     else:
         raise EnvironmentLocationNotFound(prefix)
 
@@ -276,8 +276,8 @@ def install(args, parser, command="install"):
             spec = MatchSpec(spec)
             if not spec.is_name_only_spec:
                 raise CondaError(
-                    "Invalid spec for 'conda update': %s\n"
-                    "Use 'conda install' instead." % spec
+                    f"Invalid spec for 'conda update': {spec}\n"
+                    "Use 'conda install' instead."
                 )
             if not prefix_data.get(spec.name, None):
                 raise PackageNotInstalledError(prefix, spec.name)

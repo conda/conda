@@ -118,7 +118,7 @@ def get_user_site() -> list[str]:  # pragma: no cover
                 python_re = re.compile(r"python\d\.\d")
                 for path in os.listdir(expanduser("~/.local/lib/")):
                     if python_re.match(path):
-                        site_dirs.append("~/.local/lib/%s" % path)
+                        site_dirs.append(f"~/.local/lib/{path}")
         else:
             if "APPDATA" not in os.environ:
                 return site_dirs
@@ -189,7 +189,7 @@ def pretty_package(prec: PackageRecord) -> None:
         print("%-12s: %s" % (key, d[key]))
     print("dependencies:")
     for dep in pkg["depends"]:
-        print("    %s" % dep)
+        print(f"    {dep}")
 
 
 @deprecated.argument("24.9", "25.3", "system")
@@ -450,10 +450,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if not context.json:
             from .find_commands import find_commands, find_executable
 
-            print("sys.version: %s..." % (sys.version[:40]))
-            print("sys.prefix: %s" % sys.prefix)
-            print("sys.executable: %s" % sys.executable)
-            print("conda location: %s" % info_dict["conda_location"])
+            print(f"sys.version: {sys.version[:40]}...")
+            print(f"sys.prefix: {sys.prefix}")
+            print(f"sys.executable: {sys.executable}")
+            print("conda location: {}".format(info_dict["conda_location"]))
             for cmd in sorted(set(find_commands() + ("build",))):
                 print("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
             print("user site dirs: ", end="")
@@ -463,7 +463,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             else:
                 print()
             for site_dir in site_dirs[1:]:
-                print("                %s" % site_dir)
+                print(f"                {site_dir}")
             print()
 
             for name, value in sorted(info_dict["env_vars"].items()):
