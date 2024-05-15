@@ -3409,6 +3409,8 @@ def test_metavars_keep_case(
         "two": "2",
         "three": None,
         "FOUR": None,
+        "five": "a/path/to/something",
+        "SIX": "a\\path",
     }
     mocker.patch(
         "conda.base.context.Context.conda_exe_vars_dict",
@@ -3424,9 +3426,11 @@ def test_metavars_keep_case(
     if keep_case_boolean:
         assert "two" in export_vars
         assert "three" in unset_vars
+        assert "five" in export_vars
     if not keep_case_boolean:
         assert "two" not in export_vars
         assert "three" not in unset_vars
+        assert "five" not in export_vars
 
     # original uppercase
     assert "ONE" in export_vars
