@@ -767,9 +767,6 @@ def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
 def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     from conda.exports import rm_rf as _rm_rf
 
-    # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
-    # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
-    # We elect to test the more complex of the two options.
     py_ver = "3.10"
     with tmp_env(f"python={py_ver}", "pip") as prefix:
         check_call(
