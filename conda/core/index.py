@@ -61,6 +61,7 @@ class Index(UserDict):
         unknown=None,
         prefix=None,
         repodata_fn=context.repodata_fns[-1],
+        add_system=False,
     ) -> None:
         if use_local:
             channels = ["local"] + list(channels)
@@ -85,6 +86,11 @@ class Index(UserDict):
         self.prefix = PrefixData(prefix) if prefix else None
         self.unknown = True if unknown is None and context.offline else unknown
         self.track_features = context.track_features
+        self.add_system = add_system
+        self.system_packages = {
+            (rec := _make_virtual_package(f"__{package.name}", package.version, package.build)): rec
+            for package in context.plugin_manager.get_virtual_packages()
+        }
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
@@ -109,6 +115,8 @@ class Index(UserDict):
             _supplement_index_with_cache(_data)
         if self.track_features:
             _supplement_index_with_features(_data)
+        if self.add_system:
+            _data.update(self.system_packages)
         self._data = _data
 
     def _retrieve_from_channels(self, key):
@@ -156,6 +164,10 @@ class Index(UserDict):
         try:
             return self._data[key]
         except AttributeError:
+            pass
+        try:
+            return self.system_packages[key]
+        except KeyError:
             pass
         if self.track_features and key.name.endswith("@"):
             for feature in self.track_features:
@@ -462,6 +474,7 @@ def get_reduced_index(
         unknown=False,
         prefix=prefix,
         repodata_fn=repodata_fn,
+        add_system=True,
     )
 
     records = IndexedSet()
