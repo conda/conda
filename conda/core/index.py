@@ -55,6 +55,7 @@ class Index(UserDict):
         channels=(),
         prepend=True,
         platform=None,
+        subdirs=None,
         use_local=False,
         use_cache=False,
         unknown=None,
@@ -65,7 +66,11 @@ class Index(UserDict):
             channels = ["local"] + list(channels)
         if prepend:
             channels += context.channels
-        subdirs = (platform, "noarch") if platform is not None else context.subdirs
+        if subdirs:
+            if platform:
+                log.warn("subdirs is %s, ignoring platform %s", subdirs, platform)
+        else:
+            subdirs = (platform, "noarch") if platform is not None else context.subdirs
         self.channels = {}
         self.expanded_channels = set()
         for channel in channels:
