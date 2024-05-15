@@ -88,7 +88,11 @@ class Index(UserDict):
         self.track_features = context.track_features
         self.add_system = add_system
         self.system_packages = {
-            (rec := _make_virtual_package(f"__{package.name}", package.version, package.build)): rec
+            (
+                rec := _make_virtual_package(
+                    f"__{package.name}", package.version, package.build
+                )
+            ): rec
             for package in context.plugin_manager.get_virtual_packages()
         }
 
