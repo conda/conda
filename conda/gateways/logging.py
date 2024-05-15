@@ -9,7 +9,6 @@ from datetime import datetime
 from functools import lru_cache, partial
 from logging import (
     DEBUG,
-    ERROR,
     INFO,
     WARN,
     Filter,
