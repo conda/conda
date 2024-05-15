@@ -57,4 +57,4 @@ There are three other functions that use {func}`logging.getLogger` and hence mig
 
 ## Root logger in auxlib
 
-In {module}`conda.auxlib.logz`, the root logger is modified.
+In {mod}`conda.auxlib.logz`, the root logger is modified.
