@@ -452,6 +452,18 @@ def get_reduced_index(
     :param repodata_fn: Filename of the repodata file to use.
     :return: A dictionary representing the reduced package index.
     """
+
+    return Index(
+        channels=channels,
+        prepend=False,
+        subdirs=subdirs,
+        use_local=False,
+        use_cache=False,
+        unknown=False,
+        prefix=prefix,
+        repodata_fn=repodata_fn,
+    )
+
     records = IndexedSet()
     collected_names = set()
     collected_track_features = set()
