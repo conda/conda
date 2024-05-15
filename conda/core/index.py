@@ -72,16 +72,16 @@ class Index(UserDict):
         else:
             subdirs = (platform, "noarch") if platform is not None else context.subdirs
         self.channels = {}
-        self.expanded_channels = set()
+        self.expanded_channels = []
         for channel in channels:
             urls = Channel(channel).urls(True, subdirs)
             check_allowlist(urls)
-            expanded_channels = {Channel(url) for url in urls}
+            expanded_channels = [Channel(url) for url in urls]
             self.channels[channel] = [
                 SubdirData(expanded_channel, repodata_fn=repodata_fn)
                 for expanded_channel in expanded_channels
             ]
-            self.expanded_channels |= expanded_channels
+            self.expanded_channels.extend(expanded_channels)
         self.prefix = PrefixData(prefix) if prefix else None
         self.unknown = True if unknown is None and context.offline else unknown
         self.track_features = context.track_features
