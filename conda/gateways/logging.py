@@ -145,9 +145,7 @@ class StdStreamHandler(StreamHandler):
 
 @lru_cache(maxsize=None)
 def initialize_logging():
-    # root gets level ERROR
     # 'conda' gets level WARN and does not propagate to root.
-    initialize_root_logger()
     getLogger("conda").setLevel(WARN)
     set_conda_log_level()
     initialize_std_loggers()
@@ -188,11 +186,6 @@ def initialize_std_loggers():
     verbose_handler.addFilter(TokenURLFilter())
     verbose_logger.addHandler(verbose_handler)
     verbose_logger.propagate = False
-
-
-def initialize_root_logger(level=ERROR):
-    getLogger().setLevel(ERROR)
-    attach_stderr_handler(level=level)
 
 
 def set_conda_log_level(level=WARN):
