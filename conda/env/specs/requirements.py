@@ -6,7 +6,7 @@ import os
 
 from ...deprecations import deprecated
 from ..env import Environment
-from . import BaseEnvSpec
+from .base import BaseEnvSpec
 
 
 class RequirementsSpec(BaseEnvSpec):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
+from typing import Type, Union
 
 from ...base.context import context
 from ...deprecations import deprecated
@@ -13,31 +13,19 @@ from ...exceptions import (
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
+from .binstar import BinstarSpec
+from .requirements import RequirementsSpec
+from .yaml_file import YamlFileSpec
 
-if TYPE_CHECKING:
-    from typing import Type, Union
-
-    from ..env import Environment
-    from .binstar import BinstarSpec
-    from .requirements import RequirementsSpec
-    from .yaml_file import YamlFileSpec
-
-    FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
-    SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
+FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
 
 
-class BaseEnvSpec:
-    msg: str | None = None
-
-    def can_handle(self) -> bool:
-        raise NotImplementedError
-
-    @property
-    def environment(self) -> Environment:
-        raise NotImplementedError
-
-
-@deprecated("24.7", "25.1", addendum="Not used anymore")
+@deprecated(
+    "24.7",
+    "25.1",
+    addendum="Use conda.base.context.plugin_manager.get_env_spec_handler.",
+)
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
     Determine spec class to use from the provided ``filename``
@@ -70,12 +58,8 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
 
 
 @deprecated.argument("24.7", "25.1", "name")
-@deprecated.argument("24.7", "25.1", "filename", rename="resource")
 @deprecated.argument("24.7", "25.1", "directory")
-@deprecated.argument("24.7", "25.1", "remote_definition", rename="resource")
 def detect(
-    resource: str = None,
-    # everything else is not used anymore
     name: str = None,
     filename: str = None,
     directory: str = None,
@@ -86,13 +70,11 @@ def detect(
 
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
-    if not resource:
-        if filename:
-            resource = filename
-        elif remote_definition:
-            resource = remote_definition
-    spec_hook = context.plugin_manager.get_env_spec_handler(resource)
-    spec = spec_hook.handler_class(resource)
+    spec_hook = context.plugin_manager.get_env_spec_handler(
+        remote_definition=remote_definition,
+        filename=filename,
+    )
+    spec = spec_hook.handler_class(remote_definition or filename)
     if spec.can_handle():
         return spec
     raise SpecNotFound(spec.msg)

@@ -4,7 +4,7 @@
 
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from .. import env
-from . import BaseEnvSpec
+from .base import BaseEnvSpec
 
 
 class YamlFileSpec(BaseEnvSpec):

@@ -120,7 +120,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from . import install as cli_install
 
     resource = args.file or args.remote_definition
-    spec = detect(resource)
+    spec = detect(filename=args.file, remote_definition=args.remote_definition)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix
