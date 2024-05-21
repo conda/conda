@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add support for CEP-15 `base_url` field in `repodata.json`. (#13137 via #13744)
+* Add a new `reporters` setting for configure output. (#13736)
 
 ### Bug fixes
 
