@@ -475,38 +475,37 @@ class CondaPluginManager(pluggy.PluginManager):
             add_plugin_setting(name, parameter, aliases)
 
     def get_env_spec_handler(
-        self, remote_definition: str | None = None, filename: str | None = None
+        self, remote_definition: str = "", filename: str = "environment.yml"
     ) -> CondaEnvSpec:
-        assert remote_definition or filename
         hooks = self.get_hook_results("env_specs")
-
-        # match by extensions
-        if filename is not None:
-            path = Path(os.path.expandvars(filename)).expanduser()
-            protocol = str(remote_definition).split("://", 1)[0]
-            if path.is_file() or protocol in RECOGNIZED_URL_SCHEMES:
-                for hook in hooks:
-                    if not hook.extensions:
-                        continue
-                    if path.suffix in hook.extensions:
-                        return hook
-                raise EnvironmentFileExtensionNotValid(path)
-            raise EnvironmentFileNotFound(filename=path)
-
         # match by protocol
-        if "://" in remote_definition:
+        if "://" in (remote_definition or ""):
             protocol, _ = remote_definition.split("://", 1)
             for hook in hooks:
                 if not hook.protocols:
                     continue
                 if protocol in hook.protocols:
                     return hook
-        # must be the binstar handler, which takes a remote environment
-        for hook in hooks:
-            if hook.name == "binstar":
-                return hook
+        elif remote_definition:
+            # must be the binstar handler, which takes a remote environment
+            for hook in hooks:
+                if hook.name == "binstar":
+                    return hook
+        elif filename:
+            # match by extensions
+            path = os.path.expandvars(os.path.expanduser(filename))
+            extension = os.path.splitext(path)[-1]
+            protocol = path.split("://", 1)[0]
+            if os.path.exists(path) or protocol in RECOGNIZED_URL_SCHEMES:
+                for hook in hooks:
+                    if not hook.extensions:
+                        continue
+                    if extension in hook.extensions:
+                        return hook
+                raise EnvironmentFileExtensionNotValid(path)
+            raise EnvironmentFileNotFound(filename=path)
         raise PluginError(
-            f"Could not find any env spec handlers for '{remote_definition}'"
+            f"Could not find any env spec handlers for '{remote_definition}'."
         )
 
 
