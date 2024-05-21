@@ -30,7 +30,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL, TRACE
-from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
+from ..common.io import IS_INTERACTIVE, ProgressBarManager, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
@@ -61,6 +61,8 @@ from .path_actions import CacheUrlAction, ExtractPackageAction
 if TYPE_CHECKING:
     from concurrent.futures import Future
     from pathlib import Path
+
+    from ..common.io import ProgressBarManager
 
 log = getLogger(__name__)
 
@@ -893,23 +895,33 @@ class ProgressiveFetchExtract:
         self._executed = True
 
     @staticmethod
-    def _progress_bar(prec_or_spec, position=None, leave=False) -> ProgressBar:
-        desc = ""
+    def _progress_bar(prec_or_spec, position=None, leave=False) -> ProgressBarManager:
+        description = ""
         if prec_or_spec.name and prec_or_spec.version:
-            desc = "{}-{}".format(prec_or_spec.name or "", prec_or_spec.version or "")
+            description = "{}-{}".format(
+                prec_or_spec.name or "", prec_or_spec.version or ""
+            )
         size = getattr(prec_or_spec, "size", None)
         size_str = size and human_bytes(size) or ""
-        if len(desc) > 0:
-            desc = "%-20.20s | " % desc
+        if len(description) > 0:
+            description = "%-20.20s | " % description
         if len(size_str) > 0:
-            desc += "%-9s | " % size_str
+            description += "%-9s | " % size_str
 
-        progress_bar = ProgressBar(
-            desc,
-            not context.verbose and not context.quiet and IS_INTERACTIVE,
-            context.json,
-            position=position,
-            leave=leave,
+        # progress_bar = ProgressBar(
+        #    desc,
+        #    not context.verbose and not context.quiet and IS_INTERACTIVE,
+        #    context.json,
+        #    position=position,
+        #    leave=leave,
+        # )
+
+        from ..common.io import get_reporter_manager
+
+        reporter_manager = get_reporter_manager()
+
+        progress_bar = reporter_manager.progress_bar(
+            description, position=position, leave=leave
         )
 
         return progress_bar
@@ -974,7 +986,7 @@ def do_reverse(actions):
 def done_callback(
     future: Future,
     actions: tuple[CacheUrlAction | ExtractPackageAction, ...],
-    progress_bar: ProgressBar,
+    progress_bar: ProgressBarManager,
     exceptions: list[Exception],
     finish: bool = False,
 ):

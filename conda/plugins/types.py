@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from typing import Any, Callable, Union
 
     from ..common.configuration import Parameter
+    from ..common.io import ProgressBarBase
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -240,6 +241,14 @@ class ReporterHandlerBase(ABC):
     def envs_list(self, data, **kwargs) -> str:
         """
         Render a list of environments
+        """
+
+    @abstractmethod
+    def progress_bar(
+        self, description: str, render: Callable, **kwargs
+    ) -> ProgressBarBase:
+        """
+        Return a :class:`conda.common.io.ProgressBarBase` object to use a progress bar
         """
 
 

@@ -8,17 +8,96 @@ This reporter handler provides the default output for conda.
 
 from __future__ import annotations
 
+import sys
+from errno import EPIPE, ESHUTDOWN
 from os.path import basename, dirname
+from typing import TYPE_CHECKING
 
 from ...base.constants import ROOT_ENV_NAME
+from ...common.io import ProgressBarBase, swallow_broken_pipe
 from ...common.path import paths_equal
 from .. import CondaReporterHandler, hookimpl
 from ..types import ReporterHandlerBase
 
+if TYPE_CHECKING:
+    from typing import Callable
+
+
+class QuietProgressBar(ProgressBarBase):
+    """
+    Progress bar class used when no output should be printed
+    """
+
+    def update_to(self, fraction) -> None:
+        pass
+
+    def refresh(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+class TQDMProgressBar(ProgressBarBase):
+    """
+    TODO: This still doesn't work correctly; I need to add back the logic for ``self.enabled``
+    """
+
+    def __init__(
+        self, description: str, render: Callable, position=None, leave=True
+    ) -> None:
+        super().__init__(description, render)
+
+        self.enabled = True
+
+        bar_format = "{desc}{bar} | {percentage:3.0f}% "
+
+        try:
+            self.pbar = self._tqdm(
+                desc=description,
+                bar_format=bar_format,
+                ascii=True,
+                total=1,
+                file=sys.stdout,
+                position=position,
+                leave=leave,
+            )
+        except OSError as e:
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.enabled = False
+            else:
+                raise
+
+    def update_to(self, fraction) -> None:
+        try:
+            if self.enabled:
+                self.pbar.update(fraction - self.pbar.n)
+        except OSError as e:
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.enabled = False
+            else:
+                raise
+
+    @swallow_broken_pipe
+    def close(self) -> None:
+        if self.enabled:
+            self.pbar.close()
+
+    def refresh(self) -> None:
+        if self.enabled:
+            self.pbar.refresh()
+
+    @staticmethod
+    def _tqdm(*args, **kwargs):
+        """Deferred import so it doesn't hit the `conda activate` paths."""
+        from tqdm.auto import tqdm
+
+        return tqdm(*args, **kwargs)
+
 
 class ConsoleReporterHandler(ReporterHandlerBase):
     """
-    Default implementation for JSON reporting in conda
+    Default implementation for console reporting in conda
     """
 
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
@@ -39,7 +118,6 @@ class ConsoleReporterHandler(ReporterHandlerBase):
         output = ["", "# conda environments:", "#"]
 
         def disp_env(prefix):
-            fmt = "%-20s  %s  %s"
             active = "*" if prefix == context.active_prefix else " "
             if prefix == context.root_prefix:
                 name = ROOT_ENV_NAME
@@ -49,7 +127,7 @@ class ConsoleReporterHandler(ReporterHandlerBase):
                 name = basename(prefix)
             else:
                 name = ""
-            return fmt % (name, active, prefix)
+            return f"{name:20} {active} {prefix}"
 
         for env_prefix in prefixes:
             output.append(disp_env(env_prefix))
@@ -57,6 +135,17 @@ class ConsoleReporterHandler(ReporterHandlerBase):
         output.append("\n")
 
         return "\n".join(output)
+
+    def progress_bar(
+        self, description: str, render, settings=None, **kwargs
+    ) -> ProgressBarBase:
+        """Determines whether to return a TQDMProgressBar or QuietProgressBar"""
+        quiet = settings.get("quiet") if settings is not None else False
+
+        if quiet:
+            return QuietProgressBar(description, render, **kwargs)
+        else:
+            return TQDMProgressBar(description, render, **kwargs)
 
 
 @hookimpl

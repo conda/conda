@@ -10,6 +10,7 @@ import logging
 import os
 import signal
 import sys
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
 from concurrent.futures.thread import _WorkItem
@@ -30,6 +31,8 @@ from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
 
 if TYPE_CHECKING:
+    from typing import Callable
+
     from ..base.context import Context
 
 from .compat import encode_environment, on_win
@@ -453,6 +456,43 @@ class Spinner:
                 sys.stdout.flush()
 
 
+class ProgressBarBase(ABC):
+    def __init__(self, description: str, render: Callable):
+        self.description = description
+        self._render = render
+
+    @abstractmethod
+    def update_to(self, fraction) -> None: ...
+
+    @abstractmethod
+    def refresh(self) -> None: ...
+
+    @abstractmethod
+    def close(self) -> None: ...
+
+    def finish(self):
+        self.update_to(1)
+
+    @classmethod
+    def get_lock(cls):
+        pass
+
+
+class QuietProgressBar(ProgressBarBase):
+    """
+    Progress bar class used when no output should be printed
+    """
+
+    def update_to(self, fraction) -> None:
+        pass
+
+    def refresh(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 class ProgressBar:
     @classmethod
     def get_lock(cls):
@@ -724,6 +764,27 @@ def print_instrumentation_data():  # pragma: no cover
     print(json.dumps(final_data, sort_keys=True, indent=2, separators=(",", ": ")))
 
 
+class ProgressBarManager(ProgressBarBase):
+    """
+    Used to proxy calls to the registered reporter handler progress bar instances
+    """
+
+    def __init__(self, progress_bars):
+        self._progress_bars = progress_bars
+
+    def update_to(self, fraction) -> None:
+        for progress_bar in self._progress_bars:
+            progress_bar.update_to(fraction)
+
+    def close(self) -> None:
+        for progress_bar in self._progress_bars:
+            progress_bar.close()
+
+    def refresh(self) -> None:
+        for progress_bar in self._progress_bars:
+            progress_bar.refresh()
+
+
 class ReporterManager:
     """
     This is the glue that holds together our ``ReporterHandler`` implementations with our
@@ -757,6 +818,22 @@ class ReporterManager:
 
                 data = render_func(data, **kwargs)
                 output.render(data, **settings)
+
+    def progress_bar(self, description: str, **kwargs) -> ProgressBarManager:
+        progress_bars = []
+
+        for settings in self._context.reporters:
+            reporter = self._plugin_manager.get_reporter_handler(
+                settings.get("backend")
+            )
+            output = self._plugin_manager.get_output_handler(settings.get("output"))
+            progress_bar = reporter.handler.progress_bar(
+                description, output.render, settings=settings, **kwargs
+            )
+
+            progress_bars.append(progress_bar)
+
+        return ProgressBarManager(progress_bars)
 
 
 @functools.cache
