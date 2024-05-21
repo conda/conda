@@ -3170,6 +3170,19 @@ def test_legacy_activate_deactivate_cmd_exe(
         assert conda_shlvl == "0", conda_shlvl
 
 
+    @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
+    def test_tmp_path_with_space_cmd_exe(self):
+        with InteractiveShell("cmd.exe") as shell:
+            tmp = shell.get_env_var("TMP")
+            tmp_with_space = join(tmp, "with space")
+            shell.sendline(f"SET TMP={tmp_with_space}")
+
+            shell.sendline(f"activate {dev_arg}")
+
+            conda_shlvl = shell.get_env_var("CONDA_SHLVL")
+            assert conda_shlvl == "1", conda_shlvl
+
+
 @pytest.fixture(scope="module")
 def prefix():
     tempdirdir = gettempdir()
