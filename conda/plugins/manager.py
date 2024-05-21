@@ -15,7 +15,6 @@ import logging
 import os
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
-from pathlib import Path
 from typing import TYPE_CHECKING, overload
 
 import pluggy

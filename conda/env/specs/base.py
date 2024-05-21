@@ -1,6 +1,9 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Base class for conda env spec plugins
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

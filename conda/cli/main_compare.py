@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import os
-from os.path import abspath, expanduser, expandvars
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -126,7 +125,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 """
             )
             raise CondaEnvException(msg)
-
 
     active_pkgs = {pkg.name: pkg for pkg in get_packages(prefix)}
     specification_pkgs = []
