@@ -3361,10 +3361,7 @@ def test_activate_and_deactivate_for_uninitialized_env(conda_cli):
 def test_keep_case(monkeypatch: MonkeyPatch, keep_case_boolean):
     monkeypatch.setenv("CONDA_KEEP_CASE", keep_case_boolean)
     reset_context()
-    if keep_case_boolean:
-        assert context.keep_case
-    if not keep_case_boolean:
-        assert not context.keep_case
+    assert context.keep_case is keep_case_boolean
 
     activator = PosixActivator()
     export_vars, unset_vars = activator.get_export_unset_vars(
@@ -3375,13 +3372,8 @@ def test_keep_case(monkeypatch: MonkeyPatch, keep_case_boolean):
     )
 
     # original lowercase vars present depending on whether keep_case is True or False
-    if keep_case_boolean:
-        assert "one" in export_vars
-        assert "three" in unset_vars
-
-    if not keep_case_boolean:
-        assert "one" not in export_vars
-        assert "three" not in unset_vars
+    assert ("one" in export_vars) is keep_case_boolean
+    assert ("three" in unset_vars) is keep_case_boolean
 
     # to uppercase
     assert "ONE" in export_vars
@@ -3398,11 +3390,7 @@ def test_metavars_keep_case(
 ):
     monkeypatch.setenv("CONDA_KEEP_CASE", keep_case_boolean)
     reset_context()
-
-    if keep_case_boolean:
-        assert context.keep_case
-    if not keep_case_boolean:
-        assert not context.keep_case
+    assert context.keep_case is keep_case_boolean
 
     returned_dict = {
         "ONE": "1",
@@ -3423,18 +3411,14 @@ def test_metavars_keep_case(
     export_vars, unset_vars = activator.get_export_unset_vars()
 
     # original lowercase vars present depending on whether keep_case is True or False
-    if keep_case_boolean:
-        assert "two" in export_vars
-        assert "three" in unset_vars
-        assert "five" in export_vars
-    if not keep_case_boolean:
-        assert "two" not in export_vars
-        assert "three" not in unset_vars
-        assert "five" not in export_vars
+    assert ("two" in export_vars) is keep_case_boolean
+    assert ("three" in unset_vars) is keep_case_boolean
+    assert ("five" in export_vars) is keep_case_boolean
 
     # original uppercase
     assert "ONE" in export_vars
     assert "FOUR" in unset_vars
+    assert "SIX" in export_vars
 
     # to uppercase
     assert "TWO" in export_vars
