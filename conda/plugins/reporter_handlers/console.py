@@ -44,7 +44,7 @@ class TQDMProgressBar(ProgressBarBase):
     """
 
     def __init__(
-        self, description: str, render: Callable, position=None, leave=True
+        self, description: str, render: Callable, position=None, leave=True, **kwargs
     ) -> None:
         super().__init__(description, render)
 
@@ -93,6 +93,40 @@ class TQDMProgressBar(ProgressBarBase):
         from tqdm.auto import tqdm
 
         return tqdm(*args, **kwargs)
+
+
+class RichProgressBar(ProgressBarBase):
+    def __init__(
+        self,
+        description: str,
+        render: Callable,
+        position=None,
+        leave=True,
+        progress=None,
+    ) -> None:
+        super().__init__(description, render)
+
+        self.enabled = True
+
+        self.progress = progress
+        self.task = self.progress.add_task(description, total=1)
+        self.last_advance = 0
+
+    def update_to(self, fraction) -> None:
+        self.progress.update(self.task, completed=fraction)
+
+        if fraction == 1:
+            self.progress.update(self.task, visible=False)
+
+    def close(self) -> None:
+        """"""
+        # self.progress.update(self.task, visible=False)
+        self.progress.remove_task(self.task)
+        # self.progress.stop()
+
+    def refresh(self) -> None:
+        """"""
+        # self.progress.refresh()
 
 
 class ConsoleReporterHandler(ReporterHandlerBase):
@@ -145,7 +179,8 @@ class ConsoleReporterHandler(ReporterHandlerBase):
         if quiet:
             return QuietProgressBar(description, render, **kwargs)
         else:
-            return TQDMProgressBar(description, render, **kwargs)
+            return RichProgressBar(description, render, **kwargs)
+            # return TQDMProgressBar(description, render, **kwargs)
 
 
 @hookimpl

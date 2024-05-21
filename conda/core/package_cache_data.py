@@ -768,134 +768,146 @@ class ProgressiveFetchExtract:
         Run each action in self.paired_actions. Each action in cache_actions
         runs before its corresponding extract_actions.
         """
-        if self._executed:
-            return
-        if not self._prepared:
-            self.prepare()
+        # TODO: this needs to change!
+        from rich.progress import Progress
 
-        assert not context.dry_run
+        with Progress(transient=True) as progress:
+            if self._executed:
+                return
+            if not self._prepared:
+                self.prepare()
 
-        if not self.paired_actions:
-            return
+            assert not context.dry_run
 
-        if not context.verbose and not context.quiet and not context.json:
-            print(
-                "\nDownloading and Extracting Packages:",
-                end="\n" if IS_INTERACTIVE else " ...working...",
-            )
-        else:
-            log.debug(
-                "prepared package cache actions:\n"
-                "  cache_actions:\n"
-                "    %s\n"
-                "  extract_actions:\n"
-                "    %s\n",
-                "\n    ".join(str(ca) for ca in self.cache_actions),
-                "\n    ".join(str(ea) for ea in self.extract_actions),
-            )
+            if not self.paired_actions:
+                return
 
-        exceptions = []
-        progress_bars = {}
-        futures: list[Future] = []
+            if not context.verbose and not context.quiet and not context.json:
+                print(
+                    "\nDownloading and Extracting Packages:",
+                    end="\n" if IS_INTERACTIVE else " ...working...",
+                )
+            else:
+                log.debug(
+                    "prepared package cache actions:\n"
+                    "  cache_actions:\n"
+                    "    %s\n"
+                    "  extract_actions:\n"
+                    "    %s\n",
+                    "\n    ".join(str(ca) for ca in self.cache_actions),
+                    "\n    ".join(str(ea) for ea in self.extract_actions),
+                )
 
-        cancelled_flag = False
+            exceptions = []
+            progress_bars = {}
+            futures: list[Future] = []
 
-        def cancelled():
-            """
-            Used to cancel download threads.
-            """
-            nonlocal cancelled_flag
-            return cancelled_flag
+            cancelled_flag = False
 
-        with signal_handler(conda_signal_handler), time_recorder(
-            "fetch_extract_execute"
-        ), ThreadPoolExecutor(
-            context.fetch_threads
-        ) as fetch_executor, ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor:
-            for prec_or_spec, (
-                cache_action,
-                extract_action,
-            ) in self.paired_actions.items():
-                if cache_action is None and extract_action is None:
-                    # Not sure when this is reached.
-                    continue
+            def cancelled():
+                """
+                Used to cancel download threads.
+                """
+                nonlocal cancelled_flag
+                return cancelled_flag
 
-                progress_bar = self._progress_bar(prec_or_spec, leave=False)
-
-                progress_bars[prec_or_spec] = progress_bar
-
-                future = fetch_executor.submit(
-                    do_cache_action,
-                    prec_or_spec,
+            with signal_handler(conda_signal_handler), time_recorder(
+                "fetch_extract_execute"
+            ), ThreadPoolExecutor(
+                context.fetch_threads
+            ) as fetch_executor, ThreadPoolExecutor(
+                EXTRACT_THREADS
+            ) as extract_executor:
+                for prec_or_spec, (
                     cache_action,
-                    progress_bar,
-                    cancelled=cancelled,
-                )
+                    extract_action,
+                ) in self.paired_actions.items():
+                    if cache_action is None and extract_action is None:
+                        # Not sure when this is reached.
+                        continue
 
-                future.add_done_callback(
-                    partial(
-                        done_callback,
-                        actions=(cache_action,),
-                        exceptions=exceptions,
-                        progress_bar=progress_bar,
-                        finish=False,
+                    progress_bar = self._progress_bar(
+                        prec_or_spec, leave=False, progress=progress
                     )
-                )
-                futures.append(future)
 
-            try:
-                for completed_future in as_completed(futures):
-                    futures.remove(completed_future)
-                    prec_or_spec = completed_future.result()
+                    progress_bars[prec_or_spec] = progress_bar
 
-                    cache_action, extract_action = self.paired_actions[prec_or_spec]
-                    extract_future = extract_executor.submit(
-                        do_extract_action,
+                    future = fetch_executor.submit(
+                        do_cache_action,
                         prec_or_spec,
-                        extract_action,
-                        progress_bars[prec_or_spec],
+                        cache_action,
+                        progress_bar,
+                        cancelled=cancelled,
                     )
-                    extract_future.add_done_callback(
+
+                    future.add_done_callback(
                         partial(
                             done_callback,
-                            actions=(cache_action, extract_action),
+                            actions=(cache_action,),
                             exceptions=exceptions,
-                            progress_bar=progress_bars[prec_or_spec],
-                            finish=True,
+                            progress_bar=progress_bar,
+                            finish=False,
                         )
                     )
-            except BaseException as e:
-                # We are interested in KeyboardInterrupt delivered to
-                # as_completed() while waiting, or any exception raised from
-                # completed_future.result(). cancelled_flag is checked in the
-                # progress callback to stop running transfers, shutdown() should
-                # prevent new downloads from starting.
-                cancelled_flag = True
-                for future in futures:  # needed on top of .shutdown()
-                    future.cancel()
-                # Has a Python >=3.9 cancel_futures= parameter that does not
-                # replace the above loop:
-                fetch_executor.shutdown(wait=False)
-                exceptions.append(e)
+                    futures.append(future)
 
-        for bar in progress_bars.values():
-            bar.close()
+                try:
+                    for completed_future in as_completed(futures):
+                        futures.remove(completed_future)
+                        prec_or_spec = completed_future.result()
 
-        if not context.verbose and not context.quiet and not context.json:
-            if IS_INTERACTIVE:
-                print("\r")  # move to column 0
-            else:
-                print(" done")
+                        cache_action, extract_action = self.paired_actions[prec_or_spec]
+                        extract_future = extract_executor.submit(
+                            do_extract_action,
+                            prec_or_spec,
+                            extract_action,
+                            progress_bars[prec_or_spec],
+                        )
+                        extract_future.add_done_callback(
+                            partial(
+                                done_callback,
+                                actions=(cache_action, extract_action),
+                                exceptions=exceptions,
+                                progress_bar=progress_bars[prec_or_spec],
+                                finish=True,
+                            )
+                        )
+                except BaseException as e:
+                    # We are interested in KeyboardInterrupt delivered to
+                    # as_completed() while waiting, or any exception raised from
+                    # completed_future.result(). cancelled_flag is checked in the
+                    # progress callback to stop running transfers, shutdown() should
+                    # prevent new downloads from starting.
+                    cancelled_flag = True
+                    for future in futures:  # needed on top of .shutdown()
+                        future.cancel()
+                    # Has a Python >=3.9 cancel_futures= parameter that does not
+                    # replace the above loop:
+                    fetch_executor.shutdown(wait=False)
+                    exceptions.append(e)
 
-        if exceptions:
-            # avoid printing one CancelledError() per pending download
-            not_cancelled = [e for e in exceptions if not isinstance(e, CancelledError)]
-            raise CondaMultiError(not_cancelled)
+            for bar in progress_bars.values():
+                bar.close()
 
-        self._executed = True
+            if not context.verbose and not context.quiet and not context.json:
+                if IS_INTERACTIVE:
+                    print("\r")  # move to column 0
+                else:
+                    print(" done")
+
+            if exceptions:
+                # avoid printing one CancelledError() per pending download
+                not_cancelled = [
+                    e for e in exceptions if not isinstance(e, CancelledError)
+                ]
+                raise CondaMultiError(not_cancelled)
+
+            self._executed = True
 
     @staticmethod
-    def _progress_bar(prec_or_spec, position=None, leave=False) -> ProgressBarManager:
+    def _progress_bar(
+        prec_or_spec, position=None, leave=False, progress=None
+    ) -> ProgressBarManager:
         description = ""
         if prec_or_spec.name and prec_or_spec.version:
             description = "{}-{}".format(
@@ -921,7 +933,7 @@ class ProgressiveFetchExtract:
         reporter_manager = get_reporter_manager()
 
         progress_bar = reporter_manager.progress_bar(
-            description, position=position, leave=leave
+            description, position=position, leave=leave, progress=progress
         )
 
         return progress_bar
