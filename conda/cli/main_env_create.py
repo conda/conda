@@ -111,24 +111,23 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix
     from ..cli.main_rename import check_protected_dirs
     from ..core.prefix_data import PrefixData
-    from ..env import specs
-    from ..env.env import get_filename, print_result
+    from ..env.env import print_result
     from ..env.installers.base import get_installer
+    from ..env.specs import detect
     from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from ..misc import touch_nonadmin
     from . import install as cli_install
 
-    spec = specs.detect(
-        name=args.name,
-        filename=get_filename(args.file),
-        directory=os.getcwd(),
-    )
+    resource = args.file or args.remote_definition
+    spec = detect(resource)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
     if args.prefix is None and args.name is None:
+        if env.name is None:  # requirements.txt won't populate Environment.name
+            raise CondaError(f"Environment from resource '{resource}' needs a name or prefix.")
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)

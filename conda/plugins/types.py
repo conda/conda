@@ -20,11 +20,16 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+<<<<<<< HEAD
     from contextlib import AbstractContextManager
     from typing import Any, Callable
+=======
+    from typing import Callable, Iterable
+>>>>>>> d7e4b67fb (Draft conda env spec hooks)
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
+    from ..env.specs import BaseEnvSpec
     from ..models.match_spec import MatchSpec
 
 
@@ -347,3 +352,24 @@ class CondaRequestHeader:
 
     name: str
     value: str
+
+
+@dataclass
+class CondaEnvSpec:
+    """
+    Return type to use when defining a conda env spec plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_env_specs`.
+
+    :param name: name of the spec (e.g., ``environment_yaml``)
+    :param handler_class: BaseEnvSpec subclass handler
+    :param extensions: Filename extensions the class is able to handle, if any.
+                       Only required for resources represented by a file.
+    :param protocols: URI protocols the class is able to handle, if any. Optional.
+    """
+
+    name: str
+    handler_class: BaseEnvSpec
+    extensions: Iterable[str] | None = None
+    protocols: Iterable[str] | None = None

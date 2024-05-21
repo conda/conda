@@ -4,10 +4,12 @@
 
 import os
 
+from ...deprecations import deprecated
 from ..env import Environment
+from . import BaseEnvSpec
 
 
-class RequirementsSpec:
+class RequirementsSpec(BaseEnvSpec):
     """
     Reads dependencies from a requirements.txt file
     and returns an Environment object from it.
@@ -16,11 +18,23 @@ class RequirementsSpec:
     msg = None
     extensions = {".txt"}
 
+    @deprecated.argument("24.7", "25.1", "name")
     def __init__(self, filename=None, name=None, **kwargs):
         self.filename = filename
-        self.name = name
+        self._name = name  # UNUSED
         self.msg = None
 
+    @property
+    @deprecated("24.7", "25.1", addendum="This attribute is not used anymore.")
+    def name(self):
+        return self._name
+
+    @name.setter
+    @deprecated("24.7", "25.1", addendum="This attribute is not used anymore.")
+    def name(self, value):
+        self._name = value
+
+    @deprecated("24.7", "25.1", addendum="This method is not used anymore.")
     def _valid_file(self):
         if os.path.exists(self.filename):
             return True
@@ -28,15 +42,15 @@ class RequirementsSpec:
             self.msg = "There is no requirements.txt"
             return False
 
+    @deprecated("24.7", "25.1", addendum="This method is not used anymore.")
     def _valid_name(self):
         if self.name is None:
-            self.msg = "Environment with requirements.txt file needs a name"
             return False
         else:
             return True
 
     def can_handle(self):
-        return self._valid_file() and self._valid_name()
+        return os.path.exists(self.filename)
 
     @property
     def environment(self):
@@ -47,4 +61,4 @@ class RequirementsSpec:
                 if not line or line.startswith("#"):
                     continue
                 dependencies.append(line)
-        return Environment(name=self.name, dependencies=dependencies)
+        return Environment(dependencies=dependencies)
