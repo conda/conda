@@ -63,7 +63,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     for file in (prefix / "conda-meta").glob("*.json"):
         for file_name in json.loads(file.read_text()).get("files", []):
             # Add warnings if json file has missing "files"
-            if not (prefix / file_name).exists():
+            if not (prefix / file_name).exists() and not file_name.endswith(".pyc"):
                 packages_with_missing_files.setdefault(file.stem, []).append(file_name)
     return packages_with_missing_files
 
