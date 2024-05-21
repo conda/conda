@@ -40,7 +40,7 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         # dorny/paths-filter needs git clone for non-PR events
         # https://github.com/dorny/paths-filter#supported-workflows
         if: github.event_name != 'pull_request'
@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           fetch-depth: 0
 
@@ -141,7 +141,7 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -195,7 +195,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           fetch-depth: 0
 
@@ -245,7 +245,7 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -281,7 +281,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           fetch-depth: 0
 
@@ -325,7 +325,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@ac302de34d7033a41328af8feef9994251c7bd1e # v2.4.0
+        uses: CodSpeedHQ/action@0b631f8998f2389eb5144632b6f9f8fabd33a86e # v2.4.1
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/pytest --codspeed
@@ -362,7 +362,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           fetch-depth: 0
 
@@ -436,7 +436,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           fetch-depth: 0
 
@@ -489,7 +489,7 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -548,7 +548,7 @@ jobs:
 
       # CONDA-LIBMAMBA-SOLVER CHANGE
       - name: Checkout our source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         if: always() && github.event_name != 'pull_request' && steps.alls-green.outputs.result == 'failure'
 
       - name: Report failures
@@ -593,7 +593,7 @@ jobs:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
       - name: Checkout Source
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           ref: ${{ github.ref }}
           clean: true
@@ -627,7 +627,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@1e442e090ad28c9b0f85697105703a303320ffd1
+        uses: conda/actions/canary-release@976289d0cfd85139701b26ddd133abdd025a7b5f # v24.5.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1

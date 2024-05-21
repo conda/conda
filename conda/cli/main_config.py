@@ -5,15 +5,23 @@
 Allows for programmatically interacting with conda's configuration files (e.g., `~/.condarc`).
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sys
-from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
+from argparse import SUPPRESS
 from collections.abc import Mapping, Sequence
 from itertools import chain
 from logging import getLogger
 from os.path import isfile, join
+from pathlib import Path
 from textwrap import wrap
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -194,7 +202,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     config_modifiers.add_argument(
         "--remove-key",
-        nargs=1,
         action="append",
         help="""Remove a configuration key (and all its values).""",
         default=[],
@@ -345,9 +352,121 @@ def print_config_item(key, value):
                 stdout_write(" ".join(("--add", key, repr(item))))
 
 
-def execute_config(args, parser):
+def _get_key(
+    key: str,
+    config: dict,
+    *,
+    json: dict[str, Any] = {},
+    warnings: list[str] = [],
+) -> None:
+    from ..base.context import context
+
+    key_parts = key.split(".")
+
+    if key_parts[0] not in context.list_parameters():
+        if context.json:
+            warnings.append(f"Unknown key: {key_parts[0]!r}")
+        else:
+            print(f"Unknown key: {key_parts[0]!r}", file=sys.stderr)
+        return
+
+    sub_config = config
+    try:
+        for part in key_parts:
+            sub_config = sub_config[part]
+    except KeyError:
+        # KeyError: part not found, nothing to get
+        pass
+    else:
+        if context.json:
+            json[key] = sub_config
+        else:
+            print_config_item(key, sub_config)
+
+
+def _set_key(key: str, item: Any, config: dict) -> None:
+    from ..base.context import context
+
+    key_parts = key.split(".")
+    try:
+        parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
+    except KeyError:
+        # KeyError: key_parts[0] is an unknown parameter
+        from ..exceptions import CondaKeyError
+
+        raise CondaKeyError(key, "unknown parameter")
+
+    if parameter_type == "primitive" and len(key_parts) == 1:
+        (key,) = key_parts
+        config[key] = context.typify_parameter(key, item, "--set parameter")
+    elif parameter_type == "map" and len(key_parts) == 2:
+        key, subkey = key_parts
+        config.setdefault(key, {})[subkey] = item
+    else:
+        from ..exceptions import CondaKeyError
+
+        raise CondaKeyError(key, "invalid parameter")
+
+
+def _remove_item(key: str, item: Any, config: dict) -> None:
+    from ..base.context import context
+
+    key_parts = key.split(".")
+    try:
+        parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
+    except KeyError:
+        # KeyError: key_parts[0] is an unknown parameter
+        from ..exceptions import CondaKeyError
+
+        raise CondaKeyError(key, "unknown parameter")
+
+    if parameter_type == "sequence" and len(key_parts) == 1:
+        (key,) = key_parts
+        if key not in config:
+            if key != "channels":
+                from ..exceptions import CondaKeyError
+
+                raise CondaKeyError(key, "undefined in config")
+            config[key] = ["defaults"]
+
+        if item not in config[key]:
+            from ..exceptions import CondaKeyError
+
+            raise CondaKeyError(key, f"value {item!r} not present in config")
+        config[key] = [i for i in config[key] if i != item]
+    else:
+        from ..exceptions import CondaKeyError
+
+        raise CondaKeyError(key, "invalid parameter")
+
+
+def _remove_key(key: str, config: dict) -> None:
+    key_parts = key.split(".")
+
+    sub_config = config
+    try:
+        for part in key_parts[:-1]:
+            sub_config = sub_config[part]
+        del sub_config[key_parts[-1]]
+    except KeyError:
+        # KeyError: part not found, nothing to remove
+        from ..exceptions import CondaKeyError
+
+        raise CondaKeyError(key, "undefined in config")
+
+
+def _read_rc(path: str | os.PathLike | Path) -> dict:
+    from ..common.serialize import yaml_round_trip_load
+
+    try:
+        return yaml_round_trip_load(Path(path).read_text()) or {}
+    except FileNotFoundError:
+        # FileNotFoundError: path does not exist
+        return {}
+
+
+def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
     from .. import CondaError
-    from ..auxlib.entity import EntityEncoder
     from ..base.constants import (
         ChannelPriority,
         DepsModifier,
@@ -356,10 +475,54 @@ def execute_config(args, parser):
         SatSolverChoice,
         UpdateModifier,
     )
+    from ..common.serialize import yaml, yaml_round_trip_dump
+
+    # Add representers for enums.
+    # Because a representer cannot be added for the base Enum class (it must be added for
+    # each specific Enum subclass - and because of import rules), I don't know of a better
+    # location to do this.
+    def enum_representer(dumper, data):
+        return dumper.represent_str(str(data))
+
+    yaml.representer.RoundTripRepresenter.add_representer(
+        SafetyChecks, enum_representer
+    )
+    yaml.representer.RoundTripRepresenter.add_representer(
+        PathConflict, enum_representer
+    )
+    yaml.representer.RoundTripRepresenter.add_representer(
+        DepsModifier, enum_representer
+    )
+    yaml.representer.RoundTripRepresenter.add_representer(
+        UpdateModifier, enum_representer
+    )
+    yaml.representer.RoundTripRepresenter.add_representer(
+        ChannelPriority, enum_representer
+    )
+    yaml.representer.RoundTripRepresenter.add_representer(
+        SatSolverChoice, enum_representer
+    )
+
+    try:
+        Path(path).write_text(yaml_round_trip_dump(config))
+    except OSError as e:
+        raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
+
+
+def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
+    config = _read_rc(path)
+    for key, value in args:
+        _set_key(key, value, config)
+    _write_rc(path, config)
+
+
+def execute_config(args, parser):
+    from .. import CondaError
+    from ..auxlib.entity import EntityEncoder
     from ..base.context import context, sys_rc_path, user_rc_path
     from ..common.io import timeout
     from ..common.iterators import groupby_to_dict as groupby
-    from ..common.serialize import yaml, yaml_round_trip_dump, yaml_round_trip_load
+    from ..common.serialize import yaml_round_trip_load
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -541,43 +704,15 @@ def execute_config(args, parser):
         lambda p: context.describe_parameter(p)["parameter_type"],
         context.list_parameters(),
     )
-    primitive_parameters = grouped_paramaters["primitive"]
     sequence_parameters = grouped_paramaters["sequence"]
     map_parameters = grouped_paramaters["map"]
-    all_parameters = primitive_parameters + sequence_parameters + map_parameters
 
     # Get
     if args.get is not None:
         context.validate_all()
-        if args.get == []:
-            args.get = sorted(rc_config.keys())
 
-        value_not_found = object()
-        for key in args.get:
-            key_parts = key.split(".")
-
-            if key_parts[0] not in all_parameters:
-                message = f"unknown key {key_parts[0]}"
-                if not context.json:
-                    stderr_write(message)
-                else:
-                    json_warnings.append(message)
-                continue
-
-            remaining_rc_config = rc_config
-            for k in key_parts:
-                if k in remaining_rc_config:
-                    remaining_rc_config = remaining_rc_config[k]
-                else:
-                    remaining_rc_config = value_not_found
-                    break
-
-            if remaining_rc_config is value_not_found:
-                pass
-            elif context.json:
-                json_get[key] = remaining_rc_config
-            else:
-                print_config_item(key, remaining_rc_config)
+        for key in args.get or sorted(rc_config.keys()):
+            _get_key(key, rc_config, json=json_get, warnings=json_warnings)
 
     if args.stdin:
         content = timeout(5, sys.stdin.read)
@@ -629,79 +764,19 @@ def execute_config(args, parser):
 
     # Set
     for key, item in args.set:
-        key, subkey = key.split(".", 1) if "." in key else (key, None)
-        if key in primitive_parameters:
-            value = context.typify_parameter(key, item, "--set parameter")
-            rc_config[key] = value
-        elif key in map_parameters:
-            argmap = rc_config.setdefault(key, {})
-            argmap[subkey] = item
-        else:
-            from ..exceptions import CondaValueError
-
-            raise CondaValueError(f"Key '{key}' is not a known primitive parameter.")
+        _set_key(key, item, rc_config)
 
     # Remove
     for key, item in args.remove:
-        key, subkey = key.split(".", 1) if "." in key else (key, None)
-        if key not in rc_config:
-            if key != "channels":
-                from ..exceptions import CondaKeyError
-
-                raise CondaKeyError(key, f"key {key!r} is not in the config file")
-            rc_config[key] = ["defaults"]
-        if item not in rc_config[key]:
-            from ..exceptions import CondaKeyError
-
-            raise CondaKeyError(
-                key, f"{item!r} is not in the {key!r} key of the config file"
-            )
-        rc_config[key] = [i for i in rc_config[key] if i != item]
+        _remove_item(key, item, rc_config)
 
     # Remove Key
-    for (key,) in args.remove_key:
-        key, subkey = key.split(".", 1) if "." in key else (key, None)
-        if key not in rc_config:
-            from ..exceptions import CondaKeyError
-
-            raise CondaKeyError(key, f"key {key!r} is not in the config file")
-        del rc_config[key]
+    for key in args.remove_key:
+        _remove_key(key, rc_config)
 
     # config.rc_keys
     if not args.get:
-        # Add representers for enums.
-        # Because a representer cannot be added for the base Enum class (it must be added for
-        # each specific Enum subclass - and because of import rules), I don't know of a better
-        # location to do this.
-        def enum_representer(dumper, data):
-            return dumper.represent_str(str(data))
-
-        yaml.representer.RoundTripRepresenter.add_representer(
-            SafetyChecks, enum_representer
-        )
-        yaml.representer.RoundTripRepresenter.add_representer(
-            PathConflict, enum_representer
-        )
-        yaml.representer.RoundTripRepresenter.add_representer(
-            DepsModifier, enum_representer
-        )
-        yaml.representer.RoundTripRepresenter.add_representer(
-            UpdateModifier, enum_representer
-        )
-        yaml.representer.RoundTripRepresenter.add_representer(
-            ChannelPriority, enum_representer
-        )
-        yaml.representer.RoundTripRepresenter.add_representer(
-            SatSolverChoice, enum_representer
-        )
-
-        try:
-            with open(rc_path, "w") as rc:
-                rc.write(yaml_round_trip_dump(rc_config))
-        except OSError as e:
-            raise CondaError(
-                f"Cannot write to condarc file at {rc_path}\nCaused by {e!r}"
-            )
+        _write_rc(rc_path, rc_config)
 
     if context.json:
         from .common import stdout_json_success
