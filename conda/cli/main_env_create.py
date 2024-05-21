@@ -114,12 +114,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..env.specs import detect
-    from ..exceptions import InvalidInstaller
+    from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from ..misc import touch_nonadmin
     from . import install as cli_install
 
-    resource = args.file or args.remote_definition
     spec = detect(filename=args.file, remote_definition=args.remote_definition)
     env = spec.environment
 
@@ -127,9 +126,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # don't overwrite name if it's given. gh-254
     if args.prefix is None and args.name is None:
         if env.name is None:  # requirements.txt won't populate Environment.name
-            raise CondaError(
-                f"Environment from resource '{resource}' needs a name or prefix."
+            msg = dals(
+                """
+                Unable to create environment
+
+                Please re-run this command with one of the following options:
+
+                * Provide an environment name via --name or -n
+                * Provide a path on disk via --prefix or -p
+                """
             )
+            raise CondaEnvException(msg)
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)

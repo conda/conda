@@ -100,10 +100,10 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..auxlib.ish import dals
     from ..base.context import context
     from ..env import specs
-    from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
-    from ..gateways.connection.session import CONDA_SESSION_SCHEMES
+    from ..exceptions import CondaEnvException, EnvironmentLocationNotFound
     from ..gateways.disk.test import is_conda_environment
     from .common import stdout_json
 
@@ -111,20 +111,22 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if not is_conda_environment(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
-    try:
-        url_scheme = args.file.split("://", 1)[0]
-        if url_scheme in CONDA_SESSION_SCHEMES:
-            filename = args.file
-        else:
-            filename = abspath(expanduser(expandvars(args.file)))
+    spec = specs.detect(filename=args.file)
+    env = spec.environment
 
-        spec = specs.detect(name=args.name, filename=filename, directory=os.getcwd())
-        env = spec.environment
+    if args.prefix is None and args.name is None:
+        if env.name is None:  # requirements.txt won't populate Environment.name
+            msg = "Unable to create environment\n\n"
+            msg = dals(
+                """
+                Please re-run this command with one of the following options:
 
-        if args.prefix is None and args.name is None:
-            args.name = env.name
-    except SpecNotFound:
-        raise
+                * Provide an environment name via --name or -n
+                * Provide a path on disk via --prefix or -p
+                """
+            )
+            raise CondaEnvException(msg)
+
 
     active_pkgs = {pkg.name: pkg for pkg in get_packages(prefix)}
     specification_pkgs = []

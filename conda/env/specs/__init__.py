@@ -58,7 +58,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
 
 
 @deprecated.argument("24.7", "25.1", "name")
-@deprecated.argument("24.7", "25.1", "directory")
+@deprecated.argument("24.7", "25.1", "directory", addendum="Specify the full path in filename")
 def detect(
     name: str = None,
     filename: str = None,
