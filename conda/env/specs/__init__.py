@@ -46,8 +46,9 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
     from .requirements import RequirementsSpec
     from .yaml_file import YamlFileSpec
+
     if filename.startswith("file://"):
-        filename = filename[len("file://"):]
+        filename = filename[len("file://") :]
 
     # Check extensions
     all_valid_exts = {*YamlFileSpec.extensions, *RequirementsSpec.extensions}

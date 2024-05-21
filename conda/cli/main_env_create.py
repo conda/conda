@@ -127,7 +127,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # don't overwrite name if it's given. gh-254
     if args.prefix is None and args.name is None:
         if env.name is None:  # requirements.txt won't populate Environment.name
-            raise CondaError(f"Environment from resource '{resource}' needs a name or prefix.")
+            raise CondaError(
+                f"Environment from resource '{resource}' needs a name or prefix."
+            )
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)

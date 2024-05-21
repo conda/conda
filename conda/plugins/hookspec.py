@@ -480,15 +480,19 @@ class CondaSpecs:
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
             class RandomSpec(BaseEnvSpec):
                 extensions = {".random"}
+
                 def __init__(self, filename: str):
                     self.filename = filename
+
                 def can_handle(self):
                     return random.random() < 0.5
+
                 def environment(self):
                     return Environment(
                         name="".join(random.choice("0123456789abcdef") for i in range(6)),
                         dependencies=[random.choice(packages) for i in range(6)],
                     )
+
             @plugins.hookimpl
             def conda_env_specs():
                 yield plugins.CondaEnvSpec(
@@ -497,3 +501,4 @@ class CondaSpecs:
                     extensions=(".random",),
                 )
         """
+        yield from ()
