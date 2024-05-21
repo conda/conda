@@ -156,10 +156,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         pkg_specs.extend(args_packages)
 
         solved_env = installer.dry_run(pkg_specs, args, env)
-        if args.json:
-            print(json.dumps(solved_env.to_dict(), indent=2))
-        else:
-            print(solved_env.to_yaml(), end="")
+        if solved_env is not None:
+            if args.json:
+                print(json.dumps(solved_env.to_dict(), indent=2))
+            else:
+                print(solved_env.to_yaml(), end="")
 
     else:
         if args_packages:
@@ -179,7 +180,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     result[installer_type] = installer.install(
                         prefix, pkg_specs, args, env
                     )
-                except InvalidInstaller:
+                except InvalidInstaller as exc:
                     raise CondaError(
                         dals(
                             f"""
@@ -187,11 +188,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
                             Please double check and ensure your dependencies file has
                             the correct spelling. You might also try installing the
-                            conda-env-{installer_type} package to see if provides
-                            the required installer.
+                            corresponding conda plugin for this type (e.g. conda-pypi
+                            for 'pip').
                             """
                         )
-                    )
+                    ) from exc
 
         if env.variables:
             pd = PrefixData(prefix)

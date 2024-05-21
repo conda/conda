@@ -21,11 +21,33 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable
+    from typing import Any, Callable, Iterable, Protocol
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
+    from ..env.env import Environment
     from ..models.match_spec import MatchSpec
+
+    class CondaEnvInstallerInstallProtocol(Protocol):
+        def __call__(
+            self,
+            prefix: str,
+            specs: Iterable[str],
+            args: Namespace,
+            env: Environment,
+            *_,
+            **kwargs,
+        ) -> Iterable[str]: ...
+
+    class CondaEnvInstallerDryRunProtocol(Protocol):
+        def __call__(
+            self,
+            specs: Iterable[str],
+            args: Namespace,
+            env: Environment,
+            *_,
+            **kwargs,
+        ) -> Environment: ...
 
 
 @dataclass
@@ -155,6 +177,24 @@ class CondaAuthHandler(NamedTuple):
 
     name: str
     handler: type[ChannelAuthBase]
+
+
+@dataclass
+class CondaEnvInstaller:
+    """
+    Return type to use when defining a conda env installer plugin hook.
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_env_installers`.
+    :param name: name of the installer (e.g., ``pip``)
+    :param types: accepted sections from the environment.yml (e.g. conda, pip).
+    :param install: Callable which contains the code to be run for the install operation.
+    :param dry_run: Callable which contains the code to be run for the dry-run installs.
+    """
+
+    name: str
+    types: Iterable[str]
+    install: CondaEnvInstallerInstallProtocol
+    dry_run: CondaEnvInstallerDryRunProtocol
 
 
 class CondaHealthCheck(NamedTuple):

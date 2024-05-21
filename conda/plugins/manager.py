@@ -22,8 +22,9 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import CondaValueError, InvalidInstaller, PluginError
 from . import (
+    env_installers,
     post_solves,
     reporter_backends,
     solvers,
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvInstaller,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -191,6 +193,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["auth_handlers"]
     ) -> list[CondaAuthHandler]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["env_installers"]
+    ) -> list[CondaEnvInstaller]: ...
 
     @overload
     def get_hook_results(
@@ -463,6 +470,25 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
+    def get_env_installer(self, section: str) -> CondaEnvInstaller:
+        """
+        Returns the env installer registered for the given section.
+
+        Raises PluginError if more than one installer is found for the same section.
+
+        Raises InvalidInstaller if no installer were found for that section.
+        """
+        found = []
+        for hook in self.get_hook_results("env_installers"):
+            if section in hook.types:
+                found.append(hook)
+        if len(found) == 1:
+            return found[0]
+        if found:
+            names = ", ".join([hook.name for hook in found])
+            raise PluginError(f"Too many env installers registered for '{section}': {names}")
+        raise InvalidInstaller(f"Could not find env installer for '{section}'.")
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -479,6 +505,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *env_installers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
