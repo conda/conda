@@ -836,7 +836,7 @@ class ReporterManager:
         return ProgressBarManager(progress_bars)
 
 
-@functools.cache
+@functools.lru_cache
 def get_reporter_manager() -> ReporterManager:
     """
     Returns a cached value of the :class:`ReporterManager` object
