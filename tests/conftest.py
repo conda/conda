@@ -9,11 +9,6 @@ import conda
 from conda.base.context import context, reset_context
 
 from . import http_test_server
-from .fixtures_jlap import (  # noqa: F401
-    package_repository_base,
-    package_server,
-    package_server_ssl,
-)
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
@@ -21,6 +16,7 @@ pytest_plugins = (
     "conda.testing.gateways.fixtures",
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
+    "tests.fixtures_jlap",
 )
 
 

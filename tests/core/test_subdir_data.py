@@ -15,7 +15,6 @@ from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
 from conda.core.subdir_data import SubdirData, cache_fn_url
 from conda.exceptions import CondaUpgradeError
-from conda.exports import url_path
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataCache,
@@ -25,7 +24,7 @@ from conda.gateways.repodata import (
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR_V1, CHANNEL_DIR_V2
-from conda.testing.integration import make_temp_env
+from conda.utils import url_path
 
 log = getLogger(__name__)
 
@@ -182,7 +181,7 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
             Channel._cache_.clear()
 
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    with ChannelCacheClear(), make_temp_env(), env_vars(
+    with ChannelCacheClear(), env_vars(
         {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
