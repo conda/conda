@@ -31,7 +31,7 @@ from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from typing import Callable, ContextManager
 
     from ..base.context import Context
 
@@ -834,6 +834,20 @@ class ReporterManager:
             progress_bars.append(progress_bar)
 
         return ProgressBarManager(progress_bars)
+
+    def progress_bar_context_managers(self) -> list[ContextManager]:
+        """
+        Retrieve all progress bar context managers to use with registered reporters
+        """
+        context_managers = []
+
+        for settings in self._context.reporters:
+            reporter = self._plugin_manager.get_reporter_handler(
+                settings.get("backend")
+            )
+            context_managers.append(reporter.handler.progress_bar_context_manager())
+
+        return context_managers
 
 
 @functools.lru_cache

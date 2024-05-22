@@ -1,26 +1,27 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Defines a "console" reporter handler
+Defines a "rich" reporter handler
 
 This reporter handler provides the default output for conda.
 """
 
 from __future__ import annotations
 
-import sys
-from errno import EPIPE, ESHUTDOWN
 from os.path import basename, dirname
 from typing import TYPE_CHECKING
 
+from rich.progress import Progress
+
 from ...base.constants import ROOT_ENV_NAME
-from ...common.io import ProgressBarBase, swallow_broken_pipe
+from ...common.io import ProgressBarBase
 from ...common.path import paths_equal
+from ...exceptions import CondaError
 from .. import CondaReporterHandler, hookimpl
 from ..types import ReporterHandlerBase
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from typing import Callable, ContextManager
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -38,64 +39,50 @@ class QuietProgressBar(ProgressBarBase):
         pass
 
 
-class TQDMProgressBar(ProgressBarBase):
-    """
-    TODO: This still doesn't work correctly; I need to add back the logic for ``self.enabled``
-    """
-
+class RichProgressBar(ProgressBarBase):
     def __init__(
-        self, description: str, render: Callable, position=None, leave=True, **kwargs
+        self,
+        description: str,
+        render: Callable,
+        position=None,
+        leave=True,
+        progress_context_managers=None,
     ) -> None:
         super().__init__(description, render)
 
-        self.enabled = True
+        self.progress = None
 
-        bar_format = "{desc}{bar} | {percentage:3.0f}% "
+        # We are passed in a list of context managers. Only one of them
+        # is allowed to be the ``rich.Progress`` one we've defined. We
+        # find it and then set it to ``self.progress``.
+        for progress in progress_context_managers:
+            if isinstance(progress, Progress):
+                self.progress = progress
+                break
 
-        try:
-            self.pbar = self._tqdm(
-                desc=description,
-                bar_format=bar_format,
-                ascii=True,
-                total=1,
-                file=sys.stdout,
-                position=position,
-                leave=leave,
+        # Unrecoverable state has been reached
+        if self.progress is None:
+            raise CondaError(
+                "Rich is configured, but there is no progress bar available"
             )
-        except OSError as e:
-            if e.errno in (EPIPE, ESHUTDOWN):
-                self.enabled = False
-            else:
-                raise
+
+        self.progress = progress
+        self.task = self.progress.add_task(description, total=1)
 
     def update_to(self, fraction) -> None:
-        try:
-            if self.enabled:
-                self.pbar.update(fraction - self.pbar.n)
-        except OSError as e:
-            if e.errno in (EPIPE, ESHUTDOWN):
-                self.enabled = False
-            else:
-                raise
+        self.progress.update(self.task, completed=fraction)
 
-    @swallow_broken_pipe
+        if fraction == 1:
+            self.progress.update(self.task, visible=False)
+
     def close(self) -> None:
-        if self.enabled:
-            self.pbar.close()
+        self.progress.stop_task(self.task)
 
     def refresh(self) -> None:
-        if self.enabled:
-            self.pbar.refresh()
-
-    @staticmethod
-    def _tqdm(*args, **kwargs):
-        """Deferred import so it doesn't hit the `conda activate` paths."""
-        from tqdm.auto import tqdm
-
-        return tqdm(*args, **kwargs)
+        self.progress.refresh()
 
 
-class ConsoleReporterHandler(ReporterHandlerBase):
+class RichReporterHandler(ReporterHandlerBase):
     """
     Default implementation for console reporting in conda
     """
@@ -139,13 +126,19 @@ class ConsoleReporterHandler(ReporterHandlerBase):
     def progress_bar(
         self, description: str, render, settings=None, **kwargs
     ) -> ProgressBarBase:
-        """Determines whether to return a TQDMProgressBar or QuietProgressBar"""
+        """
+        Determines whether to return a RichProgressBar or QuietProgressBar
+        """
         quiet = settings.get("quiet") if settings is not None else False
 
         if quiet:
             return QuietProgressBar(description, render, **kwargs)
         else:
-            return TQDMProgressBar(description, render, **kwargs)
+            return RichProgressBar(description, render, **kwargs)
+
+    @classmethod
+    def progress_bar_context_manager(cls) -> ContextManager:
+        return Progress(transient=True)
 
 
 @hookimpl
@@ -156,7 +149,7 @@ def conda_reporter_handlers():
     This is the default reporter handler that returns what is displayed by default in conda
     """
     yield CondaReporterHandler(
-        name="console",
-        description="Default implementation for console reporting in conda",
-        handler=ConsoleReporterHandler(),
+        name="rich",
+        description="Rich implementation for console reporting in conda",
+        handler=RichReporterHandler(),
     )

@@ -10,6 +10,7 @@ Each type corresponds to the plugin hook for which it is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, NamedTuple, Protocol
 
@@ -17,7 +18,7 @@ from requests.auth import AuthBase
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Any, Callable, Union
+    from typing import Any, Callable, ContextManager, Union
 
     from ..common.configuration import Parameter
     from ..common.io import ProgressBarBase
@@ -250,6 +251,13 @@ class ReporterHandlerBase(ABC):
         """
         Return a :class:`conda.common.io.ProgressBarBase` object to use a progress bar
         """
+
+    @classmethod
+    def progress_bar_context_manager(cls) -> ContextManager:
+        """
+        Returns a null context by default but allows plugins to define their own if necessary
+        """
+        return nullcontext()
 
 
 @dataclass

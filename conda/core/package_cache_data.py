@@ -8,6 +8,7 @@ import codecs
 import os
 from collections import defaultdict
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
+from contextlib import ExitStack
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -30,7 +31,12 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL, TRACE
-from ..common.io import IS_INTERACTIVE, ProgressBarManager, time_recorder
+from ..common.io import (
+    IS_INTERACTIVE,
+    ProgressBarManager,
+    get_reporter_manager,
+    time_recorder,
+)
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
@@ -768,10 +774,13 @@ class ProgressiveFetchExtract:
         Run each action in self.paired_actions. Each action in cache_actions
         runs before its corresponding extract_actions.
         """
-        # TODO: this needs to change!
-        from rich.progress import Progress
+        context_managers = get_reporter_manager().progress_bar_context_managers()
 
-        with Progress(transient=True) as progress:
+        with ExitStack() as stack:
+            progress_context_managers = [
+                stack.enter_context(manager) for manager in context_managers
+            ]
+
             if self._executed:
                 return
             if not self._prepared:
@@ -827,7 +836,9 @@ class ProgressiveFetchExtract:
                         continue
 
                     progress_bar = self._progress_bar(
-                        prec_or_spec, leave=False, progress=progress
+                        prec_or_spec,
+                        leave=False,
+                        progress_context_managers=progress_context_managers,
                     )
 
                     progress_bars[prec_or_spec] = progress_bar
@@ -906,7 +917,7 @@ class ProgressiveFetchExtract:
 
     @staticmethod
     def _progress_bar(
-        prec_or_spec, position=None, leave=False, progress=None
+        prec_or_spec, position=None, leave=False, progress_context_managers=None
     ) -> ProgressBarManager:
         description = ""
         if prec_or_spec.name and prec_or_spec.version:
@@ -928,12 +939,13 @@ class ProgressiveFetchExtract:
         #    leave=leave,
         # )
 
-        from ..common.io import get_reporter_manager
-
         reporter_manager = get_reporter_manager()
 
         progress_bar = reporter_manager.progress_bar(
-            description, position=position, leave=leave, progress=progress
+            description,
+            position=position,
+            leave=leave,
+            progress_context_managers=progress_context_managers,
         )
 
         return progress_bar
