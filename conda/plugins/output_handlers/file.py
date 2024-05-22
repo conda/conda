@@ -5,11 +5,11 @@ Defines the default output handler for conda which renders output to a file
 """
 
 import logging
+from contextlib import contextmanager
 from datetime import datetime
-from typing import Any
+from typing import TextIO
 
 from .. import CondaOutputHandler, hookimpl
-from ..types import OutputRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +20,13 @@ TIMESTAMP = int(datetime.now().timestamp())
 CONDA_LOG_FILENAME = f"conda-{TIMESTAMP}.log"
 
 
-class FileRenderer(OutputRenderer):
-    def __call__(self, renderable: str, **kwargs: Any) -> None:
-        try:
-            with open(CONDA_LOG_FILENAME, "a") as fp:
-                fp.write(renderable)
-        except (OSError, TypeError) as exc:
-            logger.error(f"Unable to create file: {exc}")
+@contextmanager
+def file_io() -> TextIO:
+    try:
+        with open(CONDA_LOG_FILENAME, "a") as fp:
+            yield fp
+    except (OSError, TypeError) as exc:
+        logger.error(f"Unable to create file: {exc}")
 
 
 @hookimpl
@@ -37,10 +37,8 @@ def conda_output_handlers():
     This is a default output handler provided by conda and writes the renderables it
     receives to stdout using the ``sys`` module.
     """
-    render = FileRenderer()
-
     yield CondaOutputHandler(
         name="file",
         description="Default implementation of a output handler that writes to a file",
-        render=render,
+        get_output_io=file_io,
     )

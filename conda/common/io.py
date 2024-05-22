@@ -31,7 +31,7 @@ from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
 
 if TYPE_CHECKING:
-    from typing import Callable, ContextManager
+    from typing import ContextManager
 
     from ..base.context import Context
 
@@ -457,9 +457,11 @@ class Spinner:
 
 
 class ProgressBarBase(ABC):
-    def __init__(self, description: str, render: Callable):
+    def __init__(
+        self, description: str, io_context_manager: type[ContextManager], **kwargs
+    ):
         self.description = description
-        self._render = render
+        self._io_context_manager = io_context_manager
 
     @abstractmethod
     def update_to(self, fraction) -> None: ...
@@ -816,8 +818,10 @@ class ReporterManager:
                 else:
                     render_func = getattr(reporter.handler, "render")
 
-                data = render_func(data, **kwargs)
-                output.render(data, **settings)
+                data_str = render_func(data, **kwargs)
+
+                with output.get_output_io() as file:
+                    file.write(data_str)
 
     def progress_bar(self, description: str, **kwargs) -> ProgressBarManager:
         progress_bars = []
@@ -828,7 +832,7 @@ class ReporterManager:
             )
             output = self._plugin_manager.get_output_handler(settings.get("output"))
             progress_bar = reporter.handler.progress_bar(
-                description, output.render, settings=settings, **kwargs
+                description, output.get_output_io, settings=settings, **kwargs
             )
 
             progress_bars.append(progress_bar)
@@ -845,7 +849,13 @@ class ReporterManager:
             reporter = self._plugin_manager.get_reporter_handler(
                 settings.get("backend")
             )
-            context_managers.append(reporter.handler.progress_bar_context_manager())
+            output = self._plugin_manager.get_output_handler(settings.get("output"))
+
+            context_managers.append(
+                reporter.handler.progress_bar_context_manager(
+                    io_context_manager=output.get_output_io
+                )
+            )
 
         return context_managers
 

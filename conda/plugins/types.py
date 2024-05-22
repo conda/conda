@@ -12,7 +12,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, NamedTuple, Protocol
+from typing import TYPE_CHECKING, NamedTuple
 
 from requests.auth import AuthBase
 
@@ -253,7 +253,7 @@ class ReporterHandlerBase(ABC):
         """
 
     @classmethod
-    def progress_bar_context_manager(cls) -> ContextManager:
+    def progress_bar_context_manager(cls, io_context_manager) -> ContextManager:
         """
         Returns a null context by default but allows plugins to define their own if necessary
         """
@@ -280,18 +280,6 @@ class CondaReporterHandler:
     handler: ReporterHandlerBase
 
 
-class OutputRenderer(Protocol):
-    """
-    Protocol describing how the output render function should look.
-    """
-
-    def __call__(self, renderable: str, **kwargs: Any) -> None:
-        """
-        Function that accepts a ``renderable`` as a string and any number of keyword arguments. It
-        is not expected to return anything.
-        """
-
-
 @dataclass
 class CondaOutputHandler:
     """
@@ -303,10 +291,10 @@ class CondaOutputHandler:
     :param name: name of the output handler (e.g., ``email_reporter``)
                  This is how the reporter handler with be references in configuration files.
     :param description: short description of what the reporter handler does
-    :param render: a callable object accepting a ``str`` as the first argument and ``**kwargs``.
-                   See :class:`~conda.plugins.types.OutputRenderer` for more information.
+    :param get_output_io: a callable object returning a ``TextIO`` compatible object.
+                          See :class:`~conda.plugins.types.OutputIO` for more information.
     """
 
     name: str
     description: str
-    render: OutputRenderer
+    get_output_io: Callable[[], ContextManager]

@@ -9,12 +9,11 @@ essentially just a wrapper around ``json.dumps``.
 
 from __future__ import annotations
 
-import sys
 from threading import RLock
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any, Callable
+    from typing import Any, ContextManager
 
 from ...common.io import ProgressBarBase, swallow_broken_pipe
 from ...common.serialize import json_dump
@@ -28,8 +27,8 @@ class JSONProgressBar(ProgressBarBase):
     """
 
     def update_to(self, fraction) -> None:
-        with self.get_lock():
-            self._render(
+        with self.get_lock(), self._io_context_manager() as file:
+            file.write(
                 f'{{"fetch":"{self.description}","finished":false,"maxval":1,"progress":{fraction:f}}}\n\0'
             )
 
@@ -38,11 +37,11 @@ class JSONProgressBar(ProgressBarBase):
 
     @swallow_broken_pipe
     def close(self):
-        with self.get_lock():
-            self._render(
+        with self.get_lock(), self._io_context_manager() as file:
+            file.write(
                 f'{{"fetch":"{self.description}","finished":true,"maxval":1,"progress":1}}\n\0'
             )
-            sys.stdout.flush()
+            file.flush()
 
     @classmethod
     def get_lock(cls):
@@ -69,9 +68,9 @@ class JSONReporterHandler(ReporterHandlerBase):
         return json_dump({"envs": data})
 
     def progress_bar(
-        self, description: str, render: Callable, **kwargs
+        self, description: str, io_context_manager: ContextManager, **kwargs
     ) -> ProgressBarBase:
-        return JSONProgressBar(description, render)
+        return JSONProgressBar(description, io_context_manager)
 
 
 @hookimpl

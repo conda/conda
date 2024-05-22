@@ -8,19 +8,19 @@ This reporter handler provides the default output for conda.
 
 from __future__ import annotations
 
-import sys
 from errno import EPIPE, ESHUTDOWN
 from os.path import basename, dirname
 from typing import TYPE_CHECKING
 
 from ...base.constants import ROOT_ENV_NAME
+from ...base.context import context
 from ...common.io import ProgressBarBase, swallow_broken_pipe
 from ...common.path import paths_equal
 from .. import CondaReporterHandler, hookimpl
 from ..types import ReporterHandlerBase
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from typing import ContextManager
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -39,16 +39,18 @@ class QuietProgressBar(ProgressBarBase):
 
 
 class TQDMProgressBar(ProgressBarBase):
-    """
-    TODO: This still doesn't work correctly; I need to add back the logic for ``self.enabled``
-    """
-
     def __init__(
-        self, description: str, render: Callable, position=None, leave=True, **kwargs
+        self,
+        description: str,
+        io_context_manager: type[ContextManager],
+        position=None,
+        leave=True,
+        **kwargs,
     ) -> None:
-        super().__init__(description, render)
+        super().__init__(description, io_context_manager)
 
         self.enabled = True
+        self.file = self._io_context_manager().__enter__()
 
         bar_format = "{desc}{bar} | {percentage:3.0f}% "
 
@@ -58,11 +60,12 @@ class TQDMProgressBar(ProgressBarBase):
                 bar_format=bar_format,
                 ascii=True,
                 total=1,
-                file=sys.stdout,
+                file=self.file,
                 position=position,
                 leave=leave,
             )
         except OSError as e:
+            self._io_context_manager.__exit__(None, None, None)
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
             else:
@@ -73,6 +76,7 @@ class TQDMProgressBar(ProgressBarBase):
             if self.enabled:
                 self.pbar.update(fraction - self.pbar.n)
         except OSError as e:
+            self._io_context_manager.__exit__(None, None, None)
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
             else:
@@ -82,6 +86,7 @@ class TQDMProgressBar(ProgressBarBase):
     def close(self) -> None:
         if self.enabled:
             self.pbar.close()
+        self._io_context_manager.__exit__(None, None, None)
 
     def refresh(self) -> None:
         if self.enabled:
@@ -112,9 +117,6 @@ class ConsoleReporterHandler(ReporterHandlerBase):
         return "\n".join(table_parts)
 
     def envs_list(self, prefixes, **kwargs) -> str:
-        # TODO: what happens when this is ``None``?
-        context = kwargs.get("context")
-
         output = ["", "# conda environments:", "#"]
 
         def disp_env(prefix):
@@ -137,15 +139,19 @@ class ConsoleReporterHandler(ReporterHandlerBase):
         return "\n".join(output)
 
     def progress_bar(
-        self, description: str, render, settings=None, **kwargs
+        self,
+        description: str,
+        io_context_manager: ContextManager,
+        settings=None,
+        **kwargs,
     ) -> ProgressBarBase:
-        """Determines whether to return a TQDMProgressBar or QuietProgressBar"""
-        quiet = settings.get("quiet") if settings is not None else False
-
-        if quiet:
-            return QuietProgressBar(description, render, **kwargs)
+        """
+        Determines whether to return a TQDMProgressBar or QuietProgressBar
+        """
+        if context.quiet:
+            return QuietProgressBar(description, io_context_manager, **kwargs)
         else:
-            return TQDMProgressBar(description, render, **kwargs)
+            return TQDMProgressBar(description, io_context_manager, **kwargs)
 
 
 @hookimpl

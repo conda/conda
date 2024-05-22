@@ -8,12 +8,15 @@ This reporter handler provides the default output for conda.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from os.path import basename, dirname
 from typing import TYPE_CHECKING
 
+from rich.console import Console
 from rich.progress import Progress
 
 from ...base.constants import ROOT_ENV_NAME
+from ...base.context import context
 from ...common.io import ProgressBarBase
 from ...common.path import paths_equal
 from ...exceptions import CondaError
@@ -21,13 +24,19 @@ from .. import CondaReporterHandler, hookimpl
 from ..types import ReporterHandlerBase
 
 if TYPE_CHECKING:
-    from typing import Callable, ContextManager
+    from typing import ContextManager
 
 
 class QuietProgressBar(ProgressBarBase):
     """
     Progress bar class used when no output should be printed
     """
+
+    def __init__(self, description, io_context_manager, **kwargs):
+        super().__init__(description, io_context_manager, **kwargs)
+
+        with self._io_context_manager() as file:
+            file.write(f"...downloading {description}...\n")
 
     def update_to(self, fraction) -> None:
         pass
@@ -43,12 +52,12 @@ class RichProgressBar(ProgressBarBase):
     def __init__(
         self,
         description: str,
-        render: Callable,
+        io_context_manager: ContextManager,
         position=None,
         leave=True,
         progress_context_managers=None,
     ) -> None:
-        super().__init__(description, render)
+        super().__init__(description, io_context_manager)
 
         self.progress = None
 
@@ -124,21 +133,26 @@ class RichReporterHandler(ReporterHandlerBase):
         return "\n".join(output)
 
     def progress_bar(
-        self, description: str, render, settings=None, **kwargs
+        self, description: str, io_context_manager, settings=None, **kwargs
     ) -> ProgressBarBase:
         """
         Determines whether to return a RichProgressBar or QuietProgressBar
         """
-        quiet = settings.get("quiet") if settings is not None else False
-
-        if quiet:
-            return QuietProgressBar(description, render, **kwargs)
+        if context.quiet:
+            return QuietProgressBar(description, io_context_manager, **kwargs)
         else:
-            return RichProgressBar(description, render, **kwargs)
+            return RichProgressBar(description, io_context_manager, **kwargs)
 
     @classmethod
-    def progress_bar_context_manager(cls) -> ContextManager:
-        return Progress(transient=True)
+    def progress_bar_context_manager(cls, io_context_manager) -> ContextManager:
+        @contextmanager
+        def rich_context_manager():
+            with io_context_manager() as file:
+                console = Console(file=file)
+                with Progress(transient=True, console=console) as progress:
+                    yield progress
+
+        return rich_context_manager()
 
 
 @hookimpl

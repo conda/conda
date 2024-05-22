@@ -931,14 +931,6 @@ class ProgressiveFetchExtract:
         if len(size_str) > 0:
             description += "%-9s | " % size_str
 
-        # progress_bar = ProgressBar(
-        #    desc,
-        #    not context.verbose and not context.quiet and IS_INTERACTIVE,
-        #    context.json,
-        #    position=position,
-        #    leave=leave,
-        # )
-
         reporter_manager = get_reporter_manager()
 
         progress_bar = reporter_manager.progress_bar(
