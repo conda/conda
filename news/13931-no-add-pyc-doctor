@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Don't add `.pyc` files to the "missing files" conda doctor health check.
+* Skip checking for `.pyc` files in the `conda doctor` "missing files" health check. (#13370 via #13931)
 
 ### Bug fixes
 
