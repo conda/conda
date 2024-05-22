@@ -31,7 +31,7 @@ from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
 
 if TYPE_CHECKING:
-    from typing import ContextManager
+    from typing import Callable, ContextManager
 
     from ..base.context import Context
 
@@ -458,7 +458,10 @@ class Spinner:
 
 class ProgressBarBase(ABC):
     def __init__(
-        self, description: str, io_context_manager: type[ContextManager], **kwargs
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
     ):
         self.description = description
         self._io_context_manager = io_context_manager

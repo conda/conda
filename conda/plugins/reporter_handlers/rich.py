@@ -24,7 +24,7 @@ from .. import CondaReporterHandler, hookimpl
 from ..types import ReporterHandlerBase
 
 if TYPE_CHECKING:
-    from typing import ContextManager
+    from typing import Callable, ContextManager
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -52,10 +52,9 @@ class RichProgressBar(ProgressBarBase):
     def __init__(
         self,
         description: str,
-        io_context_manager: ContextManager,
-        position=None,
-        leave=True,
+        io_context_manager: Callable[[], ContextManager],
         progress_context_managers=None,
+        **kwargs,
     ) -> None:
         super().__init__(description, io_context_manager)
 
@@ -75,7 +74,6 @@ class RichProgressBar(ProgressBarBase):
                 "Rich is configured, but there is no progress bar available"
             )
 
-        self.progress = progress
         self.task = self.progress.add_task(description, total=1)
 
     def update_to(self, fraction) -> None:
@@ -108,9 +106,6 @@ class RichReporterHandler(ReporterHandlerBase):
         return "\n".join(table_parts)
 
     def envs_list(self, prefixes, **kwargs) -> str:
-        # TODO: what happens when this is ``None``?
-        context = kwargs.get("context")
-
         output = ["", "# conda environments:", "#"]
 
         def disp_env(prefix):
@@ -133,7 +128,10 @@ class RichReporterHandler(ReporterHandlerBase):
         return "\n".join(output)
 
     def progress_bar(
-        self, description: str, io_context_manager, settings=None, **kwargs
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
     ) -> ProgressBarBase:
         """
         Determines whether to return a RichProgressBar or QuietProgressBar

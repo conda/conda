@@ -246,7 +246,10 @@ class ReporterHandlerBase(ABC):
 
     @abstractmethod
     def progress_bar(
-        self, description: str, render: Callable, **kwargs
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
     ) -> ProgressBarBase:
         """
         Return a :class:`conda.common.io.ProgressBarBase` object to use a progress bar

@@ -20,7 +20,7 @@ from .. import CondaReporterHandler, hookimpl
 from ..types import ReporterHandlerBase
 
 if TYPE_CHECKING:
-    from typing import ContextManager
+    from typing import Callable, ContextManager
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -42,7 +42,7 @@ class TQDMProgressBar(ProgressBarBase):
     def __init__(
         self,
         description: str,
-        io_context_manager: type[ContextManager],
+        io_context_manager: Callable[[], ContextManager],
         position=None,
         leave=True,
         **kwargs,
@@ -141,8 +141,7 @@ class ConsoleReporterHandler(ReporterHandlerBase):
     def progress_bar(
         self,
         description: str,
-        io_context_manager: ContextManager,
-        settings=None,
+        io_context_manager: Callable[[], ContextManager],
         **kwargs,
     ) -> ProgressBarBase:
         """
