@@ -1,0 +1,19 @@
+### Enhancements
+
+* Don't add `.pyc` files to the "missing files" conda doctor health check.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
