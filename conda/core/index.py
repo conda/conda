@@ -390,6 +390,8 @@ def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> 
 
     :param index: The package index to supplement.
     """
+    if isinstance(index, Index):
+        return
     for package in context.plugin_manager.get_virtual_packages():
         rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
         index[rec] = rec
