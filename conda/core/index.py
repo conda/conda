@@ -328,14 +328,16 @@ class ReducedIndex(Index):
             rec = make_feature_record(ftr_str)
             self._data[rec] = rec
 
-        self._data.update({
-            (
-                rec := _make_virtual_package(
-                    f"__{package.name}", package.version, package.build
-                )
-            ): rec
-            for package in context.plugin_manager.get_virtual_packages()
-        })
+        self._data.update(
+            {
+                (
+                    rec := _make_virtual_package(
+                        f"__{package.name}", package.version, package.build
+                    )
+                ): rec
+                for package in context.plugin_manager.get_virtual_packages()
+            }
+        )
 
         # _supplement_index_with_system(reduced_index)
 
