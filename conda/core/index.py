@@ -307,9 +307,10 @@ class ReducedIndex(Index):
                 feature_name = pending_track_features.pop()
                 collected_track_features.add(feature_name)
                 spec = MatchSpec(track_features=feature_name)
-                new_records = SubdirData.query_all(
-                    spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
-                )
+                # new_records = SubdirData.query_all(
+                #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
+                # )
+                new_records = self._retrieve_all_from_channels(spec)
                 for record in new_records:
                     push_record(record)
                 records.update(new_records)
