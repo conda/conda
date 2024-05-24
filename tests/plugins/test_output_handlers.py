@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from contextlib import contextmanager
+from sys import stdout
+
 import pytest
 
 from conda import plugins
@@ -9,9 +12,10 @@ from conda.plugins.output_handlers import plugins as default_plugins
 from conda.plugins.types import CondaOutputHandler
 
 
-def dummy_render(renderable: str, **kwargs) -> None:
-    """Dummy render function that just uses the print statement"""
-    print(renderable)
+@contextmanager
+def dummy_render():
+    """Dummy IO that yield ``stdout``"""
+    yield stdout
 
 
 class OutputHandlerPlugin:
@@ -20,7 +24,7 @@ class OutputHandlerPlugin:
         yield CondaOutputHandler(
             name="dummy",
             description="Dummy output handler meant for testing",
-            render=dummy_render,
+            get_output_io=dummy_render,
         )
 
 
@@ -38,17 +42,6 @@ def default_output_handler_plugin(plugin_manager):
         plugin_manager.register(output_handler_plugin)
 
     return plugin_manager
-
-
-def get_output_handler(
-    name: str, output_handlers: tuple[CondaOutputHandler, ...]
-) -> CondaOutputHandler | None:
-    """
-    Utility function to retrieve a single output handler
-    """
-    for handler in output_handlers:
-        if handler.name == name:
-            return handler
 
 
 def test_output_handler_is_registered(output_handler_plugin):

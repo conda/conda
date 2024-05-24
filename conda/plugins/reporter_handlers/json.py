@@ -9,10 +9,14 @@ essentially just a wrapper around ``json.dumps``.
 
 from __future__ import annotations
 
-import json
+from typing import TYPE_CHECKING
 
+from ...common.serialize import json_dump
 from .. import CondaReporterHandler, hookimpl
 from ..types import ReporterHandlerBase
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class JSONReporterHandler(ReporterHandlerBase):
@@ -20,11 +24,14 @@ class JSONReporterHandler(ReporterHandlerBase):
     Default implementation for JSON reporting in conda
     """
 
-    def string_view(self, data: str, **kwargs) -> str:
-        return json.dumps(data, **kwargs)
+    def render(self, data: Any, **kwargs) -> str:
+        return json_dump(data)
 
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
-        return json.dumps(data, **kwargs)
+        return json_dump(data)
+
+    def envs_list(self, data, **kwargs) -> str:
+        return json_dump({"envs": data})
 
 
 @hookimpl

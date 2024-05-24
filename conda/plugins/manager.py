@@ -364,8 +364,18 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_reporter_handlers(self) -> tuple[CondaReporterHandler, ...]:
         return tuple(self.get_hook_results("reporter_handlers"))
 
+    def get_reporter_handler(self, name: str) -> CondaReporterHandler | None:
+        for handler in self.get_reporter_handlers():
+            if handler.name == name:
+                return handler
+
     def get_output_handlers(self) -> tuple[CondaOutputHandler, ...]:
         return tuple(self.get_hook_results("output_handlers"))
+
+    def get_output_handler(self, name: str) -> CondaOutputHandler | None:
+        for handler in self.get_output_handlers():
+            if handler.name == name:
+                return handler
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

@@ -9,8 +9,10 @@ def test_console_handler():
     """
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
     test_str = "a string value"
-    expected_table_str = "one   : value_one\ntwo   : value_two\nthree : value_three\n"
+    expected_table_str = (
+        "\n   one : value_one\n   two : value_two\n three : value_three\n\n"
+    )
     console_handler_object = ConsoleReporterHandler()
 
     assert console_handler_object.detail_view(test_data) == expected_table_str
-    assert console_handler_object.string_view(test_str) == test_str
+    assert console_handler_object.render(test_str) == test_str

@@ -11,13 +11,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, NamedTuple, Protocol
+from typing import TYPE_CHECKING, NamedTuple
 
 from requests.auth import AuthBase
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Any, Callable, Union
+    from typing import Any, Callable, ContextManager
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
@@ -213,10 +213,6 @@ class CondaSetting:
     aliases: tuple[str, ...] = tuple()
 
 
-if TYPE_CHECKING:
-    DetailRecord = dict[str, Union[str, int, bool]]
-
-
 class ReporterHandlerBase(ABC):
     """
     Base class for all reporter handlers.
@@ -227,6 +223,9 @@ class ReporterHandlerBase(ABC):
     used interactively.
     """
 
+    def render(self, data: Any, **kwargs) -> str:
+        return str(data)
+
     @abstractmethod
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         """
@@ -234,9 +233,9 @@ class ReporterHandlerBase(ABC):
         """
 
     @abstractmethod
-    def string_view(self, data: str, **kwargs) -> str:
+    def envs_list(self, data, **kwargs) -> str:
         """
-        Render a simple string.
+        Render a list of environments
         """
 
 
@@ -260,18 +259,6 @@ class CondaReporterHandler:
     handler: ReporterHandlerBase
 
 
-class OutputRenderer(Protocol):
-    """
-    Protocol describing how the output render function should look.
-    """
-
-    def __call__(self, renderable: str, **kwargs: Any) -> None:
-        """
-        Function that accepts a ``renderable`` as a string and any number of keyword arguments. It
-        is not expected to return anything.
-        """
-
-
 @dataclass
 class CondaOutputHandler:
     """
@@ -283,10 +270,10 @@ class CondaOutputHandler:
     :param name: name of the output handler (e.g., ``email_reporter``)
                  This is how the reporter handler with be references in configuration files.
     :param description: short description of what the reporter handler does
-    :param render: a callable object accepting a ``str`` as the first argument and ``**kwargs``.
-                   See :class:`~conda.plugins.types.OutputRenderer` for more information.
+    :param get_output_io: a callable object returning a ``TextIO`` compatible object.
+                          See :class:`~conda.plugins.types.OutputIO` for more information.
     """
 
     name: str
     description: str
-    render: OutputRenderer
+    get_output_io: Callable[[], ContextManager]

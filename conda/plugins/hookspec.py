@@ -382,16 +382,19 @@ class CondaSpecs:
 
         .. code-block:: python
 
+           from contextlib import contextmanager
+
            from conda import plugins
            from conda.plugins.types import CondaOutputHandler
 
 
-           def render(renderable: str, **kwargs) -> None:
+           @contextmanager
+           def file_io() -> TextIO:
                try:
-                   with open(filename, "w") as fp:
-                       fp.write(renderable)
+                   with open("file.txt", "w") as fp:
+                       yield fp
                except OSError as exc:
-                   print(f"Unable to create file: {exc}")
+                   logger.error(f"Unable to create file: {exc}")
 
 
            @plugins.hookimpl
@@ -399,7 +402,7 @@ class CondaSpecs:
                yield CondaOutputHandler(
                    name="file",
                    description="Output handler that writes output to a file",
-                   render=render,
+                   get_output_io=file_io,
                )
 
         """
