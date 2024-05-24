@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new `keep-case` flag that allows users to retain the original case when creating new environment variables.
+* Store both preserved case as well as upper cased environment variable names
 
 ### Bug fixes
 
