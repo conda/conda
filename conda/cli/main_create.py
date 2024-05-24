@@ -113,7 +113,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if context.dry_run:
             context._argparse_args.prefix = os.path.join(mktemp(), "dry-run-create-env")
         else:
-            raise ArgumentError("one of the arguments -n/--name -p/--prefix is required")
+            raise ArgumentError(
+                "one of the arguments -n/--name -p/--prefix is required"
+            )
 
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
