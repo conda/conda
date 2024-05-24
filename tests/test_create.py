@@ -2589,3 +2589,15 @@ def test_repodata_v2_base_url(
         platform,
     )
     assert package_is_installed(prefix, "ca-certificates")
+
+
+def test_create_dry_run_without_prefix(
+    conda_cli: CondaCLIFixture, capsys: CaptureFixture
+):
+    with pytest.raises(DryRunExit):
+        conda_cli("create", "--dry-run", "--json", "ca-certificates")
+    out, _ = capsys.readouterr()
+    data = json.loads(out)
+    assert any(
+        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "ca-certificates"
+    )
