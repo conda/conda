@@ -95,13 +95,18 @@ def test_list_explicit(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     pkg = "curl"  # has dependencies
     with tmp_env(pkg) as prefix:
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--json")
-        curl = next((item for item in json.loads(stdout) if item["name"] == "curl"), None)
+        curl = next(
+            (item for item in json.loads(stdout) if item["name"] == "curl"), None
+        )
         assert curl
 
         # Plant a fake token to make sure we can remove it if needed
         json_file = prefix / "conda-meta" / (curl["dist_name"] + ".json")
         json_data = json.loads(json_file.read_text())
-        json_data["url"] = f"https://conda.anaconda.org/t/some-fake-token/{json_data['channel']}/{json_data['subdir']}/{json_data['fn']}"
+        json_data["url"] = (
+            "https://conda.anaconda.org/t/some-fake-token/"
+            f"{json_data['channel']}/{json_data['subdir']}/{json_data['fn']}"
+        )
         json_file.write_text(json.dumps(json_data))
 
         PrefixData(prefix)._cache_.clear()

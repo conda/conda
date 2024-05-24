@@ -121,7 +121,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=False,
         dest="auth",
         help="In explicit mode, leave authentication details in package URLs. "
-        "They are removed by default otherwise."
+        "They are removed by default otherwise.",
     )
     p.add_argument(
         "regex",
