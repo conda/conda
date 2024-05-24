@@ -3371,7 +3371,7 @@ def test_keep_case(monkeypatch: MonkeyPatch, keep_case_boolean):
         FOUR=None,
     )
 
-    # original preserved case vars present if  keep_case is True
+    # preserved case vars present if  keep_case is True
     assert ("one" in export_vars) is keep_case_boolean
     assert ("three" in unset_vars) is keep_case_boolean
 
@@ -3415,7 +3415,7 @@ def test_metavars_keep_case(
     assert ("three" in unset_vars) is keep_case_boolean
     assert ("five" in export_vars) is keep_case_boolean
 
-    # to uppercase
+    # vars uppercased when keep_case is False
     assert ("TWO" in export_vars) is not keep_case_boolean
     assert ("THREE" in unset_vars) is not keep_case_boolean
 
