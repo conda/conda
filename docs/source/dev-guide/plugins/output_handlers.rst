@@ -6,18 +6,18 @@ Output handlers allow plugin authors to customize where output from reporter han
 is sent. By default, conda supports the ability to send output to standard out, but
 output handlers can also be written to support sending output to files or network  streams.
 
-To configure a output handler, they must be specified in the configuration file under the
+To configure an output handler, they must be specified in the configuration file under the
 reporters setting. At a minimum, the output handler must also be associated with one reporter
 handler.
 
-An example of a setting a file output handler using the default ``console`` reporter handler
-is shown below:
+The following shows the default configuration for setting the default ``console`` reporter
+to write to ``stdout``:
 
 .. code-block:: yaml
 
    reporters:
      - backend: console
-       output: file
+       output: stdout
 
 
 .. autoapiclass:: conda.plugins.types.CondaOutputHandler
