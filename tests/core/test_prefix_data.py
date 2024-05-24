@@ -425,6 +425,6 @@ def test_no_tokens_dumped(tmp_path: Path, with_auth: bool):
 
     json_content = (tmp_path / "conda-meta" / "a-1.0-0.json").read_text()
     if with_auth:
-        assert "/t/some-fake-token" in json_content
+        assert "/t/some-fake-token/" in json_content
     else:
-        assert "/t/some-fake-token" not in json_content
+        assert "/t/<TOKEN>/" in json_content

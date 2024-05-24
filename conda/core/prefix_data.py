@@ -24,7 +24,7 @@ from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
-from ..common.url import remove_auth, split_anaconda_token
+from ..common.url import mask_anaconda_token, remove_auth
 from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
@@ -135,7 +135,7 @@ class PrefixData(metaclass=PrefixDataType):
             rm_rf(prefix_record_json_path)
         if not with_auth:
             dumped_prefix_record = prefix_record.dump()
-            dumped_prefix_record["url"] = remove_auth(split_anaconda_token(prefix_record.url)[0])
+            dumped_prefix_record["url"] = remove_auth(mask_anaconda_token(prefix_record.url))
             write_as_json_to_file(prefix_record_json_path, dumped_prefix_record)
         else:
             write_as_json_to_file(prefix_record_json_path, prefix_record)
