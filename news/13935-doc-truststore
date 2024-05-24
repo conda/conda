@@ -1,0 +1,3 @@
+### Docs
+
+* Added `ssl_verify: truststore` to the user guide. (#13935)
