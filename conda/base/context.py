@@ -441,7 +441,6 @@ class Context(Configuration):
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
-    keep_case = ParameterLoader(PrimitiveParameter(False))
 
     ####################################################
     #               Solver Configuration               #
@@ -1285,7 +1284,6 @@ class Context(Configuration):
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
-                "keep_case",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1899,11 +1897,6 @@ class Context(Configuration):
             repodata_use_zst=dals(
                 """
                 Disable check for `repodata.json.zst`; use `repodata.json` only.
-                """
-            ),
-            keep_case=dals(
-                """
-                Ensure the original case for new environment variables is retained.
                 """
             ),
         )
