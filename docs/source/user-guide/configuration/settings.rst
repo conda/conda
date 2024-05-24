@@ -244,7 +244,7 @@ connection's normal security and is not recommended:
 If the certificate authority is already trusted by the operating
 system, for instance because it was installed by a system
 administrator, you can tell conda to use the operating system
-certificate store.
+certificate store by setting ``ssl_verify`` to "truststore":
 
 .. code-block:: yaml
 
