@@ -58,6 +58,10 @@ class TokenURLFilter(Filter):
         At the same time we replace tokens in the arguments which was
         not happening until now.
         """
+        if not isinstance(record.msg, str):
+            # This should always be the case but it's not checked so
+            # we avoid any potential logging errors.
+            return True
         record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
             new_args = tuple(
