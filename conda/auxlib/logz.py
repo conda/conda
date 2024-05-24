@@ -172,4 +172,4 @@ def stringify(obj, content_max_len=0):
         builder.append('')  # end with new line
         return "\n".join(builder)
     except Exception as e:
-        log.exception(e)
+        log.exception("%s", e, exc_info=e)
