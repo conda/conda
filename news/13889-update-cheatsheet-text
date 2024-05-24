@@ -8,11 +8,11 @@
 
 ### Deprecations
 
-* Mark `conda._vendor.frozendict` as pending deprecation. Use `frozendict` instead. (#13767 via #13766)
+* <news item>
 
 ### Docs
 
-* <news item>
+* Update conda cheatsheet text and add it directly to cheatsheet page. (#13889)
 
 ### Other
 
