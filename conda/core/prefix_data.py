@@ -113,7 +113,7 @@ class PrefixData(metaclass=PrefixDataType):
             )
         return fn + ".json"
 
-    def insert(self, prefix_record, with_auth=False):
+    def insert(self, prefix_record, dump_auth=False):
         assert prefix_record.name not in self._prefix_records, (
             f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
             "in the prefix. This is a bug in conda. Please report it at "
@@ -133,14 +133,14 @@ class PrefixData(metaclass=PrefixDataType):
                 context,
             )
             rm_rf(prefix_record_json_path)
-        if not with_auth:
+        if dump_auth:
+            write_as_json_to_file(prefix_record_json_path, prefix_record)
+        else:
             dumped_prefix_record = prefix_record.dump()
             dumped_prefix_record["url"] = remove_auth(
                 mask_anaconda_token(prefix_record.url)
             )
             write_as_json_to_file(prefix_record_json_path, dumped_prefix_record)
-        else:
-            write_as_json_to_file(prefix_record_json_path, prefix_record)
 
         self._prefix_records[prefix_record.name] = prefix_record
 
