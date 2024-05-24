@@ -135,7 +135,9 @@ class PrefixData(metaclass=PrefixDataType):
             rm_rf(prefix_record_json_path)
         if not with_auth:
             dumped_prefix_record = prefix_record.dump()
-            dumped_prefix_record["url"] = remove_auth(mask_anaconda_token(prefix_record.url))
+            dumped_prefix_record["url"] = remove_auth(
+                mask_anaconda_token(prefix_record.url)
+            )
             write_as_json_to_file(prefix_record_json_path, dumped_prefix_record)
         else:
             write_as_json_to_file(prefix_record_json_path, prefix_record)

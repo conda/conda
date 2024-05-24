@@ -11,7 +11,6 @@ from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CorruptedEnvironmentError
-from conda.models.records import PackageRecord
 from conda.testing import TmpEnvFixture
 from conda.testing.helpers import record
 from tests.data.env_metadata import (
@@ -418,7 +417,7 @@ def test_no_tokens_dumped(tmp_path: Path, with_auth: bool):
     (tmp_path / "conda-meta" / "history").touch()
     pkg_record = record(
         channel="fake",
-        url="https://conda.anaconda.org/t/some-fake-token/fake/noarch/a-1.0-0.tar.bz2"
+        url="https://conda.anaconda.org/t/some-fake-token/fake/noarch/a-1.0-0.tar.bz2",
     )
     pd = PrefixData(tmp_path)
     pd.insert(pkg_record, with_auth=with_auth)
