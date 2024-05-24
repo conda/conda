@@ -3371,13 +3371,13 @@ def test_keep_case(monkeypatch: MonkeyPatch, keep_case_boolean):
         FOUR=None,
     )
 
-    # original lowercase vars present depending on whether keep_case is True or False
+    # original preserved case vars present if  keep_case is True
     assert ("one" in export_vars) is keep_case_boolean
     assert ("three" in unset_vars) is keep_case_boolean
 
-    # to uppercase
-    assert "ONE" in export_vars
-    assert "THREE" in unset_vars
+    # vars uppercased when keep_case is False
+    assert ("ONE" in export_vars) is not keep_case_boolean
+    assert ("THREE" in unset_vars) is not keep_case_boolean
 
     # original uppercase
     assert "TWO" in export_vars
@@ -3410,19 +3410,19 @@ def test_metavars_keep_case(
     activator = PosixActivator()
     export_vars, unset_vars = activator.get_export_unset_vars()
 
-    # original lowercase vars present depending on whether keep_case is True or False
+    # preserved case vars present if keep_case is True
     assert ("two" in export_vars) is keep_case_boolean
     assert ("three" in unset_vars) is keep_case_boolean
     assert ("five" in export_vars) is keep_case_boolean
+
+    # to uppercase
+    assert ("TWO" in export_vars) is not keep_case_boolean
+    assert ("THREE" in unset_vars) is not keep_case_boolean
 
     # original uppercase
     assert "ONE" in export_vars
     assert "FOUR" in unset_vars
     assert "SIX" in export_vars
-
-    # to uppercase
-    assert "TWO" in export_vars
-    assert "THREE" in unset_vars
 
 
 # The MSYS2_PATH tests are slightly unusual in two regards: firstly
