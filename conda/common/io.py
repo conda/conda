@@ -323,6 +323,8 @@ def stderr_log_level(level, logger_name=None):
 def attach_stderr_handler(
     level=WARN, logger_name=None, propagate=False, formatter=None
 ):
+    from ..gateways.logging import TokenURLFilter
+
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next(
@@ -334,6 +336,7 @@ def attach_stderr_handler(
     new_stderr_handler.name = "stderr"
     new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
+    new_stderr_handler.addFilter(TokenURLFilter())
 
     # do the switch
     with _logger_lock():

@@ -179,6 +179,7 @@ def initialize_std_loggers():
     verbose_handler = StdStreamHandler("stdout")
     verbose_handler.setLevel(INFO)
     verbose_handler.setFormatter(formatter)
+    verbose_handler.addFilter(TokenURLFilter())
     verbose_logger.addHandler(verbose_handler)
     verbose_logger.propagate = False
 
