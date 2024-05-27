@@ -2602,5 +2602,6 @@ def test_create_dry_run_without_prefix(
         pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "ca-certificates"
     )
 
+
 def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
