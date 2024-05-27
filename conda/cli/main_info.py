@@ -14,7 +14,7 @@ from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
 
@@ -408,45 +408,42 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     )
 
 
+InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
+
+
 def get_display_data(
-    args: Namespace, context
+    component: InfoComponents, args: Namespace, context
 ) -> tuple[dict[str, str] | str, str | None]:
     """
     Determines the data the ``conda info`` command will display
     """
-    if args.base:
+    if component == "base":
         if context.json:
             return {"root_prefix": context.root_prefix}, None
         else:
             return f"{context.root_prefix}\n", None
 
-    if args.unsafe_channels:
+    if component == "channels":
         if context.json:
             return {"channels": context.channels}, None
         else:
-            return "\n".join(context.channels), None
+            channels_str = "\n".join(context.channels)
+            return f"{channels_str}\n", None
 
-    options = "envs", "system"
-
-    if context.verbose or context.json:
-        for option in options:
-            setattr(args, option, True)
     info_dict = get_info_dict()
 
-    if (
-        context.verbose or all(not getattr(args, opt) for opt in options)
-    ) and not context.json:
+    if component == "detail":
         return get_main_info_display(info_dict), "detail_view"
 
-    if args.envs:
-        from ..core.envs_manager import list_all_known_prefixes
+    from ..core.envs_manager import list_all_known_prefixes
 
-        info_dict["envs"] = list_all_known_prefixes()
+    info_dict["envs"] = list_all_known_prefixes()
 
+    if component == "envs":  # args.envs:
         if not context.json:
             return list_all_known_prefixes(), "envs_list"
 
-    if args.system and not context.json:
+    if component == "system":  # args.system and not context.json:
         from .find_commands import find_commands, find_executable
 
         output = [
@@ -477,7 +474,8 @@ def get_display_data(
 
         return "\n".join(output), None
 
-    return info_dict, None
+    if component == "json_all":
+        return info_dict, None
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
@@ -495,9 +493,41 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..common.io import get_reporter_manager
 
-    reporter_manager = get_reporter_manager()
-    display_dict, component = get_display_data(args, context)
+    components: list[InfoComponents] = []
 
-    reporter_manager.render(display_dict, component=component, context=context)
+    if args.base:
+        components.append("base")
+
+    if args.unsafe_channels:
+        components.append("channels")
+
+    options = "envs", "system"
+
+    if context.verbose or context.json:
+        for option in options:
+            setattr(args, option, True)
+
+    if (
+        (context.verbose or all(not getattr(args, opt) for opt in options))
+        and not context.json
+        and not args.base
+        and not args.unsafe_channels
+    ):
+        components.append("detail")
+
+    if context.verbose or args.envs and not context.json:
+        components.append("envs")
+
+    if context.verbose or args.system and not context.json:
+        components.append("system")
+
+    if context.json and not args.base and not args.unsafe_channels:
+        components.append("json_all")
+
+    reporter_manager = get_reporter_manager()
+
+    for component in components:
+        display_dict, component = get_display_data(component, args, context)
+        reporter_manager.render(display_dict, component=component, context=context)
 
     return 0
