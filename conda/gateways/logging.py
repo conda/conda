@@ -189,24 +189,26 @@ def initialize_std_loggers():
 
 
 def initialize_root_logger(level=ERROR):
-    attach_stderr_handler(level=level)
+    attach_stderr_handler(level=level, filters=[TokenURLFilter()])
 
 
 def set_conda_log_level(level=WARN):
     conda_logger = getLogger("conda")
     conda_logger.setLevel(logging.NOTSET)
-    attach_stderr_handler(level=level, logger_name="conda")
+    attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])
     conda_logger.propagate = False
 
 
 def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
-    attach_stderr_handler(level, formatter=formatter)
+    attach_stderr_handler(level, formatter=formatter, filters=[TokenURLFilter()])
     set_conda_log_level(level)
     # 'requests' loggers get their own handlers so that they always output messages in long format
     # regardless of the level.
-    attach_stderr_handler(level, "requests")
-    attach_stderr_handler(level, "requests.packages.urllib3")
+    attach_stderr_handler(level, "requests", filters=[TokenURLFilter()])
+    attach_stderr_handler(
+        level, "requests.packages.urllib3", filters=[TokenURLFilter()]
+    )
 
 
 @lru_cache(maxsize=None)
