@@ -101,6 +101,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     import os
     from tempfile import mktemp
 
+    from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
     from ..common.path import paths_equal
     from ..exceptions import ArgumentError, CondaValueError
@@ -111,7 +112,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if not args.name and not args.prefix:
         if context.dry_run:
-            context._argparse_args.prefix = os.path.join(mktemp(), "dry-run-create-env")
+            args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
+            context.__init__(argparse_args=args)
         else:
             raise ArgumentError(
                 "one of the arguments -n/--name -p/--prefix is required"
