@@ -114,8 +114,9 @@ class _Activator(metaclass=abc.ABCMeta):
         # split provided environment variables into exports vs unsets
         for name, value in kwargs.items():
             if value is None:
-                unset_vars.append(name.upper())
                 unset_vars.append(name)
+                if not name.isupper():
+                    unset_vars.append(name.upper())
 
             else:
                 export_vars[name.upper()] = value
@@ -125,8 +126,9 @@ class _Activator(metaclass=abc.ABCMeta):
             # split meta variables into exports vs unsets
             for name, value in context.conda_exe_vars_dict.items():
                 if value is None:
-                    unset_vars.append(name.upper())
                     unset_vars.append(name)
+                    if not name.isupper():
+                        unset_vars.append(name.upper())
 
                 elif "/" in value or "\\" in value:
                     export_vars[name.upper()] = self.path_conversion(value)
