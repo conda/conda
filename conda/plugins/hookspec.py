@@ -357,9 +357,6 @@ class CondaSpecs:
                def detail_view(self, data):
                    return pformat(data)
 
-               def string_view(self, data):
-                   return pformat(data)
-
 
            @plugins.hookimpl
            def conda_reporter_handler():

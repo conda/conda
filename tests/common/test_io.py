@@ -1,10 +1,27 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import sys
+from contextlib import contextmanager
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
+from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
-from conda.common.io import CaptureTarget, attach_stderr_handler, captured
+import pytest
+
+from conda.common.io import (
+    CaptureTarget,
+    ReporterManager,
+    attach_stderr_handler,
+    captured,
+)
+from conda.plugins import CondaOutputHandler, CondaReporterHandler
+from conda.plugins.types import ReporterHandlerBase
+
+if TYPE_CHECKING:
+    from pytest import CaptureFixture
 
 
 def test_captured():
@@ -80,3 +97,58 @@ def test_attach_stderr_handler():
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message in c.stderr
+
+
+class DummyReporterHandler(ReporterHandlerBase):
+    def envs_list(self, data, **kwargs) -> str:
+        return f"envs_list: {data}"
+
+    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
+        return f"detail_view: {data}"
+
+
+@contextmanager
+def dummy_io():
+    yield sys.stdout
+
+
+def test_reporter_manager(capsys: CaptureFixture):
+    """
+    Ensure basic coverage of the :class:`~conda.common.io.ReporterManager` class.
+    """
+    # Setup
+    reporter_handler = CondaReporterHandler(
+        name="test-reporter-handler", description="test", handler=DummyReporterHandler()
+    )
+    output_handler = CondaOutputHandler(
+        name="test-output-handler", description="test", get_output_io=dummy_io
+    )
+    plugin_manager = SimpleNamespace(
+        get_reporter_handler=lambda _: reporter_handler,
+        get_output_handler=lambda _: output_handler,
+    )
+    reporters = ({"backend": "test-reporter-handler", "output": "test-output-handler"},)
+
+    context = SimpleNamespace(plugin_manager=plugin_manager, reporters=reporters)
+    reporter_manager = ReporterManager(context)
+
+    # Test simple rendering of object
+    reporter_manager.render("test-string")
+
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "test-string"
+    assert not stderr
+
+    # Test rendering of object with a component
+    reporter_manager.render("test-string", component="envs_list")
+
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "envs_list: test-string"
+    assert not stderr
+
+    # Test error when component cannot be found
+    with pytest.raises(
+        AttributeError,
+        match="'non_existent_view' is not a valid reporter handler component",
+    ):
+        reporter_manager.render({"test": "data"}, component="non_existent_view")

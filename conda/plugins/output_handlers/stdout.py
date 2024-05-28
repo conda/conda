@@ -1,7 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Defines the default output handler for conda which renders output to stdout
+Defines the default output handler for conda that renders output to stdout
+
 It is essentially a proxy to the ``sys.stdout`` object.
 """
 
@@ -21,8 +22,6 @@ def stdout_io() -> TextIO:
 def conda_output_handlers():
     """
     Output handler for stdout
-    This is a default output handler provided by conda and writes the renderables it
-    receives to stdout using the ``sys`` module.
     """
     yield CondaOutputHandler(
         name="stdout",

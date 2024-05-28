@@ -9,7 +9,7 @@ that contains all the methods a plugin author must implement in order to change 
 and feel of conda. If only overriding a subset of these is desired, a sub class of
 an existing reporter handler can be used.
 
-To configure the use of these reporter handlers they must be set as a ``backend`` for the
+To configure a reporter handler, it must be set as a ``backend`` for the
 ``reporter`` setting in a configuration file. This setting must contain at least one ``output``
 handler.
 

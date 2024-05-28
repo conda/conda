@@ -4,7 +4,7 @@
 Defines a JSON reporter handler
 
 This reporter handler is used to provide JSON strings for output rendering. It is
-essentially just a wrapper around ``json.dumps``.
+essentially just a wrapper around ``conda.common.serialize.json_dump``.
 """
 
 from __future__ import annotations

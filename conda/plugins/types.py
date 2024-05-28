@@ -216,11 +216,6 @@ class CondaSetting:
 class ReporterHandlerBase(ABC):
     """
     Base class for all reporter handlers.
-
-    Each method represents a component of the output that can be rendered. Some components, like
-    :meth:`~ReporterHandlersBase.detail_view` are returned as strings whereas others like
-    ``ReporterHandlerBase.progress_bar`` are objects with various methods that intended to be
-    used interactively.
     """
 
     def render(self, data: Any, **kwargs) -> str:
@@ -244,7 +239,7 @@ class CondaReporterHandler:
     """
     Return type to use when defining a conda reporter handler plugin hook.
 
-    For details on this is used, see
+    For details on how this is used, see:
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_reporter_handler`.
 
     :param name: name of the reporter handler (e.g., ``email_reporter``)
@@ -264,7 +259,7 @@ class CondaOutputHandler:
     """
     Return type to use when defining a conda output handler plugin hook.
 
-    For details on this is used, see
+    For details on how this is used, see:
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_output_handler`.
 
     :param name: name of the output handler (e.g., ``email_reporter``)

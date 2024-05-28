@@ -1,7 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Defines a "console" reporter handler
+Defines a "console" reporter handler.
+
 This reporter handler provides the default output for conda.
 """
 
@@ -59,7 +60,6 @@ class ConsoleReporterHandler(ReporterHandlerBase):
 def conda_reporter_handlers():
     """
     Reporter handler for console
-    This is the default reporter handler that returns what is displayed by default in conda
     """
     yield CondaReporterHandler(
         name="console",
