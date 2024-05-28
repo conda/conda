@@ -40,6 +40,7 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    unique_sequence_map,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -156,7 +157,7 @@ def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):
-        return "channel_alias value '%s' must have scheme/protocol." % value
+        return f"channel_alias value '{value}' must have scheme/protocol."
     return True
 
 
@@ -178,7 +179,7 @@ def default_python_validation(value):
         # Set to None or '' meaning no python pinning
         return True
 
-    return "default_python value '%s' not of the form '[23].[0-9][0-9]?' or ''" % value
+    return f"default_python value '{value}' not of the form '[23].[0-9][0-9]?' or ''"
 
 
 def ssl_verify_validation(value):
@@ -187,10 +188,10 @@ def ssl_verify_validation(value):
             return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
         elif value != "truststore" and not exists(value):
             return (
-                "ssl_verify value '%s' must be a boolean, a path to a "
+                f"ssl_verify value '{value}' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
                 "certificates of trusted CAs, or 'truststore' to use the "
-                "operating system certificate store." % value
+                "operating system certificate store."
             )
     return True
 
@@ -336,6 +337,11 @@ class Context(Configuration):
 
     add_anaconda_token = ParameterLoader(
         PrimitiveParameter(True), aliases=("add_binstar_token",)
+    )
+
+    _reporters = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
+        aliases=("reporters",),
     )
 
     ####################################################
@@ -1053,7 +1059,7 @@ class Context(Configuration):
             return logging.WARNING  # 30
 
     def solver_user_agent(self):
-        user_agent = "solver/%s" % self.solver
+        user_agent = f"solver/{self.solver}"
         try:
             solver_backend = self.plugin_manager.get_cached_solver_backend()
             # Solver.user_agent has to be a static or class method
@@ -1167,6 +1173,25 @@ class Context(Configuration):
         # DANGER: This is rather slow
         info = _get_cpu_info()
         return info["flags"]
+
+    @memoizedproperty
+    @unique_sequence_map(unique_key="backend")
+    def reporters(self) -> tuple[Mapping[str, str]]:
+        """
+        Determine the value of reporters based on other settings and the ``self._reporters``
+        value itself.
+        """
+        if not self._reporters:
+            return (
+                {
+                    "backend": "json" if self.json else "console",
+                    "output": "stdout",
+                    "verbosity": self.verbosity,
+                    "quiet": self.quiet,
+                },
+            )
+
+        return self._reporters
 
     @property
     def category_map(self):
@@ -1294,6 +1319,7 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
+                "reporters",
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1671,6 +1697,12 @@ class Context(Configuration):
             quiet=dals(
                 """
                 Disable progress bar display and other output.
+                """
+            ),
+            reporters=dals(
+                """
+                A list of mappings that allow the configuration of one or more output streams
+                (e.g. stdout or file).
                 """
             ),
             remote_connect_timeout_secs=dals(
@@ -2112,7 +2144,7 @@ def _first_writable_envs_dir():
                 open(envs_dir_magic_file, "a").close()
                 return envs_dir
             except OSError:
-                log.trace("Tried envs_dir but not writable: %s", envs_dir)
+                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
         else:
             from ..gateways.disk.create import create_envs_directory
 

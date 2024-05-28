@@ -153,7 +153,7 @@ def initialize_std_loggers():
     formatter = Formatter("%(message)s")
 
     for stream in ("stdout", "stderr"):
-        logger = getLogger("conda.%s" % stream)
+        logger = getLogger(f"conda.{stream}")
         logger.handlers = []
         logger.setLevel(INFO)
         handler = StdStreamHandler(stream)
@@ -163,7 +163,7 @@ def initialize_std_loggers():
         logger.addFilter(TokenURLFilter())
         logger.propagate = False
 
-        stdlog_logger = getLogger("conda.%slog" % stream)
+        stdlog_logger = getLogger(f"conda.{stream}log")
         stdlog_logger.handlers = []
         stdlog_logger.setLevel(DEBUG)
         stdlog_handler = StdStreamHandler(stream)
@@ -234,6 +234,11 @@ def set_log_level(log_level: int):
     log.debug("log_level set to %d", log_level)
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `logging.getLogger(__name__)(conda.common.constants.TRACE, ...)` instead.",
+)
 def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
         self._log(TRACE, message, args, **kwargs)

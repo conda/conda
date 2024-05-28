@@ -21,7 +21,7 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import Spinner, dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
@@ -237,8 +237,7 @@ class Solver:
         )
         if unmanageable:
             raise RuntimeError(
-                "Cannot unlink unmanageable packages:%s"
-                % dashlist(prec.record_id() for prec in unmanageable)
+                f"Cannot unlink unmanageable packages:{dashlist(prec.record_id() for prec in unmanageable)}"
             )
 
         return unlink_precs, link_precs
@@ -360,7 +359,7 @@ class Solver:
 
         if not ssc.r:
             with Spinner(
-                "Collecting package metadata (%s)" % self._repodata_fn,
+                f"Collecting package metadata ({self._repodata_fn})",
                 not context.verbose and not context.quiet and not retrying,
                 context.json,
             ):
@@ -373,8 +372,8 @@ class Solver:
             )
         elif self._repodata_fn != REPODATA_FN:
             fail_message = (
-                "unsuccessful attempt using repodata from %s, retrying"
-                " with next repodata source.\n" % self._repodata_fn
+                f"unsuccessful attempt using repodata from {self._repodata_fn}, retrying"
+                " with next repodata source.\n"
             )
         else:
             fail_message = "failed\n"
@@ -607,7 +606,7 @@ class Solver:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
-                log.trace("using PrefixGraph to remove records for %s", spec)
+                log.log(TRACE, "using PrefixGraph to remove records for %s", spec)
                 removed_records = graph.remove_spec(spec)
                 if removed_records:
                     all_removed_records.extend(removed_records)
@@ -954,7 +953,7 @@ class Solver:
         if "conda" in ssc.specs_map and paths_equal(self.prefix, context.conda_prefix):
             conda_prefix_rec = ssc.prefix_data.get("conda")
             if conda_prefix_rec:
-                version_req = ">=%s" % conda_prefix_rec.version
+                version_req = f">={conda_prefix_rec.version}"
                 conda_requested_explicitly = any(
                     s.name == "conda" for s in self.specs_to_add
                 )

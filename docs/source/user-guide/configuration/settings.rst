@@ -86,11 +86,15 @@ handler called, "test-auth-handler" registered via the aforementioned plugin hoo
      - channel: https://some.custom/channel
        auth: test-auth-handler
        user: my-user-account
+     - channel: https://some.base-url-prefix/*
+       auth: another-auth-handler
 
 .. note::
 
    Each entry in ``channel_settings`` needs to define the ``channel`` attribute so that
-   the configuration knows which channel these settings are associated with.
+   the configuration knows which channel these settings are associated with. The ``channel``
+   attribute may specify a glob-like URL pattern for matching. Note that in this case, the HTTP
+   schema must match exactly to the channel URL, so a pattern like ``*`` is not valid.
 
 
 ``auto_update_conda``: Update conda automatically
@@ -233,6 +237,18 @@ connection's normal security and is not recommended:
 .. code-block:: yaml
 
   ssl_verify: False
+
+.. versionadded:: 23.9.0
+   The ``ssl_verify: truststore`` setting is only available with conda 23.9.0 or later and using Python 3.10 or later.
+
+If the certificate authority is already trusted by the operating
+system, for instance because it was installed by a system
+administrator, you can tell conda to use the operating system
+certificate store by setting ``ssl_verify`` to "truststore":
+
+.. code-block:: yaml
+
+  ssl_verify: truststore
 
 You can also set ``ssl_verify`` to a string path to a certificate,
 which can be used to verify SSL connections:

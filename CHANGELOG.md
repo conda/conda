@@ -1,5 +1,90 @@
 [//]: # (current developments)
 
+## 24.5.0 (2024-05-08)
+
+### Enhancements
+
+* Report which `MatchSpec` item caused `Invalid*Spec` exceptions for more informative error messages. (#11203 via #13598)
+* MSYS2 packages can now use the upstream installation prefixes. (#13649)
+* Add support for CEP-15 `base_url` field in `repodata.json`. (#13137 via #13744)
+* In custom channel settings, allow specification of channel URLs using a glob-like wildcard pattern, e.g. for user with auth handler plugins. (#13778 via #13779)
+
+### Bug fixes
+
+* Fix `conda notices --json` to correctly output JSON. (#13561)
+* Fix prefix replacement for Windows `subdir` on Unix. (#13689)
+
+### Deprecations
+
+* Mark `conda.plan._get_best_prec_match` as pending deprecation. Use `conda.misc._get_best_prec_match` instead. (#12421)
+* Mark `conda.plan._handle_menuinst` as pending deprecation. (#12421)
+* Mark `conda.plan._inject_UNLINKLINKTRANSACTION` as pending deprecation. (#12421)
+* Mark `conda.plan._plan_from_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.add_defaults_to_specs` as pending deprecation. (#12421)
+* Mark `conda.plan.add_unlink` as pending deprecation. (#12421)
+* Mark `conda.plan.display_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.execute_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.get_blank_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.install_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.print_dists` as pending deprecation. (#12421)
+* Mark `conda.plan.revert_actions` as pending deprecation. Use `conda.cli.install.revert_actions` instead. (#12421)
+* Mark `conda.plan` as an entrypoint as pending deprecation. (#12421)
+* Mark `conda.activate._Activator.add_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
+* Mark `conda.activate._Activator.get_scripts_export_unset_vars` as pending deprecation. Use `get_scripts_export_unset_vars` helper function in `test_activate.py` instead. (#13720)
+* Mark `conda.activate._Activator._get_path_dirs(extra_library_bin)` as pending deprecation. (#13720)
+* Mark `conda.activate.JSONFormatMixin.get_scripts_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
+* Mark `conda.gateways.logging.trace` as pending deprecation. Use `Logger.log(conda.common.constants.TRACE, msg)` instead. (#13732)
+* Mark `conda create --mkdir` as pending deprecation. The argument is redundant and unnecessary. (#13751)
+* Mark `conda install --mkdir` as pending deprecation. Use `conda create` instead. (#13751)
+* Mark `conda._vendor.frozendict` as pending deprecation. Use `frozendict` instead. (#13767 via #13766)
+* Mark `conda.auxlib.collection.make_immutable` as pending deprecation. Use `frozendict.deepfreeze` instead. (#13801)
+* Mark `conda.plan.execute_plan` as pending deprecation. (#13869)
+* Mark `conda.plan.execute_instructions` as pending deprecation. (#13869)
+* Mark `conda.plan._update_old_plan` as pending deprecation. (#13869)
+
+### Docs
+
+* Add type hints and doc strings to `conda.core.index`. (#13816)
+
+### Other
+
+* Remove `setuptools` remainings (`MANIFEST.in`, `wheel` build dependency) not required since the move to `hatch` in #12509. (#13684)
+* Remove and update any imports inside conda that is importing from `conda/exports.py`. (#13869)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dbast
+* @ifitchet made their first contribution in https://github.com/conda/conda/pull/13649
+* @isuruf
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @mattkram
+* @Nathann03 made their first contribution in https://github.com/conda/conda/pull/13816
+* @dwr-psandhu made their first contribution in https://github.com/conda/conda/pull/13770
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 24.4.0 (2024-04-24)
+
+### Enhancements
+
+* For Windows users, the stub executables used for Python entrypoints in packages are now codesigned. (#13721)
+
+### Contributors
+
+* @dholth
+* @jezdez
+* @Callek made their first contribution in https://github.com/conda/conda/pull/13721
+
+
 ## 24.3.0 (2024-03-12)
 
 ### Enhancements
@@ -24,6 +109,7 @@
 * Fix excess resource usage by log handling when fetching repodata. (#13541 via #13628)
 * Re-enable `--subdir` and `--platform` flags to be available for `conda env create` command. (#13632)
 * Fix `__archspec` virtual package on Windows to return microarchitecture instead of the default `x86_64`. (#13641)
+* Check `Content-Length` is nonzero before calculating progress, avoiding a possible `ZeroDivisionError`. (#13653, #13671)
 
 ### Deprecations
 

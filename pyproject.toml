@@ -29,7 +29,7 @@ dependencies = [
   "conda-libmamba-solver >=23.11.0",
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
-  "frozendict >=1.2",
+  "frozendict >=2.4.2",
   "jsonpatch >=1.32",
   "menuinst >=2",
   "packaging >=23.0",
@@ -50,34 +50,26 @@ name = "conda"
 readme = "README.md"
 requires-python = ">=3.8"
 
+[project.scripts]
+conda = "conda.cli.main_pip:main"
+
 [project.urls]
 changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
 documentation = "https://docs.conda.io/projects/conda/en/stable/"
 repository = "https://github.com/conda/conda"
 
-[project.scripts]
-conda = "conda.cli.main_pip:main"
-
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.version.raw-options]
-local_scheme = "dirty-tag"
-
-[tool.hatch.build]
-include = ["conda", "conda_env"]
-
-[tool.hatch.build.hooks.vcs]
-version-file = "conda/_version.py"
-
-[tool.coverage.run]
-# store relative paths in coverage information
-relative_files = true
-
 [tool.coverage.report]
-show_missing = true
-sort = "Miss"
-skip_covered = true
+exclude_lines = [
+  "pragma: no cover",
+  "pragma: py$PYTHON_MAJOR_VERSION no cover",
+  "pragma: $TEST_PLATFORM no cover",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "def __repr__",
+  '\s*\.\.\.$',
+  "if TYPE_CHECKING:",  # ignoring type checking imports
+]
 omit = [
   "*/site-packages/*",
   '*\site-packages\*',
@@ -92,59 +84,27 @@ omit = [
   "tests/*",
   "utils/*",
 ]
-exclude_lines = [
-  "pragma: no cover",
-  "pragma: py$PYTHON_MAJOR_VERSION no cover",
-  "pragma: $TEST_PLATFORM no cover",
-  "raise AssertionError",
-  "raise NotImplementedError",
-  "if __name__ == .__main__.:",
-  "def __repr__",
-  '\s*\.\.\.$',
-  "if TYPE_CHECKING:",  # ignoring type checking imports
-]
+show_missing = true
+skip_covered = true
+sort = "Miss"
 
-[tool.ruff]
-exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
-target-version = "py38"
+[tool.coverage.run]
+# store relative paths in coverage information
+relative_files = true
 
-[tool.ruff.lint]
-# E, W = pycodestyle errors and warnings
-# F = pyflakes
-# I = isort
-# D = pydocstyle
-# UP = pyupgrade
-# ISC = flake8-implicit-str-concat
-# TCH = flake8-type-checking
-# T10 = flake8-debugger
-# FA = flake8-future-annotations
-# see also https://docs.astral.sh/ruff/rules/
-select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH", "T10", "FA"]
-# E402 module level import not at top of file
-# E501 line too long
-# E722 do not use bare 'except'
-# E731 do not assign a lambda expression, use a def
-# D101 Missing docstring in public class
-# D102 Missing docstring in public method
-# D103 Missing docstring in public function
-# D104 Missing docstring in public package
-# D105 Missing docstring in magic method
-# D107 Missing docstring in `__init__`
-ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
-extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
-pydocstyle = {convention = "pep257"}
-flake8-type-checking = {exempt-modules = [], strict = true}
+[tool.hatch.build]
+include = ["conda", "conda_env"]
+
+[tool.hatch.build.hooks.vcs]
+version-file = "conda/_version.py"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "dirty-tag"
 
 [tool.pytest.ini_options]
-minversion = 3.0
-testpaths = ["tests"]
-norecursedirs = [
-  "tests/data/*",
-  "tests/integration/*",
-  "tests/plugins/data/*",
-  "docs",
-  ".git",
-]
 addopts = [
   "--color=yes",
   # "--cov=conda",   # passed in test runner scripts instead (avoid debugger)
@@ -173,18 +133,72 @@ markers = [
   "slow: slow running tests",
   "benchmark: benchmark tests",
 ]
+minversion = 3.0
+norecursedirs = [
+  "tests/data/*",
+  "tests/integration/*",
+  "tests/plugins/data/*",
+  "docs",
+  ".git",
+]
 pythonpath = [
   # faking a test-plugin to test ImportError handling
   "tests/plugins/data/test-plugin",
+]
+testpaths = ["tests"]
+
+[tool.ruff]
+exclude = [
+  "conda/_vendor",
+  "conda/auxlib",
+  "tests/data/conda_format_repo",
+  "tests/data/env_metadata",
+  "tools/vendoring",
+]
+target-version = "py38"
+
+[tool.ruff.lint]
+extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
+flake8-type-checking = {exempt-modules = [], strict = true}
+ignore = [
+  "D101",  # Missing docstring in public class
+  "D102",  # Missing docstring in public method
+  "D103",  # Missing docstring in public function
+  "D104",  # Missing docstring in public package
+  "D105",  # Missing docstring in magic method
+  "D107",  # Missing docstring in `__init__`
+  "E402",  # module level import not at top of file
+  "E501",  # line too long
+  "E722",  # do not use bare 'except'
+  "E731",  # do not assign a lambda expression, use a def
+]
+pydocstyle = {convention = "pep257"}
+# see https://docs.astral.sh/ruff/rules/
+select = [
+  "D1",  # pydocstyle
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "FA",  # flake8-future-annotations
+  "I",  # isort
+  "ISC",  # flake8-implicit-str-concat
+  "T10",  # flake8-debugger
+  "TCH",  # flake8-type-checking
+  "UP",  # pyupgrade
+  "W",  # pycodestyle warnings
 ]
 
 [tool.vendoring]
 destination = "conda/_vendor/"
 namespace = "conda._vendor"
-requirements = "conda/_vendor/vendor.txt"
-
 patches-dir = "tools/vendoring/patches"
 protected-files = ["__init__.py", "vendor.txt", "README.md"]
+requirements = "conda/_vendor/vendor.txt"
+
+[tool.vendoring.license.fallback-urls]
+appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt"  # MIT
+cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
+distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
+frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
 
 [tool.vendoring.transformations]
 drop = [
@@ -201,9 +215,3 @@ appdirs = []
 cpuinfo = []
 distro = []
 frozendict = []
-
-[tool.vendoring.license.fallback-urls]
-appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt" # MIT
-cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE" # MIT
-distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE" # Apache
-frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt" # LGPL

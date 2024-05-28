@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix prefix replacement for Windows subdir on unixes. (#13689)
+* <news item>
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Added cheatsheet PDF download to cheatsheet page. (#13909)
 
 ### Other
 
