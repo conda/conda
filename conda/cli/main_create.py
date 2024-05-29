@@ -102,6 +102,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..common.path import paths_equal
+    from ..core.envs_manager import set_environment_no_site_packages
     from ..exceptions import CondaValueError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
@@ -134,4 +135,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             dry_run=False,
         )
 
-    return install(args, parser, "create")
+    install(args, parser, "create")
+
+    if context.isolate_python_env:
+        set_environment_no_site_packages(context.target_prefix)

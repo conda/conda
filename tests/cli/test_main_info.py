@@ -52,6 +52,7 @@ def test_info(conda_cli: CondaCLIFixture):
     assert "config file" in stdout_basic
     assert "offline mode" in stdout_basic
     assert "solver" in stdout_basic
+    assert "use_python_user" in stdout_basic
     assert not stderr
     assert not err
 
@@ -108,4 +109,5 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "root_prefix",
         "root_writable",
         "solver",
+        "use_python_user",
     } <= set(parsed)

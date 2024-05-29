@@ -2,11 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing conda environments."""
 
+from __future__ import annotations
+
 import os
 from errno import EACCES, ENOENT, EROFS
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normpath
+from pathlib import Path
 
+from ..base.constants import PYVENV_CONFIG
 from ..base.context import context
 from ..common._os import is_admin
 from ..common.compat import ensure_text_type, on_win, open
@@ -160,3 +164,44 @@ def _rewrite_environments_txt(environments_txt_file, prefixes):
     except OSError as e:
         log.info("File not cleaned: %s", environments_txt_file)
         log.debug("%r", e, exc_info=True)
+
+
+def set_environment_no_site_packages(prefix: str, remove: bool = False) -> None:
+    """
+    Marks an environment as not using Python's user site packages by inserting a ``pyvenv.cfg``
+    file with ``include-system-site-packages`` set to ``false``
+    """
+    try:
+        path = Path(prefix, PYVENV_CONFIG)
+
+        # If it already exists, we simply delete what is there, so we can replace it
+        if path.exists():
+            path.unlink()
+
+        if not remove:
+            with path.open("w") as fp:
+                fp.write("include-system-site-packages = false\n")
+
+    except OSError as exc:
+        log.error(
+            f'Unable to edit "{PYVENV_CONFIG}" to set "include-system-site-packages"'
+            f' to "false". Reason: {exc}'
+        )
+
+
+def is_environment_no_python_user_packages(prefix: str) -> bool | None:
+    """
+    Determines whether the environment is configured to use Python's user site packages
+    """
+    try:
+        path = Path(prefix, PYVENV_CONFIG)
+
+        if path.exists():
+            lines = tuple(filter(None, path.read_text().replace(" ", "").split("\n")))
+
+            return "include-system-site-packages=false" in lines
+
+        return False
+
+    except OSError as exc:
+        log.error(f'Unable to read "{PYVENV_CONFIG}" for environment. Reason: {exc}')

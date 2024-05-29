@@ -88,6 +88,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
+    from ..core.envs_manager import set_environment_no_site_packages
     from .install import install
 
     if context.force:
@@ -101,4 +102,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     install(args, parser, "update")
+
+    if context.isolate_python_env:
+        set_environment_no_site_packages(context.target_prefix)
+
     return 0

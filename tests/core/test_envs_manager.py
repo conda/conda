@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 from conda.auxlib.collection import AttrDict
-from conda.base.constants import PREFIX_MAGIC_FILE
+from conda.base.constants import PREFIX_MAGIC_FILE, PYVENV_CONFIG
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import on_win
 from conda.common.io import env_var
@@ -18,8 +18,10 @@ from conda.common.path import expand, paths_equal
 from conda.core.envs_manager import (
     _clean_environments_txt,
     get_user_environments_txt_file,
+    is_environment_no_python_user_packages,
     list_all_known_prefixes,
     register_env,
+    set_environment_no_site_packages,
     unregister_env,
 )
 from conda.gateways.disk import mkdir_p
@@ -186,3 +188,86 @@ def test_register_env_directory_creation_error(mocker):
     mock_call, *_ = mock_log.warn.mock_calls
 
     assert f"Could not create {conda_dir}" in mock_call.args[0]
+
+
+def test_set_environment_no_site_packages(tmpdir):
+    """
+    Ensure that the ``pyvenv.cfg`` file is created in the expected location with the expected
+    file contents.
+    """
+    set_environment_no_site_packages(tmpdir)
+
+    config_file = tmpdir / PYVENV_CONFIG
+
+    assert config_file.exists()
+    assert config_file.open().read() == "include-system-site-packages = false\n"
+
+
+def test_set_environment_no_site_packages_remove(tmpdir):
+    """
+    Ensure that the ``pyvenv.cfg`` is removed when remove = True is passed.
+    """
+    config_file = tmpdir / PYVENV_CONFIG
+    config_file.open("w").write("include-system-site-packages = false\n")
+
+    set_environment_no_site_packages(tmpdir, remove=True)
+
+    config_file = tmpdir / PYVENV_CONFIG
+
+    assert not config_file.exists()
+
+
+def test_set_environment_no_site_packages_error(mocker, tmpdir):
+    """
+    Ensure we call the logger when an error is encountered. This will happen on
+    the ``path.unlink`` call
+    """
+    path_mock = mocker.patch("conda.core.envs_manager.Path")
+    log_mock = mocker.patch("conda.core.envs_manager.log")
+    path_mock().unlink.side_effect = OSError("test")
+
+    config_file = tmpdir / PYVENV_CONFIG
+    config_file.open("w").write("include-system-site-packages = false\n")
+
+    set_environment_no_site_packages(tmpdir, remove=True)
+
+    assert log_mock.error.mock_calls == [
+        mocker.call(
+            f'Unable to edit "{PYVENV_CONFIG}" to set "include-system-site-packages"'
+            f' to "false". Reason: test'
+        )
+    ]
+
+
+def test_is_environment_no_python_user_packages_is_true(tmpdir):
+    """
+    Ensure that ``is_environment_no_python_user_packages`` returns ``True``
+    """
+    config_file = tmpdir / PYVENV_CONFIG
+    config_file.open("w").write("include-system-site-packages = false\n")
+
+    result = is_environment_no_python_user_packages(tmpdir)
+
+    assert result
+
+
+def test_is_environment_no_python_user_packages_is_false(tmpdir):
+    """
+    Ensure that ``is_environment_no_python_user_packages`` returns ``False``
+    """
+    result = is_environment_no_python_user_packages(tmpdir)
+
+    assert not result
+
+
+def test_is_environment_no_python_user_packages_is_none(mocker, tmpdir):
+    """
+    Ensure that ``is_environment_no_python_user_packages`` returns ``None``.
+    This happens when an error occurs while trying to open the file.
+    """
+    path_mock = mocker.patch("conda.core.envs_manager.Path")
+    path_mock().read_text.side_effect = OSError("test")
+
+    result = is_environment_no_python_user_packages(tmpdir)
+
+    assert result is None

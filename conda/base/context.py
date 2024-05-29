@@ -442,6 +442,8 @@ class Context(Configuration):
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
 
+    isolate_python_env = ParameterLoader(PrimitiveParameter(False))
+
     ####################################################
     #               Solver Configuration               #
     ####################################################
@@ -1262,6 +1264,7 @@ class Context(Configuration):
                 "separate_format_cache",
                 "verify_threads",
                 "execute_threads",
+                "isolate_python_env",
             ),
             "Conda-build Configuration": (
                 "bld_path",
@@ -1634,6 +1637,12 @@ class Context(Configuration):
             no_plugins=dals(
                 """
                 Disable all currently-registered plugins, except built-in conda plugins.
+                """
+            ),
+            isolate_python_env=dals(
+                """
+                Disables using user site packages, which are installed via `pip install --user`,
+                in conda environments.
                 """
             ),
             non_admin_enabled=dals(
