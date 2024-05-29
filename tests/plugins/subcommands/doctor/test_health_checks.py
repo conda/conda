@@ -29,8 +29,8 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.fixture
-def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str, str]]:
+@pytest.fixture(params=[".pyo", ".pyc"])
+def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]:
     """Fixture that returns a testing environment with no missing files"""
     package = uuid.uuid4().hex
 
@@ -45,8 +45,8 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str, str]]:
     lib_doctor = f"lib/{package}.py"
     (tmp_path / lib_doctor).touch()
 
-    pyc_doctor = f"pycache/{package}.pyc"
-    (tmp_path / pyc_doctor).touch()
+    ignored_doctor = f"pycache/{package}.{request.param}"
+    (tmp_path / ignored_doctor).touch()
 
     # A template json file mimicking a json file in conda-meta
     # the "sha256" and "sha256_in_prefix" values are sha256 checksum generated for an empty file
@@ -54,7 +54,7 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str, str]]:
         "files": [
             bin_doctor,
             lib_doctor,
-            pyc_doctor,
+            ignored_doctor,
         ],
         "paths_data": {
             "paths": [
@@ -69,7 +69,7 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str, str]]:
                     "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
                 {
-                    "_path": pyc_doctor,
+                    "_path": ignored_doctor,
                     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
@@ -80,7 +80,7 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str, str]]:
 
     (tmp_path / "conda-meta" / f"{package}.json").write_text(json.dumps(PACKAGE_JSON))
 
-    yield tmp_path, bin_doctor, lib_doctor, pyc_doctor, package
+    yield tmp_path, bin_doctor, lib_doctor, ignored_doctor, package
 
 
 @pytest.fixture
@@ -88,9 +88,9 @@ def env_missing_files(
     env_ok: tuple[Path, str, str, str, str],
 ) -> tuple[Path, str, str, str, str]:
     """Fixture that returns a testing environment with missing files"""
-    prefix, bin_doctor, _, pyc_doctor, _ = env_ok
+    prefix, bin_doctor, _, ignored_doctor, _ = env_ok
     (prefix / bin_doctor).unlink()  # file bin_doctor becomes "missing"
-    (prefix / pyc_doctor).unlink()  # file pyc_doctor becomes "missing"
+    (prefix / ignored_doctor).unlink()  # file ignored_doctor becomes "missing"
 
     return env_ok
 
@@ -145,7 +145,7 @@ def test_no_missing_files(env_ok: tuple[Path, str, str, str, str]):
 
 
 def test_missing_files(env_missing_files: tuple[Path, str, str, str, str]):
-    prefix, bin_doctor, _, pyc_doctor, package = env_missing_files
+    prefix, bin_doctor, _, ignored_doctor, package = env_missing_files
     assert find_packages_with_missing_files(prefix) == {package: [bin_doctor]}
 
 
@@ -164,12 +164,12 @@ def test_altered_files(env_altered_files: tuple[Path, str, str, str, str]):
 def test_missing_files_action(
     env_missing_files: tuple[Path, str, str, str, str], capsys, verbose
 ):
-    prefix, bin_doctor, _, pyc_doctor, package = env_missing_files
+    prefix, bin_doctor, _, ignored_doctor, package = env_missing_files
     missing_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(bin_doctor) in captured.out
-        assert str(pyc_doctor) not in captured.out
+        assert str(ignored_doctor) not in captured.out
     else:
         assert f"{package}: 1" in captured.out
 
@@ -286,7 +286,7 @@ def test_display_health_checks(
     monkeypatch: MonkeyPatch,
 ):
     """Test that runs display_health_checks without missing or altered files."""
-    prefix, bin_doctor, lib_doctor, pyc_doctor, package = env_ok
+    prefix, bin_doctor, lib_doctor, ignored_doctor, package = env_ok
     monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
@@ -303,14 +303,14 @@ def test_display_health_checks_missing_files(
     monkeypatch: MonkeyPatch,
 ):
     """Test that runs display_health_checks with missing files"""
-    prefix, bin_doctor, _, pyc_doctor, package = env_missing_files
+    prefix, bin_doctor, _, ignored_doctor, package = env_missing_files
     monkeypatch.setenv("CONDA_PREFIX", str(prefix))
     reset_context()
     display_health_checks(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(bin_doctor) in captured.out
-        assert str(pyc_doctor) not in captured.out
+        assert str(ignored_doctor) not in captured.out
     else:
         assert f"{package}: 1" in captured.out
 
