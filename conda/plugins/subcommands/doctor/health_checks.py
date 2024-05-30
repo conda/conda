@@ -57,8 +57,8 @@ def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
 
 
 def excluded_files_check(filename: str) -> bool:
-    excluded_extentions = (".pyc", ".pyo")
-    return filename.endswith(excluded_extentions)
+    excluded_extensions = (".pyc", ".pyo")
+    return filename.endswith(excluded_extensions)
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
