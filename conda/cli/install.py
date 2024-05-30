@@ -9,6 +9,7 @@ conda.cli.main_remove for the entry points into this module.
 """
 
 import os
+import textwrap
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
@@ -18,10 +19,10 @@ from boltons.setutils import IndexedSet
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
-from ..base.context import context, locate_prefix_by_name
+from ..base.context import context, locate_prefix_by_name, validate_prefix_name
 from ..common.constants import NULL
 from ..common.io import Spinner
-from ..common.path import is_package_file, paths_equal
+from ..common.path import expand, is_package_file, paths_equal
 from ..core.index import (
     _supplement_index_with_prefix,
     calculate_channel_urls,
@@ -31,6 +32,7 @@ from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
 from ..exceptions import (
+    CondaEnvException,
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
@@ -67,27 +69,47 @@ stderrlog = getLogger("conda.stderr")
 def validate_prefix_exists(prefix) -> str:
     """
     Validate that we are receiving at least one valid value for --name or
-    --prefix and ensure that the "base" environment is not being renamed
+    --prefix and ensure that the "base" environment is not being overridden.
     """
-    from ..base.context import context
-    from ..exceptions import CondaEnvException
-
     prefix = Path(prefix)
     if not prefix.exists():
         raise CondaEnvException(f"The environment {prefix} does not exist.")
     return context.target_prefix
 
 
-def validate_new_prefix(dest: str, force: bool = False) -> str:
-    """Ensure that the new prefix does not exist"""
-    from ..base.context import context, validate_prefix_name
-    from ..common.path import expand
-    from ..exceptions import CondaEnvException
+def check_protected_dirs(prefix: str, json=False) -> None:
+    """Ensure that the new prefix does not contain protected directories."""
+    protected_dirs = ["conda-meta", "condabin", "ssl", "bin", "etc", "conda-env"]
+    parent_dir = os.path.abspath(os.path.join(Path(prefix), os.pardir))
 
+    error = None
+
+    if exists(parent_dir):
+        for dir in protected_dirs:
+            if dir in os.listdir(parent_dir):
+                error = textwrap.dedent(
+                    f"""
+                    The specified prefix '{prefix}'
+                    contains a protected directory: {dir}. Cannot create an environment at this location.
+                    """
+                )
+    else:
+        common.confirm_yn(
+            f"The parent directory of '{prefix}' does not exist.\nContinue creating this environment?"
+        )
+
+    if error:
+        raise CondaEnvException(error, json)
+
+
+def validate_new_prefix(dest: str, force: bool = False) -> str:
+    """Ensure that the new prefix does not exist."""
     if os.sep in dest:
         dest = expand(dest)
     else:
         dest = validate_prefix_name(dest, ctx=context, allow_base=False)
+
+    check_protected_dirs(dest)
 
     if not force and os.path.exists(dest):
         env_name = os.path.basename(os.path.normpath(dest))
@@ -97,7 +119,7 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
     return dest
 
 
-def check_prefix(prefix, json=False):
+def check_prefix(prefix: str, json=False):
     if os.pathsep in prefix:
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."

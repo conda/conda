@@ -105,7 +105,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env import specs
     from ..env.env import get_filename, print_result
     from ..env.installers.base import get_installer
-    from ..exceptions import CondaEnvException, InvalidInstaller
+    from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from ..misc import touch_nonadmin
     from . import install as cli_install
@@ -125,18 +125,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     prefix = determine_target_prefix(context, args)
 
-    protected_dirs = ["condabin", "ssl", "bin", "conda-meta", "etc", "conda-env"]
-    parent_dir = os.path.abspath(os.path.join(prefix, os.pardir))
-    if os.path.exists(prefix) and os.path.exists(parent_dir):
-        for dir in protected_dirs:
-            if dir in os.listdir(prefix) or dir in os.listdir(parent_dir):
-                raise CondaEnvException(
-                    f"The specified prefix '{prefix}' contains protected directories. Cannot create environment at this location."
-                )
-
     if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
-    cli_install.check_prefix(prefix, json=args.json)
+    cli_install.check_prefix(prefix)
+    cli_install.check_protected_dirs(prefix)
 
     # TODO, add capability
     # common.ensure_override_channels_requires_channel(args)
