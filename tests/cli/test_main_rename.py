@@ -90,7 +90,9 @@ def test_rename_by_name_name_already_exists_error(
     """Test to ensure that we do not rename if the name already exists"""
     with pytest.raises(
         CondaEnvException,
-        match=f"The environment '{env_one}' already exists. Override with --yes",
+        # TODO: Once the "--force" flag option is removed in version 25.3.x,
+        # the message below needs to suggest using "--yes" instead
+        match=f"The environment '{env_one}' already exists. Override with --force",
     ):
         conda_cli("rename", "--name", env_one, env_one)
 
@@ -105,7 +107,9 @@ def test_rename_by_path_path_already_exists_error(
     """Test to ensure that we do not rename if the path already exists"""
     with pytest.raises(
         CondaEnvException,
-        match=f"The environment '{tmp_path.name}' already exists. Override with --yes",
+        # TODO: Once the "--force" flag option is removed in version 25.3.x,
+        # the message below needs to suggest using "--yes" instead
+        match=f"The environment '{tmp_path.name}' already exists. Override with --force",
     ):
         conda_cli("rename", "--name", env_one, tmp_path)
 
@@ -176,7 +180,7 @@ def test_cannot_rename_nonexistent_env(conda_cli: CondaCLIFixture, env_rename: s
 
 def test_rename_with_force(conda_cli: CondaCLIFixture, env_one: str, env_two: str):
     """
-    Runs a test where we specify the --yes flag to remove an existing directory.
+    Runs a test where we specify the --force flag to remove an existing directory.
     Without this flag, it would return with an error message.
     """
     # Do a force rename
@@ -194,7 +198,7 @@ def test_rename_with_force_with_errors(
     mocker: MockerFixture,
 ):
     """
-    Runs a test where we specify the --yes flag to remove an existing directory.
+    Runs a test where we specify the --force flag to remove an existing directory.
     Additionally, in this test, we mock an exception to recreate a failure condition.
     """
     error_message = uuid.uuid4().hex
@@ -214,7 +218,7 @@ def test_rename_with_force_with_errors_prefix(
     tmp_path: Path,
 ):
     """
-    Runs a test using --yes flag while mocking an exception.
+    Runs a test using --force flag while mocking an exception.
     Specifically targets environments created using the -p flag.
     """
     error_message = uuid.uuid4().hex

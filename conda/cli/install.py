@@ -113,8 +113,10 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
 
     if not force and os.path.exists(dest):
         env_name = os.path.basename(os.path.normpath(dest))
+        # TODO: Once the "--force" flag option is removed in version 25.3.x,
+        # the message below needs to suggest using "--yes" instead
         raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --yes."
+            f"The environment '{env_name}' already exists. Override with --force."
         )
     return dest
 

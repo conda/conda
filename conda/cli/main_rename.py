@@ -7,6 +7,7 @@ Renames an existing environment by cloning it and then removing the original env
 
 from __future__ import annotations
 
+from argparse import _StoreTrueAction
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -58,11 +59,16 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_prefix(p)
 
     p.add_argument("destination", help="New name for the conda environment.")
-    # TODO: deprecate --force in favor of --yes
     p.add_argument(
         "--force",
+        dest="yes",
         help="Force rename of an environment.",
-        action="store_true",
+        action=deprecated.action(
+            "24.9",
+            "25.3",
+            _StoreTrueAction,
+            addendum="Use `--yes` instead.",
+        ),
         default=False,
     )
     p.add_argument(
@@ -120,7 +126,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.update import rename_context
 
     source = validate_src()
-    destination = validate_destination(args.destination, force=args.force)
+    destination = validate_destination(args.destination, force=args.yes)
 
     def clone_and_remove() -> None:
         actions: tuple[partial, ...] = (
@@ -141,7 +147,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             else:
                 func()
 
-    if args.force:
+    if args.yes:
         with rename_context(destination, dry_run=args.dry_run):
             clone_and_remove()
     else:
