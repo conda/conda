@@ -169,7 +169,7 @@ def test_cannot_rename_nonexistent_env(conda_cli: CondaCLIFixture, env_rename: s
     env_dir = Path(context.root_prefix) / "foo"
     with pytest.raises(
         CondaEnvException,
-        match=f"The environment {env_dir} does not exist",
+        match="The environment you have specified does not exist.",
     ):
         conda_cli("rename", "--prefix", env_dir, env_rename)
 

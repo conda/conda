@@ -97,16 +97,13 @@ def validate_src() -> str:
 
     prefix = Path(context.target_prefix)
     validate_prefix_exists(prefix)
-    check_protected_dirs(prefix)
 
-    if not prefix.exists():
-        raise CondaEnvException(
-            "The environment you are trying to rename does not exist."
-        )
     if prefix.samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
     if context.active_prefix and prefix.samefile(context.active_prefix):
         raise CondaEnvException("Cannot rename the active environment")
+    else:
+        check_protected_dirs(prefix)
 
     return str(prefix)
 

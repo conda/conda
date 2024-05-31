@@ -19,10 +19,10 @@ from boltons.setutils import IndexedSet
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
-from ..base.context import context, locate_prefix_by_name, validate_prefix_name
+from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.io import Spinner
-from ..common.path import expand, is_package_file, paths_equal
+from ..common.path import is_package_file, paths_equal
 from ..core.index import (
     _supplement_index_with_prefix,
     calculate_channel_urls,
@@ -68,12 +68,11 @@ stderrlog = getLogger("conda.stderr")
 
 def validate_prefix_exists(prefix) -> str:
     """
-    Validate that we are receiving at least one valid value for --name or
-    --prefix and ensure that the "base" environment is not being overridden.
+    Validate that we are receiving at least one valid value for --name or --prefix.
     """
     prefix = Path(prefix)
     if not prefix.exists():
-        raise CondaEnvException(f"The environment {prefix} does not exist.")
+        raise CondaEnvException("The environment you have specified does not exist.")
     return context.target_prefix
 
 
@@ -104,12 +103,13 @@ def check_protected_dirs(prefix: str, json=False) -> None:
 
 def validate_new_prefix(dest: str, force: bool = False) -> str:
     """Ensure that the new prefix does not exist."""
+    from ..base.context import context, validate_prefix_name
+    from ..common.path import expand
+
     if os.sep in dest:
         dest = expand(dest)
     else:
         dest = validate_prefix_name(dest, ctx=context, allow_base=False)
-
-    check_protected_dirs(dest)
 
     if not force and os.path.exists(dest):
         env_name = os.path.basename(os.path.normpath(dest))
@@ -118,6 +118,7 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
         raise CondaEnvException(
             f"The environment '{env_name}' already exists. Override with --force."
         )
+
     return dest
 
 
