@@ -68,9 +68,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Create a new environment as a copy of an existing local environment.",
         metavar="ENV",
     )
-    solver_mode_options, _, channel_options = add_parser_create_install_update(
-        p, prefix_required=True
-    )
+    solver_mode_options, _, channel_options = add_parser_create_install_update(p)
     add_parser_default_packages(solver_mode_options)
     add_parser_platform(channel_options)
     add_parser_solver(solver_mode_options)
@@ -100,13 +98,26 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    import os
+    from tempfile import mktemp
+
+    from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
     from ..common.path import paths_equal
-    from ..exceptions import CondaValueError
+    from ..exceptions import ArgumentError, CondaValueError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
     from .common import confirm_yn
     from .install import install
+
+    if not args.name and not args.prefix:
+        if context.dry_run:
+            args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
+            context.__init__(argparse_args=args)
+        else:
+            raise ArgumentError(
+                "one of the arguments -n/--name -p/--prefix is required"
+            )
 
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
