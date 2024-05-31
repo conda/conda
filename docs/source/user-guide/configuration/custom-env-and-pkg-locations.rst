@@ -15,12 +15,12 @@ the folder ``/volume/user`` with more disk space is writable,
 the best way to configure this is by adding the following entries to the
 ``.condarc`` file in the user's home directory:
 
-```yaml
-envs_dirs:
-  - /volume/user/conda_envs
-pkgs_dirs:
-  - /volume/user/conda_pkgs
-```
+   .. code-block:: yaml
+
+      envs_dirs:
+        - /volume/user/conda_envs
+      pkgs_dirs:
+        - /volume/user/conda_pkgs
 
 In the example above, we tell conda to use the folder ``/volume/user/conda_envs``
 to store all of the environments we create, and we tell conda to use
