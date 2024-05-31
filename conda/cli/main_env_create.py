@@ -127,7 +127,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
-    cli_install.check_prefix(prefix)
+    cli_install.check_prefix(prefix, json=args.json)
     cli_install.check_protected_dirs(prefix)
 
     # TODO, add capability

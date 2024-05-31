@@ -93,10 +93,11 @@ def validate_src() -> str:
     """
     from ..base.context import context
     from ..exceptions import CondaEnvException
-    from .install import validate_prefix_exists
+    from .install import check_protected_dirs, validate_prefix_exists
 
     prefix = Path(context.target_prefix)
     validate_prefix_exists(prefix)
+    check_protected_dirs(prefix)
 
     if not prefix.exists():
         raise CondaEnvException(
