@@ -24,7 +24,7 @@ from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
-from ..common.url import mask_anaconda_token, remove_auth
+from ..common.url import mask_anaconda_token
 from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
