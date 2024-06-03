@@ -67,11 +67,14 @@ class Index(UserDict):
             channels = ["local"] + list(channels)
         if prepend:
             channels += context.channels
+        self._channels = channels
         if subdirs:
             if platform:
                 log.warn("subdirs is %s, ignoring platform %s", subdirs, platform)
         else:
             subdirs = (platform, "noarch") if platform is not None else context.subdirs
+        self._subdirs = subdirs
+        self._repodata_fn = repodata_fn
         self.channels = {}
         self.expanded_channels = []
         for channel in channels:
@@ -83,7 +86,12 @@ class Index(UserDict):
                 for expanded_channel in expanded_channels
             ]
             self.expanded_channels.extend(expanded_channels)
-        self.prefix = PrefixData(prefix) if prefix else None
+        if prefix is None:
+            self.prefix = None
+        elif isinstance(prefix, PrefixData):
+            self.prefix = prefix
+        else:
+            self.prefix = PrefixData(prefix)
         self.unknown = True if unknown is None and context.offline else unknown
         self.track_features = context.track_features
         self.add_system = add_system
@@ -99,6 +107,20 @@ class Index(UserDict):
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
         return f"Index(channels=[{channels}])"
+
+    def get_reduced_index(self, specs):
+        return ReducedIndex(
+            specs=specs,
+            channels=self._channels,
+            prepend=False,
+            subdirs=self._subdirs,
+            use_local=False,
+            use_cache=False,
+            unknown=self.unknown,
+            prefix=self.prefix,
+            repodata_fn=self._repodata_fn,
+            add_system=self.add_system,
+        )
 
     @property
     def data(self):
