@@ -25,6 +25,7 @@ from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
 from ..common.url import mask_anaconda_token
+from ..common.url import remove_auth as url_remove_auth
 from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
@@ -135,7 +136,7 @@ class PrefixData(metaclass=PrefixDataType):
             rm_rf(prefix_record_json_path)
         if remove_auth:
             prefix_record_json = prefix_record.dump()
-            prefix_record_json["url"] = remove_auth(
+            prefix_record_json["url"] = url_remove_auth(
                 mask_anaconda_token(prefix_record.url)
             )
         else:
