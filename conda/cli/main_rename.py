@@ -108,13 +108,6 @@ def validate_src() -> str:
     return str(prefix)
 
 
-def validate_destination(dest: str, force: bool = False) -> str:
-    """Ensure that our destination prefix does not exist"""
-    from .install import validate_new_prefix
-
-    return validate_new_prefix(dest, force=force)
-
-
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """Executes the command for renaming an existing environment."""
     from ..base.constants import DRY_RUN_PREFIX
@@ -122,9 +115,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..cli import install
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.update import rename_context
+    from .install import validate_new_prefix
 
     source = validate_src()
-    destination = validate_destination(args.destination, force=args.yes)
+    destination = validate_new_prefix(args.destination, force=args.yes)
 
     def clone_and_remove() -> None:
         actions: tuple[partial, ...] = (
