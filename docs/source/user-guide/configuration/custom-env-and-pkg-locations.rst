@@ -28,4 +28,8 @@ to store all of the environments we create, and we tell conda to use
 
 To save even more space, the contents of ``/volume/user/conda_pkgs`` will be
 hard linked to the environments in ``/volume/user/conda_envs`` when possible.
-When it is not possible, the files will be copied over to the environment.
+This means that ``pkgs_dirs`` will normally take up the most space for a conda
+installation. But, when hard linking is not possible, the files will be copied
+over to the environment which means each new environment increases the amount
+of disk space taken. To ensure this hard linking works properly, we recommend
+to always store the ``envs_dirs`` and ``pkgs_dirs`` on the same mounted volume.
