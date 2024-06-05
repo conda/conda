@@ -92,10 +92,6 @@ def check_protected_dirs(prefix: str, json=False) -> None:
                     contains a protected directory: {dir}. Cannot create an environment at this location.
                     """
                 )
-    else:
-        common.confirm_yn(
-            f"The parent directory of '{prefix}' does not exist.\nContinue creating this environment?"
-        )
 
     if error:
         raise CondaEnvException(error, json)
