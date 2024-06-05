@@ -1,0 +1,19 @@
+### Enhancements
+
+* Skip checking for `.pyc` and `.pyo` files in the `conda doctor` "missing files" health check. (#13370 via #13931)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
