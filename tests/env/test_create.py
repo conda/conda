@@ -10,8 +10,8 @@ from pytest import MonkeyPatch
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
-from conda.testing import CondaCLIFixture, PathFactoryFixture
+from conda.exceptions import CondaEnvException, CondaValueError
+from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
 
 from . import support_file
@@ -286,3 +286,17 @@ def test_create_env_json(
 
     for string in stdout and stdout.split("\0") or ():
         json.loads(string)
+
+
+def test_protected_dirs_exist(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
+        with pytest.raises(CondaEnvException) as error:
+            conda_cli(
+                "env",
+                "create",
+                f"--prefix={prefix}/envs",
+                "--file",
+                support_file("example/environment_pinned.yml"),
+            )
+
+        assert "contains a protected directory:" in str(error.value)
