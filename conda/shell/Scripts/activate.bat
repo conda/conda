@@ -8,21 +8,21 @@
 :: Rather than the correct
 ::    %windir%\system32\cmd.exe /K ""C:\Users\builder\Miniconda3\Scripts\activate.bat" "C:\Users\builder\Miniconda3""
 :: this solution taken from https://stackoverflow.com/a/31359867
-@set "_args1=%1"
-@set _args1_first=%_args1:~0,1%
-@set _args1_last=%_args1:~-1%
-@set _args1_first=%_args1_first:"=+%
-@set _args1_last=%_args1_last:"=+%
-@set _args1=
+@SET "_args1=%1"
+@SET _args1_first=%_args1:~0,1%
+@SET _args1_last=%_args1:~-1%
+@SET _args1_first=%_args1_first:"=+%
+@SET _args1_last=%_args1_last:"=+%
+@SET _args1=
 
-@if "%_args1_first%"=="+" if NOT "%_args1_last%"=="+" (
+@IF "%_args1_first%"=="+" IF NOT "%_args1_last%"=="+" (
     @CALL "%~dp0..\condabin\conda.bat" activate
-    @GOTO :End
+    @GOTO :CLEANUP
 )
 
 :: This may work if there are spaces in anything in %*
 @CALL "%~dp0..\condabin\conda.bat" activate %*
 
-:End
-@set _args1_first=
-@set _args1_last=
+:CLEANUP
+@SET _args1_first=
+@SET _args1_last=

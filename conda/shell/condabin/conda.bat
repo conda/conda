@@ -1,10 +1,6 @@
 :: Copyright (C) 2012 Anaconda, Inc
 :: SPDX-License-Identifier: BSD-3-Clause
 
-:: echo _CE_CONDA is %_CE_CONDA%
-:: echo _CE_M is %_CE_M%
-:: echo CONDA_EXE is %CONDA_EXE%
-
 @IF NOT DEFINED _CE_CONDA (
   @SET _CE_M=
   @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
