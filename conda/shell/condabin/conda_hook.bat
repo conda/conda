@@ -1,7 +1,7 @@
-@REM Copyright (C) 2012 Anaconda, Inc
-@REM SPDX-License-Identifier: BSD-3-Clause
-@REM The file name is conda_hook.bat rather than conda-hook.bat because conda will see
-@REM the latter as a 'conda hook' command.
+:: Copyright (C) 2012 Anaconda, Inc
+:: SPDX-License-Identifier: BSD-3-Clause
+:: The file name is conda_hook.bat rather than conda-hook.bat because conda will see
+:: the latter as a 'conda hook' command.
 
 @IF DEFINED CONDA_SHLVL GOTO :EOF
 
