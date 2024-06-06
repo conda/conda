@@ -15,7 +15,7 @@
 @SET _args1_last=%_args1_last:"=+%
 @SET _args1=
 
-@IF "%_args1_first%"=="+" IF NOT "%_args1_last%"=="+" (
+@IF "%_args1_first%"=="+" IF NOT "%_args1_last%"=="+" @(
     @CALL "%~dp0..\condabin\conda.bat" activate
     @GOTO :CLEANUP
 )
