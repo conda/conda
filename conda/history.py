@@ -137,7 +137,7 @@ class History:
             m = sep_pat.match(line)
             if m:
                 res.append((m.group(1), set(), []))
-            elif line.startswith("#"):
+            elif line.startswith("#") and len(res) > 0:
                 res[-1][2].append(line)
             elif len(res) > 0:
                 res[-1][1].add(line)
