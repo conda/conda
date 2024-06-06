@@ -8,6 +8,8 @@ See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
 
+from __future__ import annotations
+
 import os
 import textwrap
 from logging import getLogger
@@ -66,14 +68,15 @@ log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
-def validate_prefix_exists(prefix) -> str:
+def validate_prefix_exists(prefix: str | Path) -> Path:
     """
     Validate that we are receiving at least one valid value for --name or --prefix.
     """
     prefix = Path(prefix)
     if not prefix.exists():
         raise CondaEnvException("The environment you have specified does not exist.")
-    return context.target_prefix
+
+    return prefix
 
 
 def check_protected_dirs(prefix: str, json=False) -> None:
