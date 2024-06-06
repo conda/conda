@@ -81,18 +81,20 @@ def validate_prefix_exists(prefix: str | Path) -> Path:
 
 def check_protected_dirs(prefix: str, json=False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
-    protected_dirs = ["conda-meta", "condabin", "ssl", "bin", "etc", "conda-env"]
     parent_dir = os.path.abspath(os.path.join(Path(prefix), os.pardir))
-
     error = None
 
     if exists(parent_dir):
-        for dir in protected_dirs:
-            if dir in os.listdir(parent_dir):
+        conda_meta_dir = os.path.join(parent_dir, "conda-meta")
+        if os.path.isdir(conda_meta_dir):
+            history_file = os.path.join(conda_meta_dir, "history")
+            if os.path.isfile(history_file):
                 error = textwrap.dedent(
                     f"""
                     The specified prefix '{prefix}'
-                    contains a protected directory: {dir}. Cannot create an environment at this location.
+                    contains a protected directory, 'conda-meta', and a 'history' file within it.
+                    Creating an environment in this location will potentially risk the deletion
+                    of other conda environments. Aborting.
                     """
                 )
 

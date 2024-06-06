@@ -299,4 +299,4 @@ def test_protected_dirs_exist(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
                 support_file("example/environment_pinned.yml"),
             )
 
-        assert "contains a protected directory:" in str(error.value)
+        assert "contains a protected directory" in str(error.value)
