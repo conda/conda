@@ -123,6 +123,9 @@ class History:
         """Parse the history file.
 
         Return a list of tuples(datetime strings, set of distributions/diffs, comments).
+
+        Comments appearing before the first section header (e.g. ``==> 2024-01-01 00:00:00 <==``)
+        in the history file will be ignored.
         """
         res = []
         if not isfile(self.path):
@@ -137,9 +140,9 @@ class History:
             m = sep_pat.match(line)
             if m:
                 res.append((m.group(1), set(), []))
-            elif line.startswith("#") and len(res) > 0:
+            elif line.startswith("#") and res:
                 res[-1][2].append(line)
-            elif len(res) > 0:
+            elif res:
                 res[-1][1].add(line)
         return res
 
