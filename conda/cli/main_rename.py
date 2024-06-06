@@ -107,6 +107,31 @@ def validate_src() -> str:
     return str(prefix)
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `conda.cli.install.validate_new_prefix` instead.",
+)
+def validate_destination(dest: str, force: bool = False) -> str:
+    """Ensure that our destination does not exist"""
+    import os
+
+    from ..base.context import context, validate_prefix_name
+    from ..common.path import expand
+    from ..exceptions import CondaEnvException
+
+    if os.sep in dest:
+        dest = expand(dest)
+    else:
+        dest = validate_prefix_name(dest, ctx=context, allow_base=False)
+    if not force and os.path.exists(dest):
+        env_name = os.path.basename(os.path.normpath(dest))
+        raise CondaEnvException(
+            f"The environment '{env_name}' already exists. Override with --force."
+        )
+    return dest
+
+
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """Executes the command for renaming an existing environment."""
     from ..base.constants import DRY_RUN_PREFIX
