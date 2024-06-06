@@ -1,26 +1,39 @@
-@REM Copyright (C) 2012 Anaconda, Inc
-@REM SPDX-License-Identifier: BSD-3-Clause
+:: Copyright (C) 2012 Anaconda, Inc
+:: SPDX-License-Identifier: BSD-3-Clause
 
-@REM echo _CE_CONDA is %_CE_CONDA%
-@REM echo _CE_M is %_CE_M%
-@REM echo CONDA_EXE is %CONDA_EXE%
+:: disable displaying the command before execution
+@ECHO OFF
 
-@IF NOT DEFINED _CE_CONDA (
-  @SET _CE_M=
-  @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
+:: set CONDA_EXE if undefined
+IF DEFINED CONDA_EXE GOTO :SKIP_INIT
+
+:: enter localized variable scope
+SETLOCAL
+
+FOR %%P IN ("%~dp0\..") DO SET "__condaroot=%%~fP"
+SET "CONDA_EXE=%__condaroot%\Scripts\conda.exe"
+SET _CE_M=
+SET _CE_CONDA=
+
+:: exit localized variable scope
+ENDLOCAL & (
+    SET "CONDA_EXE=%CONDA_EXE%"
+    SET "_CE_M=%_CE_M%"
+    SET "_CE_CONDA=%_CE_CONDA%"
 )
-@IF [%1]==[activate]   "%~dp0_conda_activate" %*
-@IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
-@SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
-@CALL %CONDA_EXES% %*
+:SKIP_INIT
 
-@IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
+:: "source" _conda_activate.bat script, we do not return from this script
+IF [%1]==[activate]   "%~dp0\_conda_activate.bat" %*
+IF [%1]==[deactivate] "%~dp0\_conda_activate.bat" %*
 
-@IF [%1]==[install]   "%~dp0_conda_activate" reactivate
-@IF [%1]==[update]    "%~dp0_conda_activate" reactivate
-@IF [%1]==[upgrade]   "%~dp0_conda_activate" reactivate
-@IF [%1]==[remove]    "%~dp0_conda_activate" reactivate
-@IF [%1]==[uninstall] "%~dp0_conda_activate" reactivate
+:: call conda subroutine
+(CALL "%CONDA_EXE%" %_CE_M% %_CE_CONDA% %*) || EXIT /B %ERRORLEVEL%
 
-@EXIT /B %errorlevel%
+:: "source" _conda_activate.bat script, we do not return from this script
+IF [%1]==[install]   "%~dp0\_conda_activate.bat" reactivate
+IF [%1]==[update]    "%~dp0\_conda_activate.bat" reactivate
+IF [%1]==[upgrade]   "%~dp0\_conda_activate.bat" reactivate
+IF [%1]==[remove]    "%~dp0\_conda_activate.bat" reactivate
+IF [%1]==[uninstall] "%~dp0\_conda_activate.bat" reactivate

@@ -2329,7 +2329,8 @@ class InteractiveShellType(type):
             #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
             #                                    join(sys.prefix, "Scripts", "conda.exe")),
             "init_command": (
-                '@SET "CONDA_SHLVL=" '
+                "@DOSKEY conda= "
+                '&& @SET "CONDA_SHLVL=" '
                 f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {dev_arg} "
                 f'&& @SET "CONDA_EXE={sys.executable}" '
                 '&& @SET "_CE_M=-m" '

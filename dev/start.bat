@@ -1,148 +1,149 @@
-@CALL :CLEANUP
+:: disable displaying the command before execution
+@ECHO OFF
+
+CALL :CLEANUP
 
 :: preserve script for help
-@SET "_SCRIPT=%~0"
+SET "_SCRIPT=%~f0"
 
 :: get source path
-@PUSHD "%~dp0\.."
-@SET "_SRC=%CD%"
-@POPD
+FOR %%P IN ("%~dp0\..") DO SET "_SRC=%%~fP"
 
 :: parse args
 :ARGS_LOOP
-@IF "%~1"=="" @GOTO :ARGS_END
+IF [%~1]==[] GOTO :ARGS_END
 
 :: convert to uppercase
-@FOR /F "usebackq delims=" %%I IN (`powershell.exe "'%~1'.toUpper()"`) DO @SET "_ARG=%%~I"
+FOR /F "usebackq delims=" %%I IN (`powershell.exe "'%~1'.toUpper()"`) DO SET "_ARG=%%~I"
 
-@IF "%_ARG%"=="/P" (
-    @SET "_PYTHON=%~2"
-    @SHIFT
-    @SHIFT
-    @GOTO :ARGS_LOOP
+IF [%_ARG%]==[/P] (
+    SET "_PYTHON=%~2"
+    SHIFT
+    SHIFT
+    GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/U" (
-    @SET "_UPDATE=0"
-    @SHIFT
-    @GOTO :ARGS_LOOP
+IF [%_ARG%]==[/U] (
+    SET "_UPDATE=0"
+    SHIFT
+    GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/D" (
-    @SET "_DEVENV=%~2"
-    @SHIFT
-    @SHIFT
-    @GOTO :ARGS_LOOP
+IF [%_ARG%]==[/D] (
+    SET "_DEVENV=%~2"
+    SHIFT
+    SHIFT
+    GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/N" (
-    @SET "_DRYRUN=0"
-    @SHIFT
-    @GOTO :ARGS_LOOP
+IF [%_ARG%]==[/N] (
+    SET "_DRYRUN=0"
+    SHIFT
+    GOTO :ARGS_LOOP
 )
-@IF "%_ARG%"=="/?" (
-    @ECHO Usage: %_SCRIPT% [options]
-    @ECHO.
-    @ECHO Options:
-    @ECHO   /P  VERSION  Python version for the env to activate. ^(default: 3.10^)
-    @ECHO   /U           Force update packages. ^(default: update every 24 hours^)
-    @ECHO   /D  PATH     Path to base env install, can also be defined in ~\.condarc.
-    @ECHO                Path is appended with Windows. ^(default: devenv^)
-    @ECHO   /N           Display env to activate. ^(default: false^)
-    @ECHO.  /?           Display this.
-    @EXIT /B 0
+IF [%_ARG%]==[/?] (
+    ECHO Usage: %_SCRIPT% [options]
+    ECHO.
+    ECHO Options:
+    ECHO   /P  VERSION  Python version for the env to activate. ^(default: 3.10^)
+    ECHO   /U           Force update packages. ^(default: update every 24 hours^)
+    ECHO   /D  PATH     Path to base env install, can also be defined in ~\.condarc.
+    ECHO                Path is appended with Windows. ^(default: devenv^)
+    ECHO   /N           Display env to activate. ^(default: false^)
+    ECHO.  /?           Display this.
+    EXIT /B 0
 )
-@ECHO Error: unknown option %~1 1>&2
-@EXIT /B 1
+ECHO Error: unknown option %~1 1>&2
+GOTO :ERROR
 :ARGS_END
 
 :: fallback to default values
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
-@IF "%_UPDATE%"=="" @SET "_UPDATE=1"
-@IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
+IF NOT DEFINED _PYTHON SET "_PYTHON=3.10"
+IF NOT DEFINED _UPDATE SET "_UPDATE=1"
+IF NOT DEFINED _DRYRUN SET "_DRYRUN=1"
 
 :: read devenv from ~\.condarc
-@IF "%_DEVENV%"=="" @CALL :CONDARC
+IF NOT DEFINED _DEVENV CALL :CONDARC
 :: fallback to devenv in source default
-@IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
+IF NOT DEFINED _DEVENV SET "_DEVENV=%_SRC%\devenv"
 :: installer location
-@SET "_INSTALLER=%_DEVENV%"
+SET "_INSTALLER=%_DEVENV%"
 :: include OS
-@SET "_DEVENV=%_DEVENV%\Windows"
+SET "_DEVENV=%_DEVENV%\Windows"
 :: ensure exists
-@IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
+IF [%_DRYRUN%]==[1] IF NOT EXIST "%_DEVENV%" MKDIR "%_DEVENV%"
 
 :: other environment variables
-@SET "_NAME=devenv-%_PYTHON%-c"
-@SET "_ENV=%_DEVENV%\envs\%_NAME%"
-@SET "_UPDATED=%_ENV%\.devenv-updated"
-@SET "_BASEEXE=%_DEVENV%\Scripts\conda.exe"
-@SET "_ENVEXE=%_ENV%\Scripts\conda.exe"
-@SET "_PYTHONEXE=%_ENV%\python.exe"
-@SET "_CONDABAT=%_ENV%\condabin\conda.bat"
-@SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
+SET "_NAME=devenv-%_PYTHON%-c"
+SET "_ENV=%_DEVENV%\envs\%_NAME%"
+SET "_UPDATED=%_ENV%\.devenv-updated"
+SET "_BASEEXE=%_DEVENV%\Scripts\conda.exe"
+SET "_ENVEXE=%_ENV%\Scripts\conda.exe"
+SET "_PYTHONEXE=%_ENV%\python.exe"
+SET "_CONDAHOOK=%_SRC%\conda\shell\condabin\conda_hook.bat"
 
 :: dry-run printout
-@IF %_DRYRUN%==0 @GOTO :DRYRUN
+IF [%_DRYRUN%]==[0] GOTO :DRYRUN
 
-:: deactivate any prior envs
-@IF "%CONDA_SHLVL%"=="" @GOTO DEACTIVATED
-@IF %CONDA_SHLVL%==0 @GOTO DEACTIVATED
-@ECHO Deactivating %CONDA_SHLVL% environment(s)...
+:: deactivate any prior envs (and unset CONDA_SHLVL)
+IF NOT DEFINED CONDA_SHLVL GOTO :DEACTIVATED
+IF [%CONDA_SHLVL%]==[0] GOTO :DEACTIVATED
+ECHO Deactivating %CONDA_SHLVL% environment(s)...
 :DEACTIVATING
-@IF "%CONDA_SHLVL%"=="0" @GOTO DEACTIVATED
-@CALL conda deactivate
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to deactivate environment^(s^) 1>&2
-    @EXIT /B 1
+IF [%CONDA_SHLVL%]==[0] GOTO :DEACTIVATED
+(CALL conda deactivate) || (
+    ECHO Error: failed to deactivate environment^(s^) 1>&2
+    GOTO :ERROR
 )
-@GOTO DEACTIVATING
+GOTO :DEACTIVATING
 :DEACTIVATED
 
 :: does miniconda install exist?
-@IF EXIST "%_DEVENV%\conda-meta\history" @GOTO INSTALLED
+IF EXIST "%_DEVENV%\conda-meta\history" GOTO :INSTALLED
 
 :: downloading miniconda
-@IF EXIST "%_INSTALLER%\miniconda.exe" @GOTO DOWNLOADED
-@ECHO Downloading miniconda...
-@powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_INSTALLER%\miniconda.exe' | Out-Null"
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to download miniconda 1>&2
-    @EXIT /B 1
+IF EXIST "%_INSTALLER%\miniconda.exe" GOTO :DOWNLOADED
+ECHO Downloading miniconda...
+(powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '%_INSTALLER%\miniconda.exe' | Out-Null") || (
+    ECHO Error: failed to download miniconda 1>&2
+    GOTO :ERROR
 )
 :DOWNLOADED
 
 :: installing miniconda
-@ECHO Installing development environment...
-@START /wait "" "%_INSTALLER%\miniconda.exe" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to install development environment 1>&2
-    @EXIT /B 1
+ECHO Installing development environment...
+(START /WAIT "" ^
+    "%_INSTALLER%\miniconda.exe" ^
+    /InstallationType=JustMe ^
+    /RegisterPython=0 ^
+    /AddToPath=0 ^
+    /S ^
+    /D=%_DEVENV% >NUL) || (
+    ECHO Error: failed to install development environment 1>&2
+    GOTO :ERROR
 )
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git > NUL
+CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git >NUL
 :INSTALLED
 
 :: create empty env if it doesn't exist
-@IF EXIST "%_ENV%" @GOTO ENVEXISTS
-@ECHO Creating %_NAME%...
+IF EXIST "%_ENV%" GOTO :ENVEXISTS
+ECHO Creating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to create %_NAME% 1>&2
-    @EXIT /B 1
+(CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" >NUL) || (
+    ECHO Error: failed to create %_NAME% 1>&2
+    GOTO :ERROR
 )
 :ENVEXISTS
 
 :: check if explicitly updating or if 24 hrs since last update
-@CALL :UPDATING
-@IF NOT %ErrorLevel%==0 @GOTO UPTODATE
-@ECHO Updating %_NAME%...
+CALL :UPDATING
+IF NOT [%ERRORLEVEL%]==[0] GOTO :UPTODATE
+ECHO Updating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to update development environment 1>&2
-    @EXIT /B 1
+(CALL :CONDA "%_BASEEXE%" update --yes --quiet --all >NUL) || (
+    ECHO Error: failed to update development environment 1>&2
+    GOTO :ERROR
 )
 
-@CALL :CONDA "%_BASEEXE%" install ^
+(CALL :CONDA "%_BASEEXE%" install ^
     --yes ^
     --quiet ^
     "--prefix=%_ENV%" ^
@@ -151,109 +152,119 @@
     "--file=%_SRC%\tests\requirements.txt" ^
     "--file=%_SRC%\tests\requirements-ci.txt" ^
     "--file=%_SRC%\tests\requirements-Windows.txt" ^
-    "python=%_PYTHON%" > NUL
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to update %_NAME% 1>&2
-    @EXIT /B 1
+    "python=%_PYTHON%" >NUL) || (
+    ECHO Error: failed to update %_NAME% 1>&2
+    GOTO :ERROR
 )
 
 :: update timestamp
-@IF EXIST "%_UPDATED%" @DEL "%_UPDATED%"
-@ECHO > "%_UPDATED%"
+IF EXIST "%_UPDATED%" DEL "%_UPDATED%"
+TYPE NUL >"%_UPDATED%"
 :UPTODATE
 
 :: initialize conda command
-@ECHO Initializing shell integration...
-@CALL "%_CONDAHOOK%"
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to initialize shell integration 1>&2
-    @EXIT /B 1
+ECHO Initializing shell integration...
+:: clear any previously configured conda DOSKEY
+DOSKEY conda=
+SET CONDA_SHLVL=
+:: use source code's conda_hook.bat so we can properly test changes to CMD.exe's activation scripts
+(CALL "%_CONDAHOOK%") || (
+    ECHO Error: failed to initialize shell integration 1>&2
+    GOTO :ERROR
+)
+:: although we use the source code's conda_hook.bat we still need to use the installed conda.exe
+SET "CONDA_EXE=%_ENVEXE%"
+
+:: "install" conda
+:: tricks conda.exe into importing from our source code and not from site-packages
+IF DEFINED PYTHONPATH (
+    SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+) ELSE (
+    SET "PYTHONPATH=%_SRC%"
 )
 
 :: activate env
-@ECHO Activating %_NAME%...
-@CALL conda activate "%_ENV%" > NUL
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to activate %_NAME% 1>&2
-    @EXIT /B 1
+ECHO Activating %_NAME%...
+(CALL conda activate "%_ENV%") || (
+    ECHO Error: failed to activate %_NAME% 1>&2
+    GOTO :ERROR
 )
-@SET "CONDA_BAT=%_CONDABAT%"
-@DOSKEY conda="%CONDA_BAT%" $*
-
-:: "install" conda
-@SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
 
 :CLEANUP
-@SET _ARG=
-@SET _BASEEXE=
-@SET _CONDABAT=
-@SET _DEVENV=
-@SET _DRYRUN=
-@SET _ENV=
-@SET _ENVEXE=
-@SET _INSTALLER=
-@SET _NAME=
-@SET _PATH=
-@SET _PYTHON=
-@SET _PYTHONEXE=
-@SET _SCRIPT=
-@SET _SRC=
-@SET _UPDATE=
-@SET _UPDATED=
-@GOTO :EOF
+SET _ARG=
+SET _BASEEXE=
+SET _CONDAHOOK=
+SET _DEVENV=
+SET _DRYRUN=
+SET _ENV=
+SET _ENVEXE=
+SET _INSTALLER=
+SET _NAME=
+SET _PATH=
+SET _PYTHON=
+SET _PYTHONEXE=
+SET _SCRIPT=
+SET _SRC=
+SET _UPDATE=
+SET _UPDATED=
+GOTO :EOF
 
 :CONDA *args
 :: include OpenSSL & git on %PATH%
-@SET "_PATH=%PATH%"
-@SET "PATH=%_DEVENV%\Library\bin;%PATH%"
+SET "_PATH=%PATH%"
+SET "PATH=%_DEVENV%\Library\bin;%PATH%"
 
-@CALL %*
-@IF NOT %ErrorLevel%==0 @EXIT /B %ErrorLevel%
+CALL %*
 
 :: restore %PATH%
-@SET "PATH=%_PATH%"
-@SET _PATH=
-@GOTO :EOF
+SET "PATH=%_PATH%"
+SET _PATH=
+EXIT /B %ERRORLEVEL%
 
 :CONDARC
 :: read devenv from ~\.condarc
 :: check if ~\.condarc exists
-@IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
+IF NOT EXIST "%USERPROFILE%\.condarc" EXIT /B 2
+
 :: check if devenv key is defined
-@FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
-@IF NOT %ErrorLevel%==0 @EXIT /B 1
+(FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" >NUL) || EXIT /B 1
+
 :: read devenv key
-@FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
-@GOTO :EOF
+FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO SET "_DEVENV=%%~fI"
+GOTO :EOF
 
 :UPDATING
 :: check if explicitly updating or if 24 hrs since last update
-@IF %_UPDATE%==0 @EXIT /B 0
-@IF NOT EXIST "%_UPDATED%" @EXIT /B 0
-@powershell.exe "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
-@EXIT /B %ErrorLevel%
+IF [%_UPDATE%]==[0] EXIT /B 0
+IF NOT EXIST "%_UPDATED%" EXIT /B 0
+powershell.exe "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
+EXIT /B %ERRORLEVEL%
 
 :DRYRUN
 :: dry-run printout
-@ECHO Python: %_PYTHON%
-@CALL :UPDATING
-@IF %ErrorLevel%==0 (
-    @ECHO Updating: [yes]
+ECHO Python: %_PYTHON%
+CALL :UPDATING
+IF [%ERRORLEVEL%]==[0] (
+    ECHO Updating: [yes]
 ) ELSE (
-    @ECHO Updating: [no]
+    ECHO Updating: [no]
 )
-@IF EXIST "%_DEVENV%" (
-    @ECHO Devenv: %_DEVENV% [exists]
+IF EXIST "%_DEVENV%" (
+    ECHO Devenv: %_DEVENV% [exists]
 ) ELSE (
-    @ECHO Devenv: %_DEVENV% [pending]
+    ECHO Devenv: %_DEVENV% [pending]
 )
-@ECHO.
-@ECHO Name: %_NAME%
-@IF EXIST "%_ENV%" (
-    @ECHO Path: %_ENV% [exists]
+ECHO.
+ECHO Name: %_NAME%
+IF EXIST "%_ENV%" (
+    ECHO Path: %_ENV% [exists]
 ) ELSE (
-    @ECHO Path: %_ENV% [pending]
+    ECHO Path: %_ENV% [pending]
 )
-@ECHO.
-@ECHO Source: %_SRC%
-@EXIT /B 0
+ECHO.
+ECHO Source: %_SRC%
+EXIT /B 0
+
+:ERROR
+CALL :CLEANUP
+EXIT /B 1
