@@ -1903,8 +1903,8 @@ class Context(Configuration):
             ),
             envvars_force_uppercase=dals(
                 """
-            Force uppercase for new environment variable name. Defaults to True.
-            """
+                Force uppercase for new environment variable names. Defaults to True. Used 
+                """
             ),
         )
 
