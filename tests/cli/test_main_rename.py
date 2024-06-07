@@ -284,3 +284,15 @@ def test_rename_with_force_and_dry_run(
     assert "Dry run action: rm_rf" in stdout
     assert not stderr
     assert not err
+
+
+def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: str):
+    with pytest.raises(CondaEnvException) as error:
+        conda_cli(
+            "rename",
+            "-p",
+            f"{context.root_prefix}/envs",
+            env_one,
+        )
+
+    assert "contains a protected directory" in str(error.value)

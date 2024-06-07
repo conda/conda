@@ -288,7 +288,9 @@ def test_create_env_json(
         json.loads(string)
 
 
-def test_protected_dirs_exist(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
+def test_protected_dirs_error_for_env_create(
+    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
+):
     with tmp_env() as prefix:
         with pytest.raises(CondaEnvException) as error:
             conda_cli(
