@@ -738,24 +738,24 @@ class ReporterManager:
 
     def render(self, data, component: str | None = None, **kwargs) -> None:
         for settings in self._context.reporters:
-            reporter = self._plugin_manager.get_reporter_handler(
+            reporter = self._plugin_manager.get_reporter_backend(
                 settings.get("backend")
             )
-            output = self._plugin_manager.get_output_handler(settings.get("output"))
+            output = self._plugin_manager.get_reporter_stream(settings.get("output"))
 
             if reporter is not None and output is not None:
                 if component is not None:
-                    render_func = getattr(reporter.handler, component, None)
+                    render_func = getattr(reporter.renderer, component, None)
                     if render_func is None:
                         raise AttributeError(
                             f"'{component}' is not a valid reporter handler component"
                         )
                 else:
-                    render_func = getattr(reporter.handler, "render")
+                    render_func = getattr(reporter.renderer, "render")
 
                 data_str = render_func(data, **kwargs)
 
-                with output.get_output_io() as file:
+                with output.stream() as file:
                     file.write(data_str)
 
 

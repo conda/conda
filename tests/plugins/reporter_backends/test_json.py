@@ -3,7 +3,7 @@
 import json
 
 from conda.common.serialize import json_dump
-from conda.plugins.reporter_handlers.json import JSONReporterHandler
+from conda.plugins.reporter_backends.json import JSONReporterRenderer
 
 
 def test_json_handler():
@@ -12,7 +12,7 @@ def test_json_handler():
     """
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
     test_str = "a string value"
-    json_handler_object = JSONReporterHandler()
+    json_handler_object = JSONReporterRenderer()
 
     assert json_handler_object.detail_view(test_data) == json_dump(test_data)
     assert json_handler_object.render(test_str) == json.dumps(test_str)

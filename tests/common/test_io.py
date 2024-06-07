@@ -17,8 +17,8 @@ from conda.common.io import (
     attach_stderr_handler,
     captured,
 )
-from conda.plugins import CondaOutputHandler, CondaReporterHandler
-from conda.plugins.types import ReporterHandlerBase
+from conda.plugins import CondaReporterBackend, CondaReporterOutput
+from conda.plugins.types import ReporterRendererBase
 
 if TYPE_CHECKING:
     from pytest import CaptureFixture
@@ -99,7 +99,7 @@ def test_attach_stderr_handler():
     assert debug_message in c.stderr
 
 
-class DummyReporterHandler(ReporterHandlerBase):
+class DummyReporterRenderer(ReporterRendererBase):
     def envs_list(self, data, **kwargs) -> str:
         return f"envs_list: {data}"
 
@@ -117,10 +117,12 @@ def test_reporter_manager(capsys: CaptureFixture):
     Ensure basic coverage of the :class:`~conda.common.io.ReporterManager` class.
     """
     # Setup
-    reporter_handler = CondaReporterHandler(
-        name="test-reporter-handler", description="test", handler=DummyReporterHandler()
+    reporter_handler = CondaReporterBackend(
+        name="test-reporter-handler",
+        description="test",
+        handler=DummyReporterRenderer(),
     )
-    output_handler = CondaOutputHandler(
+    output_handler = CondaReporterOutput(
         name="test-output-handler", description="test", get_output_io=dummy_io
     )
     plugin_manager = SimpleNamespace(

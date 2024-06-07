@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from conda.plugins.reporter_handlers.console import ConsoleReporterHandler
+from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 
 def test_console_handler():
@@ -12,7 +12,7 @@ def test_console_handler():
     expected_table_str = (
         "\n   one : value_one\n   two : value_two\n three : value_three\n\n"
     )
-    console_handler_object = ConsoleReporterHandler()
+    console_handler_object = ConsoleReporterRenderer()
 
     assert console_handler_object.detail_view(test_data) == expected_table_str
     assert console_handler_object.render(test_str) == test_str

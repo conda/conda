@@ -1,9 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Defines a JSON reporter handler
+Defines a JSON reporter backend
 
-This reporter handler is used to provide JSON strings for output rendering. It is
+This reporter backend is used to provide JSON strings for output rendering. It is
 essentially just a wrapper around ``conda.common.serialize.json_dump``.
 """
 
@@ -12,14 +12,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ...common.serialize import json_dump
-from .. import CondaReporterHandler, hookimpl
-from ..types import ReporterHandlerBase
+from .. import CondaReporterBackend, hookimpl
+from ..types import ReporterRendererBase
 
 if TYPE_CHECKING:
     from typing import Any
 
 
-class JSONReporterHandler(ReporterHandlerBase):
+class JSONReporterRenderer(ReporterRendererBase):
     """
     Default implementation for JSON reporting in conda
     """
@@ -35,15 +35,15 @@ class JSONReporterHandler(ReporterHandlerBase):
 
 
 @hookimpl
-def conda_reporter_handlers():
+def conda_reporter_backends():
     """
-    Reporter handler for JSON
+    Reporter backend for JSON
 
-    This is the default reporter handler that returns objects as JSON strings
-    that can be passed to output handlers.
+    This is the default reporter backend that returns objects as JSON strings
+    that can be passed to reporter streams .
     """
-    yield CondaReporterHandler(
+    yield CondaReporterBackend(
         name="json",
         description="Default implementation for JSON reporting in conda",
-        handler=JSONReporterHandler(),
+        renderer=JSONReporterRenderer(),
     )

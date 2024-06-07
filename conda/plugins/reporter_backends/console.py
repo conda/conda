@@ -13,11 +13,11 @@ from os.path import basename, dirname
 from ...base.constants import ROOT_ENV_NAME
 from ...base.context import context
 from ...common.path import paths_equal
-from .. import CondaReporterHandler, hookimpl
-from ..types import ReporterHandlerBase
+from .. import CondaReporterBackend, hookimpl
+from ..types import ReporterRendererBase
 
 
-class ConsoleReporterHandler(ReporterHandlerBase):
+class ConsoleReporterRenderer(ReporterRendererBase):
     """
     Default implementation for console reporting in conda
     """
@@ -57,12 +57,12 @@ class ConsoleReporterHandler(ReporterHandlerBase):
 
 
 @hookimpl
-def conda_reporter_handlers():
+def conda_reporter_backends():
     """
-    Reporter handler for console
+    Reporter backend for console
     """
-    yield CondaReporterHandler(
+    yield CondaReporterBackend(
         name="console",
         description="Default implementation for console reporting in conda",
-        handler=ConsoleReporterHandler(),
+        renderer=ConsoleReporterRenderer(),
     )

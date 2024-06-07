@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Defines the default output handler for conda that renders output to stdout
+Defines the default reporter stream for conda that renders output to stdout
 
 It is essentially a proxy to the ``sys.stdout`` object.
 """
@@ -10,7 +10,7 @@ import sys
 from contextlib import contextmanager
 from typing import TextIO
 
-from .. import CondaOutputHandler, hookimpl
+from .. import CondaReporterStream, hookimpl
 
 
 @contextmanager
@@ -19,13 +19,13 @@ def stdout_io() -> TextIO:
 
 
 @hookimpl
-def conda_output_handlers():
+def conda_reporter_streams():
     """
-    Output handler for stdout
+    Reporter stream for stdout
     """
-    yield CondaOutputHandler(
+    yield CondaReporterStream(
         name="stdout",
-        description="Default implementation of a output handler that acts as a proxy to "
+        description="Default implementation of a reporter stream that acts as a proxy to "
         "``sys.stdout.write``",
-        get_output_io=stdout_io,
+        stream=stdout_io,
     )
