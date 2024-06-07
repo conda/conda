@@ -1047,7 +1047,7 @@ class RegisterEnvironmentLocationAction(PathAction):
             touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
             self._verified = True
         except NotWritableError:
-            log.warn(
+            log.warning(
                 "Unable to create environments file. Path not writable.\n"
                 "  environment location: %s\n",
                 user_environments_txt_file,
