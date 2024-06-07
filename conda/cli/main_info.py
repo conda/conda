@@ -491,7 +491,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
 
     from ..base.context import context
-    from ..common.io import get_reporter_manager
+    from ..reporters import render
 
     components: list[InfoComponents] = []
 
@@ -524,10 +524,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if context.json and not args.base and not args.unsafe_channels:
         components.append("json_all")
 
-    reporter_manager = get_reporter_manager()
-
     for component in components:
         display_dict, component = get_display_data(component, args, context)
-        reporter_manager.render(display_dict, component=component, context=context)
+        render(display_dict, component=component, context=context)
 
     return 0

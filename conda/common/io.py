@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import functools
 import json
 import logging
 import os
@@ -23,7 +22,6 @@ from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
-from typing import TYPE_CHECKING
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
@@ -31,9 +29,6 @@ from ..auxlib.type_coercion import boolify
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
-
-if TYPE_CHECKING:
-    from ..base.context import Context
 
 log = getLogger(__name__)
 IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
@@ -721,52 +716,6 @@ def print_instrumentation_data():  # pragma: no cover
         }
 
     print(json.dumps(final_data, sort_keys=True, indent=2, separators=(",", ": ")))
-
-
-class ReporterManager:
-    """
-    This is the glue that holds together our ``ReporterHandler`` implementations with our
-    ``OutputHandler`` implementations. We provide a single ``render`` method for rendering
-    our configured reporter handlers.
-    This class is meant to be used a singleton object. To get a reference to it, call
-    the :func:`get_reporter_manager` function.
-    """
-
-    def __init__(self, context: Context) -> None:
-        self._context = context
-        self._plugin_manager = context.plugin_manager
-
-    def render(self, data, component: str | None = None, **kwargs) -> None:
-        for settings in self._context.reporters:
-            reporter = self._plugin_manager.get_reporter_backend(
-                settings.get("backend")
-            )
-            output = self._plugin_manager.get_reporter_stream(settings.get("output"))
-
-            if reporter is not None and output is not None:
-                if component is not None:
-                    render_func = getattr(reporter.renderer, component, None)
-                    if render_func is None:
-                        raise AttributeError(
-                            f"'{component}' is not a valid reporter handler component"
-                        )
-                else:
-                    render_func = getattr(reporter.renderer, "render")
-
-                data_str = render_func(data, **kwargs)
-
-                with output.stream() as file:
-                    file.write(data_str)
-
-
-@functools.lru_cache
-def get_reporter_manager() -> ReporterManager:
-    """
-    Returns a cached value of the :class:`ReporterManager` object
-    """
-    from ..base.context import context
-
-    return ReporterManager(context)
 
 
 if __name__ == "__main__":

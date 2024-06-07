@@ -1185,7 +1185,7 @@ class Context(Configuration):
             return (
                 {
                     "backend": "json" if self.json else "console",
-                    "output": "stdout",
+                    "stream": "stdout",
                     "verbosity": self.verbosity,
                     "quiet": self.quiet,
                 },
