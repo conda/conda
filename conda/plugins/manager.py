@@ -24,7 +24,7 @@ from ..exceptions import CondaValueError, PluginError
 from . import (
     post_solves,
     reporter_backends,
-    reporter_streams,
+    reporter_outputs,
     solvers,
     subcommands,
     virtual_packages,
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
         CondaPreCommand,
         CondaPreSolve,
         CondaReporterBackend,
-        CondaReporterStream,
+        CondaReporterOutput,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -212,8 +212,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["reporter_streams"]
-    ) -> list[CondaReporterStream]: ...
+        self, name: Literal["reporter_outputs"]
+    ) -> list[CondaReporterOutput]: ...
 
     def get_hook_results(self, name):
         """
@@ -369,11 +369,11 @@ class CondaPluginManager(pluggy.PluginManager):
             if handler.name == name:
                 return handler
 
-    def get_reporter_streams(self) -> tuple[CondaReporterStream, ...]:
-        return tuple(self.get_hook_results("reporter_streams"))
+    def get_reporter_outputs(self) -> tuple[CondaReporterOutput, ...]:
+        return tuple(self.get_hook_results("reporter_outputs"))
 
-    def get_reporter_stream(self, name: str) -> CondaReporterStream | None:
-        for handler in self.get_reporter_streams():
+    def get_reporter_output(self, name: str) -> CondaReporterOutput | None:
+        for handler in self.get_reporter_outputs():
             if handler.name == name:
                 return handler
 
@@ -439,7 +439,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
-        *reporter_streams.plugins,
+        *reporter_outputs.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

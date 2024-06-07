@@ -10,17 +10,17 @@ and feel of conda. If only overriding a subset of these is desired, a sub class 
 an existing reporter backend can be used.
 
 To configure a reporter backend, it must be set as a ``backend`` for the
-``reporter`` setting in a configuration file. This setting must configure one ``stream``
+``reporter`` setting in a configuration file. This setting must configure one ``output``
 (e.g. ``stdout``).
 
 Below is an example showing the configuration for the default reporter backend ``console`` to
-use the ``stdout`` reporter stream:
+use the ``stdout`` reporter output:
 
 .. code-block:: yaml
 
    reporters:
      - backend: console
-       stream: stdout
+       output: stdout
 
 
 .. autoapiclass:: conda.plugins.types.CondaReporterBackend

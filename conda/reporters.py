@@ -12,7 +12,7 @@ from .base.context import context
 def render(data, component: str | None = None, **kwargs) -> None:
     for settings in context.reporters:
         reporter = context.plugin_manager.get_reporter_backend(settings.get("backend"))
-        output = context.plugin_manager.get_reporter_stream(settings.get("stream"))
+        output = context.plugin_manager.get_reporter_output(settings.get("output"))
 
         if reporter is not None and output is not None:
             if component is not None:

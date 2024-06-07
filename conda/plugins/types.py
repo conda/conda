@@ -255,16 +255,16 @@ class CondaReporterBackend:
 
 
 @dataclass
-class CondaReporterStream:
+class CondaReporterOutput:
     """
-    Return type to use when defining a conda reporter stream plugin hook.
+    Return type to use when defining a conda reporter output plugin hook.
 
     For details on how this is used, see:
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_reporter_streams`.
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_reporter_outputs`.
 
-    :param name: name of the reporter stream (e.g., ``email_reporter``)
+    :param name: name of the reporter output (e.g., ``email_reporter``)
                  This is how the reporter backend references it in configuration files.
-    :param description: short description of what the reporter stream does
+    :param description: short description of what the reporter output does
     :param stream: a callable object returning a context manager that returns a
                   ``TextIO`` compatible object.
     """

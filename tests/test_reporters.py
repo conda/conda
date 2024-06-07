@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.plugins import CondaReporterBackend, CondaReporterStream
+from conda.plugins import CondaReporterBackend, CondaReporterOutput
 from conda.plugins.types import ReporterRendererBase
 from conda.reporters import render
 
@@ -40,15 +40,15 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
         description="test",
         renderer=DummyReporterRenderer(),
     )
-    reporter_stream = CondaReporterStream(
-        name="test-reporter-stream", description="test", stream=dummy_io
+    reporter_output = CondaReporterOutput(
+        name="test-reporter-output", description="test", stream=dummy_io
     )
     plugin_manager = SimpleNamespace(
         get_reporter_backend=lambda _: reporter_backend,
-        get_reporter_stream=lambda _: reporter_stream,
+        get_reporter_output=lambda _: reporter_output,
     )
     reporters = (
-        {"backend": "test-reporter-backend", "stream": "test-reporter-stream"},
+        {"backend": "test-reporter-backend", "stream": "test-reporter-output"},
     )
 
     context = mocker.patch("conda.reporters.context")

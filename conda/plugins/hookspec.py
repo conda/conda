@@ -25,7 +25,7 @@ if TYPE_CHECKING:
         CondaPreCommand,
         CondaPreSolve,
         CondaReporterBackend,
-        CondaReporterStream,
+        CondaReporterOutput,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -369,11 +369,11 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_reporter_streams(self) -> Iterable[CondaReporterStream]:
+    def conda_reporter_outputs(self) -> Iterable[CondaReporterOutput]:
         """
-        Register new reporter stream
+        Register new reporter outputs
 
-        The example below defines a reporter stream that saves output to a file
+        The example below defines a reporter output that saves output to a file
 
         **Example:**
 
@@ -382,7 +382,7 @@ class CondaSpecs:
            from contextlib import contextmanager
 
            from conda import plugins
-           from conda.plugins.types import CondaReporterStream
+           from conda.plugins.types import CondaReporterOutput
 
 
            @contextmanager
@@ -395,8 +395,8 @@ class CondaSpecs:
 
 
            @plugins.hookimpl
-           def conda_reporter_streams():
-               yield CondaReporterStream(
+           def conda_reporter_outputs():
+               yield CondaReporterOutput(
                    name="file",
                    description="Output handler that writes output to a file",
                    stream=file_io,

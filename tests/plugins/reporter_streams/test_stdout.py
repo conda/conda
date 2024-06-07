@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from pytest import CaptureFixture
 
-from conda.plugins.reporter_streams.stdout import stdout_io
+from conda.plugins.reporter_outputs.stdout import stdout_io
 
 
 def test_stdout_render(capsys: CaptureFixture):

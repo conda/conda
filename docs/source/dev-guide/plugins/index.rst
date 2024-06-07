@@ -102,7 +102,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    post_commands
    pre_commands
    reporter_backends
-   reporte_streams
+   reporter_outputs
    settings
    solvers
    subcommands
