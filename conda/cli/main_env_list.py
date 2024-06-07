@@ -39,10 +39,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute(args: Namespace, parser: ArgumentParser):
-    from ..base.context import context
     from ..core.envs_manager import list_all_known_prefixes
     from ..reporters import render
 
-    render(list_all_known_prefixes(), component="envs_list", context=context)
+    render(list_all_known_prefixes(), component="envs_list")
 
     return 0

@@ -526,6 +526,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     for component in components:
         display_dict, component = get_display_data(component, args, context)
-        render(display_dict, component=component, context=context)
+        render(display_dict, component=component)
 
     return 0
