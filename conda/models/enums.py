@@ -45,6 +45,7 @@ class Platform(Enum):
     openbsd = "openbsd5"
     osx = "darwin"
     zos = "zos"
+    emscripten = "emscripten"
 
     @classmethod
     def from_sys(cls):
