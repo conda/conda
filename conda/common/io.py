@@ -2,11 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
 
+from __future__ import annotations
+
+import functools
 import json
 import logging
 import os
 import signal
 import sys
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
 from concurrent.futures.thread import _WorkItem
@@ -20,10 +24,17 @@ from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
+from typing import TYPE_CHECKING
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
+
+if TYPE_CHECKING:
+    from typing import Callable, ContextManager
+
+    from ..base.context import Context
+
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
@@ -445,6 +456,48 @@ class Spinner:
                 sys.stdout.flush()
 
 
+class ProgressBarBase(ABC):
+    def __init__(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ):
+        self.description = description
+        self._io_context_manager = io_context_manager
+
+    @abstractmethod
+    def update_to(self, fraction) -> None: ...
+
+    @abstractmethod
+    def refresh(self) -> None: ...
+
+    @abstractmethod
+    def close(self) -> None: ...
+
+    def finish(self):
+        self.update_to(1)
+
+    @classmethod
+    def get_lock(cls):
+        pass
+
+
+class QuietProgressBar(ProgressBarBase):
+    """
+    Progress bar class used when no output should be printed
+    """
+
+    def update_to(self, fraction) -> None:
+        pass
+
+    def refresh(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 class ProgressBar:
     @classmethod
     def get_lock(cls):
@@ -714,6 +767,110 @@ def print_instrumentation_data():  # pragma: no cover
         }
 
     print(json.dumps(final_data, sort_keys=True, indent=2, separators=(",", ": ")))
+
+
+class ProgressBarManager(ProgressBarBase):
+    """
+    Used to proxy calls to the registered reporter handler progress bar instances
+    """
+
+    def __init__(self, progress_bars):
+        self._progress_bars = progress_bars
+
+    def update_to(self, fraction) -> None:
+        for progress_bar in self._progress_bars:
+            progress_bar.update_to(fraction)
+
+    def close(self) -> None:
+        for progress_bar in self._progress_bars:
+            progress_bar.close()
+
+    def refresh(self) -> None:
+        for progress_bar in self._progress_bars:
+            progress_bar.refresh()
+
+
+class ReporterManager:
+    """
+    This is the glue that holds together our ``ReporterHandler`` implementations with our
+    ``OutputHandler`` implementations. We provide a single ``render`` method for rendering
+    our configured reporter handlers.
+
+    This class is meant to be used a singleton object. To get a reference to it, call
+    the :func:`get_reporter_manager` function.
+    """
+
+    def __init__(self, context: Context) -> None:
+        self._context = context
+        self._plugin_manager = context.plugin_manager
+
+    def render(self, data, component: str | None = None, **kwargs) -> None:
+        for settings in self._context.reporters:
+            reporter = self._plugin_manager.get_reporter_handler(
+                settings.get("backend")
+            )
+            output = self._plugin_manager.get_output_handler(settings.get("output"))
+
+            if reporter is not None and output is not None:
+                if component is not None:
+                    render_func = getattr(reporter.handler, component, None)
+                    if render_func is None:
+                        raise AttributeError(
+                            f"'{component}' is not a valid reporter handler component"
+                        )
+                else:
+                    render_func = getattr(reporter.handler, "render")
+
+                data_str = render_func(data, **kwargs)
+
+                with output.get_output_io() as file:
+                    file.write(data_str)
+
+    def progress_bar(self, description: str, **kwargs) -> ProgressBarManager:
+        progress_bars = []
+
+        for settings in self._context.reporters:
+            reporter = self._plugin_manager.get_reporter_handler(
+                settings.get("backend")
+            )
+            output = self._plugin_manager.get_output_handler(settings.get("output"))
+            progress_bar = reporter.handler.progress_bar(
+                description, output.get_output_io, settings=settings, **kwargs
+            )
+
+            progress_bars.append(progress_bar)
+
+        return ProgressBarManager(progress_bars)
+
+    def progress_bar_context_managers(self) -> list[ContextManager]:
+        """
+        Retrieve all progress bar context managers to use with registered reporters
+        """
+        context_managers = []
+
+        for settings in self._context.reporters:
+            reporter = self._plugin_manager.get_reporter_handler(
+                settings.get("backend")
+            )
+            output = self._plugin_manager.get_output_handler(settings.get("output"))
+
+            context_managers.append(
+                reporter.handler.progress_bar_context_manager(
+                    io_context_manager=output.get_output_io
+                )
+            )
+
+        return context_managers
+
+
+@functools.lru_cache
+def get_reporter_manager() -> ReporterManager:
+    """
+    Returns a cached value of the :class:`ReporterManager` object
+    """
+    from ..base.context import context
+
+    return ReporterManager(context)
 
 
 if __name__ == "__main__":
