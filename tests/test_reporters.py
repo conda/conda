@@ -62,16 +62,16 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
     assert stdout == "test-string"
     assert not stderr
 
-    # Test rendering of object with a component
-    render("test-string", component="envs_list")
+    # Test rendering of object with a style
+    render("test-string", style="envs_list")
 
     stdout, stderr = capsys.readouterr()
     assert stdout == "envs_list: test-string"
     assert not stderr
 
-    # Test error when component cannot be found
+    # Test error when style cannot be found
     with pytest.raises(
         AttributeError,
-        match="'non_existent_view' is not a valid reporter backend component",
+        match="'non_existent_view' is not a valid reporter backend style",
     ):
-        render({"test": "data"}, component="non_existent_view")
+        render({"test": "data"}, style="non_existent_view")

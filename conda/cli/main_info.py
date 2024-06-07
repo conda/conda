@@ -525,7 +525,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         components.append("json_all")
 
     for component in components:
-        display_dict, component = get_display_data(component, args, context)
-        render(display_dict, component=component)
+        display_dict, style = get_display_data(component, args, context)
+        render(display_dict, style=style)
 
     return 0

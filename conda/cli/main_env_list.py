@@ -42,6 +42,6 @@ def execute(args: Namespace, parser: ArgumentParser):
     from ..core.envs_manager import list_all_known_prefixes
     from ..reporters import render
 
-    render(list_all_known_prefixes(), component="envs_list")
+    render(list_all_known_prefixes(), style="envs_list")
 
     return 0
