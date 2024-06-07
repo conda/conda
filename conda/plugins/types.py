@@ -265,8 +265,8 @@ class CondaReporterOutput:
     :param name: name of the reporter output (e.g., ``email_reporter``)
                  This is how the reporter backend references it in configuration files.
     :param description: short description of what the reporter output does
-    :param stream: a callable object returning a context manager that returns a
-                  ``TextIO`` compatible object.
+    :param stream: a callable object returning a context manager that yields a
+                  :class:`~io.TextIOBase` compatible object.
     """
 
     name: str
