@@ -84,7 +84,9 @@ class _SignatureVerification:
 
         # ensure the key_mgr exists
         if self.key_mgr is None:
-            log.warning("could not find key_mgr data for metadata signature verification")
+            log.warning(
+                "could not find key_mgr data for metadata signature verification"
+            )
             return False
 
         # signature verification is enabled
