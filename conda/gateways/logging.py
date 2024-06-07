@@ -58,6 +58,10 @@ class TokenURLFilter(Filter):
         At the same time we replace tokens in the arguments which was
         not happening until now.
         """
+        if not isinstance(record.msg, str):
+            # This should always be the case but it's not checked so
+            # we avoid any potential logging errors.
+            return True
         record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
             new_args = tuple(
@@ -179,29 +183,32 @@ def initialize_std_loggers():
     verbose_handler = StdStreamHandler("stdout")
     verbose_handler.setLevel(INFO)
     verbose_handler.setFormatter(formatter)
+    verbose_handler.addFilter(TokenURLFilter())
     verbose_logger.addHandler(verbose_handler)
     verbose_logger.propagate = False
 
 
 def initialize_root_logger(level=ERROR):
-    attach_stderr_handler(level=level)
+    attach_stderr_handler(level=level, filters=[TokenURLFilter()])
 
 
 def set_conda_log_level(level=WARN):
     conda_logger = getLogger("conda")
     conda_logger.setLevel(logging.NOTSET)
-    attach_stderr_handler(level=level, logger_name="conda")
+    attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])
     conda_logger.propagate = False
 
 
 def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
-    attach_stderr_handler(level, formatter=formatter)
+    attach_stderr_handler(level, formatter=formatter, filters=[TokenURLFilter()])
     set_conda_log_level(level)
     # 'requests' loggers get their own handlers so that they always output messages in long format
     # regardless of the level.
-    attach_stderr_handler(level, "requests")
-    attach_stderr_handler(level, "requests.packages.urllib3")
+    attach_stderr_handler(level, "requests", filters=[TokenURLFilter()])
+    attach_stderr_handler(
+        level, "requests.packages.urllib3", filters=[TokenURLFilter()]
+    )
 
 
 @lru_cache(maxsize=None)
