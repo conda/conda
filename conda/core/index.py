@@ -230,6 +230,13 @@ class Index(UserDict):
         except PackagesNotFoundError:
             return False
 
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        if "_data" in self.__dict__:
+            inst.__dict__["_data"] = self.__dict__["_data"].copy()
+        return inst
+
 
 class ReducedIndex(Index):
     def __init__(
