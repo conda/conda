@@ -130,6 +130,10 @@ class Index(UserDict):
             self._realize()
             return self._data
 
+    @data.setter
+    def data(self, value):
+        self._data = value
+
     def _realize(self):
         _data = {}
         for subdir_datas in self.channels.values():
