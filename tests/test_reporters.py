@@ -38,7 +38,7 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
     reporter_backend = CondaReporterBackend(
         name="test-reporter-backend",
         description="test",
-        renderer=DummyReporterRenderer(),
+        renderer=DummyReporterRenderer,
     )
     reporter_output = CondaReporterOutput(
         name="test-reporter-output", description="test", stream=dummy_io

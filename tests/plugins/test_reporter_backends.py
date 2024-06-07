@@ -25,7 +25,7 @@ class ReporterHandlerPlugin:
         yield CondaReporterBackend(
             name="dummy",
             description="Dummy reporter backend meant for testing",
-            renderer=DummyReporterRenderer(),
+            renderer=DummyReporterRenderer,
         )
 
 
@@ -83,6 +83,8 @@ def test_console_reporter_backend(
     """
     console = default_reporter_backend_plugin.get_reporter_backend(backend)
 
-    output = getattr(console.renderer, method)(argument)
+    renderer = console.renderer()
+
+    output = getattr(renderer, method)(argument)
 
     assert output == expected

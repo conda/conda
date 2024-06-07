@@ -246,12 +246,12 @@ class CondaReporterBackend:
                  This is how the reporter backend with be references in configuration files.
     :param description: short description of what the reporter handler does
     :param renderer: implementation of ``ReporterRendererBase`` that will be used as the
-                    reporter renderer
+                     reporter renderer
     """
 
     name: str
     description: str
-    renderer: ReporterRendererBase
+    renderer: type[ReporterRendererBase]
 
 
 @dataclass

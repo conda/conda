@@ -64,5 +64,5 @@ def conda_reporter_backends():
     yield CondaReporterBackend(
         name="console",
         description="Default implementation for console reporting in conda",
-        renderer=ConsoleReporterRenderer(),
+        renderer=ConsoleReporterRenderer,
     )

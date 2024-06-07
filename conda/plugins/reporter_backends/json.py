@@ -45,5 +45,5 @@ def conda_reporter_backends():
     yield CondaReporterBackend(
         name="json",
         description="Default implementation for JSON reporting in conda",
-        renderer=JSONReporterRenderer(),
+        renderer=JSONReporterRenderer,
     )

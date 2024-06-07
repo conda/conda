@@ -15,14 +15,16 @@ def render(data, component: str | None = None, **kwargs) -> None:
         output = context.plugin_manager.get_reporter_output(settings.get("output"))
 
         if reporter is not None and output is not None:
+            renderer = reporter.renderer()
+
             if component is not None:
-                render_func = getattr(reporter.renderer, component, None)
+                render_func = getattr(renderer, component, None)
                 if render_func is None:
                     raise AttributeError(
                         f"'{component}' is not a valid reporter backend component"
                     )
             else:
-                render_func = getattr(reporter.renderer, "render")
+                render_func = getattr(renderer, "render")
 
             data_str = render_func(data, **kwargs)
 

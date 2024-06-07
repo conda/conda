@@ -363,7 +363,7 @@ class CondaSpecs:
                yield CondaReporterBackend(
                    name="pprint",
                    description="Reporter handler based off of the pprint module",
-                   renderer=PprintReporter(),
+                   renderer=PprintReporter,
                )
 
         """
