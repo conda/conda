@@ -321,7 +321,11 @@ def stderr_log_level(level, logger_name=None):
 
 
 def attach_stderr_handler(
-    level=WARN, logger_name=None, propagate=False, formatter=None
+    level=WARN,
+    logger_name=None,
+    propagate=False,
+    formatter=None,
+    filters=None,
 ):
     # get old stderr logger
     logr = getLogger(logger_name)
@@ -334,6 +338,8 @@ def attach_stderr_handler(
     new_stderr_handler.name = "stderr"
     new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
+    for filter_ in filters or ():
+        new_stderr_handler.addFilter(filter_)
 
     # do the switch
     with _logger_lock():

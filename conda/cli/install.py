@@ -251,6 +251,9 @@ def install(args, parser, command="install"):
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)
+            if newenv:
+                touch_nonadmin(prefix)
+                print_activate(args.name or prefix)
             return
         else:
             raise CondaValueError(
@@ -269,6 +272,9 @@ def install(args, parser, command="install"):
                 )
         if "@EXPLICIT" in specs:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
+            if newenv:
+                touch_nonadmin(prefix)
+                print_activate(args.name or prefix)
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
 
