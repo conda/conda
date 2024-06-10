@@ -142,6 +142,8 @@ def explicit(
     )
 
     txn = UnlinkLinkTransaction(stp)
+    if not context.json and not context.quiet:
+        txn.print_transaction_summary()
     txn.execute()
 
 

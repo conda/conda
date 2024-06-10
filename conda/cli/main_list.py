@@ -116,6 +116,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Do not include pip-only installed packages.",
     )
     p.add_argument(
+        "--auth",
+        action="store_false",
+        default=True,
+        dest="remove_auth",
+        help="In explicit mode, leave authentication details in package URLs. "
+        "They are removed by default otherwise.",
+    )
+    p.add_argument(
         "regex",
         action="store",
         nargs="?",
@@ -236,9 +244,10 @@ def print_packages(
     return exitcode
 
 
-def print_explicit(prefix, add_md5=False):
+def print_explicit(prefix, add_md5=False, remove_auth=True):
     from ..base.constants import UNKNOWN_CHANNEL
     from ..base.context import context
+    from ..common import url as common_url
     from ..core.prefix_data import PrefixData
 
     if not isdir(prefix):
@@ -252,6 +261,8 @@ def print_explicit(prefix, add_md5=False):
         if not url or url.startswith(UNKNOWN_CHANNEL):
             print("# no URL for: {}".format(prefix_record["fn"]))
             continue
+        if remove_auth:
+            url = common_url.remove_auth(common_url.split_anaconda_token(url)[0])
         md5 = prefix_record.get("md5")
         print(url + (f"#{md5}" if add_md5 and md5 else ""))
 
@@ -286,7 +297,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         return 0
 
     if args.explicit:
-        print_explicit(prefix, args.md5)
+        print_explicit(prefix, args.md5, args.remove_auth)
         return 0
 
     if args.canonical:
