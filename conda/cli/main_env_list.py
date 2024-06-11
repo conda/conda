@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""DEPRECATED: Use `conda.cli.main_info` instead.
-
-CLI implementation for `conda-env list`.
+"""CLI implementation for `conda-env list`, now aliased to `conda info --envs`.
 
 Lists available conda environments.
 """
@@ -17,7 +15,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..auxlib.ish import dals
     from .helpers import add_parser_json
 
-    summary = "An alias for conda info --envs. Lists all conda environments."
+    summary = "An alias for `conda info --envs`. Lists all conda environments."
     description = summary
     epilog = dals(
         """
