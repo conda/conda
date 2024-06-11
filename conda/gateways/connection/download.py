@@ -176,7 +176,7 @@ def download_partial_file(
         target.seek(0)
         if md5 or sha256:
             checksum_type = "sha256" if sha256 else "md5"
-            checksum = sha256 if sha256 else md5
+            checksum = (sha256 if sha256 else md5).lower()
             hasher = hashlib.new(checksum_type)
             target.seek(0)
             while read := target.read(CHUNK_SIZE):
