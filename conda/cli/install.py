@@ -11,7 +11,6 @@ conda.cli.main_remove for the entry points into this module.
 from __future__ import annotations
 
 import os
-import textwrap
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
@@ -82,24 +81,19 @@ def validate_prefix_exists(prefix: str | Path) -> Path:
 def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
     parent_dir = Path(prefix).parent.resolve()
-    error = None
 
     if exists(parent_dir):
         conda_meta_dir = os.path.join(parent_dir, "conda-meta")
         if os.path.isdir(conda_meta_dir):
             history_file = os.path.join(conda_meta_dir, "history")
             if os.path.isfile(history_file):
-                error = textwrap.dedent(
-                    f"""
-                    The specified prefix '{prefix}'
-                    contains a protected directory, 'conda-meta', and a 'history' file within it.
-                    Creating an environment in this location will potentially risk the deletion
-                    of other conda environments. Aborting.
-                    """
+                raise CondaEnvException(
+                    f"The specified prefix '{prefix}' "
+                    "contains a protected directory, 'conda-meta', and a 'history' file within it. "
+                    "Creating an environment in this location will potentially risk the deletion "
+                    "of other conda environments. Aborting.",
+                    json,
                 )
-
-    if error:
-        raise CondaEnvException(error, json)
 
 
 def validate_new_prefix(dest: str, force: bool = False) -> str:
