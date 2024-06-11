@@ -347,3 +347,23 @@ def test_download_http_errors():
         "https://example.org/file"
     ):
         raise HTTPError(response=Response(401))
+
+
+@pytest.mark.parametrize("upper", (True, False))
+def test_checksum_case_insensitive(tmp_path: Path, package_repository_base, package_server, upper):
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    package_name = "zlib-1.2.11-h7b6447c_3.conda"
+    url = f"{base}/linux-64/{package_name}"
+    package_path = package_repository_base / "linux-64" / package_name
+    sha256 = checksum(package_path, algorithm="sha256")
+    size = package_path.stat().st_size
+    output_path = tmp_path / package_name
+
+    # try full download
+    download(
+        url,
+        output_path,
+        size=size,
+        sha256=sha256.upper() if upper else sha256
+    )
