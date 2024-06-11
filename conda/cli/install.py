@@ -79,9 +79,9 @@ def validate_prefix_exists(prefix: str | Path) -> Path:
     return prefix
 
 
-def check_protected_dirs(prefix: str, json=False) -> None:
+def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
-    parent_dir = os.path.abspath(os.path.join(Path(prefix), os.pardir))
+    parent_dir = Path(prefix).parent.resolve()
     error = None
 
     if exists(parent_dir):

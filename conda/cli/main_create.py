@@ -135,7 +135,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             default="no",
             dry_run=False,
         )
-        log.info(f"Removing existing environment {context.target_prefix}")
+        log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
     elif isdir(context.target_prefix):
         check_prefix(context.target_prefix)
