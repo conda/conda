@@ -37,14 +37,14 @@ We recommend the following methods to install conda:
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
                     :color: primary
 
-                    macOS with Apple Silicon (arm64) 64-bit :octicon:`download`
+                    macOS with Apple Silicon 64-bit :octicon:`download`
 
             .. grid-item::
 
                 .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
                     :color: primary
 
-                    macOS with Intel (x86) 64-bit :octicon:`download`
+                    macOS with Intel chip 64-bit :octicon:`download`
 
     .. tab-item:: Linux :fab:`linux`
 
