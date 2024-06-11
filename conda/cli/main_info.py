@@ -408,55 +408,130 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     )
 
 
+#: Possible components for the info command to render
 InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
 
 
-def get_display_data(
-    component: InfoComponents, args: Namespace, context
-) -> tuple[dict[str, str] | str, str | None]:
+class InfoRenderer:
     """
-    Determines the data the ``conda info`` command will display
+    Provides logic for deciding which components to render and a method for rendering them
     """
-    if component == "base":
-        if context.json:
-            return {"root_prefix": context.root_prefix}, None
+
+    def __init__(self, args, context):
+        from ..core.envs_manager import list_all_known_prefixes
+
+        self._args = args
+        self._context = context
+        self._info_dict = get_info_dict()
+        self._info_dict["envs"] = list_all_known_prefixes()
+        self._components: list[InfoComponents] = []
+        self._set_components()
+        self._component_display_map = {
+            "base": None,
+            "channels": None,
+            "detail": "detail_view",
+            "envs": "envs_list",
+            "system": None,
+            "json_all": None,
+        }
+
+    def render(self):
+        """
+        Iterates through the registered components, obtains the data to render via a
+        ``_<component>_component`` method and then renders it.
+        """
+        from ..reporters import render
+
+        for component in self._components:
+            style = self._component_display_map.get(component)
+            data_func = getattr(self, f"_{component}_component", None)
+
+            if not data_func:
+                continue
+
+            data = data_func()
+
+            if data:
+                render(data, style=style)
+
+    def _set_components(self):
+        """
+        Given the values ``self.args`` and ``self.context`` populate the ``self._components list
+        which determines what will be rendered
+        """
+
+        if self._args.base:
+            self._components.append("base")
+
+        if self._args.unsafe_channels:
+            self._components.append("channels")
+
+        options = "envs", "system"
+
+        if self._context.verbose or self._context.json:
+            for option in options:
+                setattr(self._args, option, True)
+
+        if (
+            (
+                self._context.verbose
+                or all(not getattr(self._args, opt) for opt in options)
+            )
+            and not self._context.json
+            and not self._args.base
+            and not self._args.unsafe_channels
+        ):
+            self._components.append("detail")
+
+        if self._context.verbose or self._args.envs and not self._context.json:
+            self._components.append("envs")
+
+        if self._context.verbose or self._args.system and not self._context.json:
+            self._components.append("system")
+
+        if (
+            self._context.json
+            and not self._args.base
+            and not self._args.unsafe_channels
+        ):
+            self._components.append("json_all")
+
+        return self._components
+
+    def _base_component(self) -> str | dict:
+        if self._context.json:
+            return {"root_prefix": self._context.root_prefix}
         else:
-            return f"{context.root_prefix}\n", None
+            return f"{self._context.root_prefix}\n"
 
-    if component == "channels":
-        if context.json:
-            return {"channels": context.channels}, None
+    def _channels_component(self) -> str | dict:
+        if self._context.json:
+            return {"channels": self._context.channels}
         else:
-            channels_str = "\n".join(context.channels)
-            return f"{channels_str}\n", None
+            channels_str = "\n".join(self._context.channels)
+            return f"{channels_str}\n"
 
-    info_dict = get_info_dict()
+    def _detail_component(self) -> dict[str, str]:
+        return get_main_info_display(self._info_dict)
 
-    if component == "detail":
-        return get_main_info_display(info_dict), "detail_view"
+    def _envs_component(self):
+        if not self._context.json:
+            return self._info_dict["envs"]
 
-    from ..core.envs_manager import list_all_known_prefixes
-
-    info_dict["envs"] = list_all_known_prefixes()
-
-    if component == "envs":  # args.envs:
-        if not context.json:
-            return list_all_known_prefixes(), "envs_list"
-
-    if component == "system":  # args.system and not context.json:
+    def _system_component(self) -> str:
         from .find_commands import find_commands, find_executable
 
         output = [
             f"sys.version: {sys.version[:40]}...",
             f"sys.prefix: {sys.prefix}",
             f"sys.executable: {sys.executable}",
-            "conda location: {}".format(info_dict["conda_location"]),
+            "conda location: {}".format(self._info_dict["conda_location"]),
         ]
 
         for cmd in sorted(set(find_commands() + ("build",))):
             output.append("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
 
-        site_dirs = info_dict["site_dirs"]
+        site_dirs = self._info_dict["site_dirs"]
         if site_dirs:
             output.append(f"user site dirs: {site_dirs[0]}")
         else:
@@ -467,20 +542,20 @@ def get_display_data(
 
         output.append("")
 
-        for name, value in sorted(info_dict["env_vars"].items()):
+        for name, value in sorted(self._info_dict["env_vars"].items()):
             output.append(f"{name}: {value}")
 
         output.append("")
 
-        return "\n".join(output), None
+        return "\n".join(output)
 
-    if component == "json_all":
-        return info_dict, None
+    def _json_all_component(self) -> dict[str, Any]:
+        return self._info_dict
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
-    Implements ``conda info`` commands.
+    Implements ``conda info`` command.
 
      * ``conda info``
      * ``conda info --base``
@@ -491,41 +566,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
 
     from ..base.context import context
-    from ..reporters import render
 
-    components: list[InfoComponents] = []
-
-    if args.base:
-        components.append("base")
-
-    if args.unsafe_channels:
-        components.append("channels")
-
-    options = "envs", "system"
-
-    if context.verbose or context.json:
-        for option in options:
-            setattr(args, option, True)
-
-    if (
-        (context.verbose or all(not getattr(args, opt) for opt in options))
-        and not context.json
-        and not args.base
-        and not args.unsafe_channels
-    ):
-        components.append("detail")
-
-    if context.verbose or args.envs and not context.json:
-        components.append("envs")
-
-    if context.verbose or args.system and not context.json:
-        components.append("system")
-
-    if context.json and not args.base and not args.unsafe_channels:
-        components.append("json_all")
-
-    for component in components:
-        display_dict, style = get_display_data(component, args, context)
-        render(display_dict, style=style)
+    renderer = InfoRenderer(args, context)
+    renderer.render()
 
     return 0
