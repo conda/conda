@@ -7,7 +7,6 @@ Lists available conda environments.
 
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 
-from conda.cli.main_info import execute as execute_info
 from conda.deprecations import deprecated
 
 
@@ -50,4 +49,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @deprecated("24.9", "25.3", addendum="Use `conda.cli.main_info.execute` instead.")
 def execute(args: Namespace, parser: ArgumentParser):
-    return execute_info(args, parser)
+    from conda.cli.main_info import execute as execute_info
+
+    execute_info(args, parser)
+
+    return 0
