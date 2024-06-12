@@ -55,7 +55,7 @@ def test_attach_stderr_handler():
 
     with captured() as c:
         attach_stderr_handler(WARN, name)
-        logr.warn("test message")
+        logr.warning("test message")
         logr.debug(debug_message)
 
     assert len(logr.handlers) == 1
@@ -69,7 +69,7 @@ def test_attach_stderr_handler():
     # round two, with debug
     with captured() as c:
         attach_stderr_handler(DEBUG, name)
-        logr.warn("test message")
+        logr.warning("test message")
         logr.debug(debug_message)
         logr.info("info message")
 

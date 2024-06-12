@@ -1587,7 +1587,7 @@ def run_script(
                     )
                 raise LinkError(message)
             else:
-                log.warn(
+                log.warning(
                     "%s script failed for package %s\n"
                     "consider notifying the package maintainer",
                     action,
