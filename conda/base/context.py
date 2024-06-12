@@ -2060,7 +2060,10 @@ def locate_prefix_by_name(name, envs_dirs=None):
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
-    disallowed = PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
+
+    disallowed = (
+        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
+    )
     if disallowed.intersection(prefix_name):
         raise CondaValueError(
             dals(
