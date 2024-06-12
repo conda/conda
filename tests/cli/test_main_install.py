@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from json import loads as json_loads
-from os.path import exists, isdir
 from pathlib import Path
 
 import pytest
