@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Checksum comparisons are not case sensitive anymore. (#13969)
+* Checksum comparisons in `conda.gateways.connection.download.download()` are not case sensitive anymore. (#13969)
 
 ### Deprecations
 
