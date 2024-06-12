@@ -7,6 +7,7 @@ Renames an existing environment by cloning it and then removing the original env
 
 from __future__ import annotations
 
+import os
 from argparse import _StoreTrueAction
 from functools import partial
 from pathlib import Path
@@ -114,8 +115,6 @@ def validate_src() -> str:
 )
 def validate_destination(dest: str, force: bool = False) -> str:
     """Ensure that our destination does not exist"""
-    import os
-
     from ..base.context import context, validate_prefix_name
     from ..common.path import expand
     from ..exceptions import CondaEnvException

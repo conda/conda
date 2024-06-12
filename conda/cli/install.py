@@ -82,11 +82,11 @@ def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
     parent_dir = Path(prefix).parent.resolve()
 
-    if exists(parent_dir):
-        conda_meta_dir = os.path.join(parent_dir, "conda-meta")
-        if os.path.isdir(conda_meta_dir):
-            history_file = os.path.join(conda_meta_dir, "history")
-            if os.path.isfile(history_file):
+    if parent_dir.exists():
+        conda_meta_dir = parent_dir / "conda-meta"
+        if conda_meta_dir.is_dir():
+            history_file = conda_meta_dir / "history"
+            if history_file.is_file():
                 raise CondaEnvException(
                     f"The specified prefix '{prefix}' "
                     "contains a protected directory, 'conda-meta', and a 'history' file within it. "

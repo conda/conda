@@ -48,8 +48,8 @@ def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         file = prefix / "tempfile.txt"
         file.write_text("test")
         dir = prefix / "conda-meta"
-        assert isdir(dir)
-        assert exists(file)
+        assert dir.is_dir()
+        assert file.exists()
         with pytest.raises(
             DirectoryNotACondaEnvironmentError,
             match="The target directory exists, but it is not a conda environment.",
