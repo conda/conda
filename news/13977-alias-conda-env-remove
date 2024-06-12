@@ -1,0 +1,19 @@
+### Enhancements
+
+* Alias `conda env remove` command to `conda remove --all`. (#13977)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.cli.main_env_remove.execute` as pending deprecation. Use `conda.cli.main_remove.execute` instead. (#13977)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
