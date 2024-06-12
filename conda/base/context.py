@@ -62,6 +62,7 @@ from .constants import (
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
+    PREFIX_NAME_DISALLOWED_CHARS_WIN,
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
@@ -2059,13 +2060,13 @@ def locate_prefix_by_name(name, envs_dirs=None):
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
-
-    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
+    disallowed = PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
+    if disallowed.intersection(prefix_name):
         raise CondaValueError(
             dals(
                 f"""
                 Invalid environment name: {prefix_name!r}
-                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
+                Characters not allowed: {disallowed}
                 If you are specifying a path to an environment, the `-p`
                 flag should be used instead.
                 """
