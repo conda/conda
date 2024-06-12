@@ -374,7 +374,7 @@ def test_json_create_install_update_remove(
             for string in content and content.split("\0") or ():
                 json.loads(string)
         except Exception as e:
-            log.warn(
+            log.warning(
                 "Problem parsing json output.\n"
                 "  content: %s\n"
                 "  string: %s\n"

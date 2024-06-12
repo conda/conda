@@ -51,7 +51,7 @@ def register_env(location):
     try:
         os.makedirs(user_environments_txt_directory, exist_ok=True)
     except OSError as exc:
-        log.warn(
+        log.warning(
             "Unable to register environment. "
             f"Could not create {user_environments_txt_directory}. "
             f"Reason: {exc}"
@@ -64,7 +64,7 @@ def register_env(location):
             fh.write("\n")
     except OSError as e:
         if e.errno in (EACCES, EROFS, ENOENT):
-            log.warn(
+            log.warning(
                 "Unable to register environment. Path not writable or missing.\n"
                 "  environment location: %s\n"
                 "  registry file: %s",
