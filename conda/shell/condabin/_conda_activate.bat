@@ -9,34 +9,49 @@
     @SET CONDA_PS1_BACKUP=
 :FIXUP43
 
-@SETLOCAL EnableDelayedExpansion
+:: attempt to find a unique temporary directory to use
 @FOR %%A IN ("%TMP%") DO @SET TMP=%%~sA
-:: It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
-:: and %* to contain: activate "Something With Spaces does not exist".
-:: MSDOS associates the outer "'s and is unable to run very much at all.
-:: @SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
-:: @FOR /F %%i IN ('%CONDA_EXES% shell.cmd.exe %*') DO @SET _TEMP_SCRIPT_PATH=%%i not return error
-:: This method will not work if %TMP% contains any spaces.
-@FOR /L %%I IN (1,1,100) DO @(
-    @SET UNIQUE_DIR=%TMP%\conda-!RANDOM!
-    @MKDIR !UNIQUE_DIR! > NUL 2> NUL
-    @IF NOT ERRORLEVEL 1 @(
-        @SET UNIQUE=!UNIQUE_DIR!\conda.tmp
-        @TYPE NUL 1> !UNIQUE!
-        @GOTO :TMP_FILE_CREATED
+@SET _I=100
+:CREATE
+@IF [%_I%]==[0] @(
+    @ECHO Failed to create temp directory "%TMP%\conda-<RANDOM>\" 1>&2
+    @SET _I=
+    @EXIT /B 1
+)
+@SET /A _I-=1
+@SET "_CONDA_TMPDIR=%TMP%\conda-%RANDOM%"
+@MKDIR "%_CONDA_TMPDIR%" >NUL 2>NUL || @GOTO :CREATE
+@SET _I=
+
+:: found a unique directory
+@SET "_CONDA_SCRIPT=%_CONDA_TMPDIR%\conda_activate.bat"
+@TYPE NUL >%_CONDA_SCRIPT%
+
+:: call conda
+@CALL "%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* >%_CONDA_SCRIPT% || @GOTO :ERROR
+
+:: call temporary script
+@IF DEFINED CONDA_PROMPT_MODIFIER @CALL @SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%%"
+@CALL "%_CONDA_SCRIPT%" || @GOTO :ERROR
+@SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
+
+:CLEANUP
+@IF EXIST "%_CONDA_TMPDIR%" @(
+    @IF DEFINED CONDA_TEST_SAVE_TEMPS @(
+        @IF EXIST "%_CONDA_SCRIPT%" @(
+            @ECHO CONDA_TEST_SAVE_TEMPS :: retaining %_CONDA_SCRIPT% 1>&2
+        ) ELSE @(
+            @ECHO CONDA_TEST_SAVE_TEMPS :: no script to retain 1>&2
+            @RMDIR /S /Q %_CONDA_TMPDIR%
+        )
+    ) ELSE @(
+        @RMDIR /S /Q %_CONDA_TMPDIR%
     )
 )
-@ECHO Failed to create temp directory "%TMP%\conda-<RANDOM>\" & EXIT /B 1
-:TMP_FILE_CREATED
-@"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* 1>%UNIQUE%
-@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%
-@FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
-@RMDIR /S /Q %UNIQUE_DIR%
-@FOR /F "delims=" %%A IN (""!_TEMP_SCRIPT_PATH!"") DO @ENDLOCAL & @SET _TEMP_SCRIPT_PATH=%%~A
-@IF "%_TEMP_SCRIPT_PATH%" == "" @EXIT /B 1
-@IF NOT "%CONDA_PROMPT_MODIFIER%" == "" @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
-@CALL "%_TEMP_SCRIPT_PATH%"
-@IF NOT "%CONDA_TEST_SAVE_TEMPS%x"=="x" @ECHO CONDA_TEST_SAVE_TEMPS :: retaining activate_batch %_TEMP_SCRIPT_PATH% 1>&2
-@IF "%CONDA_TEST_SAVE_TEMPS%x"=="x" @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
-@SET _TEMP_SCRIPT_PATH=
-@SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
+@SET _CONDA_SCRIPT=
+@SET _CONDA_TMPDIR=
+@GOTO :EOF
+
+:ERROR
+@CALL :CLEANUP
+@EXIT /B 1
