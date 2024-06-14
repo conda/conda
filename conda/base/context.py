@@ -2062,7 +2062,7 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     from ..exceptions import CondaValueError
 
     disallowed = (
-        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS_WIN
+        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
     )
     if disallowed.intersection(prefix_name):
         if "%" in disallowed:
