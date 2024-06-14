@@ -2062,9 +2062,15 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     from ..exceptions import CondaValueError
 
     disallowed = (
-        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
+        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS_WIN
     )
     if disallowed.intersection(prefix_name):
+        if "%" in disallowed:
+            # This symbol causes formatting errors in the message below when raised.
+            # It needs to be escaped as a double %% in order to be rendered correctly.
+            # Raw strings didn't help.
+            disallowed.remove("%")
+            disallowed.add("%%")
         raise CondaValueError(
             dals(
                 f"""
