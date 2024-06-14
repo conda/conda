@@ -65,3 +65,11 @@ simplepdf_theme_options = {
 }
 
 simplepdf_file_name = "cheatsheet.pdf"
+
+# ---------------------------------------------------------------------------
+# For overwriting CSS in sphinx-simplepdf extension
+# ---------------------------------------------------------------------------
+
+def setup(app):
+    #----Override table and main variables------
+    app.add_css_file('styles/sources/_tables.css')
