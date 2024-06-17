@@ -1,4 +1,3 @@
----
 name: Epic
 description: A collection of related tickets.
 labels:
@@ -25,23 +24,82 @@ body:
       options:
         - label: I added a descriptive title
           required: true
-        - label: I searched open reports and couldn't find a duplicate
+        - label: I searched open issues and couldn't find a duplicate
           required: true
+
   - type: textarea
-    id: summary
+    id: what
     attributes:
-      label: Summary
+      label: What?
       description: >-
-        Define the highlevel objectives to be accomplished in this epic. Include the
-        bigger picture of what is changing and/or the user story for why the
-        changes are desired/necessary.
+        What feature or problem will be addressed in this epic?
+      placeholder: Please describe here.
     validations:
       required: true
+
   - type: textarea
+    id: why
     attributes:
-      label: Linked Issues & PRs
-      description: List all issues related to this epic.
+      label: Why?
+      description: >-
+        Why is the reported issue(s) a problem, or why is the proposed feature needed?
+        (Research and spike issues can be linked here.)
       value: |
-        - [ ] #
+        - [ ] <supporting issue from user, research, or spike>
+      placeholder: Please describe here and/or link to relevant supporting issues.
     validations:
       required: true
+
+  - type: textarea
+    id: user_impact
+    attributes:
+      label: User impact
+      description: >-
+        In what specific way(s) will users benefit from this change? (e.g. use cases or performance improvements)
+      placeholder: Please describe here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: goals
+    attributes:
+      label: Goals
+      description: >-
+        What goal(s) should this epic accomplish?
+      value: |
+        - [ ] <goal>
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: >-
+        What needs to be done to implement this change?
+      value: |
+        - [ ] <task or PR>
+    validations:
+      required: false
+
+  - type: textarea
+    id: blocked_by
+    attributes:
+      label: 'This epic is blocked by:'
+      description: >-
+        Epics and issues that block this epic.
+      value: |
+        - [ ] <dependency epic or issue>
+    validations:
+      required: false
+
+  - type: textarea
+    id: blocks
+    attributes:
+      label: 'This epic blocks:'
+      description: >-
+        Epics and issues that are blocked by this epic.
+      value: |
+        - [ ] <dependency epic or issue>
+    validations:
+      required: false

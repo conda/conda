@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix prefix replacement for Windows subdir on unixes. (#13689)
+* Fixes parsing error when history file only contains a single commented line (#13960)
 
 ### Deprecations
 

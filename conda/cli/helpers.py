@@ -368,7 +368,7 @@ def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
         help="Exit early and do not run the solver if the requested specs are satisfied. "
         "Also skips aggressive updates as configured by the "
         "'aggressive_update_packages' config setting. Use "
-        "'conda info --describe aggressive_update_packages' to view your setting. "
+        "'conda config --describe aggressive_update_packages' to view your setting. "
         "--satisfied-skip-solve is similar to the default behavior of 'pip install'.",
     )
     update_modifiers.add_argument(

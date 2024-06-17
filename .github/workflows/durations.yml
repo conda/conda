@@ -4,7 +4,7 @@ on:
   # every Sunday at 00:00 UTC
   # https://crontab.guru/#0_0_*_*_0
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: 0 0 * * 0
 
   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
@@ -18,7 +18,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
 
       - name: download recent artifacts
         run: |
@@ -37,7 +37,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: '3.11'
 
@@ -45,7 +45,7 @@ jobs:
         run: python ./tools/durations/combine.py ${{ runner.temp }}/artifacts/
 
       - name: create updated durations PR
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e
         with:
           push-to-fork: conda-bot/conda
           token: ${{ secrets.DURATIONS_TOKEN }}

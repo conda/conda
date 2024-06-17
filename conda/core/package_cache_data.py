@@ -29,7 +29,7 @@ from ..base.constants import (
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -269,7 +269,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         if pc_entry is not None:
             return pc_entry
         raise CondaError(
-            "No package '%s' found in cache directories." % package_ref.dist_str()
+            f"No package '{package_ref.dist_str()}' found in cache directories."
         )
 
     @classmethod
@@ -321,7 +321,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             self.__is_writable = i_wri
             log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
-            log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
+            log.log(TRACE, "package cache directory '%s' does not exist", self.pkgs_dir)
             self.__is_writable = i_wri = None
         return i_wri
 
@@ -361,7 +361,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         from conda_package_handling.api import InvalidArchiveError
 
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
-        log.trace("adding to package cache %s", package_tarball_full_path)
+        log.log(TRACE, "adding to package cache %s", package_tarball_full_path)
         extracted_package_dir, pkg_ext = strip_pkg_extension(package_tarball_full_path)
 
         # try reading info/repodata_record.json

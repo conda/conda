@@ -1,4 +1,3 @@
----
 name: Sync Labels
 
 on:
@@ -20,20 +19,20 @@ jobs:
       GLOBAL: https://raw.githubusercontent.com/conda/infra/main/.github/global.yml
       LOCAL: .github/labels.yml
     steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       - id: has_local
-        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         with:
           files: ${{ env.LOCAL }}
       - name: Global Only
-        uses: EndBug/label-sync@52074158190acb45f3077f9099fea818aa43f97a
+        uses: EndBug/label-sync@52074158190acb45f3077f9099fea818aa43f97a # v2.3.3
         if: steps.has_local.outputs.files_exists == 'false'
         with:
           config-file: ${{ env.GLOBAL }}
           delete-other-labels: true
           dry-run: ${{ github.event.inputs.dryrun }}
       - name: Global & Local
-        uses: EndBug/label-sync@52074158190acb45f3077f9099fea818aa43f97a
+        uses: EndBug/label-sync@52074158190acb45f3077f9099fea818aa43f97a # v2.3.3
         if: steps.has_local.outputs.files_exists == 'true'
         with:
           config-file: |

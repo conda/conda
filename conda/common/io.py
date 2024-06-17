@@ -321,7 +321,11 @@ def stderr_log_level(level, logger_name=None):
 
 
 def attach_stderr_handler(
-    level=WARN, logger_name=None, propagate=False, formatter=None
+    level=WARN,
+    logger_name=None,
+    propagate=False,
+    formatter=None,
+    filters=None,
 ):
     # get old stderr logger
     logr = getLogger(logger_name)
@@ -334,6 +338,8 @@ def attach_stderr_handler(
     new_stderr_handler.name = "stderr"
     new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
+    for filter_ in filters or ():
+        new_stderr_handler.addFilter(filter_)
 
     # do the switch
     with _logger_lock():
@@ -430,7 +436,7 @@ class Spinner:
     @swallow_broken_pipe
     def __enter__(self):
         if not self.json:
-            sys.stdout.write("%s: " % self.message)
+            sys.stdout.write(f"{self.message}: ")
             sys.stdout.flush()
         self.start()
 
@@ -493,7 +499,7 @@ class ProgressBar:
                         raise
             else:
                 self.pbar = None
-                sys.stdout.write("%s ...working..." % description)
+                sys.stdout.write(f"{description} ...working...")
 
     def update_to(self, fraction):
         try:
@@ -527,8 +533,7 @@ class ProgressBar:
             if self.json:
                 with self.get_lock():
                     sys.stdout.write(
-                        '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                        % self.description
+                        f'{{"fetch":"{self.description}","finished":true,"maxval":1,"progress":1}}\n\0'
                     )
                     sys.stdout.flush()
             elif IS_INTERACTIVE:

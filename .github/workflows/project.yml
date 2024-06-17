@@ -1,4 +1,3 @@
----
 name: Add to Project
 
 on:
@@ -14,7 +13,7 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/add-to-project@2e5cc851ca7162e9eb510e6da6a5c64022e606a7
+      - uses: actions/add-to-project@9bfe908f2eaa7ba10340b31e314148fcfe6a2458 # v1.0.1
         with:
           # issues are added to the Planning project
           # PRs are added to the Review project

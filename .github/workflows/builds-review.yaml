@@ -17,14 +17,16 @@ jobs:
         include:
           - runner: ubuntu-latest
             subdir: linux-64
-          - runner: macos-latest
+          - runner: macos-14  # FUTURE: Use -latest
+            subdir: osx-arm64
+          - runner: macos-13
             subdir: osx-64
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Remove build label
-        uses: actions/github-script@v6
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           github-token: ${{ secrets.CANARY_ACTION_TOKEN }}
           script: |
@@ -46,14 +48,14 @@ jobs:
 
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
         with:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@v23.10.0
+        uses: conda/actions/canary-release@976289d0cfd85139701b26ddd133abdd025a7b5f # v24.5.0
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}

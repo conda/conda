@@ -31,7 +31,8 @@ from ..resolve import Resolve
 TEST_DATA_DIR = os.environ.get(
     "CONDA_TEST_DATA_DIR", abspath(join(dirname(__file__), "..", "..", "tests", "data"))
 )
-CHANNEL_DIR = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR = CHANNEL_DIR_V1 = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR_V2 = abspath(join(TEST_DATA_DIR, "base_url_channel"))
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
@@ -52,7 +53,7 @@ def raises(exception, func, string=None):
             assert string in e.args[0]
         print(e)
         return True
-    raise Exception("did not raise, gave %s" % a)
+    raise Exception(f"did not raise, gave {a}")
 
 
 @contextmanager
@@ -64,7 +65,7 @@ def captured(disallow_stderr=True):
     finally:
         c.stderr = strip_expected(c.stderr)
         if disallow_stderr and c.stderr:
-            raise Exception("Got stderr output: %s" % c.stderr)
+            raise Exception(f"Got stderr output: {c.stderr}")
 
 
 @deprecated(
