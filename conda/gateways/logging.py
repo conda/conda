@@ -62,14 +62,10 @@ class TokenURLFilter(Filter):
             # This should always be the case but it's not checked so
             # we avoid any potential logging errors.
             return True
-        record.msg = self.TOKEN_REPLACE(record.msg)
         if record.args:
-            new_args = tuple(
-                self.TOKEN_REPLACE(arg) if isinstance(arg, str) else arg
-                for arg in record.args
-            )
-            record.msg = record.msg % new_args
+            record.msg = record.msg % record.args
             record.args = None
+        record.msg = self.TOKEN_REPLACE(record.msg)
         return True
 
 
