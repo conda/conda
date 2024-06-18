@@ -441,6 +441,7 @@ class Context(Configuration):
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
     #               Solver Configuration               #
@@ -1284,6 +1285,7 @@ class Context(Configuration):
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
+                "envvars_force_uppercase",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1897,6 +1899,11 @@ class Context(Configuration):
             repodata_use_zst=dals(
                 """
                 Disable check for `repodata.json.zst`; use `repodata.json` only.
+                """
+            ),
+            envvars_force_uppercase=dals(
+                """
+                Force uppercase for new environment variable names. Defaults to True.
                 """
             ),
         )
