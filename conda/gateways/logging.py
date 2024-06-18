@@ -9,7 +9,6 @@ from datetime import datetime
 from functools import lru_cache, partial
 from logging import (
     DEBUG,
-    ERROR,
     INFO,
     WARN,
     Filter,
@@ -141,8 +140,8 @@ class StdStreamHandler(StreamHandler):
 
 @lru_cache(maxsize=None)
 def initialize_logging():
-    # root gets level ERROR; 'conda' gets level WARN and propagates to root.
-    initialize_root_logger()
+    # 'conda' gets level WARN and does not propagate to root.
+    getLogger("conda").setLevel(WARN)
     set_conda_log_level()
     initialize_std_loggers()
 
@@ -184,15 +183,8 @@ def initialize_std_loggers():
     verbose_logger.propagate = False
 
 
-def initialize_root_logger(level=ERROR):
-    attach_stderr_handler(level=level, filters=[TokenURLFilter()])
-
-
 def set_conda_log_level(level=WARN):
-    conda_logger = getLogger("conda")
-    conda_logger.setLevel(logging.NOTSET)
     attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])
-    conda_logger.propagate = False
 
 
 def set_all_logger_level(level=DEBUG):
