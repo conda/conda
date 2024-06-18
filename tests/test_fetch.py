@@ -350,7 +350,7 @@ def test_download_http_errors():
         raise HTTPError(response=Response(401))
 
 
-@pytest.mark.parametrize("sha256_type", ("original", "upper", "gibberish"))
+@pytest.mark.parametrize("sha256_type", ("original", "upper", "gibberish", "bad-type"))
 def test_checksum_checks_bytes(
     tmp_path: Path, package_repository_base, package_server, sha256_type
 ):
@@ -363,9 +363,14 @@ def test_checksum_checks_bytes(
     size = package_path.stat().st_size
     output_path = tmp_path / package_name
 
-    if sha256_type == "gibberish":
+    if sha256_type in ("gibberish", "bad-type"):
         with pytest.raises(CondaValueError):
-            download(url, output_path, size=size, sha256="not-an-hex-string")
+            download(
+                url,
+                output_path,
+                size=size,
+                sha256=123456 if sha256_type == "bad-type" else "not-an-hex-string",
+            )
     else:
         download(
             url,

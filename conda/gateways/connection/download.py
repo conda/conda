@@ -180,7 +180,7 @@ def download_partial_file(
             checksum = sha256 if sha256 else md5
             try:
                 checksum_bytes = bytes.fromhex(checksum)
-            except ValueError as exc:
+            except (ValueError, TypeError) as exc:
                 raise CondaValueError(exc) from exc
             hasher = hashlib.new(checksum_type)
             target.seek(0)
