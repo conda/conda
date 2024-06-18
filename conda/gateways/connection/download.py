@@ -24,6 +24,7 @@ from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
+    CondaValueError,
     ProxyError,
     maybe_raise,
 )
@@ -176,15 +177,18 @@ def download_partial_file(
         target.seek(0)
         if md5 or sha256:
             checksum_type = "sha256" if sha256 else "md5"
-            checksum = (sha256 if sha256 else md5).lower()
+            checksum = sha256 if sha256 else md5
+            try:
+                checksum_bytes = bytes.fromhex(checksum)
+            except ValueError as exc:
+                raise CondaValueError(exc) from exc
             hasher = hashlib.new(checksum_type)
             target.seek(0)
             while read := target.read(CHUNK_SIZE):
                 hasher.update(read)
 
-            actual_checksum = hasher.hexdigest()
-
-            if actual_checksum != checksum:
+            if hasher.digest() != checksum_bytes:
+                actual_checksum = hasher.hexdigest()
                 log.debug(
                     "%s mismatch for download: %s (%s != %s)",
                     checksum_type,

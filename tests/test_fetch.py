@@ -19,6 +19,7 @@ from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
+    CondaValueError,
     ProxyError,
 )
 from conda.gateways.connection import (
@@ -349,8 +350,10 @@ def test_download_http_errors():
         raise HTTPError(response=Response(401))
 
 
-@pytest.mark.parametrize("upper", (True, False))
-def test_checksum_case_insensitive(tmp_path: Path, package_repository_base, package_server, upper):
+@pytest.mark.parametrize("sha256_type", ("original", "upper", "gibberish"))
+def test_checksum_checks_bytes(
+    tmp_path: Path, package_repository_base, package_server, sha256_type
+):
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     package_name = "zlib-1.2.11-h7b6447c_3.conda"
@@ -360,10 +363,13 @@ def test_checksum_case_insensitive(tmp_path: Path, package_repository_base, pack
     size = package_path.stat().st_size
     output_path = tmp_path / package_name
 
-    # try full download
-    download(
-        url,
-        output_path,
-        size=size,
-        sha256=sha256.upper() if upper else sha256
-    )
+    if sha256_type == "gibberish":
+        with pytest.raises(CondaValueError):
+            download(url, output_path, size=size, sha256="not-an-hex-string")
+    else:
+        download(
+            url,
+            output_path,
+            size=size,
+            sha256=sha256.upper() if sha256_type == "upper" else sha256,
+        )
