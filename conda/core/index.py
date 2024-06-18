@@ -70,7 +70,7 @@ class Index(UserDict):
         self._channels = channels
         if subdirs:
             if platform:
-                log.warn("subdirs is %s, ignoring platform %s", subdirs, platform)
+                log.warning("subdirs is %s, ignoring platform %s", subdirs, platform)
         else:
             subdirs = (platform, "noarch") if platform is not None else context.subdirs
         self._subdirs = subdirs
