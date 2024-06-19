@@ -2,18 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Dynamic installer loading."""
 
-import importlib
-
-from ...exceptions import InvalidInstaller
+from ...deprecations import deprecated
 
 
+@deprecated(
+    "24.7",
+    "25.1",
+    addendum="Use `conda.base.context.context.plugin_manager.get_env_installer` instead.",
+)
 def get_installer(name):
     """
-        Gets the installer for the given environment.
+    Gets the installer for the given environment.
 
     Raises: InvalidInstaller if unable to load installer
     """
-    try:
-        return importlib.import_module(f"conda.env.installers.{name}")
-    except ImportError:
-        raise InvalidInstaller(name)
+    from conda.base.context import context
+
+    return context.plugin_manager.get_env_installer(name)

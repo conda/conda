@@ -68,6 +68,10 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
     return get_pip_installed_packages(stdout)
 
 
+def dry_run(*args, **kwargs):
+    return None
+
+
 def install(*args, **kwargs):
     with Spinner(
         "Installing pip dependencies",
