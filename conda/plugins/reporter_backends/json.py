@@ -40,7 +40,7 @@ def conda_reporter_backends():
     Reporter backend for JSON
 
     This is the default reporter backend that returns objects as JSON strings
-    that can be passed to reporter streams .
+    that can be passed to reporter outputs.
     """
     yield CondaReporterBackend(
         name="json",

@@ -7,7 +7,7 @@ from conda.plugins.reporter_outputs.stdout import stdout_io
 
 def test_stdout_render(capsys: CaptureFixture):
     """
-    Tests the StdoutHandler OutputHandler class
+    Tests the ``stdout_io`` context manager
     """
     test_str = "a string value"
 

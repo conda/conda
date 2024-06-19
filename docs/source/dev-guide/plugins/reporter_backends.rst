@@ -1,5 +1,5 @@
 =================
-Reporter Handlers
+Reporter Backends
 =================
 
 Reporter backends are a plugin hook that allow you to change the look and feel

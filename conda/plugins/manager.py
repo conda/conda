@@ -365,17 +365,17 @@ class CondaPluginManager(pluggy.PluginManager):
         return tuple(self.get_hook_results("reporter_backends"))
 
     def get_reporter_backend(self, name: str) -> CondaReporterBackend | None:
-        for handler in self.get_reporter_backends():
-            if handler.name == name:
-                return handler
+        for reporter_backend in self.get_reporter_backends():
+            if reporter_backend.name == name:
+                return reporter_backend
 
     def get_reporter_outputs(self) -> tuple[CondaReporterOutput, ...]:
         return tuple(self.get_hook_results("reporter_outputs"))
 
     def get_reporter_output(self, name: str) -> CondaReporterOutput | None:
-        for handler in self.get_reporter_outputs():
-            if handler.name == name:
-                return handler
+        for reporter_output in self.get_reporter_outputs():
+            if reporter_output.name == name:
+                return reporter_output
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds two new plugin hooks for reporter handlers and output handlers (#13868)
+* Adds two new plugin hooks for reporter backends and reporter outputs (#13868)
 
 ### Bug fixes
 

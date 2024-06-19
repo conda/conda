@@ -349,7 +349,7 @@ class CondaSpecs:
            from pprint import pformat
 
            from conda import plugins
-           from conda.plugins.types import CondaReporterHandler, ReporterHandlerBase
+           from conda.plugins.types import CondaReporterBackend, ReporterRendererBase
 
 
            class PprintReporter(ReporterRendererBase):
@@ -362,7 +362,7 @@ class CondaSpecs:
            def conda_reporter_backends():
                yield CondaReporterBackend(
                    name="pprint",
-                   description="Reporter handler based off of the pprint module",
+                   description="Reporter backend based on the pprint module",
                    renderer=PprintReporter,
                )
 
@@ -379,10 +379,14 @@ class CondaSpecs:
 
         .. code-block:: python
 
+           import logging
+
            from contextlib import contextmanager
 
            from conda import plugins
            from conda.plugins.types import CondaReporterOutput
+
+           logger = logging.getLogger(__name__)
 
 
            @contextmanager
@@ -398,7 +402,7 @@ class CondaSpecs:
            def conda_reporter_outputs():
                yield CondaReporterOutput(
                    name="file",
-                   description="Output handler that writes output to a file",
+                   description="Reporter output that writes to a file",
                    stream=file_io,
                )
 

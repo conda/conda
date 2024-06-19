@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any, Iterable
 
+    from ..base.context import Context
     from ..models.records import PackageRecord
 
 log = getLogger(__name__)
@@ -414,19 +415,16 @@ InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_a
 
 class InfoRenderer:
     """
-    Provides logic for deciding which components to render and a method for rendering them
+    Provides a ``render`` method for rendering ``InfoComponents``
     """
 
-    def __init__(self, args, context):
+    def __init__(self, context):
         from ..core.envs_manager import list_all_known_prefixes
 
-        self._args = args
         self._context = context
         self._info_dict = get_info_dict()
         self._info_dict["envs"] = list_all_known_prefixes()
-        self._components: list[InfoComponents] = []
-        self._set_components()
-        self._component_display_map = {
+        self._component_style_map = {
             "base": None,
             "channels": None,
             "detail": "detail_view",
@@ -435,15 +433,15 @@ class InfoRenderer:
             "json_all": None,
         }
 
-    def render(self):
+    def render(self, components: Iterable[InfoComponents]):
         """
         Iterates through the registered components, obtains the data to render via a
         ``_<component>_component`` method and then renders it.
         """
         from ..reporters import render
 
-        for component in self._components:
-            style = self._component_display_map.get(component)
+        for component in components:
+            style = self._component_style_map.get(component)
             data_func = getattr(self, f"_{component}_component", None)
 
             if not data_func:
@@ -453,50 +451,6 @@ class InfoRenderer:
 
             if data:
                 render(data, style=style)
-
-    def _set_components(self):
-        """
-        Given the values ``self.args`` and ``self.context`` populate the ``self._components list
-        which determines what will be rendered
-        """
-
-        if self._args.base:
-            self._components.append("base")
-
-        if self._args.unsafe_channels:
-            self._components.append("channels")
-
-        options = "envs", "system"
-
-        if self._context.verbose or self._context.json:
-            for option in options:
-                setattr(self._args, option, True)
-
-        if (
-            (
-                self._context.verbose
-                or all(not getattr(self._args, opt) for opt in options)
-            )
-            and not self._context.json
-            and not self._args.base
-            and not self._args.unsafe_channels
-        ):
-            self._components.append("detail")
-
-        if self._context.verbose or self._args.envs and not self._context.json:
-            self._components.append("envs")
-
-        if self._context.verbose or self._args.system and not self._context.json:
-            self._components.append("system")
-
-        if (
-            self._context.json
-            and not self._args.base
-            and not self._args.unsafe_channels
-        ):
-            self._components.append("json_all")
-
-        return self._components
 
     def _base_component(self) -> str | dict:
         if self._context.json:
@@ -553,6 +507,45 @@ class InfoRenderer:
         return self._info_dict
 
 
+def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
+    """
+    Based on values in ``args`` and ``context`` determine which components need to be displayed
+    and return them as a ``set``
+    """
+    components: set[InfoComponents] = set()
+
+    if args.base:
+        components.add("base")
+
+    if args.unsafe_channels:
+        components.add("channels")
+
+    options = "envs", "system"
+
+    if context.verbose or context.json:
+        for option in options:
+            setattr(args, option, True)
+
+    if (
+        (context.verbose or all(not getattr(args, opt) for opt in options))
+        and not context.json
+        and not args.base
+        and not args.unsafe_channels
+    ):
+        components.add("detail")
+
+    if context.verbose or args.envs and not context.json:
+        components.add("envs")
+
+    if context.verbose or args.system and not context.json:
+        components.add("system")
+
+    if context.json and not args.base and not args.unsafe_channels:
+        components.add("json_all")
+
+    return components
+
+
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
     Implements ``conda info`` command.
@@ -567,7 +560,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.context import context
 
-    renderer = InfoRenderer(args, context)
-    renderer.render()
+    components = get_info_components(args, context)
+    renderer = InfoRenderer(context)
+    renderer.render(components)
 
     return 0

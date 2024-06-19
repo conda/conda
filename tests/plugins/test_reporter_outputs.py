@@ -18,19 +18,19 @@ def dummy_render():
     yield stdout
 
 
-class OutputHandlerPlugin:
+class ReporterOutputPlugin:
     @plugins.hookimpl
     def conda_reporter_outputs(self):
         yield CondaReporterOutput(
             name="dummy",
-            description="Dummy output handler meant for testing",
+            description="Dummy reporter output meant for testing",
             stream=dummy_render,
         )
 
 
 @pytest.fixture()
 def reporter_output_plugin(plugin_manager):
-    reporter_output_plugin = OutputHandlerPlugin()
+    reporter_output_plugin = ReporterOutputPlugin()
     plugin_manager.register(reporter_output_plugin)
 
     return plugin_manager
@@ -44,9 +44,9 @@ def default_reporter_output_plugin(plugin_manager):
     return plugin_manager
 
 
-def test_reporter_steram_is_registered(reporter_output_plugin):
+def test_reporter_output_is_registered(reporter_output_plugin):
     """
-    Ensures that our dummy reporter stream has been registered
+    Ensures that our dummy reporter output has been registered
     """
     reporter_outputs = reporter_output_plugin.get_reporter_outputs()
 
@@ -55,11 +55,11 @@ def test_reporter_steram_is_registered(reporter_output_plugin):
 
 def test_default_reporter_output_is_registered(default_reporter_output_plugin):
     """
-    Ensures that the default reporter stream is registered and can be used
+    Ensures that the default reporter output is registered and can be used
     """
     reporter_outputs = default_reporter_output_plugin.get_reporter_outputs()
 
     expected_defaults = {"stdout"}
-    actual_defaults = {stream.name for stream in reporter_outputs}
+    actual_defaults = {output.name for output in reporter_outputs}
 
     assert expected_defaults == actual_defaults

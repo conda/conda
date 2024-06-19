@@ -3,9 +3,9 @@
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 
-def test_console_handler():
+def test_console_reporter_renderer():
     """
-    Tests the ConsoleHandler ReporterHandler class
+    Tests the ``ConsoleReporterRenderer`` class
     """
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
     test_str = "a string value"

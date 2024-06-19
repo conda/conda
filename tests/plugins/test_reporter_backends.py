@@ -19,7 +19,7 @@ class DummyReporterRenderer(ReporterRendererBase):
         return str(data)
 
 
-class ReporterHandlerPlugin:
+class ReporterBackendPlugin:
     @plugins.hookimpl
     def conda_reporter_backends(self):
         yield CondaReporterBackend(
@@ -31,7 +31,7 @@ class ReporterHandlerPlugin:
 
 @pytest.fixture()
 def dummy_reporter_backend_plugin(plugin_manager):
-    reporter_backend_plugin = ReporterHandlerPlugin()
+    reporter_backend_plugin = ReporterBackendPlugin()
     plugin_manager.register(reporter_backend_plugin)
 
     return plugin_manager

@@ -1,9 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Defines a "console" reporter handler.
+Defines a "console" reporter backend.
 
-This reporter handler provides the default output for conda.
+This reporter backend provides the default output for conda.
 """
 
 from __future__ import annotations

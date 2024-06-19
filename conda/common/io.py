@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
 
-from __future__ import annotations
-
 import json
 import logging
 import os
