@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* add missing emscripten / wasi to platform enum (#13095)
+* add missing emscripten / wasi entries to platform and wasm32 to arch enum (#13095)
 
 ### Deprecations
 
