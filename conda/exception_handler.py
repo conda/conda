@@ -165,7 +165,7 @@ class ExceptionHandler:
                         get_main_info_str(error_report["conda_info"])
                     )
                 except Exception as e:
-                    log.warn("%r", e, exc_info=True)
+                    log.warning("%r", e, exc_info=True)
                     message_builder.append("conda info could not be constructed.")
                     message_builder.append(f"{e!r}")
             message_builder.extend(
@@ -213,7 +213,7 @@ class ExceptionHandler:
                         get_main_info_str(error_report["conda_info"])
                     )
                 except Exception as e:
-                    log.warn("%r", e, exc_info=True)
+                    log.warning("%r", e, exc_info=True)
                     message_builder.append("conda info could not be constructed.")
                     message_builder.append(f"{e!r}")
             message_builder.append("")
