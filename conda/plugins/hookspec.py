@@ -24,6 +24,8 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaReporterBackend,
+        CondaReporterOutput,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -331,4 +333,77 @@ class CondaSpecs:
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
+        """
+
+    @_hookspec
+    def conda_reporter_backends(self) -> Iterable[CondaReporterBackend]:
+        """
+        Register new reporter backend
+
+        The example below defines a reporter backend that uses the ``pprint`` module in Python.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from pprint import pformat
+
+           from conda import plugins
+           from conda.plugins.types import CondaReporterBackend, ReporterRendererBase
+
+
+           class PprintReporter(ReporterRendererBase):
+
+               def detail_view(self, data):
+                   return pformat(data)
+
+
+           @plugins.hookimpl
+           def conda_reporter_backends():
+               yield CondaReporterBackend(
+                   name="pprint",
+                   description="Reporter backend based on the pprint module",
+                   renderer=PprintReporter,
+               )
+
+        """
+
+    @_hookspec
+    def conda_reporter_outputs(self) -> Iterable[CondaReporterOutput]:
+        """
+        Register new reporter outputs
+
+        The example below defines a reporter output that saves output to a file
+
+        **Example:**
+
+        .. code-block:: python
+
+           import logging
+
+           from contextlib import contextmanager
+
+           from conda import plugins
+           from conda.plugins.types import CondaReporterOutput
+
+           logger = logging.getLogger(__name__)
+
+
+           @contextmanager
+           def file_io() -> TextIO:
+               try:
+                   with open("file.txt", "w") as fp:
+                       yield fp
+               except OSError as exc:
+                   logger.error(f"Unable to create file: {exc}")
+
+
+           @plugins.hookimpl
+           def conda_reporter_outputs():
+               yield CondaReporterOutput(
+                   name="file",
+                   description="Reporter output that writes to a file",
+                   stream=file_io,
+               )
+
         """
