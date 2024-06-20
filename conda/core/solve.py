@@ -813,7 +813,7 @@ class Solver:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                     pin_overrides.add(s.name)
                 else:
-                    log.warn(
+                    log.warning(
                         "pinned spec %s conflicts with explicit specs.  "
                         "Overriding pinned spec.",
                         s,

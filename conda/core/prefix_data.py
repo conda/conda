@@ -231,7 +231,7 @@ class PrefixData(metaclass=PrefixDataType):
                 ):
                     raise ValueError()
             except ValueError:
-                log.warn(
+                log.warning(
                     "Ignoring malformed prefix record at: %s", prefix_record_json_path
                 )
                 # TODO: consider just deleting here this record file in the future
@@ -353,7 +353,7 @@ class PrefixData(metaclass=PrefixDataType):
                 import traceback
 
                 tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                log.warn(
+                log.warning(
                     "Problem reading non-conda package record at %s. Please verify that you "
                     "still need this, and if so, that this is still installed correctly. "
                     "Reinstalling this package may help.",
