@@ -46,6 +46,7 @@ class Platform(Enum):
     osx = "darwin"
     zos = "zos"
     emscripten = "emscripten"
+    wasi = "wasi"
 
     @classmethod
     def from_sys(cls):
