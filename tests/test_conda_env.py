@@ -135,7 +135,7 @@ import pytest
         ),
         (
             "conda_env.specs.yaml_file.YamlFileSpec",
-            "conda.env.specs.yaml_file.YamlFileSpec",
+            "conda.env.specs.env_file.EnvironmentFileSpec",
         ),
     ],
 )
