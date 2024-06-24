@@ -7,6 +7,9 @@ from errno import EACCES, ENOENT, EROFS
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normpath
 
+from platformdirs import user_config_dir
+
+from ..base.constants import APP_NAME, ENVIRONMENTS_FN
 from ..base.context import context
 from ..common._os import is_admin
 from ..common.compat import ensure_text_type, on_win, open
@@ -19,8 +22,22 @@ log = getLogger(__name__)
 
 
 # The idea is to mock this to return '/dev/null' (or some temp file) instead.
-def get_user_environments_txt_file(userhome="~"):
-    return expand(join(userhome, ".conda", "environments.txt"))
+def get_user_environments_txt_file():
+    """Returns the environments.txt file for writing."""
+    search_path = (
+        "$CONDA_ROOT",
+        "$XDG_CONFIG_HOME/conda",
+        "~/.config/conda",
+        "~/.conda",
+        "$CONDA_PREFIX",
+    )
+
+    for search in search_path:
+        path = expand(join(search, ENVIRONMENTS_FN))
+        if isfile(path):
+            return path
+
+    return join(user_config_dir(APP_NAME, appauthor=APP_NAME), ENVIRONMENTS_FN)
 
 
 def register_env(location):
@@ -89,22 +106,40 @@ def unregister_env(location):
 
 
 def list_all_known_prefixes():
-    all_env_paths = set()
+    search_dirs = {
+        "$CONDA_ROOT",
+        "$XDG_CONFIG_HOME/conda",
+        "$CONDA_PREFIX",
+        user_config_dir(APP_NAME, appauthor=APP_NAME),
+        dirname(get_user_environments_txt_file()),
+    }
+    if on_win:
+        search_dirs.add("C:/ProgramData/conda")
+    else:
+        search_dirs.update(["/etc/conda", "/var/lib/conda"])
+
     # If the user is an admin, load environments from all user home directories
     if is_admin():
         if on_win:
             home_dir_dir = dirname(expand("~"))
-            search_dirs = tuple(entry.path for entry in os.scandir(home_dir_dir))
+            home_dirs = tuple(entry.path for entry in os.scandir(home_dir_dir))
         else:
             from pwd import getpwall
 
-            search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (
+            home_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (
                 expand("~"),
             )
     else:
-        search_dirs = (expand("~"),)
-    for home_dir in filter(None, search_dirs):
-        environments_txt_file = get_user_environments_txt_file(home_dir)
+        home_dirs = (expand("~"),)
+
+    for home_dir in filter(None, home_dirs):
+        search_dirs.update(
+            [join(home_dir, ".config", "conda"), join(home_dir, ".conda")]
+        )
+
+    all_env_paths = set()
+    for search_dir in filter(None, search_dirs):
+        environments_txt_file = expand(join(search_dir, ENVIRONMENTS_FN))
         if isfile(environments_txt_file):
             try:
                 # When the user is an admin, some environments.txt files might
