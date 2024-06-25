@@ -119,6 +119,7 @@ string_types = str  # noqa: F401
 text_type = str  # noqa: F401
 
 
+@deprecated("25.3", "25.9", addendum="Use `dict.items()` instead.")
 def iteritems(d, **kw):
     return iter(d.items(**kw))
 
@@ -134,6 +135,7 @@ class Completer:  # pragma: no cover
         return iter(self.get_items())
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 class InstalledPackages:
     pass
 
@@ -150,10 +152,12 @@ KEYS = None
 KEYS_DIR = None
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def hash_file(_):
     return None  # pragma: no cover
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def verify(_):
     return False  # pragma: no cover
 
@@ -212,6 +216,7 @@ def package_cache():
     return package_cache()
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     print("WARNING: symlink_conda() is deprecated.", file=sys.stderr)
     # do not symlink root env - this clobbers activate incorrectly.
@@ -231,6 +236,7 @@ def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     _symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
     scripts = ["conda", "activate", "deactivate"]
     prefix_where = os.path.join(prefix, where)
@@ -258,6 +264,7 @@ def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
 
 if on_win:  # pragma: no cover
 
+    @deprecated("25.3", "25.9", addendum="Unused.")
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
