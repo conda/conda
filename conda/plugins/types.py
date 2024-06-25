@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from typing import Callable
 
     from ..common.configuration import Parameter
+    from ..core.path_actions import _Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -210,3 +211,19 @@ class CondaSetting:
     description: str
     parameter: Parameter
     aliases: tuple[str, ...] = tuple()
+
+
+@dataclass
+class CondaTransactionAction:
+    """
+    Return type to use when defining a conda transaction action plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_transaction_action`.
+
+    :param name: name of the action (e.g., ``pypi_compat``)
+    :param action: subclass of :class:`~conda.core.path_actions._Action` or
+                   any of its subclasses
+    """
+    name: str
+    action: type[_Action]
