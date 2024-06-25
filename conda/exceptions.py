@@ -1257,7 +1257,7 @@ def print_conda_exception(exc_val, exc_tb=None):
         logger.info(f"{exc_json}\n")
     else:
         stderrlog = getLogger("conda.stderr")
-        stderrlog.error("\n%r\n", exc_val)
+        stderrlog.error("\n%r\n", exc_val, exc_info=exc_val)
         # An alternative which would allow us not to reload sys with newly setdefaultencoding()
         # is to not use `%r`, e.g.:
         # Still, not being able to use `%r` seems too great a price to pay.
