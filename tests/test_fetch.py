@@ -19,6 +19,7 @@ from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
+    CondaValueError,
     ProxyError,
 )
 from conda.gateways.connection import (
@@ -347,3 +348,33 @@ def test_download_http_errors():
         "https://example.org/file"
     ):
         raise HTTPError(response=Response(401))
+
+
+@pytest.mark.parametrize("sha256_type", ("original", "upper", "gibberish", "bad-type"))
+def test_checksum_checks_bytes(
+    tmp_path: Path, package_repository_base, package_server, sha256_type
+):
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    package_name = "zlib-1.2.11-h7b6447c_3.conda"
+    url = f"{base}/linux-64/{package_name}"
+    package_path = package_repository_base / "linux-64" / package_name
+    sha256 = checksum(package_path, algorithm="sha256")
+    size = package_path.stat().st_size
+    output_path = tmp_path / package_name
+
+    if sha256_type in ("gibberish", "bad-type"):
+        with pytest.raises(CondaValueError):
+            download(
+                url,
+                output_path,
+                size=size,
+                sha256=123456 if sha256_type == "bad-type" else "not-an-hex-string",
+            )
+    else:
+        download(
+            url,
+            output_path,
+            size=size,
+            sha256=sha256.upper() if sha256_type == "upper" else sha256,
+        )
