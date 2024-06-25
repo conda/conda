@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from collections import UserDict
 from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -12,8 +13,8 @@ from boltons.setutils import IndexedSet
 
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
-from ..exceptions import ChannelNotAllowed, InvalidSpec
-from ..gateways.logging import initialize_logging
+from ..deprecations import deprecated
+from ..exceptions import ChannelNotAllowed, InvalidSpec, PackagesNotFoundError
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
@@ -48,10 +49,362 @@ def check_allowlist(channel_urls: list[str]) -> None:
                 raise ChannelNotAllowed(Channel(url))
 
 
+class Index(UserDict):
+    def __init__(
+        self,
+        channels=(),
+        prepend=True,
+        platform=None,
+        subdirs=None,
+        use_local=False,
+        use_cache=False,
+        unknown=None,
+        prefix=None,
+        repodata_fn=context.repodata_fns[-1],
+        add_system=False,
+    ) -> None:
+        if use_local:
+            channels = ["local"] + list(channels)
+        if prepend:
+            channels += context.channels
+        self._channels = channels
+        if subdirs:
+            if platform:
+                log.warning("subdirs is %s, ignoring platform %s", subdirs, platform)
+        else:
+            subdirs = (platform, "noarch") if platform is not None else context.subdirs
+        self._subdirs = subdirs
+        self._repodata_fn = repodata_fn
+        self.channels = {}
+        self.expanded_channels = []
+        for channel in channels:
+            urls = Channel(channel).urls(True, subdirs)
+            check_allowlist(urls)
+            expanded_channels = [Channel(url) for url in urls]
+            self.channels[channel] = [
+                SubdirData(expanded_channel, repodata_fn=repodata_fn)
+                for expanded_channel in expanded_channels
+            ]
+            self.expanded_channels.extend(expanded_channels)
+        LAST_CHANNEL_URLS.clear()
+        LAST_CHANNEL_URLS.extend(self.expanded_channels)
+        if prefix is None:
+            self.prefix = None
+        elif isinstance(prefix, PrefixData):
+            self.prefix = prefix
+        else:
+            self.prefix = PrefixData(prefix)
+        self.unknown = True if unknown is None and context.offline else unknown
+        self.track_features = context.track_features
+        self.add_system = add_system
+        self.system_packages = {
+            (
+                rec := _make_virtual_package(
+                    f"__{package.name}", package.version, package.build
+                )
+            ): rec
+            for package in context.plugin_manager.get_virtual_packages()
+        }
+
+    def __repr__(self):
+        channels = ", ".join(self.channels.keys())
+        return f"Index(channels=[{channels}])"
+
+    def get_reduced_index(self, specs):
+        return ReducedIndex(
+            specs=specs,
+            channels=self._channels,
+            prepend=False,
+            subdirs=self._subdirs,
+            use_local=False,
+            use_cache=False,
+            unknown=self.unknown,
+            prefix=self.prefix,
+            repodata_fn=self._repodata_fn,
+            add_system=self.add_system,
+        )
+
+    @property
+    def data(self):
+        try:
+            return self._data
+        except AttributeError:
+            self._realize()
+            return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
+
+    def _realize(self):
+        _data = {}
+        for subdir_datas in self.channels.values():
+            for subdir_data in subdir_datas:
+                _data.update((prec, prec) for prec in subdir_data.iter_records())
+        if self.prefix:
+            _supplement_index_with_prefix(_data, self.prefix)
+        if self.unknown:
+            _supplement_index_with_cache(_data)
+        if self.track_features:
+            _supplement_index_with_features(_data)
+        if self.add_system:
+            _data.update(self.system_packages)
+        self._data = _data
+
+    def _retrieve_from_channels(self, key):
+        for subdir_datas in reversed(self.channels.values()):
+            for subdir_data in subdir_datas:
+                if key.subdir != subdir_data.channel.subdir:
+                    continue
+                prec_candidates = list(subdir_data.query(key))
+                if not prec_candidates:
+                    continue
+                assert len(prec_candidates) == 1
+                prec = prec_candidates[0]
+                if prec:
+                    return prec
+        return None
+
+    def _retrieve_all_from_channels(self, key):
+        precs = []
+        for subdir_datas in reversed(self.channels.values()):
+            for subdir_data in subdir_datas:
+                if hasattr(key, "subdir") and key.subdir != subdir_data.channel.subdir:
+                    continue
+                prec_candidates = list(subdir_data.query(key))
+                if not prec_candidates:
+                    continue
+                precs.extend(prec_candidates)
+        return precs
+
+    def _update_from_prefix(self, key, prec):
+        prefix_prec = self.prefix.get(key.name, None) if self.prefix else None
+        if prefix_prec:
+            if prec:
+                if prec.channel == prefix_prec.channel:
+                    link = prefix_prec.get("link") or EMPTY_LINK
+                    prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
+                else:
+                    prefix_channel = prefix_prec.channel
+                    prefix_channel._Channel__canonical_name = prefix_channel.url()
+                    del prefix_prec._PackageRecord__pkey
+                    prec = prefix_prec
+            else:
+                prec = prefix_prec
+        return prec
+
+    def _update_from_cache(self, key, prec):
+        for pcrec in PackageCacheData.get_all_extracted_entries():
+            if pcrec == key:
+                if prec:
+                    # The downloaded repodata takes priority
+                    return PackageCacheRecord.from_objects(prec, pcrec)
+                else:
+                    return pcrec
+        return prec
+
+    def __getitem__(self, key):
+        assert isinstance(key, PackageRecord)
+        try:
+            return self._data[key]
+        except AttributeError:
+            pass
+        try:
+            return self.system_packages[key]
+        except KeyError:
+            pass
+        if self.track_features and key.name.endswith("@"):
+            for feature in self.track_features:
+                if feature == key.name[:-1]:
+                    return make_feature_record(feature)
+        prec = self._retrieve_from_channels(key)
+        prec = self._update_from_prefix(key, prec)
+        if self.unknown:
+            prec = self._update_from_cache(key, prec)
+        if prec is None:
+            raise KeyError((key,))
+        return prec
+
+    def __contains__(self, key):
+        try:
+            _ = self[key]
+            return True
+        except PackagesNotFoundError:
+            return False
+
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        if "_data" in self.__dict__:
+            inst.__dict__["_data"] = self.__dict__["_data"].copy()
+        return inst
+
+
+class ReducedIndex(Index):
+    def __init__(
+        self,
+        specs,
+        channels=(),
+        prepend=True,
+        platform=None,
+        subdirs=None,
+        use_local=False,
+        use_cache=False,
+        unknown=None,
+        prefix=None,
+        repodata_fn=context.repodata_fns[-1],
+        add_system=False,
+    ) -> None:
+        super().__init__(
+            channels,
+            prepend,
+            platform,
+            subdirs,
+            use_local,
+            use_cache,
+            unknown,
+            prefix,
+            repodata_fn,
+            add_system,
+        )
+        self.specs = specs
+        self._derive_reduced_index()
+
+    def __repr__(self):
+        channels = ", ".join(self.channels.keys())
+        return f"ReducedIndex(spec={self.specs}, channels=[{channels}])"
+
+    def _derive_reduced_index(self):
+        records = IndexedSet()
+        collected_names = set()
+        collected_track_features = set()
+        pending_names = set()
+        pending_track_features = set()
+
+        def push_spec(spec: MatchSpec) -> None:
+            """
+            Add a package name or track feature from a MatchSpec to the pending set.
+
+            :param spec: The MatchSpec to process.
+            """
+            name = spec.get_raw_value("name")
+            if name and name not in collected_names:
+                pending_names.add(name)
+            track_features = spec.get_raw_value("track_features")
+            if track_features:
+                for ftr_name in track_features:
+                    if ftr_name not in collected_track_features:
+                        pending_track_features.add(ftr_name)
+
+        def push_record(record: PackageRecord) -> None:
+            """
+            Process a package record to collect its dependencies and features.
+
+            :param record: The package record to process.
+            """
+            try:
+                combined_depends = record.combined_depends
+            except InvalidSpec as e:
+                log.warning(
+                    "Skipping %s due to InvalidSpec: %s",
+                    record.record_id(),
+                    e._kwargs["invalid_spec"],
+                )
+                return
+            push_spec(MatchSpec(record.name))
+            for _spec in combined_depends:
+                push_spec(_spec)
+            if record.track_features:
+                for ftr_name in record.track_features:
+                    push_spec(MatchSpec(track_features=ftr_name))
+
+        # TODO: Should we really add the whole prefix?
+        # if self.prefix:
+        #     for prefix_rec in self.prefix.iter_records():
+        #         push_record(prefix_rec)
+        for spec in self.specs:
+            push_spec(spec)
+
+        while pending_names or pending_track_features:
+            while pending_names:
+                name = pending_names.pop()
+                collected_names.add(name)
+                spec = MatchSpec(name)
+                # new_records = SubdirData.query_all(
+                #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
+                # )
+                new_records = self._retrieve_all_from_channels(spec)
+                for record in new_records:
+                    push_record(record)
+                records.update(new_records)
+
+            while pending_track_features:
+                feature_name = pending_track_features.pop()
+                collected_track_features.add(feature_name)
+                spec = MatchSpec(track_features=feature_name)
+                # new_records = SubdirData.query_all(
+                #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
+                # )
+                new_records = self._retrieve_all_from_channels(spec)
+                for record in new_records:
+                    push_record(record)
+                records.update(new_records)
+
+        self._data = {rec: rec for rec in records}
+
+        if self.prefix:
+            _supplement_index_with_prefix(self._data, self.prefix)
+
+        # add feature records for the solver
+        known_features = set()
+        for rec in self._data.values():
+            known_features.update((*rec.track_features, *rec.features))
+        known_features.update(context.track_features)
+        for ftr_str in known_features:
+            rec = make_feature_record(ftr_str)
+            self._data[rec] = rec
+
+        self._data.update(
+            {
+                (
+                    rec := _make_virtual_package(
+                        f"__{package.name}", package.version, package.build
+                    )
+                ): rec
+                for package in context.plugin_manager.get_virtual_packages()
+            }
+        )
+
+        # _supplement_index_with_system(reduced_index)
+
+        # if prefix is not None:
+        #     _supplement_index_with_prefix(reduced_index, prefix)
+
+        # if context.offline or (
+        #     "unknown" in context._argparse_args and context._argparse_args.unknown
+        # ):
+        #     # This is really messed up right now.  Dates all the way back to
+        #     # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
+        #     # TODO: revisit this later
+        #     _supplement_index_with_cache(reduced_index)
+
+        # # add feature records for the solver
+        # known_features = set()
+        # for rec in reduced_index.values():
+        #     known_features.update((*rec.track_features, *rec.features))
+        # known_features.update(context.track_features)
+        # for ftr_str in known_features:
+        #     rec = make_feature_record(ftr_str)
+        #     reduced_index[rec] = rec
+
+        # _supplement_index_with_system(reduced_index)
+
+
 LAST_CHANNEL_URLS = []
 
 
 @time_recorder("get_index")
+@deprecated("24.9", "25.3", addendum="Use `Index` instead.")
 def get_index(
     channel_urls: tuple[str] = (),
     prepend: bool = True,
@@ -79,28 +432,19 @@ def get_index(
     :param repodata_fn: Filename of the repodata file.
     :return: A dictionary representing the package index.
     """
-    initialize_logging()  # needed in case this function is called directly as a public API
-
-    if context.offline and unknown is None:
-        unknown = True
-
-    channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-    LAST_CHANNEL_URLS.clear()
-    LAST_CHANNEL_URLS.extend(channel_urls)
-
-    check_allowlist(channel_urls)
-
-    index = fetch_index(channel_urls, use_cache=use_cache, repodata_fn=repodata_fn)
-
-    if prefix:
-        _supplement_index_with_prefix(index, prefix)
-    if unknown:
-        _supplement_index_with_cache(index)
-    if context.track_features:
-        _supplement_index_with_features(index)
-    return index
+    return Index(
+        channel_urls,
+        prepend,
+        platform,
+        use_local,
+        use_cache,
+        unknown,
+        prefix,
+        repodata_fn,
+    )
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
 def fetch_index(
     channel_urls: list[str],
     use_cache: bool = False,
@@ -139,7 +483,10 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
-def _supplement_index_with_prefix(index: dict[Any, Any], prefix: str) -> None:
+def _supplement_index_with_prefix(
+    index: Index | dict[Any, Any],
+    prefix: str | PrefixData,
+) -> None:
     """
     Supplement the given index with information from the specified environment prefix.
 
@@ -148,7 +495,14 @@ def _supplement_index_with_prefix(index: dict[Any, Any], prefix: str) -> None:
     """
     # supplement index with information from prefix/conda-meta
     assert prefix
-    for prefix_record in PrefixData(prefix).iter_records():
+    if isinstance(index, Index):
+        return
+    if isinstance(prefix, PrefixData):
+        prefix_data = prefix
+    else:
+        prefix_data = PrefixData(prefix)
+
+    for prefix_record in prefix_data.iter_records():
         if prefix_record in index:
             current_record = index[prefix_record]
             if current_record.channel == prefix_record.channel:
@@ -243,6 +597,8 @@ def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> 
 
     :param index: The package index to supplement.
     """
+    if isinstance(index, Index):
+        return
     for package in context.plugin_manager.get_virtual_packages():
         rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
         index[rec] = rec
@@ -321,6 +677,20 @@ def get_reduced_index(
     :param repodata_fn: Filename of the repodata file to use.
     :return: A dictionary representing the reduced package index.
     """
+
+    return ReducedIndex(
+        specs,
+        channels=channels,
+        prepend=False,
+        subdirs=subdirs,
+        use_local=False,
+        use_cache=False,
+        unknown=False,
+        prefix=prefix,
+        repodata_fn=repodata_fn,
+        add_system=True,
+    )
+
     records = IndexedSet()
     collected_names = set()
     collected_track_features = set()

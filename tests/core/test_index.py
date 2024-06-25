@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import platform
 from logging import getLogger
 
 import pytest
@@ -18,9 +19,80 @@ from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
 from tests.core.test_subdir_data import platform_in_record
 
 log = getLogger(__name__)
+
+
+PLATFORMS = {
+    ("Linux", "x86_64"): "linux-64",
+    ("Darwin", "x86_64"): "osx-64",
+    ("Darwin", "arm64"): "osx-arm64",
+    ("Windows", "AMD64"): "win-64",
+}
+
+DEFAULTS_SAMPLE_PACKAGES = {
+    "linux-64": {
+        "channel": "pkgs/main/linux-64",
+        "name": "aiohttp",
+        "version": "2.3.9",
+        "build": "py35_0",
+        "build_number": 0,
+    },
+    "osx-64": {
+        "channel": "pkgs/main/osx-64",
+        "name": "aiohttp",
+        "version": "2.3.9",
+        "build": "py35_0",
+        "build_number": 0,
+    },
+    "osx-arm64": {
+        "channel": "pkgs/main/osx-arm64",
+        "name": "aiohttp",
+        "version": "3.9.3",
+        "build": "py310h80987f9_0",
+        "build_number": 0,
+    },
+    "win-64": {
+        "channel": "pkgs/main/win-64",
+        "name": "aiohttp",
+        "version": "2.3.9",
+        "build": "py35_0",
+        "build_number": 0,
+    },
+}
+
+CONDAFORGE_SAMPLE_PACKAGES = {
+    "linux-64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py310pl5321hfe26b83_0",
+        "build_number": 0,
+    },
+    "osx-64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py38pl5321h6d91244_0",
+        "build_number": 0,
+    },
+    "osx-arm64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py39pl5321h878be05_0",
+        "build_number": 0,
+    },
+    "win-64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py312h275cf98_0",
+        "build_number": 0,
+    },
+}
 
 
 def test_check_allowlist():
@@ -164,3 +236,15 @@ def test_basic_get_reduced_index():
         (MatchSpec("flask"),),
         "repodata.json",
     )
+
+
+@pytest.mark.memray
+@pytest.mark.integration
+def test_get_index_lazy():
+    subdir = PLATFORMS[(platform.system(), platform.machine())]
+    index = get_index(channel_urls=["conda-forge"], platform=subdir)
+    main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
+    conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
+
+    assert main_prec == index[main_prec]
+    assert conda_forge_prec == index[conda_forge_prec]
