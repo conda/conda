@@ -438,7 +438,7 @@ class RepodataState(UserDict):
             value = bool(obj["value"])
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
-            log.warn(
+            log.warning(
                 f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
                 exc_info=e,
             )

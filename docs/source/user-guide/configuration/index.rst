@@ -41,7 +41,7 @@ configuration.
     :doc:`Using non-standard certificates <non-standard-certs>`
         Install and configure non-standard certifications for use with conda
 
-    :doc:`Using Custom Locations for Environment and Package Cache`
+    :doc:`Using Custom Locations for Environment and Package Cache <custom-env-and-pkg-locations>`
         How to configure different locations for storing environments and package cache
 
     :doc:`Pip interoperability (experimental) <pip-interoperability>`
