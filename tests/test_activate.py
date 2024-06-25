@@ -6,6 +6,7 @@ import json
 import os
 import platform
 import sys
+from contextlib import nullcontext
 from functools import lru_cache
 from itertools import chain
 from logging import getLogger
@@ -21,7 +22,7 @@ from uuid import uuid4
 
 import pytest
 
-from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError
+from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT, CondaError, activate
 from conda import __version__ as conda_version
 from conda.activate import (
     CmdExeActivator,
@@ -3505,3 +3506,28 @@ def test_metavars_force_uppercase(
     assert "ONE" in export_vars
     assert "FOUR" in unset_vars
     assert "SIX" in export_vars
+
+
+@pytest.mark.parametrize(
+    "function,deprecated,raises",
+    [
+        ("FILESYSTEM_ENCODING", True, TypeError),
+        ("expand", False, TypeError),
+        ("ensure_binary", True, TypeError),
+        ("ensure_fs_path_encoding", True, TypeError),
+        ("_Cygpath", True, None),
+        ("native_path_to_unix", False, TypeError),
+        ("unix_path_to_native", False, TypeError),
+        ("path_identity", False, TypeError),
+        ("backslash_to_forwardslash", False, TypeError),
+    ],
+)
+def test_deprecations(
+    function: str,
+    deprecated: bool,
+    raises: type[Exception] | None,
+) -> None:
+    deprecated_context = pytest.deprecated_call() if deprecated else nullcontext()
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with deprecated_context, raises_context:
+        getattr(activate, function)()

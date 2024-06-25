@@ -13,30 +13,15 @@ from __future__ import annotations
 
 import abc
 import json
-import ntpath
 import os
-import posixpath
 import re
 import sys
 from logging import getLogger
-from os.path import (
-    abspath,
-    basename,
-    dirname,
-    exists,
-    expanduser,
-    expandvars,
-    isdir,
-    join,
-)
+from os.path import basename, dirname, exists, isdir, join
 from pathlib import Path
-from shutil import which
-from subprocess import run
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
-# Since we have to have configuration context here, anything imported by
-#   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import (
@@ -45,8 +30,17 @@ from .base.constants import (
     PREFIX_STATE_FILE,
 )
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, on_win
-from .common.path import paths_equal
+from .common import compat as _compat
+from .common import path as _path
+from .common.compat import on_win
+from .common.path import (
+    backslash_to_forwardslash,
+    expand,
+    native_path_to_unix,
+    path_identity,
+    paths_equal,
+    unix_path_to_native,
+)
 from .deprecations import deprecated
 
 if TYPE_CHECKING:
@@ -862,262 +856,34 @@ class _Activator(metaclass=abc.ABCMeta):
         return env_vars
 
 
-def expand(path):
-    return abspath(expanduser(expandvars(path)))
-
-
-def ensure_binary(value):
-    try:
-        return value.encode("utf-8")
-    except AttributeError:  # pragma: no cover
-        # AttributeError: '<>' object has no attribute 'encode'
-        # In this case assume already binary type and do nothing
-        return value
-
-
-def ensure_fs_path_encoding(value):
-    try:
-        return value.decode(FILESYSTEM_ENCODING)
-    except AttributeError:
-        return value
-
-
-class _Cygpath:
-    @classmethod
-    def nt_to_posix(cls, paths: str) -> str:
-        return cls.RE_UNIX.sub(cls.translate_unix, paths).replace(
-            ntpath.pathsep, posixpath.pathsep
-        )
-
-    RE_UNIX = re.compile(
-        r"""
-        (?P<drive>[A-Za-z]:)?
-        (?P<path>[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)
-        """,
-        flags=re.VERBOSE,
-    )
-
-    @staticmethod
-    def translate_unix(match: re.Match) -> str:
-        return "/" + (
-            ((match.group("drive") or "").lower() + match.group("path"))
-            .replace("\\", "/")
-            .replace(":", "")  # remove drive letter delimiter
-            .replace("//", "/")
-            .rstrip("/")
-        )
-
-    @classmethod
-    def posix_to_nt(cls, paths: str, prefix: str) -> str:
-        if posixpath.sep not in paths:
-            # nothing to translate
-            return paths
-
-        if posixpath.pathsep in paths:
-            return ntpath.pathsep.join(
-                cls.posix_to_nt(path, prefix) for path in paths.split(posixpath.pathsep)
-            )
-        path = paths
-
-        # Reverting a Unix path means unpicking MSYS2/Cygwin
-        # conventions -- in order!
-        # 1. drive letter forms:
-        #      /x/here/there - MSYS2
-        #      /cygdrive/x/here/there - Cygwin
-        #    transformed to X:\here\there -- note the uppercase drive letter!
-        # 2. either:
-        #    a. mount forms:
-        #         //here/there
-        #       transformed to \\here\there
-        #    b. root filesystem forms:
-        #         /here/there
-        #       transformed to {prefix}\Library\here\there
-        # 3. anything else
-
-        # continue performing substitutions until a match is found
-        path, subs = cls.RE_DRIVE.subn(cls.translation_drive, path)
-        if not subs:
-            path, subs = cls.RE_MOUNT.subn(cls.translation_mount, path)
-        if not subs:
-            path, _ = cls.RE_ROOT.subn(
-                lambda match: cls.translation_root(match, prefix), path
-            )
-
-        return re.sub(r"/+", r"\\", path)
-
-    RE_DRIVE = re.compile(
-        r"""
-        ^
-        (/cygdrive)?
-        /(?P<drive>[A-Za-z])
-        (/+(?P<path>.*)?)?
-        $
-        """,
-        flags=re.VERBOSE,
-    )
-
-    @staticmethod
-    def translation_drive(match: re.Match) -> str:
-        drive = match.group("drive").upper()
-        path = match.group("path") or ""
-        return f"{drive}:\\{path}"
-
-    RE_MOUNT = re.compile(
-        r"""
-        ^
-        //(
-            (?P<mount>[^/]+)
-            (?P<path>/+.*)?
-        )?
-        $
-        """,
-        flags=re.VERBOSE,
-    )
-
-    @staticmethod
-    def translation_mount(match: re.Match) -> str:
-        mount = match.group("mount") or ""
-        path = match.group("path") or ""
-        return f"\\\\{mount}{path}"
-
-    RE_ROOT = re.compile(
-        r"""
-        ^
-        (?P<path>/[^:]*)
-        $
-        """,
-        flags=re.VERBOSE,
-    )
-
-    @staticmethod
-    def translation_root(match: re.Match, prefix: str) -> str:
-        path = match.group("path")
-        return f"{prefix}\\Library{path}"
-
-
-def native_path_to_unix(
-    paths: str | Iterable[str] | None,
-) -> str | tuple[str, ...] | None:
-    if paths is None:
-        return None
-    elif not on_win:
-        return path_identity(paths)
-
-    # short-circuit if we don't get any paths
-    paths = paths if isinstance(paths, str) else tuple(paths)
-    if not paths:
-        return "." if isinstance(paths, str) else ()
-
-    # on windows, uses cygpath to convert windows native paths to posix paths
-
-    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
-    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
-    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
-    # different points in the Windows filesystem.  We do our path conversions with one and
-    # expect the results to work with the other.  It does not.
-
-    bash = which("bash")
-    cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
-    joined = paths if isinstance(paths, str) else ntpath.pathsep.join(paths)
-
-    try:
-        # if present, use cygpath to convert paths since its more reliable
-        unix_path = run(
-            [cygpath, "--unix", "--path", joined],
-            text=True,
-            capture_output=True,
-            check=True,
-        ).stdout.strip()
-    except FileNotFoundError:
-        # fallback logic when cygpath is not available
-        # i.e. conda without anything else installed
-        log.warning("cygpath is not available, fallback to manual path conversion")
-
-        unix_path = _Cygpath.nt_to_posix(joined)
-    except Exception as err:
-        log.error("Unexpected cygpath error (%s)", err)
-        raise
-
-    if isinstance(paths, str):
-        return unix_path
-    elif not unix_path:
-        return ()
-    else:
-        return tuple(unix_path.split(posixpath.pathsep))
-
-
-def unix_path_to_native(
-    paths: str | Iterable[str] | None, prefix: str
-) -> str | tuple[str, ...] | None:
-    if paths is None:
-        return None
-    elif not on_win:
-        return path_identity(paths)
-
-    # short-circuit if we don't get any paths
-    paths = paths if isinstance(paths, str) else tuple(paths)
-    if not paths:
-        return "." if isinstance(paths, str) else ()
-
-    # on windows, uses cygpath to convert posix paths to windows native paths
-
-    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
-    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
-    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
-    # different points in the Windows filesystem.  We do our path conversions with one and
-    # expect the results to work with the other.  It does not.
-
-    bash = which("bash")
-    cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
-    joined = paths if isinstance(paths, str) else posixpath.pathsep.join(paths)
-
-    try:
-        # if present, use cygpath to convert paths since its more reliable
-        win_path = run(
-            [cygpath, "--windows", "--path", joined],
-            text=True,
-            capture_output=True,
-            check=True,
-        ).stdout.strip()
-    except FileNotFoundError:
-        # fallback logic when cygpath is not available
-        # i.e. conda without anything else installed
-        log.warning("cygpath is not available, fallback to manual path conversion")
-
-        # The conda prefix can be in a drive letter form
-        prefix = _Cygpath.posix_to_nt(prefix, prefix)
-
-        win_path = _Cygpath.posix_to_nt(joined, prefix)
-    except Exception as err:
-        log.error("Unexpected cygpath error (%s)", err)
-        raise
-
-    if isinstance(paths, str):
-        return win_path
-    elif not win_path:
-        return ()
-    else:
-        return tuple(win_path.split(ntpath.pathsep))
-
-
-def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
-    if paths is None:
-        return None
-    elif isinstance(paths, str):
-        return os.path.normpath(paths)
-    else:
-        return tuple(os.path.normpath(path) for path in paths)
-
-
-def backslash_to_forwardslash(
-    paths: str | Iterable[str] | None,
-) -> str | tuple[str, ...] | None:
-    if paths is None:
-        return None
-    elif isinstance(paths, str):
-        return paths.replace("\\", "/")
-    else:
-        return tuple([path.replace("\\", "/") for path in paths])
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "FILESYSTEM_ENCODING",
+    _compat.FILESYSTEM_ENCODING,
+    addendum="Use `conda.common.compat.FILESYSTEM_ENCODING` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "ensure_binary",
+    _compat.ensure_binary,
+    addendum="Use `conda.common.compat.ensure_binary` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "ensure_fs_path_encoding",
+    _compat.ensure_fs_path_encoding,
+    addendum="Use `conda.common.compat.ensure_fs_path_encoding` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "_Cygpath",
+    _path._Cygpath,
+    addendum="Use `conda.common.path._Cygpath` instead.",
+)
 
 
 class PosixActivator(_Activator):

@@ -4,9 +4,10 @@
 
 from __future__ import annotations
 
+import ntpath
 import os
+import posixpath
 import re
-import subprocess
 from functools import lru_cache, reduce
 from itertools import accumulate, chain
 from logging import getLogger
@@ -20,10 +21,14 @@ from os.path import (
     split,
     splitext,
 )
+from pathlib import Path
+from shutil import which
+from subprocess import run
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from .. import CondaError
+from ..deprecations import deprecated
 from .compat import on_win
 
 if TYPE_CHECKING:
@@ -320,55 +325,11 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path
 
 
+@deprecated(
+    "25.3", "25.9", addendum="Use `conda.common.path.native_path_to_unix` instead."
+)
 def win_path_to_unix(path, root_prefix=""):
-    # If the user wishes to drive conda from MSYS2 itself while also having
-    # msys2 packages in their environment this allows the path conversion to
-    # happen relative to the actual shell. The onus is on the user to set
-    # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
-    # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
-    if not path:
-        return ""
-
-    # rebind to shutil to avoid triggering the deprecation warning
-    from shutil import which
-
-    bash = which("bash")
-    if bash:
-        cygpath = os.environ.get(
-            "CYGPATH", os.path.join(os.path.dirname(bash), "cygpath.exe")
-        )
-    else:
-        cygpath = os.environ.get("CYGPATH", "cygpath.exe")
-    try:
-        path = (
-            subprocess.check_output([cygpath, "-up", path])
-            .decode("ascii")
-            .split("\n")[0]
-        )
-    except Exception as e:
-        log.debug(f"{e!r}", exc_info=True)
-
-        # Convert a path or ;-separated string of paths into a unix representation
-        # Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-        def _translation(found_path):  # NOQA
-            found = (
-                found_path.group(1)
-                .replace("\\", "/")
-                .replace(":", "")
-                .replace("//", "/")
-            )
-            return root_prefix + "/" + found
-
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[/\\\\]+)*[^:*?"<>|;/\\\\]+?(?![a-zA-Z]:))'  # noqa
-        path = re.sub(path_re, _translation, path).replace(";/", ":/")
-    return path
-
-
-def which(executable):
-    """Backwards-compatibility wrapper. Use `shutil.which` directly if possible."""
-    from shutil import which
-
-    return which(executable)
+    return native_path_to_unix(path, root_prefix)
 
 
 def strip_pkg_extension(path: str):
@@ -402,3 +363,263 @@ def is_package_file(path):
     # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
     #       import rules and to avoid a global lookup.
     return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
+
+
+def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
+    """Path conversion identity function (i.e., the path remains in the original file system format)."""
+    if paths is None:
+        return None
+    elif isinstance(paths, str):
+        return os.path.normpath(paths)
+    else:
+        return tuple(os.path.normpath(path) for path in paths)
+
+
+class _Cygpath:
+    @classmethod
+    def nt_to_posix(cls, paths: str, prefix: str = "") -> str:
+        return cls.RE_UNIX.sub(
+            lambda match: cls.translate_unix(match, prefix),
+            paths,
+        ).replace(ntpath.pathsep, posixpath.pathsep)
+
+    RE_UNIX = re.compile(
+        r"""
+        (?P<drive>[A-Za-z]:)?
+        (?P<path>[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translate_unix(match: re.Match, prefix: str) -> str:
+        return f"{prefix}/" + (
+            ((match.group("drive") or "").lower() + match.group("path"))
+            .replace("\\", "/")
+            .replace(":", "")  # remove drive letter delimiter
+            .replace("//", "/")
+            .rstrip("/")
+        )
+
+    @classmethod
+    def posix_to_nt(cls, paths: str, prefix: str) -> str:
+        if posixpath.sep not in paths:
+            # nothing to translate
+            return paths
+
+        if posixpath.pathsep in paths:
+            return ntpath.pathsep.join(
+                cls.posix_to_nt(path, prefix) for path in paths.split(posixpath.pathsep)
+            )
+        path = paths
+
+        # Reverting a Unix path means unpicking MSYS2/Cygwin
+        # conventions -- in order!
+        # 1. drive letter forms:
+        #      /x/here/there - MSYS2
+        #      /cygdrive/x/here/there - Cygwin
+        #    transformed to X:\here\there -- note the uppercase drive letter!
+        # 2. either:
+        #    a. mount forms:
+        #         //here/there
+        #       transformed to \\here\there
+        #    b. root filesystem forms:
+        #         /here/there
+        #       transformed to {prefix}\Library\here\there
+        # 3. anything else
+
+        # continue performing substitutions until a match is found
+        path, subs = cls.RE_DRIVE.subn(cls.translation_drive, path)
+        if not subs:
+            path, subs = cls.RE_MOUNT.subn(cls.translation_mount, path)
+        if not subs:
+            path, _ = cls.RE_ROOT.subn(
+                lambda match: cls.translation_root(match, prefix), path
+            )
+
+        return re.sub(r"/+", r"\\", path)
+
+    RE_DRIVE = re.compile(
+        r"""
+        ^
+        (/cygdrive)?
+        /(?P<drive>[A-Za-z])
+        (/+(?P<path>.*)?)?
+        $
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translation_drive(match: re.Match) -> str:
+        drive = match.group("drive").upper()
+        path = match.group("path") or ""
+        return f"{drive}:\\{path}"
+
+    RE_MOUNT = re.compile(
+        r"""
+        ^
+        //(
+            (?P<mount>[^/]+)
+            (?P<path>/+.*)?
+        )?
+        $
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translation_mount(match: re.Match) -> str:
+        mount = match.group("mount") or ""
+        path = match.group("path") or ""
+        return f"\\\\{mount}{path}"
+
+    RE_ROOT = re.compile(
+        r"""
+        ^
+        (?P<path>/[^:]*)
+        $
+        """,
+        flags=re.VERBOSE,
+    )
+
+    @staticmethod
+    def translation_root(match: re.Match, prefix: str) -> str:
+        path = match.group("path")
+        return f"{prefix}\\Library{path}"
+
+
+def native_path_to_unix(
+    paths: str | Iterable[str] | None,
+    prefix: str = "",
+) -> str | tuple[str, ...] | None:
+    """Convert paths to unix paths."""
+    if paths is None:
+        return None
+    elif not on_win:
+        return path_identity(paths)
+
+    # short-circuit if we don't get any paths
+    paths = paths if isinstance(paths, str) else tuple(paths)
+    if not paths:
+        return "." if isinstance(paths, str) else ()
+
+    # on windows, uses cygpath to convert windows native paths to unix paths
+
+    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
+    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
+    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
+    # different points in the Windows filesystem.  We do our path conversions with one and
+    # expect the results to work with the other.  It does not.
+
+    if not (cygpath := os.getenv("CYGPATH")):
+        bash = which("bash")
+        cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
+
+    joined = paths if isinstance(paths, str) else ntpath.pathsep.join(paths)
+
+    try:
+        # if present, use cygpath to convert paths since it is more reliable
+        unix_path = run(
+            [cygpath, "--unix", "--path", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        log.warning("cygpath is not available, fallback to manual path conversion")
+
+        unix_path = _Cygpath.nt_to_posix(joined, prefix)
+    except Exception as err:
+        log.error("Unexpected cygpath error (%s)", err)
+        raise
+
+    if isinstance(paths, str):
+        return unix_path
+    elif not unix_path:
+        return ()
+    else:
+        return tuple(unix_path.split(posixpath.pathsep))
+
+
+def unix_path_to_native(
+    paths: str | Iterable[str] | None,
+    prefix: str = "",
+) -> str | tuple[str, ...] | None:
+    """Convert paths to windows native paths."""
+    if paths is None:
+        return None
+    elif not on_win:
+        return path_identity(paths)
+
+    # short-circuit if we don't get any paths
+    paths = paths if isinstance(paths, str) else tuple(paths)
+    if not paths:
+        return "." if isinstance(paths, str) else ()
+
+    # on windows, uses cygpath to convert unix paths to windows native paths
+
+    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
+    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
+    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
+    # different points in the Windows filesystem.  We do our path conversions with one and
+    # expect the results to work with the other.  It does not.
+
+    if not (cygpath := os.getenv("CYGPATH")):
+        bash = which("bash")
+        cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
+
+    joined = paths if isinstance(paths, str) else posixpath.pathsep.join(paths)
+
+    try:
+        # if present, use cygpath to convert paths since it is more reliable
+        win_path = run(
+            [cygpath, "--windows", "--path", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        log.warning("cygpath is not available, fallback to manual path conversion")
+
+        # The conda prefix can be in a drive letter form
+        prefix = _Cygpath.posix_to_nt(prefix, prefix)
+
+        win_path = _Cygpath.posix_to_nt(joined, prefix)
+    except Exception as err:
+        log.error("Unexpected cygpath error (%s)", err)
+        raise
+
+    if isinstance(paths, str):
+        return win_path
+    elif not win_path:
+        return ()
+    else:
+        return tuple(win_path.split(ntpath.pathsep))
+
+
+def backslash_to_forwardslash(
+    paths: str | Iterable[str] | None,
+) -> str | tuple[str, ...] | None:
+    if paths is None:
+        return None
+    elif isinstance(paths, str):
+        return paths.replace("\\", "/")
+    else:
+        return tuple([path.replace("\\", "/") for path in paths])
+
+
+deprecated.constant("25.3", "25.9", "unix_path_to_win", unix_path_to_native)
+
+
+# cygwin
+def win_path_to_cygwin(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
+    return native_path_to_unix(paths, "/cygdrive")
+
+
+def cygwin_path_to_win(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
+    return unix_path_to_native(paths, "/cygdrive")

@@ -16,48 +16,16 @@ from shutil import which
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
-from .common.path import win_path_to_unix
+from .common.path import (
+    cygwin_path_to_win,
+    path_identity,
+    unix_path_to_win,
+    win_path_to_cygwin,
+    win_path_to_unix,
+)
 from .common.url import path_to_url
 
 log = logging.getLogger(__name__)
-
-
-def path_identity(path):
-    """Used as a dummy path converter where no conversion necessary"""
-    return path
-
-
-def unix_path_to_win(path, root_prefix=""):
-    """Convert a path or :-separated string of paths into a Windows representation
-
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
-        # already a windows path
-        return path.replace("/", "\\")
-    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
-
-    def _translation(found_path):
-        group = found_path.group(0)
-        return "{}:{}".format(
-            group[len(root_prefix) + 1],
-            group[len(root_prefix) + 2 :].replace("/", "\\"),
-        )
-
-    translation = re.sub(path_re, _translation, path)
-    translation = re.sub(
-        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
-    )
-    return translation
-
-
-# curry cygwin functions
-def win_path_to_cygwin(path):
-    return win_path_to_unix(path, "/cygdrive")
-
-
-def cygwin_path_to_win(path):
-    return unix_path_to_win(path, "/cygdrive")
 
 
 def translate_stream(stream, translator):
