@@ -1,0 +1,6 @@
+name: test_env
+channels:
+  - include-me
+  - defaults
+  - conda-forge
+prefix: /Users/sohamvakani/Documents/EECE3093_SoftwareEngineering/conda-EECE3093/devenv/Darwin/x86_64/envs/devenv-3.10-c/envs/test_env
