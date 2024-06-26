@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Revert deprecation of `--all` flag in `conda/cli/main_info.py`. (#14004)
+* Revert `--all` deprecation in `conda info`. (#14004)
 
 ### Docs
 
