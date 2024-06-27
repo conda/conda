@@ -178,7 +178,13 @@ NOTICES_CACHE_SUBDIR = "notices"
 NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
 
 DRY_RUN_PREFIX = "Dry run action:"
-PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
+PREFIX_NAME_DISALLOWED_CHARS = {
+    "/",
+    " ",
+    ":",
+    "#",
+    "\\",
+}
 
 
 class SafetyChecks(Enum):

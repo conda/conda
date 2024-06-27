@@ -9,8 +9,14 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, locate_prefix_by_name
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.core.envs_manager import list_all_known_prefixes
-from conda.exceptions import CondaEnvException, CondaError, EnvironmentNameNotFound
+from conda.exceptions import (
+    CondaEnvException,
+    CondaError,
+    CondaValueError,
+    EnvironmentNameNotFound,
+)
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -296,3 +302,33 @@ def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: st
         )
 
     assert "contains a protected directory" in str(error.value)
+
+
+@pytest.mark.skipif(not on_win, reason="windows-specific test")
+def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
+    bad_env_name = "/" + env_one
+
+    with pytest.raises(CondaValueError) as error:
+        conda_cli(
+            "rename",
+            "-n",
+            bad_env_name,
+            env_two,
+        )
+
+    assert "Invalid environment name" in str(error.value)
+
+
+@pytest.mark.skipif(not (on_mac or on_linux), reason="UNIX-specific test")
+def test_separator_chars_on_unix(conda_cli: CondaCLIFixture, env_one: str):
+    bad_env_name = "\\" + env_one
+
+    with pytest.raises(CondaValueError) as error:
+        conda_cli(
+            "rename",
+            "-n",
+            bad_env_name,
+            env_two,
+        )
+
+    assert "Invalid environment name" in str(error.value)
