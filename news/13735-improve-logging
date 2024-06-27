@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* Improve treatment of logger levels (#13735)
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Add logging overview as deep-dive (#13735)
 
 ### Other
 

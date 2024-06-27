@@ -185,6 +185,19 @@ PREFIX_NAME_DISALLOWED_CHARS = {
     "#",
     "\\",
 }
+# Includes disallowed characters from constructor
+PREFIX_NAME_DISALLOWED_CHARS_WIN = {
+    "/",
+    " ",
+    ":",
+    "#",
+    "^",
+    "%",
+    "!",
+    "=",
+    "(",
+    ")",
+}
 
 
 class SafetyChecks(Enum):

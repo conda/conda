@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Disallow some more characters in Windows for prefix names (`^`, `%`, `!`, `=`, `(`, `)`, `\`). These characters complicate or prevent environment activation if present. (#12558 via #13975)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
