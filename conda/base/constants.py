@@ -197,6 +197,7 @@ PREFIX_NAME_DISALLOWED_CHARS_WIN = {
     "=",
     "(",
     ")",
+    "\\",
 }
 
 
