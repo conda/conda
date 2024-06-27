@@ -67,15 +67,13 @@ log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
-def validate_prefix_exists(prefix: str | Path) -> Path:
+def validate_prefix_exists(prefix: str | Path) -> None:
     """
     Validate that we are receiving at least one valid value for --name or --prefix.
     """
     prefix = Path(prefix)
     if not prefix.exists():
         raise CondaEnvException("The environment you have specified does not exist.")
-
-    return prefix
 
 
 def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:

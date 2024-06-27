@@ -96,7 +96,8 @@ def validate_src() -> str:
     from ..exceptions import CondaEnvException
     from .install import check_protected_dirs, validate_prefix_exists
 
-    prefix = validate_prefix_exists(Path(context.target_prefix))
+    prefix = Path(context.target_prefix)
+    validate_prefix_exists(prefix)
 
     if prefix.samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
