@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes caching when repodata.json contains \r\n line endings (#14002)
+* Fix caching when `repodata.json` contains `\r\n` line endings (#14002)
 
 ### Deprecations
 
