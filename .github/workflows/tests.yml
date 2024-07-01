@@ -527,7 +527,7 @@ jobs:
           retention-days: 7  # for durations.yml workflow
 
       - name: Test Summary
-        uses: test-summary/action@032c8a9cec6aaa3c20228112cae6ca10a3b29336
+        uses: test-summary/action@31493c76ec9e7aa675f1585d3ed6f1da69269a86
         with:
           paths: test-results-*/test-report.xml
 
