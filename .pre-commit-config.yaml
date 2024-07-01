@@ -60,12 +60,12 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.16.0
+    rev: 1.18.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.10
+    rev: v0.5.0
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff
