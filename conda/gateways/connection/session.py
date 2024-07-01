@@ -11,7 +11,7 @@ from threading import local
 
 from ... import CondaError
 from ...auxlib.ish import dals
-from ...base.constants import CONDA_HOMEPAGE_URL
+from ...base.constants import CONDA_HOMEPAGE_URL, RECOGNIZED_URL_SCHEMES
 from ...base.context import context
 from ...common.url import (
     add_username_and_password,
@@ -41,15 +41,7 @@ log = getLogger(__name__)
 RETRIES = 3
 
 
-CONDA_SESSION_SCHEMES = frozenset(
-    (
-        "http",
-        "https",
-        "ftp",
-        "s3",
-        "file",
-    )
-)
+CONDA_SESSION_SCHEMES = frozenset(RECOGNIZED_URL_SCHEMES)
 
 
 class EnforceUnusedAdapter(BaseAdapter):
