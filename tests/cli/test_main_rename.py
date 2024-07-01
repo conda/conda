@@ -9,8 +9,14 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, locate_prefix_by_name
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.core.envs_manager import list_all_known_prefixes
-from conda.exceptions import CondaEnvException, CondaError, EnvironmentNameNotFound
+from conda.exceptions import (
+    CondaEnvException,
+    CondaError,
+    CondaValueError,
+    EnvironmentNameNotFound,
+)
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -90,6 +96,8 @@ def test_rename_by_name_name_already_exists_error(
     """Test to ensure that we do not rename if the name already exists"""
     with pytest.raises(
         CondaEnvException,
+        # TODO: Once the "--force" flag option is removed in version 25.3.x,
+        # the message below needs to suggest using "--yes" instead
         match=f"The environment '{env_one}' already exists. Override with --force",
     ):
         conda_cli("rename", "--name", env_one, env_one)
@@ -105,6 +113,8 @@ def test_rename_by_path_path_already_exists_error(
     """Test to ensure that we do not rename if the path already exists"""
     with pytest.raises(
         CondaEnvException,
+        # TODO: Once the "--force" flag option is removed in version 25.3.x,
+        # the message below needs to suggest using "--yes" instead
         match=f"The environment '{tmp_path.name}' already exists. Override with --force",
     ):
         conda_cli("rename", "--name", env_one, tmp_path)
@@ -162,11 +172,11 @@ def test_cannot_rename_active_env_by_name(
 
 def test_cannot_rename_nonexistent_env(conda_cli: CondaCLIFixture, env_rename: str):
     """Show a useful error message when trying to rename a non-existing env"""
+    env_dir = Path(context.root_prefix) / "foo"
     with pytest.raises(
         CondaEnvException,
-        match="The environment you are trying to rename does not exist",
+        match="The environment you have specified does not exist.",
     ):
-        env_dir = Path(context.root_prefix) / "foo"
         conda_cli("rename", "--prefix", env_dir, env_rename)
 
     assert Path(env_dir).exists() is False
@@ -280,3 +290,45 @@ def test_rename_with_force_and_dry_run(
     assert "Dry run action: rm_rf" in stdout
     assert not stderr
     assert not err
+
+
+def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: str):
+    with pytest.raises(CondaEnvException) as error:
+        conda_cli(
+            "rename",
+            "-p",
+            f"{context.root_prefix}/envs",
+            env_one,
+        )
+
+    assert "contains a protected directory" in str(error.value)
+
+
+@pytest.mark.skipif(not on_win, reason="windows-specific test")
+def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
+    bad_env_name = "/" + env_one
+
+    with pytest.raises(CondaValueError) as error:
+        conda_cli(
+            "rename",
+            "-n",
+            bad_env_name,
+            env_two,
+        )
+
+    assert "Invalid environment name" in str(error.value)
+
+
+@pytest.mark.skipif(not (on_mac or on_linux), reason="UNIX-specific test")
+def test_separator_chars_on_unix(conda_cli: CondaCLIFixture, env_one: str):
+    bad_env_name = "\\" + env_one
+
+    with pytest.raises(CondaValueError) as error:
+        conda_cli(
+            "rename",
+            "-n",
+            bad_env_name,
+            env_two,
+        )
+
+    assert "Invalid environment name" in str(error.value)
