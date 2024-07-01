@@ -26,6 +26,7 @@ class Arch(Enum):
     ppc64le = "ppc64le"
     riscv64 = "riscv64"
     s390x = "s390x"
+    wasm32 = "wasm32"
     z = "z"
 
     @classmethod
@@ -45,6 +46,8 @@ class Platform(Enum):
     openbsd = "openbsd5"
     osx = "darwin"
     zos = "zos"
+    emscripten = "emscripten"
+    wasi = "wasi"
 
     @classmethod
     def from_sys(cls):
