@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 import random
+from collections import OrderedDict
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
@@ -63,19 +64,39 @@ def test_retains_full_filename():
 
 def test_with_pip():
     e = from_file(support_file("with-pip.yml"))
-    assert "pip" in e.dependencies
-    assert "foo" in e.dependencies["pip"]
-    assert "baz" in e.dependencies["pip"]
+    expected = OrderedDict([("conda", ["pip"]), ("pip", ["foo", "baz"])])
+    e.dependencies == expected
+
+
+def test_with_pip_multiple():
+    e = from_file(support_file("with-pip-multiple.yml"))
+    expected = OrderedDict([("conda", ["pip"]), ("pip", ["foo", "baz"])])
+    e.dependencies == expected
+
+
+def test_with_pip_empty():
+    e = from_file(support_file("with-pip-empty.yml"))
+    expected = OrderedDict([("conda", ["pip"])])
+    e.dependencies == expected
 
 
 @pytest.mark.timeout(20)
 def test_add_pip():
     e = from_file(support_file("add-pip.yml"))
-    expected = {
-        "conda": ["pip", "car"],
-        "pip": ["foo", "baz"],
-    }
-    assert e.dependencies == expected
+    expected = OrderedDict([("conda", ["pip", "car"]), ("pip", ["foo", "baz"])])
+    e.dependencies == expected
+
+
+def test_add_pip_multiple():
+    e = from_file(support_file("add-pip-multiple.yml"))
+    expected = OrderedDict([("conda", ["pip", "car"]), ("pip", ["foo", "baz"])])
+    e.dependencies == expected
+
+
+def test_add_pip_empty():
+    e = from_file(support_file("add-pip-empty.yml"))
+    expected = OrderedDict([("conda", ["pip", "car"])])
+    e.dependencies == expected
 
 
 @pytest.mark.integration
