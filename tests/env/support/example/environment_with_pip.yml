@@ -1,0 +1,6 @@
+name: test
+dependencies:
+  - pip
+  - python
+  - pip:
+    - httpx

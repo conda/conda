@@ -27,7 +27,7 @@ jobs:
       ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.ref_name }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Create Release Directory
         run: mkdir -p release

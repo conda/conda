@@ -8,12 +8,11 @@ import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
-from os.path import join
+from os.path import exists, join
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
-from genericpath import exists
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
@@ -237,8 +236,7 @@ class Solver:
         )
         if unmanageable:
             raise RuntimeError(
-                "Cannot unlink unmanageable packages:%s"
-                % dashlist(prec.record_id() for prec in unmanageable)
+                f"Cannot unlink unmanageable packages:{dashlist(prec.record_id() for prec in unmanageable)}"
             )
 
         return unlink_precs, link_precs
@@ -360,7 +358,7 @@ class Solver:
 
         if not ssc.r:
             with Spinner(
-                "Collecting package metadata (%s)" % self._repodata_fn,
+                f"Collecting package metadata ({self._repodata_fn})",
                 not context.verbose and not context.quiet and not retrying,
                 context.json,
             ):
@@ -373,8 +371,8 @@ class Solver:
             )
         elif self._repodata_fn != REPODATA_FN:
             fail_message = (
-                "unsuccessful attempt using repodata from %s, retrying"
-                " with next repodata source.\n" % self._repodata_fn
+                f"unsuccessful attempt using repodata from {self._repodata_fn}, retrying"
+                " with next repodata source.\n"
             )
         else:
             fail_message = "failed\n"
@@ -815,7 +813,7 @@ class Solver:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                     pin_overrides.add(s.name)
                 else:
-                    log.warn(
+                    log.warning(
                         "pinned spec %s conflicts with explicit specs.  "
                         "Overriding pinned spec.",
                         s,
@@ -954,7 +952,7 @@ class Solver:
         if "conda" in ssc.specs_map and paths_equal(self.prefix, context.conda_prefix):
             conda_prefix_rec = ssc.prefix_data.get("conda")
             if conda_prefix_rec:
-                version_req = ">=%s" % conda_prefix_rec.version
+                version_req = f">={conda_prefix_rec.version}"
                 conda_requested_explicitly = any(
                     s.name == "conda" for s in self.specs_to_add
                 )

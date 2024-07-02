@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds a new `reporters` setting for configure output. (#13736)
+* <news item>
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Added cheatsheet PDF download to cheatsheet page. (#13909)
 
 ### Other
 

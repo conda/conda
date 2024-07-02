@@ -1,11 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from collections import defaultdict, namedtuple
 from random import randint
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 import conda.instructions as inst
 from conda import CondaError
@@ -13,15 +14,36 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import PackagesNotFoundError
-from conda.exports import execute_plan
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
-from conda.plan import _update_old_plan as update_old_plan
-from conda.plan import add_unlink, display_actions
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+from conda.plan import (
+    _get_best_prec_match,
+    _handle_menuinst,
+    _inject_UNLINKLINKTRANSACTION,
+    _plan_from_actions,
+    _update_old_plan,
+    add_defaults_to_specs,
+    add_unlink,
+    display_actions,
+    execute_actions,
+    execute_instructions,
+    execute_plan,
+    get_blank_actions,
+    install_actions,
+    print_dists,
+    revert_actions,
+)
 from conda.testing.helpers import captured, get_index_r_1
+
+if TYPE_CHECKING:
+    from typing import Callable
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing import CondaCLIFixture, TmpEnvFixture
 
 index, r = get_index_r_1()
 index = index.copy()  # create a shallow copy so this module can mutate state
@@ -1290,13 +1312,13 @@ The following packages will be UPDATED:
 
 def test_update_old_plan():
     old_plan = ["# plan", "INSTRUCTION arg"]
-    new_plan = update_old_plan(old_plan)
+    new_plan = _update_old_plan(old_plan)
 
     expected = [("INSTRUCTION", "arg")]
     assert new_plan == expected
 
     with pytest.raises(CondaError):
-        update_old_plan(["INVALID"])
+        _update_old_plan(["INVALID"])
 
 
 def test_execute_plan(monkeypatch: MonkeyPatch):
@@ -1482,3 +1504,30 @@ def test_pinned_specs_all(
         pinned_specs = get_pinned_specs(prefix)
         assert pinned_specs != specs
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        print_dists,
+        display_actions,
+        add_unlink,
+        add_defaults_to_specs,
+        _get_best_prec_match,
+        revert_actions,
+        execute_actions,
+        _plan_from_actions,
+        _inject_UNLINKLINKTRANSACTION,
+        _handle_menuinst,
+        install_actions,
+        get_blank_actions,
+        execute_plan,
+        execute_instructions,
+        _update_old_plan,
+    ],
+)
+def test_deprecations(function: Callable) -> None:
+    with pytest.deprecated_call(), pytest.raises(TypeError):
+        # only care whether we are properly warning about upcoming deprecation
+        # we expect all of these functions to fail spectacularly
+        function()

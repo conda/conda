@@ -10,13 +10,12 @@ from collections import UserList, defaultdict
 from functools import partial
 from itertools import chain
 from logging import getLogger
-from os.path import exists, join, splitext
+from os.path import exists, getmtime, isfile, join, splitext
 from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
-from genericpath import getmtime, isfile
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -569,7 +568,7 @@ class SubdirData(metaclass=SubdirDataType):
 
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = "%s@" % feature_name
+    pkg_name = f"{feature_name}@"
     return PackageRecord(
         name=pkg_name,
         version="0",

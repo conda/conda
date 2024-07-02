@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Report which `MatchSpec` item caused `Invalid*Spec` exceptions for more informative error messages. (#11203 via #13598)
+* Add a new `reporters` setting for configure output. (#13736)
 
 ### Bug fixes
 

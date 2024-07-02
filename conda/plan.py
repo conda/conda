@@ -21,27 +21,22 @@ from .base.context import context, reset_context
 from .common.constants import TRACE
 from .common.io import dashlist, env_vars, time_recorder
 from .common.iterators import groupby_to_dict as groupby
-from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
+from .core.index import LAST_CHANNEL_URLS
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.solve import diff_for_unlink_link_precs
-from .exceptions import CondaIndexError, PackagesNotFoundError
-from .history import History
+from .deprecations import deprecated
 from .instructions import FETCH, LINK, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
-from .models.match_spec import ChannelMatch
-from .models.prefix_graph import PrefixGraph
+from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import normalized_version
-from .resolve import MatchSpec
 from .utils import human_bytes
 
 log = getLogger(__name__)
 
-# TODO: Remove conda/plan.py.  This module should be almost completely deprecated now.
 
-
+@deprecated("24.9", "25.3", addendum="Unused.")
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ("package", "build"))
@@ -53,24 +48,23 @@ def print_dists(dists_extras):
         print(line)
 
 
+@deprecated("24.9", "25.3", addendum="Unused.")
 def display_actions(
     actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()
 ):
     prefix = actions.get("PREFIX")
     builder = ["", "## Package Plan ##\n"]
     if prefix:
-        builder.append("  environment location: %s" % prefix)
+        builder.append(f"  environment location: {prefix}")
         builder.append("")
     if specs_to_remove:
         builder.append(
-            "  removed specs: %s"
-            % dashlist(sorted(str(s) for s in specs_to_remove), indent=4)
+            f"  removed specs: {dashlist(sorted(str(s) for s in specs_to_remove), indent=4)}"
         )
         builder.append("")
     if specs_to_add:
         builder.append(
-            "  added / updated specs: %s"
-            % dashlist(sorted(str(s) for s in specs_to_add), indent=4)
+            f"  added / updated specs: {dashlist(sorted(str(s) for s in specs_to_add), indent=4)}"
         )
         builder.append("")
     print("\n".join(builder))
@@ -165,21 +159,21 @@ def display_actions(
             # string with new-style string formatting.
             oldfmt[pkg] = f"{{pkg:<{maxpkg}}} {{vers[0]:<{maxoldver}}}"
             if maxoldchannels:
-                oldfmt[pkg] += " {channels[0]:<%s}" % maxoldchannels
+                oldfmt[pkg] += f" {{channels[0]:<{maxoldchannels}}}"
             if features[pkg][0]:
-                oldfmt[pkg] += " [{features[0]:<%s}]" % maxoldfeatures
+                oldfmt[pkg] += f" [{{features[0]:<{maxoldfeatures}}}]"
 
             lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
-            lt = "" if lt == LinkType.hardlink else (" (%s)" % lt)
+            lt = "" if lt == LinkType.hardlink else (f" ({lt})")
             if pkg in removed or pkg in new:
                 oldfmt[pkg] += lt
                 continue
 
-            newfmt[pkg] = "{vers[1]:<%s}" % maxnewver
+            newfmt[pkg] = f"{{vers[1]:<{maxnewver}}}"
             if maxnewchannels:
-                newfmt[pkg] += " {channels[1]:<%s}" % maxnewchannels
+                newfmt[pkg] += f" {{channels[1]:<{maxnewchannels}}}"
             if features[pkg][1]:
-                newfmt[pkg] += " [{features[1]:<%s}]" % maxnewfeatures
+                newfmt[pkg] += f" [{{features[1]:<{maxnewfeatures}}}]"
             newfmt[pkg] += lt
 
             P0 = records[pkg][0]
@@ -264,6 +258,7 @@ def display_actions(
     print()
 
 
+@deprecated("24.9", "25.3", addendum="Unused.")
 def add_unlink(actions, dist):
     assert isinstance(dist, Dist)
     if UNLINK not in actions:
@@ -271,76 +266,41 @@ def add_unlink(actions, dist):
     actions[UNLINK].append(dist)
 
 
-# -------------------------------------------------------------------
-
-
+@deprecated("24.9", "25.3", addendum="Unused.")
 def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     return
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `conda.misc._get_best_prec_match` instead.",
+)
 def _get_best_prec_match(precs):
-    assert precs
-    for chn in context.channels:
-        channel_matcher = ChannelMatch(chn)
-        prec_matches = tuple(
-            prec for prec in precs if channel_matcher.match(prec.channel.name)
-        )
-        if prec_matches:
-            break
-    else:
-        prec_matches = precs
-    log.warn("Multiple packages found:%s", dashlist(prec_matches))
-    return prec_matches[0]
+    from .misc import _get_best_prec_match
+
+    return _get_best_prec_match(precs)
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `conda.cli.install.revert_actions` instead.",
+)
 def revert_actions(prefix, revision=-1, index=None):
-    # TODO: If revision raise a revision error, should always go back to a safe revision
-    h = History(prefix)
-    # TODO: need a History method to get user-requested specs for revision number
-    #       Doing a revert right now messes up user-requested spec history.
-    #       Either need to wipe out history after ``revision``, or add the correct
-    #       history information to the new entry about to be created.
-    # TODO: This is wrong!!!!!!!!!!
-    user_requested_specs = h.get_requested_specs_map().values()
-    try:
-        target_state = {
-            MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)
-        }
-    except IndexError:
-        raise CondaIndexError("no such revision: %d" % revision)
+    from .cli.install import revert_actions
 
-    _supplement_index_with_prefix(index, prefix)
-
-    not_found_in_index_specs = set()
-    link_precs = set()
-    for spec in target_state:
-        precs = tuple(prec for prec in index.values() if spec.match(prec))
-        if not precs:
-            not_found_in_index_specs.add(spec)
-        elif len(precs) > 1:
-            link_precs.add(_get_best_prec_match(precs))
-        else:
-            link_precs.add(precs[0])
-
-    if not_found_in_index_specs:
-        raise PackagesNotFoundError(not_found_in_index_specs)
-
-    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
-    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
-    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
-    txn = UnlinkLinkTransaction(stp)
-    return txn
+    return revert_actions(prefix, revision, index)
 
 
-# ---------------------------- Backwards compat for conda-build --------------------------
-
-
+@deprecated("24.9", "25.3", addendum="Unused.")
 @time_recorder("execute_actions")
 def execute_actions(actions, index, verbose=False):  # pragma: no cover
     plan = _plan_from_actions(actions, index)
     execute_instructions(plan, index, verbose)
 
 
+@deprecated("24.9", "25.3", addendum="Unused.")
 def _plan_from_actions(actions, index):  # pragma: no cover
     from .instructions import ACTION_CODES, PREFIX, PRINT, PROGRESS, PROGRESS_COMMANDS
 
@@ -351,7 +311,7 @@ def _plan_from_actions(actions, index):  # pragma: no cover
 
     assert PREFIX in actions and actions[PREFIX]
     prefix = actions[PREFIX]
-    plan = [("PREFIX", "%s" % prefix)]
+    plan = [("PREFIX", f"{prefix}")]
 
     unlink_link_transaction = actions.get("UNLINKLINKTRANSACTION")
     if unlink_link_transaction:
@@ -374,10 +334,10 @@ def _plan_from_actions(actions, index):  # pragma: no cover
             log.log(TRACE, f"action {op} has None value")
             continue
         if "_" not in op:
-            plan.append((PRINT, "%sing packages ..." % op.capitalize()))
+            plan.append((PRINT, f"{op.capitalize()}ing packages ..."))
         elif op.startswith("RM_"):
             plan.append(
-                (PRINT, "Pruning %s packages from the cache ..." % op[3:].lower())
+                (PRINT, f"Pruning {op[3:].lower()} packages from the cache ...")
             )
         if op in PROGRESS_COMMANDS:
             plan.append((PROGRESS, "%d" % len(actions[op])))
@@ -390,10 +350,10 @@ def _plan_from_actions(actions, index):  # pragma: no cover
     return plan
 
 
+@deprecated("24.9", "25.3", addendum="Unused.")
 def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: no cover
     from os.path import isdir
 
-    from .core.link import PrefixSetup, UnlinkLinkTransaction
     from .core.package_cache_data import ProgressiveFetchExtract
     from .instructions import (
         LINK,
@@ -436,6 +396,7 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
     return plan
 
 
+@deprecated("24.9", "25.3", addendum="Unused.")
 def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     # Always link/unlink menuinst first/last in case a subsequent
     # package tries to import it to create/remove a shortcut
@@ -465,6 +426,7 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     return unlink_dists, link_dists
 
 
+@deprecated("24.9", "25.3", addendum="Unused.")
 @time_recorder("install_actions")
 def install_actions(
     prefix,
@@ -531,6 +493,7 @@ def install_actions(
         return actions
 
 
+@deprecated("24.9", "25.3", addendum="Unused.")
 def get_blank_actions(prefix):  # pragma: no cover
     from collections import defaultdict
 
@@ -563,6 +526,7 @@ def get_blank_actions(prefix):  # pragma: no cover
     return actions
 
 
+@deprecated("24.9", "25.3")
 @time_recorder("execute_plan")
 def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
     """Deprecated: This should `conda.instructions.execute_instructions` instead."""
@@ -570,11 +534,11 @@ def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
     execute_instructions(plan, index, verbose)
 
 
+@deprecated("24.9", "25.3")
 def execute_instructions(
     plan, index=None, verbose=False, _commands=None
 ):  # pragma: no cover
     """Execute the instructions in the plan
-
     :param plan: A list of (instruction, arg) tuples
     :param index: The meta-data index
     :param verbose: verbose output
@@ -612,6 +576,7 @@ def execute_instructions(
             getLogger("progress.stop").info(None)
 
 
+@deprecated("24.9", "25.3")
 def _update_old_plan(old_plan):  # pragma: no cover
     """
     Update an old plan object to work with
@@ -634,5 +599,9 @@ def _update_old_plan(old_plan):  # pragma: no cover
 if __name__ == "__main__":
     # for testing new revert_actions() only
     from pprint import pprint
+
+    from .cli.install import revert_actions
+
+    deprecated.topic("24.9", "25.3", topic="`conda.plan` as an entrypoint")
 
     pprint(dict(revert_actions(sys.prefix, int(sys.argv[1]))))

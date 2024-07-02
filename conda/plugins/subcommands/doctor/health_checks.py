@@ -56,6 +56,11 @@ def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
     return False
 
 
+def excluded_files_check(filename: str) -> bool:
+    excluded_extensions = (".pyc", ".pyo")
+    return filename.endswith(excluded_extensions)
+
+
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
     """Finds packages listed in conda-meta which have missing files."""
     packages_with_missing_files = {}
@@ -63,7 +68,10 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     for file in (prefix / "conda-meta").glob("*.json"):
         for file_name in json.loads(file.read_text()).get("files", []):
             # Add warnings if json file has missing "files"
-            if not (prefix / file_name).exists():
+            if (
+                not excluded_files_check(file_name)
+                and not (prefix / file_name).exists()
+            ):
                 packages_with_missing_files.setdefault(file.stem, []).append(file_name)
     return packages_with_missing_files
 

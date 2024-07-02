@@ -3,6 +3,7 @@
 import json
 from contextlib import contextmanager
 from os.path import isdir
+from pathlib import Path
 
 import pytest
 
@@ -11,6 +12,7 @@ from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CorruptedEnvironmentError
 from conda.testing import TmpEnvFixture
+from conda.testing.helpers import record
 from tests.data.env_metadata import (
     PATH_TEST_ENV_1,
     PATH_TEST_ENV_2,
@@ -407,3 +409,21 @@ def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
     prefix_data.unset_environment_env_vars(["WOAH"])
     env_vars = prefix_data.get_environment_env_vars()
     assert env_vars_one == env_vars
+
+
+@pytest.mark.parametrize("remove_auth", (True, False))
+def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
+    (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "conda-meta" / "history").touch()
+    pkg_record = record(
+        channel="fake",
+        url="https://conda.anaconda.org/t/some-fake-token/fake/noarch/a-1.0-0.tar.bz2",
+    )
+    pd = PrefixData(tmp_path)
+    pd.insert(pkg_record, remove_auth=remove_auth)
+
+    json_content = (tmp_path / "conda-meta" / "a-1.0-0.json").read_text()
+    if remove_auth:
+        assert "/t/<TOKEN>/" in json_content
+    else:
+        assert "/t/some-fake-token/" in json_content

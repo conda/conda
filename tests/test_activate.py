@@ -33,6 +33,7 @@ from conda.activate import (
     _build_activator_cls,
     activator_map,
     native_path_to_unix,
+    unix_path_to_native,
 )
 from conda.auxlib.ish import dals
 from conda.base.constants import (
@@ -57,6 +58,7 @@ if TYPE_CHECKING:
     from typing import Callable, Iterable
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.activate import _Activator
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
@@ -1105,40 +1107,292 @@ def make_dot_d_files(prefix, extension):
     touch(join(prefix, "etc", "conda", "deactivate.d", f"deactivate1{extension}"))
 
 
+@pytest.mark.skipif(
+    not on_win,
+    reason="native_path_to_unix is path_identity on non-windows",
+)
 @pytest.mark.parametrize(
-    "paths",
+    "paths,expected",
     [
-        pytest.param(None, id="None"),
-        pytest.param("", id="empty string"),
-        pytest.param((), id="empty tuple"),
-        pytest.param("path/number/one", id="single path"),
-        pytest.param(["path/number/one"], id="list with path"),
-        pytest.param(("path/number/one", "path/two", "three"), id="tuple with paths"),
+        # falsy
+        pytest.param(None, [None], id="None"),
+        pytest.param("", ["."], id="empty string"),
+        pytest.param((), [()], id="empty tuple"),
+        # native
+        pytest.param(
+            "C:\\path\\to\\One",
+            [
+                "/c/path/to/One",  # MSYS2
+                "/cygdrive/c/path/to/One",  # cygwin
+            ],
+            id="path",
+        ),
+        pytest.param(
+            ["C:\\path\\to\\One"],
+            [
+                ("/c/path/to/One",),  # MSYS2
+                ("/cygdrive/c/path/to/One",),  # cygwin
+            ],
+            id="list[path]",
+        ),
+        pytest.param(
+            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+            [
+                ("/c/path/to/One", "/c/path/Two", "//mount/Three"),  # MSYS2
+                (
+                    "/cygdrive/c/path/to/One",
+                    "/cygdrive/c/path/Two",
+                    "//mount/Three",
+                ),  # cygwin
+            ],
+            id="tuple[path, ...]",
+        ),
+        pytest.param(
+            "C:\\path\\to\\One;C:\\path\\Two;\\\\mount\\Three",
+            [
+                "/c/path/to/One:/c/path/Two://mount/Three",  # MSYS2
+                "/cygdrive/c/path/to/One:/cygdrive/c/path/Two://mount/Three",  # cygwin
+            ],
+            id="path;...",
+        ),
     ],
 )
-def test_native_path_to_unix(tmp_path: Path, paths: str | Iterable[str] | None):
-    def assert_unix_path(path):
-        return "\\" not in path and ":" not in path
+@pytest.mark.parametrize(
+    "cygpath",
+    [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
+)
+def test_native_path_to_unix(
+    mocker: MockerFixture,
+    paths: str | Iterable[str] | None,
+    expected: str | list[str] | None,
+    cygpath: bool,
+) -> None:
+    if not cygpath:
+        # test without cygpath
+        mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    # convert all path stubs to full paths (localized to current OS)
-    if not paths:
-        pass
-    elif isinstance(paths, str):
-        paths = str(tmp_path / paths)
-    else:
-        paths = tuple(str(tmp_path / path) for path in paths)
+    assert native_path_to_unix(paths) in expected
 
-    # test that we receive a unix path
-    if isinstance(paths, str) and not paths:
-        assert native_path_to_unix(paths) == "."
-    elif not on_win:
-        assert native_path_to_unix(paths) == paths
-    elif paths is None:
-        assert native_path_to_unix(paths) is None
-    elif isinstance(paths, str):
-        assert assert_unix_path(native_path_to_unix(paths))
-    else:
-        assert all(assert_unix_path(path) for path in native_path_to_unix(paths))
+
+@pytest.mark.skipif(
+    not on_win,
+    reason="native_path_to_unix is path_identity on non-windows",
+)
+@pytest.mark.parametrize(
+    "paths,expected",
+    [
+        # falsy
+        pytest.param(None, None, id="None"),
+        pytest.param("", ".", id="empty string"),
+        pytest.param((), (), id="empty tuple"),
+        # MSYS2
+        pytest.param(
+            # 1 leading slash = root
+            "/",
+            "{WINDOWS}\\Library\\",
+            id="root",
+        ),
+        pytest.param(
+            # 1 leading slash + 1 letter = drive
+            "/c",
+            "C:\\",
+            id="drive",
+        ),
+        pytest.param(
+            # 1 leading slash + 1 letter = drive
+            "/c/",
+            "C:\\",
+            id="drive [trailing]",
+        ),
+        pytest.param(
+            # 1 leading slash + 2+ letters = root path
+            "/root",
+            "{WINDOWS}\\Library\\root",
+            id="root path",
+        ),
+        pytest.param(
+            # 1 leading slash + 2+ letters = root path
+            "/root/",
+            "{WINDOWS}\\Library\\root\\",
+            id="root path [trailing]",
+        ),
+        pytest.param(
+            # 2 leading slashes = UNC mount
+            "//",
+            "\\\\",
+            id="bare UNC mount",
+        ),
+        pytest.param(
+            # 2 leading slashes = UNC mount
+            "//mount",
+            "\\\\mount",
+            id="UNC mount",
+        ),
+        pytest.param(
+            # 2 leading slashes = UNC mount
+            "//mount/",
+            "\\\\mount\\",
+            id="UNC mount [trailing]",
+        ),
+        pytest.param(
+            # 3+ leading slashes = root
+            "///",
+            "{WINDOWS}\\Library\\",
+            id="root [leading]",
+        ),
+        pytest.param(
+            # 3+ leading slashes = root path
+            "///root",
+            "{WINDOWS}\\Library\\root",
+            id="root path [leading]",
+        ),
+        pytest.param(
+            # 3+ leading slashes = root
+            "////",
+            "{WINDOWS}\\Library\\",
+            id="root [leading, trailing]",
+        ),
+        pytest.param(
+            # 3+ leading slashes = root path
+            "///root/",
+            "{WINDOWS}\\Library\\root\\",
+            id="root path [leading, trailing]",
+        ),
+        pytest.param(
+            # a normal path
+            "/c/path/to/One",
+            "C:\\path\\to\\One",
+            id="normal path",
+        ),
+        pytest.param(
+            # a normal path
+            "/c//path///to////One",
+            "C:\\path\\to\\One",
+            id="normal path [extra]",
+        ),
+        pytest.param(
+            # a normal path
+            "/c/path/to/One/",
+            "C:\\path\\to\\One\\",
+            id="normal path [trailing]",
+        ),
+        pytest.param(
+            # a normal UNC path
+            "//mount/to/One",
+            "\\\\mount\\to\\One",
+            id="UNC path",
+        ),
+        pytest.param(
+            # a normal UNC path
+            "//mount//to///One",
+            "\\\\mount\\to\\One",
+            id="UNC path [extra]",
+        ),
+        pytest.param(
+            # a normal root path
+            "/path/to/One",
+            "{WINDOWS}\\Library\\path\\to\\One",
+            id="root path",
+        ),
+        pytest.param(
+            # a normal root path
+            "/path//to///One",
+            "{WINDOWS}\\Library\\path\\to\\One",
+            id="root path [extra]",
+        ),
+        pytest.param(
+            # relative path stays relative
+            "relative/path/to/One",
+            "relative\\path\\to\\One",
+            id="relative",
+        ),
+        pytest.param(
+            # relative path stays relative
+            "relative//path///to////One",
+            "relative\\path\\to\\One",
+            id="relative [extra]",
+        ),
+        pytest.param(
+            "/c/path/to/One://path/to/One:/path/to/One:relative/path/to/One",
+            (
+                "C:\\path\\to\\One;"
+                "\\\\path\\to\\One;"
+                "{WINDOWS}\\Library\\path\\to\\One;"
+                "relative\\path\\to\\One"
+            ),
+            id="path;...",
+        ),
+        pytest.param(
+            ["/c/path/to/One"],
+            ("C:\\path\\to\\One",),
+            id="list[path]",
+        ),
+        pytest.param(
+            ("/c/path/to/One", "/c/path/Two", "//mount/Three"),
+            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+            id="tuple[path, ...]",
+        ),
+        # XXX Cygwin and MSYS2's cygpath programs are not mutually
+        # aware meaning that MSYS2's cygpath treats
+        # /cygrive/c/here/there as a regular absolute path and returns
+        # {prefix}\Library\cygdrive\c\here\there.  And vice versa.
+        #
+        # cygwin
+        # pytest.param(
+        #     "/cygdrive/c/path/to/One",
+        #     "C:\\path\\to\\One",
+        #     id="Cygwin drive letter path (cygwin)",
+        # ),
+        # pytest.param(
+        #     ["/cygdrive/c/path/to/One"],
+        #     ("C:\\path\\to\\One",),
+        #     id="list[path] (cygwin)",
+        # ),
+        # pytest.param(
+        #     ("/cygdrive/c/path/to/One", "/cygdrive/c/path/Two", "//mount/Three"),
+        #     ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+        #     id="tuple[path, ...] (cygwin)",
+        # ),
+    ],
+)
+@pytest.mark.parametrize(
+    "unix",
+    [
+        pytest.param(True, id="Unix"),
+        pytest.param(False, id="Windows"),
+    ],
+)
+@pytest.mark.parametrize(
+    "cygpath",
+    [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
+)
+def test_unix_path_to_native(
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    paths: str | Iterable[str] | None,
+    expected: str | tuple[str, ...] | None,
+    unix: bool,
+    cygpath: bool,
+) -> None:
+    windows_prefix = context.target_prefix
+    unix_prefix = native_path_to_unix(windows_prefix)
+
+    def format(path: str) -> str:
+        return path.format(UNIX=unix_prefix, WINDOWS=windows_prefix)
+
+    prefix = unix_prefix if unix else windows_prefix
+    if expected:
+        expected = (
+            tuple(map(format, expected))
+            if isinstance(expected, tuple)
+            else format(expected)
+        )
+
+    if not cygpath:
+        # test without cygpath
+        mocker.patch("subprocess.run", side_effect=FileNotFoundError)
+
+    assert unix_path_to_native(paths, prefix) == expected
 
 
 def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
@@ -2363,7 +2617,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     _CE_CONDA = shell.get_env_var("_CE_CONDA")
 
     log.debug("activating ..")
-    shell.sendline("conda" + activate + '"%s"' % prefix_p)
+    shell.sendline("conda" + activate + f'"{prefix_p}"')
 
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
@@ -2393,7 +2647,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.expect("CONDA_")
     shell.sendline('echo "PATH=$PATH"')
     shell.expect("PATH=")
-    shell.sendline("conda" + activate + '"%s"' % prefix2_p)
+    shell.sendline("conda" + activate + f'"{prefix2_p}"')
     shell.sendline("env | sort | grep CONDA")
     shell.expect("CONDA_")
     shell.sendline('echo "PATH=$PATH"')
@@ -2465,19 +2719,19 @@ def basic_posix(shell, prefix, prefix2, prefix3):
 
     PATH0 = shell.get_env_var("PATH")
 
-    shell.sendline("conda" + activate + '"%s"' % prefix2_p)
+    shell.sendline("conda" + activate + f'"{prefix2_p}"')
     shell.assert_env_var("CONDA_SHLVL", "1")
     PATH1 = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH1.split(":"))
 
-    shell.sendline("conda" + activate + '"%s" --stack' % prefix3)
+    shell.sendline("conda" + activate + f'"{prefix3}" --stack')
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH2 = shell.get_env_var("PATH")
     assert "charizard" in PATH2
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline("conda" + activate + '"%s"' % prefix_p)
+    shell.sendline("conda" + activate + f'"{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
@@ -2501,14 +2755,14 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     # Test auto_stack
     shell.sendline(shell.activator.export_var_tmpl % ("CONDA_AUTO_STACK", "1"))
 
-    shell.sendline("conda" + activate + '"%s"' % prefix3)
+    shell.sendline("conda" + activate + f'"{prefix3}"')
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH2 = shell.get_env_var("PATH")
     assert "charizard" in PATH2
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline("conda" + activate + '"%s"' % prefix_p)
+    shell.sendline("conda" + activate + f'"{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
@@ -2523,7 +2777,7 @@ def basic_csh(shell, prefix, prefix2, prefix3):
     shell.sendline("conda activate base")
     shell.assert_env_var("prompt", "(base).*")
     shell.assert_env_var("CONDA_SHLVL", "1")
-    shell.sendline('conda activate "%s"' % prefix)
+    shell.sendline(f'conda activate "{prefix}"')
     shell.assert_env_var("CONDA_SHLVL", "2")
     shell.assert_env_var("CONDA_PREFIX", prefix, True)
     shell.sendline("conda deactivate")
@@ -2610,7 +2864,7 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
         shell.assert_env_var("CONDA_SHLVL", "0")
         shell.sendline("conda activate base")
         shell.assert_env_var("CONDA_SHLVL", "1")
-        shell.sendline('conda activate "%s"' % prefix)
+        shell.sendline(f'conda activate "{prefix}"')
         shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
         shell.sendline("conda deactivate")
@@ -2645,20 +2899,20 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
         shell.sendline("(Get-Command Invoke-Conda).Definition")
 
         log.debug("## [PowerShell integration] Activating.")
-        shell.sendline('conda activate "%s"' % charizard)
+        shell.sendline(f'conda activate "{charizard}"')
         shell.assert_env_var("CONDA_SHLVL", "1")
         PATH = shell.get_env_var("PATH")
         assert "charizard" in PATH
         shell.sendline("conda --version")
         shell.expect_exact("conda " + conda_version)
-        shell.sendline('conda activate "%s"' % prefix)
+        shell.sendline(f'conda activate "{prefix}"')
         shell.assert_env_var("CONDA_SHLVL", "2")
         shell.assert_env_var("CONDA_PREFIX", prefix, True)
 
         shell.sendline("conda deactivate")
         PATH = shell.get_env_var("PATH")
         assert "charizard" in PATH
-        shell.sendline('conda activate -stack "%s"' % venusaur)
+        shell.sendline(f'conda activate -stack "{venusaur}"')
         PATH = shell.get_env_var("PATH")
         assert "venusaur" in PATH
         assert "charizard" in PATH
@@ -2843,7 +3097,7 @@ def test_legacy_activate_deactivate_bash(
         CONDA_PACKAGE_ROOT_p = shell.path_conversion(CONDA_PACKAGE_ROOT)
         prefix2_p = shell.path_conversion(prefix2)
         prefix3_p = shell.path_conversion(prefix3)
-        shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT_p)
+        shell.sendline(f"export _CONDA_ROOT='{CONDA_PACKAGE_ROOT_p}/shell'")
         shell.sendline(
             f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix2_p}"'
         )
@@ -2884,11 +3138,11 @@ def test_legacy_activate_deactivate_cmd_exe(
         conda__ce_conda = shell.get_env_var("_CE_CONDA")
         assert conda__ce_conda == "conda"
 
-        PATH = "%s\\shell\\Scripts;%%PATH%%" % CONDA_PACKAGE_ROOT
+        PATH = f"{CONDA_PACKAGE_ROOT}\\shell\\Scripts;%PATH%"
 
         shell.sendline("SET PATH=" + PATH)
 
-        shell.sendline('activate --dev "%s"' % prefix2)
+        shell.sendline(f'activate --dev "{prefix2}"')
         shell.clear()
 
         conda_shlvl = shell.get_env_var("CONDA_SHLVL")
@@ -2903,7 +3157,7 @@ def test_legacy_activate_deactivate_cmd_exe(
         shell.sendline("conda --version")
         shell.expect_exact("conda " + conda_version)
 
-        shell.sendline('activate.bat --dev "%s"' % prefix3)
+        shell.sendline(f'activate.bat --dev "{prefix3}"')
         PATH = shell.get_env_var("PATH")
         assert "venusaur" in PATH
 
@@ -2966,7 +3220,7 @@ def test_activate_deactivate_modify_path(
     )
 
     with InteractiveShell(shell) as sh:
-        sh.sendline('conda activate "%s"' % prefix)
+        sh.sendline(f'conda activate "{prefix}"')
         activated_env_path = sh.get_env_var("PATH")
         sh.sendline("conda deactivate")
 
@@ -3099,3 +3353,155 @@ def test_activate_and_deactivate_for_uninitialized_env(conda_cli):
     assert conda_error.value.message.startswith(
         "Run 'conda init' before 'conda deactivate'"
     )
+
+
+# The MSYS2_PATH tests are slightly unusual in two regards: firstly
+# they stat(2) for potential directories which indicate which (of
+# several) possible MSYS2 environments have been installed; secondly,
+# conda will pass a Windows pathname prefix but conda-build will pass
+# a Unix pathname prefix (in particular, an MSYS2 pathname).
+MINGW_W64 = ["mingw-w64"]
+UCRT64 = ["ucrt64"]
+CLANG64 = ["clang64"]
+MINGW64 = ["mingw64"]
+
+
+@pytest.mark.skipif(not on_win, reason="windows-specific test")
+@pytest.mark.parametrize(
+    "create,expected,unexpected",
+    [
+        # No Library/* => Library/mingw-w64/bin
+        pytest.param([], MINGW_W64, UCRT64, id="nothing"),
+        # Library/mingw-w64 => Library/mingw-w64/bin
+        pytest.param(MINGW_W64, MINGW_W64, UCRT64, id="legacy"),
+        # Library/ucrt64 => Library/ucrt64/bin
+        pytest.param(UCRT64, UCRT64 + MINGW_W64, CLANG64, id="ucrt64"),
+        # Library/ucrt64 and Library/mingw-w64 => Library/ucrt64/bin
+        pytest.param(
+            UCRT64 + MINGW_W64,
+            UCRT64 + MINGW_W64,
+            CLANG64,
+            id="ucrt64 legacy",
+        ),
+        # Library/clang64 and Library/mingw-w64 => Library/clang64/bin
+        pytest.param(
+            CLANG64 + MINGW_W64,
+            CLANG64 + MINGW_W64,
+            UCRT64,
+            id="clang64 legacy",
+        ),
+        # Library/ucrt64 and Library/clang64 => Library/ucrt64/bin
+        pytest.param(
+            UCRT64 + CLANG64,
+            UCRT64 + MINGW_W64,
+            CLANG64,
+            id="ucrt64 clang64",
+        ),
+        # Library/clang64 and Library/mingw64 => Library/clang64/bin
+        pytest.param(
+            CLANG64 + MINGW64,
+            CLANG64 + MINGW_W64,
+            MINGW64,
+            id="clang64 mingw64",
+        ),
+        # Library/mingw64 and Library/mingw-w64 => Library/mingw64/bin
+        pytest.param(
+            MINGW64 + MINGW_W64,
+            MINGW64 + MINGW_W64,
+            UCRT64,
+            id="mingw64 legacy",
+        ),
+    ],
+)
+@pytest.mark.parametrize("activator_cls", [CmdExeActivator, PowerShellActivator])
+def test_MSYS2_PATH(
+    tmp_env: TmpEnvFixture,
+    create: list[str],
+    expected: list[str],
+    unexpected: list[str],
+    activator_cls: type[_Activator],
+) -> None:
+    with tmp_env() as prefix:
+        # create MSYS2 directories
+        (library := prefix / "Library").mkdir()
+        for path in create:
+            (library / path / "bin").mkdir(parents=True)
+
+        activator = activator_cls()
+        paths = activator._replace_prefix_in_path(str(prefix), str(prefix))
+
+        # ensure expected bin directories are included in %PATH%/$env:PATH
+        for path in expected:
+            assert activator.path_conversion(str(library / path / "bin")) in paths
+
+        # ensure unexpected bin directories are not included in %PATH%/$env:PATH
+        for path in unexpected:
+            assert activator.path_conversion(str(library / path / "bin")) not in paths
+
+
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
+def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase is force_uppercase_boolean
+
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        one=1,
+        TWO=2,
+        three=None,
+        FOUR=None,
+    )
+
+    # preserved case vars present if  keep_case is True
+    assert ("one" in export_vars) is not force_uppercase_boolean
+    assert ("three" in unset_vars) is not force_uppercase_boolean
+
+    # vars uppercased when keep_case is False
+    assert ("ONE" in export_vars) is force_uppercase_boolean
+    assert ("THREE" in unset_vars) is force_uppercase_boolean
+
+    # original uppercase
+    assert "TWO" in export_vars
+    assert "FOUR" in unset_vars
+
+
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
+def test_metavars_force_uppercase(
+    mocker: MockerFixture, monkeypatch: MonkeyPatch, force_uppercase_boolean: bool
+):
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase is force_uppercase_boolean
+
+    returned_dict = {
+        "ONE": "1",
+        "two": "2",
+        "three": None,
+        "FOUR": None,
+        "five": "a/path/to/something",
+        "SIX": "a\\path",
+    }
+    mocker.patch(
+        "conda.base.context.Context.conda_exe_vars_dict",
+        new_callable=mocker.PropertyMock,
+        return_value=returned_dict,
+    )
+    assert context.conda_exe_vars_dict == returned_dict
+
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars()
+
+    # preserved case vars present if keep_case is True
+    assert ("two" in export_vars) is not force_uppercase_boolean
+    assert ("three" in unset_vars) is not force_uppercase_boolean
+    assert ("five" in export_vars) is not force_uppercase_boolean
+
+    # vars uppercased when keep_case is False
+    assert ("TWO" in export_vars) is force_uppercase_boolean
+    assert ("THREE" in unset_vars) is force_uppercase_boolean
+
+    # original uppercase
+    assert "ONE" in export_vars
+    assert "FOUR" in unset_vars
+    assert "SIX" in export_vars

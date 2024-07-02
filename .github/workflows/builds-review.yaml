@@ -17,7 +17,9 @@ jobs:
         include:
           - runner: ubuntu-latest
             subdir: linux-64
-          - runner: macos-latest
+          - runner: macos-14  # FUTURE: Use -latest
+            subdir: osx-arm64
+          - runner: macos-13
             subdir: osx-64
           - runner: windows-latest
             subdir: win-64
@@ -46,14 +48,14 @@ jobs:
 
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@f46142e89fa703cc69f0421ca1d313ab2d5bfff6
+        uses: conda/actions/canary-release@976289d0cfd85139701b26ddd133abdd025a7b5f # v24.5.0
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
