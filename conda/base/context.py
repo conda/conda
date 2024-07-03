@@ -1178,7 +1178,7 @@ class Context(Configuration):
 
     @memoizedproperty
     @unique_sequence_map(unique_key="backend")
-    def reporters(self) -> tuple[Mapping[str, str]]:
+    def reporters(self) -> tuple[Mapping[str, str], ...]:
         """
         Determine the value of reporters based on other settings and the ``self._reporters``
         value itself.

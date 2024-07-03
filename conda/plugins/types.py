@@ -9,6 +9,8 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -16,9 +18,10 @@ from requests.auth import AuthBase
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Callable
+    from typing import Any, Callable, ContextManager, Union
 
     from ..common.configuration import Parameter
+    from ..common.io import ProgressBarBase
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -210,3 +213,91 @@ class CondaSetting:
     description: str
     parameter: Parameter
     aliases: tuple[str, ...] = tuple()
+
+
+if TYPE_CHECKING:
+    DetailRecord = dict[str, Union[str, int, bool]]
+
+
+class ReporterHandlerBase(ABC):
+    """
+    Base class for all reporter handlers.
+
+    Each method represents a component of the output that can be rendered. Some components, like
+    :meth:`~ReporterHandlersBase.detail_view` are returned as strings whereas others like
+    ``ReporterHandlerBase.progress_bar`` are objects with various methods that intended to be
+    used interactively.
+    """
+
+    def render(self, data: Any, **kwargs) -> str:
+        return str(data)
+
+    @abstractmethod
+    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
+        """
+        Render the output in a "tabular" format.
+        """
+
+    @abstractmethod
+    def envs_list(self, data, **kwargs) -> str:
+        """
+        Render a list of environments
+        """
+
+    @abstractmethod
+    def progress_bar(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ) -> ProgressBarBase:
+        """
+        Return a :class:`conda.common.io.ProgressBarBase` object to use a progress bar
+        """
+
+    @classmethod
+    def progress_bar_context_manager(cls, io_context_manager) -> ContextManager:
+        """
+        Returns a null context by default but allows plugins to define their own if necessary
+        """
+        return nullcontext()
+
+
+@dataclass
+class CondaReporterHandler:
+    """
+    Return type to use when defining a conda reporter handler plugin hook.
+
+    For details on this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_reporter_handler`.
+
+    :param name: name of the reporter handler (e.g., ``email_reporter``)
+                 This is how the reporter handler with be references in configuration files.
+    :param description: short description of what the reporter handler does
+    :param handler: implementation of ``ReporterHandlerBase`` that will be used as the
+                    reporter handler
+    """
+
+    name: str
+    description: str
+    handler: ReporterHandlerBase
+
+
+@dataclass
+class CondaOutputHandler:
+    """
+    Return type to use when defining a conda output handler plugin hook.
+
+    For details on this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_output_handler`.
+
+    :param name: name of the output handler (e.g., ``email_reporter``)
+                 This is how the reporter handler with be references in configuration files.
+    :param description: short description of what the reporter handler does
+    :param get_output_io: a callable object returning a ``TextIO`` compatible object.
+                          See :class:`~conda.plugins.types.OutputIO` for more information.
+    """
+
+    name: str
+    description: str
+    get_output_io: Callable[[], ContextManager]
