@@ -61,7 +61,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Display base environment path.",
     )
-    # TODO: deprecate 'conda info --envs' and create 'conda list --envs'
     p.add_argument(
         "-e",
         "--envs",
@@ -400,10 +399,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
      * ``conda info``
      * ``conda info --base``
-     * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
+     * ``conda info <package_spec> ...``
      * ``conda info --unsafe-channels``
-     * ``conda info --envs`` (deprecated) (no ``--json``)
-     * ``conda info --system`` (deprecated) (no ``--json``)
+     * ``conda info --envs``
+     * ``conda info --system``
     """
 
     from ..base.context import context
