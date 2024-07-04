@@ -42,6 +42,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         base=False,
         unsafe_channels=False,
         system=False,
+        all=False,
     )
 
     return p
