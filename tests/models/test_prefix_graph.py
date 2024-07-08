@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import time
 import warnings
 from functools import lru_cache
 from pprint import pprint
@@ -40,6 +41,9 @@ def get_pandas_record_set(tmpdir):
 
 @lru_cache(maxsize=None)
 def get_windows_conda_build_record_set(tmpdir, merge_noarch=True):
+    # TODO: We run into stale cache conditions if channels are updated in <1s
+    # Remove when https://github.com/conda/conda/issues/13783 is addressed
+    time.sleep(0.5)
     specs = (
         MatchSpec("conda"),
         MatchSpec("conda-build"),
