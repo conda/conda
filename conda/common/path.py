@@ -612,6 +612,8 @@ def backslash_to_forwardslash(
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
+    elif not on_win:
+        return path_identity(paths)
     elif isinstance(paths, str):
         return paths.replace("\\", "/")
     else:

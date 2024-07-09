@@ -1023,9 +1023,7 @@ class CshActivator(_Activator):
 class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
-    path_conversion = staticmethod(
-        _path.backslash_to_forwardslash if on_win else _path.path_identity
-    )
+    path_conversion = staticmethod(_path.backslash_to_forwardslash)
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
     script_extension = ".bat" if on_win else ".sh"
