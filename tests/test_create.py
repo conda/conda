@@ -2537,6 +2537,26 @@ def test_install_bound_virtual_package(tmp_env: TmpEnvFixture):
         pass
 
 
+@pytest.mark.parametrize("spec", ("__glibc", "__unix", "__linux", "__osx", "__win"))
+def test_install_virtual_packages(conda_cli: CondaCLIFixture, spec: str):
+    """
+    Ensures a solver knows how to deal with virtual specs in the CLI.
+    This mean succeeding only if the virtual package is available.
+    https://github.com/conda/conda-libmamba-solver/issues/480
+    """
+    if any(
+        [
+            on_linux and spec in ("__glibc", "__unix", "__linux"),
+            on_mac and spec in ("__unix", "__osx"),
+            on_win and spec == "__win",
+        ]
+    ):
+        raises = DryRunExit  # success
+    else:
+        raises = (UnsatisfiableError, PackagesNotFoundError)
+    conda_cli("create", "--dry-run", "--offline", spec, raises=raises)
+
+
 @pytest.mark.integration
 def test_remove_empty_env(tmp_path: Path, conda_cli: CondaCLIFixture):
     conda_cli("create", f"--prefix={tmp_path}", "--yes")
