@@ -7,7 +7,6 @@ from __future__ import annotations
 import errno
 import functools
 import os
-import sys
 from builtins import input  # noqa: F401, UP029
 from io import StringIO  # noqa: F401, for conda-build
 
@@ -220,7 +219,6 @@ def package_cache():
 
 @deprecated("25.3", "25.9", addendum="Unused.")
 def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
-    print("WARNING: symlink_conda() is deprecated.", file=sys.stderr)
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
     if os.path.normcase(os.path.normpath(prefix)) in os.path.normcase(
