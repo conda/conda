@@ -33,14 +33,7 @@ from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common import compat as _compat
 from .common import path as _path
 from .common.compat import on_win
-from .common.path import (
-    backslash_to_forwardslash,
-    expand,
-    native_path_to_unix,
-    path_identity,
-    paths_equal,
-    unix_path_to_native,
-)
+from .common.path import paths_equal
 from .deprecations import deprecated
 
 if TYPE_CHECKING:
@@ -370,7 +363,7 @@ class _Activator(metaclass=abc.ABCMeta):
     def _build_activate_stack(self, env_name_or_prefix, stack):
         # get environment prefix
         if re.search(r"\\|/", env_name_or_prefix):
-            prefix = expand(env_name_or_prefix)
+            prefix = _path.expand(env_name_or_prefix)
             if not isdir(join(prefix, "conda-meta")):
                 from .exceptions import EnvironmentLocationNotFound
 
@@ -646,7 +639,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
                 if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
-                    path = unix_path_to_native(path, prefix)
+                    path = _path.unix_path_to_native(path, prefix)
 
                 if isdir(path):
                     variants.append(variant)
@@ -866,6 +859,13 @@ deprecated.constant(
 deprecated.constant(
     "25.3",
     "25.9",
+    "expand",
+    _path.expand,
+    addendum="Use `conda.common.path.expand` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
     "ensure_binary",
     _compat.ensure_binary,
     addendum="Use `conda.common.compat.ensure_binary` instead.",
@@ -884,12 +884,40 @@ deprecated.constant(
     _path._Cygpath,
     addendum="Use `conda.common.path._Cygpath` instead.",
 )
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "native_path_to_unix",
+    _path.native_path_to_unix,
+    addendum="Use `conda.common.path.native_path_to_unix` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_path_to_native",
+    _path.unix_path_to_native,
+    addendum="Use `conda.common.path.unix_path_to_native` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "path_identity",
+    _path.path_identity,
+    addendum="Use `conda.common.path.path_identity` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "backslash_to_forwardslash",
+    _path.backslash_to_forwardslash,
+    addendum="Use `conda.common.path.backslash_to_forwardslash` instead.",
+)
 
 
 class PosixActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
+    path_conversion = staticmethod(_path.native_path_to_unix)
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
@@ -942,7 +970,7 @@ class PosixActivator(_Activator):
 class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
+    path_conversion = staticmethod(_path.native_path_to_unix)
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -996,7 +1024,7 @@ class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
     path_conversion = staticmethod(
-        backslash_to_forwardslash if on_win else path_identity
+        _path.backslash_to_forwardslash if on_win else _path.path_identity
     )
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
@@ -1023,7 +1051,7 @@ class XonshActivator(_Activator):
 class CmdExeActivator(_Activator):
     pathsep_join = ";".join
     sep = "\\"
-    path_conversion = staticmethod(path_identity)
+    path_conversion = staticmethod(_path.path_identity)
     script_extension = ".bat"
     tempfile_extension = ".bat"
     command_join = "\n"
@@ -1045,7 +1073,7 @@ class CmdExeActivator(_Activator):
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
+    path_conversion = staticmethod(_path.native_path_to_unix)
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1088,7 +1116,7 @@ class FishActivator(_Activator):
 class PowerShellActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "\\" if on_win else "/"
-    path_conversion = staticmethod(path_identity)
+    path_conversion = staticmethod(_path.path_identity)
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
