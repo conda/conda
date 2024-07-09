@@ -274,6 +274,7 @@ def ensure_pad(name, pad="_"):
         return f"{pad}{name}{pad}"
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def is_private_env_name(env_name):
     """
 
@@ -287,6 +288,7 @@ def is_private_env_name(env_name):
     return env_name and env_name[0] == env_name[-1] == "_"
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def is_private_env_path(env_path):
     """
 
@@ -305,6 +307,7 @@ def is_private_env_path(env_path):
     return False
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def right_pad_os_sep(path):
     return path if path.endswith(os.sep) else path + os.sep
 
@@ -326,7 +329,9 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
 
 
 @deprecated(
-    "25.3", "25.9", addendum="Use `conda.common.path.native_path_to_unix` instead."
+    "25.3",
+    "25.9",
+    addendum="Use `conda.common.path.native_path_to_unix` instead.",
 )
 def win_path_to_unix(path, root_prefix=""):
     return native_path_to_unix(path, root_prefix)
