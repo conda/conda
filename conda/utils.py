@@ -15,19 +15,52 @@ from shutil import which
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
+from .common import path as _path
 from .common.compat import isiterable, on_win
-from .common.path import (
-    cygwin_path_to_win,
-    path_identity,
-    unix_path_to_win,
-    win_path_to_cygwin,
-    win_path_to_unix,
-)
 from .common.url import path_to_url
+from .deprecations import deprecated
 
 log = logging.getLogger(__name__)
 
 
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "path_identity",
+    _path.path_identity,
+    addendum="Use `conda.common.path.path_identity` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_path_to_win",
+    _path.unix_path_to_native,
+    addendum="Use `conda.common.path.unix_path_to_native` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "win_path_to_cygwin",
+    _path.win_path_to_cygwin,
+    addendum="Use `conda.common.path.win_path_to_cygwin` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "cygwin_path_to_win",
+    _path.cygwin_path_to_win,
+    addendum="Use `conda.common.path.cygwin_path_to_win` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "win_path_to_unix",
+    _path.win_path_to_unix,
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+)
+
+
+@deprecated("25.3", "25.9", addendum="Unused.")
 def translate_stream(stream, translator):
     return "\n".join(translator(line) for line in stream.split("\n"))
 
@@ -68,8 +101,8 @@ unix_shell_base = dict(
     echo="echo",
     env_script_suffix=".sh",
     nul="2>/dev/null",
-    path_from=path_identity,
-    path_to=path_identity,
+    path_from=_path.path_identity,
+    path_to=_path.path_identity,
     pathsep=":",
     printdefaultenv="echo $CONDA_DEFAULT_ENV",
     printpath="echo $PATH",
@@ -87,8 +120,8 @@ unix_shell_base = dict(
 
 msys2_shell_base = dict(
     unix_shell_base,
-    path_from=unix_path_to_win,
-    path_to=win_path_to_unix,
+    path_from=_path.unix_path_to_win,
+    path_to=_path.win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
@@ -109,8 +142,8 @@ if on_win:
         #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
         #    printpath="echo %PATH%",
         #    exe="powershell.exe",
-        #    path_from=path_identity,
-        #    path_to=path_identity,
+        #    path_from=_path.path_identity,
+        #    path_to=_path.path_identity,
         #    slash_convert = ("/", "\\"),
         # ),
         "cmd.exe": dict(
@@ -132,8 +165,8 @@ if on_win:
             printpath="@echo %PATH%",
             exe="cmd.exe",
             shell_args=["/d", "/c"],
-            path_from=path_identity,
-            path_to=path_identity,
+            path_from=_path.path_identity,
+            path_to=_path.path_identity,
             slash_convert=("/", "\\"),
             sep="\\",
             pathsep=";",
@@ -142,8 +175,8 @@ if on_win:
             unix_shell_base,
             exe="bash.exe",
             binpath="/Scripts/",  # mind the trailing slash.
-            path_from=cygwin_path_to_win,
-            path_to=win_path_to_cygwin,
+            path_from=_path.cygwin_path_to_win,
+            path_to=_path.win_path_to_cygwin,
         ),
         # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive

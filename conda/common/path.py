@@ -618,9 +618,6 @@ def backslash_to_forwardslash(
         return tuple([path.replace("\\", "/") for path in paths])
 
 
-deprecated.constant("25.3", "25.9", "unix_path_to_win", unix_path_to_native)
-
-
 # cygwin
 def win_path_to_cygwin(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
     return native_path_to_unix(paths, "/cygdrive")
