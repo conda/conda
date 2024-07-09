@@ -120,7 +120,7 @@ unix_shell_base = dict(
 
 msys2_shell_base = dict(
     unix_shell_base,
-    path_from=_path.unix_path_to_win,
+    path_from=_path.unix_path_to_native,
     path_to=_path.win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
