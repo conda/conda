@@ -274,7 +274,7 @@ if on_win:  # pragma: no cover
 
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
-        from .utils import shells
+        from .utils import _shells
 
         try:
             os.makedirs(os.path.dirname(dst))
@@ -301,9 +301,9 @@ if on_win:  # pragma: no cover
             with open(dst, "w") as f:
                 f.write("#!/usr/bin/env bash \n")
                 if src.endswith("conda"):
-                    f.write('{} "$@"'.format(shells[shell]["path_to"](src + ".exe")))
+                    f.write('{} "$@"'.format(_shells[shell]["path_to"](src + ".exe")))
                 else:
-                    f.write('source {} "$@"'.format(shells[shell]["path_to"](src)))
+                    f.write('source {} "$@"'.format(_shells[shell]["path_to"](src)))
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
             mode = os.stat(dst).st_mode

@@ -12,6 +12,7 @@ from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
+from typing import TYPE_CHECKING
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
@@ -19,6 +20,9 @@ from .common import path as _path
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
 from .deprecations import deprecated
+
+if TYPE_CHECKING:
+    from typing import Iterable
 
 log = logging.getLogger(__name__)
 
@@ -34,8 +38,8 @@ deprecated.constant(
     "25.3",
     "25.9",
     "unix_path_to_win",
-    _path.unix_path_to_native,
-    addendum="Use `conda.common.path.unix_path_to_native` instead.",
+    _path.unix_path_to_win,
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
 deprecated.constant(
     "25.3",
@@ -44,13 +48,17 @@ deprecated.constant(
     _path.win_path_to_cygwin,
     addendum="Use `conda.common.path.win_path_to_cygwin` instead.",
 )
-deprecated.constant(
+
+
+@deprecated(
     "25.3",
     "25.9",
-    "cygwin_path_to_win",
-    _path.cygwin_path_to_win,
-    addendum="Use `conda.common.path.cygwin_path_to_win` instead.",
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
+def cygwin_path_to_win(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
+    return _path.unix_path_to_win(paths, "/cygdrive")
+
+
 deprecated.constant(
     "25.3",
     "25.9",
@@ -120,14 +128,14 @@ unix_shell_base = dict(
 
 msys2_shell_base = dict(
     unix_shell_base,
-    path_from=_path.unix_path_to_native,
+    path_from=_path.unix_path_to_win,
     path_to=_path.win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
 
 if on_win:
-    shells = {
+    _shells = {
         # "powershell.exe": dict(
         #    echo="echo",
         #    test_echo_extra=" .",
@@ -204,7 +212,7 @@ if on_win:
     }
 
 else:
-    shells = {
+    _shells = {
         "bash": dict(
             unix_shell_base,
             exe="bash",
@@ -224,6 +232,8 @@ else:
             pathsep=" ",
         ),
     }
+
+deprecated.constant("25.3", "25.9", "shells", _shells, addendum="Unused.")
 
 
 # ##########################################

@@ -639,7 +639,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
                 if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
-                    path = _path.unix_path_to_native(path, prefix)
+                    path = _path.unix_path_to_win(path, prefix)
 
                 if isdir(path):
                     variants.append(variant)
@@ -888,15 +888,15 @@ deprecated.constant(
     "25.3",
     "25.9",
     "native_path_to_unix",
-    _path.native_path_to_unix,
-    addendum="Use `conda.common.path.native_path_to_unix` instead.",
+    _path.win_path_to_unix,
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
 )
 deprecated.constant(
     "25.3",
     "25.9",
     "unix_path_to_native",
-    _path.unix_path_to_native,
-    addendum="Use `conda.common.path.unix_path_to_native` instead.",
+    _path.unix_path_to_win,
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
 deprecated.constant(
     "25.3",
@@ -917,7 +917,9 @@ deprecated.constant(
 class PosixActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(_path.native_path_to_unix)
+    path_conversion = staticmethod(
+        _path.win_path_to_unix if on_win else _path.path_identity
+    )
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
@@ -970,7 +972,9 @@ class PosixActivator(_Activator):
 class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(_path.native_path_to_unix)
+    path_conversion = staticmethod(
+        _path.win_path_to_unix if on_win else _path.path_identity
+    )
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1023,7 +1027,9 @@ class CshActivator(_Activator):
 class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
-    path_conversion = staticmethod(_path.backslash_to_forwardslash)
+    path_conversion = staticmethod(
+        _path.backslash_to_forwardslash if on_win else _path.path_identity
+    )
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
     script_extension = ".bat" if on_win else ".sh"
@@ -1071,7 +1077,9 @@ class CmdExeActivator(_Activator):
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = staticmethod(_path.native_path_to_unix)
+    path_conversion = staticmethod(
+        _path.win_path_to_unix if on_win else _path.path_identity
+    )
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"

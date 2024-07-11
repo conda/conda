@@ -242,11 +242,11 @@ def get_bin_directory_short_path():
 
 
 def win_path_ok(path):
-    return path.replace("/", "\\") if on_win else path
+    return path.replace(posixpath.sep, ntpath.sep) if on_win else path
 
 
 def win_path_double_escape(path):
-    return path.replace("\\", "\\\\") if on_win else path
+    return path.replace(ntpath.sep, ntpath.sep * 2) if on_win else path
 
 
 def win_path_backout(path):
@@ -328,15 +328,6 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path
 
 
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.common.path.native_path_to_unix` instead.",
-)
-def win_path_to_unix(path, root_prefix=""):
-    return native_path_to_unix(path, root_prefix)
-
-
 def strip_pkg_extension(path: str):
     """
     Examples:
@@ -383,33 +374,44 @@ def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | 
 class _Cygpath:
     @classmethod
     def nt_to_posix(cls, paths: str, prefix: str = "") -> str:
-        return cls.RE_UNIX.sub(
+        if ntpath.sep not in paths:
+            # nothing to translate
+            return paths
+
+        if ntpath.pathsep in paths:
+            return posixpath.pathsep.join(
+                cls.nt_to_posix(path, prefix) for path in paths.split(ntpath.pathsep)
+            )
+        path = paths
+
+        path = cls.RE_UNIX.sub(
             lambda match: cls.translate_unix(match, prefix),
-            paths,
-        ).replace(ntpath.pathsep, posixpath.pathsep)
+            path,
+        )
+
+        return cls.RE_BACKSLASH.sub(posixpath.sep, path).rstrip(posixpath.sep)
 
     RE_UNIX = re.compile(
         r"""
-        (?P<drive>[A-Za-z]:)?
-        (?P<path>[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)
+        ^
+        (?:(?P<drive>[A-Za-z]):)?
+        (?P<path>[\/\\]+(?:[^:*?\"<>|;\/\\]+[\/\\]*)*)
+        $
         """,
         flags=re.VERBOSE,
     )
 
     @staticmethod
     def translate_unix(match: re.Match, prefix: str) -> str:
-        return f"{prefix}/" + (
-            ((match.group("drive") or "").lower() + match.group("path"))
-            .replace("\\", "/")
-            .replace(":", "")  # remove drive letter delimiter
-            .replace("//", "/")
-            .rstrip("/")
-        )
+        drive = (match.group("drive") or "").lower()
+        path = match.group("path") or ""
+        return f"{prefix}/{drive}{path}"
+
+    RE_BACKSLASH = re.compile(rf"{ntpath.sep}+")
 
     @classmethod
     def posix_to_nt(cls, paths: str, prefix: str) -> str:
         if posixpath.sep not in paths:
-            # nothing to translate
             return paths
 
         if posixpath.pathsep in paths:
@@ -439,10 +441,11 @@ class _Cygpath:
             path, subs = cls.RE_MOUNT.subn(cls.translation_mount, path)
         if not subs:
             path, _ = cls.RE_ROOT.subn(
-                lambda match: cls.translation_root(match, prefix), path
+                lambda match: cls.translation_root(match, prefix),
+                path,
             )
 
-        return re.sub(r"/+", r"\\", path)
+        return cls.RE_FORWARDSLASH.sub(ntpath.sep, path).rstrip(ntpath.sep)
 
     RE_DRIVE = re.compile(
         r"""
@@ -457,7 +460,7 @@ class _Cygpath:
 
     @staticmethod
     def translation_drive(match: re.Match) -> str:
-        drive = match.group("drive").upper()
+        drive = (match.group("drive") or "").upper()
         path = match.group("path") or ""
         return f"{drive}:\\{path}"
 
@@ -490,19 +493,19 @@ class _Cygpath:
 
     @staticmethod
     def translation_root(match: re.Match, prefix: str) -> str:
-        path = match.group("path")
+        path = match.group("path") or ""
         return f"{prefix}\\Library{path}"
 
+    RE_FORWARDSLASH = re.compile(rf"{posixpath.sep}+")
 
-def native_path_to_unix(
+
+def win_path_to_unix(
     paths: str | Iterable[str] | None,
     prefix: str = "",
 ) -> str | tuple[str, ...] | None:
     """Convert paths to unix paths."""
     if paths is None:
         return None
-    elif not on_win:
-        return path_identity(paths)
 
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)
@@ -549,15 +552,17 @@ def native_path_to_unix(
         return tuple(unix_path.split(posixpath.pathsep))
 
 
-def unix_path_to_native(
+def win_path_to_cygwin(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
+    return win_path_to_unix(paths, "/cygdrive")
+
+
+def unix_path_to_win(
     paths: str | Iterable[str] | None,
     prefix: str = "",
 ) -> str | tuple[str, ...] | None:
     """Convert paths to windows native paths."""
     if paths is None:
         return None
-    elif not on_win:
-        return path_identity(paths)
 
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)
@@ -607,6 +612,10 @@ def unix_path_to_native(
         return tuple(win_path.split(ntpath.pathsep))
 
 
+def cygwin_path_to_win(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
+    return unix_path_to_win(paths, "/cygdrive")
+
+
 def backslash_to_forwardslash(
     paths: str | Iterable[str] | None,
 ) -> str | tuple[str, ...] | None:
@@ -615,15 +624,6 @@ def backslash_to_forwardslash(
     elif not on_win:
         return path_identity(paths)
     elif isinstance(paths, str):
-        return paths.replace("\\", "/")
+        return paths.replace(ntpath.sep, posixpath.sep)
     else:
-        return tuple([path.replace("\\", "/") for path in paths])
-
-
-# cygwin
-def win_path_to_cygwin(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
-    return native_path_to_unix(paths, "/cygdrive")
-
-
-def cygwin_path_to_win(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
-    return unix_path_to_native(paths, "/cygdrive")
+        return tuple([path.replace(ntpath.sep, posixpath.sep) for path in paths])

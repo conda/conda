@@ -33,8 +33,8 @@ from conda.activate import (
     XonshActivator,
     _build_activator_cls,
     activator_map,
-    native_path_to_unix,
-    unix_path_to_native,
+    unix_path_to_win,
+    win_path_to_unix,
 )
 from conda.auxlib.ish import dals
 from conda.base.constants import (
@@ -430,10 +430,8 @@ def test_replace_prefix_in_path_2(monkeypatch: MonkeyPatch):
     activator = PosixActivator()
     path_elements = activator._replace_prefix_in_path(path1, path2)
 
-    assert path_elements[0] == native_path_to_unix(one_more)
-    assert path_elements[1] == native_path_to_unix(
-        next(activator._get_path_dirs(path2))
-    )
+    assert path_elements[0] == win_path_to_unix(one_more)
+    assert path_elements[1] == win_path_to_unix(next(activator._get_path_dirs(path2)))
     assert len(path_elements) == len(old_path.split(";"))
 
 
@@ -1110,7 +1108,7 @@ def make_dot_d_files(prefix, extension):
 
 @pytest.mark.skipif(
     not on_win,
-    reason="native_path_to_unix is path_identity on non-windows",
+    reason="win_path_to_unix is path_identity on non-windows",
 )
 @pytest.mark.parametrize(
     "paths,expected",
@@ -1162,7 +1160,7 @@ def make_dot_d_files(prefix, extension):
     "cygpath",
     [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
 )
-def test_native_path_to_unix(
+def test_win_path_to_unix(
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
     expected: str | list[str] | None,
@@ -1172,13 +1170,9 @@ def test_native_path_to_unix(
         # test without cygpath
         mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    assert native_path_to_unix(paths) in expected
+    assert win_path_to_unix(paths) in expected
 
 
-@pytest.mark.skipif(
-    not on_win,
-    reason="native_path_to_unix is path_identity on non-windows",
-)
 @pytest.mark.parametrize(
     "paths,expected",
     [
@@ -1367,7 +1361,7 @@ def test_native_path_to_unix(
     "cygpath",
     [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
 )
-def test_unix_path_to_native(
+def test_unix_path_to_win(
     tmp_env: TmpEnvFixture,
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
@@ -1376,7 +1370,7 @@ def test_unix_path_to_native(
     cygpath: bool,
 ) -> None:
     windows_prefix = context.target_prefix
-    unix_prefix = native_path_to_unix(windows_prefix)
+    unix_prefix = win_path_to_unix(windows_prefix)
 
     def format(path: str) -> str:
         return path.format(UNIX=unix_prefix, WINDOWS=windows_prefix)
@@ -1393,7 +1387,7 @@ def test_unix_path_to_native(
         # test without cygpath
         mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    assert unix_path_to_native(paths, prefix) == expected
+    assert unix_path_to_win(paths, prefix) == expected
 
 
 def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
@@ -2293,7 +2287,7 @@ def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 
 
 class InteractiveShellType(type):
-    EXE = quote_for_shell(native_path_to_unix(sys.executable))
+    EXE = quote_for_shell(win_path_to_unix(sys.executable))
     SHELLS: dict[str, dict] = {
         "posix": {
             "activator": "posix",
