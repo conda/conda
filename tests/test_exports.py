@@ -29,6 +29,8 @@ from conda.common.compat import on_win
                 not on_win, reason="win_conda_bat_redirect is only defined on Windows"
             ),
         ),
+        ("KEYS", TypeError),
+        ("KEYS_DIR", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

@@ -149,11 +149,8 @@ def rm_rf(path, max_retries=5, trash=True):
     delete_prefix_from_linked_data(path)
 
 
-# ######################
-# signature.py
-# ######################
-KEYS = None
-KEYS_DIR = None
+deprecated.constant("25.3", "25.9", "KEYS", None, addendum="Unused.")
+deprecated.constant("25.3", "25.9", "KEYS_DIR", None, addendum="Unused.")
 
 
 @deprecated("25.3", "25.9", addendum="Unused.")
