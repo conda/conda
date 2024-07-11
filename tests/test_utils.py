@@ -254,6 +254,7 @@ def test_ensure_dir_errors():
         ("url_path", TypeError),
         ("win_path_to_cygwin", TypeError),
         ("cygwin_path_to_win", TypeError),
+        ("translate_stream", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

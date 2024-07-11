@@ -70,6 +70,7 @@ def cygwin_path_to_win(path):
     return unix_path_to_win(path, "/cygdrive")
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def translate_stream(stream, translator):
     return "\n".join(translator(line) for line in stream.split("\n"))
 
