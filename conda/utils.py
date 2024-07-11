@@ -264,20 +264,7 @@ deprecated.constant(
 # put back because of conda build
 # ##########################################
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "urlpath",
-    path_to_url,
-    addendum="Use `conda.common.url.path_to_url` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "url_path",
-    path_to_url,
-    addendum="Use `conda.common.url.path_to_url` instead.",
-)
+urlpath = url_path = path_to_url
 
 
 @lru_cache(maxsize=None)

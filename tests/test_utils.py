@@ -250,8 +250,6 @@ def test_ensure_dir_errors():
         ("unix_shell_base", TypeError),
         ("msys2_shell_base", TypeError),
         ("shells", TypeError),
-        ("urlpath", TypeError),
-        ("url_path", TypeError),
         ("win_path_to_cygwin", TypeError),
         ("cygwin_path_to_win", TypeError),
         ("translate_stream", TypeError),
