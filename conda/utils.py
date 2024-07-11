@@ -13,13 +13,12 @@ from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
 
-from deprecations import deprecated
-
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
+from .deprecations import deprecated
 
 log = logging.getLogger(__name__)
 
