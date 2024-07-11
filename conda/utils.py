@@ -52,11 +52,20 @@ def unix_path_to_win(path, root_prefix=""):
     return translation
 
 
-# curry cygwin functions
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+)
 def win_path_to_cygwin(path):
     return win_path_to_unix(path, "/cygdrive")
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.utils.unix_path_to_win` instead.",
+)
 def cygwin_path_to_win(path):
     return unix_path_to_win(path, "/cygdrive")
 
