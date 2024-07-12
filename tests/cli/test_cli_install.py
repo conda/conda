@@ -117,4 +117,3 @@ def test_emscripten_forge(
             "conda-forge",
             "pyjs",
         )
-        
