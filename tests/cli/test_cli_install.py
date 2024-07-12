@@ -92,3 +92,20 @@ def test_find_conflicts_called_once(
             *channels,
         )
     assert mocked_find_conflicts.call_count == 3
+
+
+
+@pytest.mark.integration
+def test_emscripten_forge(
+    test_recipes_channel: Path,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    mocker.patch("conda.cli.common.confirm_yn", return_value=True)
+
+    with tmp_env() as prefix:
+        stdout, _, _ = conda_cli(
+            "create","--platform=emscripten-32",f"--prefix={prefix}","--yes","--override-channels","-c","https://repo.mamba.pm/emscripten-forge","-c","conda-forge","pyjs"
+        )
+        
