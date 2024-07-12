@@ -2,46 +2,79 @@
 Cheatsheet
 ==========
 
-Refer to the conda cheatsheet for basic commands for creating and managing environments, installing packages, and importing and exporting environments.
+The conda cheatsheet contains the most important information about using conda, such as basic commands for creating and managing environments, installing packages, and importing and exporting environments.
 
-.. csv-table:: Quickstart
+Quickstart
+==========
+
+It is recommended to create a new environment for any new project or workflow.
+
+.. csv-table::
     :widths: 42 58
     :header-rows: 0
+    :class: ssp-tiny
     :file: quickstart.csv
-    :class: ssp-tiny
 
-.. csv-table:: Channels and Packages
+Channels and Packages
+=====================
+
+Package dependencies and platform specifics are automatically resolved when using conda.
+
+.. csv-table::
     :widths: 42 58
     :header-rows: 0
+    :class: ssp-tiny
     :file: channels-and-packages.csv
-    :class: ssp-tiny
 
-.. csv-table:: Working with Conda Environments
+Working with Conda Environments
+===============================
+
+List environments at the beginning of your session. Environments with an asterisk are active.
+
+.. csv-table::
     :widths: 42 58
     :header-rows: 0
+    :class: ssp-tiny
     :file: working-with-environments.csv
-    :class: ssp-tiny
 
-.. csv-table:: Environment Management
+Environment Management
+======================
+
+Specifying the environment name confines conda commands to that environment.
+
+.. csv-table::
     :widths: 42 58
     :header-rows: 0
+    :class: ssp-tiny
     :file: environment-management.csv
-    :class: ssp-tiny
 
-.. csv-table:: Exporting Environments
+Exporting Environments
+======================
+
+Name your export file after your environment to preserve your environment name.
+
+.. csv-table::
     :widths: 42 58
     :header-rows: 0
+    :class: ssp-tiny
     :file: exporting-environments.csv
-    :class: ssp-tiny
 
-.. csv-table:: Importing Environments
+Importing Environments
+======================
+
+When importing an environment, conda resolves platform and package specifics.
+
+.. csv-table::
     :widths: 42 58
     :header-rows: 0
+    :class: ssp-tiny
     :file: importing-environments.csv
-    :class: ssp-tiny
 
-.. csv-table:: Additional Hints
+Additional Hints
+================
+
+.. csv-table::
     :widths: 42 58
     :header-rows: 0
-    :file: additional-hints.csv
     :class: ssp-tiny
+    :file: additional-hints.csv
