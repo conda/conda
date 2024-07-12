@@ -1,0 +1,11 @@
+/* no page break after first title */
+h1 + section > h2 {
+    page-break-before: avoid;
+}
+
+/* make table text bigger */
+table.docutils.ssp-tiny {
+    td, th {
+        font-size: 0.85em;
+    }
+}

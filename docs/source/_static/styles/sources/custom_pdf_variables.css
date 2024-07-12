@@ -1,0 +1,11 @@
+/* no page break after first title */
+h1 + section > h2 {
+  page-break-before: avoid;
+}
+
+/* make table text bigger */
+table.docutils.ssp-tiny td, table.docutils.ssp-tiny th {
+  font-size: 0.85em;
+}
+
+/*# sourceMappingURL=custom_pdf_variables.css.map */

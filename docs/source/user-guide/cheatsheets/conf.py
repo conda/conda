@@ -62,6 +62,7 @@ simplepdf_vars = {
 
 simplepdf_theme_options = {
     'nocover': 'true',
+    'nosidebar': 'true',
 }
 
 simplepdf_file_name = "cheatsheet.pdf"
@@ -72,4 +73,4 @@ simplepdf_file_name = "cheatsheet.pdf"
 
 def setup(app):
     #----Override table and main variables------
-    app.add_css_file('styles/sources/_tables.css')
+    app.add_css_file('styles/sources/custom_pdf_variables.css')
