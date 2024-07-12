@@ -237,20 +237,19 @@ def test_ensure_dir_errors():
 
 
 @pytest.mark.parametrize(
-    "function,deprecated,raises",
+    "function,raises",
     [
-        ("path_identity", False, TypeError),
-        ("unix_path_to_win", False, TypeError),
-        ("win_path_to_cygwin", False, TypeError),
-        ("cygwin_path_to_win", False, TypeError),
+        ("unix_shell_base", TypeError),
+        ("msys2_shell_base", TypeError),
+        ("shells", TypeError),
+        ("win_path_to_cygwin", TypeError),
+        ("cygwin_path_to_win", TypeError),
+        ("translate_stream", TypeError),
+        ("path_identity", TypeError),
+        ("unix_path_to_win", TypeError),
     ],
 )
-def test_deprecations(
-    function: str,
-    deprecated: bool,
-    raises: type[Exception] | None,
-) -> None:
-    deprecated_context = pytest.deprecated_call() if deprecated else nullcontext()
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
-    with deprecated_context, raises_context:
+    with pytest.deprecated_call(), raises_context:
         getattr(utils, function)()

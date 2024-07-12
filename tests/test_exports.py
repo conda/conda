@@ -11,32 +11,29 @@ from conda.common.compat import on_win
 
 
 @pytest.mark.parametrize(
-    "function,deprecated,raises",
+    "function,raises",
     [
-        ("IndexRecord", True, TypeError),
-        ("iteritems", True, TypeError),
-        ("InstalledPackages", True, None),
-        ("hash_file", True, TypeError),
-        ("fetch_index", True, TypeError),
-        ("symlink_conda", True, TypeError),
-        ("_symlink_conda_hlp", True, TypeError),
+        ("IndexRecord", TypeError),
+        ("iteritems", TypeError),
+        ("Completer", None),
+        ("InstalledPackages", None),
+        ("hash_file", TypeError),
+        ("verify", TypeError),
+        ("fetch_index", TypeError),
+        ("symlink_conda", TypeError),
+        ("_symlink_conda_hlp", TypeError),
         pytest.param(
             "win_conda_bat_redirect",
-            True,
             TypeError,
             marks=pytest.mark.skipif(
-                not on_win,
-                reason="win_conda_bat_redirect is on Windows only",
+                not on_win, reason="win_conda_bat_redirect is only defined on Windows"
             ),
         ),
+        ("KEYS", TypeError),
+        ("KEYS_DIR", TypeError),
     ],
 )
-def test_deprecations(
-    function: str,
-    deprecated: bool,
-    raises: type[Exception] | None,
-) -> None:
-    deprecated_context = pytest.deprecated_call() if deprecated else nullcontext()
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
-    with deprecated_context, raises_context:
+    with pytest.deprecated_call(), raises_context:
         getattr(exports, function)()

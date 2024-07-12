@@ -120,11 +120,16 @@ string_types = str  # noqa: F401
 text_type = str  # noqa: F401
 
 
-@deprecated("25.3", "25.9", addendum="Use `dict.items()` instead.")
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use builtin `dict.items()` instead.",
+)
 def iteritems(d, **kw):
     return iter(d.items(**kw))
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 class Completer:  # pragma: no cover
     def get_items(self):
         return self._get_items()
@@ -146,11 +151,8 @@ def rm_rf(path, max_retries=5, trash=True):
     delete_prefix_from_linked_data(path)
 
 
-# ######################
-# signature.py
-# ######################
-KEYS = None
-KEYS_DIR = None
+deprecated.constant("25.3", "25.9", "KEYS", None, addendum="Unused.")
+deprecated.constant("25.3", "25.9", "KEYS_DIR", None, addendum="Unused.")
 
 
 @deprecated("25.3", "25.9", addendum="Unused.")
@@ -217,7 +219,7 @@ def package_cache():
     return package_cache()
 
 
-@deprecated("25.3", "25.9", addendum="Unused.")
+@deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
 def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
@@ -236,7 +238,7 @@ def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     _symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
 
 
-@deprecated("25.3", "25.9", addendum="Unused.")
+@deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
 def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
     scripts = ["conda", "activate", "deactivate"]
     prefix_where = os.path.join(prefix, where)
@@ -264,7 +266,7 @@ def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
 
 if on_win:  # pragma: no cover
 
-    @deprecated("25.3", "25.9", addendum="Unused.")
+    @deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
@@ -274,7 +276,7 @@ if on_win:  # pragma: no cover
 
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
-        from .utils import _shells
+        from .utils import _SHELLS
 
         try:
             os.makedirs(os.path.dirname(dst))
@@ -301,9 +303,9 @@ if on_win:  # pragma: no cover
             with open(dst, "w") as f:
                 f.write("#!/usr/bin/env bash \n")
                 if src.endswith("conda"):
-                    f.write('{} "$@"'.format(_shells[shell]["path_to"](src + ".exe")))
+                    f.write('{} "$@"'.format(_SHELLS[shell]["path_to"](src + ".exe")))
                 else:
-                    f.write('source {} "$@"'.format(_shells[shell]["path_to"](src)))
+                    f.write('source {} "$@"'.format(_SHELLS[shell]["path_to"](src)))
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
             mode = os.stat(dst).st_mode

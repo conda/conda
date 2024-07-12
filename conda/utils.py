@@ -12,7 +12,6 @@ from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
-from typing import TYPE_CHECKING
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
@@ -20,9 +19,6 @@ from .common import path as _path
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
 from .deprecations import deprecated
-
-if TYPE_CHECKING:
-    from typing import Iterable
 
 log = logging.getLogger(__name__)
 
@@ -41,13 +37,15 @@ deprecated.constant(
     _path.unix_path_to_win,
     addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
-deprecated.constant(
+
+
+@deprecated(
     "25.3",
     "25.9",
-    "win_path_to_cygwin",
-    _path.win_path_to_cygwin,
-    addendum="Use `conda.common.path.win_path_to_cygwin` instead.",
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
 )
+def win_path_to_cygwin(path):
+    return _path.win_path_to_unix(path, "/cygdrive")
 
 
 @deprecated(
@@ -55,17 +53,8 @@ deprecated.constant(
     "25.9",
     addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
-def cygwin_path_to_win(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
-    return _path.unix_path_to_win(paths, "/cygdrive")
-
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "win_path_to_unix",
-    _path.win_path_to_unix,
-    addendum="Use `conda.common.path.win_path_to_unix` instead.",
-)
+def cygwin_path_to_win(path):
+    return _path.unix_path_to_win(path, "/cygdrive")
 
 
 @deprecated("25.3", "25.9", addendum="Unused.")
@@ -104,7 +93,7 @@ def human_bytes(n):
 
 # defaults for unix shells.  Note: missing "exe" entry, which should be set to
 #    either an executable on PATH, or a full path to an executable for a shell
-unix_shell_base = dict(
+_UNIX_SHELL_BASE = dict(
     binpath="/bin/",  # mind the trailing slash.
     echo="echo",
     env_script_suffix=".sh",
@@ -126,16 +115,32 @@ unix_shell_base = dict(
     var_format="${}",
 )
 
-msys2_shell_base = dict(
-    unix_shell_base,
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_shell_base",
+    _UNIX_SHELL_BASE,
+    addendum="Use `conda.activate` instead.",
+)
+
+_MSYS2_SHELL_BASE = dict(
+    _UNIX_SHELL_BASE,
     path_from=_path.unix_path_to_win,
     path_to=_path.win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
 
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "msys2_shell_base",
+    _MSYS2_SHELL_BASE,
+    addendum="Use `conda.activate` instead.",
+)
+
 if on_win:
-    _shells = {
+    _SHELLS = {
         # "powershell.exe": dict(
         #    echo="echo",
         #    test_echo_extra=" .",
@@ -180,7 +185,7 @@ if on_win:
             pathsep=";",
         ),
         "cygwin": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="bash.exe",
             binpath="/Scripts/",  # mind the trailing slash.
             path_from=_path.cygwin_path_to_win,
@@ -190,50 +195,56 @@ if on_win:
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
         #    filesystem root.
         "bash.exe": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="bash.exe",
         ),
         "bash": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="bash",
         ),
         "sh.exe": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="sh.exe",
         ),
         "zsh.exe": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="zsh.exe",
         ),
         "zsh": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="zsh",
         ),
     }
 
 else:
-    _shells = {
+    _SHELLS = {
         "bash": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="bash",
         ),
         "dash": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="dash",
             source_setup=".",
         ),
         "zsh": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="zsh",
         ),
         "fish": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="fish",
             pathsep=" ",
         ),
     }
 
-deprecated.constant("25.3", "25.9", "shells", _shells, addendum="Unused.")
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "shells",
+    _SHELLS,
+    addendum="Use `conda.activate` instead.",
+)
 
 
 # ##########################################
