@@ -22,7 +22,7 @@ from os.path import (
     splitext,
 )
 from pathlib import Path
-from shutil import which
+from shutil import which as _which
 from subprocess import run
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
@@ -328,6 +328,68 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path
 
 
+def win_path_to_unix(
+    paths: str | Iterable[str] | None,
+    prefix: str = "",
+) -> str | tuple[str, ...] | None:
+    """Convert paths to unix paths."""
+    if paths is None:
+        return None
+
+    # short-circuit if we don't get any paths
+    paths = paths if isinstance(paths, str) else tuple(paths)
+    if not paths:
+        return "." if isinstance(paths, str) else ()
+
+    # on windows, uses cygpath to convert windows native paths to unix paths
+
+    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
+    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
+    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
+    # different points in the Windows filesystem.  We do our path conversions with one and
+    # expect the results to work with the other.  It does not.
+
+    if not (cygpath := os.getenv("CYGPATH")):
+        bash = _which("bash")
+        cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
+
+    joined = paths if isinstance(paths, str) else ntpath.pathsep.join(paths)
+
+    try:
+        # if present, use cygpath to convert paths since it is more reliable
+        unix_path = run(
+            [cygpath, "--unix", "--path", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        log.warning("cygpath is not available, fallback to manual path conversion")
+
+        unix_path = _Cygpath.nt_to_posix(joined, prefix)
+    except Exception as err:
+        log.error("Unexpected cygpath error (%s)", err)
+        raise
+
+    if isinstance(paths, str):
+        return unix_path
+    elif not unix_path:
+        return ()
+    else:
+        return tuple(unix_path.split(posixpath.pathsep))
+
+
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "which",
+    _which,
+    addendum="Use builtin `shutil.which` instead.",
+)
+
+
 def strip_pkg_extension(path: str):
     """
     Examples:
@@ -499,59 +561,6 @@ class _Cygpath:
     RE_FORWARDSLASH = re.compile(rf"{posixpath.sep}+")
 
 
-def win_path_to_unix(
-    paths: str | Iterable[str] | None,
-    prefix: str = "",
-) -> str | tuple[str, ...] | None:
-    """Convert paths to unix paths."""
-    if paths is None:
-        return None
-
-    # short-circuit if we don't get any paths
-    paths = paths if isinstance(paths, str) else tuple(paths)
-    if not paths:
-        return "." if isinstance(paths, str) else ()
-
-    # on windows, uses cygpath to convert windows native paths to unix paths
-
-    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
-    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
-    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
-    # different points in the Windows filesystem.  We do our path conversions with one and
-    # expect the results to work with the other.  It does not.
-
-    if not (cygpath := os.getenv("CYGPATH")):
-        bash = which("bash")
-        cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
-
-    joined = paths if isinstance(paths, str) else ntpath.pathsep.join(paths)
-
-    try:
-        # if present, use cygpath to convert paths since it is more reliable
-        unix_path = run(
-            [cygpath, "--unix", "--path", joined],
-            text=True,
-            capture_output=True,
-            check=True,
-        ).stdout.strip()
-    except FileNotFoundError:
-        # fallback logic when cygpath is not available
-        # i.e. conda without anything else installed
-        log.warning("cygpath is not available, fallback to manual path conversion")
-
-        unix_path = _Cygpath.nt_to_posix(joined, prefix)
-    except Exception as err:
-        log.error("Unexpected cygpath error (%s)", err)
-        raise
-
-    if isinstance(paths, str):
-        return unix_path
-    elif not unix_path:
-        return ()
-    else:
-        return tuple(unix_path.split(posixpath.pathsep))
-
-
 def win_path_to_cygwin(paths: str | Iterable[str] | None) -> str | Iterable[str] | None:
     return win_path_to_unix(paths, "/cygdrive")
 
@@ -578,7 +587,7 @@ def unix_path_to_win(
     # expect the results to work with the other.  It does not.
 
     if not (cygpath := os.getenv("CYGPATH")):
-        bash = which("bash")
+        bash = _which("bash")
         cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
 
     joined = paths if isinstance(paths, str) else posixpath.pathsep.join(paths)
