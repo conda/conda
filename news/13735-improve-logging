@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix prefix replacement for Windows subdir on unixes. (#13689)
+* Improve treatment of logger levels (#13735)
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Add logging overview as deep-dive (#13735)
 
 ### Other
 

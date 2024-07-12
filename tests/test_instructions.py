@@ -6,8 +6,8 @@ import pytest
 
 from conda import instructions
 from conda.exceptions import CondaFileIOError
-from conda.exports import execute_instructions
 from conda.instructions import commands
+from conda.plan import execute_instructions
 
 
 def test_expected_operation_order():

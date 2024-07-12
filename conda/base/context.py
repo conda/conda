@@ -62,6 +62,7 @@ from .constants import (
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
+    PREFIX_NAME_DISALLOWED_CHARS_WIN,
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
@@ -157,7 +158,7 @@ def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):
-        return "channel_alias value '%s' must have scheme/protocol." % value
+        return f"channel_alias value '{value}' must have scheme/protocol."
     return True
 
 
@@ -179,7 +180,7 @@ def default_python_validation(value):
         # Set to None or '' meaning no python pinning
         return True
 
-    return "default_python value '%s' not of the form '[23].[0-9][0-9]?' or ''" % value
+    return f"default_python value '{value}' not of the form '[23].[0-9][0-9]?' or ''"
 
 
 def ssl_verify_validation(value):
@@ -188,10 +189,10 @@ def ssl_verify_validation(value):
             return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
         elif value != "truststore" and not exists(value):
             return (
-                "ssl_verify value '%s' must be a boolean, a path to a "
+                f"ssl_verify value '{value}' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
                 "certificates of trusted CAs, or 'truststore' to use the "
-                "operating system certificate store." % value
+                "operating system certificate store."
             )
     return True
 
@@ -441,6 +442,7 @@ class Context(Configuration):
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
     #               Solver Configuration               #
@@ -1059,7 +1061,7 @@ class Context(Configuration):
             return logging.WARNING  # 30
 
     def solver_user_agent(self):
-        user_agent = "solver/%s" % self.solver
+        user_agent = f"solver/{self.solver}"
         try:
             solver_backend = self.plugin_manager.get_cached_solver_backend()
             # Solver.user_agent has to be a static or class method
@@ -1284,6 +1286,7 @@ class Context(Configuration):
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
+                "envvars_force_uppercase",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1899,6 +1902,11 @@ class Context(Configuration):
                 Disable check for `repodata.json.zst`; use `repodata.json` only.
                 """
             ),
+            envvars_force_uppercase=dals(
+                """
+                Force uppercase for new environment variable names. Defaults to True.
+                """
+            ),
         )
 
 
@@ -2060,12 +2068,21 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
 
-    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
+    disallowed = (
+        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
+    )
+    if disallowed.intersection(prefix_name):
+        if "%" in disallowed:
+            # This symbol causes formatting errors in the message below when raised.
+            # It needs to be escaped as a double %% in order to be rendered correctly.
+            # Raw strings didn't help.
+            disallowed.remove("%")
+            disallowed.add("%%")
         raise CondaValueError(
             dals(
                 f"""
                 Invalid environment name: {prefix_name!r}
-                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
+                Characters not allowed: {disallowed}
                 If you are specifying a path to an environment, the `-p`
                 flag should be used instead.
                 """

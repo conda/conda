@@ -168,7 +168,7 @@ class ParameterFlag(Enum):
     bottom = "bottom"
 
     def __str__(self):
-        return "%s" % self.value
+        return f"{self.value}"
 
     @classmethod
     def from_name(cls, name):

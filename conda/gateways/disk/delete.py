@@ -179,7 +179,7 @@ def unlink_or_rename_to_trash(path):
                         f"{trash_script} is missing.  Conda was not installed correctly or has been "
                         "corrupted.  Please file an issue on the conda github repo."
                     )
-            log.warn(
+            log.warning(
                 f"Could not remove or rename {path}.  Please remove this file manually (you "
                 "may need to reboot to free file handles)"
             )

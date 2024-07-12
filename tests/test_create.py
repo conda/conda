@@ -374,7 +374,7 @@ def test_json_create_install_update_remove(
             for string in content and content.split("\0") or ():
                 json.loads(string)
         except Exception as e:
-            log.warn(
+            log.warning(
                 "Problem parsing json output.\n"
                 "  content: %s\n"
                 "  string: %s\n"
@@ -767,9 +767,6 @@ def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
 def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     from conda.exports import rm_rf as _rm_rf
 
-    # For this test to work on Windows, you can either pass use_restricted_unicode=on_win
-    # to make_temp_env(), or you can set PYTHONUTF8 to 1 (and use Python 3.7 or above).
-    # We elect to test the more complex of the two options.
     py_ver = "3.10"
     with tmp_env(f"python={py_ver}", "pip") as prefix:
         check_call(
@@ -2592,3 +2589,19 @@ def test_repodata_v2_base_url(
         platform,
     )
     assert package_is_installed(prefix, "ca-certificates")
+
+
+def test_create_dry_run_without_prefix(
+    conda_cli: CondaCLIFixture, capsys: CaptureFixture
+):
+    with pytest.raises(DryRunExit):
+        conda_cli("create", "--dry-run", "--json", "ca-certificates")
+    out, _ = capsys.readouterr()
+    data = json.loads(out)
+    assert any(
+        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "ca-certificates"
+    )
+
+
+def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
+    conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)

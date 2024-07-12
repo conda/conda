@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add support for CEP-15 `base_url` field in `repodata.json`. (#13137 via #13744)
+* <news item>
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Update conda cheatsheet text and add it directly to cheatsheet page. (#13889)
 
 ### Other
 

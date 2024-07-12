@@ -243,7 +243,7 @@ def download_http_errors(url: str):
         yield
 
     except ConnectionResetError as e:
-        log.debug("%s, trying again" % e)
+        log.debug(f"{e}, trying again")
         # where does retry happen?
         raise
 

@@ -232,7 +232,7 @@ def test_to_yaml_returns_proper_yaml():
 
     expected = "\n".join(
         [
-            "name: %s" % random_name,
+            f"name: {random_name}",
             "channels:",
             "  - javascript",
             "dependencies:",
@@ -254,7 +254,7 @@ def test_to_yaml_takes_stream():
 
     expected = "\n".join(
         [
-            "name: %s" % random_name,
+            f"name: {random_name}",
             "channels:",
             "  - javascript",
             "dependencies:",

@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Adds a new `reporters` setting for configure output. (#13736)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Fixes parsing error when history file only contains a single commented line (#13960)
 
 ### Deprecations
 

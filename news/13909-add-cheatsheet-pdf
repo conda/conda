@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.core.index`. (#13816)
+* Added cheatsheet PDF download to cheatsheet page. (#13909)
 
 ### Other
 

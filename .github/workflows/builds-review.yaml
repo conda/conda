@@ -48,14 +48,14 @@ jobs:
 
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ github.ref }}
           clean: true
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@1e442e090ad28c9b0f85697105703a303320ffd1
+        uses: conda/actions/canary-release@976289d0cfd85139701b26ddd133abdd025a7b5f # v24.5.0
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}

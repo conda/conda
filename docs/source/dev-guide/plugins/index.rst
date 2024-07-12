@@ -124,6 +124,16 @@ API
 For even more detailed information about our plugin system, please the see the
 :doc:`Plugin API </dev-guide/api/conda/plugins/index>` section.
 
+Error handling
+--------------
+
+Errors in ``conda`` are routed through :class:`conda.exception_handler.ExceptionHandler`, which can
+print additional information about the ``conda`` installation when an *unexpected* exception is
+found. These automatic reports can be really verbose and can get in the way of communicating
+*expected* errors. See `this issue in conda-build`_ as an example.
+
+To mark exceptions as *expected*, plugins should raise :class:`conda.CondaError` or a subclass
+thereof. See [`conda_auth.exceptions`](https://github.com/conda-incubator/conda-auth/blob/0.2.1/conda_auth/exceptions.py) for an example.
 
 A note on licensing
 -------------------
@@ -142,3 +152,4 @@ which one to use, we advise communicating with a qualified legal professional.
 .. _GPLv3: https://www.gnu.org/licenses/gpl-3.0.en.html
 .. _`"Choose an Open Source License"`: https://choosealicense.com/
 .. _`conda-plugins-template`: https://github.com/conda/conda-plugin-template
+.. _`this issue in conda-build`: https://github.com/conda/conda-build/issues/5263

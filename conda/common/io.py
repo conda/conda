@@ -16,7 +16,7 @@ from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
 from itertools import cycle
-from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
+from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
@@ -321,8 +321,26 @@ def stderr_log_level(level, logger_name=None):
 
 
 def attach_stderr_handler(
-    level=WARN, logger_name=None, propagate=False, formatter=None
+    level=WARN,
+    logger_name=None,
+    propagate=False,
+    formatter=None,
+    filters=None,
 ):
+    """Attach a new `stderr` handler to the given logger and configure both.
+
+    This function creates a new StreamHandler that writes to `stderr` and attaches it
+    to the logger given by `logger_name` (which maybe `None`, in which case the root
+    logger is used). If the logger already has a handler by the name of `stderr`, it is
+    removed first.
+
+    The given `level` is set **for the handler**, not for the logger; however, this
+    function also sets the level of the given logger to the minimum of its current
+    effective level and the new handler level, ensuring that the handler will receive the
+    required log records, while minimizing the number of unnecessary log events. It also
+    sets the loggers `propagate` property according to the `propagate` argument.
+    The `formatter` argument can be used to set the formatter of the handler.
+    """
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next(
@@ -334,13 +352,16 @@ def attach_stderr_handler(
     new_stderr_handler.name = "stderr"
     new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
+    for filter_ in filters or ():
+        new_stderr_handler.addFilter(filter_)
 
     # do the switch
     with _logger_lock():
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(NOTSET)
+        if level < logr.getEffectiveLevel():
+            logr.setLevel(level)
         logr.propagate = propagate
 
 
@@ -430,7 +451,7 @@ class Spinner:
     @swallow_broken_pipe
     def __enter__(self):
         if not self.json:
-            sys.stdout.write("%s: " % self.message)
+            sys.stdout.write(f"{self.message}: ")
             sys.stdout.flush()
         self.start()
 
@@ -493,7 +514,7 @@ class ProgressBar:
                         raise
             else:
                 self.pbar = None
-                sys.stdout.write("%s ...working..." % description)
+                sys.stdout.write(f"{description} ...working...")
 
     def update_to(self, fraction):
         try:
@@ -527,8 +548,7 @@ class ProgressBar:
             if self.json:
                 with self.get_lock():
                     sys.stdout.write(
-                        '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                        % self.description
+                        f'{{"fetch":"{self.description}","finished":true,"maxval":1,"progress":1}}\n\0'
                     )
                     sys.stdout.flush()
             elif IS_INTERACTIVE:

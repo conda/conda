@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.auxlib.collections.make_immutable` as pending deprecation. Use `frozendict.deepfreeze` instead. (#13801)
+* Revert `--all` deprecation in `conda info`. (#14004)
 
 ### Docs
 
