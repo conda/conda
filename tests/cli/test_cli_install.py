@@ -106,6 +106,15 @@ def test_emscripten_forge(
 
     with tmp_env() as prefix:
         stdout, _, _ = conda_cli(
-            "create","--platform=emscripten-32",f"--prefix={prefix}","--yes","--override-channels","-c","https://repo.mamba.pm/emscripten-forge","-c","conda-forge","pyjs"
+            "create",
+            "--platform=emscripten-32",
+            f"--prefix={prefix}",
+            "--yes",
+            "--override-channels",
+            "-c",
+            "https://repo.mamba.pm/emscripten-forge",
+            "-c",
+            "conda-forge",
+            "pyjs",
         )
         
