@@ -107,7 +107,7 @@ def test_emscripten_forge(
     with tmp_env() as prefix:
         stdout, _, _ = conda_cli(
             "create",
-            "--platform=emscripten-32",
+            "--platform=emscripten-wasm32",
             f"--prefix={prefix}",
             "--yes",
             "--override-channels",
