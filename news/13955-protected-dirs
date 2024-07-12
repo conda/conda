@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda/cli/main_rename/validate_destination` as pending deprecation. Use `conda.cli.install.validate_new_prefix` instead. (#13955)
+* Mark `conda.cli.main_rename.validate_destination` as pending deprecation. Use `conda.cli.install.validate_new_prefix` instead. (#13955)
 
 ### Docs
 

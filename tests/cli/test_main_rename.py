@@ -296,8 +296,7 @@ def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: st
     with pytest.raises(CondaEnvException) as error:
         conda_cli(
             "rename",
-            "-p",
-            f"{context.root_prefix}/envs",
+            f"--path={context.root_prefix}/envs",
             env_one,
         )
 
@@ -311,23 +310,21 @@ def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
     with pytest.raises(CondaValueError) as error:
         conda_cli(
             "rename",
-            "-n",
-            bad_env_name,
+            f"--name={bad_env_name}",
             env_two,
         )
 
     assert "Invalid environment name" in str(error.value)
 
 
-@pytest.mark.skipif(not (on_mac or on_linux), reason="UNIX-specific test")
+@pytest.mark.skipif(on_win, reason="UNIX-specific test")
 def test_separator_chars_on_unix(conda_cli: CondaCLIFixture, env_one: str):
     bad_env_name = "\\" + env_one
 
     with pytest.raises(CondaValueError) as error:
         conda_cli(
             "rename",
-            "-n",
-            bad_env_name,
+            f"--name={bad_env_name}",
             env_two,
         )
 
