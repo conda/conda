@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from .helpers import add_parser_prefix
+    from .helpers import add_output_and_prompt_options, add_parser_prefix
 
     summary = "Rename an existing environment."
     description = dals(
@@ -61,6 +61,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     p.add_argument("destination", help="New name for the conda environment.")
     p.add_argument(
+        "-f",
         "--force",
         dest="yes",
         help="Force rename of an environment.",
@@ -72,14 +73,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         ),
         default=False,
     )
-    p.add_argument(
-        "-d",
-        "--dry-run",
-        help="Only display what would have been done by the current command, arguments, "
-        "and other flags.",
-        action="store_true",
-        default=False,
-    )
+
+    add_output_and_prompt_options(p)
+
     p.set_defaults(func="conda.cli.main_rename.execute")
 
     return p
@@ -127,7 +123,7 @@ def validate_destination(dest: str, force: bool = False) -> str:
     if not force and os.path.exists(dest):
         env_name = os.path.basename(os.path.normpath(dest))
         raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --force."
+            f"The environment '{env_name}' already exists. Override with --yes."
         )
     return dest
 

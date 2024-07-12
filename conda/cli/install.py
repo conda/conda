@@ -81,13 +81,13 @@ def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     history_file = Path(prefix).parent / "conda-meta" / "history"
 
     if history_file.is_file():
-                raise CondaEnvException(
-                    f"The specified prefix '{prefix}' "
-                    "contains a protected directory, 'conda-meta', and a 'history' file within it. "
-                    "Creating an environment in this location will potentially risk the deletion "
-                    "of other conda environments. Aborting.",
-                    json,
-                )
+        raise CondaEnvException(
+            f"The specified prefix '{prefix}' "
+            "contains a protected directory, 'conda-meta', and a 'history' file within it. "
+            "Creating an environment in this location will potentially risk the deletion "
+            "of other conda environments. Aborting.",
+            json,
+        )
 
 
 def validate_new_prefix(dest: str, force: bool = False) -> str:
@@ -105,7 +105,7 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
         # TODO: Once the "--force" flag option is removed in version 25.3.x,
         # the message below needs to suggest using "--yes" instead
         raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --force."
+            f"The environment '{env_name}' already exists. Override with --yes."
         )
 
     return dest
