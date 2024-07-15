@@ -142,6 +142,8 @@ def explicit(
     )
 
     txn = UnlinkLinkTransaction(stp)
+    if not context.json and not context.quiet:
+        txn.print_transaction_summary()
     txn.execute()
 
 
@@ -357,5 +359,5 @@ def _get_best_prec_match(precs):
             break
     else:
         prec_matches = precs
-    log.warn("Multiple packages found: %s", dashlist(prec_matches))
+    log.warning("Multiple packages found: %s", dashlist(prec_matches))
     return prec_matches[0]

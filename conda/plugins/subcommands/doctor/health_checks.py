@@ -163,8 +163,19 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
     print(f"Environment listed in environments.txt file: {present}\n")
 
 
+def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
+    import os
+
+    if os.environ.get("REQUESTS_CA_BUNDLE"):
+        if os.environ.get("REQUESTS_CA_BUNDLE").exists():
+            print("env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n")
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
     yield CondaHealthCheck(name="Altered Files", action=altered_files)
     yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)
+    yield CondaHealthCheck(
+        name="REQUESTS_CA_BUNDLE Check", action=requests_ca_bundle_check
+    )
