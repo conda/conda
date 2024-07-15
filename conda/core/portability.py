@@ -194,7 +194,7 @@ def binary_replace(
         return match.group().replace(search, replacement) + b"\0" * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros)
+    pat = re.compile(re.escape(search) + b"(?:(?!(?:" + zeros + b"))[\\s\\S])*" + zeros)
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 
