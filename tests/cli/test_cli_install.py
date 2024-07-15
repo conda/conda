@@ -9,6 +9,7 @@ from conda.base.context import context
 from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+from conda.testing.integration import package_is_installed
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -110,4 +111,4 @@ def test_emscripten_forge(
         "conda-forge",
         "pyjs",
     ) as prefix:
-        pass
+        assert package_is_installed(prefix, "pyjs")
