@@ -144,10 +144,9 @@ class CondaPluginManager(pluggy.PluginManager):
                     # meaning that it comes too late to properly render
                     # a traceback; instead we pass exc_info conditionally on
                     # context.verbosity
-                    kwargs = {"exc_info": err} if context.verbosity >= 2 else {}
                     log.warning(
                         f"Error while loading conda entry point: {entry_point.name} ({err})",
-                        **kwargs,
+                        exc_info=err if context.info else None,
                     )
                     continue
 
