@@ -96,7 +96,6 @@ def test_find_conflicts_called_once(
 
 @pytest.mark.integration
 def test_emscripten_forge(
-    test_recipes_channel: Path,
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
 ):
