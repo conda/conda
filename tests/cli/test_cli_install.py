@@ -94,7 +94,6 @@ def test_find_conflicts_called_once(
     assert mocked_find_conflicts.call_count == 3
 
 
-
 @pytest.mark.integration
 def test_emscripten_forge(
     test_recipes_channel: Path,
