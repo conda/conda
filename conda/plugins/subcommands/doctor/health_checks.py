@@ -167,7 +167,7 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
     import os
 
     if os.environ.get("REQUESTS_CA_BUNDLE"):
-        if os.environ.get("REQUESTS_CA_BUNDLE").exists():
+        if not os.environ.get("REQUESTS_CA_BUNDLE").exists():
             print("env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n")
 
 
