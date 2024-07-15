@@ -109,5 +109,5 @@ def test_emscripten_forge(
         "-c",
         "conda-forge",
         "pyjs",
-     ) as prefix:
+    ) as prefix:
         pass
