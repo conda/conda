@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,7 @@ from conda.plugins.subcommands.doctor.health_checks import (
     find_altered_packages,
     find_packages_with_missing_files,
     missing_files,
+    requests_ca_bundle_check,
 )
 
 if TYPE_CHECKING:
@@ -243,6 +245,20 @@ def test_not_env_txt_check_action(
     env_txt_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert X_MARK in captured.out
+
+
+def test_requests_ca_bundle_check_action(
+    env_ok: tuple[Path, str, str, str, str], capsys
+):
+    prefix, _, _, _, _ = env_ok
+    os.environ["REQUESTS_CA_BUNDLE"] = "non/existent/path"
+    reset_context(())
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert (
+        "env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n"
+        in captured.out
+    )
 
 
 def test_json_keys_missing(env_ok: tuple[Path, str, str, str, str], capsys):
