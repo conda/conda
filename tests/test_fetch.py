@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import hashlib
 import os
+from contextlib import nullcontext
 from os.path import exists, isfile
 from pathlib import Path
 from tempfile import mktemp
+from typing import Any, Callable
 from unittest.mock import patch
 
 import pytest
@@ -350,9 +352,21 @@ def test_download_http_errors():
         raise HTTPError(response=Response(401))
 
 
-@pytest.mark.parametrize("sha256_type", ("original", "upper", "gibberish", "bad-type"))
+@pytest.mark.parametrize(
+    "raises,get_sha256",
+    [
+        pytest.param(False, lambda x: x, id="original"),
+        pytest.param(False, str.upper, id="upper"),
+        pytest.param(True, lambda x: "not-an-hex-string", id="gibberish"),
+        pytest.param(True, lambda x: 123456, id="bad-type"),
+    ],
+)
 def test_checksum_checks_bytes(
-    tmp_path: Path, package_repository_base, package_server, sha256_type
+    tmp_path: Path,
+    package_repository_base,
+    package_server,
+    raises: bool,
+    get_sha256: Callable[[str], Any],
 ):
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
@@ -363,18 +377,5 @@ def test_checksum_checks_bytes(
     size = package_path.stat().st_size
     output_path = tmp_path / package_name
 
-    if sha256_type in ("gibberish", "bad-type"):
-        with pytest.raises(CondaValueError):
-            download(
-                url,
-                output_path,
-                size=size,
-                sha256=123456 if sha256_type == "bad-type" else "not-an-hex-string",
-            )
-    else:
-        download(
-            url,
-            output_path,
-            size=size,
-            sha256=sha256.upper() if sha256_type == "upper" else sha256,
-        )
+    with pytest.raises(CondaValueError) if raises else nullcontext():
+        download(url, output_path, size=size, sha256=get_sha256(sha256))
