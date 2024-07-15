@@ -4,6 +4,7 @@
 
 See conda.core.solver.Solver for the high-level API.
 """
+
 from __future__ import annotations
 
 import copy
@@ -14,7 +15,6 @@ from logging import DEBUG, getLogger
 
 from tqdm import tqdm
 
-from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from .auxlib.decorators import memoizemethod
 from .base.constants import MAX_CHANNEL_PRIORITY, ChannelPriority, SatSolverChoice
 from .base.context import context
@@ -41,6 +41,11 @@ from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ._vendor.frozendict import FrozenOrderedDict as frozendict
 
 log = getLogger(__name__)
 stdoutlog = getLogger("conda.stdoutlog")
@@ -723,7 +728,7 @@ class Resolve:
                         and prec not in explicit_spec_package_pool[name]
                     ):
                         filter_out[prec] = (
-                            "incompatible with required spec %s" % top_level_spec
+                            f"incompatible with required spec {top_level_spec}"
                         )
                         continue
                     unsatisfiable_dep_specs = set()
@@ -735,8 +740,8 @@ class Resolve:
                         ):
                             unsatisfiable_dep_specs.add(ms)
                     if unsatisfiable_dep_specs:
-                        filter_out[prec] = "unsatisfiable dependencies %s" % " ".join(
-                            str(s) for s in unsatisfiable_dep_specs
+                        filter_out[prec] = "unsatisfiable dependencies {}".format(
+                            " ".join(str(s) for s in unsatisfiable_dep_specs)
                         )
                         continue
                     filter_out[prec] = False
@@ -1638,9 +1643,8 @@ class Resolve:
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
                 stdoutlog.info(
-                    "\nWarning: %s possible package resolutions "
-                    "(only showing differing packages):%s%s"
-                    % (
+                    "\nWarning: {} possible package resolutions "
+                    "(only showing differing packages):{}{}".format(
                         ">10" if nsol > 10 else nsol,
                         dashlist(", ".join(diff) for diff in diffs),
                         "\n  ... and others" if nsol > 10 else "",

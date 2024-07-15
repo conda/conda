@@ -1,18 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Utility functions."""
+
 from __future__ import annotations
 
 import logging
 import re
 import sys
-from contextlib import contextmanager
 from functools import lru_cache, wraps
-from os import PathLike, environ
+from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
-from typing import Literal
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
@@ -20,7 +19,6 @@ from .common.compat import isiterable, on_win
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
-from .gateways.disk.read import compute_sum
 
 log = logging.getLogger(__name__)
 
@@ -54,15 +52,25 @@ def unix_path_to_win(path, root_prefix=""):
     return translation
 
 
-# curry cygwin functions
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+)
 def win_path_to_cygwin(path):
     return win_path_to_unix(path, "/cygdrive")
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.utils.unix_path_to_win` instead.",
+)
 def cygwin_path_to_win(path):
     return unix_path_to_win(path, "/cygdrive")
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def translate_stream(stream, translator):
     return "\n".join(translator(line) for line in stream.split("\n"))
 
@@ -88,9 +96,9 @@ def human_bytes(n):
         return "%d KB" % round(k)
     m = k / 1024
     if m < 1024:
-        return "%.1f MB" % m
+        return f"{m:.1f} MB"
     g = m / 1024
-    return "%.2f GB" % g
+    return f"{g:.2f} GB"
 
 
 # TODO: this should be done in a more extensible way
@@ -98,7 +106,7 @@ def human_bytes(n):
 
 # defaults for unix shells.  Note: missing "exe" entry, which should be set to
 #    either an executable on PATH, or a full path to an executable for a shell
-unix_shell_base = dict(
+_UNIX_SHELL_BASE = dict(
     binpath="/bin/",  # mind the trailing slash.
     echo="echo",
     env_script_suffix=".sh",
@@ -120,16 +128,32 @@ unix_shell_base = dict(
     var_format="${}",
 )
 
-msys2_shell_base = dict(
-    unix_shell_base,
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_shell_base",
+    _UNIX_SHELL_BASE,
+    addendum="Use `conda.activate` instead.",
+)
+
+_MSYS2_SHELL_BASE = dict(
+    _UNIX_SHELL_BASE,
     path_from=unix_path_to_win,
     path_to=win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
 
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "msys2_shell_base",
+    _MSYS2_SHELL_BASE,
+    addendum="Use `conda.activate` instead.",
+)
+
 if on_win:
-    shells = {
+    _SHELLS = {
         # "powershell.exe": dict(
         #    echo="echo",
         #    test_echo_extra=" .",
@@ -174,7 +198,7 @@ if on_win:
             pathsep=";",
         ),
         "cygwin": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="bash.exe",
             binpath="/Scripts/",  # mind the trailing slash.
             path_from=cygwin_path_to_win,
@@ -184,48 +208,56 @@ if on_win:
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
         #    filesystem root.
         "bash.exe": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="bash.exe",
         ),
         "bash": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="bash",
         ),
         "sh.exe": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="sh.exe",
         ),
         "zsh.exe": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="zsh.exe",
         ),
         "zsh": dict(
-            msys2_shell_base,
+            _MSYS2_SHELL_BASE,
             exe="zsh",
         ),
     }
 
 else:
-    shells = {
+    _SHELLS = {
         "bash": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="bash",
         ),
         "dash": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="dash",
             source_setup=".",
         ),
         "zsh": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="zsh",
         ),
         "fish": dict(
-            unix_shell_base,
+            _UNIX_SHELL_BASE,
             exe="fish",
             pathsep=" ",
         ),
     }
+
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "shells",
+    _SHELLS,
+    addendum="Use `conda.activate` instead.",
+)
 
 
 # ##########################################
@@ -233,22 +265,6 @@ else:
 # ##########################################
 
 urlpath = url_path = path_to_url
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
-)
-def md5_file(path: str | PathLike) -> str:
-    return compute_sum(path, "md5")
-
-
-@deprecated(
-    "23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead."
-)
-def hashsum_file(path: str | PathLike, mode: Literal["md5", "sha256"] = "md5") -> str:
-    return compute_sum(path, mode)
 
 
 @lru_cache(maxsize=None)
@@ -509,7 +525,7 @@ def get_comspec():
                 environ["COMSPEC"] = comspec
                 break
         else:
-            log.warn(
+            log.warning(
                 "cmd.exe could not be found. Looked in SystemRoot and windir env vars.\n"
             )
 
@@ -540,25 +556,3 @@ def ensure_dir_exists(func):
         return result
 
     return wrapper
-
-
-@deprecated("23.9", "24.3", addendum="Use `open` instead.")
-@contextmanager
-def safe_open(*args, **kwargs):
-    """
-    Allows us to open files while catching any exceptions
-    and raise them as CondaErrors instead.
-
-    We do this to provide a more informative/actionable error output.
-    """
-    try:
-        fp = open(*args, **kwargs)
-        yield fp
-    except OSError as exc:
-        raise CondaError(
-            "Error encountered while reading or writing from cache."
-            f"\n  File: {args[0]}"
-            f"\n  Exception: {exc}"
-        )
-
-    fp.close()

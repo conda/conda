@@ -3,33 +3,44 @@
 from pathlib import Path
 
 import pytest
-from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
+import conda
 from conda.base.context import context, reset_context
-from conda.testing import conda_cli, path_factory, tmp_env  # noqa: F401
 
 from . import http_test_server
-from .fixtures_jlap import (  # noqa: F401
-    package_repository_base,
-    package_server,
-    package_server_ssl,
-)
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
+    "conda.testing",
     "conda.testing.gateways.fixtures",
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
+    "tests.fixtures_jlap",
 )
 
-TEST_RECIPES_CHANNEL = str(Path(__file__).resolve().parent / "test-recipes")
+
+@pytest.hookimpl
+def pytest_report_header(config: pytest.Config):
+    # ensuring the expected development conda is being run
+    expected = Path(__file__).parent.parent / "conda" / "__init__.py"
+    assert expected.samefile(conda.__file__)
+    return f"conda.__file__: {conda.__file__}"
 
 
 @pytest.fixture
-def test_recipes_channel(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("CONDA_BLD_PATH", TEST_RECIPES_CHANNEL)
+def test_recipes_channel(mocker: MockerFixture) -> Path:
+    channel = Path(__file__).parent / "test-recipes"
+
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(channel_str := str(channel),),
+    )
     reset_context()
-    assert context.bld_path == TEST_RECIPES_CHANNEL
+    assert context.channels == (channel_str,)
+
+    return channel
 
 
 @pytest.fixture
@@ -42,7 +53,7 @@ def clear_cache():
 @pytest.fixture(scope="session")
 def support_file_server():
     """Open a local web server to test remote support files."""
-    base = Path(__file__).parents[0] / "conda_env" / "support"
+    base = Path(__file__).parents[0] / "env" / "support"
     http = http_test_server.run_test_server(str(base))
     yield http
     # shutdown is checked at a polling interval, or the daemon thread will shut

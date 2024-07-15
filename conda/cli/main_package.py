@@ -4,6 +4,7 @@
 
 Provides some low-level tools for creating conda packages.
 """
+
 import hashlib
 import json
 import os
@@ -163,7 +164,7 @@ def fix_shebang(tmp_dir, path):
     if not (m and "python" in m.group()):
         return False
 
-    data = shebang_pat.sub("#!%s/bin/python" % PREFIX_PLACEHOLDER, data, count=1)
+    data = shebang_pat.sub(f"#!{PREFIX_PLACEHOLDER}/bin/python", data, count=1)
     tmp_path = join(tmp_dir, basename(path))
     with open(tmp_path, "w") as fo:
         fo.write(data)
@@ -222,7 +223,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         elif isfile(path):
             h.update(open(path, "rb").read())
             if path.endswith(".egg-link"):
-                warnings.append("found egg link: %s" % f)
+                warnings.append(f"found egg link: {f}")
 
     info["file_hash"] = h.hexdigest()
     if update_info:
@@ -252,7 +253,7 @@ def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=Non
         requires_py = False
 
     info = create_info(name, version, build_number, requires_py)
-    tarbz2_fn = ("%(name)s-%(version)s-%(build)s" % info) + CONDA_PACKAGE_EXTENSION_V1
+    tarbz2_fn = ("{name}-{version}-{build}".format(**info)) + CONDA_PACKAGE_EXTENSION_V1
     create_conda_pkg(prefix, files, info, tarbz2_fn)
     print("# success")
     print(tarbz2_fn)
@@ -274,7 +275,7 @@ def which_package(path):
     if prefix is None:
         from ..exceptions import CondaVerificationError
 
-        raise CondaVerificationError("could not determine conda prefix from: %s" % path)
+        raise CondaVerificationError(f"could not determine conda prefix from: {path}")
 
     for prec in PrefixData(prefix).iter_records():
         if any(paths_equal(join(prefix, f), path) for f in prec["files"] or ()):

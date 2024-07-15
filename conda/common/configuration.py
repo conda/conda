@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+
 from __future__ import annotations
 
 import copy
@@ -20,38 +21,50 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
+from functools import wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from re import IGNORECASE, VERBOSE, Match, compile
+from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
-
-if TYPE_CHECKING:  # pragma: no cover
-    from typing import Any, Hashable, Iterable, Sequence
-
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
-
+from boltons.setutils import IndexedSet
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from .._vendor.frozendict import frozendict
-from ..auxlib.collection import AttrDict, first, last, make_immutable
+from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..common.iterators import unique
+from ..deprecations import deprecated
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
+
+try:
+    from frozendict import deepfreeze, frozendict
+    from frozendict import getFreezeConversionMap as _getFreezeConversionMap
+    from frozendict import register as _register
+
+    if Enum not in _getFreezeConversionMap():
+        # leave enums as is, deepfreeze will flatten it into a dict
+        # see https://github.com/Marco-Sulla/python-frozendict/issues/98
+        _register(Enum, lambda x: x)
+
+    del _getFreezeConversionMap
+    del _register
+except ImportError:
+    from .._vendor.frozendict import frozendict
+    from ..auxlib.collection import make_immutable as deepfreeze
+
+if TYPE_CHECKING:
+    from re import Match
+    from typing import Any, Hashable, Iterable, Sequence
 
 log = getLogger(__name__)
 
@@ -101,10 +114,9 @@ class MultipleKeysError(ValidationError):
         self.source = source
         self.keys = keys
         msg = (
-            "Multiple aliased keys in file %s:\n"
-            "%s\n"
-            "Must declare only one. Prefer '%s'"
-            % (source, pretty_list(keys), preferred_key)
+            f"Multiple aliased keys in file {source}:\n"
+            f"{pretty_list(keys)}\n"
+            f"Must declare only one. Prefer '{preferred_key}'"
         )
         super().__init__(preferred_key, None, source, msg=msg)
 
@@ -117,15 +129,8 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = (
-                "Parameter %s = %r declared in %s has type %s.\n"
-                "Valid types:\n%s"
-                % (
-                    parameter_name,
-                    parameter_value,
-                    source,
-                    wrong_type,
-                    pretty_list(valid_types),
-                )
+                f"Parameter {parameter_name} = {parameter_value!r} declared in {source} has type {wrong_type}.\n"
+                f"Valid types:\n{pretty_list(valid_types)}"
             )
         super().__init__(parameter_name, parameter_value, source, msg=msg)
 
@@ -163,7 +168,7 @@ class ParameterFlag(Enum):
     bottom = "bottom"
 
     def __str__(self):
-        return "%s" % self.value
+        return f"{self.value}"
 
     @classmethod
     def from_name(cls, name):
@@ -272,7 +277,7 @@ class ArgParseRawParameter(RawParameter):
                 )
             return tuple(children_values)
         else:
-            return make_immutable(self._raw_value)
+            return deepfreeze(self._raw_value)
 
     def keyflag(self):
         return None
@@ -1610,3 +1615,43 @@ class Configuration(metaclass=ConfigurationType):
 
     def get_descriptions(self):
         raise NotImplementedError()
+
+
+def unique_sequence_map(*, unique_key: str):
+    """
+    Used to validate properties on :class:`Configuration` subclasses defined as a
+    ``SequenceParameter(MapParameter())`` where the map contains a single key that
+    should be regarded as unique. This decorator will handle removing duplicates and
+    merging to a single sequence.
+    """
+
+    def inner_wrap(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            sequence_map = func(*args, **kwargs)
+            new_sequence_mapping = {}
+
+            for mapping in sequence_map:
+                unique_key_value = mapping.get(unique_key)
+
+                if unique_key_value is None:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; unique key '
+                        f'"{unique_key}" not present on mapping'
+                    )
+                    continue
+
+                if unique_key_value in new_sequence_mapping:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; value '
+                        f'"{unique_key_value}" already present'
+                    )
+                    continue
+
+                new_sequence_mapping[unique_key_value] = mapping
+
+            return tuple(new_sequence_mapping.values())
+
+        return wrapper
+
+    return inner_wrap

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for modifying file and directory permissions."""
+
 from errno import EACCES, ENOENT, EPERM, EROFS
 from itertools import chain
 from logging import getLogger
@@ -9,6 +10,7 @@ from os.path import isdir, isfile, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from ...common.compat import on_win
+from ...common.constants import TRACE
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lchmod
 
@@ -36,7 +38,7 @@ def make_writable(path):
             log.debug("tried make writable but failed: %s\n%r", path, e)
             return False
         else:
-            log.warn("Error making path writable: %s\n%r", path, e)
+            log.warning("Error making path writable: %s\n%r", path, e)
             raise
 
 
@@ -74,7 +76,7 @@ def recursive_make_writable(path, max_tries=MAX_TRIES):
 def make_executable(path):
     if isfile(path):
         mode = lstat(path).st_mode
-        log.trace("chmod +x %s", path)
+        log.log(TRACE, "chmod +x %s", path)
         chmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
     else:
         log.error("Cannot make path '%s' executable", path)

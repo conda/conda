@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing a subdir's repodata.json."""
+
 from __future__ import annotations
 
 import json
@@ -9,16 +10,12 @@ from collections import UserList, defaultdict
 from functools import partial
 from itertools import chain
 from logging import getLogger
-from os.path import exists, join, splitext
+from os.path import exists, getmtime, isfile, join, splitext
 from pathlib import Path
 from time import time
+from typing import TYPE_CHECKING
 
-from genericpath import getmtime, isfile
-
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -28,16 +25,13 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
 from ..deprecations import deprecated
-from ..exceptions import CondaUpgradeError, UnavailableInvalidChannel
+from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
     CACHE_STATE_SUFFIX,
     CondaRepoInterface,
-    RepodataCache,
     RepodataFetch,
-    RepodataIsEmpty,
     RepodataState,
-    RepoInterface,
     cache_fn_url,
     create_cache_dir,
     get_repo_interface,
@@ -48,12 +42,14 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from ..trust.signature_verification import signature_verification
+
+if TYPE_CHECKING:
+    from ..gateways.repodata import RepodataCache, RepoInterface
 
 log = getLogger(__name__)
 
 REPODATA_PICKLE_VERSION = 30
-MAX_REPODATA_VERSION = 1
+MAX_REPODATA_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
 
 
@@ -201,6 +197,9 @@ class SubdirData(metaclass=SubdirDataType):
         # disallow None (typing)
         self.url_w_subdir = self.channel.url(with_credentials=False) or ""
         self.url_w_credentials = self.channel.url(with_credentials=True) or ""
+        # these can be overriden by repodata.json v2
+        self._base_url = self.url_w_subdir
+        self._base_url_w_credentials = self.url_w_credentials
         # whether or not to try using the new, trimmed-down repodata
         self.repodata_fn = repodata_fn
         self.RepoInterface = RepoInterface
@@ -223,7 +222,7 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Object to get repodata. Not cached since self.repodata_fn is mutable.
 
-        Replaces fetch_repodata_remote_request, self._repo, self.repo_cache.
+        Replaces self._repo & self.repo_cache.
         """
         return RepodataFetch(
             Path(self.cache_path_base),
@@ -277,13 +276,16 @@ class SubdirData(metaclass=SubdirDataType):
 
                     %s
 
-                (This version only supports repodata_version 1.)
+                (This version only supports repodata_version 1 and 2.)
                 Please update conda to use this channel.
                 """
                 )
                 % self.url_w_repodata_fn
             )
-
+        self._base_url = _internal_state.get("base_url", self.url_w_subdir)
+        self._base_url_w_credentials = _internal_state.get(
+            "base_url_w_credentials", self.url_w_credentials
+        )
         self._internal_state = _internal_state
         self._package_records = _internal_state["_package_records"]
         self._names_index = _internal_state["_names_index"]
@@ -430,13 +432,15 @@ class SubdirData(metaclass=SubdirDataType):
         self._package_records = _package_records = PackageRecordList()
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
-
-        signatures = repodata.get("signatures", {})
+        base_url = self._get_base_url(repodata, with_credentials=False)
+        base_url_w_credentials = self._get_base_url(repodata, with_credentials=True)
 
         _internal_state = {
             "channel": self.channel,
             "url_w_subdir": self.url_w_subdir,
             "url_w_credentials": self.url_w_credentials,
+            "base_url": base_url,
+            "base_url_w_credentials": base_url_w_credentials,
             "cache_path_base": self.cache_path_base,
             "fn": self.repodata_fn,
             "_package_records": _package_records,
@@ -459,7 +463,7 @@ class SubdirData(metaclass=SubdirDataType):
 
                     %s
 
-                (This version only supports repodata_version 1.)
+                (This version only supports repodata_version 1 and 2.)
                 Please update conda to use this channel.
                 """
                 )
@@ -474,7 +478,6 @@ class SubdirData(metaclass=SubdirDataType):
             "subdir": subdir,
         }
 
-        channel_url = self.url_w_credentials
         legacy_packages = repodata.get("packages", {})
         conda_packages = (
             {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
@@ -490,11 +493,6 @@ class SubdirData(metaclass=SubdirDataType):
             (((k, legacy_packages[k]) for k in use_these_legacy_keys), False),
         ):
             for fn, info in group:
-                # Verify metadata signature before anything else so run-time
-                # updates to the info dictionary performed below do not
-                # invalidate the signatures provided in metadata.json.
-                signature_verification(info, fn, signatures)
-
                 if copy_legacy_md5:
                     counterpart = fn.replace(".conda", ".tar.bz2")
                     if counterpart in legacy_packages:
@@ -520,7 +518,7 @@ class SubdirData(metaclass=SubdirDataType):
                 # lazy
                 # package_record = PackageRecord(**info)
                 info["fn"] = fn
-                info["url"] = join_url(channel_url, fn)
+                info["url"] = join_url(base_url_w_credentials, fn)
                 _package_records.append(info)
                 record_index = len(_package_records) - 1
                 _names_index[info["name"]].append(record_index)
@@ -528,10 +526,49 @@ class SubdirData(metaclass=SubdirDataType):
         self._internal_state = _internal_state
         return _internal_state
 
+    def _get_base_url(self, repodata: dict, with_credentials: bool = True) -> str:
+        """
+        In repodata_version=1, .tar.bz2 and .conda artifacts are assumed to
+        be colocated next to repodata.json, in the same server and directory.
+
+        In repodata_version=2, repodata.json files can define a 'base_url' field
+        to override that default assumption. See CEP-15 for more details.
+
+        This method deals with both cases and returns the appropriate value.
+        """
+        maybe_base_url = repodata.get("info", {}).get("base_url")
+        if maybe_base_url:  # repodata defines base_url field
+            try:
+                base_url_parts = Channel(maybe_base_url).dump()
+            except ValueError as exc:
+                raise ChannelError(
+                    f"Subdir for {self.channel.canonical_name} at url '{self.url_w_subdir}' "
+                    "has invalid 'base_url'"
+                ) from exc
+            if with_credentials and self.url_w_credentials != self.url_w_subdir:
+                # We don't check for .token or .auth because those are not well defined
+                # in multichannel objects. It's safer to compare the resulting URLs.
+                # Note that base_url is assumed to have the same authentication as the repodata
+                channel_parts = self.channel.dump()
+                for key in ("auth", "token"):
+                    if base_url_parts.get(key):
+                        raise ChannelError(
+                            f"'{self.url_w_subdir}' has 'base_url' with credentials. "
+                            "This is not supported."
+                        )
+                    channel_creds = channel_parts.get(key)
+                    if channel_creds:
+                        base_url_parts[key] = channel_creds
+                return Channel(**base_url_parts).url(with_credentials=True)
+            return maybe_base_url
+        if with_credentials:
+            return self.url_w_credentials
+        return self.url_w_subdir
+
 
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = "%s@" % feature_name
+    pkg_name = f"{feature_name}@"
     return PackageRecord(
         name=pkg_name,
         version="0",
@@ -543,33 +580,3 @@ def make_feature_record(feature_name):
         build_number=0,
         fn=pkg_name,
     )
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum="The `conda.core.subdir_data.fetch_repodata_remote_request` function "
-    "is pending deprecation and will be removed in the future. "
-    "Please use `conda.core.subdir_data.SubdirData` instead.",
-)
-def fetch_repodata_remote_request(url, etag, mod_stamp, repodata_fn=REPODATA_FN):
-    """
-    :param etag: cached etag header
-    :param mod_stamp: cached last-modified header
-    """
-    # this function should no longer be used by conda but is kept for API stability
-
-    subdir = SubdirData(Channel(url), repodata_fn=repodata_fn)
-
-    try:
-        cache_state = subdir.repo_cache.load_state()
-        cache_state.etag = etag
-        cache_state.mod = mod_stamp
-        raw_repodata_str = subdir._repo.repodata(cache_state)  # type: ignore
-    except RepodataIsEmpty:
-        if repodata_fn != REPODATA_FN:
-            raise  # is UnavailableInvalidChannel subclass
-        # the surrounding try/except/else will cache "{}"
-        raw_repodata_str = None
-
-    return raw_repodata_str

@@ -7,21 +7,33 @@ Core logic for `conda [create|install|update|remove]` commands.
 See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
+
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
+from pathlib import Path
+
+from boltons.setutils import IndexedSet
 
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
+from ..common.io import Spinner
 from ..common.path import is_package_file, paths_equal
-from ..core.index import calculate_channel_urls, get_index
+from ..core.index import (
+    _supplement_index_with_prefix,
+    calculate_channel_urls,
+    get_index,
+)
+from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
+from ..core.solve import diff_for_unlink_link_precs
 from ..exceptions import (
     CondaExitZero,
     CondaImportError,
+    CondaIndexError,
     CondaOSError,
     CondaSystemExit,
     CondaValueError,
@@ -40,12 +52,13 @@ from ..exceptions import (
 )
 from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
-from ..misc import clone_env, explicit, touch_nonadmin
+from ..history import History
+from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
-from ..plan import revert_actions
+from ..models.prefix_graph import PrefixGraph
 from . import common
 from .common import check_non_admin
-from .python_api import Commands, run_command
+from .main_config import set_keys
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -59,13 +72,13 @@ def check_prefix(prefix, json=False):
     name = basename(prefix)
     error = None
     if name == ROOT_ENV_NAME:
-        error = "'%s' is a reserved environment name" % name
+        error = f"'{name}' is a reserved environment name"
     if exists(prefix):
         if isdir(prefix) and "conda-meta" not in tuple(
             entry.name for entry in os.scandir(prefix)
         ):
             return None
-        error = "prefix already exists: %s" % prefix
+        error = f"prefix already exists: {prefix}"
 
     if error:
         raise CondaValueError(error, json)
@@ -88,8 +101,8 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         src_prefix = locate_prefix_by_name(src_arg)
 
     if not json:
-        print("Source:      %s" % src_prefix)
-        print("Destination: %s" % dst_prefix)
+        print(f"Source:      {src_prefix}")
+        print(f"Destination: {dst_prefix}")
 
     actions, untracked_files = clone_env(
         src_prefix, dst_prefix, verbose=not json, quiet=quiet, index_args=index_args
@@ -127,7 +140,7 @@ def get_revision(arg, json=False):
     try:
         return int(arg)
     except ValueError:
-        raise CondaValueError("expected revision number, not: '%s'" % arg, json)
+        raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
 def install(args, parser, command="install"):
@@ -198,40 +211,33 @@ def install(args, parser, command="install"):
                 "Creating new environment for a non-native platform %s",
                 context.subdir,
             )
-    else:
-        if isdir(prefix):
-            delete_trash(prefix)
-            if not isfile(join(prefix, "conda-meta", "history")):
-                if paths_equal(prefix, context.conda_prefix):
-                    raise NoBaseEnvironmentError()
-                else:
-                    if not path_is_clean(prefix):
-                        raise DirectoryNotACondaEnvironmentError(prefix)
+    elif isdir(prefix):
+        delete_trash(prefix)
+        if not isfile(join(prefix, "conda-meta", "history")):
+            if paths_equal(prefix, context.conda_prefix):
+                raise NoBaseEnvironmentError()
             else:
-                # fall-through expected under normal operation
-                pass
+                if not path_is_clean(prefix):
+                    raise DirectoryNotACondaEnvironmentError(prefix)
         else:
-            if hasattr(args, "mkdir") and args.mkdir:
-                try:
-                    mkdir_p(prefix)
-                except OSError as e:
-                    raise CondaOSError(
-                        "Could not create directory: %s" % prefix, caused_by=e
-                    )
-            else:
-                raise EnvironmentLocationNotFound(prefix)
+            # fall-through expected under normal operation
+            pass
+    elif getattr(args, "mkdir", False):
+        # --mkdir is deprecated and marked for removal in conda 25.3
+        try:
+            mkdir_p(prefix)
+        except OSError as e:
+            raise CondaOSError(f"Could not create directory: {prefix}", caused_by=e)
+    else:
+        raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
-        # TODO: rework in 4.4 branch using MatchSpec
-        args_packages_names = [
-            pkg.replace(" ", "=").split("=", 1)[0] for pkg in args_packages
-        ]
-        for default_pkg in context.create_default_packages:
-            default_pkg_name = default_pkg.replace(" ", "=").split("=", 1)[0]
-            if default_pkg_name not in args_packages_names:
-                args_packages.append(default_pkg)
+        names = [MatchSpec(pkg).name for pkg in args_packages]
+        for default_package in context.create_default_packages:
+            if MatchSpec(default_package).name not in names:
+                args_packages.append(default_package)
 
     index_args = {
         "use_cache": args.use_index_cache,
@@ -245,6 +251,9 @@ def install(args, parser, command="install"):
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)
+            if newenv:
+                touch_nonadmin(prefix)
+                print_activate(args.name or prefix)
             return
         else:
             raise CondaValueError(
@@ -263,6 +272,9 @@ def install(args, parser, command="install"):
                 )
         if "@EXPLICIT" in specs:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
+            if newenv:
+                touch_nonadmin(prefix)
+                print_activate(args.name or prefix)
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
 
@@ -281,8 +293,8 @@ def install(args, parser, command="install"):
             spec = MatchSpec(spec)
             if not spec.is_name_only_spec:
                 raise CondaError(
-                    "Invalid spec for 'conda update': %s\n"
-                    "Use 'conda install' instead." % spec
+                    f"Invalid spec for 'conda update': {spec}\n"
+                    "Use 'conda install' instead."
                 )
             if not prefix_data.get(spec.name, None):
                 raise PackageNotInstalledError(prefix, spec.name)
@@ -309,7 +321,7 @@ def install(args, parser, command="install"):
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
-        repodata_fns = context.repodata_fns
+        repodata_fns = list(context.repodata_fns)
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
@@ -327,19 +339,30 @@ def install(args, parser, command="install"):
     for repodata_fn in repodata_fns:
         try:
             if isinstall and args.revision:
-                index = get_index(
-                    channel_urls=index_args["channel_urls"],
-                    prepend=index_args["prepend"],
-                    platform=None,
-                    use_local=index_args["use_local"],
-                    use_cache=index_args["use_cache"],
-                    unknown=index_args["unknown"],
-                    prefix=prefix,
-                    repodata_fn=repodata_fn,
-                )
-                unlink_link_transaction = revert_actions(
-                    prefix, get_revision(args.revision), index
-                )
+                with Spinner(
+                    f"Collecting package metadata ({repodata_fn})",
+                    not context.verbose and not context.quiet,
+                    context.json,
+                ):
+                    index = get_index(
+                        channel_urls=index_args["channel_urls"],
+                        prepend=index_args["prepend"],
+                        platform=None,
+                        use_local=index_args["use_local"],
+                        use_cache=index_args["use_cache"],
+                        unknown=index_args["unknown"],
+                        prefix=prefix,
+                        repodata_fn=repodata_fn,
+                    )
+                revision_idx = get_revision(args.revision)
+                with Spinner(
+                    f"Reverting to revision {revision_idx}",
+                    not context.verbose and not context.quiet,
+                    context.json,
+                ):
+                    unlink_link_transaction = revert_actions(
+                        prefix, revision_idx, index
+                    )
             else:
                 solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(
@@ -438,6 +461,44 @@ def install(args, parser, command="install"):
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 
+def revert_actions(prefix, revision=-1, index=None):
+    # TODO: If revision raise a revision error, should always go back to a safe revision
+    h = History(prefix)
+    # TODO: need a History method to get user-requested specs for revision number
+    #       Doing a revert right now messes up user-requested spec history.
+    #       Either need to wipe out history after ``revision``, or add the correct
+    #       history information to the new entry about to be created.
+    # TODO: This is wrong!!!!!!!!!!
+    user_requested_specs = h.get_requested_specs_map().values()
+    try:
+        target_state = {
+            MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)
+        }
+    except IndexError:
+        raise CondaIndexError("no such revision: %d" % revision)
+
+    _supplement_index_with_prefix(index, prefix)
+
+    not_found_in_index_specs = set()
+    link_precs = set()
+    for spec in target_state:
+        precs = tuple(prec for prec in index.values() if spec.match(prec))
+        if not precs:
+            not_found_in_index_specs.add(spec)
+        elif len(precs) > 1:
+            link_precs.add(_get_best_prec_match(precs))
+        else:
+            link_precs.add(precs[0])
+
+    if not_found_in_index_specs:
+        raise PackagesNotFoundError(not_found_in_index_specs)
+
+    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
+    setup = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
+    return UnlinkLinkTransaction(setup)
+
+
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
@@ -476,13 +537,9 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if newenv:
         touch_nonadmin(prefix)
         if context.subdir != context._native_subdir():
-            run_command(
-                Commands.CONFIG,
-                "--file",
-                os.path.join(prefix, ".condarc"),
-                "--set",
-                "subdir",
-                context.subdir,
+            set_keys(
+                ("subdir", context.subdir),
+                path=Path(prefix, ".condarc"),
             )
         print_activate(args.name or prefix)
 

@@ -2,10 +2,6 @@
 Glossary
 ========
 
-.. contents::
-   :local:
-   :depth: 1
-
 .. _condarc-glossary:
 
 .condarc
@@ -157,7 +153,7 @@ packages that are easily installed locally with the
 
 * The Navigator GUI
 
-* A terminal or Anaconda Prompt using conda commands
+* A terminal using conda commands
 
 *  https://repo.anaconda.com/pkgs/
 
@@ -252,4 +248,4 @@ automatically accepted.
 
 .. _`Anaconda.org`: https://docs.anaconda.com/anacondaorg/
 .. _`Navigator`: https://docs.anaconda.com/navigator/
-.. _`Miniconda`: https://docs.conda.io/en/latest/miniconda.html
+.. _`Miniconda`: https://docs.anaconda.com/free/miniconda/

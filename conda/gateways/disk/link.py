@@ -7,6 +7,7 @@ which is MIT licensed by Jason R. Coombs.
 
 https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
 """
+
 import sys
 from logging import getLogger
 from os import chmod as os_chmod
@@ -238,7 +239,7 @@ else:  # pragma: no cover
             return _is_symlink(next(find_files(path)))
         except OSError as orig_error:  # NOQA
             tmpl = "Error accessing {path}: {orig_error.message}"
-            raise builtins.WindowsError(local_format(tmpl))
+            raise OSError(local_format(tmpl))
 
     def find_files(spec):
         r"""

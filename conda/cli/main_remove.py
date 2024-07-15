@@ -4,9 +4,12 @@
 
 Removes the specified packages from an existing environment.
 """
+
 import logging
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isfile, join
+
+from .common import confirm_yn
 
 log = logging.getLogger(__name__)
 
@@ -47,13 +50,17 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda remove scipy
 
-        Remove a list of packages from an environemnt 'myenv'::
+        Remove a list of packages from an environment 'myenv'::
 
             conda remove -n myenv scipy curl wheel
 
         Remove all packages from environment `myenv` and the environment itself::
 
             conda remove -n myenv --all
+
+        Remove all packages from the environment `myenv` but retain the environment::
+
+            conda remove -n myenv --all --keep-env
 
         """
     )
@@ -71,11 +78,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_channels(p)
 
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
-    solver_mode_options.add_argument(
-        "--all",
-        action="store_true",
-        help="Remove all packages, i.e., the entire environment.",
-    )
     solver_mode_options.add_argument(
         "--features",
         action="store_true",
@@ -105,6 +107,16 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_networking(p)
     add_output_and_prompt_options(p)
 
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Remove all packages, i.e., the entire environment.",
+    )
+    p.add_argument(
+        "--keep-env",
+        action="store_true",
+        help="Used with `--all`, delete all packages but keep the environment.",
+    )
     p.add_argument(
         "package_names",
         metavar="package_name",
@@ -200,8 +212,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         f"No packages found in {prefix}. Continuing environment removal"
                     )
         if not context.dry_run:
-            rm_rf(prefix, clean_empty_parents=True)
-            unregister_env(prefix)
+            if not args.keep_env:
+                if not args.json:
+                    confirm_yn(
+                        f"Everything found within the environment ({prefix}), including any conda environment configurations and any non-conda files, will be deleted. Do you wish to continue?\n",
+                        default="no",
+                        dry_run=False,
+                    )
+                rm_rf(prefix, clean_empty_parents=True)
+                unregister_env(prefix)
 
         return 0
 

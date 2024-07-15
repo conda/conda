@@ -1,10 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from logging import getLogger
 from os.path import join
 from pathlib import Path
 from time import sleep
-from unittest.mock import patch
 
 import pytest
 
@@ -12,18 +13,18 @@ from conda import CondaError
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
-from conda.core.subdir_data import (
-    SubdirData,
-    cache_fn_url,
-    fetch_repodata_remote_request,
-)
+from conda.core.subdir_data import SubdirData, cache_fn_url
 from conda.exceptions import CondaUpgradeError
-from conda.exports import url_path
-from conda.gateways.repodata import CondaRepoInterface, RepodataCache, RepodataFetch
+from conda.gateways.repodata import (
+    CondaRepoInterface,
+    RepodataCache,
+    RepodataFetch,
+    get_repo_interface,
+)
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.testing.helpers import CHANNEL_DIR
-from conda.testing.integration import make_temp_env
+from conda.testing.helpers import CHANNEL_DIR_V1, CHANNEL_DIR_V2
+from conda.utils import url_path
 
 log = getLogger(__name__)
 
@@ -38,7 +39,7 @@ OVERRIDE_PLATFORM = (
 def platform_in_record(platform, record):
     return (
         record.name.endswith("@")
-        or ("/%s/" % platform in record.url)
+        or (f"/{platform}/" in record.url)
         or ("/noarch/" in record.url)
     )
 
@@ -94,7 +95,7 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         {"CONDA_OFFLINE": "yes", "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        local_channel = Channel(join(CHANNEL_DIR, platform))
+        local_channel = Channel(join(CHANNEL_DIR_V1, platform))
         sd = SubdirData(channel=local_channel)
         assert len(sd.query_all("zlib", channels=[local_channel])) > 0
         assert len(sd.query_all("zlib")) == 0
@@ -141,29 +142,20 @@ def test_cache_fn_url_repo_anaconda_com():
     assert hash4 != hash6
 
 
-def test_fetch_repodata_remote_request_invalid_arch():
-    # see https://github.com/conda/conda/issues/8150
-    url = "file:///fake/fake/fake/linux-64"
-    etag = None
-    mod_stamp = "Mon, 28 Jan 2019 01:01:01 GMT"
-    result = fetch_repodata_remote_request(url, etag, mod_stamp)
-    assert result is None
-
-
 def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
     # force this to False, because otherwise tests fail when run with old conda-build
     with env_vars(
         {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_PLATFORM": platform},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        channel = Channel(join(CHANNEL_DIR, platform))
+        channel = Channel(join(CHANNEL_DIR_V1, platform))
         sd = SubdirData(channel)
         precs = tuple(sd.query("zlib"))
         assert precs[0].fn.endswith(".conda")
 
 
 def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(CHANNEL_DIR, platform))
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
     with env_var(
         "CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -189,11 +181,11 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
             Channel._cache_.clear()
 
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    with ChannelCacheClear(), make_temp_env(), env_vars(
+    with ChannelCacheClear(), env_vars(
         {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
-        channel = Channel(url_path(join(CHANNEL_DIR, platform)))
+        channel = Channel(url_path(join(CHANNEL_DIR_V1, platform)))
 
         sd = SubdirData(channel)
         sd.load()
@@ -206,7 +198,7 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
 
 
 def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
-    channel = Channel(url_path(join(CHANNEL_DIR, platform)))
+    channel = Channel(url_path(join(CHANNEL_DIR_V1, platform)))
 
     # clear, to see our testing class
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
@@ -221,8 +213,59 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
-def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(CHANNEL_DIR, platform))
+@pytest.mark.parametrize(
+    "creds",
+    (
+        pytest.param({"auth": None, "token": None}, id="no-credentials"),
+        pytest.param({"auth": "user:password", "token": None}, id="with-auth"),
+        pytest.param({"auth": None, "token": "123456abcdef"}, id="with-token"),
+    ),
+)
+def test_repodata_version_2_base_url(
+    monkeypatch: pytest.MonkeyPatch, creds: dict[str, str], platform=OVERRIDE_PLATFORM
+):
+    channel = Channel(url_path(join(CHANNEL_DIR_V2, platform)))
+    channel_parts = channel.dump()
+    base_url = f"https://repo.anaconda.com/pkgs/main/{platform}"
+    if creds["auth"]:
+        channel_parts["auth"] = creds["auth"]
+        channel = Channel(**channel_parts)
+        base_url_w_creds = (
+            f"https://{creds['auth']}@repo.anaconda.com/pkgs/main/{platform}"
+        )
+    elif creds["token"]:
+        channel_parts["token"] = creds["token"]
+        channel = Channel(**channel_parts)
+        base_url_w_creds = (
+            f"https://repo.anaconda.com/t/{creds['token']}/pkgs/main/{platform}"
+        )
+    else:
+        base_url_w_creds = base_url
+
+    if creds["auth"] or creds["token"]:
+        # Patch fetcher so it doesn't try to use the fake auth
+        def _no_auth_repo(self):
+            return self.repo_interface_cls(
+                self.url_w_subdir,  # this is the patch
+                repodata_fn=self.repodata_fn,
+                cache=self.repo_cache,
+            )
+
+        monkeypatch.setattr(RepodataFetch, "_repo", property(_no_auth_repo))
+
+    # clear, to see our testing class
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+    subdir_data = SubdirData(channel).load()
+    assert subdir_data._base_url == base_url
+    for pkg in subdir_data.iter_records():
+        assert pkg.url.startswith(base_url_w_creds)
+
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
+
+
+def test_metadata_cache_works(mocker, platform=OVERRIDE_PLATFORM):
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
 
     # Sadly, on Windows, st_mtime resolution is limited to 2 seconds. (See note in Python docs
@@ -231,9 +274,19 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
 
     sleep(3)
 
+    RepoInterface = get_repo_interface()
+
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+    ):
+        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+        if hasattr(RepoInterface, "repodata_parsed"):
+            fetcher = mocker.patch.object(
+                RepoInterface, "repodata_parsed", return_value={}
+            )
+
+        SubdirData(channel).cache_path_json.touch()
+
         sd_a = SubdirData(channel)
         tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -244,13 +297,22 @@ def test_metadata_cache_works(platform=OVERRIDE_PLATFORM):
         assert fetcher.call_count == 1
 
 
-def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
-    channel = Channel(join(CHANNEL_DIR, platform))
+def test_metadata_cache_clearing(mocker, platform=OVERRIDE_PLATFORM):
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
+
+    RepoInterface = get_repo_interface()
 
     with env_vars(
         {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ), patch.object(CondaRepoInterface, "repodata", return_value="{}") as fetcher:
+    ):
+        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+        if hasattr(RepoInterface, "repodata_parsed"):
+            fetcher = mocker.patch.object(
+                RepoInterface, "repodata_parsed", return_value={}
+            )
+        SubdirData(channel).cache_path_json.touch()
+
         sd_a = SubdirData(channel)
         precs_a = tuple(sd_a.query("zlib"))
         assert fetcher.call_count == 1
@@ -265,7 +327,7 @@ def test_metadata_cache_clearing(platform=OVERRIDE_PLATFORM):
 
 
 def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):
-    local_channel = Channel(join(CHANNEL_DIR, platform))
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
 
     # test slow "check against all packages" query
@@ -280,7 +342,7 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
     SubdirData has a ValueError exception handler, that is hard to invoke
     currently.
     """
-    local_channel = Channel(join(CHANNEL_DIR, platform))
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
 
     bad_cache = tmp_path / "not_json.json"
     bad_cache.write_text("{}")
@@ -315,6 +377,6 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
 
 def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
     """SubdirData can accept a dict instead of a RepodataState, for compatibility."""
-    local_channel = Channel(join(CHANNEL_DIR, platform))
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
     sd._read_pickled({})  # type: ignore

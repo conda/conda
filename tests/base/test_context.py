@@ -5,6 +5,7 @@ from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
 from tempfile import gettempdir
+from types import SimpleNamespace
 from unittest import mock
 
 import pytest
@@ -15,10 +16,11 @@ from conda.base.constants import ChannelPriority, PathConflict
 from conda.base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     context,
+    get_plugin_config_data,
     reset_context,
     validate_prefix_name,
 )
-from conda.common.configuration import ValidationError, YamlRawParameter
+from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
 from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
@@ -69,6 +71,11 @@ TEST_CONDARC = dals(
       rsync: 'false'
     aggressive_update_packages: []
     channel_priority: false
+    reporters:
+      - backend: json
+        output: stdout
+      - backend: console
+        output: stdout
     """
 )
 
@@ -105,7 +112,7 @@ def test_old_channel_alias(testdata: None):
     platform = context.subdir
 
     cf_urls = [
-        "ftp://new.url:8082/conda-forge/%s" % platform,
+        f"ftp://new.url:8082/conda-forge/{platform}",
         "ftp://new.url:8082/conda-forge/noarch",
     ]
     assert Channel("conda-forge").urls() == cf_urls
@@ -293,17 +300,17 @@ def test_clobber_enum(testdata: None):
 
 
 def test_context_parameter_map(testdata: None):
-    all_parameter_names = context.list_parameters()
-    all_mapped_parameter_names = tuple(
-        chain.from_iterable(context.category_map.values())
-    )
+    parameters = list(context.list_parameters())
+    mapped = [name for names in context.category_map.values() for name in names]
 
-    unmapped_parameter_names = set(all_parameter_names) - set(
-        all_mapped_parameter_names
-    )
-    assert not unmapped_parameter_names, unmapped_parameter_names
+    # ignore anaconda-anon-usage's context monkeypatching
+    if "anaconda_anon_usage" in parameters:
+        parameters.remove("anaconda_anon_usage")
+    if "anaconda_anon_usage" in mapped:
+        mapped.remove("anaconda_anon_usage")
 
-    assert len(all_parameter_names) == len(all_mapped_parameter_names)
+    assert not set(parameters).difference(mapped)
+    assert len(parameters) == len(mapped)
 
 
 def test_context_parameters_have_descriptions(testdata: None):
@@ -684,3 +691,142 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         else:
             actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
+
+
+def test_get_plugin_config_data_file_source(tmp_path):
+    """
+    Test file source of plugin configuration values
+    """
+    condarc = tmp_path / "condarc"
+
+    condarc.write_text(
+        dals(
+            """
+            plugins:
+              option_one: value_one
+              option_two: value_two
+            """
+        )
+    )
+
+    config_data = {
+        path: data for path, data in Configuration._load_search_path((condarc,))
+    }
+
+    plugin_config_data = get_plugin_config_data(config_data)
+
+    assert plugin_config_data.get(condarc) is not None
+
+    option_one = plugin_config_data.get(condarc).get("option_one")
+    assert option_one is not None
+    assert option_one.value(None) == "value_one"
+
+    option_two = plugin_config_data.get(condarc).get("option_two")
+    assert option_two is not None
+    assert option_two.value(None) == "value_two"
+
+
+def test_get_plugin_config_data_env_var_source():
+    """
+    Test environment variable source of plugin configuration values
+    """
+    raw_data = {
+        "envvars": {
+            "plugins_option_one": {"_raw_value": "value_one"},
+            "plugins_option_two": {"_raw_value": "value_two"},
+        }
+    }
+
+    plugin_config_data = get_plugin_config_data(raw_data)
+
+    assert plugin_config_data.get("envvars") is not None
+
+    option_one = plugin_config_data.get("envvars").get("option_one")
+    assert option_one is not None
+    assert option_one.get("_raw_value") == "value_one"
+
+    option_two = plugin_config_data.get("envvars").get("option_two")
+    assert option_two is not None
+    assert option_two.get("_raw_value") == "value_two"
+
+
+def test_get_plugin_config_data_skip_bad_values():
+    """
+    Make sure that values that are not frozendict for file sources are skipped
+    """
+    path = Path("/tmp/")
+
+    class Value:
+        def value(self, _):
+            return "some_value"
+
+    raw_data = {path: {"plugins": Value()}}
+
+    plugin_config_data = get_plugin_config_data(raw_data)
+
+    assert plugin_config_data == {}
+
+
+def test_reporters_from_config_file(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values
+    """
+    assert context.reporters == (
+        {"backend": "json", "output": "stdout"},
+        {"backend": "console", "output": "stdout"},
+    )
+
+
+def test_reporters_json_is_true(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values when ``context.json``
+    is true.
+    """
+    args = SimpleNamespace(json=True)
+    reset_context((), args)
+
+    assert context.reporters == (
+        {
+            "backend": "json",
+            "output": "stdout",
+            "quiet": False,
+            "verbosity": context.verbosity,
+        },
+    )
+
+    reset_context()
+
+
+def test_reporters_quiet_is_true(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values when ``context.quiet``
+    is true.
+    """
+    args = SimpleNamespace(quiet=True)
+    reset_context((), args)
+
+    assert context.reporters == (
+        {
+            "backend": "console",
+            "output": "stdout",
+            "verbosity": context.verbosity,
+            "quiet": True,
+        },
+    )
+
+    reset_context()
+
+
+def test_reporters_default_value():
+    """
+    Ensure that the ``reporters`` property returns the correct values when nothing is set including
+    values from configuration files.
+    """
+    assert context.reporters == (
+        {
+            "backend": "console",
+            "output": "stdout",
+            "quiet": False,
+            "verbosity": context.verbosity,
+        },
+    )

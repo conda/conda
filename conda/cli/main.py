@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Entry point for all conda subcommands."""
+
 import sys
 
 from ..deprecations import deprecated
@@ -95,7 +96,6 @@ def main_sourced(shell, *args, **kwargs):
     from ..base.context import context
 
     context.__init__()
-    init_loggers()
 
     from ..activate import _build_activator_cls
 
@@ -104,7 +104,7 @@ def main_sourced(shell, *args, **kwargs):
     except KeyError:
         from ..exceptions import CondaError
 
-        raise CondaError("%s is not a supported shell." % shell)
+        raise CondaError(f"{shell} is not a supported shell.")
 
     activator = activator_cls(args)
     print(activator.execute(), end="")

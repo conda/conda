@@ -1,10 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """JLAP interface for repodata."""
+
 from __future__ import annotations
 
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from ....base.context import context
 from ...connection.download import disable_ssl_verify_warning
@@ -14,7 +16,6 @@ from .. import (
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     URL_KEY,
-    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     RepoInterface,
@@ -22,6 +23,9 @@ from .. import (
     conda_http_errors,
 )
 from . import fetch
+
+if TYPE_CHECKING:
+    from .. import RepodataCache
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +39,7 @@ class JlapRepoInterface(RepoInterface):
         cache: RepodataCache,
         **kwargs,
     ) -> None:
-        log.debug("Using CondaRepoJLAP")
+        log.debug("Using %s", self.__class__.__name__)
 
         self._cache = cache
 
@@ -71,7 +75,7 @@ class JlapRepoInterface(RepoInterface):
         repodata_url = f"{self._url}/{self._repodata_fn}"
 
         # XXX won't modify caller's state dict
-        state_ = RepodataState(dict=state)
+        state_ = self._repodata_state_copy(state)
 
         # at this point, self._cache.state == state == state_
 
@@ -121,3 +125,28 @@ class JlapRepoInterface(RepoInterface):
             raise RepodataOnDisk()
         else:
             return repodata_json_or_none
+
+    def _repodata_state_copy(self, state: dict | RepodataState):
+        return RepodataState(dict=state)
+
+
+class RepodataStateSkipFormat(RepodataState):
+    skip_formats: set[str]
+
+    def __init__(self, *args, skip_formats=set(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.skip_formats = set(skip_formats)
+
+    def should_check_format(self, format):
+        if format in self.skip_formats:
+            return False
+        return super().should_check_format(format)
+
+
+class ZstdRepoInterface(JlapRepoInterface):
+    """
+    Support repodata.json.zst (if available) without checking .jlap
+    """
+
+    def _repodata_state_copy(self, state: dict | RepodataState):
+        return RepodataStateSkipFormat(dict=state, skip_formats=["jlap"])

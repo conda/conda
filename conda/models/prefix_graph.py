@@ -8,13 +8,11 @@ Object inheritance:
    :top-classes: conda.models.prefix_graph.PrefixGraph
    :parts: 1
 """
+
 from collections import defaultdict
 from logging import getLogger
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ..base.context import context
 from ..common.compat import on_win
@@ -185,7 +183,7 @@ class PrefixGraph:
         """Removes this node and all edges referencing it."""
         graph = self.graph
         if node not in graph:
-            raise KeyError("node %s does not exist" % node)
+            raise KeyError(f"node {node} does not exist")
         graph.pop(node)
         self.spec_matches.pop(node, None)
 
@@ -298,23 +296,21 @@ class PrefixGraph:
                     if parent.name == "pip":
                         parents.remove(parent)
 
-        if on_win:
-            # 2. Special case code for menuinst.
-            #    Always link/unlink menuinst first/last on windows in case a subsequent
-            #    package tries to import it to create/remove a shortcut.
-            menuinst_node = next(
-                (node for node in graph if node.name == "menuinst"), None
-            )
-            python_node = next((node for node in graph if node.name == "python"), None)
-            if menuinst_node:
-                # add menuinst as a parent if python is a parent and the node
-                # isn't a parent of menuinst
-                assert python_node is not None
-                menuinst_parents = graph[menuinst_node]
-                for node, parents in graph.items():
-                    if python_node in parents and node not in menuinst_parents:
-                        parents.add(menuinst_node)
+        # 2. Special case code for menuinst.
+        #    Always link/unlink menuinst first/last in case a subsequent
+        #    package tries to import it to create/remove a shortcut.
+        menuinst_node = next((node for node in graph if node.name == "menuinst"), None)
+        python_node = next((node for node in graph if node.name == "python"), None)
+        if menuinst_node:
+            # add menuinst as a parent if python is a parent and the node
+            # isn't a parent of menuinst
+            assert python_node is not None
+            menuinst_parents = graph[menuinst_node]
+            for node, parents in graph.items():
+                if python_node in parents and node not in menuinst_parents:
+                    parents.add(menuinst_node)
 
+        if on_win:
             # 3. On windows, python noarch packages need an implicit dependency on conda added, if
             #    conda is in the list of packages for the environment.  Python noarch packages
             #    that have entry points use conda's own conda.exe python entry point binary. If

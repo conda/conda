@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for deleting files and folders."""
+
 import fnmatch
 import shutil
 import sys
@@ -23,6 +24,7 @@ from subprocess import STDOUT, CalledProcessError, check_output
 from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
+from ...common.constants import TRACE
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
@@ -88,16 +90,12 @@ def rmtree(path, *args, **kwargs):
             except CalledProcessError as e:
                 if e.returncode != 5:
                     log.error(
-                        "Removing folder {} the fast way failed.  Output was: {}".format(
-                            name, out
-                        )
+                        f"Removing folder {name} the fast way failed.  Output was: {out}"
                     )
                     raise
                 else:
                     log.debug(
-                        "removing dir contents the fast way failed.  Output was: {}".format(
-                            out
-                        )
+                        f"removing dir contents the fast way failed.  Output was: {out}"
                     )
     else:
         try:
@@ -173,21 +171,17 @@ def unlink_or_rename_to_trash(path):
                         )
                     except CalledProcessError:
                         log.debug(
-                            "renaming file path {} to trash failed.  Output was: {}".format(
-                                path, out
-                            )
+                            f"renaming file path {path} to trash failed.  Output was: {out}"
                         )
 
                 else:
                     log.debug(
-                        "{} is missing.  Conda was not installed correctly or has been "
-                        "corrupted.  Please file an issue on the conda github repo.".format(
-                            trash_script
-                        )
+                        f"{trash_script} is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo."
                     )
-            log.warn(
-                "Could not remove or rename {}.  Please remove this file manually (you "
-                "may need to reboot to free file handles)".format(path)
+            log.warning(
+                f"Could not remove or rename {path}.  Please remove this file manually (you "
+                "may need to reboot to free file handles)"
             )
 
 
@@ -209,13 +203,13 @@ def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **k
     """
     try:
         path = abspath(path)
-        log.trace("rm_rf %s", path)
+        log.log(TRACE, "rm_rf %s", path)
         if isdir(path) and not islink(path):
             backoff_rmdir(path)
         elif lexists(path):
             unlink_or_rename_to_trash(path)
         else:
-            log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
+            log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
     finally:
         if lexists(path):
             log.info("rm_rf failed for %s", path)
@@ -265,7 +259,7 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
             exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
         except OSError as e:
             if e.errno == ENOENT:
-                log.trace("no such file or directory: %s", path)
+                log.log(TRACE, "no such file or directory: %s", path)
             else:
                 raise
 

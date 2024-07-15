@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common Python package format utilities."""
+
 import platform
 import re
 import sys
@@ -19,7 +20,6 @@ from os.path import basename, dirname, isdir, isfile, join, lexists
 from posixpath import normpath as posix_normpath
 
 from ... import CondaError
-from ..._vendor.frozendict import frozendict
 from ...auxlib.decorators import memoizedproperty
 from ..compat import open
 from ..iterators import groupby_to_dict as groupby
@@ -29,6 +29,11 @@ from ..path import (
     pyc_path,
     win_path_ok,
 )
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 
@@ -109,7 +114,7 @@ class PythonDistribution:
         elif anchor_full_path and isdir(anchor_full_path):
             self._metadata_dir_full_path = anchor_full_path
         else:
-            raise RuntimeError("Path not found: %s" % anchor_full_path)
+            raise RuntimeError(f"Path not found: {anchor_full_path}")
 
         self._check_files()
         self._metadata = PythonDistributionMetadata(anchor_full_path)
@@ -333,7 +338,7 @@ class PythonDistribution:
 
         This includes normalizing fields, and evaluating environment markers.
         """
-        python_spec = "python %s.*" % ".".join(self.python_version.split(".")[:2])
+        python_spec = "python {}.*".format(".".join(self.python_version.split(".")[:2]))
 
         def pyspec_to_norm_req(pyspec):
             conda_name = pypi_name_to_conda_name(norm_package_name(pyspec.name))
@@ -956,12 +961,10 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     if egg_info_fnames:
         if len(egg_info_fnames) != 1:
             raise CondaError(
-                "Expected exactly one `egg-info` directory in '{}', via egg-link '{}'."
-                " Instead found: {}.  These are often left over from "
+                f"Expected exactly one `egg-info` directory in '{egg_link_contents}', via egg-link '{egg_link_file}'."
+                f" Instead found: {egg_info_fnames}.  These are often left over from "
                 "legacy operations that did not clean up correctly.  Please "
-                "remove all but one of these.".format(
-                    egg_link_contents, egg_link_file, egg_info_fnames
-                )
+                "remove all but one of these."
             )
 
         egg_info_full_path = join(egg_link_contents, egg_info_fnames[0])
@@ -998,7 +1001,7 @@ def parse_marker(marker_string):
         else:
             q = remaining[0]
             if q not in "'\"":
-                raise SyntaxError("invalid expression: %s" % remaining)
+                raise SyntaxError(f"invalid expression: {remaining}")
             oq = "'\"".replace(q, "")
             remaining = remaining[1:]
             parts = [q]
@@ -1012,12 +1015,12 @@ def parse_marker(marker_string):
                 else:
                     m = STRING_CHUNK.match(remaining)
                     if not m:
-                        raise SyntaxError("error in string literal: %s" % remaining)
+                        raise SyntaxError(f"error in string literal: {remaining}")
                     parts.append(m.groups()[0])
                     remaining = remaining[m.end() :]
             else:
                 s = "".join(parts)
-                raise SyntaxError("unterminated string: %s" % s)
+                raise SyntaxError(f"unterminated string: {s}")
             parts.append(q)
             result = "".join(parts)
             remaining = remaining[1:].lstrip()  # skip past closing quote
@@ -1027,7 +1030,7 @@ def parse_marker(marker_string):
         if remaining and remaining[0] == "(":
             result, remaining = marker(remaining[1:].lstrip())
             if remaining[0] != ")":
-                raise SyntaxError("unterminated parenthesis: %s" % remaining)
+                raise SyntaxError(f"unterminated parenthesis: {remaining}")
             remaining = remaining[1:].lstrip()
         else:
             lhs, remaining = marker_var(remaining)
@@ -1118,13 +1121,13 @@ class Evaluator:
                 result = expr[1:-1]
             else:
                 if expr not in context:
-                    raise SyntaxError("unknown variable: %s" % expr)
+                    raise SyntaxError(f"unknown variable: {expr}")
                 result = context[expr]
         else:
             assert isinstance(expr, dict)
             op = expr["op"]
             if op not in self.operations:
-                raise NotImplementedError("op not implemented: %s" % op)
+                raise NotImplementedError(f"op not implemented: {op}")
             elhs = expr["lhs"]
             erhs = expr["rhs"]
             if _is_literal(expr["lhs"]) and _is_literal(expr["rhs"]):

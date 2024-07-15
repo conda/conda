@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of enums used throughout conda."""
+
 import sys
 from enum import Enum
 from platform import machine
@@ -58,7 +59,7 @@ class FileMode(Enum):
     binary = "binary"
 
     def __str__(self):
-        return "%s" % self.value
+        return f"{self.value}"
 
 
 class LinkType(Enum):
@@ -178,12 +179,11 @@ class NoarchType(Enum):
                 except TypeCoercionError:
                     raise CondaUpgradeError(
                         dals(
-                            """
-                    The noarch type for this package is set to '%s'.
+                            f"""
+                    The noarch type for this package is set to '{val}'.
                     The current version of conda is too old to install this package.
                     Please update conda.
                     """
-                            % val
                         )
                     )
         return val

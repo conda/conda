@@ -4,14 +4,18 @@
 
 Removes cached package tarballs, index files, package metadata, temporary files, and log files.
 """
+
 from __future__ import annotations
 
 import os
 import sys
-from argparse import ArgumentParser, Namespace, _SubParsersAction
 from logging import getLogger
 from os.path import isdir, join
-from typing import Any, Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any, Iterable
 
 log = getLogger(__name__)
 

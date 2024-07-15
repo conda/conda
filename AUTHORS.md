@@ -25,6 +25,7 @@ Authors are sorted alphabetically.
 * Andrew M. Farrell
 * Andy R. Terrel
 * Angela Gloyna
+* Aniket Patil
 * Anthon van der Neut
 * Anthony Scopatz
 * Antoine Gallix
@@ -54,6 +55,7 @@ Authors are sorted alphabetically.
 * Blake Nicholson
 * Bocong Sui
 * Bojan Delic
+* Brad Erickson
 * Brad Nemanich
 * Brad S
 * Bradley Kreider
@@ -128,6 +130,7 @@ Authors are sorted alphabetically.
 * Evo
 * Faustin Carter
 * FelisNivalis
+* Filipe Laíns
 * Flavio Martins
 * Florenz A. P. Hollebrandse
 * Floris Bruynooghe
@@ -150,6 +153,7 @@ Authors are sorted alphabetically.
 * Hsin-Hsiang Peng
 * Hugo Buddelmeijer
 * Iain Gillis
+* Ian Fitchet
 * Ian Stokes-Rees
 * Igor Igamberdiev
 * Ikko Eltociear Ashimine
@@ -200,6 +204,7 @@ Authors are sorted alphabetically.
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
 * Julien Schueller
+* Justin Wood (Callek)
 * Justus Schwabedal
 * Justyn Harriman
 * Kahlil Hodgson
@@ -211,11 +216,13 @@ Authors are sorted alphabetically.
 * Katherine Abrikian
 * Katherine Kinnaman
 * Ken Odegard
+* Kenneth Laskoski
 * Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
 * Kfir Zvi
 * Kian-Meng Ang
+* Klaus Zimmermann
 * Korijn van Golen
 * Kurt Wheeler
 * Kyle Gerard Felker
@@ -289,12 +296,14 @@ Authors are sorted alphabetically.
 * Murray Read
 * NaincyKumariKnoldus
 * Nate Coraor
+* Nathan Nguyen
 * Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
 * Nicholas Pierotti
 * Nick Eubank
+* Nicky Sandhu
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
@@ -342,6 +351,7 @@ Authors are sorted alphabetically.
 * Saad Parwaiz
 * Sachin G Biradar
 * Sam Davis
+* Sam Haese
 * Sam Nicholls
 * Samson Yeung
 * Samuel Debionne
@@ -353,7 +363,9 @@ Authors are sorted alphabetically.
 * Saranya Mahalingam
 * Satyam Vyas
 * Sauco Cano Navarro
+* Schuyler Martin
 * Scott Evtuch
+* Scruel Tao
 * Sean Ross-Ross
 * Sebastien Awwad
 * Sergio Oller
@@ -405,6 +417,7 @@ Authors are sorted alphabetically.
 * Tyler Kim
 * Tyrone Grandison
 * Udo-Peter Steyer
+* Ujjwal Das
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel

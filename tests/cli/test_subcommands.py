@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context
 from conda.common.compat import on_win
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -35,12 +38,6 @@ def test_clean(conda_cli: CondaCLIFixture):
 
 
 def test_create(conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture, request):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     out, err, code = conda_cli("create", "--prefix", path_factory(), "--yes")
     assert out
     assert not err
@@ -101,13 +98,8 @@ def test_init(conda_cli: CondaCLIFixture):
     assert not code
 
 
+@pytest.mark.benchmark
 def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     with tmp_env() as prefix:
         out, err, code = conda_cli(
             "install",
@@ -120,6 +112,7 @@ def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
         assert not code
 
 
+@pytest.mark.benchmark
 def test_list(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env("ca-certificates") as prefix:
         out, err, code = conda_cli("list", "--prefix", prefix)
@@ -178,6 +171,7 @@ def test_rename(
         assert not code
 
 
+@pytest.mark.benchmark
 def test_run(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     with tmp_env("m2-patch" if on_win else "patch") as prefix:
         out, err, code = conda_cli("run", "--prefix", prefix, "patch", "--help")
@@ -194,15 +188,10 @@ def test_search(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.parametrize("subcommand", ["update", "upgrade"])
+@pytest.mark.benchmark
 def test_update(
     subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request
 ):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
         assert out
@@ -229,18 +218,12 @@ def test_env_remove(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
         assert not code
 
 
+@pytest.mark.benchmark
 def test_env_create(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
     environment_yml: Path,
-    request,
 ):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     out, err, code = conda_cli(
         "env",
         "create",
@@ -252,18 +235,12 @@ def test_env_create(
     assert not code
 
 
+@pytest.mark.benchmark
 def test_env_update(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     environment_yml: Path,
-    request,
 ):
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Dealt with in https://github.com/conda/conda-libmamba-solver/pull/316; pending release",
-        )
-    )
     with tmp_env("ca-certificates<2023") as prefix:
         out, err, code = conda_cli(
             "env",

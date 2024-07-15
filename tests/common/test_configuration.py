@@ -5,6 +5,7 @@ from os.path import expandvars
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -30,6 +31,7 @@ from conda.common.configuration import (
     load_file_configs,
     pretty_list,
     raise_errors,
+    unique_sequence_map,
 )
 from conda.common.io import env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
@@ -841,3 +843,59 @@ def test_expand_search_path(tmp_path):
 
     expanded = list(Configuration._expand_search_path([target, symlink]))
     assert expanded == [symlink], expanded
+
+
+@pytest.fixture
+def unique_sequence_map_test_class():
+    """
+    Creates a class that is used for ``unique_sequence_map`` tests
+    """
+
+    class UniqueSequenceMapTestObject(SimpleNamespace):
+        @unique_sequence_map(unique_key="backend")
+        def test_prop(self):
+            return self._test_prop
+
+    return UniqueSequenceMapTestObject
+
+
+def test_unique_sequence_map_error_with_duplicates(
+    unique_sequence_map_test_class, mocker
+):
+    """
+    Ensure the correct errors are logged when duplicates are present
+    """
+    log_mock = mocker.patch("conda.common.configuration.log")
+
+    test_obj = unique_sequence_map_test_class(
+        _test_prop=({"backend": "json"}, {"backend": "json"})
+    )
+
+    assert test_obj.test_prop() == ({"backend": "json"},)
+    assert log_mock.error.mock_calls == [
+        mocker.call(
+            "Configuration: skipping {'backend': 'json'} for \"test_prop\"; "
+            'value "json" already present'
+        )
+    ]
+
+
+def test_unique_sequence_map_error_with_unique_key(
+    unique_sequence_map_test_class, mocker
+):
+    """
+    Ensure the correct errors are logged when no unique key is present
+    """
+    log_mock = mocker.patch("conda.common.configuration.log")
+
+    test_obj = unique_sequence_map_test_class(
+        _test_prop=({"value": "test"}, {"backend": "json"})
+    )
+
+    assert test_obj.test_prop() == ({"backend": "json"},)
+    assert log_mock.error.mock_calls == [
+        mocker.call(
+            "Configuration: skipping {'value': 'test'} for \"test_prop\"; "
+            'unique key "backend" not present on mapping'
+        )
+    ]

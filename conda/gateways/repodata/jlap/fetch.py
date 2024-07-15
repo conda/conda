@@ -1,32 +1,35 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """JLAP consumer."""
+
 from __future__ import annotations
 
 import io
 import json
 import logging
-import pathlib
 import pprint
 import re
 import time
 from contextlib import contextmanager
 from hashlib import blake2b
-from typing import Iterator
+from typing import TYPE_CHECKING
 
 import jsonpatch
 import zstandard
 from requests import HTTPError
 
+from conda.common.url import mask_anaconda_token
+
 from ....base.context import context
-from ...connection import Response, Session
-from .. import (
-    ETAG_KEY,
-    LAST_MODIFIED_KEY,
-    RepodataCache,
-    RepodataState,
-)
+from .. import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
 from .core import JLAP
+
+if TYPE_CHECKING:
+    import pathlib
+    from typing import Iterator
+
+    from ...connection import Response, Session
+    from .. import RepodataCache
 
 log = logging.getLogger(__name__)
 
@@ -38,8 +41,6 @@ HEADERS = "headers"
 NOMINAL_HASH = "blake2_256_nominal"
 ON_DISK_HASH = "blake2_256"
 LATEST = "latest"
-JLAP_UNAVAILABLE = "jlap_unavailable"
-ZSTD_UNAVAILABLE = "zstd_unavailable"
 
 # save these headers. at least etag, last-modified, cache-control plus a few
 # useful extras.
@@ -119,7 +120,7 @@ def request_jlap(
     if etag and not ignore_etag:
         headers["if-none-match"] = etag
 
-    log.debug("%s %s", url, headers)
+    log.debug("%s %s", mask_anaconda_token(url), headers)
 
     assert session is not None
 
@@ -223,7 +224,7 @@ class HashWriter(io.RawIOBase):
 def download_and_hash(
     hasher,
     url,
-    json_path,
+    json_path: pathlib.Path,
     session: Session,
     state: RepodataState | None,
     is_zst=False,
@@ -248,7 +249,7 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher),
+                HashWriter(dest_path.open("wb"), hasher),  # type: ignore
                 closefd=True,
             )
         else:
@@ -257,8 +258,22 @@ def download_and_hash(
             for block in response.iter_content(chunk_size=1 << 14):
                 repodata.write(block)
     if response.request:
+        try:
+            length = int(response.headers["Content-Length"])
+        except (KeyError, ValueError, AttributeError):
+            pass
         log.info("Download %d bytes %r", length, response.request.headers)
     return response  # can be 304 not modified
+
+
+def _is_http_error_most_400_codes(e: HTTPError) -> bool:
+    """
+    Determine whether the `HTTPError` is an HTTP 400 error code (except for 416).
+    """
+    if e.response is None:  # 404 e.response is falsey
+        return False
+    status_code = e.response.status_code
+    return 400 <= status_code < 500 and status_code != 416
 
 
 def request_url_jlap_state(
@@ -302,13 +317,18 @@ def request_url_jlap_state(
                     )
                 else:
                     raise JlapSkipZst()
-            except (JlapSkipZst, HTTPError) as e:
-                if isinstance(e, HTTPError) and e.response.status_code != 404:
+            except (JlapSkipZst, HTTPError, zstandard.ZstdError) as e:
+                if isinstance(e, zstandard.ZstdError):
+                    log.warning(
+                        "Could not decompress %s as zstd. Fall back to .json. (%s)",
+                        mask_anaconda_token(withext(url, ".json.zst")),
+                        e,
+                    )
+                if isinstance(e, HTTPError) and not _is_http_error_most_400_codes(e):
                     raise
                 if not isinstance(e, JlapSkipZst):
                     # don't update last-checked timestamp on skip
                     state.set_has_format("zst", False)
-                    state[ZSTD_UNAVAILABLE] = time.time_ns()  # alternate method
                 response = download_and_hash(
                     hasher,
                     withext(url, ".json"),
@@ -345,7 +365,12 @@ def request_url_jlap_state(
             pos = jlap_state.get("pos", 0)
             etag = headers.get(ETAG_KEY, None)
             jlap_url = withext(url, ".jlap")
-            log.debug("Fetch %s from iv=%s, pos=%s", jlap_url, iv_hex, pos)
+            log.debug(
+                "Fetch %s from iv=%s, pos=%s",
+                mask_anaconda_token(jlap_url),
+                iv_hex,
+                pos,
+            )
             # wrong to read state outside of function, and totally rebuild inside
             buffer, jlap_state = fetch_jlap(
                 jlap_url,
@@ -364,7 +389,7 @@ def request_url_jlap_state(
         except HTTPError as e:
             # If we get a 416 Requested range not satisfiable, the server-side
             # file may have been truncated and we need to fetch from 0
-            if e.response.status_code == 404:
+            if _is_http_error_most_400_codes(e):
                 state.set_has_format("jlap", False)
                 return request_url_jlap_state(
                     url,
@@ -419,7 +444,7 @@ def request_url_jlap_state(
                     # bail with 'repodata on disk' (indicating another process
                     # downloaded repodata.json in parallel with us)
                     if have != cache.state.get(NOMINAL_HASH):  # or check mtime_ns?
-                        log.warn("repodata cache changed during jlap fetch.")
+                        log.warning("repodata cache changed during jlap fetch.")
                         return None
 
                 apply_patches(repodata_json, apply)
@@ -427,7 +452,7 @@ def request_url_jlap_state(
                 with timeme("Write changed "), temp_path.open("wb") as repodata:
                     hasher = hash()
                     HashWriter(repodata, hasher).write(
-                        json.dumps(repodata_json).encode("utf-8")
+                        json.dumps(repodata_json, separators=(",", ":")).encode("utf-8")
                     )
 
                     # actual hash of serialized json

@@ -13,12 +13,11 @@ Object inheritance:
    :parts: 1
 """
 
+from __future__ import annotations
+
 from os.path import basename, join
 
-try:
-    from boltons.timeutils import dt_to_timestamp, isoparse
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
+from boltons.timeutils import dt_to_timestamp, isoparse
 
 from ..auxlib.entity import (
     BooleanField,
@@ -271,10 +270,6 @@ class PackageRecord(DictSafeMixin, Entity):
         default=None, required=False, nullable=True, default_in_dump=False
     )
 
-    metadata_signature_status = StringField(
-        default="", required=False, nullable=True, default_in_dump=False
-    )
-
     @property
     def schannel(self):
         return self.channel.canonical_name
@@ -382,13 +377,7 @@ class PackageRecord(DictSafeMixin, Entity):
     size = IntegerField(required=False)
 
     def __str__(self):
-        return "{}/{}::{}=={}={}".format(
-            self.channel.canonical_name,
-            self.subdir,
-            self.name,
-            self.version,
-            self.build,
-        )
+        return f"{self.channel.canonical_name}/{self.subdir}::{self.name}=={self.version}={self.build}"
 
     def to_match_spec(self):
         return MatchSpec(
@@ -414,9 +403,13 @@ class PackageRecord(DictSafeMixin, Entity):
         #          the official record_id / uid until it gets namespace.  Even then, we might
         #          make the format different.  Probably something like
         #              channel_name/subdir:namespace:name-version-build_number-build_string
-        return "{}/{}::{}-{}-{}".format(
-            self.channel.name, self.subdir, self.name, self.version, self.build
-        )
+        return f"{self.channel.name}/{self.subdir}::{self.name}-{self.version}-{self.build}"
+
+    metadata: set[str]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.metadata = set()
 
 
 class Md5Field(StringField):

@@ -1,4 +1,3 @@
----
 name: Bug Report
 description: Create a bug report.
 labels:
@@ -9,7 +8,7 @@ body:
       value: |
         Because processing new bug reports is time-consuming, we would like to ask you to fill out the following form to the best of your ability and as completely as possible.
 
-        > **Note**
+        > [!NOTE]
         > Bug reports that are incomplete or missing information may be closed as inactionable.
 
         Since there are already a lot of open issues, please also take a moment to search existing ones to see if your bug has already been reported. If you find something related, please upvote that issue and provide additional details as necessary.

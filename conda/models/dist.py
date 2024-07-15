@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """(Legacy) Low-level implementation of a Channel."""
+
 import re
 from logging import getLogger
 from typing import NamedTuple
@@ -256,7 +257,7 @@ class Dist(Entity, metaclass=DistType):
 
         except:
             raise CondaError(
-                "dist_name is not a valid conda package: %s" % original_string
+                f"dist_name is not a valid conda package: {original_string}"
             )
 
     @classmethod
@@ -266,7 +267,7 @@ class Dist(Entity, metaclass=DistType):
             not any(url.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
             and "::" not in url
         ):
-            raise CondaError("url '%s' is not a conda package" % url)
+            raise CondaError(f"url '{url}' is not a conda package")
 
         dist_details = cls.parse_dist_name(url)
         if "::" in url:

@@ -1,8 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Requests session configured with all accepted scheme adapters."""
+
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from functools import lru_cache
 from logging import getLogger
 from threading import local
@@ -53,11 +55,10 @@ CONDA_SESSION_SCHEMES = frozenset(
 class EnforceUnusedAdapter(BaseAdapter):
     def send(self, request, *args, **kwargs):
         message = dals(
-            """
-        EnforceUnusedAdapter called with url %s
+            f"""
+        EnforceUnusedAdapter called with url {request.url}
         This command is using a remote connection in offline mode.
         """
-            % request.url
         )
         raise RuntimeError(message)
 
@@ -88,7 +89,24 @@ def get_session(url: str):
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
-        if settings.get("channel") == channel_name:
+        channel = settings.get("channel", "")
+        if channel == channel_name:
+            # First we check for exact match
+            channel_settings = settings
+            continue
+
+        # If we don't have an exact match, we attempt to match a URL pattern
+        parsed_url = urlparse(url)
+        parsed_setting = urlparse(channel)
+
+        # We require that the schemes must be identical to prevent downgrade attacks.
+        # This includes the case of a scheme-less pattern like "*", which is not allowed.
+        if parsed_setting.scheme != parsed_url.scheme:
+            continue
+
+        url_without_schema = parsed_url.netloc + parsed_url.path
+        pattern = parsed_setting.netloc + parsed_setting.path
+        if fnmatch(url_without_schema, pattern):
             channel_settings = settings
 
     auth_handler = channel_settings.get("auth", "").strip() or None
@@ -168,7 +186,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
             except ImportError:
                 raise CondaError(
                     "The `ssl_verify: truststore` setting is only supported on"
-                    + "Python 3.10 or later."
+                    "Python 3.10 or later."
                 )
             self.verify = True
         else:
@@ -204,6 +222,14 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+    @classmethod
+    def cache_clear(cls):
+        try:
+            cls._thread_local.sessions.clear()
+        except AttributeError:
+            # AttributeError: thread's session cache has not been initialized
+            pass
 
 
 class CondaHttpAuth(AuthBase):
@@ -276,11 +302,11 @@ class CondaHttpAuth(AuthBase):
         if proxy_scheme not in proxies:
             raise ProxyError(
                 dals(
-                    """
-            Could not find a proxy for {!r}. See
-            {}/docs/html#configure-conda-for-use-behind-a-proxy-server
+                    f"""
+            Could not find a proxy for {proxy_scheme!r}. See
+            {CONDA_HOMEPAGE_URL}/docs/html#configure-conda-for-use-behind-a-proxy-server
             for more information on how to configure proxies.
-            """.format(proxy_scheme, CONDA_HOMEPAGE_URL)
+            """
                 )
             )
 

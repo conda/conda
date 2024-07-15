@@ -1,12 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing the package cache (previously downloaded packages)."""
+
 from __future__ import annotations
 
 import codecs
 import os
 from collections import defaultdict
-from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -16,6 +17,7 @@ from os import scandir
 from os.path import basename, dirname, getsize, join
 from sys import platform
 from tarfile import ReadError
+from typing import TYPE_CHECKING
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -27,7 +29,7 @@ from ..base.constants import (
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
@@ -56,6 +58,10 @@ from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 from .path_actions import CacheUrlAction, ExtractPackageAction
 
+if TYPE_CHECKING:
+    from concurrent.futures import Future
+    from pathlib import Path
+
 log = getLogger(__name__)
 
 FileNotFoundError = IOError
@@ -71,10 +77,10 @@ EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 class PackageCacheType(type):
     """This metaclass does basic caching of PackageCache instance objects."""
 
-    def __call__(cls, pkgs_dir):
+    def __call__(cls, pkgs_dir: str | os.PathLike | Path):
         if isinstance(pkgs_dir, PackageCacheData):
             return pkgs_dir
-        elif pkgs_dir in PackageCacheData._cache_:
+        elif (pkgs_dir := str(pkgs_dir)) in PackageCacheData._cache_:
             return PackageCacheData._cache_[pkgs_dir]
         else:
             package_cache_instance = super().__call__(pkgs_dir)
@@ -83,7 +89,7 @@ class PackageCacheType(type):
 
 
 class PackageCacheData(metaclass=PackageCacheType):
-    _cache_ = {}
+    _cache_: dict[str, PackageCacheData] = {}
 
     def __init__(self, pkgs_dir):
         self.pkgs_dir = pkgs_dir
@@ -263,7 +269,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         if pc_entry is not None:
             return pc_entry
         raise CondaError(
-            "No package '%s' found in cache directories." % package_ref.dist_str()
+            f"No package '{package_ref.dist_str()}' found in cache directories."
         )
 
     @classmethod
@@ -315,7 +321,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             self.__is_writable = i_wri
             log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
-            log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
+            log.log(TRACE, "package cache directory '%s' does not exist", self.pkgs_dir)
             self.__is_writable = i_wri = None
         return i_wri
 
@@ -355,7 +361,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         from conda_package_handling.api import InvalidArchiveError
 
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
-        log.trace("adding to package cache %s", package_tarball_full_path)
+        log.log(TRACE, "adding to package cache %s", package_tarball_full_path)
         extracted_package_dir, pkg_ext = strip_pkg_extension(package_tarball_full_path)
 
         # try reading info/repodata_record.json

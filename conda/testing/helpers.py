@@ -1,10 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of helper functions used in conda tests."""
+
 import json
 import os
-import re
-import sys
 from contextlib import contextmanager
 from functools import lru_cache
 from os.path import abspath, dirname, join
@@ -15,20 +14,14 @@ from uuid import uuid4
 
 import pytest
 
-from conda_env.cli import main as conda_env_cli
-
-from .. import cli
-from ..auxlib.compat import shlex_split_unicode
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from ..common.compat import encode_arguments
-from ..common.io import argv, env_var
+from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
+from ..common.io import env_var
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
 from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
-from ..gateways.logging import initialize_logging
 from ..history import History
 from ..models.channel import Channel
 from ..models.records import PackageRecord, PrefixRecord
@@ -38,7 +31,8 @@ from ..resolve import Resolve
 TEST_DATA_DIR = os.environ.get(
     "CONDA_TEST_DATA_DIR", abspath(join(dirname(__file__), "..", "..", "tests", "data"))
 )
-CHANNEL_DIR = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR = CHANNEL_DIR_V1 = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR_V2 = abspath(join(TEST_DATA_DIR, "base_url_channel"))
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
@@ -59,7 +53,7 @@ def raises(exception, func, string=None):
             assert string in e.args[0]
         print(e)
         return True
-    raise Exception("did not raise, gave %s" % a)
+    raise Exception(f"did not raise, gave {a}")
 
 
 @contextmanager
@@ -71,24 +65,7 @@ def captured(disallow_stderr=True):
     finally:
         c.stderr = strip_expected(c.stderr)
         if disallow_stderr and c.stderr:
-            raise Exception("Got stderr output: %s" % c.stderr)
-
-
-def capture_json_with_argv(
-    command, disallow_stderr=True, ignore_stderr=False, **kwargs
-):
-    stdout, stderr, exit_code = run_inprocess_conda_command(command, disallow_stderr)
-    if kwargs.get("relaxed"):
-        match = re.match(r"\A.*?({.*})", stdout, re.DOTALL)
-        if match:
-            stdout = match.groups()[0]
-    elif stderr and not ignore_stderr:
-        # TODO should be exception
-        return stderr
-    try:
-        return json.loads(stdout.strip())
-    except ValueError:
-        raise
+            raise Exception(f"Got stderr output: {c.stderr}")
 
 
 @deprecated(
@@ -113,43 +90,15 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "{} {!r} should not be found in {!r}".format(
-        output,
-        a.lower(),
-        b.lower(),
-    )
+    assert (
+        a.lower() not in b.lower()
+    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "{} {!r} cannot be found in {!r}".format(
-        output, a.lower(), b.lower()
-    )
-
-
-@deprecated("23.9", "24.3", addendum="Use `conda.testing.conda_cli` instead.")
-def run_inprocess_conda_command(command, disallow_stderr: bool = True):
-    # anything that uses this function is an integration test
-    reset_context(())
-
-    # determine whether this is a conda_env command and assign appropriate main function
-    if command.startswith("conda env"):
-        command = command.replace("env", "")  # Remove 'env' because of command parser
-        main_func = conda_env_cli.main
-    else:
-        main_func = cli.main
-
-    # May want to do this to command:
-    with argv(encode_arguments(shlex_split_unicode(command))), captured(
-        disallow_stderr
-    ) as c:
-        initialize_logging()
-        try:
-            exit_code = main_func()
-        except SystemExit:
-            pass
-    print(c.stderr, file=sys.stderr)
-    print(c.stdout)
-    return c.stdout, c.stderr, exit_code
+    assert (
+        a.lower() in b.lower()
+    ), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
 
 
 def add_subdir(dist_string):
@@ -228,13 +177,16 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
     state = subdir_data._internal_state
     subdir = subdir_data.channel.subdir
     packages = {}
+    packages_conda = {}
     for pkg in subdir_data.iter_records():
+        if pkg.timestamp:
+            # ensure timestamp is dumped as int in milliseconds
+            # (pkg.timestamp is a kept as a float in seconds)
+            pkg.__fields__["timestamp"]._in_dump = True
         data = pkg.dump()
         if subdir == "noarch" and getattr(pkg, "noarch", None):
             data["subdir"] = "noarch"
             data["platform"] = data["arch"] = None
-        if pkg.timestamp:
-            data["timestamp"] = pkg.timestamp
         if "features" in data:
             # Features are deprecated, so they are not implemented
             # in modern solvers like mamba. Mamba does implement
@@ -243,7 +195,10 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
             # tests pass
             data["track_features"] = data["features"]
             del data["features"]
-        packages[pkg.fn] = data
+        if pkg.fn.endswith(".conda"):
+            packages_conda[pkg.fn] = data
+        else:
+            packages[pkg.fn] = data
     return {
         "_cache_control": state["_cache_control"],
         "_etag": state["_etag"],
@@ -254,6 +209,7 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
             "subdir": subdir,
         },
         "packages": packages,
+        "packages.conda": packages_conda,
     }
 
 
@@ -267,7 +223,9 @@ def _sync_channel_to_disk(subdir_data: SubdirData):
     subdir_path = base / subdir_data.channel.subdir
     subdir_path.mkdir(parents=True, exist_ok=True)
     with open(subdir_path / "repodata.json", "w") as f:
-        json.dump(_export_subdir_data_to_repodata(subdir_data), f, indent=2)
+        json.dump(
+            _export_subdir_data_to_repodata(subdir_data), f, indent=2, sort_keys=True
+        )
         f.flush()
         os.fsync(f.fileno())
 

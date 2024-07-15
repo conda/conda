@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for creating new files or directories."""
+
 import codecs
 import os
 import sys
@@ -8,7 +9,7 @@ import tempfile
 import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, splitext
+from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 
 from ... import CondaError
@@ -16,6 +17,7 @@ from ...auxlib.ish import dals
 from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import on_linux, on_win
+from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
@@ -109,7 +111,7 @@ if __name__ == '__main__':
 
 
 def write_as_json_to_file(file_path, obj):
-    log.trace("writing json to file %s", file_path)
+    log.log(TRACE, "writing json to file %s", file_path)
     with codecs.open(file_path, mode="wb", encoding="utf-8") as fo:
         json_str = json_dump(obj)
         fo.write(json_str)
@@ -173,7 +175,7 @@ def create_application_entry_point(
     with open(target_full_path, "w") as fo:
         if " " in python_full_path:
             python_full_path = ensure_pad(python_full_path, '"')
-        fo.write("#!%s\n" % python_full_path)
+        fo.write(f"#!{python_full_path}\n")
         fo.write(entry_point)
     make_executable(target_full_path)
 
@@ -253,18 +255,15 @@ def make_menu(prefix, file_path, remove=False):
     Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
     ``remove=True`` will remove the menu items.
     """
-    if not on_win:
-        return
-    elif basename(prefix).startswith("_"):
-        log.warn(
-            "Environment name starts with underscore '_'. Skipping menu installation."
-        )
-        return
-
     try:
         import menuinst
 
-        menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
+        menuinst.install(
+            join(prefix, win_path_ok(file_path)),
+            remove=remove,
+            prefix=prefix,
+            root_prefix=context.root_prefix,
+        )
     except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
@@ -272,19 +271,16 @@ def make_menu(prefix, file_path, remove=False):
 def create_hard_link_or_copy(src, dst):
     if islink(src):
         message = dals(
-            """
+            f"""
         Cannot hard link a soft link
-          source: {source_path}
-          destination: {destination_path}
-        """.format(
-                source_path=src,
-                destination_path=dst,
-            )
+          source: {src}
+          destination: {dst}
+        """
         )
         raise CondaOSError(message)
 
     try:
-        log.trace("creating hard link %s => %s", src, dst)
+        log.log(TRACE, "creating hard link %s => %s", src, dst)
         link(src, dst)
     except OSError:
         log.info("hard link failed, so copying %s => %s", src, dst)
@@ -306,7 +302,7 @@ def _do_softlink(src, dst):
         # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
         copy(src, dst)
     else:
-        log.trace("soft linking %s => %s", src, dst)
+        log.log(TRACE, "soft linking %s => %s", src, dst)
         symlink(src, dst)
 
 
@@ -315,7 +311,7 @@ def create_fake_executable_softlink(src, dst):
     src_root, _ = splitext(src)
     # TODO: this open will clobber, consider raising
     with open(dst, "w") as f:
-        f.write("@echo off\n" 'call "%s" %%*\n' "" % src_root)
+        f.write(f'@echo off\ncall "{src_root}" %*\n')
     return dst
 
 
@@ -325,14 +321,14 @@ def copy(src, dst):
         src_points_to = readlink(src)
         if not src_points_to.startswith("/"):
             # copy relative symlinks as symlinks
-            log.trace("soft linking %s => %s", src, dst)
+            log.log(TRACE, "soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
     _do_copy(src, dst)
 
 
 def _do_copy(src, dst):
-    log.trace("copying %s => %s", src, dst)
+    log.log(TRACE, "copying %s => %s", src, dst)
     # src and dst are always files. So we can bypass some checks that shutil.copy does.
     # Also shutil.copy calls shutil.copymode, which we can skip because we are explicitly
     # calling copystat.
@@ -359,28 +355,28 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if lexists(dst) and not isdir(dst):
             if not force:
                 maybe_raise(BasicClobberError(src, dst, context), context)
-            log.info("file exists, but clobbering for directory: %r" % dst)
+            log.info(f"file exists, but clobbering for directory: {dst!r}")
             rm_rf(dst)
         mkdir_p(dst)
         return
 
     if not lexists(src):
         raise CondaError(
-            "Cannot link a source that does not exist. %s\n"
-            "Running `conda clean --packages` may resolve your problem." % src
+            f"Cannot link a source that does not exist. {src}\n"
+            "Running `conda clean --packages` may resolve your problem."
         )
 
     if lexists(dst):
         if not force:
             maybe_raise(BasicClobberError(src, dst, context), context)
-        log.info("file exists, but clobbering: %r" % dst)
+        log.info(f"file exists, but clobbering: {dst!r}")
         rm_rf(dst)
 
     if link_type == LinkType.hardlink:
         if isdir(src):
-            raise CondaError("Cannot hard link a directory. %s" % src)
+            raise CondaError(f"Cannot hard link a directory. {src}")
         try:
-            log.trace("hard linking %s => %s", src, dst)
+            log.log(TRACE, "hard linking %s => %s", src, dst)
             link(src, dst)
         except OSError as e:
             log.debug("%r", e)
@@ -400,7 +396,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     elif link_type == LinkType.copy:
         copy(src, dst)
     else:
-        raise CondaError("Did not expect linktype=%r" % link_type)
+        raise CondaError(f"Did not expect linktype={link_type!r}")
 
 
 def compile_multiple_pyc(
@@ -426,7 +422,7 @@ def compile_multiple_pyc(
             command.extend(["-j", "0"])
         command[0:0] = [python_exe_full_path]
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
-        log.trace(command)
+        log.log(TRACE, command)
         from ..subprocess import any_subprocess
 
         # from ...common.io import env_vars
@@ -470,13 +466,13 @@ def compile_multiple_pyc(
 def create_package_cache_directory(pkgs_dir):
     # returns False if package cache directory cannot be created
     try:
-        log.trace("creating package cache directory '%s'", pkgs_dir)
+        log.log(TRACE, "creating package cache directory '%s'", pkgs_dir)
         sudo_safe = expand(pkgs_dir).startswith(expand("~"))
         touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE), mkdir=True, sudo_safe=sudo_safe)
         touch(join(pkgs_dir, "urls"), sudo_safe=sudo_safe)
     except OSError as e:
         if e.errno in (EACCES, EPERM, EROFS):
-            log.trace("cannot create package cache directory '%s'", pkgs_dir)
+            log.log(TRACE, "cannot create package cache directory '%s'", pkgs_dir)
             return False
         else:
             raise
@@ -491,12 +487,12 @@ def create_envs_directory(envs_dir):
     # This value is duplicated in conda.base.context._first_writable_envs_dir().
     envs_dir_magic_file = join(envs_dir, ".conda_envs_dir_test")
     try:
-        log.trace("creating envs directory '%s'", envs_dir)
+        log.log(TRACE, "creating envs directory '%s'", envs_dir)
         sudo_safe = expand(envs_dir).startswith(expand("~"))
         touch(join(envs_dir, envs_dir_magic_file), mkdir=True, sudo_safe=sudo_safe)
     except OSError as e:
         if e.errno in (EACCES, EPERM, EROFS):
-            log.trace("cannot create envs directory '%s'", envs_dir)
+            log.log(TRACE, "cannot create envs directory '%s'", envs_dir)
             return False
         else:
             raise

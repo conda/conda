@@ -3,15 +3,60 @@
 """
 Collection of helper functions to standardize reused CLI arguments.
 """
+
 from __future__ import annotations
 
-from argparse import (
-    SUPPRESS,
-    ArgumentParser,
-    _ArgumentGroup,
-    _HelpAction,
-    _MutuallyExclusiveGroup,
-)
+from argparse import SUPPRESS, _HelpAction
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+try:
+    from argparse import BooleanOptionalAction
+except ImportError:
+    # Python < 3.9
+    from argparse import Action
+
+    class BooleanOptionalAction(Action):
+        # from Python 3.9+ argparse.py
+        def __init__(
+            self,
+            option_strings,
+            dest,
+            default=None,
+            type=None,
+            choices=None,
+            required=False,
+            help=None,
+            metavar=None,
+        ):
+            _option_strings = []
+            for option_string in option_strings:
+                _option_strings.append(option_string)
+
+                if option_string.startswith("--"):
+                    option_string = "--no-" + option_string[2:]
+                    _option_strings.append(option_string)
+
+            super().__init__(
+                option_strings=_option_strings,
+                dest=dest,
+                nargs=0,
+                default=default,
+                type=type,
+                choices=choices,
+                required=required,
+                help=help,
+                metavar=metavar,
+            )
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            if option_string in self.option_strings:
+                setattr(namespace, self.dest, not option_string.startswith("--no-"))
+
+        def format_usage(self):
+            return " | ".join(self.option_strings)
 
 
 def add_parser_create_install_update(p, prefix_required=False):
@@ -222,6 +267,14 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         action="store_true",
         help="Disable locking when reading, updating index (repodata.json) cache. ",
     )
+
+    channel_customization_options.add_argument(
+        "--repodata-use-zst",
+        action=BooleanOptionalAction,
+        dest="repodata_use_zst",
+        default=NULL,
+        help="Check for/do not check for repodata.json.zst. Enabled by default.",
+    )
     return channel_customization_options
 
 
@@ -315,7 +368,7 @@ def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
         help="Exit early and do not run the solver if the requested specs are satisfied. "
         "Also skips aggressive updates as configured by the "
         "'aggressive_update_packages' config setting. Use "
-        "'conda info --describe aggressive_update_packages' to view your setting. "
+        "'conda config --describe aggressive_update_packages' to view your setting. "
         "--satisfied-skip-solve is similar to the default behavior of 'pip install'.",
     )
     update_modifiers.add_argument(
@@ -399,7 +452,6 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
-    from ..common.compat import on_win
     from ..common.constants import NULL
 
     package_install_options = p.add_argument_group(
@@ -418,21 +470,26 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         default=NULL,
         help="Install all packages using copies instead of hard- or soft-linking.",
     )
-    if on_win:
-        package_install_options.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help=SUPPRESS,
-            dest="shortcuts",
-            default=NULL,
-        )
-        package_install_options.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
+    package_install_options.add_argument(
+        "--shortcuts",
+        action="store_true",
+        help=SUPPRESS,
+        dest="shortcuts",
+        default=NULL,
+    )
+    package_install_options.add_argument(
+        "--no-shortcuts",
+        action="store_false",
+        help="Don't install start menu shortcuts",
+        dest="shortcuts",
+        default=NULL,
+    )
+    package_install_options.add_argument(
+        "--shortcuts-only",
+        action="append",
+        help="Install shortcuts only for this package name. Can be used several times.",
+        dest="shortcuts_only",
+    )
     return package_install_options
 
 

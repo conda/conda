@@ -8,6 +8,7 @@ Object inheritance:
    :top-classes: conda.models.version.BaseSpec
    :parts: 1
 """
+
 from __future__ import annotations
 
 import operator as op
@@ -155,7 +156,7 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
 
     _cache_ = {}
 
-    def __init__(self, vstr):
+    def __init__(self, vstr: str):
         # version comparison is case-insensitive
         version = vstr.strip().rstrip().lower()
         # basic validity checks
@@ -243,25 +244,29 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.norm_version
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self}")'
 
-    def _eq(self, t1, t2):
+    def _eq(self, t1: list[str], t2: list[str]) -> bool:
         for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
             for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
                 if c1 != c2:
                     return False
         return True
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, VersionOrder):
+            return False
         return self._eq(self.version, other.version) and self._eq(
             self.local, other.local
         )
 
-    def startswith(self, other):
+    def startswith(self, other: object) -> bool:
+        if not isinstance(other, VersionOrder):
+            return False
         # Tests if the version lists match up to the last element in "other".
         if other.local:
             if not self._eq(self.version, other.version):
@@ -285,10 +290,12 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
             return isinstance(c1, str) and c1.startswith(c2)
         return c1 == c2
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         return not (self == other)
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, VersionOrder):
+            return False
         for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
             for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
                 for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
@@ -306,13 +313,13 @@ class VersionOrder(metaclass=SingleStrArgCachingType):
         # self == other
         return False
 
-    def __gt__(self, other):
+    def __gt__(self, other: object) -> bool:
         return other < self
 
-    def __le__(self, other):
+    def __le__(self, other: object) -> bool:
         return not (other < self)
 
-    def __ge__(self, other):
+    def __ge__(self, other: object) -> bool:
         return not (self < other)
 
 
@@ -343,7 +350,7 @@ def treeify(spec_str):
     # Converts a VersionSpec expression string into a tuple-based
     # expression tree.
     assert isinstance(spec_str, str)
-    tokens = re.findall(VSPEC_TOKENS, "(%s)" % spec_str)
+    tokens = re.findall(VSPEC_TOKENS, f"({spec_str})")
     output = []
     stack = []
 
@@ -385,7 +392,7 @@ def treeify(spec_str):
             output.append(item)
     if stack:
         raise InvalidVersionSpec(
-            spec_str, "unable to convert to expression tree: %s" % stack
+            spec_str, f"unable to convert to expression tree: {stack}"
         )
     if not output:
         raise InvalidVersionSpec(spec_str, "unable to determine version from spec")
@@ -410,13 +417,13 @@ def untreeify(spec, _inand=False, depth=0):
         if spec[0] == "|":
             res = "|".join(map(lambda x: untreeify(x, depth=depth + 1), spec[1:]))
             if _inand or depth > 0:
-                res = "(%s)" % res
+                res = f"({res})"
         else:
             res = ",".join(
                 map(lambda x: untreeify(x, _inand=True, depth=depth + 1), spec[1:])
             )
             if depth > 0:
-                res = "(%s)" % res
+                res = f"({res})"
         return res
     return spec
 
@@ -556,17 +563,13 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
                     log.warning(
                         "Using .* with relational operator is superfluous and deprecated "
                         "and will be removed in a future version of conda. Your spec was "
-                        "{}, but conda is ignoring the .* and treating it as {}".format(
-                            vo_str, vo_str[:-2]
-                        )
+                        f"{vo_str}, but conda is ignoring the .* and treating it as {vo_str[:-2]}"
                     )
                     vo_str = vo_str[:-2]
             try:
                 self.operator_func = OPERATOR_MAP[operator_str]
             except KeyError:
-                raise InvalidVersionSpec(
-                    vspec_str, "invalid operator: %s" % operator_str
-                )
+                raise InvalidVersionSpec(vspec_str, f"invalid operator: {operator_str}")
             self.matcher_vo = VersionOrder(vo_str)
             matcher = self.operator_match
             is_exact = operator_str == "=="
@@ -575,7 +578,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
             is_exact = False
         elif "*" in vspec_str.rstrip("*"):
             rx = vspec_str.replace(".", r"\.").replace("+", r"\+").replace("*", r".*")
-            rx = r"^(?:%s)$" % rx
+            rx = rf"^(?:{rx})$"
 
             self.regex = re.compile(rx)
             matcher = self.regex_match
@@ -654,9 +657,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
             try:
                 self.operator_func = OPERATOR_MAP[operator_str]
             except KeyError:
-                raise InvalidVersionSpec(
-                    vspec_str, "invalid operator: %s" % operator_str
-                )
+                raise InvalidVersionSpec(vspec_str, f"invalid operator: {operator_str}")
             self.matcher_vo = VersionOrder(vo_str)
             matcher = self.operator_match
 
@@ -681,8 +682,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
     def merge(self, other):
         if self.raw_value != other.raw_value:
             raise ValueError(
-                "Incompatible component merge:\n  - %r\n  - %r"
-                % (self.raw_value, other.raw_value)
+                f"Incompatible component merge:\n  - {self.raw_value!r}\n  - {other.raw_value!r}"
             )
         return self.raw_value
 

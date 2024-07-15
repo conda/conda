@@ -5,6 +5,7 @@
 The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.7`,
 `cryptography * *_0`) and is used to communicate the desired packages to install.
 """
+
 import re
 import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -15,7 +16,6 @@ from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 
-from ..auxlib.collection import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from ..base.context import context
@@ -24,50 +24,62 @@ from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
-from ..exceptions import CondaValueError, InvalidMatchSpec
+from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..auxlib.collection import frozendict
 
 log = getLogger(__name__)
 
 
 class MatchSpecType(type):
     def __call__(cls, spec_arg=None, **kwargs):
-        if spec_arg:
-            if isinstance(spec_arg, MatchSpec) and not kwargs:
-                return spec_arg
-            elif isinstance(spec_arg, MatchSpec):
-                new_kwargs = dict(spec_arg._match_components)
-                new_kwargs.setdefault("optional", spec_arg.optional)
-                new_kwargs.setdefault("target", spec_arg.target)
-                new_kwargs["_original_spec_str"] = spec_arg.original_spec_str
-                new_kwargs.update(**kwargs)
-                return super().__call__(**new_kwargs)
-            elif isinstance(spec_arg, str):
-                parsed = _parse_spec_str(spec_arg)
-                if kwargs:
-                    parsed = dict(parsed, **kwargs)
-                    if set(kwargs) - {"optional", "target"}:
-                        # if kwargs has anything but optional and target,
-                        # strip out _original_spec_str from parsed
-                        parsed.pop("_original_spec_str", None)
-                return super().__call__(**parsed)
-            elif isinstance(spec_arg, Mapping):
-                parsed = dict(spec_arg, **kwargs)
-                return super().__call__(**parsed)
-            elif hasattr(spec_arg, "to_match_spec"):
-                spec = spec_arg.to_match_spec()
-                if kwargs:
-                    return MatchSpec(spec, **kwargs)
+        try:
+            if spec_arg:
+                if isinstance(spec_arg, MatchSpec) and not kwargs:
+                    return spec_arg
+                elif isinstance(spec_arg, MatchSpec):
+                    new_kwargs = dict(spec_arg._match_components)
+                    new_kwargs.setdefault("optional", spec_arg.optional)
+                    new_kwargs.setdefault("target", spec_arg.target)
+                    new_kwargs["_original_spec_str"] = spec_arg.original_spec_str
+                    new_kwargs.update(**kwargs)
+                    return super().__call__(**new_kwargs)
+                elif isinstance(spec_arg, str):
+                    parsed = _parse_spec_str(spec_arg)
+                    if kwargs:
+                        parsed = dict(parsed, **kwargs)
+                        if set(kwargs) - {"optional", "target"}:
+                            # if kwargs has anything but optional and target,
+                            # strip out _original_spec_str from parsed
+                            parsed.pop("_original_spec_str", None)
+                    return super().__call__(**parsed)
+                elif isinstance(spec_arg, Mapping):
+                    parsed = dict(spec_arg, **kwargs)
+                    return super().__call__(**parsed)
+                elif hasattr(spec_arg, "to_match_spec"):
+                    spec = spec_arg.to_match_spec()
+                    if kwargs:
+                        return MatchSpec(spec, **kwargs)
+                    else:
+                        return spec
                 else:
-                    return spec
+                    raise InvalidSpec(
+                        f"Invalid MatchSpec:\n  spec_arg={spec_arg}\n  kwargs={kwargs}"
+                    )
             else:
-                raise CondaValueError(
-                    "Invalid MatchSpec:\n  spec_arg=%s\n  kwargs=%s"
-                    % (spec_arg, kwargs)
-                )
-        else:
-            return super().__call__(**kwargs)
+                return super().__call__(**kwargs)
+        except InvalidSpec as e:
+            msg = ""
+            if spec_arg:
+                msg += f"{spec_arg}"
+            if kwargs:
+                msg += " " + ", ".join(f"{k}={v}" for k, v in kwargs.items())
+            raise InvalidMatchSpec(msg, details=e) from e
 
 
 class MatchSpec(metaclass=MatchSpecType):
@@ -281,14 +293,14 @@ class MatchSpec(metaclass=MatchSpecType):
             return fn_field
         vals = tuple(self.get_exact_value(x) for x in ("name", "version", "build"))
         if not any(x is None for x in vals):
-            return ("%s-%s-%s" % vals) + CONDA_PACKAGE_EXTENSION_V1
+            return ("{}-{}-{}".format(*vals)) + CONDA_PACKAGE_EXTENSION_V1
         else:
             return None
 
     def __repr__(self):
         builder = [f'{self.__class__.__name__}("{self}"']
         if self.target:
-            builder.append(', target="%s"' % self.target)
+            builder.append(f', target="{self.target}"')
         if self.optional:
             builder.append(", optional=True")
         builder.append(")")
@@ -302,14 +314,14 @@ class MatchSpec(metaclass=MatchSpecType):
         if channel_matcher and channel_matcher.exact_value:
             builder.append(str(channel_matcher))
         elif channel_matcher and not channel_matcher.matches_all:
-            brackets.append("channel=%s" % str(channel_matcher))
+            brackets.append(f"channel={str(channel_matcher)}")
 
         subdir_matcher = self._match_components.get("subdir")
         if subdir_matcher:
             if channel_matcher and channel_matcher.exact_value:
-                builder.append("/%s" % subdir_matcher)
+                builder.append(f"/{subdir_matcher}")
             else:
-                brackets.append("subdir=%s" % subdir_matcher)
+                brackets.append(f"subdir={subdir_matcher}")
 
         name_matcher = self._match_components.get("name", "*")
         builder.append(("::%s" if builder else "%s") % name_matcher)
@@ -320,10 +332,10 @@ class MatchSpec(metaclass=MatchSpecType):
         if version:
             version = str(version)
             if any(s in version for s in "><$^|,"):
-                brackets.append("version='%s'" % version)
+                brackets.append(f"version='{version}'")
             elif version[:2] in ("!=", "~="):
                 if build:
-                    brackets.append("version='%s'" % version)
+                    brackets.append(f"version='{version}'")
                 else:
                     builder.append(version)
             elif version[-2:] == ".*":
@@ -340,13 +352,13 @@ class MatchSpec(metaclass=MatchSpecType):
         if build:
             build = str(build)
             if any(s in build for s in "><$^|,"):
-                brackets.append("build='%s'" % build)
+                brackets.append(f"build='{build}'")
             elif "*" in build:
-                brackets.append("build=%s" % build)
+                brackets.append(f"build={build}")
             elif version_exact:
                 builder.append("=" + build)
             else:
-                brackets.append("build=%s" % build)
+                brackets.append(f"build={build}")
 
         _skip = {"channel", "subdir", "name", "version", "build"}
         if "url" in self._match_components and "fn" in self._match_components:
@@ -363,7 +375,7 @@ class MatchSpec(metaclass=MatchSpecType):
                     brackets.append(f"{key}={value}")
 
         if brackets:
-            builder.append("[%s]" % ",".join(brackets))
+            builder.append("[{}]".format(",".join(brackets)))
 
         return "".join(builder)
 
@@ -407,7 +419,7 @@ class MatchSpec(metaclass=MatchSpecType):
         not_fields = set(kwargs) - MatchSpec.FIELD_NAMES_SET
         if not_fields:
             raise InvalidMatchSpec(
-                self._original_spec_str, "Cannot match on field(s): %s" % not_fields
+                self._original_spec_str, f"Cannot match on field(s): {not_fields}"
             )
         _make_component = MatchSpec._make_component
         return frozendict(_make_component(key, value) for key, value in kwargs.items())
@@ -487,7 +499,7 @@ class MatchSpec(metaclass=MatchSpecType):
             target_groups = groupby(attrgetter("target"), group)
             target_groups.pop(None, None)
             if len(target_groups) > 1:
-                raise ValueError("Incompatible MatchSpec merge:%s" % dashlist(group))
+                raise ValueError(f"Incompatible MatchSpec merge:{dashlist(group)}")
             merged_specs.append(
                 reduce(lambda x, y: x._merge(y, union), group)
                 if len(group) > 1
@@ -706,7 +718,7 @@ def _parse_spec_str(spec_str):
         name, spec_str = m3.groups()
         if name is None:
             raise InvalidMatchSpec(
-                original_spec_str, "no package name found in '%s'" % spec_str
+                original_spec_str, f"no package name found in '{spec_str}'"
             )
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")
@@ -814,8 +826,7 @@ class MatchInterface(metaclass=ABCMeta):
     def merge(self, other):
         if self.raw_value != other.raw_value:
             raise ValueError(
-                "Incompatible component merge:\n  - %r\n  - %r"
-                % (self.raw_value, other.raw_value)
+                f"Incompatible component merge:\n  - {self.raw_value!r}\n  - {other.raw_value!r}"
             )
         return self.raw_value
 
@@ -880,7 +891,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
                 self._re_match = re.compile(value).match
             elif "*" in value:
                 value = re.escape(value).replace("\\*", r".*")
-                self._re_match = re.compile(r"^(?:%s)$" % value).match
+                self._re_match = re.compile(rf"^(?:{value})$").match
         except re.error as e:
             raise InvalidMatchSpec(
                 value, f"Contains an invalid regular expression. '{e}'"
@@ -933,7 +944,7 @@ class SplitStrMatch(MatchInterface):
 
     def __repr__(self):
         if self._raw_value:
-            return "{%s}" % ", ".join("'%s'" % s for s in sorted(self._raw_value))
+            return "{{{}}}".format(", ".join(f"'{s}'" for s in sorted(self._raw_value)))
         else:
             return "set()"
 
@@ -975,7 +986,7 @@ class FeatureMatch(MatchInterface):
         return self._raw_value == other
 
     def __repr__(self):
-        return "[%s]" % ", ".join("'%s'" % k for k in sorted(self._raw_value))
+        return "[{}]".format(", ".join(f"'{k}'" for k in sorted(self._raw_value)))
 
     def __str__(self):
         return " ".join(sorted(self._raw_value))
@@ -1001,7 +1012,7 @@ class ChannelMatch(GlobStrMatch):
                     self._re_match = re.compile(value).match
                 elif "*" in value:
                     self._re_match = re.compile(
-                        r"^(?:%s)$" % value.replace("*", r".*")
+                        r"^(?:{})$".format(value.replace("*", r".*"))
                     ).match
                 else:
                     value = Channel(value)
@@ -1027,12 +1038,12 @@ class ChannelMatch(GlobStrMatch):
 
     def __str__(self):
         try:
-            return "%s" % self._raw_value.name
+            return f"{self._raw_value.name}"
         except AttributeError:
-            return "%s" % self._raw_value
+            return f"{self._raw_value}"
 
     def __repr__(self):
-        return "'%s'" % self.__str__()
+        return f"'{self.__str__()}'"
 
 
 class CaseInsensitiveStrMatch(GlobLowerStrMatch):

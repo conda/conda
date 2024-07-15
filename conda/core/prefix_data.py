@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing the packages installed within an environment."""
+
 from __future__ import annotations
 
 import json
@@ -23,6 +24,8 @@ from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
+from ..common.url import mask_anaconda_token
+from ..common.url import remove_auth as url_remove_auth
 from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
@@ -107,15 +110,15 @@ class PrefixData(metaclass=PrefixDataType):
                 known_ext = True
         if not known_ext:
             raise ValueError(
-                "Attempted to make prefix record for unknown package type: %s" % fn
+                f"Attempted to make prefix record for unknown package type: {fn}"
             )
         return fn + ".json"
 
-    def insert(self, prefix_record):
+    def insert(self, prefix_record, remove_auth=True):
         assert prefix_record.name not in self._prefix_records, (
-            "Prefix record insertion error: a record with name %s already exists "
+            f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
             "in the prefix. This is a bug in conda. Please report it at "
-            "https://github.com/conda/conda/issues" % prefix_record.name
+            "https://github.com/conda/conda/issues"
         )
 
         prefix_record_json_path = (
@@ -131,8 +134,14 @@ class PrefixData(metaclass=PrefixDataType):
                 context,
             )
             rm_rf(prefix_record_json_path)
-
-        write_as_json_to_file(prefix_record_json_path, prefix_record)
+        if remove_auth:
+            prefix_record_json = prefix_record.dump()
+            prefix_record_json["url"] = url_remove_auth(
+                mask_anaconda_token(prefix_record.url)
+            )
+        else:
+            prefix_record_json = prefix_record
+        write_as_json_to_file(prefix_record_json_path, prefix_record_json)
 
         self._prefix_records[prefix_record.name] = prefix_record
 
@@ -222,7 +231,7 @@ class PrefixData(metaclass=PrefixDataType):
                 ):
                     raise ValueError()
             except ValueError:
-                log.warn(
+                log.warning(
                     "Ignoring malformed prefix record at: %s", prefix_record_json_path
                 )
                 # TODO: consider just deleting here this record file in the future
@@ -344,7 +353,7 @@ class PrefixData(metaclass=PrefixDataType):
                 import traceback
 
                 tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                log.warn(
+                log.warning(
                     "Problem reading non-conda package record at %s. Please verify that you "
                     "still need this, and if so, that this is still installed correctly. "
                     "Reinstalling this package may help.",
@@ -441,9 +450,7 @@ def get_python_version_for_prefix(prefix):
         return None
     next_record = next(py_record_iter, None)
     if next_record is not None:
-        raise CondaDependencyError(
-            "multiple python records found in prefix %s" % prefix
-        )
+        raise CondaDependencyError(f"multiple python records found in prefix {prefix}")
     elif record.version[3].isdigit():
         return record.version[:4]
     else:

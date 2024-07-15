@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
 from conda.history import History
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -277,3 +280,16 @@ def test_user_requests(index: int, spec: dict):
 )
 def test_comment_parsing(comment: str, spec: dict):
     assert History._parse_comment_line(comment) == spec
+
+
+def test_history_malformed(tmp_history):
+    """
+    Regression test for https://github.com/conda/conda/issues/13959
+    """
+    with tmp_history as history:
+        with open(history.path, "w") as fp:
+            fp.write("# malformed content")
+
+        results = history.parse()
+
+        assert results == []

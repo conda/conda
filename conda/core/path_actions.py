@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Atomic actions that make up a package installation or removal transaction."""
+
 import re
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -15,6 +16,7 @@ from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
+from ..common.constants import TRACE
 from ..common.path import (
     get_bin_directory_short_path,
     get_leaf_directories,
@@ -72,6 +74,7 @@ except NameError:
 
 log = getLogger(__name__)
 
+_MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
 REPR_IGNORE_KWARGS = (
     "transaction_context",
     "package_info",
@@ -217,7 +220,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                     raise CondaError(
                         "Unable to determine python site-packages "
                         "dir in target_prefix!\nPlease make sure "
-                        "python is installed in %s" % target_prefix
+                        f"python is installed in {target_prefix}"
                     )
                 target_short_path = get_python_noarch_target_path(
                     source_path_data.path, sp_dir
@@ -302,7 +305,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_directory = context.conda_prefix
         source_short_path = "Scripts/conda.exe"
         command, _, _ = parse_entry_point_def(entry_point_def)
-        target_short_path = "Scripts/%s.exe" % command
+        target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
             _path=target_short_path,
             path_type=PathType.windows_python_entry_point_exe,
@@ -348,15 +351,11 @@ class LinkPathAction(CreateInPrefixPathAction):
         ):  # pragma: no cover  # NOQA
             return CondaVerificationError(
                 dals(
-                    """
-            The package for {} located at {}
-            appears to be corrupted. The path '{}'
+                    f"""
+            The package for {self.package_info.repodata_record.name} located at {self.package_info.extracted_package_dir}
+            appears to be corrupted. The path '{self.source_short_path}'
             specified in the package manifest cannot be found.
-            """.format(
-                        self.package_info.repodata_record.name,
-                        self.package_info.extracted_package_dir,
-                        self.source_short_path,
-                    )
+            """
                 )
             )
 
@@ -396,19 +395,13 @@ class LinkPathAction(CreateInPrefixPathAction):
                 if reported_size_in_bytes != source_size_in_bytes:
                     return SafetyError(
                         dals(
-                            """
-                    The package for {} located at {}
-                    appears to be corrupted. The path '{}'
+                            f"""
+                    The package for {self.package_info.repodata_record.name} located at {self.package_info.extracted_package_dir}
+                    appears to be corrupted. The path '{self.source_short_path}'
                     has an incorrect size.
-                      reported size: {} bytes
-                      actual size: {} bytes
-                    """.format(
-                                self.package_info.repodata_record.name,
-                                self.package_info.extracted_package_dir,
-                                self.source_short_path,
-                                reported_size_in_bytes,
-                                source_size_in_bytes,
-                            )
+                      reported size: {reported_size_in_bytes} bytes
+                      actual size: {source_size_in_bytes} bytes
+                    """
                         )
                     )
 
@@ -427,19 +420,13 @@ class LinkPathAction(CreateInPrefixPathAction):
                 if reported_sha256 and reported_sha256 != source_sha256:
                     return SafetyError(
                         dals(
-                            """
-                    The package for {} located at {}
-                    appears to be corrupted. The path '{}'
+                            f"""
+                    The package for {self.package_info.repodata_record.name} located at {self.package_info.extracted_package_dir}
+                    appears to be corrupted. The path '{self.source_short_path}'
                     has a sha256 mismatch.
-                    reported sha256: {}
-                    actual sha256: {}
-                    """.format(
-                                self.package_info.repodata_record.name,
-                                self.package_info.extracted_package_dir,
-                                self.source_short_path,
-                                reported_sha256,
-                                source_sha256,
-                            )
+                    reported sha256: {reported_sha256}
+                    actual sha256: {source_sha256}
+                    """
                         )
                     )
             self.prefix_path_data = PathDataV1.from_objects(
@@ -456,7 +443,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         self._verified = True
 
     def execute(self):
-        log.trace("linking %s => %s", self.source_full_path, self.target_full_path)
+        log.log(TRACE, "linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(
             self.source_full_path,
             self.target_full_path,
@@ -467,7 +454,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
-            log.trace("reversing link creation %s", self.target_prefix)
+            log.log(TRACE, "reversing link creation %s", self.target_prefix)
             if not isdir(self.target_full_path):
                 rm_rf(self.target_full_path, clean_empty_parents=True)
 
@@ -508,7 +495,8 @@ class PrefixReplaceLinkAction(LinkPathAction):
             return validation_error
 
         if islink(self.source_full_path):
-            log.trace(
+            log.log(
+                TRACE,
                 "ignoring prefix update for symlink with source path %s",
                 self.source_full_path,
             )
@@ -520,12 +508,14 @@ class PrefixReplaceLinkAction(LinkPathAction):
             self.transaction_context["temp_dir"], str(uuid4())
         )
 
-        log.trace("copying %s => %s", self.source_full_path, self.intermediate_path)
+        log.log(
+            TRACE, "copying %s => %s", self.source_full_path, self.intermediate_path
+        )
         create_link(self.source_full_path, self.intermediate_path, LinkType.copy)
         make_writable(self.intermediate_path)
 
         try:
-            log.trace("rewriting prefixes in %s", self.target_full_path)
+            log.log(TRACE, "rewriting prefixes in %s", self.target_full_path)
             update_prefix(
                 self.intermediate_path,
                 context.target_prefix_override or self.target_prefix,
@@ -556,7 +546,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
         if not self._verified:
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
-        log.trace("linking %s => %s", source_path, self.target_full_path)
+        log.log(TRACE, "linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
 
@@ -566,12 +556,15 @@ class MakeMenuAction(CreateInPrefixPathAction):
     def create_actions(
         cls, transaction_context, package_info, target_prefix, requested_link_type
     ):
-        if on_win and context.shortcuts:
-            MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
+        shorcuts_lower = [name.lower() for name in (context.shortcuts_only or ())]
+        if context.shortcuts and (
+            not context.shortcuts_only
+            or (shorcuts_lower and package_info.name.lower() in shorcuts_lower)
+        ):
             return tuple(
                 cls(transaction_context, package_info, target_prefix, spi.path)
                 for spi in package_info.paths_data.paths
-                if bool(MENU_RE.match(spi.path))
+                if bool(_MENU_RE.match(spi.path))
             )
         else:
             return ()
@@ -590,13 +583,13 @@ class MakeMenuAction(CreateInPrefixPathAction):
         self._execute_successful = False
 
     def execute(self):
-        log.trace("making menu for %s", self.target_full_path)
+        log.log(TRACE, "making menu for %s", self.target_full_path)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
         self._execute_successful = True
 
     def reverse(self):
         if self._execute_successful:
-            log.trace("removing menu for %s", self.target_full_path)
+            log.log(TRACE, "removing menu for %s", self.target_full_path)
             make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
@@ -617,12 +610,12 @@ class CreateNonadminAction(CreateInPrefixPathAction):
         self._file_created = False
 
     def execute(self):
-        log.trace("touching nonadmin %s", self.target_full_path)
+        log.log(TRACE, "touching nonadmin %s", self.target_full_path)
         self._file_created = touch(self.target_full_path)
 
     def reverse(self):
         if self._file_created:
-            log.trace("removing nonadmin file %s", self.target_full_path)
+            log.log(TRACE, "removing nonadmin file %s", self.target_full_path)
             rm_rf(self.target_full_path)
 
 
@@ -714,7 +707,7 @@ class CompileMultiPycAction(MultiPathAction):
         #   installed into a python 2 environment, but no code paths actually importing it
         # technically then, this file should be removed from the manifest in conda-meta, but
         #   at the time of this writing that's not currently happening
-        log.trace("compiling %s", " ".join(self.target_full_paths))
+        log.log(TRACE, "compiling %s", " ".join(self.target_full_paths))
         target_python_version = self.transaction_context["target_python_version"]
         python_short_path = get_python_short_path(target_python_version)
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
@@ -730,7 +723,9 @@ class CompileMultiPycAction(MultiPathAction):
     def reverse(self):
         # this removes all pyc files even if they were not created
         if self._execute_successful:
-            log.trace("reversing pyc creation %s", " ".join(self.target_full_paths))
+            log.log(
+                TRACE, "reversing pyc creation %s", " ".join(self.target_full_paths)
+            )
             for target_full_path in self.target_full_paths:
                 rm_rf(target_full_path)
 
@@ -833,7 +828,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         self._execute_successful = False
 
     def execute(self):
-        log.trace("creating python entry point %s", self.target_full_path)
+        log.log(TRACE, "creating python entry point %s", self.target_full_path)
         if on_win:
             python_full_path = None
         else:
@@ -851,7 +846,9 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
-            log.trace("reversing python entry point creation %s", self.target_full_path)
+            log.log(
+                TRACE, "reversing python entry point creation %s", self.target_full_path
+            )
             rm_rf(self.target_full_path)
 
 
@@ -869,7 +866,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         all_link_path_actions,
     ):
         extracted_package_dir = package_info.extracted_package_dir
-        target_short_path = "conda-meta/%s.json" % basename(extracted_package_dir)
+        target_short_path = f"conda-meta/{basename(extracted_package_dir)}.json"
         return (
             cls(
                 transaction_context,
@@ -964,12 +961,14 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             package_tarball_full_path=package_tarball_full_path,
         )
 
-        log.trace("creating linked package record %s", self.target_full_path)
+        log.log(TRACE, "creating linked package record %s", self.target_full_path)
         PrefixData(self.target_prefix).insert(self.prefix_record)
         self._execute_successful = True
 
     def reverse(self):
-        log.trace("reversing linked package record creation %s", self.target_full_path)
+        log.log(
+            TRACE, "reversing linked package record creation %s", self.target_full_path
+        )
         if self._execute_successful:
             PrefixData(self.target_prefix).remove(
                 self.package_info.repodata_record.name
@@ -1017,7 +1016,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def execute(self):
-        log.trace("updating environment history %s", self.target_full_path)
+        log.log(TRACE, "updating environment history %s", self.target_full_path)
 
         if lexists(self.target_full_path):
             copy(self.target_full_path, self.hold_path)
@@ -1028,7 +1027,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if lexists(self.hold_path):
-            log.trace("moving %s => %s", self.hold_path, self.target_full_path)
+            log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
 
     def cleanup(self):
@@ -1048,14 +1047,14 @@ class RegisterEnvironmentLocationAction(PathAction):
             touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
             self._verified = True
         except NotWritableError:
-            log.warn(
+            log.warning(
                 "Unable to create environments file. Path not writable.\n"
                 "  environment location: %s\n",
                 user_environments_txt_file,
             )
 
     def execute(self):
-        log.trace("registering environment in catalog %s", self.target_prefix)
+        log.log(TRACE, "registering environment in catalog %s", self.target_prefix)
 
         register_env(self.target_prefix)
         self._execute_successful = True
@@ -1107,14 +1106,18 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
 
     def execute(self):
         if self.link_type != LinkType.directory:
-            log.trace(
-                "renaming %s => %s", self.target_short_path, self.holding_short_path
+            log.log(
+                TRACE,
+                "renaming %s => %s",
+                self.target_short_path,
+                self.holding_short_path,
             )
             backoff_rename(self.target_full_path, self.holding_full_path, force=True)
 
     def reverse(self):
         if self.link_type != LinkType.directory and lexists(self.holding_full_path):
-            log.trace(
+            log.log(
+                TRACE,
                 "reversing rename %s => %s",
                 self.holding_short_path,
                 self.target_short_path,
@@ -1129,15 +1132,11 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
 class RemoveMenuAction(RemoveFromPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
-        if on_win:
-            MENU_RE = re.compile(r"^menu/.*\.json$", re.IGNORECASE)
-            return tuple(
-                cls(transaction_context, linked_package_data, target_prefix, trgt)
-                for trgt in linked_package_data.files
-                if bool(MENU_RE.match(trgt))
-            )
-        else:
-            return ()
+        return tuple(
+            cls(transaction_context, linked_package_data, target_prefix, trgt)
+            for trgt in linked_package_data.files
+            if bool(_MENU_RE.match(trgt))
+        )
 
     def __init__(
         self, transaction_context, linked_package_data, target_prefix, target_short_path
@@ -1147,11 +1146,11 @@ class RemoveMenuAction(RemoveFromPrefixPathAction):
         )
 
     def execute(self):
-        log.trace("removing menu for %s ", self.target_prefix)
+        log.log(TRACE, "removing menu for %s ", self.target_prefix)
         make_menu(self.target_prefix, self.target_short_path, remove=True)
 
     def reverse(self):
-        log.trace("re-creating menu for %s ", self.target_prefix)
+        log.log(TRACE, "re-creating menu for %s ", self.target_prefix)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def cleanup(self):
@@ -1186,7 +1185,7 @@ class UnregisterEnvironmentLocationAction(PathAction):
         self._verified = True
 
     def execute(self):
-        log.trace("unregistering environment in catalog %s", self.target_prefix)
+        log.log(TRACE, "unregistering environment in catalog %s", self.target_prefix)
 
         unregister_env(self.target_prefix)
         self._execute_successful = True
@@ -1236,7 +1235,7 @@ class CacheUrlAction(PathAction):
 
         target_package_cache = PackageCacheData(self.target_pkgs_dir)
 
-        log.trace("caching url %s => %s", self.url, self.target_full_path)
+        log.log(TRACE, "caching url %s => %s", self.url, self.target_full_path)
 
         if lexists(self.hold_path):
             rm_rf(self.hold_path)
@@ -1332,7 +1331,7 @@ class CacheUrlAction(PathAction):
 
     def reverse(self):
         if lexists(self.hold_path):
-            log.trace("moving %s => %s", self.hold_path, self.target_full_path)
+            log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
 
     def cleanup(self):
@@ -1343,9 +1342,7 @@ class CacheUrlAction(PathAction):
         return join(self.target_pkgs_dir, self.target_package_basename)
 
     def __str__(self):
-        return "CacheUrlAction<url={!r}, target_full_path={!r}>".format(
-            self.url, self.target_full_path
-        )
+        return f"CacheUrlAction<url={self.url!r}, target_full_path={self.target_full_path!r}>"
 
 
 class ExtractPackageAction(PathAction):
@@ -1376,7 +1373,9 @@ class ExtractPackageAction(PathAction):
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache_data import PackageCacheData
 
-        log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
+        log.log(
+            TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
+        )
 
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
@@ -1393,9 +1392,9 @@ class ExtractPackageAction(PathAction):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print(
-                "ERROR: Encountered corrupt package tarball at %s. Conda has "
+                f"ERROR: Encountered corrupt package tarball at {self.source_full_path}. Conda has "
                 "left it in place. Please report this to the maintainers "
-                "of the package." % self.source_full_path
+                "of the package."
             )
             sys.exit(1)
 
@@ -1443,7 +1442,7 @@ class ExtractPackageAction(PathAction):
     def reverse(self):
         rm_rf(self.target_full_path)
         if lexists(self.hold_path):
-            log.trace("moving %s => %s", self.hold_path, self.target_full_path)
+            log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             rm_rf(self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path)
 
@@ -1455,9 +1454,4 @@ class ExtractPackageAction(PathAction):
         return join(self.target_pkgs_dir, self.target_extracted_dirname)
 
     def __str__(self):
-        return (
-            "ExtractPackageAction<source_full_path={!r}, target_full_path={!r}>".format(
-                self.source_full_path,
-                self.target_full_path,
-            )
-        )
+        return f"ExtractPackageAction<source_full_path={self.source_full_path!r}, target_full_path={self.target_full_path!r}>"

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common URL utilities."""
+
 import codecs
 import re
 import socket
@@ -93,13 +94,13 @@ def url_to_path(url):
 @lru_cache(maxsize=None)
 def path_to_url(path):
     if not path:
-        raise ValueError("Not allowed: %r" % path)
+        raise ValueError(f"Not allowed: {path!r}")
     if path.startswith(file_scheme):
         try:
             path.decode("ascii")
         except UnicodeDecodeError:
             raise ValueError(
-                "Non-ascii not allowed for things claiming to be URLs: %r" % path
+                f"Non-ascii not allowed for things claiming to be URLs: {path!r}"
             )
         return path
     path = abspath(expanduser(path)).replace("\\", "/")
@@ -118,7 +119,7 @@ def path_to_url(path):
     #
     percent_encode_chars = "!'()*-._/\\:"
     percent_encode = lambda s: "".join(
-        ["%%%02X" % ord(c), c][c < "{" and c.isalnum() or c in percent_encode_chars]
+        [f"%{ord(c):02X}", c][c < "{" and c.isalnum() or c in percent_encode_chars]
         for c in s
     )
     if any(ord(char) >= 128 for char in path):
@@ -245,7 +246,7 @@ def url_to_s3_info(url):
         ('bucket-name.bucket', '/here/is/the/key')
     """
     parsed_url = urlparse(url)
-    assert parsed_url.scheme == "s3", "You can only use s3: urls (not %r)" % url
+    assert parsed_url.scheme == "s3", f"You can only use s3: urls (not {url!r})"
     bucket, key = parsed_url.hostname, parsed_url.path
     return bucket, key
 
@@ -376,8 +377,8 @@ def split_platform(known_subdirs, url):
 
 @lru_cache(maxsize=None)
 def _split_platform_re(known_subdirs):
-    _platform_match_regex = r"/(%s)(?:/|$)" % r"|".join(
-        r"%s" % d for d in known_subdirs
+    _platform_match_regex = r"/({})(?:/|$)".format(
+        r"|".join(rf"{d}" for d in known_subdirs)
     )
     return re.compile(_platform_match_regex, re.IGNORECASE)
 
@@ -441,7 +442,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
 
 @lru_cache(maxsize=None)
 def get_proxy_username_and_pass(scheme):
-    username = input("\n%s proxy username: " % scheme)
+    username = input(f"\n{scheme} proxy username: ")
     passwd = getpass("Password: ")
     return username, passwd
 
@@ -492,8 +493,9 @@ def remove_auth(url: str) -> str:
     """Remove embedded authentication from URL.
 
     .. code-block:: pycon
-        >>> remove_auth("https://user:password@anaconda.com")
-        'https://anaconda.com'
+
+       >>> remove_auth("https://user:password@anaconda.com")
+       'https://anaconda.com'
     """
     url = urlparse(url)
     url_no_auth = url.replace(username="", password="")

@@ -36,6 +36,7 @@ def DPkg(s, **kwargs):
     )
 
 
+@pytest.mark.benchmark
 def test_match_1():
     for spec, result in (
         ("numpy 1.7*", True),
@@ -284,7 +285,7 @@ def test_tarball_match_specs():
     )
 
     url = "https://conda.anaconda.org/conda-canary/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-    assert m(url) == "*[url=%s]" % url
+    assert m(url) == f"*[url={url}]"
 
     pref1 = PackageRecord(
         channel=Channel(None),
@@ -305,7 +306,7 @@ def test_tarball_match_specs():
     assert MatchSpec(url=url, md5="1234").get("md5") == "1234"
 
     url = "file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"
-    assert m(url) == "*[url='%s']" % url
+    assert m(url) == f"*[url='{url}']"
     # url = '*[url="file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"]'
 
     # TODO: we need this working correctly with both channel and subdir
@@ -1221,3 +1222,16 @@ def test_catch_invalid_regexes():
     # Inspired by above crasher
     with pytest.raises(InvalidMatchSpec):
         MatchSpec("^(aaaa$")
+
+
+@pytest.mark.parametrize(
+    "spec",
+    (
+        "pkg 4.2.2<6.0.0",
+        "pkg>=0.10.0,<1.0.0<py312|>=0.13.0,<1.0.0>=py312",
+    ),
+)
+def test_invalid_version_reports_spec(spec):
+    with pytest.raises(InvalidMatchSpec) as exc:
+        MatchSpec(spec)
+    assert spec in str(exc.value)

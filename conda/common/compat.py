@@ -7,7 +7,10 @@
 # If it's only used in one module, keep it in that module, preferably near the top.
 # This module should contain ONLY stdlib imports.
 
+import builtins
 import sys
+
+from ..deprecations import deprecated
 
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
@@ -17,7 +20,6 @@ FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 # Control some tweakables that will be removed finally.
 ENCODE_ENVIRONMENT = True
-ENCODE_ARGS = False
 
 
 def encode_for_env_var(value) -> str:
@@ -35,9 +37,8 @@ def encode_environment(env):
     return env
 
 
+@deprecated("24.9", "25.3")
 def encode_arguments(arguments):
-    if ENCODE_ARGS:
-        arguments = {encode_for_env_var(arg) for arg in arguments}
     return arguments
 
 
@@ -53,14 +54,13 @@ def isiterable(obj):
 # #############################
 
 from collections import OrderedDict as odict  # noqa: F401
-from io import open as io_open  # NOQA
 
 
 def open(
     file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
 ):
     if "b" in mode:
-        return io_open(
+        return builtins.open(
             file,
             str(mode),
             buffering=buffering,
@@ -69,7 +69,7 @@ def open(
             closefd=closefd,
         )
     else:
-        return io_open(
+        return builtins.open(
             file,
             str(mode),
             buffering=buffering,

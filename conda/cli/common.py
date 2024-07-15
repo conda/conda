@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
+
 import re
 import sys
 from logging import getLogger
@@ -31,7 +32,7 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
     options = []
     for option in choices:
         if option == default:
-            options.append("[%s]" % option[0])
+            options.append(f"[{option[0]}]")
         else:
             options.append(option[0])
     message = "{} ({})? ".format(message, "/".join(options))
@@ -46,7 +47,7 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
         except OSError as e:
             raise CondaError(f"cannot read from stdin: {e}")
         if user_choice not in choices:
-            print("Invalid choice: %s" % user_choice)
+            print(f"Invalid choice: {user_choice}")
         else:
             sys.stdout.write("\n")
             sys.stdout.flush()
@@ -96,7 +97,7 @@ def arg2spec(arg, json=False, update=False):
     except:
         from ..exceptions import CondaValueError
 
-        raise CondaValueError("invalid package specification: %s" % arg)
+        raise CondaValueError(f"invalid package specification: {arg}")
 
     name = spec.name
     if not spec._is_simple() and update:
@@ -190,7 +191,7 @@ def names_in_specs(names, specs):
 
 def disp_features(features):
     if features:
-        return "[%s]" % " ".join(features)
+        return "[{}]".format(" ".join(features))
     else:
         return ""
 

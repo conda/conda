@@ -4,11 +4,19 @@
 
 Creates new conda environments with the specified packages.
 """
-from argparse import SUPPRESS, ArgumentParser, Namespace, _SubParsersAction
+
+from __future__ import annotations
+
+from argparse import _StoreTrueAction
 from logging import getLogger
 from os.path import isdir
+from typing import TYPE_CHECKING
 
+from ..deprecations import deprecated
 from ..notices import notices
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 log = getLogger(__name__)
 
@@ -60,17 +68,19 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Create a new environment as a copy of an existing local environment.",
         metavar="ENV",
     )
-    solver_mode_options, _, channel_options = add_parser_create_install_update(
-        p, prefix_required=True
-    )
+    solver_mode_options, _, channel_options = add_parser_create_install_update(p)
     add_parser_default_packages(solver_mode_options)
     add_parser_platform(channel_options)
     add_parser_solver(solver_mode_options)
     p.add_argument(
         "-m",
         "--mkdir",
-        action="store_true",
-        help=SUPPRESS,
+        action=deprecated.action(
+            "24.9",
+            "25.3",
+            _StoreTrueAction,
+            addendum="Redundant argument.",
+        ),
     )
     p.add_argument(
         "--dev",
@@ -88,13 +98,26 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    import os
+    from tempfile import mktemp
+
+    from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
     from ..common.path import paths_equal
-    from ..exceptions import CondaValueError
+    from ..exceptions import ArgumentError, CondaValueError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
     from .common import confirm_yn
     from .install import install
+
+    if not args.name and not args.prefix:
+        if context.dry_run:
+            args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
+            context.__init__(argparse_args=args)
+        else:
+            raise ArgumentError(
+                "one of the arguments -n/--name -p/--prefix is required"
+            )
 
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
@@ -106,8 +129,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "Cannot `create --dry-run` with an existing conda environment"
             )
         confirm_yn(
-            "WARNING: A conda environment already exists at '%s'\n"
-            "Remove existing environment" % context.target_prefix,
+            f"WARNING: A conda environment already exists at '{context.target_prefix}'\n"
+            "Remove existing environment",
             default="no",
             dry_run=False,
         )
@@ -115,9 +138,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         rm_rf(context.target_prefix)
     elif isdir(context.target_prefix):
         confirm_yn(
-            "WARNING: A directory already exists at the target location '%s'\n"
+            f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
             "but it is not a conda environment.\n"
-            "Continue creating environment" % context.target_prefix,
+            "Continue creating environment",
             default="no",
             dry_run=False,
         )
