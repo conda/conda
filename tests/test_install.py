@@ -104,11 +104,11 @@ def test_multiple(subdir):
     with pytest.raises(_PaddingError):
         binary_replace(b"aaaacaaaa\x00", b"aaaa", b"bbbbb", subdir=subdir)
 
+
 @pytest.mark.parametrize("subdir", ["linux-64", "win-64", "noarch"], indirect=True)
 def test_ends_with_newl(subdir):
     assert (
-        binary_replace(b"fooaa\n\x00", b"foo", b"bar", subdir=subdir)
-        == b"baraa\n\x00"
+        binary_replace(b"fooaa\n\x00", b"foo", b"bar", subdir=subdir) == b"baraa\n\x00"
     )
     assert (
         binary_replace(b"fooaafoo\n\x00", b"foo", b"fo", subdir=subdir)
