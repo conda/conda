@@ -113,7 +113,7 @@ class CondaPluginManager(pluggy.PluginManager):
             raise PluginError(
                 f"Error while loading conda plugin: "
                 f"{name or self.get_canonical_name(plugin)} ({err})"
-            )
+            ) from err
 
     def load_plugins(self, *plugins) -> int:
         """
@@ -151,9 +151,11 @@ class CondaPluginManager(pluggy.PluginManager):
                     # not using exc_info=True here since the CLI loggers are
                     # set up after CLI initialization and argument parsing,
                     # meaning that it comes too late to properly render
-                    # a traceback
+                    # a traceback; instead we pass exc_info conditionally on
+                    # context.verbosity
                     log.warning(
-                        f"Error while loading conda entry point: {entry_point.name} ({err})"
+                        f"Error while loading conda entry point: {entry_point.name} ({err})",
+                        exc_info=err if context.info else None,
                     )
                     continue
 

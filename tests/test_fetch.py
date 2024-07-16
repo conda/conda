@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import hashlib
 import os
+from contextlib import nullcontext
 from os.path import exists, isfile
 from pathlib import Path
 from tempfile import mktemp
+from typing import Any, Callable
 from unittest.mock import patch
 
 import pytest
@@ -19,6 +21,7 @@ from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
+    CondaValueError,
     ProxyError,
 )
 from conda.gateways.connection import (
@@ -347,3 +350,32 @@ def test_download_http_errors():
         "https://example.org/file"
     ):
         raise HTTPError(response=Response(401))
+
+
+@pytest.mark.parametrize(
+    "raises,get_sha256",
+    [
+        pytest.param(False, lambda x: x, id="original"),
+        pytest.param(False, str.upper, id="upper"),
+        pytest.param(True, lambda x: "not-an-hex-string", id="gibberish"),
+        pytest.param(True, lambda x: 123456, id="bad-type"),
+    ],
+)
+def test_checksum_checks_bytes(
+    tmp_path: Path,
+    package_repository_base,
+    package_server,
+    raises: bool,
+    get_sha256: Callable[[str], Any],
+):
+    host, port = package_server.getsockname()
+    base = f"http://{host}:{port}/test"
+    package_name = "zlib-1.2.11-h7b6447c_3.conda"
+    url = f"{base}/linux-64/{package_name}"
+    package_path = package_repository_base / "linux-64" / package_name
+    sha256 = checksum(package_path, algorithm="sha256")
+    size = package_path.stat().st_size
+    output_path = tmp_path / package_name
+
+    with pytest.raises(CondaValueError) if raises else nullcontext():
+        download(url, output_path, size=size, sha256=get_sha256(sha256))
