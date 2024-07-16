@@ -5,9 +5,9 @@
 from __future__ import annotations
 
 import json
+import os
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
@@ -15,9 +15,6 @@ from ....deprecations import deprecated
 from ....exceptions import CondaError
 from ....gateways.disk.read import compute_sum
 from ... import CondaHealthCheck, hookimpl
-
-if TYPE_CHECKING:
-    import os
 
 logger = getLogger(__name__)
 
@@ -164,8 +161,6 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
 
 
 def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
-    import os
-
     if os.environ.get("REQUESTS_CA_BUNDLE"):
         if not Path(os.environ.get("REQUESTS_CA_BUNDLE")).exists():
             print("env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n")

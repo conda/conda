@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import uuid
 from typing import TYPE_CHECKING
 
@@ -248,11 +247,11 @@ def test_not_env_txt_check_action(
 
 
 def test_requests_ca_bundle_check_action(
-    env_ok: tuple[Path, str, str, str, str], capsys
+    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch
 ):
     prefix, _, _, _, _ = env_ok
-    os.environ["REQUESTS_CA_BUNDLE"] = "non/existent/path"
-    reset_context(())
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
+    reset_context()
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
