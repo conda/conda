@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix binary_replace not matching chunks that end with \n
+* Fix binary_replace not matching chunks that end with `\n` (#14043)
 
 ### Deprecations
 
