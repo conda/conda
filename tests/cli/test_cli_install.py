@@ -3,9 +3,10 @@
 from pathlib import Path
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
@@ -97,10 +98,12 @@ def test_find_conflicts_called_once(
 
 @pytest.mark.integration
 def test_emscripten_forge(
-    mocker: MockerFixture,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
 ):
-    mocker.patch("conda.cli.common.confirm_yn", return_value=True)
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
 
     with tmp_env(
         "--platform=emscripten-wasm32",
