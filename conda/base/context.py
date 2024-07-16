@@ -125,7 +125,7 @@ user_rc_path = abspath(expanduser("~/.condarc"))
 sys_rc_path = join(sys.prefix, ".condarc")
 
 
-def user_data_dir(
+def user_data_dir(  # noqa: F811
     appname: str | None = None,
     appauthor: str | None | Literal[False] = None,
     version: str | None = None,

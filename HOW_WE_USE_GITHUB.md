@@ -219,29 +219,16 @@ This is a duplicate of <b>[link to primary issue]</b>; please feel free to conti
 </details>
 
 <details>
-<summary><b>Requesting an Uninstall/Reinstall of <code>conda</code></b></summary>
+<summary><b>Anaconda Products</b></summary>
 
 <!-- this is a code block, any links need to be embedded -->
 <pre>
+Thank you for filing this issue! Unfortunately, this is off-topic for this repo because it is related to an Anaconda product.
+If you are encountering issues with Anaconda products or services, you have several options for receiving community
+support:
 
-Please uninstall your current version of `conda` and reinstall the latest version.
-Feel free to use either the [miniconda](https://docs.anaconda.com/free/miniconda/)
-or [anaconda](https://www.anaconda.com/products/individual) installer,
-whichever is more appropriate for your needs.
-</pre>
-
-</details>
-
-<details>
-<summary><b>Redirect to Anaconda Issue Tracker</b></summary>
-
-<!-- this is a code block, any links need to be embedded -->
-<pre>
-
-Thank you for filing this issue! Unfortunately, this is off-topic for this repo.
-If you are still encountering this issue please reopen in the
-[Anaconda issue tracker](https://github.com/ContinuumIO/anaconda-issues/issues)
-where `conda` installer/package issues are addressed.
+- [Anaconda community forums](https://community.anaconda.cloud)
+- [Anaconda issue tracker on GitHub](https://github.com/ContinuumIO/anaconda-issues/issues)
 </pre>
 
 > [!WARNING]
@@ -250,35 +237,21 @@ where `conda` installer/package issues are addressed.
 </details>
 
 <details>
-<summary><b>Redirecting to Nucleus Forums</b></summary>
+<summary><b>General Off Topic</b></summary>
 
-<!-- this is a code block, any links need to be embedded -->
 <pre>
+Unfortunately, this issue is outside the scope of support we offer via GitHub or is not directly related to this project.
+Community support can be found elsewhere, though, and we encourage you to explore the following options:
 
-Unfortunately, this issue is outside the scope of support we offer via GitHub;
-if you continue to experience the problems described here,
-please post details to the [Nucleus forums](https://community.anaconda.cloud/).
+- [Conda discourse forum](https://conda.discourse.group/)
+- [Community chat channels](https://conda.org/community#chat)
+- [Stack Overflow posts tagged "conda"](https://stackoverflow.com/questions/tagged/conda)
 </pre>
 
 > [!WARNING]
 > Apply the https://github.com/conda/infrastructure/labels/off-topic label to these issues before closing them out.
 
 </details>
-
-<details>
-<summary><b>Slow solving of conda environment</b></summary>
-
-<!-- this is a code block, any links need to be embedded -->
-<pre>
-Hi [@username],
-
-Thanks for voicing your concern about the performance of the classic dependency solver. To fix this, our official recommendation is using the new default "conda-libmamba-solver" instead of the classic solver (more information about the "conda-libmamba-solver" can be found here: https://conda.github.io/conda-libmamba-solver/getting-started/).
-
-In most cases "conda-libmamba-solver" should be significantly faster than the "classic" solver. We hope it provides you with a much better experience going forward.
-</pre>
-
-</details>
-
 
 In order to not have to manually type or copy/paste the above repeatedly, note that it's possible to add text for the most commonly-used responses via [GitHub's "Add Saved Reply" option][docs-saved-reply].
 
