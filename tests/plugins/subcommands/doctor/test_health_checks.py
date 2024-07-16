@@ -246,7 +246,7 @@ def test_not_env_txt_check_action(
     assert X_MARK in captured.out
 
 
-def test_requests_ca_bundle_check_action(
+def test_not_requests_ca_bundle_check_action(
     env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch
 ):
     prefix, _, _, _, _ = env_ok
@@ -257,6 +257,20 @@ def test_requests_ca_bundle_check_action(
     assert (
         "env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n"
         in captured.out
+    )
+
+
+def test_requests_ca_bundle_check_action(
+    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch, tmp_path: Path
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
+    reset_context()
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert (
+        "env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n"
+        not in captured.out
     )
 
 
