@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new health check to `conda doctor` that detects if the `REQUESTS_CA_BUNDLE` env var points to a non-existent file.
+* Add a new health check to `conda doctor` that detects if the `REQUESTS_CA_BUNDLE` env var points to a non-existent file. (#12905)
 
 ### Bug fixes
 
