@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix binary_replace not matching chunks that end with `\n`. (#14043 via #14044)
+* <news item>
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Add new article for configuring `envs_dirs` and `pkgs_dirs`. (#13954)
 
 ### Other
 
