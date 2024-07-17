@@ -67,23 +67,23 @@ Add an `envvars_force_uppercase` setting which defaults to `True`, uppercasing a
 
 * @beeankha
 * @conda-bot
-* @erik-whiting
+* @erik-whiting made their first contribution in https://github.com/conda/conda/pull/13877
 * @ifitchet
 * @jaimergp
 * @jezdez
 * @kathatherine
-* @kelvinou01
+* @kelvinou01 made their first contribution in https://github.com/conda/conda/pull/14044
 * @kenodegard
 * @zklaus
 * @ForgottenProgramme
 * @Nathann03
 * @zeehio
-* @skupr-anaconda
+* @skupr-anaconda made their first contribution in https://github.com/conda/conda/pull/13946
 * @tl-hbk
-* @DerThorsten
+* @DerThorsten made their first contribution in https://github.com/conda/conda/pull/13962
 * @travishathaway
 * @dependabot[bot]
-* @padeoe
+* @padeoe made their first contribution in https://github.com/conda/conda/pull/12856
 * @pre-commit-ci[bot]
 
 
