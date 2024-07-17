@@ -1,5 +1,93 @@
 [//]: # (current developments)
 
+## 24.7.0 (2024-07-17)
+
+### Enhancements
+
+* MSYS2 packages can now use the upstream installation prefixes. (#13649)
+* Add a new `reporters` setting for configure output. (#13736)
+* Report traceback of plugin loading errors with verbosity 2 or higher (`-vv` or more). (#13742 via #13846)
+* Skip checking for `.pyc` and `.pyo` files in the `conda doctor` "missing files" health check. (#13370 via #13931)
+* **Breaking change**  `conda list --explicit` will not print authentication details by default. A new flag `--auth` has been added so folks can opt-in to this behaviour. (#13936)
+* Print transaction report for `@EXPLICIT` lockfile installs too. (#13940)
+* Do not require `-n/--name` or `-p/--prefix` if `conda create` is invoked with `--dry-run`. (#13941)
+Add an `envvars_force_uppercase` setting which defaults to `True`, uppercasing all environment variables (thereby justifying `conda`'s current behaviour); when `envvars_force_uppercase` is set to `False`, conda will only save preserved-case variable names. (#13713 via #13943)
+* Alias `conda env list` command to `conda info --envs`. (#13972)
+
+### Bug fixes
+
+* Improve treatment of logger levels (#13735)
+* Mask authentication details in `conda-meta/*.json` metadata. (#13937)
+* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* Fixes parsing error when history file only contains a single commented line (#13960)
+* Add missing `emscripten` and `wasi` entries to the recognized platforms, and `wasm32` to the recognized architectures. (#13095)
+* Checksum comparisons in `conda.gateways.connection.download.download()` are not case sensitive anymore. (#13969)
+* Disallow some more characters in Windows for prefix names (`^`, `%`, `!`, `=`, `(`, `)`, `\`). These characters complicate or prevent environment activation if present. (#12558 via #13975)
+* Fix caching when `repodata.json` contains `\r\n` line endings. (#14002 via #14003)
+* Fix binary_replace not matching chunks that end with `\n`. (#14043 via #14044)
+
+### Deprecations
+
+* Mark `conda.cli.main_env_list.execute` as pending deprecation. Use `conda.cli.main_info.execute` instead. (#13972)
+* Revert `--all` deprecation in `conda info`. (#14004)
+* Mark `conda.exports.iteritems` as pending deprecation. Use builtin `dict.items()` instead. (#14034)
+* Mark `conda.exports.Completer` as pending deprecation. (#14034)
+* Mark `conda.exports.InstalledPackages` as pending deprecation. (#14034)
+* Mark `conda.exports.KEYS` as pending deprecation. (#14034)
+* Mark `conda.exports.KEYS_DIR` as pending deprecation. (#14034)
+* Mark `conda.exports.hash_file` as pending deprecation. (#14034)
+* Mark `conda.exports.verify` as pending deprecation. (#14034)
+* Mark `conda.exports.symlink_conda` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.exports._symlink_conda_hlp` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.exports.win_conda_bat_redirect` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.win_path_to_cygwin` as pending deprecation. Use `conda.common.path.win_path_to_unix` instead. (#14034)
+* Mark `conda.utils.cygwin_path_to_win` as pending deprecation. Use `conda.utils.unix_path_to_win` instead. (#14034)
+* Mark `conda.utils.translate_stream` as pending deprecation. (#14034)
+* Mark `conda.utils.unix_shell_base` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.msys2_shell_base` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.shells` as pending deprecation. Use `conda.activate` instead. (#14034)
+
+### Docs
+
+* Clarify proxy server configuration in documentation. (#12856)
+* Added type hints and doc strings to `conda.core.envs_manager`. (#13817)
+* Add logging overview as deep-dive (#13735)
+* Update conda cheatsheet text and add it directly to cheatsheet page. (#13889)
+* Added cheatsheet PDF download to cheatsheet page. (#13909)
+* Added `ssl_verify: truststore` to the user guide. (#13935)
+* Fixed the help text of the `satisfied-skip-solve` flag. (#13946)
+* Add a section explaining how to correctly raise exceptions from a plugin. (#13741 via #13950)
+* Add new article for configuring `envs_dirs` and `pkgs_dirs`. (#13954)
+
+### Other
+
+* Replace calls to logger.warn with logger.warning (#13963)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @erik-whiting
+* @ifitchet
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kelvinou01
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @Nathann03
+* @zeehio
+* @skupr-anaconda
+* @tl-hbk
+* @DerThorsten
+* @travishathaway
+* @dependabot[bot]
+* @padeoe
+* @pre-commit-ci[bot]
+
+
+
 ## 24.5.0 (2024-05-08)
 
 ### Enhancements
