@@ -4,7 +4,7 @@
 
 ### Enhancements
 
-* Add a new `reporters` setting for configure output. (#13736)
+* Add a new `reporters` setting for configuring output. (#13736)
 * Report traceback of plugin loading errors with verbosity 2 or higher (`-vv` or more). (#13742 via #13846)
 * Skip checking for `.pyc` and `.pyo` files in the `conda doctor` "missing files" health check. (#13370 via #13931)
 * **Breaking change**  `conda list --explicit` will not print authentication details by default. A new flag `--auth` has been added so folks can opt-in to this behaviour. (#13936)
@@ -51,7 +51,7 @@
 
 * Clarify proxy server configuration in documentation. (#12856)
 * Add type hints and doc strings to `conda.core.envs_manager`. (#13817)
-* Add logging overview as deep-dive (#13735)
+* Add logging overview as deep-dive. (#13735)
 * Update conda cheatsheet text and add it directly to cheatsheet page. (#13889)
 * Add cheatsheet PDF download to cheatsheet page. (#13909)
 * Add `ssl_verify: truststore` to the user guide. (#13935)
