@@ -28,6 +28,7 @@ Add an `envvars_force_uppercase` setting which defaults to `True`, uppercasing a
 
 ### Deprecations
 
+* Mark `conda.gateways.logging.initialize_root_logger` as pending deprecation. (#13735, #14046)
 * Mark `conda.cli.main_env_list.execute` as pending deprecation. Use `conda.cli.main_info.execute` instead. (#13972)
 * Revert `--all` deprecation in `conda info`. (#14004)
 * Mark `conda.exports.iteritems` as pending deprecation. Use builtin `dict.items()` instead. (#14034)
