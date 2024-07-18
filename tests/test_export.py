@@ -16,7 +16,6 @@ def test_export(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
     monkeypatch: MonkeyPatch,
-    request,
 ):
     """Test that `conda list --export` output can be used to create a similar environment."""
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
@@ -39,12 +38,14 @@ def test_export(
             assert output == output2
 
 
+# Using --quiet here as a no-op flag for test simplicity
+@pytest.mark.parametrize("checksum_flag", ("--quiet", "--md5", "--sha256"))
 @pytest.mark.integration
 def test_explicit(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-    request,
+    checksum_flag: str,
 ):
     """Test that `conda list --explicit` output can be used to recreate an identical environment."""
     # use "cheap" packages with no dependencies
@@ -52,14 +53,14 @@ def test_explicit(
         assert package_is_installed(prefix, "pkgs/main::zlib")
         assert package_is_installed(prefix, "conda-forge::ca-certificates")
 
-        output, _, _ = conda_cli("list", "--prefix", prefix, "--explicit")
+        output, _, _ = conda_cli("list", "--prefix", prefix, "--explicit", checksum_flag)
 
-        env_txt = path_factory(suffix=".txt")
-        env_txt.write_text(output)
+    env_txt = path_factory(suffix=".txt")
+    env_txt.write_text(output)
 
-        with tmp_env("--file", env_txt) as prefix2:
-            assert package_is_installed(prefix2, "pkgs/main::zlib")
-            assert package_is_installed(prefix2, "conda-forge::ca-certificates")
+    with tmp_env("--file", env_txt) as prefix2:
+        assert package_is_installed(prefix2, "pkgs/main::zlib")
+        assert package_is_installed(prefix2, "conda-forge::ca-certificates")
 
-            output2, _, _ = conda_cli("list", "--prefix", prefix2, "--explicit")
-            assert output == output2
+        output2, _, _ = conda_cli("list", "--prefix", prefix2, "--explicit", checksum_flag)
+        assert output == output2

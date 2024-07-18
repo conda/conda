@@ -95,6 +95,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Add MD5 hashsum when using --explicit.",
     )
     p.add_argument(
+        "--sha256",
+        action="store_true",
+        help="Add SHA256 hashsum when using --explicit.",
+    )
+    p.add_argument(
         "-e",
         "--export",
         action="store_true",
@@ -244,12 +249,13 @@ def print_packages(
     return exitcode
 
 
-def print_explicit(prefix, add_md5=False, remove_auth=True):
+def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
     from ..base.constants import UNKNOWN_CHANNEL
     from ..base.context import context
     from ..common import url as common_url
     from ..core.prefix_data import PrefixData
-
+    if add_md5 and add_sha256:
+        raise ValueError("Only one of add_md5 and add_sha256 can be chosen")
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
 
@@ -263,8 +269,14 @@ def print_explicit(prefix, add_md5=False, remove_auth=True):
             continue
         if remove_auth:
             url = common_url.remove_auth(common_url.split_anaconda_token(url)[0])
-        md5 = prefix_record.get("md5")
-        print(url + (f"#{md5}" if add_md5 and md5 else ""))
+        if add_md5:
+            md5 = prefix_record.get("md5")
+            print(url + (f"#{md5}" if md5 else ""))
+        elif add_sha256:
+            sha256 = prefix_record.get("sha256")
+            print(url + (f"#{sha256}" if sha256 else ""))
+        else:
+            print(url)
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
@@ -278,6 +290,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         from ..exceptions import EnvironmentLocationNotFound
 
         raise EnvironmentLocationNotFound(prefix)
+
+    if args.md5 and args.sha256:
+        from ..exceptions import ArgumentError
+
+        raise ArgumentError("Only one of --md5 and --sha256 can be specified at the same time")
 
     regex = args.regex
     if args.full_name:
@@ -297,7 +314,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         return 0
 
     if args.explicit:
-        print_explicit(prefix, args.md5, args.remove_auth)
+        print_explicit(prefix, args.md5, args.remove_auth, args.sha256)
         return 0
 
     if args.canonical:
