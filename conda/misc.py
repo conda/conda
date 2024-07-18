@@ -9,6 +9,7 @@ import sys
 from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from typing import Iterable
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open
@@ -57,13 +58,7 @@ url_pat = re.compile(
 )
 
 
-def explicit(
-    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
-):
-    actions = defaultdict(list)
-    actions["PREFIX"] = prefix
-
-    fetch_specs = []
+def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
     for spec in specs:
         if spec == "@EXPLICIT":
             continue
@@ -92,7 +87,16 @@ def explicit(
             checksums["md5"] = md5
         if sha256 := m.group("sha256"):
             checksums["sha256"] = sha256
-        fetch_specs.append(MatchSpec(url, **checksums))
+        yield MatchSpec(url, **checksums)
+
+
+def explicit(
+    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
+):
+    actions = defaultdict(list)
+    actions["PREFIX"] = prefix
+
+    fetch_specs = list(_match_specs_from_explicit(specs))
 
     if context.dry_run:
         raise DryRunExit()
