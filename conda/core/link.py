@@ -737,7 +737,6 @@ class UnlinkLinkTransaction:
             # means we're not unlinking then linking a new package, so look up current conda record
             conda_final_prefix = context.conda_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = ()
             pkg_names_being_unlnkd = ()
             conda_linked_depends = next(
@@ -751,7 +750,6 @@ class UnlinkLinkTransaction:
         else:
             conda_final_prefix = conda_final_setup.target_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = tuple(
                 prec.name for prec in conda_final_setup.link_precs or ()
             )
@@ -764,8 +762,7 @@ class UnlinkLinkTransaction:
             for conda_dependency in conda_linked_depends:
                 dep_name = MatchSpec(conda_dependency).name
                 if dep_name not in pkg_names_being_lnkd and (
-                    dep_name not in pkg_names_already_lnkd
-                    or dep_name in pkg_names_being_unlnkd
+                    dep_name in pkg_names_being_unlnkd
                 ):
                     yield RemoveError(
                         f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
