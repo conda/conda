@@ -257,6 +257,7 @@ def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
     from ..base.context import context
     from ..common import url as common_url
     from ..core.prefix_data import PrefixData
+
     if add_md5 and add_sha256:
         raise ValueError("Only one of add_md5 and add_sha256 can be chosen")
     if not isdir(prefix):
@@ -297,7 +298,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.md5 and args.sha256:
         from ..exceptions import ArgumentError
 
-        raise ArgumentError("Only one of --md5 and --sha256 can be specified at the same time")
+        raise ArgumentError(
+            "Only one of --md5 and --sha256 can be specified at the same time"
+        )
 
     regex = args.regex
     if args.full_name:

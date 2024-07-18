@@ -51,8 +51,8 @@ url_pat = re.compile(
     r"(?:(?P<url_p>.+)(?:[/\\]))?"
     r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
     r"(:?#("
-        r"(?P<md5>[0-9a-f]{32})"
-        r"|(?P<sha256>[0-9a-f]{64})"
+    r"(?P<md5>[0-9a-f]{32})"
+    r"|(?P<sha256>[0-9a-f]{64})"
     r"))?$"
 )
 
@@ -89,7 +89,7 @@ def explicit(
         # url_p is everything but the tarball_basename and the checksum
         checksums = {}
         if md5 := m.group("md5"):
-            checksums["md5"] =  md5
+            checksums["md5"] = md5
         if sha256 := m.group("sha256"):
             checksums["sha256"] = sha256
         fetch_specs.append(MatchSpec(url, **checksums))

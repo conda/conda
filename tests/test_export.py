@@ -53,7 +53,9 @@ def test_explicit(
         assert package_is_installed(prefix, "pkgs/main::zlib")
         assert package_is_installed(prefix, "conda-forge::ca-certificates")
 
-        output, _, _ = conda_cli("list", "--prefix", prefix, "--explicit", checksum_flag)
+        output, _, _ = conda_cli(
+            "list", "--prefix", prefix, "--explicit", checksum_flag
+        )
 
     env_txt = path_factory(suffix=".txt")
     env_txt.write_text(output)
@@ -62,5 +64,7 @@ def test_explicit(
         assert package_is_installed(prefix2, "pkgs/main::zlib")
         assert package_is_installed(prefix2, "conda-forge::ca-certificates")
 
-        output2, _, _ = conda_cli("list", "--prefix", prefix2, "--explicit", checksum_flag)
+        output2, _, _ = conda_cli(
+            "list", "--prefix", prefix2, "--explicit", checksum_flag
+        )
         assert output == output2
