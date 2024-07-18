@@ -296,7 +296,10 @@ def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: st
             env_one,
         )
 
-    assert "contains a protected directory" in str(error.value)
+    assert (
+        "appears to be a top level directory within an existing conda environment"
+        in str(error.value)
+    )
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")

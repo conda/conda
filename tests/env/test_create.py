@@ -301,4 +301,7 @@ def test_protected_dirs_error_for_env_create(
                 support_file("example/environment_pinned.yml"),
             )
 
-        assert "contains a protected directory" in str(error.value)
+        assert (
+            "appears to be a top level directory within an existing conda environment"
+            in str(error.value)
+        )
