@@ -162,7 +162,11 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
 
 def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
     if (path := os.getenv("REQUESTS_CA_BUNDLE")) and not Path(path).exists():
-        print("env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n")
+        print(
+            f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
+        )
+    else:
+        print(f"{OK_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a valid file.\n")
 
 
 @hookimpl

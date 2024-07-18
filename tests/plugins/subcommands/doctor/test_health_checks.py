@@ -255,7 +255,7 @@ def test_not_requests_ca_bundle_check_action(
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
-        "env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n"
+        f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
         in captured.out
     )
 
@@ -269,8 +269,8 @@ def test_requests_ca_bundle_check_action(
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
-        "env var REQUESTS_CA_BUNDLE is pointing to a non existent file.\n"
-        not in captured.out
+        f"{OK_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a valid file.\n"
+        in captured.out
     )
 
 
