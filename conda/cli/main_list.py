@@ -10,6 +10,8 @@ import re
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isdir, isfile
 
+from .. import __version__
+
 log = logging.getLogger(__name__)
 
 
@@ -143,6 +145,7 @@ def print_export_header(subdir):
     print("# This file may be used to create an environment using:")
     print("# $ conda create --name <env> --file <this file>")
     print(f"# platform: {subdir}")
+    print(f"# created-by: conda {__version__}")
 
 
 def get_packages(installed, regex):
