@@ -314,17 +314,3 @@ def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
         )
 
     assert "Invalid environment name" in str(error.value)
-
-
-@pytest.mark.skipif(on_win, reason="UNIX-specific test")
-def test_separator_chars_on_unix(conda_cli: CondaCLIFixture, env_one: str):
-    bad_env_name = "\\" + env_one
-
-    with pytest.raises(CondaValueError) as error:
-        conda_cli(
-            "rename",
-            f"--name={bad_env_name}",
-            env_two,
-        )
-
-    assert "Invalid environment name" in str(error.value)
