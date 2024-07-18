@@ -3,12 +3,14 @@
 from pathlib import Path
 
 import pytest
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+from conda.testing.integration import package_is_installed
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -92,3 +94,24 @@ def test_find_conflicts_called_once(
             *channels,
         )
     assert mocked_find_conflicts.call_count == 3
+
+
+@pytest.mark.integration
+def test_emscripten_forge(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    with tmp_env(
+        "--platform=emscripten-wasm32",
+        "--override-channels",
+        "-c",
+        "https://repo.mamba.pm/emscripten-forge",
+        "-c",
+        "conda-forge",
+        "pyjs",
+    ) as prefix:
+        assert package_is_installed(prefix, "pyjs")

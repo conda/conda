@@ -2379,6 +2379,9 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
 
+    # elevate verbosity so we can inspect subprocess' stdout/stderr
+    monkeypatch.setenv("CONDA_VERBOSE", "2")
+
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
         python_exe = str(prefix / PYTHON_BINARY)
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
