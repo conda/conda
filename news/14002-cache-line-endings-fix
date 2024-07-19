@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* Fix caching when `repodata.json` contains `\r\n` line endings (#14002)
 
 ### Deprecations
 

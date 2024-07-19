@@ -126,7 +126,7 @@ def bash_unsupported() -> str | None:
 
 
 skip_unsupported_bash = pytest.mark.skipif(
-    bash_unsupported(),
+    bool(bash_unsupported()),
     reason=bash_unsupported() or "bash: supported!",
 )
 skip_unsupported_posix_path = pytest.mark.skipif(
@@ -3437,3 +3437,71 @@ def test_MSYS2_PATH(
         # ensure unexpected bin directories are not included in %PATH%/$env:PATH
         for path in unexpected:
             assert activator.path_conversion(str(library / path / "bin")) not in paths
+
+
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
+def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase is force_uppercase_boolean
+
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        one=1,
+        TWO=2,
+        three=None,
+        FOUR=None,
+    )
+
+    # preserved case vars present if  keep_case is True
+    assert ("one" in export_vars) is not force_uppercase_boolean
+    assert ("three" in unset_vars) is not force_uppercase_boolean
+
+    # vars uppercased when keep_case is False
+    assert ("ONE" in export_vars) is force_uppercase_boolean
+    assert ("THREE" in unset_vars) is force_uppercase_boolean
+
+    # original uppercase
+    assert "TWO" in export_vars
+    assert "FOUR" in unset_vars
+
+
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
+def test_metavars_force_uppercase(
+    mocker: MockerFixture, monkeypatch: MonkeyPatch, force_uppercase_boolean: bool
+):
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase is force_uppercase_boolean
+
+    returned_dict = {
+        "ONE": "1",
+        "two": "2",
+        "three": None,
+        "FOUR": None,
+        "five": "a/path/to/something",
+        "SIX": "a\\path",
+    }
+    mocker.patch(
+        "conda.base.context.Context.conda_exe_vars_dict",
+        new_callable=mocker.PropertyMock,
+        return_value=returned_dict,
+    )
+    assert context.conda_exe_vars_dict == returned_dict
+
+    activator = PosixActivator()
+    export_vars, unset_vars = activator.get_export_unset_vars()
+
+    # preserved case vars present if keep_case is True
+    assert ("two" in export_vars) is not force_uppercase_boolean
+    assert ("three" in unset_vars) is not force_uppercase_boolean
+    assert ("five" in export_vars) is not force_uppercase_boolean
+
+    # vars uppercased when keep_case is False
+    assert ("TWO" in export_vars) is force_uppercase_boolean
+    assert ("THREE" in unset_vars) is force_uppercase_boolean
+
+    # original uppercase
+    assert "ONE" in export_vars
+    assert "FOUR" in unset_vars
+    assert "SIX" in export_vars

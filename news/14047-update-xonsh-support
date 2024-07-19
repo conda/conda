@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Update xonsh support to accomodate deprecated import path (#14047)

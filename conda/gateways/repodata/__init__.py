@@ -438,7 +438,7 @@ class RepodataState(UserDict):
             value = bool(obj["value"])
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
-            log.warn(
+            log.warning(
                 f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
                 exc_info=e,
             )
@@ -871,8 +871,8 @@ class RepodataFetch:
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
                     raw_repodata = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata)  # type: ignore
                     stat = self.cache_path_json.stat()
+                    cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()

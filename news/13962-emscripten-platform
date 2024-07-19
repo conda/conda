@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* Add missing `emscripten` and `wasi` entries to the recognized platforms, and `wasm32` to the recognized architectures. (#13095)
 
 ### Deprecations
 

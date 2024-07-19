@@ -374,7 +374,7 @@ def test_json_create_install_update_remove(
             for string in content and content.split("\0") or ():
                 json.loads(string)
         except Exception as e:
-            log.warn(
+            log.warning(
                 "Problem parsing json output.\n"
                 "  content: %s\n"
                 "  string: %s\n"
@@ -2378,6 +2378,9 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "false")
     monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
+
+    # elevate verbosity so we can inspect subprocess' stdout/stderr
+    monkeypatch.setenv("CONDA_VERBOSE", "2")
 
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
         python_exe = str(prefix / PYTHON_BINARY)

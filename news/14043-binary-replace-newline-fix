@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* Fix binary_replace not matching chunks that end with `\n` (#14043)
 
 ### Deprecations
 
