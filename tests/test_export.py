@@ -75,6 +75,7 @@ def test_explicit(
         )
         assert output == output2
 
+
 @pytest.mark.parametrize(
     "url, checksum, raises",
     (
@@ -118,7 +119,7 @@ def test_explicit(
             "5e9e17751f19d03",
             ParseError,
         ],
-    )
+    ),
 )
 def test_explicit_parser(url: str, checksum: str, raises: Exception | None):
     lines = [url + (f"#{checksum}" if checksum else "")]
