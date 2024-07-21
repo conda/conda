@@ -58,7 +58,6 @@ def test_read_world_examples_unhandleable(filename):
 
 @mark.parametrize("filename", _real_samples_handleable)
 def test_read_world_examples_handleable(filename):
-    """Shoud fail to handle real-world examples as they don't have `channels=[]`"""
     spec = TomlSpec(name=None, filename=_support_file(filename))
     assert spec.can_handle(), spec.msg
 
