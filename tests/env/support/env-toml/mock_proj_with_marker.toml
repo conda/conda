@@ -1,0 +1,9 @@
+# A mock project file with an invalid dependency version
+
+[project]
+dependencies = [
+  "flask==1.1.1; platform_system == 'Linux'",
+  "flask==1.2.*; platform_system == 'Windows'",
+]
+dynamic = ["version"]
+requires-python = ">= 3.10"

@@ -1,0 +1,8 @@
+# A mock project file with no project name
+
+[project]
+dependencies = [
+  "flask==1.1.1",
+]
+dynamic = ["version"]
+requires-python = ">= 3.10"

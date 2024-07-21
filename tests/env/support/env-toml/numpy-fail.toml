@@ -1,0 +1,60 @@
+# https://github.com/numpy/numpy/blob/d489c83fb7d594938967146acbf55b169964b4b7/pyproject.toml
+
+[build-system]
+build-backend = "mesonpy"
+requires = [
+  "meson-python>=0.15.0",
+  "Cython>=3.0.6",  # keep in sync with version check in meson.build
+]
+
+[project]
+authors = [{name = "Travis E. Oliphant et al."}]
+classifiers = [
+  'Development Status :: 5 - Production/Stable',
+  'Intended Audience :: Science/Research',
+  'Intended Audience :: Developers',
+  'License :: OSI Approved :: BSD License',
+  'Programming Language :: C',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.10',
+  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'Programming Language :: Python :: 3 :: Only',
+  'Programming Language :: Python :: Implementation :: CPython',
+  'Topic :: Software Development',
+  'Topic :: Scientific/Engineering',
+  'Typing :: Typed',
+  'Operating System :: Microsoft :: Windows',
+  'Operating System :: POSIX',
+  'Operating System :: Unix',
+  'Operating System :: MacOS',
+]
+description = "Fundamental package for array computing in Python"
+# TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
+license = {file = "LICENSE.txt"}
+maintainers = [
+  {name = "NumPy Developers", email = "numpy-discussion@python.org"},
+]
+name = "numpy"
+readme = "README.md"
+requires-python = ">=3.10"
+version = "2.1.0.dev0"
+
+[project.entry-points.array_api]
+numpy = 'numpy'
+
+[project.entry-points.pyinstaller40]
+hook-dirs = 'numpy:_pyinstaller_hooks_dir'
+
+[project.scripts]
+f2py = 'numpy.f2py.f2py2e:main'
+numpy-config = 'numpy._configtool:main'
+
+[project.urls]
+documentation = "https://numpy.org/doc/"
+download = "https://pypi.org/project/numpy/#files"
+homepage = "https://numpy.org"
+"release notes" = "https://numpy.org/doc/stable/release"
+source = "https://github.com/numpy/numpy"
+tracker = "https://github.com/numpy/numpy/issues"

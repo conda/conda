@@ -1,0 +1,72 @@
+# https://github.com/pylint-dev/pylint/blob/60bd2307c220210b6dd6b739c382c6b3c45d75c4/pyproject.toml
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=71.0.4"]
+
+[project]
+authors = [
+  {name = "Python Code Quality Authority", email = "code-quality@python.org"},
+]
+classifiers = [
+  "Development Status :: 6 - Mature",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Topic :: Software Development :: Debuggers",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+  "Typing :: Typed",
+]
+dependencies = [
+  "dill>=0.2;python_version<'3.11'",
+  "dill>=0.3.6;python_version>='3.11'",
+  "dill>=0.3.7;python_version>='3.12'",
+  "platformdirs>=2.2.0",
+  # Also upgrade requirements_test_min.txt.
+  # Pinned to dev of second minor update to allow editable installs and fix primer issues,
+  # see https://github.com/pylint-dev/astroid/issues/1341
+  "astroid>=3.2.4,<=3.3.0-dev0",
+  "isort>=4.2.5,<6,!=5.13.0",
+  "mccabe>=0.6,<0.8",
+  "tomli>=1.1.0;python_version<'3.11'",
+  "tomlkit>=0.10.1",
+  "colorama>=0.4.5;sys_platform=='win32'",
+  "typing-extensions>=3.10.0;python_version<'3.10'",
+]
+description = "python code static checker"
+dynamic = ["version"]
+keywords = ["static code analysis", "linter", "python", "lint"]
+license = {text = "GPL-2.0-or-later"}
+name = "pylint"
+readme = "README.rst"
+requires-python = ">=3.9.0"
+
+[project.optional-dependencies]
+spelling = ["pyenchant~=3.2"]
+testutils = ["gitpython>3"]
+
+[project.scripts]
+pylint = "pylint:run_pylint"
+pylint-config = "pylint:_run_pylint_config"
+pyreverse = "pylint:run_pyreverse"
+symilar = "pylint:run_symilar"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/pylint-dev/pylint/issues"
+"Discord Server" = "https://discord.com/invite/Egy6P8AMB5"
+"Docs: Contributor Guide" = "https://pylint.readthedocs.io/en/latest/development_guide/contributor_guide/index.html"
+"Docs: User Guide" = "https://pylint.readthedocs.io/en/latest/"
+"Source Code" = "https://github.com/pylint-dev/pylint"
+"What's New" = "https://pylint.readthedocs.io/en/latest/whatsnew/3/"
+"homepage" = "https://github.com/pylint-dev/pylint"

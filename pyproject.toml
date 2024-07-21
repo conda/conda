@@ -42,6 +42,7 @@ dependencies = [
   "tqdm >=4",
   "truststore >=0.8.0; python_version>='3.10'",
   "zstandard >=0.15",
+  "tomli >=2.0.2; python_version<='3.10'",  # starting from python>=3.11, tomllib is included in the standard library
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]
