@@ -1,6 +1,7 @@
 ### Enhancements
 
-* Add `conda.core.index.Index` as drop-in replacement of realized dictionary index. (#13880)
+* Add `conda.core.index.Index` as a faster drop-in replacement of realized dictionary index. (#13880)
+  Note: This removes the implicit initialization of the logging from `get_index`. If you relied on that, you should probably call `conda.gateways.logging.initialize_logging` explicitly.
 
 ### Bug fixes
 
