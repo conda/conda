@@ -404,7 +404,7 @@ LAST_CHANNEL_URLS = []
 
 
 @time_recorder("get_index")
-@deprecated("24.9", "25.3", addendum="Use `Index` instead.")
+@deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
 def get_index(
     channel_urls: tuple[str] = (),
     prepend: bool = True,
