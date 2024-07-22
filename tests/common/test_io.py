@@ -1,10 +1,22 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 import sys
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
 
-from conda.common.io import CaptureTarget, attach_stderr_handler, captured
+import pytest
+from pytest import CaptureFixture
+
+from conda.common.io import (
+    CaptureTarget,
+    ConsoleHandler,
+    JSONHandler,
+    ReporterManager,
+    StdoutHandler,
+    attach_stderr_handler,
+    captured,
+)
 
 
 def test_captured():
@@ -81,3 +93,74 @@ def test_attach_stderr_handler():
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message in c.stderr
+
+
+def test_console_handler():
+    """
+    Tests the ConsoleHandler ReporterHandler class
+    """
+    test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
+    test_str = "a string value"
+    expected_table_str = "one   : value_one\ntwo   : value_two\nthree : value_three\n"
+    console_handler_object = ConsoleHandler()
+
+    assert console_handler_object.detail_view(test_data) == expected_table_str
+    assert console_handler_object.string_view(test_str) == test_str
+
+
+def test_json_handler():
+    """
+    Tests the JsonHandler ReporterHandler class
+    """
+    test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
+    test_str = "a string value"
+    json_handler_object = JSONHandler()
+    assert json_handler_object.detail_view(test_data) == json.dumps(test_data)
+    assert json_handler_object.string_view(test_str) == json.dumps(test_str)
+
+
+def test_std_out_handler(capsys: CaptureFixture):
+    """
+    Tests the StdoutHandler OutputHandler class
+    """
+    test_str = "a string value"
+    std_out_handler_object = StdoutHandler()
+    assert std_out_handler_object.name == "stdout"
+    std_out_handler_object.render(test_str)
+    stdout, _ = capsys.readouterr()
+    assert stdout == test_str
+
+
+def test_reporter_manager(capsys: CaptureFixture):
+    """
+    Tests the ReporterManager class
+    """
+    reporters = (
+        {"backend": "console", "output": "stdout"},
+        {"backend": "json", "output": "stdout"},
+    )
+    test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
+    test_str = "a string value"
+
+    # the expected output is output via ConsoleHandler.detail_view  plus JsonHandler.detail_view.
+    expected_detail_view_str = f"one   : value_one\ntwo   : value_two\nthree : value_three\n{json.dumps(test_data)}"
+    expected_string_view_str = f"a string value{json.dumps(test_str)}"
+
+    reporter_manager_object = ReporterManager(reporters)
+
+    # test detail view passes
+    reporter_manager_object.render("detail_view", test_data)
+    stdout, _ = capsys.readouterr()
+    assert stdout == expected_detail_view_str
+
+    # test string view passes
+    reporter_manager_object.render("string_view", test_str)
+    stdout, _ = capsys.readouterr()
+    assert stdout == expected_string_view_str
+
+    # test fails
+    with pytest.raises(
+        AttributeError,
+        match="'non_existent_view' is not a valid reporter handler component",
+    ):
+        reporter_manager_object.render("non_existent_view", test_data)

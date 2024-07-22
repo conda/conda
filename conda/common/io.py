@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
 
+from __future__ import annotations
+
 import json
 import logging
 import os
 import signal
 import sys
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
 from concurrent.futures.thread import _WorkItem
@@ -20,6 +23,7 @@ from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
+from typing import TYPE_CHECKING
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
@@ -27,6 +31,10 @@ from ..auxlib.type_coercion import boolify
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
+
+if TYPE_CHECKING:
+    Reporter = dict[str, bool | int | str]
+    DetailRecord = dict[str, str | int | bool]
 
 log = getLogger(__name__)
 IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
@@ -707,6 +715,125 @@ class time_recorder(ContextDecorator):  # pragma: no cover
     def _ensure_dir(self):
         if not isdir(dirname(self.record_file)):
             os.makedirs(dirname(self.record_file))
+
+
+class ReporterHandlerBase(ABC):
+    """
+    Base class for all reporter handlers
+    """
+
+    @abstractmethod
+    def detail_view(self, data: DetailRecord, **kwargs) -> str:
+        """
+        Render the output in a "tabular" format.
+        """
+        ...
+
+    @abstractmethod
+    def string_view(self, data: str, **kwargs) -> str:
+        """
+        Render a simple string.
+        """
+        ...
+
+
+class ConsoleHandler(ReporterHandlerBase):
+    """
+    Reporter handler for standard output (classic output).
+    """
+
+    def detail_view(self, data: DetailRecord, **kwargs) -> str:
+        table_str = ""
+        longest_header = max(map(len, data.keys()))
+
+        for header, value in data.items():
+            table_str += f"{header:<{longest_header}} : {value}\n"
+
+        return table_str
+
+    def string_view(self, data: str, **kwargs) -> str:
+        return data
+
+
+class JSONHandler(ReporterHandlerBase):
+    """
+    Reporter handler for JSON output.
+    """
+
+    def detail_view(self, data: DetailRecord, **kwargs) -> str:
+        json_str = json.dumps(data)
+
+        return json_str
+
+    def string_view(self, data: str, **kwargs) -> str:
+        json_str = json.dumps(data)
+
+        return json_str
+
+
+class OutputHandlerBase(ABC):
+    """
+    Base class for all output handlers
+    """
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """
+        Name of the output handler; this will be how this output handler is referenced
+        in configuration files
+        """
+        ...
+
+    @abstractmethod
+    def render(self, renderable: str, **kwargs) -> None:
+        """Render implementation goes here"""
+        ...
+
+
+class StdoutHandler(OutputHandlerBase):
+    """
+    Handles writing output strings to stdout.
+    """
+
+    @property
+    def name(self) -> str:
+        return "stdout"
+
+    def render(self, renderable: str, **kwargs) -> None:
+        sys.stdout.write(renderable)
+
+
+class ReporterManager:
+    """
+    This is the glue that holds together the ``ReporterHandler`` implementations with the
+    ``OutputHandler`` implementations. A single ``render`` method is provided for rendering
+    our configured reporter handlers.
+    """
+
+    def __init__(self, reporters: tuple[Reporter, ...]) -> None:
+        self._reporters = reporters
+        self._reporter_handlers = {
+            "console": ConsoleHandler(),
+            "json": JSONHandler(),
+        }
+        self._output_handlers = {
+            "stdout": StdoutHandler(),
+        }
+
+    def render(self, name, data, **kwargs) -> None:
+        for reporter in self._reporters:
+            reporter_handler = self._reporter_handlers.get(reporter.get("backend"))
+            output_handler = self._output_handlers.get(reporter.get("output"))
+
+            if reporter_handler is not None and output_handler is not None:
+                render_func = getattr(reporter_handler, name, None)
+                if render_func is None:
+                    raise AttributeError(
+                        f"'{name}' is not a valid reporter handler component"
+                    )
+                render_str = render_func(data, **kwargs)
+                output_handler.render(render_str, **reporter)
 
 
 def print_instrumentation_data():  # pragma: no cover
