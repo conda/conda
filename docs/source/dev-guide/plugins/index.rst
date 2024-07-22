@@ -133,7 +133,7 @@ found. These automatic reports can be really verbose and can get in the way of c
 *expected* errors. See `this issue in conda-build`_ as an example.
 
 To mark exceptions as *expected*, plugins should raise :class:`conda.CondaError` or a subclass
-thereof. See [`conda_auth.exceptions`](https://github.com/conda-incubator/conda-auth/blob/0.2.1/conda_auth/exceptions.py) for an example.
+thereof. See `conda_auth.exceptions`_ for an example.
 
 A note on licensing
 -------------------
@@ -153,3 +153,4 @@ which one to use, we advise communicating with a qualified legal professional.
 .. _`"Choose an Open Source License"`: https://choosealicense.com/
 .. _`conda-plugins-template`: https://github.com/conda/conda-plugin-template
 .. _`this issue in conda-build`: https://github.com/conda/conda-build/issues/5263
+.. _conda_auth.exceptions: https://github.com/conda-incubator/conda-auth/blob/main/conda_auth/exceptions.py
