@@ -29,6 +29,8 @@ from .compat import on_win
 if TYPE_CHECKING:
     from typing import Iterable, Sequence
 
+    PathType = str | os.PathLike
+
 log = getLogger(__name__)
 
 PATH_MATCH_REGEX = (
@@ -402,9 +404,6 @@ def is_package_file(path):
     # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
     #       import rules and to avoid a global lookup.
     return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
-
-
-PathType = str | os.PathLike
 
 
 def path_identity(
