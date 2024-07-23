@@ -1,10 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
+from pathlib import Path
 
 from conda.common.path import (
     get_major_minor_version,
     missing_pyc_files,
+    path_identity,
     url_to_path,
     win_path_backout,
 )
@@ -168,3 +170,26 @@ def test_get_major_minor_version_no_dot():
     assert get_major_minor_version("bin/python3.10", False) == "310"
     assert get_major_minor_version("lib/python310/site-packages/", False) == "310"
     assert get_major_minor_version("python3", False) is None
+
+
+def test_path_identity(tmp_path: Path) -> None:
+    # None
+    assert path_identity(None) is None
+
+    # str | os.PathLike
+    assert path_identity("") == "."
+    assert path_identity(".") == "."
+    assert path_identity("./") == "."
+    assert path_identity("relative") == "relative"
+    assert path_identity(str(tmp_path)) == str(tmp_path)
+    assert path_identity(tmp_path) == str(tmp_path)
+
+    # Iterable[str | os.PathLike]
+    assert path_identity(("", ".", "./", "relative", str(tmp_path), tmp_path)) == (
+        ".",
+        ".",
+        ".",
+        "relative",
+        str(tmp_path),
+        str(tmp_path),
+    )
