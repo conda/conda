@@ -136,13 +136,50 @@ class Index(UserDict):
     def data(self, value):
         self._data = value
 
+    def _supplement_index_dict_with_prefix(self, index_dict):
+        """
+        Supplement the index with information from its prefix.
+        """
+        # supplement index with information from prefix/conda-meta
+        for prefix_record in self.prefix.iter_records():
+            if prefix_record in self:
+                current_record = index_dict[prefix_record]
+                if current_record.channel == prefix_record.channel:
+                    # The downloaded repodata takes priority, so we do not overwrite.
+                    # We do, however, copy the link information so that the solver (i.e. resolve)
+                    # knows this package is installed.
+                    link = prefix_record.get("link") or EMPTY_LINK
+                    index_dict[prefix_record] = PrefixRecord.from_objects(
+                        current_record, prefix_record, link=link
+                    )
+                else:
+                    # If the local packages channel information does not agree with
+                    # the channel information in the index then they are most
+                    # likely referring to different packages.  This can occur if a
+                    # multi-channel changes configuration, e.g. defaults with and
+                    # without the free channel. In this case we need to fake the
+                    # channel data for the existing package.
+                    prefix_channel = prefix_record.channel
+                    prefix_channel._Channel__canonical_name = prefix_channel.url()
+                    del prefix_record._PackageRecord__pkey
+                    index_dict[prefix_record] = prefix_record
+            else:
+                # If the package is not in the repodata, use the local data.
+                # If the channel is known but the package is not in the index, it
+                # is because 1) the channel is unavailable offline, or 2) it no
+                # longer contains this package. Either way, we should prefer any
+                # other version of the package to this one. On the other hand, if
+                # it is in a channel we don't know about, assign it a value just
+                # above the priority of all known channels.
+                index_dict[prefix_record] = prefix_record
+
     def _realize(self):
         _data = {}
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
                 _data.update((prec, prec) for prec in subdir_data.iter_records())
         if self.prefix:
-            _supplement_index_with_prefix(_data, self.prefix)
+            self._supplement_index_dict_with_prefix(_data)
         if self.unknown:
             _supplement_index_with_cache(_data)
         if self.track_features:
