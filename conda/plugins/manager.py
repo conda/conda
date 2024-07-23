@@ -21,7 +21,14 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.context import add_plugin_setting, context
 from ..exceptions import CondaValueError, PluginError
-from . import post_solves, solvers, subcommands, virtual_packages
+from . import (
+    post_solves,
+    reporter_backends,
+    reporter_outputs,
+    solvers,
+    subcommands,
+    virtual_packages,
+)
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
@@ -41,6 +48,8 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaReporterBackend,
+        CondaReporterOutput,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -198,6 +207,16 @@ class CondaPluginManager(pluggy.PluginManager):
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["reporter_backends"]
+    ) -> list[CondaReporterBackend]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["reporter_outputs"]
+    ) -> list[CondaReporterOutput]: ...
+
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -344,6 +363,22 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
+    def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
+        return tuple(self.get_hook_results("reporter_backends"))
+
+    def get_reporter_backend(self, name: str) -> CondaReporterBackend | None:
+        for reporter_backend in self.get_reporter_backends():
+            if reporter_backend.name == name:
+                return reporter_backend
+
+    def get_reporter_outputs(self) -> tuple[CondaReporterOutput, ...]:
+        return tuple(self.get_hook_results("reporter_outputs"))
+
+    def get_reporter_output(self, name: str) -> CondaReporterOutput | None:
+        for reporter_output in self.get_reporter_outputs():
+            if reporter_output.name == name:
+                return reporter_output
+
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
             try:
@@ -405,6 +440,8 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         health_checks,
         *post_solves.plugins,
+        *reporter_backends.plugins,
+        *reporter_outputs.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
