@@ -13,11 +13,12 @@ from ...exceptions import (
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
 from .requirements import RequirementsSpec
+from .pyproject import PyProjectSpec
 from .yaml_file import YamlFileSpec
 
 if TYPE_CHECKING:
-    FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec]
-    SpecTypes = YamlFileSpec | RequirementsSpec
+    FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec] | type[PyProjectSpec]
+    SpecTypes = YamlFileSpec | RequirementsSpec | PyProjectSpec
 
 
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
@@ -27,7 +28,12 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
     # Check extensions
-    all_valid_exts = {*YamlFileSpec.extensions, *RequirementsSpec.extensions}
+    all_valid_exts = {
+         *YamlFileSpec.extensions,
+         *RequirementsSpec.extensions,
+         *PyProjectSpec.extensions,
+    }
+
     _, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
@@ -41,6 +47,8 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
             return YamlFileSpec
         elif ext in RequirementsSpec.extensions:
             return RequirementsSpec
+        elif ext in PyProjectSpec.extensions:
+            return PyProjectSpec
     raise EnvironmentFileNotFound(filename=filename)
 
 
