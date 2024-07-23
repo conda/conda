@@ -3,12 +3,20 @@ updates:
   - package-ecosystem: pip
     directory: /docs/
     schedule:
-      interval: weekly
+      interval: monthly
     allow:
       # Allow only production updates for Sphinx
       - dependency-name: sphinx
         dependency-type: production
+    groups:
+      docs:
+        patterns:
+          - '*'
   - package-ecosystem: github-actions
     directory: /.github/workflows
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      workflows:
+        patterns:
+          - '*'
