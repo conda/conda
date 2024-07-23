@@ -4,6 +4,7 @@
 build/
 dist/
 docs/_build
+docs/source/dev-guide/api
 docs/source/dev-guide/umls/*.puml
 .cache/
 .idea/

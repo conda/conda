@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
+from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
@@ -125,7 +126,16 @@ class PackageCacheData(metaclass=PackageCacheType):
                 or isfile(full_path)
                 and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)
             ):
-                package_cache_record = self._make_single_record(base_name)
+                try:
+                    package_cache_record = self._make_single_record(base_name)
+                except ValidationError as err:
+                    # ValidationError: package fields are invalid
+                    log.warning(
+                        f"Failed to create package cache record for '{base_name}'. {err}"
+                    )
+                    package_cache_record = None
+
+                # if package_cache_record is None, it means we couldn't create a record, ignore
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
 

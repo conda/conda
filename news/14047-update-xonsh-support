@@ -12,8 +12,8 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.core.envs_manager`. (#13817)
+* <news item>
 
 ### Other
 
-* <news item>
+* Update xonsh support to accomodate deprecated import path (#14047)
