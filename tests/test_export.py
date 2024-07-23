@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import reset_context
 from conda.exceptions import ParseError
 from conda.misc import _match_specs_from_explicit
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
