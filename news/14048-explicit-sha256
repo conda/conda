@@ -1,0 +1,21 @@
+### Enhancements
+
+* Add `--sha256` flag to `conda list --explicit` so it lists URLs with a SHA256 hash instead of MD5. (#14048)
+* Add support for SHA256 hashes in `@EXPLICIT` text files consumed by `conda install|create`. (#14048)
+* Report `conda` version used to generate a `@EXPLICIT` text file. (#14048)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
