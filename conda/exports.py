@@ -33,7 +33,6 @@ from .common.compat import on_win  # noqa: F401
 from .common.path import win_path_to_unix  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
-from .core.index import fetch_index as _fetch_index  # noqa: F401
 from .core.index import get_index as _get_index
 from .core.package_cache_data import ProgressiveFetchExtract, rm_fetched  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
@@ -182,12 +181,6 @@ def get_index(
     index = _get_index(
         channel_urls, prepend, platform, use_local, use_cache, unknown, prefix
     )
-    return {Dist(prec): prec for prec in index.values()}
-
-
-@deprecated("24.3", "24.9", addendum="Use `conda.core.index.fetch_index` instead.")
-def fetch_index(channel_urls, use_cache=False, index=None):
-    index = _fetch_index(channel_urls, use_cache, index)
     return {Dist(prec): prec for prec in index.values()}
 
 

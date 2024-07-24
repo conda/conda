@@ -18,7 +18,6 @@ from conda.common.compat import on_win
         ("InstalledPackages", None),
         ("hash_file", TypeError),
         ("verify", TypeError),
-        ("fetch_index", TypeError),
         ("symlink_conda", TypeError),
         ("_symlink_conda_hlp", TypeError),
         pytest.param(
