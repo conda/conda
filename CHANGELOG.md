@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 24.7.1 (2024-07-24)
+
+### Bug fixes
+
+* Revert potential regression introduced in #13975. The previously forbidden characters (`^`, `%`, `!`, `=`, `(`, `)`, `\`) are allowed again until the impact is assessed. (#14065)
+
+### Contributors
+
+* @jaimergp
+
+
+
 ## 24.7.0 (2024-07-17)
 
 ### Enhancements

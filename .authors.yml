@@ -645,7 +645,7 @@
   github: bradsaracik
 - name: Jaime Rodríguez-Guerra
   email: jaime.rogue@gmail.com
-  num_commits: 76
+  num_commits: 77
   first_commit: 2016-04-18 20:12:46
   github: jaimergp
   aliases:
@@ -2200,7 +2200,7 @@
   github: pkmooreanaconda
 - name: Mahe Iram Khan
   email: 65779580+ForgottenProgramme@users.noreply.github.com
-  num_commits: 20
+  num_commits: 18
   first_commit: 2022-10-07 23:21:54
   github: ForgottenProgramme
   alternate_emails:
