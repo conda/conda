@@ -30,7 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Conda incorporates the following libraries into its distributed code:
 
-* appdirs, licensed as MIT
 * auxlib, licensed as ISC
 * py-cpuinfo, licensed as MIT
 * distro, licensed as Apache-2.0

@@ -8,10 +8,7 @@ from logging import getLogger
 from os.path import isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
 
-try:
-    from platformdirs import user_config_dir
-except ImportError:  # pragma: no cover
-    from .._vendor.appdirs import user_data_dir as user_config_dir
+from platformdirs import user_config_dir
 
 from ..common.url import quote_plus, unquote_plus
 from .disk.delete import rm_rf

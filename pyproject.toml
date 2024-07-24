@@ -195,7 +195,6 @@ protected-files = ["__init__.py", "vendor.txt", "README.md"]
 requirements = "conda/_vendor/vendor.txt"
 
 [tool.vendoring.license.fallback-urls]
-appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt"  # MIT
 cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
 distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
@@ -211,7 +210,6 @@ substitute = []
 
 [tool.vendoring.typing-stubs]
 # prevent stubs from being generated
-appdirs = []
 cpuinfo = []
 distro = []
 frozendict = []

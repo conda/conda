@@ -133,10 +133,8 @@ def user_data_dir(  # noqa: F811
 ):
     # Defer platformdirs import to reduce import time for conda activate.
     global user_data_dir
-    try:
-        from platformdirs import user_data_dir
-    except ImportError:  # pragma: no cover
-        from .._vendor.appdirs import user_data_dir
+    from platformdirs import user_data_dir
+
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
