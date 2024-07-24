@@ -14,7 +14,6 @@ except ImportError:  # pragma: no cover
     from .._vendor.appdirs import user_data_dir as user_config_dir
 
 from ..common.url import quote_plus, unquote_plus
-from ..deprecations import deprecated
 from .disk.delete import rm_rf
 
 log = getLogger(__name__)
@@ -23,30 +22,6 @@ log = getLogger(__name__)
 def replace_first_api_with_conda(url):
     # replace first occurrence of 'api' with 'conda' in url
     return re.sub(r"([./])api([./]|$)", r"\1conda\2", url, count=1)
-
-
-@deprecated("24.3", "24.9", addendum="Use `platformdirs` instead.")
-class EnvAppDirs:
-    def __init__(self, appname, appauthor, root_path):
-        self.appname = appname
-        self.appauthor = appauthor
-        self.root_path = root_path
-
-    @property
-    def user_data_dir(self):
-        return join(self.root_path, "data")
-
-    @property
-    def site_data_dir(self):
-        return join(self.root_path, "data")
-
-    @property
-    def user_cache_dir(self):
-        return join(self.root_path, "cache")
-
-    @property
-    def user_log_dir(self):
-        return join(self.root_path, "log")
 
 
 def _get_binstar_token_directory():
