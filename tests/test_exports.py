@@ -13,7 +13,6 @@ from conda.common.compat import on_win
 @pytest.mark.parametrize(
     "function,raises",
     [
-        ("IndexRecord", TypeError),
         ("iteritems", TypeError),
         ("Completer", None),
         ("InstalledPackages", None),

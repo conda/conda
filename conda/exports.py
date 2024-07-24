@@ -61,7 +61,6 @@ from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
 from .models.enums import FileMode, PathType  # noqa: F401
-from .models.records import PackageRecord
 from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .plan import display_actions as _display_actions
 from .plan import (  # noqa: F401
@@ -105,13 +104,6 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
-deprecated.constant(
-    "24.3",
-    "24.9",
-    "IndexRecord",
-    PackageRecord,
-    addendum="Use `conda.models.records.PackageRecord` instead.",
-)
 # Replacements for six exports for compatibility
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
