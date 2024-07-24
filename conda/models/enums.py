@@ -9,7 +9,6 @@ from platform import machine
 from ..auxlib.decorators import classproperty
 from ..auxlib.ish import dals
 from ..auxlib.type_coercion import TypeCoercionError, boolify
-from ..deprecations import deprecated
 from ..exceptions import CondaUpgradeError
 
 
@@ -111,22 +110,6 @@ class PathType(Enum):
 
     def __json__(self):
         return self.name
-
-
-class LeasedPathType(Enum):
-    application_entry_point = "application_entry_point"
-    application_entry_point_windows_exe = "application_entry_point_windows_exe"
-    application_softlink = "application_softlink"
-
-    def __str__(self):
-        return self.name
-
-    def __json__(self):
-        return self.name
-
-
-deprecated.constant("24.3", "24.9", "LeasedPathType", LeasedPathType)
-del LeasedPathType
 
 
 class PackageType(Enum):
