@@ -20,11 +20,6 @@ def shlex_split_unicode(to_split, posix=True):
     return split(e_to_split, posix=posix)
 
 
-@deprecated("24.3", "24.9")
-def utf8_writer(fp):
-    return fp
-
-
 def Utf8NamedTemporaryFile(
     mode="w+b", buffering=-1, newline=None, suffix=None, prefix=None, dir=None, delete=True
 ):
