@@ -7,6 +7,7 @@ from __future__ import annotations
 from collections import UserDict
 from itertools import chain
 from logging import getLogger
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
@@ -14,7 +15,12 @@ from boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..deprecations import deprecated
-from ..exceptions import ChannelNotAllowed, InvalidSpec, PackagesNotFoundError
+from ..exceptions import (
+    ChannelNotAllowed,
+    InvalidSpec,
+    OperationNotAllowed,
+    PackagesNotFoundError,
+)
 from ..models.channel import Channel, all_channel_urls
 from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
@@ -112,6 +118,11 @@ class Index(UserDict):
         if self._prefix_data is None and self.prefix_path:
             self._prefix_data = PrefixData(self.prefix_path)
         return self._prefix_data
+
+    def reload(self, prefix=False):
+        if prefix:
+            if self.prefix_data:
+                self.prefix_data.reload()
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
@@ -538,13 +549,17 @@ def _supplement_index_with_prefix(
     :param prefix: The path to the environment prefix.
     """
     # supplement index with information from prefix/conda-meta
-    assert prefix
-    if isinstance(index, Index):
-        return
     if isinstance(prefix, PrefixData):
-        prefix_data = prefix
+        prefix_data = Path(prefix)
+        prefix_path = prefix.prefix_path
     else:
+        prefix_path = Path(prefix)
         prefix_data = PrefixData(prefix)
+    if isinstance(index, Index):
+        if not prefix_path.samefile(index.prefix_path):
+            raise OperationNotAllowed("An index can only be supplemented with its own prefix.")
+        index.reload(prefix=True)
+        return
 
     for prefix_record in prefix_data.iter_records():
         if prefix_record in index:
