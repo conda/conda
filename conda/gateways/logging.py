@@ -18,7 +18,6 @@ from logging import (
     getLogger,
 )
 
-from .. import CondaError
 from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
 from ..deprecations import deprecated
@@ -215,18 +214,6 @@ def set_file_logging(logger_name=None, level=DEBUG, path=None):
     handler.setFormatter(_FORMATTER)
     handler.setLevel(level)
     conda_logger.addHandler(handler)
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.gateways.logging.set_log_level` instead.",
-)
-def set_verbosity(verbosity: int):
-    try:
-        set_log_level(_VERBOSITY_LEVELS[verbosity])
-    except KeyError:
-        raise CondaError(f"Invalid verbosity level: {verbosity}") from None
 
 
 def set_log_level(log_level: int):
