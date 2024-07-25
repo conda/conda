@@ -13,11 +13,6 @@ class AuxlibError:
 
 
 @deprecated("24.3", "24.9")
-class InitializationError(AuxlibError, EnvironmentError):
-    pass
-
-
-@deprecated("24.3", "24.9")
 class SenderError(AuxlibError, IOError):
     pass
 
