@@ -5,9 +5,6 @@ from shlex import split
 from ..deprecations import deprecated
 
 
-deprecated.constant("24.3", "24.9", "primitive_types", (str, int, float, complex, bool, type(None)))
-
-
 def isiterable(obj):
     # and not a string
     from collections.abc import Iterable
