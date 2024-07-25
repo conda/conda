@@ -538,6 +538,7 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_prefix(
     index: Index | dict[Any, Any],
     prefix: str | PrefixData,
