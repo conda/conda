@@ -9,6 +9,7 @@ from datetime import datetime
 from functools import lru_cache, partial
 from logging import (
     DEBUG,
+    ERROR,
     INFO,
     WARN,
     Filter,
@@ -181,6 +182,11 @@ def initialize_std_loggers():
     verbose_handler.addFilter(TokenURLFilter())
     verbose_logger.addHandler(verbose_handler)
     verbose_logger.propagate = False
+
+
+@deprecated("25.3", "25.9", addendum="Unused.")
+def initialize_root_logger(level=ERROR):
+    attach_stderr_handler(level=level, filters=[TokenURLFilter()])
 
 
 def set_conda_log_level(level=WARN):
