@@ -89,11 +89,12 @@ class Index(UserDict):
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
         if prefix is None:
-            self.prefix = None
+            self.prefix_path = None
         elif isinstance(prefix, PrefixData):
-            self.prefix = prefix
+            self.prefix_path = prefix.prefix_path
         else:
-            self.prefix = PrefixData(prefix)
+            self.prefix_path = prefix
+        self._prefix_data = None
         self.unknown = True if unknown is None and context.offline else unknown
         self.track_features = context.track_features
         self.add_system = add_system
@@ -105,6 +106,12 @@ class Index(UserDict):
             ): rec
             for package in context.plugin_manager.get_virtual_packages()
         }
+
+    @property
+    def prefix_data(self):
+        if self._prefix_data is None and self.prefix_path:
+            self._prefix_data = PrefixData(self.prefix_path)
+        return self._prefix_data
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
@@ -119,7 +126,7 @@ class Index(UserDict):
             use_local=False,
             use_cache=False,
             unknown=self.unknown,
-            prefix=self.prefix,
+            prefix=self.prefix_path,
             repodata_fn=self._repodata_fn,
             add_system=self.add_system,
         )
@@ -141,7 +148,7 @@ class Index(UserDict):
         Supplement the index with information from its prefix.
         """
         # supplement index with information from prefix/conda-meta
-        for prefix_record in self.prefix.iter_records():
+        for prefix_record in self.prefix_data.iter_records():
             if prefix_record in self:
                 current_record = index_dict[prefix_record]
                 if current_record.channel == prefix_record.channel:
@@ -178,7 +185,7 @@ class Index(UserDict):
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
                 _data.update((prec, prec) for prec in subdir_data.iter_records())
-        if self.prefix:
+        if self.prefix_data:
             self._supplement_index_dict_with_prefix(_data)
         if self.unknown:
             _supplement_index_with_cache(_data)
@@ -215,7 +222,7 @@ class Index(UserDict):
         return precs
 
     def _update_from_prefix(self, key, prec):
-        prefix_prec = self.prefix.get(key.name, None) if self.prefix else None
+        prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
         if prefix_prec:
             if prec:
                 if prec.channel == prefix_prec.channel:
@@ -389,8 +396,8 @@ class ReducedIndex(Index):
 
         self._data = {rec: rec for rec in records}
 
-        if self.prefix:
-            _supplement_index_with_prefix(self._data, self.prefix)
+        if self.prefix_data:
+            self._supplement_index_dict_with_prefix(self._data)
 
         # add feature records for the solver
         known_features = set()
