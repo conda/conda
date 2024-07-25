@@ -32,7 +32,6 @@ _VERBOSITY_LEVELS = {
     3: DEBUG,  # -vvv, debug logging
     4: TRACE,  # -vvvv, trace logging
 }
-deprecated.constant("24.3", "24.9", "VERBOSITY_LEVELS", _VERBOSITY_LEVELS)
 
 
 class TokenURLFilter(Filter):
