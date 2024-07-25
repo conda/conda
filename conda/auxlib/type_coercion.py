@@ -10,7 +10,7 @@ from .compat import isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
-__all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
+__all__ = ["boolify", "typify", "maybecall", "numberify"]
 
 BOOLISH_TRUE = ("true", "yes", "on", "y")
 BOOLISH_FALSE = ("false", "off", "n", "no", "non", "none", "")
@@ -263,25 +263,3 @@ def typify_data_structure(value, type_hint=None):
 
 def maybecall(value):
     return value() if callable(value) else value
-
-
-@deprecated("24.3", "24.9")
-def listify(val, return_type=tuple):
-    """
-    Examples:
-        >>> listify('abc', return_type=list)
-        ['abc']
-        >>> listify(None)
-        ()
-        >>> listify(False)
-        (False,)
-        >>> listify(('a', 'b', 'c'), return_type=list)
-        ['a', 'b', 'c']
-    """
-    # TODO: flatlistify((1, 2, 3), 4, (5, 6, 7))
-    if val is None:
-        return return_type()
-    elif isiterable(val):
-        return return_type(val)
-    else:
-        return return_type((val, ))
