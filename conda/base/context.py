@@ -674,17 +674,6 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    @deprecated(
-        "24.3",
-        "24.9",
-        addendum="Please use `conda.base.context.context.root_prefix` instead.",
-    )
-    def root_dir(self) -> os.PathLike:
-        # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
-        # because it is more consistent with other names
-        return self.root_prefix
-
-    @property
     def root_writable(self):
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
