@@ -36,7 +36,6 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..deprecations import deprecated
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
@@ -1001,14 +1000,3 @@ def done_callback(
         if finish:
             progress_bar.finish()
             progress_bar.refresh()
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.gateways.connection.download.download` instead.",
-)
-def download(url, dst_path, session=None, md5sum=None, urlstxt=False, retries=3):
-    from ..gateways.connection.download import download as gateway_download
-
-    gateway_download(url, dst_path, md5sum)
