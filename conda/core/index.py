@@ -557,7 +557,7 @@ def _supplement_index_with_prefix(
         prefix_path = Path(prefix)
         prefix_data = PrefixData(prefix)
     if isinstance(index, Index):
-        if not prefix_path.samefile(index.prefix_path):
+        if not prefix_path.samefile(Path(index.prefix_path)):
             raise OperationNotAllowed("An index can only be supplemented with its own prefix.")
         index.reload(prefix=True)
         return
