@@ -23,7 +23,6 @@ from io import BytesIO, StringIO
 from logging import getLogger
 
 from ....common.url import urlparse
-from ....deprecations import deprecated
 from ....exceptions import AuthenticationError
 from .. import BaseAdapter, Response, dispatch_hook
 
@@ -240,34 +239,6 @@ def build_response(request, data, code, encoding):
     # Run the response hook.
     response = dispatch_hook("response", request.hooks, response)
     return response
-
-
-@deprecated("24.3", "24.9")
-def parse_multipart_files(request):
-    """Given a prepared request, return a file-like object containing the
-    original data. This is pretty hacky.
-    """
-    import cgi
-
-    # Start by grabbing the pdict.
-    _, pdict = cgi.parse_header(request.headers["Content-Type"])
-
-    # Now, wrap the multipart data in a BytesIO buffer. This is annoying.
-    buf = BytesIO()
-    buf.write(request.body)
-    buf.seek(0)
-
-    # Parse the data. Simply take the first file.
-    data = cgi.parse_multipart(buf, pdict)
-    _, filedata = data.popitem()
-    buf.close()
-
-    # Get a BytesIO now, and write the file into it.
-    buf = BytesIO()
-    buf.write("".join(filedata))
-    buf.seek(0)
-
-    return buf
 
 
 def get_status_code_from_code_response(code):
