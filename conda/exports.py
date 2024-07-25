@@ -34,7 +34,7 @@ from .common.path import win_path_to_unix  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
 from .core.index import get_index as _get_index
-from .core.package_cache_data import ProgressiveFetchExtract, rm_fetched  # noqa: F401
+from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
 from .core.subdir_data import cache_fn_url  # noqa: F401

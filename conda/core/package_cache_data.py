@@ -1003,17 +1003,6 @@ def done_callback(
             progress_bar.refresh()
 
 
-@deprecated("24.3", "24.9")
-def rm_fetched(dist):
-    """
-    Checks to see if the requested package is in the cache; and if so, it removes both
-    the package itself and its extracted contents.
-    """
-    # in conda/exports.py and conda_build/conda_interface.py, but not actually
-    #   used in conda-build
-    raise NotImplementedError()
-
-
 @deprecated(
     "24.3",
     "24.9",
