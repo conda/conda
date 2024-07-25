@@ -4,8 +4,6 @@
 
 import sys
 
-from ..deprecations import deprecated
-
 
 def init_loggers():
     import logging
@@ -22,21 +20,6 @@ def init_loggers():
 
     # set log_level
     set_log_level(context.log_level)
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.cli.conda_argparse.generate_parser` instead.",
-)
-def generate_parser(*args, **kwargs):
-    """
-    Some code paths import this function directly from this module instead
-    of from conda_argparse. We add the forwarder for backwards compatibility.
-    """
-    from .conda_argparse import generate_parser
-
-    return generate_parser(*args, **kwargs)
 
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
