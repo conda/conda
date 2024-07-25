@@ -1164,13 +1164,6 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @property
-    @deprecated("24.3", "24.9")
-    def cpu_flags(self):
-        # DANGER: This is rather slow
-        info = _get_cpu_info()
-        return info["flags"]
-
     @memoizedproperty
     @unique_sequence_map(unique_key="backend")
     def reporters(self) -> tuple[Mapping[str, str]]:
@@ -2014,15 +2007,6 @@ def replace_context_default(pushing=None, argparse_args=None):
 # be a stated goal to set conda_tests_ctxt_mgmt_def_pol to replace_context_default
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
-
-
-@deprecated("24.3", "24.9")
-@lru_cache(maxsize=None)
-def _get_cpu_info():
-    # DANGER: This is rather slow
-    from .._vendor.cpuinfo import get_cpu_info
-
-    return frozendict(get_cpu_info())
 
 
 def env_name(prefix):

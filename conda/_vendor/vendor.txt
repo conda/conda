@@ -1,2 +1,1 @@
-py-cpuinfo==9.0.0
 frozendict==1.2

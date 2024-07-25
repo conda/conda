@@ -31,5 +31,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Conda incorporates the following libraries into its distributed code:
 
 * auxlib, licensed as ISC
-* py-cpuinfo, licensed as MIT
 * frozendict, license as LGPL-3.0
