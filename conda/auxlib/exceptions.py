@@ -13,11 +13,6 @@ class AuxlibError:
 
 
 @deprecated("24.3", "24.9")
-class AuthenticationError(AuxlibError, ValueError):
-    pass
-
-
-@deprecated("24.3", "24.9")
 class NotFoundError(AuxlibError, KeyError):
     pass
 
