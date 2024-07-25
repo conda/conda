@@ -25,12 +25,6 @@ OK_MARK = "✅"
 X_MARK = "❌"
 
 
-@deprecated("24.3", "24.9")
-def display_report_heading(prefix: str) -> None:
-    """Displays our report heading."""
-    print(f"Environment Health Report for: {Path(prefix)}\n")
-
-
 def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
     """Checks whether the environment is listed in the environments.txt file"""
     prefix = Path(prefix)
