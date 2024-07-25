@@ -273,7 +273,7 @@ class Index(UserDict):
         try:
             _ = self[key]
             return True
-        except PackagesNotFoundError:
+        except (PackagesNotFoundError, KeyError):
             return False
 
     def __copy__(self):
