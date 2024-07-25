@@ -7,12 +7,6 @@ import sys
 from ..deprecations import deprecated
 
 
-@deprecated.argument(
-    "24.3",
-    "24.9",
-    "context",
-    addendum="The context is a global state, no need to pass it around.",
-)
 def init_loggers():
     import logging
 
