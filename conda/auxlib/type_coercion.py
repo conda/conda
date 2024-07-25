@@ -170,15 +170,6 @@ def boolify(value, nullable=False, return_string=False):
             raise TypeCoercionError(value, "The value %r cannot be boolified." % value)
 
 
-@deprecated("24.3", "24.9")
-def boolify_truthy_string_ok(value):
-    try:
-        return boolify(value)
-    except ValueError:
-        assert isinstance(value, str), repr(value)
-        return True
-
-
 def typify_str_no_hint(value):
     candidate = _REGEX.convert(value)
     return candidate if candidate is not NO_MATCH else value
