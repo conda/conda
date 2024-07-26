@@ -160,7 +160,7 @@ class Index(UserDict):
         """
         # supplement index with information from prefix/conda-meta
         for prefix_record in self.prefix_data.iter_records():
-            if prefix_record in self:
+            if prefix_record in index_dict:
                 current_record = index_dict[prefix_record]
                 if current_record.channel == prefix_record.channel:
                     # The downloaded repodata takes priority, so we do not overwrite.
