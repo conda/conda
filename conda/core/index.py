@@ -491,6 +491,7 @@ def get_index(
         channel_urls,
         prepend,
         platform,
+        None,
         use_local,
         use_cache,
         unknown,
