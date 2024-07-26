@@ -213,6 +213,33 @@ class CondaSetting:
     aliases: tuple[str, ...] = tuple()
 
 
+class ProgressBarBase(ABC):
+    def __init__(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ):
+        self.description = description
+        self._io_context_manager = io_context_manager
+
+    @abstractmethod
+    def update_to(self, fraction) -> None: ...
+
+    @abstractmethod
+    def refresh(self) -> None: ...
+
+    @abstractmethod
+    def close(self) -> None: ...
+
+    def finish(self):
+        self.update_to(1)
+
+    @classmethod
+    def get_lock(cls):
+        pass
+
+
 class ReporterRendererBase(ABC):
     """
     Base class for all reporter renderers.
@@ -231,6 +258,17 @@ class ReporterRendererBase(ABC):
     def envs_list(self, data, **kwargs) -> str:
         """
         Render a list of environments
+        """
+
+    @abstractmethod
+    def progress_bar(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ) -> ProgressBarBase:
+        """
+        Return a :class:`conda.common.io.ProgressBarBase` object to use a progress bar
         """
 
 

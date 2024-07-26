@@ -8,13 +8,100 @@ This reporter backend provides the default output for conda.
 
 from __future__ import annotations
 
+from errno import EPIPE, ESHUTDOWN
 from os.path import basename, dirname
+from typing import TYPE_CHECKING
 
 from ...base.constants import ROOT_ENV_NAME
 from ...base.context import context
+from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from .. import CondaReporterBackend, hookimpl
-from ..types import ReporterRendererBase
+from ..types import ProgressBarBase, ReporterRendererBase
+
+if TYPE_CHECKING:
+    from typing import Callable, ContextManager
+
+
+class QuietProgressBar(ProgressBarBase):
+    """
+    Progress bar class used when no output should be printed
+    """
+
+    def update_to(self, fraction) -> None:
+        pass
+
+    def refresh(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+class TQDMProgressBar(ProgressBarBase):
+    """
+    Progress bar class used for tqdm progress bars
+    """
+
+    def __init__(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        position=None,
+        leave=True,
+        **kwargs,
+    ) -> None:
+        super().__init__(description, io_context_manager)
+
+        self.enabled = True
+        self.file = self._io_context_manager.__enter__()
+
+        bar_format = "{desc}{bar} | {percentage:3.0f}% "
+
+        try:
+            self.pbar = self._tqdm(
+                desc=description,
+                bar_format=bar_format,
+                ascii=True,
+                total=1,
+                file=self.file,
+                position=position,
+                leave=leave,
+            )
+        except OSError as e:
+            self._io_context_manager.__exit__(None, None, None)
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.enabled = False
+            else:
+                raise
+
+    def update_to(self, fraction) -> None:
+        try:
+            if self.enabled:
+                self.pbar.update(fraction - self.pbar.n)
+        except OSError as e:
+            self._io_context_manager.__exit__(None, None, None)
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.enabled = False
+            else:
+                raise
+
+    @swallow_broken_pipe
+    def close(self) -> None:
+        if self.enabled:
+            self.pbar.close()
+        self._io_context_manager.__exit__(None, None, None)
+
+    def refresh(self) -> None:
+        if self.enabled:
+            self.pbar.refresh()
+
+    @staticmethod
+    def _tqdm(*args, **kwargs):
+        """Deferred import so it doesn't hit the `conda activate` paths."""
+        from tqdm.auto import tqdm
+
+        return tqdm(*args, **kwargs)
 
 
 class ConsoleReporterRenderer(ReporterRendererBase):
@@ -54,6 +141,20 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         output.append("\n")
 
         return "\n".join(output)
+
+    def progress_bar(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ) -> ProgressBarBase:
+        """
+        Determines whether to return a TQDMProgressBar or QuietProgressBar
+        """
+        if context.quiet:
+            return QuietProgressBar(description, io_context_manager, **kwargs)
+        else:
+            return TQDMProgressBar(description, io_context_manager, **kwargs)
 
 
 @hookimpl
