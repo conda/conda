@@ -81,7 +81,11 @@ def get_progress_bar_context_managers() -> list[ContextManager]:
     context_managers = []
 
     for settings in context.reporters:
+        reporter = context.plugin_manager.get_reporter_backend(settings.get("backend"))
         output = context.plugin_manager.get_reporter_output(settings.get("output"))
-        context_managers.append(output.stream())
+
+        context_managers.append(
+            reporter.renderer.progress_bar_context_manager(output.stream())
+        )
 
     return context_managers
