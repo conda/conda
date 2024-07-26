@@ -63,7 +63,7 @@ class Index(UserDict):
         platform=None,
         subdirs=None,
         use_local=False,
-        unknown=None,
+        use_cache=None,
         prefix=None,
         repodata_fn=context.repodata_fns[-1],
         add_system=False,
@@ -100,7 +100,7 @@ class Index(UserDict):
         else:
             self.prefix_path = prefix
         self._prefix_data = None
-        self.unknown = True if unknown is None and context.offline else unknown
+        self.use_cache = True if use_cache is None and context.offline else use_cache
         self.track_features = context.track_features
         self.add_system = add_system
         self.system_packages = {
@@ -134,7 +134,7 @@ class Index(UserDict):
             prepend=False,
             subdirs=self._subdirs,
             use_local=False,
-            unknown=self.unknown,
+            use_cache=self.use_cache,
             prefix=self.prefix_path,
             repodata_fn=self._repodata_fn,
             add_system=self.add_system,
@@ -196,7 +196,7 @@ class Index(UserDict):
                 _data.update((prec, prec) for prec in subdir_data.iter_records())
         if self.prefix_data:
             self._supplement_index_dict_with_prefix(_data)
-        if self.unknown:
+        if self.use_cache:
             _supplement_index_with_cache(_data)
         if self.track_features:
             _supplement_index_with_features(_data)
@@ -272,7 +272,7 @@ class Index(UserDict):
                     return make_feature_record(feature)
         prec = self._retrieve_from_channels(key)
         prec = self._update_from_prefix(key, prec)
-        if self.unknown:
+        if self.use_cache:
             prec = self._update_from_cache(key, prec)
         if prec is None:
             raise KeyError((key,))
@@ -302,7 +302,7 @@ class ReducedIndex(Index):
         platform=None,
         subdirs=None,
         use_local=False,
-        unknown=None,
+        use_cache=None,
         prefix=None,
         repodata_fn=context.repodata_fns[-1],
         add_system=False,
@@ -313,7 +313,7 @@ class ReducedIndex(Index):
             platform,
             subdirs,
             use_local,
-            unknown,
+            use_cache,
             prefix,
             repodata_fn,
             add_system,
@@ -742,7 +742,7 @@ def get_reduced_index(
         prepend=False,
         subdirs=subdirs,
         use_local=False,
-        unknown=False,
+        use_cache=False,
         prefix=prefix,
         repodata_fn=repodata_fn,
         add_system=True,
