@@ -3,18 +3,38 @@
 from __future__ import annotations
 
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.plugins import CondaReporterBackend, CondaReporterOutput
-from conda.plugins.types import ReporterRendererBase
-from conda.reporters import render
+from conda.plugins.types import ProgressBarBase, ReporterRendererBase
+from conda.reporters import (
+    ProgressBarManager,
+    get_progress_bar_context_managers,
+    get_progress_bar_manager,
+    render,
+)
 
 if TYPE_CHECKING:
+    from typing import Callable, ContextManager
+
     from pytest import CaptureFixture
+
+
+class DummyProgressbar(ProgressBarBase):
+    """Dummy progress bar that does nothing"""
+
+    def update_to(self, fraction) -> None:
+        pass
+
+    def refresh(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
 
 
 class DummyReporterRenderer(ReporterRendererBase):
@@ -24,17 +44,25 @@ class DummyReporterRenderer(ReporterRendererBase):
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         return f"detail_view: {data}"
 
+    def progress_bar(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ) -> ProgressBarBase:
+        return DummyProgressbar(
+            description="Dummy progress bar", io_context_manager=io_context_manager
+        )
+
 
 @contextmanager
 def dummy_io():
     yield sys.stdout
 
 
-def test_reporter_manager(capsys: CaptureFixture, mocker):
-    """
-    Ensure basic coverage of the :class:`~conda.common.io.ReporterManager` class.
-    """
-    # Setup
+@pytest.fixture
+def reporters_setup(mocker):
+    """Setup all mocks need for reporters tests"""
     reporter_backend = CondaReporterBackend(
         name="test-reporter-backend",
         description="test",
@@ -55,6 +83,11 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
     context.plugin_manager = plugin_manager
     context.reporters = reporters
 
+
+def test_render(capsys: CaptureFixture, reporters_setup):
+    """
+    Ensure basic coverage of the :func:`~conda.reporters.render` function.
+    """
     # Test simple rendering of object
     render("test-string")
 
@@ -75,3 +108,26 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
         match="'non_existent_view' is not a valid reporter backend style",
     ):
         render({"test": "data"}, style="non_existent_view")
+
+
+def test_get_progress_bar_manager(reporters_setup):
+    """
+    Ensure basic coverage of the :func:`~conda.reporters.get_progress_bar_manager~` function
+    """
+    progress_bar_manager = get_progress_bar_manager("test")
+
+    assert isinstance(progress_bar_manager, ProgressBarManager)
+
+    assert len(progress_bar_manager._progress_bars) == 1
+    assert isinstance(progress_bar_manager._progress_bars[0], DummyProgressbar)
+
+
+def test_get_progress_bar_context_managers(reporters_setup):
+    """
+    Ensure basic coverage of the
+    :func:`~conda.reporters.get_progress_bar_context_managers~` function
+    """
+    progress_bar_context_managers = get_progress_bar_context_managers()
+
+    assert len(progress_bar_context_managers) == 1
+    assert isinstance(progress_bar_context_managers[0], nullcontext)
