@@ -113,6 +113,17 @@ class Index(UserDict):
         }
 
     @property
+    def features(self):
+        try:
+            return self._features
+        except AttributeError:
+            self._features = {
+                (rec := make_feature_record(feature)): rec
+                for feature in context.track_features
+            }
+        return self._features
+
+    @property
     def prefix_data(self):
         if self._prefix_data is None and self.prefix_path:
             self._prefix_data = PrefixData(self.prefix_path)
@@ -214,7 +225,7 @@ class Index(UserDict):
         if self.use_cache:
             self._supplement_index_dict_with_cache(_data)
         if self.track_features:
-            _supplement_index_with_features(_data)
+            _data.update(self.features)
         if self.add_system:
             _data.update(self.system_packages)
         self._data = _data
@@ -649,6 +660,7 @@ def _make_virtual_package(
     )
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_features(
     index: dict[PackageRecord, PackageRecord], features: list[str] = []
 ) -> None:
