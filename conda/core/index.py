@@ -189,6 +189,21 @@ class Index(UserDict):
                 # above the priority of all known channels.
                 index_dict[prefix_record] = prefix_record
 
+    def _supplement_index_dict_with_cache(self, index_dict: dict[Any, Any]) -> None:
+        """
+        Supplement the given index with packages from the cache.
+
+        :param index: The package index to supplement.
+        """
+        # supplement index with packages from the cache
+        for pcrec in PackageCacheData.get_all_extracted_entries():
+            if pcrec in index_dict:
+                # The downloaded repodata takes priority
+                current_record = index_dict[pcrec]
+                index_dict[pcrec] = PackageCacheRecord.from_objects(current_record, pcrec)
+            else:
+                index_dict[pcrec] = pcrec
+
     def _realize(self):
         _data = {}
         for subdir_datas in self.channels.values():
@@ -197,7 +212,7 @@ class Index(UserDict):
         if self.prefix_data:
             self._supplement_index_dict_with_prefix(_data)
         if self.use_cache:
-            _supplement_index_with_cache(_data)
+            self._supplement_index_dict_with_cache(_data)
         if self.track_features:
             _supplement_index_with_features(_data)
         if self.add_system:
@@ -593,6 +608,7 @@ def _supplement_index_with_prefix(
             index[prefix_record] = prefix_record
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
     """
     Supplement the given index with packages from the cache.
