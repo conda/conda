@@ -107,6 +107,29 @@ class Index(UserDict):
         self.track_features = context.track_features
         self.add_system = add_system
 
+    def _make_virtual_package(
+        self, name: str, version: str | None = None, build_string: str | None = None
+    ) -> PackageRecord:
+        """
+        Create a virtual package record.
+
+        :param name: The name of the virtual package.
+        :param version: The version of the virtual package, defaults to "0".
+        :param build_string: The build string of the virtual package, defaults to "0".
+        :return: A PackageRecord representing the virtual package.
+        """
+        return PackageRecord(
+            package_type=PackageType.VIRTUAL_SYSTEM,
+            name=name,
+            version=version or "0",
+            build_string=build_string or "0",
+            channel="@",
+            subdir=context.subdir,
+            md5="12345678901234567890123456789012",
+            build_number=0,
+            fn=name,
+        )
+
     @property
     def system_packages(self):
         try:
@@ -114,7 +137,7 @@ class Index(UserDict):
         except AttributeError:
             self._system_packages = {
                 (
-                    rec := _make_virtual_package(
+                    rec := self._make_virtual_package(
                         f"__{package.name}", package.version, package.build
                     )
                 ): rec
