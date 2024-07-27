@@ -55,6 +55,9 @@ def check_allowlist(channel_urls: list[str]) -> None:
                 raise ChannelNotAllowed(Channel(url))
 
 
+LAST_CHANNEL_URLS = []
+
+
 class Index(UserDict):
     def __init__(
         self,
@@ -448,43 +451,7 @@ class ReducedIndex(Index):
             rec = make_feature_record(ftr_str)
             self._data[rec] = rec
 
-        self._data.update(
-            {
-                (
-                    rec := _make_virtual_package(
-                        f"__{package.name}", package.version, package.build
-                    )
-                ): rec
-                for package in context.plugin_manager.get_virtual_packages()
-            }
-        )
-
-        # _supplement_index_with_system(reduced_index)
-
-        # if prefix is not None:
-        #     _supplement_index_with_prefix(reduced_index, prefix)
-
-        # if context.offline or (
-        #     "unknown" in context._argparse_args and context._argparse_args.unknown
-        # ):
-        #     # This is really messed up right now.  Dates all the way back to
-        #     # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
-        #     # TODO: revisit this later
-        #     _supplement_index_with_cache(reduced_index)
-
-        # # add feature records for the solver
-        # known_features = set()
-        # for rec in reduced_index.values():
-        #     known_features.update((*rec.track_features, *rec.features))
-        # known_features.update(context.track_features)
-        # for ftr_str in known_features:
-        #     rec = make_feature_record(ftr_str)
-        #     reduced_index[rec] = rec
-
-        # _supplement_index_with_system(reduced_index)
-
-
-LAST_CHANNEL_URLS = []
+        self._data.update(self.system_packages)
 
 
 @time_recorder("get_index")
@@ -783,101 +750,3 @@ def get_reduced_index(
         repodata_fn=repodata_fn,
         add_system=True,
     )
-
-    records = IndexedSet()
-    collected_names = set()
-    collected_track_features = set()
-    pending_names = set()
-    pending_track_features = set()
-
-    def push_spec(spec: MatchSpec) -> None:
-        """
-        Add a package name or track feature from a MatchSpec to the pending set.
-
-        :param spec: The MatchSpec to process.
-        """
-        name = spec.get_raw_value("name")
-        if name and name not in collected_names:
-            pending_names.add(name)
-        track_features = spec.get_raw_value("track_features")
-        if track_features:
-            for ftr_name in track_features:
-                if ftr_name not in collected_track_features:
-                    pending_track_features.add(ftr_name)
-
-    def push_record(record: PackageRecord) -> None:
-        """
-        Process a package record to collect its dependencies and features.
-
-        :param record: The package record to process.
-        """
-        try:
-            combined_depends = record.combined_depends
-        except InvalidSpec as e:
-            log.warning(
-                "Skipping %s due to InvalidSpec: %s",
-                record.record_id(),
-                e._kwargs["invalid_spec"],
-            )
-            return
-        push_spec(MatchSpec(record.name))
-        for _spec in combined_depends:
-            push_spec(_spec)
-        if record.track_features:
-            for ftr_name in record.track_features:
-                push_spec(MatchSpec(track_features=ftr_name))
-
-    if prefix:
-        for prefix_rec in PrefixData(prefix).iter_records():
-            push_record(prefix_rec)
-    for spec in specs:
-        push_spec(spec)
-
-    while pending_names or pending_track_features:
-        while pending_names:
-            name = pending_names.pop()
-            collected_names.add(name)
-            spec = MatchSpec(name)
-            new_records = SubdirData.query_all(
-                spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
-            )
-            for record in new_records:
-                push_record(record)
-            records.update(new_records)
-
-        while pending_track_features:
-            feature_name = pending_track_features.pop()
-            collected_track_features.add(feature_name)
-            spec = MatchSpec(track_features=feature_name)
-            new_records = SubdirData.query_all(
-                spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
-            )
-            for record in new_records:
-                push_record(record)
-            records.update(new_records)
-
-    reduced_index = {rec: rec for rec in records}
-
-    if prefix is not None:
-        _supplement_index_with_prefix(reduced_index, prefix)
-
-    if context.offline or (
-        "unknown" in context._argparse_args and context._argparse_args.unknown
-    ):
-        # This is really messed up right now.  Dates all the way back to
-        # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
-        # TODO: revisit this later
-        _supplement_index_with_cache(reduced_index)
-
-    # add feature records for the solver
-    known_features = set()
-    for rec in reduced_index.values():
-        known_features.update((*rec.track_features, *rec.features))
-    known_features.update(context.track_features)
-    for ftr_str in known_features:
-        rec = make_feature_record(ftr_str)
-        reduced_index[rec] = rec
-
-    _supplement_index_with_system(reduced_index)
-
-    return reduced_index
