@@ -244,7 +244,9 @@ class Index(UserDict):
             if pcrec in index_dict:
                 # The downloaded repodata takes priority
                 current_record = index_dict[pcrec]
-                index_dict[pcrec] = PackageCacheRecord.from_objects(current_record, pcrec)
+                index_dict[pcrec] = PackageCacheRecord.from_objects(
+                    current_record, pcrec
+                )
             else:
                 index_dict[pcrec] = pcrec
 
@@ -633,7 +635,9 @@ def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
             index[pcrec] = pcrec
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index._make_virtual_package` instead.")
+@deprecated(
+    "24.9", "25.3", addendum="Use `conda.core.Index._make_virtual_package` instead."
+)
 def _make_virtual_package(
     name: str, version: str | None = None, build_string: str | None = None
 ) -> PackageRecord:
@@ -742,7 +746,11 @@ def calculate_channel_urls(
     return all_channel_urls(channel_urls, subdirs=subdirs)
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.ReducedIndex` or `conda.core.Index.get_reduced_index` instead.")
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `conda.core.ReducedIndex` or `conda.core.Index.get_reduced_index` instead.",
+)
 def get_reduced_index(
     prefix: str | None,
     channels: list[str],
