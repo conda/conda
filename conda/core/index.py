@@ -103,14 +103,21 @@ class Index(UserDict):
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.track_features = context.track_features
         self.add_system = add_system
-        self.system_packages = {
-            (
-                rec := _make_virtual_package(
-                    f"__{package.name}", package.version, package.build
-                )
-            ): rec
-            for package in context.plugin_manager.get_virtual_packages()
-        }
+
+    @property
+    def system_packages(self):
+        try:
+            return self._system_packages
+        except AttributeError:
+            self._system_packages = {
+                (
+                    rec := _make_virtual_package(
+                        f"__{package.name}", package.version, package.build
+                    )
+                ): rec
+                for package in context.plugin_manager.get_virtual_packages()
+            }
+        return self._system_packages
 
     @property
     def features(self):
@@ -675,6 +682,7 @@ def _supplement_index_with_features(
         index[rec] = rec
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
     """
     Loads and populates virtual package records from conda plugins
