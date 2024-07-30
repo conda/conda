@@ -24,6 +24,7 @@ from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
+from ...deprecations import deprecated
 from . import MAX_TRIES
 from .link import islink, lexists
 from .permissions import make_writable
@@ -35,7 +36,7 @@ if not on_win:
 log = getLogger(__name__)
 
 
-def rmtree(path, *args, **kwargs):
+def rmtree(path):
     # subprocessing to delete large folders can be quite a bit faster
     path = normpath(path)
     if on_win:
@@ -193,7 +194,9 @@ def remove_empty_parent_paths(path):
         parent_path = dirname(parent_path)
 
 
-def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **kw):
+@deprecated.argument("25.3", "25.9", "max_retries")
+@deprecated.argument("25.3", "25.9", "trash")
+def rm_rf(path, clean_empty_parents=False):
     """
     Completely delete path
     max_retries is the number of times to retry on failure. The default is 5. This only applies
@@ -221,7 +224,9 @@ def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **k
 
 
 # aliases that all do the same thing (legacy compat)
-try_rmdir_all_empty = move_to_trash = move_path_to_trash = rm_rf
+deprecated.constant("25.3", "25.9", "try_rmdir_all_empty", rm_rf)
+deprecated.constant("25.3", "25.9", "move_to_trash", rm_rf)
+deprecated.constant("25.3", "25.9", "move_path_to_trash", rm_rf)
 
 
 def delete_trash(prefix):
