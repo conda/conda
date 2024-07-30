@@ -5,7 +5,6 @@
 import fnmatch
 import shutil
 import sys
-from errno import ENOENT
 from logging import getLogger
 from os import environ, getcwd, makedirs, rename, rmdir, scandir, unlink, walk
 from os.path import (
@@ -25,9 +24,9 @@ from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
-from . import MAX_TRIES, exp_backoff_fn
+from . import MAX_TRIES
 from .link import islink, lexists
-from .permissions import make_writable, recursive_make_writable
+from .permissions import make_writable
 
 if not on_win:
     from shutil import which
@@ -247,27 +246,11 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
     if not isdir(dirpath):
         return
 
-    def retry(func, path, exc_info):
-        if getattr(exc_info[1], "errno", None) == ENOENT:
-            return
-        recursive_make_writable(dirname(path), max_tries=max_tries)
-        func(path)
-
-    def _rmdir(path):
-        try:
-            recursive_make_writable(path)
-            exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-        except OSError as e:
-            if e.errno == ENOENT:
-                log.log(TRACE, "no such file or directory: %s", path)
-            else:
-                raise
-
     try:
         rmtree(dirpath)
-    # we don't really care about errors that much.  We'll catch remaining files
-    #    with slower python logic.
     except:
+        # we don't really care about errors that much.  We'll catch remaining files
+        #    with slower python logic.
         pass
 
     for root, dirs, files in walk(dirpath, topdown=False):
