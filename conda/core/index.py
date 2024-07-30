@@ -59,6 +59,33 @@ LAST_CHANNEL_URLS = []
 
 
 class Index(UserDict):
+    """The ``Index`` provides information about available packages from all relevant sources.
+
+    There are four types of sources for package information, namely
+
+    Channels
+        represent packages available from standard sources identified with a url, mostly online,
+        but can also be on a local filesystem using the `file://` scheme.
+        Programatically, channels are represented by :class:`conda.models.Channel`, their data
+        is fetched using :class:`conda.index.subdir_data.SubdirData`.
+
+        For more information see :ref:`condepts-channels`.
+
+    Prefix
+        represents packages that are already installed. Every :class:`Index` can be associated
+        with exactly one Prefix, which is the location of one of the conda :ref:`concepts-environments`.
+        The package information about the installed packages is represented by :class:`conda.prefix.prefix_data.PrefixData`.
+
+    Package Cache
+        represents packages that are locally unpacked, but may not be installed in the environment
+        associated with this index. These are usually packages that have been installed in any environment
+        of the local conda installation, but may have been removed from all environments by now.
+
+    Virtual Packages
+        represent properties of the system, not actual conda packages in the normal sense. These are,
+        for example, system packages that inform the solver about the operating system in use, or
+        track features that can be used to steer package priority.
+    """
     def __init__(
         self,
         channels=(),
