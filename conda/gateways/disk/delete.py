@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for deleting files and folders."""
 
+from __future__ import annotations
+
 import fnmatch
+import os
 import shutil
 import sys
 from logging import getLogger
-from os import environ, getcwd, makedirs, rename, rmdir, scandir, unlink, walk
 from os.path import (
     abspath,
     basename,
@@ -73,7 +75,7 @@ def rmtree(path):
                 with open(name) as contents:
                     content = contents.read()
                     assert path in content
-                comspec = environ["COMSPEC"]
+                comspec = os.getenv("COMSPEC")
                 CREATE_NO_WINDOW = 0x08000000
                 # It is essential that we `pass stdout=None, stderr=None, stdin=None` here because
                 # if we do not, then the standard console handles get attached and chcp affects the
@@ -99,7 +101,7 @@ def rmtree(path):
                     )
     else:
         try:
-            makedirs(".empty")
+            os.makedirs(".empty")
         except:
             pass
         # yes, this looks strange.  See
@@ -117,7 +119,7 @@ def rmtree(path):
                             "-a",
                             "--force",
                             "--delete",
-                            join(getcwd(), ".empty") + "/",
+                            join(os.getcwd(), ".empty") + "/",
                             path + "/",
                         ],
                         stderr=STDOUT,
@@ -139,10 +141,10 @@ def unlink_or_rename_to_trash(path):
     """
     try:
         make_writable(path)
-        unlink(path)
+        os.unlink(path)
     except OSError:
         try:
-            rename(path, path + ".conda_trash")
+            os.rename(path, path + ".conda_trash")
         except OSError:
             if on_win:
                 # on windows, it is important to use the rename program, as just using python's
@@ -189,14 +191,14 @@ def remove_empty_parent_paths(path):
     # recurse to clean up empty folders that were created to have a nested hierarchy
     parent_path = dirname(path)
 
-    while isdir(parent_path) and not next(scandir(parent_path), None):
-        rmdir(parent_path)
+    while isdir(parent_path) and not next(os.scandir(parent_path), None):
+        os.rmdir(parent_path)
         parent_path = dirname(parent_path)
 
 
 @deprecated.argument("25.3", "25.9", "max_retries")
 @deprecated.argument("25.3", "25.9", "trash")
-def rm_rf(path, clean_empty_parents=False):
+def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     """
     Completely delete path
     max_retries is the number of times to retry on failure. The default is 5. This only applies
@@ -233,7 +235,7 @@ def delete_trash(prefix):
     if not prefix:
         prefix = sys.prefix
     exclude = {"envs", "pkgs"}
-    for root, dirs, files in walk(prefix, topdown=True):
+    for root, dirs, files in os.walk(prefix, topdown=True):
         dirs[:] = [d for d in dirs if d not in exclude]
         for fn in files:
             if fnmatch.fnmatch(fn, "*.conda_trash*") or fnmatch.fnmatch(
@@ -241,7 +243,7 @@ def delete_trash(prefix):
             ):
                 filename = join(root, fn)
                 try:
-                    unlink(filename)
+                    os.unlink(filename)
                     remove_empty_parent_paths(filename)
                 except OSError as e:
                     log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, filename)
@@ -258,7 +260,7 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
         #    with slower python logic.
         pass
 
-    for root, dirs, files in walk(dirpath, topdown=False):
+    for root, dirs, files in os.walk(dirpath, topdown=False):
         for file in files:
             unlink_or_rename_to_trash(join(root, file))
 
@@ -270,7 +272,7 @@ def path_is_clean(path):
     """
     clean = not exists(path)
     if not clean:
-        for root, dirs, fns in walk(path):
+        for root, dirs, fns in os.walk(path):
             for fn in fns:
                 if not (
                     fnmatch.fnmatch(fn, "*.conda_trash*")
