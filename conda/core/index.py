@@ -86,6 +86,7 @@ class Index(UserDict):
         for example, system packages that inform the solver about the operating system in use, or
         track features that can be used to steer package priority.
     """
+
     def __init__(
         self,
         channels=(),
