@@ -175,7 +175,7 @@ class CondaCLIFixture:
 
 
 @pytest.fixture
-def conda_cli(capsys: CaptureFixture) -> CondaCLIFixture:
+def conda_cli(capsys: CaptureFixture) -> Iterator[CondaCLIFixture]:
     """Fixture returning CondaCLIFixture instance."""
     yield CondaCLIFixture(capsys)
 
@@ -207,7 +207,7 @@ class PathFactoryFixture:
 
 
 @pytest.fixture
-def path_factory(tmp_path: Path) -> PathFactoryFixture:
+def path_factory(tmp_path: Path) -> Iterator[PathFactoryFixture]:
     """Fixture returning PathFactoryFixture instance."""
     yield PathFactoryFixture(tmp_path)
 
@@ -241,7 +241,7 @@ class TmpEnvFixture:
 def tmp_env(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
-) -> TmpEnvFixture:
+) -> Iterator[TmpEnvFixture]:
     """Fixture returning TmpEnvFixture instance."""
     yield TmpEnvFixture(path_factory, conda_cli)
 
@@ -301,7 +301,7 @@ class TmpChannelFixture:
 def tmp_channel(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
-) -> TmpChannelFixture:
+) -> Iterator[TmpChannelFixture]:
     """Fixture returning TmpChannelFixture instance."""
     yield TmpChannelFixture(path_factory, conda_cli)
 
@@ -324,7 +324,9 @@ def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
 
 
 @pytest.fixture
-def tmp_pkgs_dir(path_factory: PathFactoryFixture, mocker: MockerFixture) -> Path:
+def tmp_pkgs_dir(
+    path_factory: PathFactoryFixture, mocker: MockerFixture
+) -> Iterator[Path]:
     pkgs_dir = path_factory() / "pkgs"
     pkgs_dir.mkdir(parents=True)
     (pkgs_dir / PACKAGE_CACHE_MAGIC_FILE).touch()
@@ -339,3 +341,20 @@ def tmp_pkgs_dir(path_factory: PathFactoryFixture, mocker: MockerFixture) -> Pat
     yield pkgs_dir
 
     PackageCacheData._cache_.pop(pkgs_dir_str, None)
+
+
+@pytest.fixture
+def tmp_envs_dir(
+    path_factory: PathFactoryFixture, mocker: MockerFixture
+) -> Iterator[Path]:
+    envs_dir = path_factory() / "envs"
+    envs_dir.mkdir(parents=True)
+
+    mocker.patch(
+        "conda.base.context.Context.envs_dirs",
+        new_callable=mocker.PropertyMock,
+        return_value=(envs_dirs := (str(envs_dir))),
+    )
+    assert context.envs_dirs == envs_dirs
+
+    yield envs_dir
