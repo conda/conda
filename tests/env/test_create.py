@@ -27,7 +27,9 @@ def get_env_vars(prefix):
 
 @pytest.mark.integration
 def test_create_update(
-    conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch, tmp_envs_dir: Path
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_envs_dir: Path,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
@@ -69,7 +71,9 @@ def test_create_update(
 @pytest.mark.skip(reason="Need to find an appropriate server to test this on.")
 @pytest.mark.integration
 def test_create_host_port(
-    monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, tmp_envs_dir: Path
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
@@ -86,7 +90,9 @@ def test_create_host_port(
 
 @pytest.mark.integration
 def test_create_advanced_pip(
-    monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, tmp_envs_dir: Path
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
@@ -108,7 +114,9 @@ def test_create_advanced_pip(
 
 @pytest.mark.integration
 def test_create_empty_env(
-    monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, tmp_envs_dir: Path
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name

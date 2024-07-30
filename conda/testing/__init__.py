@@ -353,8 +353,8 @@ def tmp_envs_dir(
     mocker.patch(
         "conda.base.context.Context.envs_dirs",
         new_callable=mocker.PropertyMock,
-        return_value=(envs_dirs := (str(envs_dir))),
+        return_value=(envs_dir_str := str(envs_dir),),
     )
-    assert context.envs_dirs == envs_dirs
+    assert context.envs_dirs == (envs_dir_str,)
 
     yield envs_dir
