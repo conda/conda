@@ -4,14 +4,14 @@
 
 import re
 import sys
-from os.path import basename, dirname, isdir, isfile, join, normcase
+from os.path import isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
@@ -213,30 +213,9 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
+@deprecated("24.9", "25.3", addendum="Use `conda.reporters.render` instead")
 def print_envs_list(known_conda_prefixes, output=True):
-    if output:
-        print("# conda environments:")
-        print("#")
-
-    def disp_env(prefix):
-        fmt = "%-20s  %s  %s"
-        active = "*" if prefix == context.active_prefix else " "
-        if prefix == context.root_prefix:
-            name = ROOT_ENV_NAME
-        elif any(
-            paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs
-        ):
-            name = basename(prefix)
-        else:
-            name = ""
-        if output:
-            print(fmt % (name, active, prefix))
-
-    for prefix in known_conda_prefixes:
-        disp_env(prefix)
-
-    if output:
-        print()
+    render(known_conda_prefixes, style="envs_list", output=output)
 
 
 def check_non_admin():

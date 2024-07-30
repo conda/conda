@@ -50,6 +50,17 @@ def test_console_reporter_renderer_envs_list(mocker):
     assert "envs                   /tmp/envs" in output
 
 
+def test_console_reporter_renderer_envs_list_output_false():
+    """
+    Test for the case when output=False; it should return an empty string
+    """
+    console_reporter_renderer = ConsoleReporterRenderer()
+
+    output = console_reporter_renderer.envs_list(["/tmp/envs"], output=False)
+
+    assert output == ""
+
+
 def test_tqdm_progress_bar_os_error(mocker):
     """
     Test for the case where an OSError is raised on tqdm object creation

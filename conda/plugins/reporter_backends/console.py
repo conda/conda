@@ -120,7 +120,10 @@ class ConsoleReporterRenderer(ReporterRendererBase):
 
         return "\n".join(table_parts)
 
-    def envs_list(self, prefixes, **kwargs) -> str:
+    def envs_list(self, prefixes, output=True, **kwargs) -> str:
+        if not output:
+            return ""
+
         output = ["", "# conda environments:", "#"]
 
         def disp_env(prefix):
