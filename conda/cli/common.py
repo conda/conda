@@ -4,7 +4,6 @@
 
 import re
 import sys
-from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals
@@ -13,13 +12,13 @@ from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
-from ..common.serialize import json_dump
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
 from ..models.match_spec import MatchSpec
+from ..reporters import render
 
 
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
@@ -198,7 +197,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    getLogger("conda.stdout").info(json_dump(d))
+    render(d)
 
 
 def stdout_json_success(success=True, **kwargs):

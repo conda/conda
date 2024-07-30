@@ -943,6 +943,7 @@ class ProgressiveFetchExtract:
             position=position,
             leave=leave,
             progress_context_managers=progress_context_managers,
+            enabled=not context.verbose and not context.quiet and IS_INTERACTIVE,
         )
 
         return progress_bar

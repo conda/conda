@@ -10,7 +10,7 @@ essentially just a wrapper around ``conda.common.serialize.json_dump``.
 from __future__ import annotations
 
 from threading import RLock
-from typing import TYPE_CHECKING, Callable, ContextManager
+from typing import TYPE_CHECKING
 
 from ...common.io import swallow_broken_pipe
 from ...common.serialize import json_dump
@@ -30,18 +30,19 @@ class JSONProgressBar(ProgressBarBase):
         self,
         description: str,
         io_context_manager: Callable[[], ContextManager],
-        position=None,
-        leave=True,
+        enabled: bool = True,
         **kwargs,
     ):
         super().__init__(description, io_context_manager)
         self.file = self._io_context_manager.__enter__()
+        self.enabled = enabled
 
     def update_to(self, fraction) -> None:
         with self.get_lock():
-            self.file.write(
-                f'{{"fetch":"{self.description}","finished":false,"maxval":1,"progress":{fraction:f}}}\n\0'
-            )
+            if self.enabled:
+                self.file.write(
+                    f'{{"fetch":"{self.description}","finished":false,"maxval":1,"progress":{fraction:f}}}\n\0'
+                )
 
     def refresh(self):
         pass
@@ -49,10 +50,11 @@ class JSONProgressBar(ProgressBarBase):
     @swallow_broken_pipe
     def close(self):
         with self.get_lock():
-            self.file.write(
-                f'{{"fetch":"{self.description}","finished":true,"maxval":1,"progress":1}}\n\0'
-            )
-            self.file.flush()
+            if self.enabled:
+                self.file.write(
+                    f'{{"fetch":"{self.description}","finished":true,"maxval":1,"progress":1}}\n\0'
+                )
+                self.file.flush()
 
         self._io_context_manager.__exit__(None, None, None)
 
@@ -86,7 +88,7 @@ class JSONReporterRenderer(ReporterRendererBase):
         io_context_manager: Callable[[], ContextManager],
         **kwargs,
     ) -> ProgressBarBase:
-        return JSONProgressBar(description, io_context_manager)
+        return JSONProgressBar(description, io_context_manager, **kwargs)
 
 
 @hookimpl
