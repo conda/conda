@@ -12,7 +12,7 @@ from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import PathConflict
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.io import captured, env_var, env_vars
+from conda.common.io import captured, env_vars
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
@@ -704,7 +704,7 @@ def test_print_unexpected_error_message_opt_out_2(isatty_mock, input_mock, post_
     assert "conda version" in c.stderr
 
 
-def test_BinaryPrefixReplacementError():
+def test_BinaryPrefixReplacementError(monkeypatch: MonkeyPatch) -> None:
     new_data_length = 1104
     original_data_length = 1404
     new_prefix = "some/where/on/goodwin.ave"
@@ -713,9 +713,13 @@ def test_BinaryPrefixReplacementError():
     exc = BinaryPrefixReplacementError(
         path, placeholder, new_prefix, original_data_length, new_data_length
     )
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
@@ -732,9 +736,12 @@ def test_BinaryPrefixReplacementError():
     assert json_obj["path"] == path
     assert json_obj["placeholder"] == placeholder
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
