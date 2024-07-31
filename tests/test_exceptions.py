@@ -138,17 +138,17 @@ def test_KnownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_UnknownPackageClobberError():
+def test_UnknownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     target_path = "siebel/center/for/c.s"
     colliding_dist_being_linked = "Groot"
     exc = UnknownPackageClobberError(target_path, colliding_dist_being_linked, context)
-    with env_var(
-        "CONDA_PATH_CONFLICT",
-        "prevent",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+    assert context.path_conflict == PathConflict.prevent
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
