@@ -992,357 +992,360 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_display_actions_features():
-    with env_var(
-        "CONDA_SHOW_CHANNEL_URLS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                ]
-            }
+def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_SHOW_CHANNEL_URLS", "False")
+    reset_context()
+    assert not context.show_channel_urls
+
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+            ]
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    cython: 0.19-py33_0  ",
+            "    numpy:  1.7.1-py33_p0 [mkl]",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+            ]
+        }
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    cython: 0.19-py33_0  ",
-                "    numpy:  1.7.1-py33_p0 [mkl]",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be REMOVED:",
+            "",
+            "    cython: 0.19-py33_0  ",
+            "    numpy:  1.7.1-py33_p0 [mkl]",
+            "",
+            "",
         )
+    )
 
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                ]
-            }
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
+            ],
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
+            ],
+        }
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be REMOVED:",
-                "",
-                "    cython: 0.19-py33_0  ",
-                "    numpy:  1.7.1-py33_p0 [mkl]",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    numpy: 1.7.0-py33_p0 [mkl] --> 1.7.1-py33_p0 [mkl]",
+            "",
+            "",
         )
+    )
 
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
-                ],
-            }
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
+            ],
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    # NB: Packages whose version do not changed are put in UPDATED
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    numpy: 1.7.1-py33_0 --> 1.7.1-py33_p0 [mkl]",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
+            ],
+        }
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0",
+            "",
+            "",
         )
+    )
 
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
-                ],
-            }
+    monkeypatch.setenv("CONDA_SHOW_CHANNEL_URLS", "True")
+    reset_context()
+    assert context.show_channel_urls
+
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+            ]
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    cython: 0.19-py33_0   channel-1",
+            "    numpy:  1.7.1-py33_p0 channel-1 [mkl]",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+            ]
+        }
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    numpy: 1.7.0-py33_p0 [mkl] --> 1.7.1-py33_p0 [mkl]",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be REMOVED:",
+            "",
+            "    cython: 0.19-py33_0   channel-1",
+            "    numpy:  1.7.1-py33_p0 channel-1 [mkl]",
+            "",
+            "",
         )
+    )
 
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
-                ],
-            }
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
+            ],
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.0-py33_p0 channel-1 [mkl]",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
+            ],
+        }
+    )
 
-        # NB: Packages whose version do not changed are put in UPDATED
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    numpy: 1.7.1-py33_0 --> 1.7.1-py33_p0 [mkl]",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    numpy: 1.7.0-py33_p0 channel-1 [mkl] --> 1.7.1-py33_p0 channel-1 [mkl]",
+            "",
+            "",
         )
+    )
 
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
-                ],
-            }
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
+            ],
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    # NB: Packages whose version do not changed are put in UPDATED
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    numpy: 1.7.1-py33_0 channel-1 --> 1.7.1-py33_p0 channel-1 [mkl]",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
+            ],
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
+            ],
+        }
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.1-py33_0 channel-1",
+            "",
+            "",
         )
-    with env_var(
-        "CONDA_SHOW_CHANNEL_URLS", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                ]
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    cython: 0.19-py33_0   channel-1",
-                "    numpy:  1.7.1-py33_p0 channel-1 [mkl]",
-                "",
-                "",
-            )
-        )
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                ]
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be REMOVED:",
-                "",
-                "    cython: 0.19-py33_0   channel-1",
-                "    numpy:  1.7.1-py33_p0 channel-1 [mkl]",
-                "",
-                "",
-            )
-        )
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
-                ],
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.0-py33_p0 channel-1 [mkl]",
-                "",
-                "",
-            )
-        )
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.0=py33_p0"),
-                ],
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    numpy: 1.7.0-py33_p0 channel-1 [mkl] --> 1.7.1-py33_p0 channel-1 [mkl]",
-                "",
-                "",
-            )
-        )
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
-                ],
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        # NB: Packages whose version do not changed are put in UPDATED
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    numpy: 1.7.1-py33_0 channel-1 --> 1.7.1-py33_p0 channel-1 [mkl]",
-                "",
-                "",
-            )
-        )
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_p0"),
-                ],
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
-                ],
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.1-py33_0 channel-1",
-                "",
-                "",
-            )
-        )
+    )
 
 
 def test_update_old_plan():
