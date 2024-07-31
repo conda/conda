@@ -303,12 +303,16 @@ def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_PackageNotFoundError():
+def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
     package = "Potato"
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            exc = PackagesNotFoundError((package,))
-            conda_exception_handler(_raise_helper, exc)
+    exc = PackagesNotFoundError((package,))
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
@@ -318,9 +322,12 @@ def test_PackageNotFoundError():
     assert json_obj["message"] == str(exc)
     assert json_obj["error"] == repr(exc)
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
