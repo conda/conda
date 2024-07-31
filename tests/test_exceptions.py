@@ -650,19 +650,24 @@ def test_print_unexpected_error_message_upload_username_with_spaces(
     ),
 )
 @patch("getpass.getuser", return_value="my√nameΩ")
-def test_print_unexpected_error_message_upload_username_with_unicode(pwuid, post_mock):
-    with env_var(
-        "CONDA_REPORT_ERRORS", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        with captured() as c:
-            ExceptionHandler()(_raise_helper, AssertionError())
+def test_print_unexpected_error_message_upload_username_with_unicode(
+    pwuid,
+    post_mock,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
+    reset_context()
+    assert context.report_errors
 
-        error_data = json.loads(post_mock.call_args[1].get("data"))
-        assert error_data.get("has_spaces") is False
-        assert error_data.get("is_ascii") is False
-        assert post_mock.call_count == 2
-        assert c.stdout == ""
-        assert "conda version" in c.stderr
+    with captured() as c:
+        ExceptionHandler()(_raise_helper, AssertionError())
+
+    error_data = json.loads(post_mock.call_args[1].get("data"))
+    assert error_data.get("has_spaces") is False
+    assert error_data.get("is_ascii") is False
+    assert post_mock.call_count == 2
+    assert c.stdout == ""
+    assert "conda version" in c.stderr
 
 
 @patch("requests.post", return_value=None)
