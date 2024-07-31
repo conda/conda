@@ -372,7 +372,7 @@ def test_CondaKeyError(monkeypatch: MonkeyPatch) -> None:
     assert c.stderr.strip() == "CondaKeyError: 'Potato': Potato is not a key."
 
 
-def test_CondaHTTPError():
+def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
     msg = "Potato"
     url = "https://download.url/path/to/Potato.tar.gz"
     status_code = "Potato"
@@ -380,24 +380,30 @@ def test_CondaHTTPError():
     elapsed_time = 1.24
     exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time)
 
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
 
-        json_obj = json.loads(c.stdout)
-        assert not c.stderr
-        assert json_obj["exception_type"] == "<class 'conda.exceptions.CondaHTTPError'>"
-        assert json_obj["exception_name"] == "CondaHTTPError"
-        assert json_obj["message"] == str(exc)
-        assert json_obj["error"] == repr(exc)
-        assert json_obj["url"] == url
-        assert json_obj["status_code"] == status_code
-        assert json_obj["reason"] == reason
-        assert json_obj["elapsed_time"] == elapsed_time
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    json_obj = json.loads(c.stdout)
+    assert not c.stderr
+    assert json_obj["exception_type"] == "<class 'conda.exceptions.CondaHTTPError'>"
+    assert json_obj["exception_name"] == "CondaHTTPError"
+    assert json_obj["message"] == str(exc)
+    assert json_obj["error"] == repr(exc)
+    assert json_obj["url"] == url
+    assert json_obj["status_code"] == status_code
+    assert json_obj["reason"] == reason
+    assert json_obj["elapsed_time"] == elapsed_time
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
