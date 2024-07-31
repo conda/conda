@@ -4,10 +4,12 @@ package:
 
 build:
   number: 0
+  noarch: generic
   script:
-    - echo "test" > ${PREFIX}/bin/file    #[not win]
-    - echo "test" > %LIBRARY_PREFIX%/bin/file     #[win]
+    # since this is a noarch package we don't care that this is unix
+    - mkdir -p ${PREFIX}/bin
+    - echo "test" > ${PREFIX}/bin/file
 
 
 about:
-  summary: Test that post link scripts get run la
+  summary: Test that post link scripts get run last

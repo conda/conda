@@ -1,5 +1,5 @@
 from itertools import islice
-from json import JSONEncoder, dumps
+from json import JSONEncoder, dumps, loads
 from logging import getLogger, INFO, Formatter, StreamHandler, DEBUG
 from sys import stderr
 
@@ -138,9 +138,13 @@ def stringify(obj, content_max_len=0):
             builder.append('')
             content_type = response_object.headers.get('Content-Type')
             if content_type == 'application/json':
-                resp = response_object.json()
-                resp = dict(islice(resp.items(), content_max_len))
-                content = dumps(resp, indent=2)
+                text = response_object.text
+                if len(text) > content_max_len:
+                    content = text
+                else:
+                    resp = loads(text)
+                    resp = dict(islice(resp.items(), content_max_len))
+                    content = dumps(resp, indent=2)
                 content = content[:content_max_len] if len(content) > content_max_len else content
                 builder.append(content)
                 builder.append('')

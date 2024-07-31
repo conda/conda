@@ -1,6 +1,6 @@
 # Conda Organization Code of Conduct
 
-> **Note**
+> [!NOTE]
 > Below is the short version of our CoC, see the long version [here](https://github.com/conda-incubator/governance/blob/main/CODE_OF_CONDUCT.md).
 
 # The Short Version

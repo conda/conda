@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common utilities for conda command line tools."""
+
 import re
 import sys
 from logging import getLogger
@@ -12,8 +14,11 @@ from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
-from ..deprecations import deprecated
-from ..exceptions import DirectoryNotACondaEnvironmentError, EnvironmentLocationNotFound
+from ..exceptions import (
+    CondaError,
+    DirectoryNotACondaEnvironmentError,
+    EnvironmentLocationNotFound,
+)
 from ..models.match_spec import MatchSpec
 
 
@@ -27,7 +32,7 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
     options = []
     for option in choices:
         if option == default:
-            options.append("[%s]" % option[0])
+            options.append(f"[{option[0]}]")
         else:
             options.append(option[0])
     message = "{} ({})? ".format(message, "/".join(options))
@@ -37,9 +42,12 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
         # raw_input has a bug and prints to stderr, not desirable
         sys.stdout.write(message)
         sys.stdout.flush()
-        user_choice = sys.stdin.readline().strip().lower()
+        try:
+            user_choice = sys.stdin.readline().strip().lower()
+        except OSError as e:
+            raise CondaError(f"cannot read from stdin: {e}")
         if user_choice not in choices:
-            print("Invalid choice: %s" % user_choice)
+            print(f"Invalid choice: {user_choice}")
         else:
             sys.stdout.write("\n")
             sys.stdout.flush()
@@ -68,17 +76,6 @@ def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
     return True
 
 
-@deprecated("23.3", "23.9")
-def ensure_name_or_prefix(args, command):
-    if not (args.name or args.prefix):
-        from ..exceptions import CondaValueError
-
-        raise CondaValueError(
-            "either -n NAME or -p PREFIX option required,\n"
-            'try "conda %s -h" for more details' % command
-        )
-
-
 def is_active_prefix(prefix: str) -> bool:
     """
     Determines whether the args we pass in are pointing to the active prefix.
@@ -100,18 +97,16 @@ def arg2spec(arg, json=False, update=False):
     except:
         from ..exceptions import CondaValueError
 
-        raise CondaValueError("invalid package specification: %s" % arg)
+        raise CondaValueError(f"invalid package specification: {arg}")
 
     name = spec.name
     if not spec._is_simple() and update:
         from ..exceptions import CondaValueError
 
         raise CondaValueError(
-            """version specifications not allowed with 'update'; use
-    conda update  {}{}  or
-    conda install {}""".format(
-                name, " " * (len(arg) - len(name)), arg
-            )
+            "version specifications not allowed with 'update'; use\n"
+            f"    conda update  {name:<{len(arg)}}  or\n"
+            f"    conda install {arg:<{len(name)}}"
         )
 
     return str(spec)
@@ -196,7 +191,7 @@ def names_in_specs(names, specs):
 
 def disp_features(features):
     if features:
-        return "[%s]" % " ".join(features)
+        return "[{}]".format(" ".join(features))
     else:
         return ""
 

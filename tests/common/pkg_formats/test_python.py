@@ -402,7 +402,7 @@ def test_metadata():
     # Check versions
     for fpath in METADATA_VERSION_PATHS:
         if not lexists(fpath):
-            pytest.skip("test files not found: %s" % fpath)
+            pytest.skip(f"test files not found: {fpath}")
         meta = PythonDistributionMetadata(fpath)
         a = meta.get_dist_requirements()
         b = meta.get_python_requirements()
@@ -556,11 +556,7 @@ def test_pydist_check_files():
 
 def test_python_dist_info():
     test_files = (
-        (
-            "",
-            "METADATA",
-            ("Name: zoom\n" "Requires-Python: ==2.7\n" "Requires-External: C\n"),
-        ),
+        ("", "METADATA", "Name: zoom\nRequires-Python: ==2.7\nRequires-External: C\n"),
         ("", "RECORD", 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'),
         ("", "INSTALLER", ""),
     )

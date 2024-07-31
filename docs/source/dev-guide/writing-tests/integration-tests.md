@@ -20,7 +20,7 @@ running `conda create`. A test like this would look like the following:
 import json
 from pathlib import Path
 
-from conda.testing.integration import CondaCLIFixture
+from conda.testing import CondaCLIFixture
 
 
 def test_conda_create(conda_cli: CondaCLIFixture, tmp_path: Path):
@@ -84,7 +84,7 @@ tests:
 :linenos:
 :name: test-conda-environment-with-numpy
 :caption: Integration test for creating an environment with `numpy`
-from conda.testing.integration import CondaCLIFixture, TmpEnvFixture
+from conda.testing import CondaCLIFixture, TmpEnvFixture
 
 
 def test_environment_with_numpy(
@@ -108,7 +108,7 @@ paths. This makes it easier to generate new paths in tests:
 :linenos:
 :name: test-conda-rename
 :caption: Integration test for renaming an environment
-from conda.testing.integration import (
+from conda.testing import (
     CondaCLIFixture,
     PathFactoryFixture,
     TmpEnvFixture,
@@ -153,7 +153,7 @@ fixture:
 import json
 from pathlib import Path
 
-from conda.testing.integration import CondaCLIFixture
+from conda.testing import CondaCLIFixture
 
 
 @pytest.fixture

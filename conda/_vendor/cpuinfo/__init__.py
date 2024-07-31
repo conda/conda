@@ -1,5 +1,8 @@
 
 import sys
-from conda._vendor.cpuinfo.cpuinfo import *
+from .cpuinfo import *
 
+from ...deprecations import deprecated
+
+deprecated.module("24.3", "24.9")
 

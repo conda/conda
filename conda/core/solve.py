@@ -1,20 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""The classic solver implementation."""
+
+from __future__ import annotations
+
 import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
-from os.path import join
+from os.path import exists, join
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
-from genericpath import exists
-
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
-
-from conda.common.iterators import groupby_to_dict as groupby
+from boltons.setutils import IndexedSet
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
@@ -22,10 +20,10 @@ from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import Spinner, dashlist, time_recorder
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
-from ..deprecations import deprecated
 from ..exceptions import (
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
@@ -43,21 +41,17 @@ from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ..auxlib.collection import frozendict
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from ..models.records import PackageRecord
+
 log = getLogger(__name__)
-
-
-@deprecated(
-    "23.3",
-    "23.9",
-    addendum="Use `conda.base.context.plugin_manager.get_cached_solver_backend` instead.",
-)
-def _get_solver_class(key=None):
-    """
-    Load the correct solver backend.
-
-    See ``context.solver`` for more details.
-    """
-    return context.plugin_manager.get_cached_solver_backend(key or context.solver)
 
 
 class Solver:
@@ -68,17 +62,16 @@ class Solver:
       * :meth:`solve_final_state`
       * :meth:`solve_for_diff`
       * :meth:`solve_for_transaction`
-
     """
 
     def __init__(
         self,
-        prefix,
-        channels,
-        subdirs=(),
-        specs_to_add=(),
-        specs_to_remove=(),
-        repodata_fn=REPODATA_FN,
+        prefix: str,
+        channels: Iterable[Channel],
+        subdirs: Iterable[str] = (),
+        specs_to_add: Iterable[MatchSpec] = (),
+        specs_to_remove: Iterable[MatchSpec] = (),
+        repodata_fn: str = REPODATA_FN,
         command=NULL,
     ):
         """
@@ -149,17 +142,35 @@ class Solver:
             # is in the commented out get_install_transaction() function below. Exercised at
             # the integration level in the PrivateEnvIntegrationTests in test_create.py.
             raise NotImplementedError()
-        else:
-            unlink_precs, link_precs = self.solve_for_diff(
-                update_modifier,
-                deps_modifier,
-                prune,
-                ignore_pinned,
-                force_remove,
-                force_reinstall,
-                should_retry_solve,
-            )
-            stp = PrefixSetup(
+
+        # run pre-solve processes here before solving for a solution
+        context.plugin_manager.invoke_pre_solves(
+            self.specs_to_add,
+            self.specs_to_remove,
+        )
+
+        unlink_precs, link_precs = self.solve_for_diff(
+            update_modifier,
+            deps_modifier,
+            prune,
+            ignore_pinned,
+            force_remove,
+            force_reinstall,
+            should_retry_solve,
+        )
+        # TODO: Only explicitly requested remove and update specs are being included in
+        #   History right now. Do we need to include other categories from the solve?
+
+        # run post-solve processes here before performing the transaction
+        context.plugin_manager.invoke_post_solves(
+            self._repodata_fn,
+            unlink_precs,
+            link_precs,
+        )
+
+        self._notify_conda_outdated(link_precs)
+        return UnlinkLinkTransaction(
+            PrefixSetup(
                 self.prefix,
                 unlink_precs,
                 link_precs,
@@ -167,11 +178,7 @@ class Solver:
                 self.specs_to_add,
                 self.neutered_specs,
             )
-            # TODO: Only explicitly requested remove and update specs are being included in
-            #   History right now. Do we need to include other categories from the solve?
-
-            self._notify_conda_outdated(link_precs)
-            return UnlinkLinkTransaction(stp)
+        )
 
     def solve_for_diff(
         self,
@@ -182,7 +189,7 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ):
+    ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -229,8 +236,7 @@ class Solver:
         )
         if unmanageable:
             raise RuntimeError(
-                "Cannot unlink unmanageable packages:%s"
-                % dashlist(prec.record_id() for prec in unmanageable)
+                f"Cannot unlink unmanageable packages:{dashlist(prec.record_id() for prec in unmanageable)}"
             )
 
         return unlink_precs, link_precs
@@ -280,6 +286,8 @@ class Solver:
                 the solved state of the environment.
 
         """
+        if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            update_modifier = NULL
         if update_modifier is NULL:
             update_modifier = context.update_modifier
         else:
@@ -350,8 +358,8 @@ class Solver:
 
         if not ssc.r:
             with Spinner(
-                "Collecting package metadata (%s)" % self._repodata_fn,
-                (not context.verbosity and not context.quiet and not retrying),
+                f"Collecting package metadata ({self._repodata_fn})",
+                not context.verbose and not context.quiet and not retrying,
                 context.json,
             ):
                 ssc = self._collect_all_metadata(ssc)
@@ -363,15 +371,15 @@ class Solver:
             )
         elif self._repodata_fn != REPODATA_FN:
             fail_message = (
-                "unsuccessful attempt using repodata from %s, retrying"
-                " with next repodata source.\n" % self._repodata_fn
+                f"unsuccessful attempt using repodata from {self._repodata_fn}, retrying"
+                " with next repodata source.\n"
             )
         else:
             fail_message = "failed\n"
 
         with Spinner(
             "Solving environment",
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
             fail_message=fail_message,
         ):
@@ -420,7 +428,7 @@ class Solver:
 
         ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
-            "solved prefix %s\n" "  solved_linked_dists:\n" "    %s\n",
+            "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
             "\n    ".join(prec.dist_str() for prec in ssc.solution_precs),
         )
@@ -460,11 +468,7 @@ class Solver:
 
         print(f"\n\nUpdating {spec.name} is constricted by \n")
         for const in hard_constricting:
-            print(
-                "{package} -> requires {conflict_dep}".format(
-                    package=const[0], conflict_dep=const[1]
-                )
-            )
+            print(f"{const[0]} -> requires {const[1]}")
         print(
             "\nIf you are sure you want an update of your package either try "
             "`conda update --all` or install a specific version of the "
@@ -519,54 +523,60 @@ class Solver:
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
-        # add in historically-requested specs
-        ssc.specs_map.update(ssc.specs_from_history_map)
+        if ssc.prune:
+            # When pruning DO NOT consider history of already installed packages when solving.
+            prepared_specs = {*self.specs_to_remove, *self.specs_to_add}
+        else:
+            # add in historically-requested specs
+            ssc.specs_map.update(ssc.specs_from_history_map)
 
-        # these are things that we want to keep even if they're not explicitly specified.  This
-        #     is to compensate for older installers not recording these appropriately for them
-        #     to be preserved.
-        for pkg_name in (
-            "anaconda",
-            "conda",
-            "conda-build",
-            "python.app",
-            "console_shortcut",
-            "powershell_shortcut",
-        ):
-            if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
-                ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
-
-        # Add virtual packages so they are taken into account by the solver
-        virtual_pkg_index = {}
-        _supplement_index_with_system(virtual_pkg_index)
-        virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
-        for virtual_pkgs_name in virtual_pkgs:
-            if virtual_pkgs_name not in ssc.specs_map:
-                ssc.specs_map[virtual_pkgs_name] = MatchSpec(virtual_pkgs_name)
-
-        for prec in ssc.prefix_data.iter_records():
-            # first check: add everything if we have no history to work with.
-            #    This happens with "update --all", for example.
-            #
-            # second check: add in aggressively updated packages
-            #
-            # third check: add in foreign stuff (e.g. from pip) into the specs
-            #    map. We add it so that it can be left alone more. This is a
-            #    declaration that it is manually installed, much like the
-            #    history map. It may still be replaced if it is in conflict,
-            #    but it is not just an indirect dep that can be pruned.
-            if (
-                not ssc.specs_from_history_map
-                or MatchSpec(prec.name) in context.aggressive_update_packages
-                or prec.subdir == "pypi"
+            # these are things that we want to keep even if they're not explicitly specified.  This
+            #     is to compensate for older installers not recording these appropriately for them
+            #     to be preserved.
+            for pkg_name in (
+                "anaconda",
+                "conda",
+                "conda-build",
+                "python.app",
+                "console_shortcut",
+                "powershell_shortcut",
             ):
-                ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
+                if pkg_name not in ssc.specs_map and ssc.prefix_data.get(
+                    pkg_name, None
+                ):
+                    ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
-        prepared_specs = {
-            *self.specs_to_remove,
-            *self.specs_to_add,
-            *ssc.specs_from_history_map.values(),
-        }
+            # Add virtual packages so they are taken into account by the solver
+            virtual_pkg_index = {}
+            _supplement_index_with_system(virtual_pkg_index)
+            virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
+            for virtual_pkgs_name in virtual_pkgs:
+                if virtual_pkgs_name not in ssc.specs_map:
+                    ssc.specs_map[virtual_pkgs_name] = MatchSpec(virtual_pkgs_name)
+
+            for prec in ssc.prefix_data.iter_records():
+                # first check: add everything if we have no history to work with.
+                #    This happens with "update --all", for example.
+                #
+                # second check: add in aggressively updated packages
+                #
+                # third check: add in foreign stuff (e.g. from pip) into the specs
+                #    map. We add it so that it can be left alone more. This is a
+                #    declaration that it is manually installed, much like the
+                #    history map. It may still be replaced if it is in conflict,
+                #    but it is not just an indirect dep that can be pruned.
+                if (
+                    not ssc.specs_from_history_map
+                    or MatchSpec(prec.name) in context.aggressive_update_packages
+                    or prec.subdir == "pypi"
+                ):
+                    ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
+
+            prepared_specs = {
+                *self.specs_to_remove,
+                *self.specs_to_add,
+                *ssc.specs_from_history_map.values(),
+            }
 
         index, r = self._prepare(prepared_specs)
         ssc.set_repository_metadata(index, r)
@@ -595,7 +605,7 @@ class Solver:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
-                log.trace("using PrefixGraph to remove records for %s", spec)
+                log.log(TRACE, "using PrefixGraph to remove records for %s", spec)
                 removed_records = graph.remove_spec(spec)
                 if removed_records:
                     all_removed_records.extend(removed_records)
@@ -619,7 +629,13 @@ class Solver:
                 rec_has_a_feature = set(rec.features or ()) & feature_names
                 if rec_has_a_feature and rec.name in ssc.specs_from_history_map:
                     spec = ssc.specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop("features", None)
+                    spec._match_components = frozendict(
+                        {
+                            key: value
+                            for key, value in spec._match_components.items()
+                            if key != "features"
+                        }
+                    )
                     ssc.specs_map[spec.name] = spec
                 else:
                     ssc.specs_map.pop(rec.name, None)
@@ -730,17 +746,18 @@ class Solver:
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
         explicit_pool = ssc.r._get_package_pool(self.specs_to_add)
+        if ssc.prune:
+            # Ignore installed specs on prune.
+            installed_specs = ()
+        else:
+            installed_specs = [
+                record.to_match_spec() for record in ssc.prefix_data.iter_records()
+            ]
 
         conflict_specs = (
-            ssc.r.get_conflicting_specs(
-                tuple(
-                    record.to_match_spec() for record in ssc.prefix_data.iter_records()
-                ),
-                self.specs_to_add,
-            )
-            or ()
+            ssc.r.get_conflicting_specs(installed_specs, self.specs_to_add) or tuple()
         )
-        conflict_specs = {_.name for _ in conflict_specs}
+        conflict_specs = {spec.name for spec in conflict_specs}
 
         for pkg_name, spec in ssc.specs_map.items():
             matches_for_spec = tuple(
@@ -796,7 +813,7 @@ class Solver:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                     pin_overrides.add(s.name)
                 else:
-                    log.warn(
+                    log.warning(
                         "pinned spec %s conflicts with explicit specs.  "
                         "Overriding pinned spec.",
                         s,
@@ -935,7 +952,7 @@ class Solver:
         if "conda" in ssc.specs_map and paths_equal(self.prefix, context.conda_prefix):
             conda_prefix_rec = ssc.prefix_data.get("conda")
             if conda_prefix_rec:
-                version_req = ">=%s" % conda_prefix_rec.version
+                version_req = f">={conda_prefix_rec.version}"
                 conda_requested_explicitly = any(
                     s.name == "conda" for s in self.specs_to_add
                 )
@@ -1226,7 +1243,7 @@ class Solver:
                     self.subdirs,
                     repodata_fn=self._repodata_fn,
                 ),
-                key=lambda x: VersionOrder(x.version)
+                key=lambda x: VersionOrder(x.version),
                 # VersionOrder is fine here rather than r.version_key because all precs
                 # should come from the same channel
             )
@@ -1341,7 +1358,8 @@ class SolverStateContainer:
 
         # Group 4. Mutable working containers
         self.specs_map = {}
-        self.solution_precs = tuple(self.prefix_data.iter_records())
+        self.solution_precs = None
+        self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
 
@@ -1364,9 +1382,16 @@ class SolverStateContainer:
     def set_repository_metadata(self, index, r):
         self.index, self.r = index, r
 
+    def _init_solution_precs(self):
+        if self.prune:
+            # DO NOT add existing prefix data to solution on prune
+            self.solution_precs = tuple()
+        else:
+            self.solution_precs = tuple(self.prefix_data.iter_records())
+
     def working_state_reset(self):
         self.specs_map = {}
-        self.solution_precs = tuple(self.prefix_data.iter_records())
+        self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
 
@@ -1391,8 +1416,11 @@ def get_pinned_specs(prefix):
 
 
 def diff_for_unlink_link_precs(
-    prefix, final_precs, specs_to_add=(), force_reinstall=NULL
-):
+    prefix,
+    final_precs,
+    specs_to_add=(),
+    force_reinstall=NULL,
+) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
         assert hasattr(
@@ -1443,237 +1471,4 @@ def diff_for_unlink_link_precs(
         reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
     )
     link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return unlink_precs, link_precs
-
-
-# NOTE: The remaining code in this module is being left for development reference until
-#  the context.enable_private_envs portion is implemented in :meth:`solve_for_transaction`.
-
-# def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
-#     # this function gives a "final state" for an existing prefix given just these simple inputs
-#     log.debug("solving prefix %s\n"
-#               "  specs_to_remove: %s\n"
-#               "  specs_to_add: %s\n"
-#               "  prune: %s", prefix, specs_to_remove, specs_to_add, prune)
-#
-#     # declare starting point
-#     solved_linked_dists = () if prune else tuple(linked_data(prefix).keys())
-#     # TODO: to change this whole function from working with dists to working with records, just
-#     #       change keys() to values()
-#
-#     if solved_linked_dists and specs_to_remove:
-#         solved_linked_dists = r.remove(tuple(str(s) for s in specs_to_remove),
-#                                        solved_linked_dists)
-#
-#     specs_from_history = _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add)
-#     augmented_specs_to_add = augment_specs(prefix, (*specs_from_history, *specs_to_add))
-#
-#     log.debug("final specs to add:\n    %s\n",
-#               "\n    ".join(str(s) for s in augmented_specs_to_add))
-#     solved_linked_dists = r.install(augmented_specs_to_add,
-#                                     solved_linked_dists,
-#                                     update_deps=context.update_dependencies)
-#
-#     if not context.ignore_pinned:
-#         # TODO: assert all pinned specs are compatible with what's in solved_linked_dists
-#         pass
-#
-#     # TODO: don't uninstall conda or its dependencies, probably need to check elsewhere
-#
-#     solved_linked_dists = IndexedSet(r.dependency_sort({d.name: d for d in solved_linked_dists}))
-#
-#     log.debug("solved prefix %s\n"
-#               "  solved_linked_dists:\n"
-#               "    %s\n",
-#               prefix, "\n    ".join(str(d) for d in solved_linked_dists))
-#
-#     return solved_linked_dists, specs_to_add
-
-
-# def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
-#     # this is not for force-removing packages, which doesn't invoke the solver
-#
-#     solved_dists, _specs_to_add = solve_prefix(prefix, r, specs_to_remove, specs_to_add, prune)
-#     # TODO: this _specs_to_add part should be refactored when we can better pin package channel
-#     #     origin  # NOQA
-#     dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists,
-#                                                                          _specs_to_add)
-#
-#     def remove_non_matching_dists(dists_set, specs_to_match):
-#         _dists_set = IndexedSet(dists_set)
-#         for dist in dists_set:
-#             for spec in specs_to_match:
-#                 if spec.match(dist):
-#                     break
-#             else:  # executed if the loop ended normally (no break)
-#                 _dists_set.remove(dist)
-#         return _dists_set
-#
-#     if context.no_dependencies:
-#         # for `conda create --no-deps python=3 flask`, do we install python? yes
-#         # the only dists we touch are the ones that match a specs_to_add
-#         dists_for_linking = remove_non_matching_dists(dists_for_linking, specs_to_add)
-#         dists_for_unlinking = remove_non_matching_dists(dists_for_unlinking, specs_to_add)
-#     elif context.only_dependencies:
-#         # for `conda create --only-deps python=3 flask`, do we install python? yes
-#         # remove all dists that match a specs_to_add, as long as that dist isn't a dependency
-#         #   of other specs_to_add
-#         _index = r.index
-#         _match_any = lambda spec, dists: next((dist for dist in dists
-#                                                if spec.match(_index[dist])),
-#                                               None)
-#         _is_dependency = lambda spec, dist: any(r.depends_on(s, dist.name)
-#                                                 for s in specs_to_add if s != spec)
-#         for spec in specs_to_add:
-#             link_matching_dist = _match_any(spec, dists_for_linking)
-#             if link_matching_dist:
-#                 if not _is_dependency(spec, link_matching_dist):
-#                     # as long as that dist isn't a dependency of other specs_to_add
-#                     dists_for_linking.remove(link_matching_dist)
-#                     unlink_matching_dist = _match_any(spec, dists_for_unlinking)
-#                     if unlink_matching_dist:
-#                         dists_for_unlinking.remove(unlink_matching_dist)
-#
-#     if context.force:
-#         dists_for_unlinking, dists_for_linking = forced_reinstall_specs(prefix, solved_dists,
-#                                                                         dists_for_unlinking,
-#                                                                         dists_for_linking,
-#                                                                         specs_to_add)
-#
-#     dists_for_unlinking = IndexedSet(reversed(dists_for_unlinking))
-#     return dists_for_unlinking, dists_for_linking
-
-
-# def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
-#     # solved_dists should be the return value of solve_prefix()
-#     old_linked_dists = IndexedSet(linked_data(prefix).keys())
-#
-#     dists_for_unlinking = old_linked_dists - solved_dists
-#     dists_for_linking = solved_dists - old_linked_dists
-#
-#     # TODO: add back 'noarch: python' to unlink and link if python version changes
-#
-#     # r_linked = Resolve(linked_data(prefix))
-#     # for spec in remove_satisfied_specs:
-#     #     if r_linked.find_matches(spec):
-#     #         spec_name = spec.name
-#     #         unlink_dist = next((d for d in dists_for_unlinking if d.name == spec_name), None)
-#     #         link_dist = next((d for d in dists_for_linking if d.name == spec_name), None)
-#     #         if unlink_dist:
-#     #             dists_for_unlinking.discard(unlink_dist)
-#     #         if link_dist:
-#     #             dists_for_linking.discard(link_dist)
-#
-#     return dists_for_unlinking, dists_for_linking
-
-
-# def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
-#                             always_copy=False, pinned=True, update_deps=True,
-#                             prune=False, channel_priority_map=None, is_update=False):
-#     # type: (str, dict[Dist, Record], list[str], bool, list[str] | None, bool, bool, bool,
-#     #        bool, bool, bool, dict[str, Sequence[str, int]]) -> list[dict[weird]]
-#
-#     # split out specs into potentially multiple preferred envs if:
-#     #  1. the user default env (root_prefix) is the prefix being considered here
-#     #  2. the user has not specified the --name or --prefix command-line flags
-#     if (prefix == context.root_prefix
-#             and not context.prefix_specified
-#             and prefix_is_writable(prefix)
-#             and context.enable_private_envs):
-#
-#         # a registered package CANNOT be installed in the root env
-#         # if ANY package requesting a private env is required in the root env, all packages for
-#         #   that requested env must instead be installed in the root env
-#
-#         root_r = get_resolve_object(index.copy(), context.root_prefix)
-#
-#         def get_env_for_spec(spec):
-#             # use resolve's get_dists_for_spec() to find the "best" matching record
-#             record_for_spec = root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]]
-#             return ensure_pad(record_for_spec.preferred_env)
-#
-#         # specs grouped by target env, the 'None' key holds the specs for the root env
-#         env_add_map = groupby(get_env_for_spec, (MatchSpec(s) for s in spec_strs))
-#         requested_root_specs_to_add = {s for s in env_add_map.pop(None, ())}
-#
-#         ed = EnvsDirectory(join(context.root_prefix, 'envs'))
-#         registered_packages = ed.get_registered_packages_keyed_on_env_name()
-#
-#         if len(env_add_map) == len(registered_packages) == 0:
-#             # short-circuit the rest of this logic
-#             return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
-#                                                   always_copy, pinned, update_deps,
-#                                                   prune, channel_priority_map, is_update)
-#
-#         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(env_add_map.values()))
-#         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
-#                                               specs_to_remove=root_specs_to_remove,
-#                                               specs_to_add=requested_root_specs_to_add,
-#                                               prune=True)
-#
-#         required_root_package_names = tuple(d.name for d in required_root_dists)
-#
-#         # first handle pulling back requested specs to root
-#         forced_root_specs_to_add = set()
-#         pruned_env_add_map = defaultdict(list)
-#         for env_name, specs in env_add_map.items():
-#             for spec in specs:
-#                 spec_name = MatchSpec(spec).name
-#                 if spec_name in required_root_package_names:
-#                     forced_root_specs_to_add.add(spec)
-#                 else:
-#                     pruned_env_add_map[env_name].append(spec)
-#         env_add_map = pruned_env_add_map
-#
-#         # second handle pulling back registered specs to root
-#         env_remove_map = defaultdict(list)
-#         for env_name, registered_package_entries in registered_packages.items():
-#             for rpe in registered_package_entries:
-#                 if rpe['package_name'] in required_root_package_names:
-#                     # ANY registered packages in this environment need to be pulled back
-#                     for pe in registered_package_entries:
-#                         # add an entry in env_remove_map
-#                         # add an entry in forced_root_specs_to_add
-#                         pname = pe['package_name']
-#                         env_remove_map[env_name].append(MatchSpec(pname))
-#                         forced_root_specs_to_add.add(MatchSpec(pe['requested_spec']))
-#                 break
-#
-#         unlink_link_map = {}
-#
-#         # solve all needed preferred_env prefixes
-#         for env_name in {*env_add_map, *env_remove_map}:
-#             specs_to_add = env_add_map[env_name]
-#             spec_to_remove = env_remove_map[env_name]
-#             pfx = ed.preferred_env_to_prefix(env_name)
-#             unlink, link = solve_for_actions(pfx, get_resolve_object(index.copy(), pfx),
-#                                              specs_to_remove=spec_to_remove,
-#                                              specs_to_add=specs_to_add,
-#                                              prune=True)
-#             unlink_link_map[env_name] = unlink, link, specs_to_add
-#
-#         # now solve root prefix
-#         # we have to solve root a second time in all cases, because this time we don't prune
-#         root_specs_to_add = {*requested_root_specs_to_add, *forced_root_specs_to_add}
-#         root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
-#                                                    specs_to_remove=root_specs_to_remove,
-#                                                    specs_to_add=root_specs_to_add)
-#         if root_unlink or root_link:
-#             # this needs to be added to dict last; the private envs need to be updated first
-#             unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
-#
-#         def make_txn_setup(pfx, unlink, link, specs):
-#             # TODO: this index here is probably wrong; needs to be per-prefix
-#             return PrefixSetup(index, pfx, unlink, link, 'INSTALL',
-#                                tuple(specs))
-#
-#         txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
-#                          for env_name, oink in unlink_link_map.items())
-#         txn = UnlinkLinkTransaction(*txn_args)
-#         return txn
-#
-#     else:
-#         # disregard any requested preferred env
-#         return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
-#                                               always_copy, pinned, update_deps,
-#                                               prune, channel_priority_map, is_update)
+    return tuple(unlink_precs), tuple(link_precs)

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import flask
 import pytest
-from werkzeug.serving import WSGIRequestHandler, make_server
+from werkzeug.serving import WSGIRequestHandler, generate_adhoc_ssl_context, make_server
 
 app = flask.Flask(__name__)
 
@@ -53,15 +53,32 @@ def download_file(subdir, name):
     return flask.send_from_directory(Path(base, subdir), name)
 
 
+@app.route("/none-accept-ranges/")
+def none_accept_ranges():
+    """
+    Returns an empty request with "Accept-Ranges" set to "none"
+    """
+    response = flask.Response("test content test content test content")
+    response.headers["Accept-Ranges"] = "none"
+
+    return response
+
+
 class NoLoggingWSGIRequestHandler(WSGIRequestHandler):
     def log(self, format, *args):
         pass
 
 
-def make_server_with_socket(socket: socket.socket, base_: Path = base):
+def make_server_with_socket(socket: socket.socket, base_: Path = base, ssl=False):
     global server, base
     base = base_
     assert isinstance(socket.fileno(), int)
+    ssl_context = None
+
+    if ssl:
+        # openssl may fail when mixing defaults + conda-forge
+        ssl_context = generate_adhoc_ssl_context()
+
     server = make_server(
         "127.0.0.1",
         port=0,
@@ -69,6 +86,7 @@ def make_server_with_socket(socket: socket.socket, base_: Path = base):
         fd=socket.fileno(),
         threaded=True,
         request_handler=NoLoggingWSGIRequestHandler,
+        ssl_context=ssl_context,
     )
     server.serve_forever()
 
@@ -94,11 +112,11 @@ def prepare_socket() -> socket.socket:
     return s
 
 
-def _package_server(cleanup=True, base: Path | None = None):
+def _package_server(cleanup=True, base: Path | None = None, ssl=False):
     socket = prepare_socket()
     context = multiprocessing.get_context("spawn")
     process = context.Process(
-        target=make_server_with_socket, args=(socket, base), daemon=True
+        target=make_server_with_socket, args=(socket, base, ssl), daemon=True
     )
     process.start()
     yield socket
@@ -122,6 +140,11 @@ def package_repository_base(tmp_path_factory):
 @pytest.fixture(scope="session")
 def package_server(package_repository_base):
     yield from _package_server(base=package_repository_base)
+
+
+@pytest.fixture(scope="session")
+def package_server_ssl(package_repository_base):
+    yield from _package_server(base=package_repository_base, ssl=True)
 
 
 if __name__ == "__main__":

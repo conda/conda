@@ -6,34 +6,64 @@ User guide
    :maxdepth: 1
    :hidden:
 
-   concepts/index
    getting-started
    install/index
-   configuration/index
    tasks/index
-   cheatsheet
+   configuration/index
+   concepts/index
    troubleshooting
+   cheatsheet
 
-:doc:`Home <../index>` | :doc:`Concepts <concepts/index>` | :doc:`Getting started <getting-started>` | :doc:`Installation <install/index>` | :doc:`Configuration <configuration/index>` | :doc:`Tasks <tasks/index>` | :ref:`Additional resources <addl-resources>`
+In this guide, you will learn the about the common tasks involved with using the conda package manager.
 
-**Get started**
+.. _first-steps:
 
-* :doc:`See what conda is and what it does <../index>`.
-* :doc:`Learn conda concepts and fundamentals <concepts/index>`.
-* :doc:`Create your first conda project in 20 minutes <getting-started>`.
-* :doc:`View system requirements and installation directions <install/index>`.
+First steps
+===========
 
-Looking for more information on conda? Anaconda has a free Conda Basics course in `Anaconda Learning <https://learning.anaconda.cloud/conda-basics>`_.
+If you are brand new to conda, then these are guides that you will want to start with first:
 
-**Dive deeper**
+.. glossary::
 
-* :doc:`Configure your conda files <configuration/index>`.
-* Follow the :doc:`tasks <tasks/index>` to :doc:`manage conda environments <tasks/manage-environments>`, :doc:`channels <tasks/manage-channels>`, :doc:`packages<tasks/manage-pkgs>`, and more.
+    :doc:`Installing conda <install/index>`
+        Follow these instructions to get a working installation of conda on your computer
 
+    :doc:`Getting started <getting-started>`
+        Learn the essential commands you need in your day-to-day usage of conda
+
+    :doc:`Using conda for your project <tasks/creating-projects>`
+        A tutorial explaining how to use conda in your projects
+
+.. seealso::
+
+    Check out Anaconda's `free course on conda basics <https://learning.anaconda.cloud/conda-basics>`_
+    to learn even more.
+
+.. _learn-more:
+
+Learn more
+==========
+
+.. glossary::
+
+    :doc:`Configuring conda <configuration/index>`
+        Reference and explanation for all the ways you can configure conda
+
+    :doc:`Working with packages <tasks/manage-pkgs>`
+        Learn how to search for and use conda packages
+
+    :doc:`Working with environments <tasks/manage-environments>`
+        Learn how to create, update, remove, and export your conda environments
 
 .. _addl-resources:
 
-**Additional resources**
+Additional resources
+====================
 
-* :doc:`Cheat sheet <cheatsheet>`.
-* :doc:`Troubleshooting <troubleshooting>`.
+.. glossary::
+
+    :doc:`Cheat sheet <cheatsheet>`
+        Commonly used commands organized into a PDF
+
+    :doc:`Troubleshooting <troubleshooting>`
+        Various solutions to commonly encountered problems

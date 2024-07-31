@@ -1,13 +1,33 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
+
 import os
 import sys
 from json import JSONEncoder
 from os.path import abspath, dirname
 
-from .__version__ import __version__
-from .deprecations import deprecated
+try:
+    from ._version import __version__
+except ImportError:
+    # _version.py is only created after running `pip install`
+    try:
+        from setuptools_scm import get_version
+
+        __version__ = get_version(root="..", relative_to=__file__)
+    except (ImportError, OSError, LookupError):
+        # ImportError: setuptools_scm isn't installed
+        # OSError: git isn't installed
+        # LookupError: setuptools_scm unable to detect version
+        # Conda abides by CEP-8 which specifies using CalVer, so the dev version is:
+        #     YY.MM.MICRO.devN+gHASH[.dirty]
+        __version__ = "0.0.0.dev0+placeholder"
+
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ._vendor.frozendict import frozendict
 
 __all__ = (
     "__name__",
@@ -43,11 +63,6 @@ CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
 #: If `conda` is statically installed this is the site-packages. If `conda` is an editable install
 #: or otherwise uninstalled this is the git repo.
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
-
-
-@deprecated("23.3", "23.9")
-def another_to_unicode(val):
-    return val
 
 
 class CondaError(Exception):
@@ -147,7 +162,11 @@ def conda_signal_handler(signum, frame):
 
 
 def _default(self, obj):
-    return getattr(obj.__class__, "to_json", _default.default)(obj)
+    if isinstance(obj, frozendict):
+        return dict(obj)
+    if hasattr(obj, "to_json"):
+        return obj.to_json()
+    return _default.default(obj)
 
 
 _default.default = JSONEncoder().default

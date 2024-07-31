@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Collection of helper functions used in conda.notices tests."""
+
 from __future__ import annotations
 
 import datetime
@@ -8,14 +10,18 @@ import os
 import uuid
 from itertools import chain
 from pathlib import Path
-from typing import Sequence
-from unittest import mock
+from typing import TYPE_CHECKING
 
-from conda.base.context import Context
-from conda.models.channel import get_channel_objs
-from conda.notices.cache import get_notices_cache_file
-from conda.notices.core import get_channel_name_and_urls
-from conda.notices.types import ChannelNoticeResponse
+from ...models.channel import get_channel_objs
+from ...notices.cache import get_notices_cache_file
+from ...notices.core import get_channel_name_and_urls
+from ...notices.types import ChannelNoticeResponse
+
+if TYPE_CHECKING:
+    from typing import Sequence
+    from unittest import mock
+
+    from ...base.context import Context
 
 DEFAULT_NOTICE_MESG = "Here is an example message that will be displayed to users"
 
@@ -59,7 +65,7 @@ def add_resp_to_mock(
         yield MockResponse(status_code, messages_json, raise_exc=raise_exc)
 
     chn = chain(one_200(), forever_404())
-    mock_session.side_effect = tuple(next(chn) for _ in range(100))
+    mock_session().get.side_effect = tuple(next(chn) for _ in range(100))
 
 
 def create_notice_cache_files(

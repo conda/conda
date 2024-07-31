@@ -1,6 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import sys
+from contextlib import nullcontext
 from logging import getLogger
 from os import environ, pathsep
 from os.path import dirname, join
@@ -241,29 +244,18 @@ def test_ensure_dir_errors():
     assert exc_message in str(exc_info.value)
 
 
-def test_safe_open(tmpdir):
-    """Ensures this context manager open and closes files appropriately."""
-    new_file = Path(tmpdir).joinpath("test.file")
-    content = "test"
-
-    with utils.safe_open(new_file, "w") as fp:
-        fp.write(content)
-
-    assert fp.closed
-
-    written_content = new_file.read_text()
-
-    assert written_content == content
-
-
-def test_safe_open_errors():
-    """Test to ensure correct error handling."""
-    exc_message = "Test!"
-
-    with patch("conda.utils.open") as mock_open:
-        mock_open.side_effect = OSError(exc_message)
-
-        with pytest.raises(CondaError) as exc_info, utils.safe_open("test", "w"):
-            pass
-
-        assert exc_message in str(exc_info.value)
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("unix_shell_base", TypeError),
+        ("msys2_shell_base", TypeError),
+        ("shells", TypeError),
+        ("win_path_to_cygwin", TypeError),
+        ("cygwin_path_to_win", TypeError),
+        ("translate_stream", TypeError),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(utils, function)()

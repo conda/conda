@@ -27,6 +27,8 @@ Still, there are many cases in which access to Linux distribution information
 is needed. See `Python issue 1322 <https://bugs.python.org/issue1322>`_ for
 more information.
 """
+from ..deprecations import deprecated
+deprecated.module("24.3", "24.9", addendum="Use `distro` instead.")
 
 import os
 import re

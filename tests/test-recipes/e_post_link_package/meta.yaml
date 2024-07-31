@@ -4,6 +4,7 @@ package:
 
 build:
   number: 0
+  noarch: generic
 
 about:
-  summary: Test that post link scripts get run la
+  summary: Test that post link scripts get run last

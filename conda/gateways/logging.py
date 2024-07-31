@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Configure logging for conda."""
+
 import logging
 import re
 import sys
@@ -17,11 +19,20 @@ from logging import (
 )
 
 from .. import CondaError
+from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
+from ..deprecations import deprecated
 
 log = getLogger(__name__)
-TRACE = 5  # TRACE LOG LEVEL
-VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
+
+_VERBOSITY_LEVELS = {
+    0: WARN,  # standard output
+    1: WARN,  # -v, detailed output
+    2: INFO,  # -vv, info logging
+    3: DEBUG,  # -vvv, debug logging
+    4: TRACE,  # -vvvv, trace logging
+}
+deprecated.constant("24.3", "24.9", "VERBOSITY_LEVELS", _VERBOSITY_LEVELS)
 
 
 class TokenURLFilter(Filter):
@@ -47,14 +58,14 @@ class TokenURLFilter(Filter):
         At the same time we replace tokens in the arguments which was
         not happening until now.
         """
-        record.msg = self.TOKEN_REPLACE(record.msg)
+        if not isinstance(record.msg, str):
+            # This should always be the case but it's not checked so
+            # we avoid any potential logging errors.
+            return True
         if record.args:
-            new_args = tuple(
-                self.TOKEN_REPLACE(arg) if isinstance(arg, str) else arg
-                for arg in record.args
-            )
-            record.msg = record.msg % new_args
+            record.msg = record.msg % record.args
             record.args = None
+        record.msg = self.TOKEN_REPLACE(record.msg)
         return True
 
 
@@ -130,8 +141,8 @@ class StdStreamHandler(StreamHandler):
 
 @lru_cache(maxsize=None)
 def initialize_logging():
-    # root gets level ERROR; 'conda' gets level WARN and propagates to root.
-    initialize_root_logger()
+    # 'conda' gets level WARN and does not propagate to root.
+    getLogger("conda").setLevel(WARN)
     set_conda_log_level()
     initialize_std_loggers()
 
@@ -142,7 +153,7 @@ def initialize_std_loggers():
     formatter = Formatter("%(message)s")
 
     for stream in ("stdout", "stderr"):
-        logger = getLogger("conda.%s" % stream)
+        logger = getLogger(f"conda.{stream}")
         logger.handlers = []
         logger.setLevel(INFO)
         handler = StdStreamHandler(stream)
@@ -152,7 +163,7 @@ def initialize_std_loggers():
         logger.addFilter(TokenURLFilter())
         logger.propagate = False
 
-        stdlog_logger = getLogger("conda.%slog" % stream)
+        stdlog_logger = getLogger(f"conda.{stream}log")
         stdlog_logger.handlers = []
         stdlog_logger.setLevel(DEBUG)
         stdlog_handler = StdStreamHandler(stream)
@@ -168,29 +179,30 @@ def initialize_std_loggers():
     verbose_handler = StdStreamHandler("stdout")
     verbose_handler.setLevel(INFO)
     verbose_handler.setFormatter(formatter)
+    verbose_handler.addFilter(TokenURLFilter())
     verbose_logger.addHandler(verbose_handler)
     verbose_logger.propagate = False
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def initialize_root_logger(level=ERROR):
-    attach_stderr_handler(level=level)
+    attach_stderr_handler(level=level, filters=[TokenURLFilter()])
 
 
 def set_conda_log_level(level=WARN):
-    conda_logger = getLogger("conda")
-    conda_logger.setLevel(logging.NOTSET)
-    attach_stderr_handler(level=level, logger_name="conda")
-    conda_logger.propagate = False
+    attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])
 
 
 def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
-    attach_stderr_handler(level, formatter=formatter)
+    attach_stderr_handler(level, formatter=formatter, filters=[TokenURLFilter()])
     set_conda_log_level(level)
     # 'requests' loggers get their own handlers so that they always output messages in long format
     # regardless of the level.
-    attach_stderr_handler(level, "requests")
-    attach_stderr_handler(level, "requests.packages.urllib3")
+    attach_stderr_handler(level, "requests", filters=[TokenURLFilter()])
+    attach_stderr_handler(
+        level, "requests.packages.urllib3", filters=[TokenURLFilter()]
+    )
 
 
 @lru_cache(maxsize=None)
@@ -206,24 +218,32 @@ def set_file_logging(logger_name=None, level=DEBUG, path=None):
     conda_logger.addHandler(handler)
 
 
-def set_verbosity(verbosity_level):
+@deprecated(
+    "24.3",
+    "24.9",
+    addendum="Use `conda.gateways.logging.set_log_level` instead.",
+)
+def set_verbosity(verbosity: int):
     try:
-        set_all_logger_level(VERBOSITY_LEVELS[verbosity_level])
-    except IndexError:
-        raise CondaError(
-            "Invalid verbosity level: %(verbosity_level)s",
-            verbosity_level=verbosity_level,
-        )
-    log.debug("verbosity set to %s", verbosity_level)
+        set_log_level(_VERBOSITY_LEVELS[verbosity])
+    except KeyError:
+        raise CondaError(f"Invalid verbosity level: {verbosity}") from None
 
 
+def set_log_level(log_level: int):
+    set_all_logger_level(log_level)
+    log.debug("log_level set to %d", log_level)
+
+
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `logging.getLogger(__name__)(conda.common.constants.TRACE, ...)` instead.",
+)
 def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
         self._log(TRACE, message, args, **kwargs)
 
 
 logging.addLevelName(TRACE, "TRACE")
-logging.Logger.trace = trace
-
-# suppress DeprecationWarning for warn method
-logging.Logger.warn = logging.Logger.warning
+logging.Logger.trace = trace  # type: ignore[attr-defined]

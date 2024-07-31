@@ -26,3 +26,9 @@ $CHANGELOG_CATEGORIES = [
 $CHANGELOG_CATEGORY_TITLE_FORMAT = "### {category}\n\n"
 $CHANGELOG_AUTHORS_TITLE = "Contributors"
 $CHANGELOG_AUTHORS_FORMAT = "* @{github}\n"
+
+try:
+    # allow repository to customize synchronized-from-infa rever config
+    from rever_overrides import *
+except ImportError:
+    pass

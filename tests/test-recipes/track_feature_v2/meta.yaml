@@ -1,0 +1,8 @@
+package:
+  name: track_feature
+  version: "2.0"
+
+build:
+  noarch: generic
+  track_features:
+    - track_feature2

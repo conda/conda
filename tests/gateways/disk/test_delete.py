@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 from errno import ENOENT
-from os.path import isdir, isfile, islink, join, lexists
+from os.path import isdir, isfile, join, lexists
 
 import pytest
 

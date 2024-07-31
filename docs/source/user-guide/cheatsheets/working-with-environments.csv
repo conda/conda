@@ -1,0 +1,5 @@
+list all environments and locations,``conda info --envs``
+list all packages + source channels,``conda list -n ENVNAME --show-channel-urls``
+install packages in environment,``conda install -n ENVNAME PKGNAME1 PKGNAME2``
+remove package from environment,``conda uninstall -n ENVNAME PKGNAME``
+update all packages in environment,``conda update --all -n ENVNAME``

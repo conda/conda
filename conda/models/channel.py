@@ -1,13 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Defines Channel and MultiChannel objects and other channel-related functions.
+
+Object inheritance:
+
+.. autoapi-inheritance-diagram:: Channel MultiChannel
+   :top-classes: conda.models.channel.Channel
+   :parts: 1
+"""
+
 from copy import copy
 from itertools import chain
 from logging import getLogger
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ..base.constants import (
     DEFAULTS_CHANNEL_NAME,
@@ -48,17 +54,12 @@ class ChannelType(type):
             else:
                 c = Channel._cache_[value] = Channel.from_value(value)
                 return c
+        elif "channels" in kwargs:
+            # presence of 'channels' kwarg indicates MultiChannel
+            channels = tuple(cls(**_kwargs) for _kwargs in kwargs["channels"])
+            return MultiChannel(kwargs["name"], channels)
         else:
-            if "channels" in kwargs:
-                # presence of 'channels' kwarg indicates MultiChannel
-                name = kwargs["name"]
-                channels = tuple(
-                    super(ChannelType, cls).__call__(**_kwargs)
-                    for _kwargs in kwargs["channels"]
-                )
-                return MultiChannel(name, channels)
-            else:
-                return super().__call__(*args, **kwargs)
+            return super().__call__(*args, **kwargs)
 
 
 class Channel(metaclass=ChannelType):
@@ -209,8 +210,8 @@ class Channel(metaclass=ChannelType):
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            cn = self.__canonical_name = "{}://{}".format(
-                self.scheme, join_url(self.location, self.name)
+            cn = self.__canonical_name = (
+                f"{self.scheme}://{join_url(self.location, self.name)}"
             )
             return cn
         else:
@@ -345,9 +346,10 @@ class MultiChannel(Channel):
         self.location = None
 
         if platform:
-            c_dicts = tuple(c.dump() for c in channels)
-            any(cd.update(platform=platform) for cd in c_dicts)
-            self._channels = tuple(Channel(**cd) for cd in c_dicts)
+            self._channels = tuple(
+                Channel(**{**channel.dump(), "platform": platform})
+                for channel in channels
+            )
         else:
             self._channels = channels
 
@@ -583,8 +585,9 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
-            result[url] = channel.canonical_name, min(
-                priority_counter, MAX_CHANNEL_PRIORITY - 1
+            result[url] = (
+                channel.canonical_name,
+                min(priority_counter, MAX_CHANNEL_PRIORITY - 1),
             )
     return result
 

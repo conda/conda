@@ -32,6 +32,18 @@
       "timestamp": 1556552671141,
       "version": "14.15.26706"
     },
+    "zlib-1.2.8-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "license": "zlib (http://zlib.net/zlib_license.html)",
+      "md5": "a69dce7d2135e5001038db73750a0e2f",
+      "name": "zlib",
+      "requires": [],
+      "sha256": "ced73bbc08d44813bf0a60b8ea04494e50c482d145b089fa3a7f360b3e570838",
+      "size": 118439,
+      "version": "1.2.8"
+    },
     "zlib-1.2.11-h62dcd97_3.tar.bz2": {
       "build": "h62dcd97_3",
       "build_number": 3,
@@ -47,18 +59,6 @@
       "subdir": "win-64",
       "timestamp": 1542815182812,
       "version": "1.2.11"
-    },
-    "zlib-1.2.8-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "license": "zlib (http://zlib.net/zlib_license.html)",
-      "md5": "a69dce7d2135e5001038db73750a0e2f",
-      "name": "zlib",
-      "requires": [],
-      "sha256": "ced73bbc08d44813bf0a60b8ea04494e50c482d145b089fa3a7f360b3e570838",
-      "size": 118439,
-      "version": "1.2.8"
     }
   },
   "packages.conda": {
@@ -70,10 +70,10 @@
       ],
       "license": "zlib",
       "license_family": "Other",
-      "md5": "a46cf10ba0eece37dffcec2d45a1f4ec",
+      "md5": "edad165fc3d25636d4f0a61c42873fbc",
       "name": "zlib",
-      "sha256": "10363f6c023d7fb3d11fdb4cc8de59b5ad5c6affdf960210dd95a252a3fced2b",
-      "size": 131285,
+      "sha256": "2fb5900c4a2ca7e0f509ebc344b3508815d7647c86cfb6721a1690365222e55a",
+      "size": 112305,
       "subdir": "win-64",
       "timestamp": 1542815182812,
       "version": "1.2.11"

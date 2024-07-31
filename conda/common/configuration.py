@@ -12,6 +12,7 @@ Features include:
 Easily extensible to other source formats, e.g. json and ini
 
 """
+
 from __future__ import annotations
 
 import copy
@@ -20,45 +21,50 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
+from functools import wraps
 from itertools import chain
 from logging import getLogger
-from os import environ, scandir, stat
-from os.path import basename, expandvars
-from stat import S_IFDIR, S_IFMT, S_IFREG
+from os import environ
+from os.path import expandvars
+from pathlib import Path
+from re import IGNORECASE, VERBOSE, compile
+from string import Template
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:  # pragma: no cover
-    from typing import Sequence
-
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.reader import ReaderError
+from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from .._vendor.frozendict import frozendict
-from ..auxlib.collection import AttrDict, first, last, make_immutable
+from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..common.iterators import unique
+from ..deprecations import deprecated
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .path import expand
 from .serialize import yaml_round_trip_load
 
 try:
-    from ruamel.yaml.comments import CommentedMap, CommentedSeq
-    from ruamel.yaml.reader import ReaderError
-    from ruamel.yaml.scanner import ScannerError
-except ImportError:  # pragma: no cover
-    try:
-        from ruamel_yaml.comments import CommentedMap, CommentedSeq
-        from ruamel_yaml.reader import ReaderError
-        from ruamel_yaml.scanner import ScannerError
-    except ImportError:
-        raise ImportError(
-            "No yaml library available. To proceed, conda install ruamel.yaml"
-        )
+    from frozendict import deepfreeze, frozendict
+    from frozendict import getFreezeConversionMap as _getFreezeConversionMap
+    from frozendict import register as _register
+
+    if Enum not in _getFreezeConversionMap():
+        # leave enums as is, deepfreeze will flatten it into a dict
+        # see https://github.com/Marco-Sulla/python-frozendict/issues/98
+        _register(Enum, lambda x: x)
+
+    del _getFreezeConversionMap
+    del _register
+except ImportError:
+    from .._vendor.frozendict import frozendict
+    from ..auxlib.collection import make_immutable as deepfreeze
+
+if TYPE_CHECKING:
+    from re import Match
+    from typing import Any, Hashable, Iterable, Sequence
 
 log = getLogger(__name__)
 
@@ -108,10 +114,9 @@ class MultipleKeysError(ValidationError):
         self.source = source
         self.keys = keys
         msg = (
-            "Multiple aliased keys in file %s:\n"
-            "%s\n"
-            "Must declare only one. Prefer '%s'"
-            % (source, pretty_list(keys), preferred_key)
+            f"Multiple aliased keys in file {source}:\n"
+            f"{pretty_list(keys)}\n"
+            f"Must declare only one. Prefer '{preferred_key}'"
         )
         super().__init__(preferred_key, None, source, msg=msg)
 
@@ -124,28 +129,23 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = (
-                "Parameter %s = %r declared in %s has type %s.\n"
-                "Valid types:\n%s"
-                % (
-                    parameter_name,
-                    parameter_value,
-                    source,
-                    wrong_type,
-                    pretty_list(valid_types),
-                )
+                f"Parameter {parameter_name} = {parameter_value!r} declared in {source} has type {wrong_type}.\n"
+                f"Valid types:\n{pretty_list(valid_types)}"
             )
         super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
 class CustomValidationError(ValidationError):
     def __init__(self, parameter_name, parameter_value, source, custom_message):
-        msg = "Parameter %s = %r declared in %s is invalid.\n" "%s" % (
+        super().__init__(
             parameter_name,
             parameter_value,
             source,
-            custom_message,
+            msg=(
+                f"Parameter {parameter_name} = {parameter_value!r} declared in "
+                f"{source} is invalid.\n{custom_message}"
+            ),
         )
-        super().__init__(parameter_name, parameter_value, source, msg=msg)
 
 
 class MultiValidationError(CondaMultiError, ConfigurationError):
@@ -168,7 +168,7 @@ class ParameterFlag(Enum):
     bottom = "bottom"
 
     def __str__(self):
-        return "%s" % self.value
+        return f"{self.value}"
 
     @classmethod
     def from_name(cls, name):
@@ -192,9 +192,9 @@ class RawParameter(metaclass=ABCMeta):
         self.source = source
         self.key = key
         try:
-            # ignore flake8 on this because it finds an error on py3 even though it is guarded
-            self._raw_value = unicode(raw_value.decode("utf-8"))  # NOQA
-        except:
+            self._raw_value = raw_value.decode("utf-8")
+        except AttributeError:
+            # AttributeError: raw_value is not encoded
             self._raw_value = raw_value
 
     def __repr__(self):
@@ -277,7 +277,7 @@ class ArgParseRawParameter(RawParameter):
                 )
             return tuple(children_values)
         else:
-            return make_immutable(self._raw_value)
+            return deepfreeze(self._raw_value)
 
     def keyflag(self):
         return None
@@ -466,45 +466,10 @@ class DefaultValueRawParameter(RawParameter):
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
-def load_file_configs(search_path):
-    # returns an ordered map of filepath and dict of raw parameter objects
-
-    def _file_loader(fullpath):
-        assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(
-            fullpath
-        ), fullpath
-        yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
-
-    def _dir_loader(fullpath):
-        for filepath in sorted(
-            p
-            for p in (entry.path for entry in scandir(fullpath))
-            if p[-4:] == ".yml" or p[-5:] == ".yaml"
-        ):
-            yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
-
-    # map a stat result to a file loader or a directory loader
-    _loader = {
-        S_IFREG: _file_loader,
-        S_IFDIR: _dir_loader,
-    }
-
-    def _get_st_mode(path):
-        # stat the path for file type, or None if path doesn't exist
-        try:
-            return S_IFMT(stat(path).st_mode)
-        except OSError:
-            return None
-
-    expanded_paths = tuple(expand(path) for path in search_path)
-    stat_paths = (_get_st_mode(path) for path in expanded_paths)
-    load_paths = (
-        _loader[st_mode](path)
-        for path, st_mode in zip(expanded_paths, stat_paths)
-        if st_mode is not None
-    )
-    raw_data = dict(kv for kv in chain.from_iterable(load_paths))
-    return raw_data
+@deprecated("24.3", "24.9")
+def load_file_configs(search_path: Iterable[Path | str], **kwargs) -> dict[Path, dict]:
+    expanded_paths = Configuration._expand_search_path(search_path, **kwargs)
+    return dict(Configuration._load_search_path(expanded_paths))
 
 
 class LoadedParameter(metaclass=ABCMeta):
@@ -1347,8 +1312,62 @@ class ConfigurationType(type):
         )
 
 
+CONDARC_FILENAMES = (".condarc", "condarc")
+YAML_EXTENSIONS = (".yml", ".yaml")
+_RE_CUSTOM_EXPANDVARS = compile(
+    rf"""
+    # delimiter and a Python identifier
+    \$(?P<named>{Template.idpattern}) |
+
+    # delimiter and a braced identifier
+    \${{(?P<braced>{Template.idpattern})}} |
+
+    # delimiter padded identifier
+    %(?P<padded>{Template.idpattern})%
+    """,
+    flags=IGNORECASE | VERBOSE,
+)
+
+
+def custom_expandvars(
+    template: str, mapping: Mapping[str, Any] = {}, /, **kwargs
+) -> str:
+    """Expand variables in a string.
+
+    Inspired by `string.Template` and modified to mirror `os.path.expandvars` functionality
+    allowing custom variables without mutating `os.environ`.
+
+    Expands POSIX and Windows CMD environment variables as follows:
+
+    - $VARIABLE → value of VARIABLE
+    - ${VARIABLE} → value of VARIABLE
+    - %VARIABLE% → value of VARIABLE
+
+    Invalid substitutions are left as-is:
+
+    - $MISSING → $MISSING
+    - ${MISSING} → ${MISSING}
+    - %MISSING% → %MISSING%
+    - $$ → $$
+    - %% → %%
+    - $ → $
+    - % → %
+    """
+    mapping = {**mapping, **kwargs}
+
+    def convert(match: Match):
+        return str(
+            mapping.get(
+                match.group("named") or match.group("braced") or match.group("padded"),
+                match.group(),  # fallback to the original string
+            )
+        )
+
+    return _RE_CUSTOM_EXPANDVARS.sub(convert, template)
+
+
 class Configuration(metaclass=ConfigurationType):
-    def __init__(self, search_path=(), app_name=None, argparse_args=None):
+    def __init__(self, search_path=(), app_name=None, argparse_args=None, **kwargs):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
@@ -1356,23 +1375,69 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
 
-        self._set_search_path(search_path)
+        self._set_search_path(search_path, **kwargs)
         self._set_env_vars(app_name)
         self._set_argparse_args(argparse_args)
 
-    def _set_search_path(self, search_path):
-        self._search_path = IndexedSet(search_path)
-        self._set_raw_data(load_file_configs(search_path))
+    @staticmethod
+    def _expand_search_path(
+        search_path: Iterable[Path | str],
+        **kwargs,
+    ) -> Iterable[Path]:
+        for search in search_path:
+            # use custom_expandvars instead of os.path.expandvars so additional variables can be
+            # passed in without mutating os.environ
+            if isinstance(search, Path):
+                path = search
+            else:
+                template = custom_expandvars(search, environ, **kwargs)
+                path = Path(template).expanduser()
+
+            if path.is_file() and (
+                path.name in CONDARC_FILENAMES or path.suffix in YAML_EXTENSIONS
+            ):
+                yield path
+            elif path.is_dir():
+                yield from (
+                    subpath
+                    for subpath in sorted(path.iterdir())
+                    if subpath.is_file() and subpath.suffix in YAML_EXTENSIONS
+                )
+
+    @classmethod
+    def _load_search_path(
+        cls,
+        search_path: Iterable[Path],
+    ) -> Iterable[tuple[Path, dict]]:
+        for path in search_path:
+            try:
+                yield path, YamlRawParameter.make_raw_parameters_from_file(path)
+            except ConfigurationLoadError as err:
+                log.warning(
+                    "Ignoring configuration file (%s) due to error:\n%s",
+                    path,
+                    err,
+                )
+
+    def _set_search_path(self, search_path: Iterable[Path | str], **kwargs):
+        self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
+
+        self._set_raw_data(dict(self._load_search_path(self._search_path)))
+
         self._reset_cache()
         return self
 
     def _set_env_vars(self, app_name=None):
         self._app_name = app_name
-        if not app_name:
-            return self
-        self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(
-            app_name
-        )
+
+        # remove existing source so "insert" order is correct
+        source = EnvRawParameter.source
+        if source in self.raw_data:
+            del self.raw_data[source]
+
+        if app_name:
+            self.raw_data[source] = EnvRawParameter.make_raw_parameters(app_name)
+
         self._reset_cache()
         return self
 
@@ -1382,27 +1447,30 @@ class Configuration(metaclass=ConfigurationType):
         if hasattr(argparse_args, "__dict__"):
             # the argparse_args from argparse will be an object with a __dict__ attribute
             #   and not a mapping type like this method will turn it into
-            self._argparse_args = AttrDict(
-                (k, v) for k, v, in vars(argparse_args).items() if v is not NULL
-            )
+            items = vars(argparse_args).items()
         elif not argparse_args:
             # argparse_args can be initialized as `None`
-            self._argparse_args = AttrDict()
+            items = ()
         else:
             # we're calling this method with argparse_args that are a mapping type, likely
             #   already having been processed by this method before
-            self._argparse_args = AttrDict(
-                (k, v) for k, v, in argparse_args.items() if v is not NULL
-            )
+            items = argparse_args.items()
 
-        source = ArgParseRawParameter.source
-        self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(
-            self._argparse_args
+        self._argparse_args = argparse_args = AttrDict(
+            {k: v for k, v in items if v is not NULL}
         )
+
+        # remove existing source so "insert" order is correct
+        source = ArgParseRawParameter.source
+        if source in self.raw_data:
+            del self.raw_data[source]
+
+        self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(argparse_args)
+
         self._reset_cache()
         return self
 
-    def _set_raw_data(self, raw_data):
+    def _set_raw_data(self, raw_data: Mapping[Hashable, dict]):
         self.raw_data.update(raw_data)
         self._reset_cache()
         return self
@@ -1506,7 +1574,7 @@ class Configuration(metaclass=ConfigurationType):
 
         description = self.get_descriptions().get(name, "")
         et = parameter._element_type
-        if type(et) == EnumMeta:
+        if type(et) == EnumMeta:  # noqa: E721
             et = [et]
         if not isiterable(et):
             et = [et]
@@ -1547,3 +1615,43 @@ class Configuration(metaclass=ConfigurationType):
 
     def get_descriptions(self):
         raise NotImplementedError()
+
+
+def unique_sequence_map(*, unique_key: str):
+    """
+    Used to validate properties on :class:`Configuration` subclasses defined as a
+    ``SequenceParameter(MapParameter())`` where the map contains a single key that
+    should be regarded as unique. This decorator will handle removing duplicates and
+    merging to a single sequence.
+    """
+
+    def inner_wrap(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            sequence_map = func(*args, **kwargs)
+            new_sequence_mapping = {}
+
+            for mapping in sequence_map:
+                unique_key_value = mapping.get(unique_key)
+
+                if unique_key_value is None:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; unique key '
+                        f'"{unique_key}" not present on mapping'
+                    )
+                    continue
+
+                if unique_key_value in new_sequence_mapping:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; value '
+                        f'"{unique_key_value}" already present'
+                    )
+                    continue
+
+                new_sequence_mapping[unique_key_value] = mapping
+
+            return tuple(new_sequence_mapping.values())
+
+        return wrapper
+
+    return inner_wrap

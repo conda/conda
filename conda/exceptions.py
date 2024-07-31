@@ -1,18 +1,20 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Conda exceptions."""
+
 from __future__ import annotations
 
 import json
 import os
 import sys
 from datetime import timedelta
-from json.decoder import JSONDecodeError
 from logging import getLogger
 from os.path import join
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
+from typing import TYPE_CHECKING
 
-from conda.common.iterators import groupby_to_dict as groupby
+from requests.exceptions import JSONDecodeError
 
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.entity import EntityEncoder
@@ -21,11 +23,15 @@ from .auxlib.logz import stringify
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import on_win
 from .common.io import dashlist
+from .common.iterators import groupby_to_dict as groupby
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
-from .deprecations import DeprecatedError  # noqa: 401
-from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: 401
+from .deprecations import DeprecatedError  # noqa: F401
+from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
+
+if TYPE_CHECKING:
+    import requests
 
 log = getLogger(__name__)
 
@@ -42,7 +48,7 @@ class ResolvePackageNotFound(CondaError):
         )
         self._formatted_chains = formatted_chains
         message = "\n" + "\n".join(
-            ("  - %s" % bad_chain) for bad_chain in formatted_chains
+            (f"  - {bad_chain}") for bad_chain in formatted_chains
         )
         super().__init__(message)
 
@@ -52,7 +58,7 @@ NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
 class LockError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -116,7 +122,7 @@ class DeactivateHelp(Help):
 
 class GenericHelp(Help):
     def __init__(self, command):
-        message = "help requested for %s" % command
+        message = f"help requested for {command}"
         super().__init__(message)
 
 
@@ -289,10 +295,9 @@ class CommandNotFoundError(CondaError):
             "render",
             "skeleton",
         }
-        from .base.context import context
         from .cli.main import init_loggers
 
-        init_loggers(context)
+        init_loggers()
         if command in activate_commands:
             # TODO: Point users to a page at conda-docs, which explains this context in more detail
             builder = [
@@ -342,7 +347,7 @@ class CommandNotFoundError(CondaError):
             )
             close = get_close_matches(command, choices)
             if close:
-                message += "\nDid you mean 'conda %s'?" % close[0]
+                message += f"\nDid you mean 'conda {close[0]}'?"
         super().__init__(message, command=command)
 
 
@@ -401,7 +406,7 @@ class DirectoryNotACondaEnvironmentError(CondaError):
 
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg, *args)
 
 
@@ -434,7 +439,7 @@ class LinkError(CondaError):
 
 class CondaOSError(CondaError, OSError):
     def __init__(self, message, **kwargs):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg, **kwargs)
 
 
@@ -453,7 +458,7 @@ class ProxyError(CondaError):
 
 class CondaIOError(CondaError, IOError):
     def __init__(self, message, *args):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -468,7 +473,7 @@ class CondaFileIOError(CondaIOError):
 class CondaKeyError(CondaError, KeyError):
     def __init__(self, key, message, *args):
         self.key = key
-        self.msg = f"'{key}': {message}"
+        self.msg = f"{key!r}: {message}"
         super().__init__(self.msg, *args)
 
 
@@ -494,7 +499,9 @@ class ChannelNotAllowed(ChannelError):
 class UnavailableInvalidChannel(ChannelError):
     status_code: str | int
 
-    def __init__(self, channel, status_code, response=None):
+    def __init__(
+        self, channel, status_code, response: requests.models.Response | None = None
+    ):
         # parse channel
         channel = Channel(channel)
         channel_name = channel.name
@@ -557,13 +564,13 @@ class OperationNotAllowed(CondaError):
 
 class CondaImportError(CondaError, ImportError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
 class ParseError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -845,7 +852,7 @@ conda config --set unsatisfiable_hints True
                         msg += "\nOutput in format: Requested package -> Available versions"
                         for dep, chain in dep_constraint_map.items():
                             if len(chain) > 1:
-                                msg += "\n\nPackage %s conflicts for:\n" % dep
+                                msg += f"\n\nPackage {dep} conflicts for:\n"
                                 msg += "\n".join(
                                     [" -> ".join([str(i) for i in c]) for c in chain]
                                 )
@@ -878,7 +885,7 @@ conda config --set unsatisfiable_hints True
 
 class RemoveError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -922,7 +929,7 @@ class SpecsConfigurationConflictError(CondaError):
 
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -938,9 +945,7 @@ class CyclicalDependencyError(CondaError, ValueError):
         packages_with_cycles = tuple(
             PackageRecord.from_objects(p) for p in packages_with_cycles
         )
-        message = "Cyclic dependencies exist among these items: %s" % dashlist(
-            p.dist_str() for p in packages_with_cycles
-        )
+        message = f"Cyclic dependencies exist among these items: {dashlist(p.dist_str() for p in packages_with_cycles)}"
         super().__init__(message, packages_with_cycles=packages_with_cycles, **kwargs)
 
 
@@ -965,13 +970,13 @@ class CorruptedEnvironmentError(CondaError):
 
 class CondaHistoryError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
 class CondaUpgradeError(CondaError):
     def __init__(self, message):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg)
 
 
@@ -1034,13 +1039,13 @@ class NotWritableError(CondaError, OSError):
 
 class NoWritableEnvsDirError(CondaError):
     def __init__(self, envs_dirs, **kwargs):
-        message = "No writeable envs directories configured.%s" % dashlist(envs_dirs)
+        message = f"No writeable envs directories configured.{dashlist(envs_dirs)}"
         super().__init__(message, envs_dirs=envs_dirs, **kwargs)
 
 
 class NoWritablePkgsDirError(CondaError):
     def __init__(self, pkgs_dirs, **kwargs):
-        message = "No writeable pkgs directories configured.%s" % dashlist(pkgs_dirs)
+        message = f"No writeable pkgs directories configured.{dashlist(pkgs_dirs)}"
         super().__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
 
@@ -1106,18 +1111,18 @@ class BinaryPrefixReplacementError(CondaError):
 
 
 class InvalidSpec(CondaError, ValueError):
-    def __init__(self, message, **kwargs):
+    def __init__(self, message: str, **kwargs):
         super().__init__(message, **kwargs)
 
 
 class InvalidVersionSpec(InvalidSpec):
-    def __init__(self, invalid_spec, details):
+    def __init__(self, invalid_spec: str, details: str):
         message = "Invalid version '%(invalid_spec)s': %(details)s"
         super().__init__(message, invalid_spec=invalid_spec, details=details)
 
 
 class InvalidMatchSpec(InvalidSpec):
-    def __init__(self, invalid_spec, details):
+    def __init__(self, invalid_spec: str, details: str):
         message = "Invalid spec '%(invalid_spec)s': %(details)s"
         super().__init__(message, invalid_spec=invalid_spec, details=details)
 
@@ -1153,7 +1158,7 @@ class NoSpaceLeftError(CondaError):
 
 class CondaEnvException(CondaError):
     def __init__(self, message, *args, **kwargs):
-        msg = "%s" % message
+        msg = f"{message}"
         super().__init__(msg, *args, **kwargs)
 
 
@@ -1240,11 +1245,7 @@ def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
 
     rc = getattr(exc_val, "return_code", None)
-    if (
-        context.debug
-        or context.verbosity > 2
-        or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)
-    ):
+    if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
         if isinstance(exc_val, DryRunExit):
@@ -1253,7 +1254,7 @@ def print_conda_exception(exc_val, exc_tb=None):
         exc_json = json.dumps(
             exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder
         )
-        logger.info("%s\n" % exc_json)
+        logger.info(f"{exc_json}\n")
     else:
         stderrlog = getLogger("conda.stderr")
         stderrlog.error("\n%r\n", exc_val)
@@ -1273,3 +1274,9 @@ def _format_exc(exc_val=None, exc_tb=None):
     else:
         formatted_exception = format_exception_only(exc_type, exc_val)
     return "".join(formatted_exception)
+
+
+class InvalidInstaller(Exception):
+    def __init__(self, name):
+        msg = f"Unable to load installer for {name}"
+        super().__init__(msg)

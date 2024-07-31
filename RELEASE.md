@@ -14,23 +14,23 @@
 
 # Release Process
 
-> **Note**
-> Throughout this document are references to the version number as `YY.M.0`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
+> [!NOTE]
+> Throughout this document are references to the version number as `YY.M.[$patch_number]`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
 
 ## 1. Open the release issue and cut a release branch. (do this ~1 week prior to release)
 
-> **Note**
-> The [epic template][epic template] is perfect for this; remember to remove the **`epic`** label.
+> [!NOTE]
+> The new release branch should adhere to the naming convention of `YY.M.x` (make sure to put the `.x` at the end!). In the case of patch/hotfix releases, however, do NOT cut a new release branch; instead, use the previously-cut release branch with the appropriate `YY.M.x` version numbers.
 
 Use the issue template below to create the release issue. After creating the release issue, pin it for easy access.
 
 <details>
-<summary><code>GitHub Issue Template</code></summary>
+<summary><h3>Release Template</h3></summary>
 
 ```markdown
 ### Summary
 
-Placeholder for `{{ repo.name }} YY.M.0` release.
+Placeholder for `{{ repo.name }} YY.M.x` release.
 
 | Pilot | <pilot> |
 |---|---|
@@ -45,18 +45,23 @@ Placeholder for `{{ repo.name }} YY.M.0` release.
 [conda-forge]: https://github.com/conda-forge/{{ repo.name }}-feedstock
 [ReadTheDocs]: https://readthedocs.com/projects/continuumio-{{ repo.name }}/
 
-#### The week before release week
+<details open>  <!-- feel free to remove the open attribute once this section is completed -->
+<summary><h4>The week before release week</h4></summary>
 
 - [ ] Create release branch (named `YY.M.x`)
-- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/YY.M.x`)
+- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/rc-{{ repo.name }}-YY.M.x`)
 - [ ] [Complete outstanding PRs][milestone]
 - [ ] Test release candidates
     <!-- indicate here who has signed off on testing -->
 
-#### Release week
+</details>
+
+<details open>  <!-- feel free to remove the open attribute once this section is completed -->
+<summary><h4>Release week</h4></summary>
 
 - [ ] Create release PR (see [release process][process])
 - [ ] [Publish release][releases]
+- [ ] Merge `YY.M.x` back into `main`
 - [ ] Activate the `YY.M.x` branch on [ReadTheDocs][ReadTheDocs]
 - [ ] Feedstocks
     - [ ] Bump version & update dependencies/tests in [Anaconda, Inc.'s feedstock][main]
@@ -72,23 +77,56 @@ Placeholder for `{{ repo.name }} YY.M.0` release.
         - [ ] [Matrix (conda/conda)](https://matrix.to/#/#conda_conda:gitter.im) (this auto posts from Discourse)
     - Summary
         - [ ] [Twitter](https://twitter.com/condaproject)
+
+</details>
 ```
 </details>
 
+If a patch release is necessary, reopen the original release issue and append the following template to the release issue summary.
 
-> **Note**
-> The new release branch should adhere to the naming convention of `YY.M.x`.
+<details>
+<summary><h3>Patch Release Template</h3></summary>
+
+```markdown
+<details open>  <!-- feel free to remove the open attribute once this section is completed -->
+<summary><h4>Patch YY.M.N</h4></summary>
+
+- [ ] <!-- list issues & PRs that need to be resolved here -->
+- [ ] Create release PR (see [release process][process])
+- [ ] [Publish release][releases]
+- [ ] Merge `YY.M.x` back into `main`
+- [ ] Feedstocks
+    - [ ] Bump version & update dependencies/tests in [Anaconda, Inc.'s feedstock][main]
+    - [ ] Bump version & update dependencies/tests in [conda-forge feedstock][conda-forge]
+- [ ] Hand off to the Anaconda packaging team
+
+</details>
+```
+
+</details>
+
+> [!NOTE]
+> The [epic template][epic template] is perfect for this; remember to remove the **`epic`** label.
 
 ## 2. Alert various parties of the upcoming release. (do this ~1 week prior to release)
 
 Let various interested parties know about the upcoming release; at minimum, conda-forge maintainers should be informed. For major features, a blog post describing the new features should be prepared and posted once the release is completed (see the announcements section of the release issue).
 
-## 3. Ensure `rever.xsh` and `news/TEMPLATE` are up to date.
+## 3. Manually test canary build(s).
+
+### Canary Builds for Manual Testing
+
+Once the release PRs are filed, successful canary builds will be available on `https://anaconda.org/conda-canary/conda/files?channel=rc-{{ repo.name }}-YY.M.x` for manual testing.
+
+> [!NOTE]
+> You do not need to apply the `build::review` label for release PRs; every commit to the release branch builds and uploads canary builds to the respective `rc-` label.
+
+## 4. Ensure `rever.xsh` and `news/TEMPLATE` are up to date.
 
 These are synced from [`conda/infrastructure`][infrastructure].
 
 <details>
-<summary><h2>4. Run rever. (ideally done on the Monday of release week)</h2></summary>
+<summary><h2>5. Run rever. (ideally done on the Monday of release week)</h2></summary>
 
 Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from builtin race conditions (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
 
@@ -117,12 +155,12 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 2. Create a versioned branch, this is where rever will make its changes:
 
     ```bash
-    (rever) $ git checkout -b changelog-YY.M.0
+    (rever) $ git checkout -b changelog-YY.M.[$patch_number]
     ```
 
-2. Run `rever --activities authors`:
+2. Run `rever --activities authors <VERSION>`:
 
-    > **Note**
+    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
     > Include `--force` when re-running any rever commands for the same `<VERSION>`, otherwise, rever will skip the activity and no changes will be made (i.e., rever remembers if an activity has been run for a given version).
 
     ```bash
@@ -145,7 +183,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - Here's a sample run where we undo the commit made by rever in order to commit the changes to `.authors.yml` separately:
 
         ```bash
-        (rever) $ rever --activities authors --force YY.M.0
+        (rever) $ rever --activities authors --force YY.M.[$patch_number]
 
         # changes were made to .authors.yml as per the prior bullet
         (rever) $ git diff --name-only HEAD HEAD~1
@@ -164,10 +202,10 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
         ```bash
         (rever) $ git add .
-        (rever) $ git commit -m "Updated .authors.yml"
+        (rever) $ git commit -m "Update .authors.yml"
         ```
 
-    - Rerun `rever --activities authors` and finally check that your `.mailmap` is correct by running:
+    - Rerun `rever --activities authors --force <VERSION>` and finally check that your `.mailmap` is correct by running:
 
         ```bash
         git shortlog -se
@@ -189,21 +227,21 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
         ```bash
         (rever) $ git add .
-        (rever) $ git commit -m "Updated .mailmap"
+        (rever) $ git commit -m "Update .mailmap"
         ```
 
     - Continue repeating the above processes until the `.authors.yml` and `.mailmap` are corrected to your liking. After completing this, you will have at most two commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v main
-        + 86957814cf235879498ed7806029b8ff5f400034 Updated .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Updated .mailmap
+        (rever) $ git cherry -v <release branch>
+        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
+        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         ```
 
 
 4. Review news snippets (ensure they are all using the correct Markdown format, **not** reStructuredText) and add additional snippets for undocumented PRs/changes as necessary.
 
-    > **Note**
+    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
     > We've found it useful to name news snippets with the following format: `<PR #>-<DESCRIPTIVE SLUG>`.
     >
     > We've also found that we like to include the PR #s inline with the text itself, e.g.:
@@ -214,7 +252,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     > * Add `win-arm64` as a known platform (subdir). (#11778)
     > ```
 
-    - You can utilize [GitHub's compare view][compare] to review what changes are to be included in this release.
+    - You can utilize [GitHub's compare view][compare] to review what changes are to be included in this release. Make sure you compare the current release branch against the previous one (e.g., `24.5.x` would be compared against `24.3.x`)
 
     - Add a new news snippet for any PRs of importance that are missing.
 
@@ -222,21 +260,21 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
         ```bash
         (rever) $ git add .
-        (rever) $ git commit -m "Updated news"
+        (rever) $ git commit -m "Update news"
         ```
 
     - After completing this, you will have at most three commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v main
-        + 86957814cf235879498ed7806029b8ff5f400034 Updated .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Updated .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Updated news
+        (rever) $ git cherry -v <release branch>
+        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
+        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
+        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
         ```
 
 5. Run `rever --activities changelog`:
 
-    > **Note**
+    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
     > This has previously been a notoriously fickle step (likely due to incorrect regex patterns in the `rever.xsh` config file and missing `github` keys in `.authors.yml`) so beware of potential hiccups. If this fails, it's highly likely to be an innocent issue.
 
     ```bash
@@ -255,10 +293,10 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - After completing this, you will have at most three commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v main
-        + 86957814cf235879498ed7806029b8ff5f400034 Updated .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Updated .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Updated news
+        (rever) $ git cherry -v <release branch>
+        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
+        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
+        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
         ```
 
 6. Now that we have successfully run the activities separately, we wish to run both together. This will ensure that the contributor list, a side-effect of the authors activity, is included in the changelog activity.
@@ -270,12 +308,12 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - After completing this, you will have at most five commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v main
-        + 86957814cf235879498ed7806029b8ff5f400034 Updated .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Updated .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Updated news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Updated authorship for YY.M.0
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Updated CHANGELOG for YY.M.0
+        (rever) $ git cherry -v <release branch>
+        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
+        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
+        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
+        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.[$patch_number]
+        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.[$patch_number]
         ```
 
 7. Since rever does not include stats on first-time contributors, we will need to add this manually.
@@ -286,25 +324,25 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
         ```bash
         (rever) $ git add .
-        (rever) $ git commit -m "Added first contributions"
+        (rever) $ git commit -m "Add first-time contributions"
         ```
 
     - After completing this, you will have at most six commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v main
-        + 86957814cf235879498ed7806029b8ff5f400034 Updated .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Updated .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Updated news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Updated authorship for YY.M.0
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Updated CHANGELOG for YY.M.0
-        + 93fdf029fd4cf235872c12cab12a1f7e8f95a755 Added first contributions
+        (rever) $ git cherry -v <release branch>
+        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
+        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
+        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
+        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.[$patch_number]
+        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.[$patch_number]
+        + 93fdf029fd4cf235872c12cab12a1f7e8f95a755 Add first-time contributions
         ```
 
 8. Push this versioned branch.
 
     ```bash
-    (rever) $ git push -u upstream changelog-YY.M.0
+    (rever) $ git push -u upstream changelog-YY.M.[$patch_number]
     ```
 
 9. Open the Release PR targing the `YY.M.x` branch.
@@ -326,47 +364,66 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
 11. [Create][new release] the release and **SAVE AS A DRAFT** with the following values:
 
-    > **Note**
+    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
     > Only publish the release after the release PR is merged, until then always **save as draft**.
 
     | Field | Value |
     |---|---|
-    | Choose a tag | `YY.M.0` |
+    | Choose a tag | `YY.M.[$patch_number]` |
     | Target | `YY.M.x` |
     | Body | copy/paste blurb from `CHANGELOG.md` |
 
 </details>
 
-## 5. Wait for review and approval of release PR.
+## 6. Wait for review and approval of release PR.
 
-## 6. Merge release PR and publish release.
+## 7. Merge release PR and publish release.
 
-## 7. Merge/cherry pick the release branch over to the `main` branch.
+To publish the release, go to the project's release page (e.g., https://github.com/conda/conda/releases) and add the release notes from `CHANGELOG.md` to the draft release you created earlier. Then publish the release.
+
+> [!NOTE]
+> Release notes can be drafted and saved ahead of time.
+
+## 8. Merge/cherry pick the release branch over to the `main` branch.
 
 <details>
 <summary>Internal process</summary>
 
 1. From the main "< > Code" page of the repository, select the drop down menu next to the `main` branch button and then select "View all branches" at the very bottom.
 
-2. Find the applicable `YY.MM.x` branch and click the "New pull request" button.
+2. Find the applicable `YY.M.x` branch and click the "New pull request" button.
 
-3. "Base" should point to `main` while "Compare" should point to `YY.MM.x`.
+3. "Base" should point to `main` while "Compare" should point to `YY.M.x`.
 
 4. Ensure that all of the commits being pulled in look accurate, then select "Create pull request".
 
-> **Note**
-> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], create a temporary "connector branch" dedicated to fixing merge conflicts separately from the `YY.M.0` and `main` branches.
+> [!NOTE]
+> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], create a temporary "connector branch" dedicated to fixing merge conflicts separately from the `YY.M.x` and `main` branches.
 
 5. Review and merge the pull request the same as any code change pull request.
 
-> **Note**
+> [!NOTE]
 > The commits from the release branch need to be retained in order to be able to compare individual commits; in other words, a "merge commit" is required when merging the resulting pull request vs. a "squash merge". Protected branches will require permissions to be temporarily relaxed in order to enable this action.
 
 </details>
 
-## 8. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `YY.M.0`.
+## 9. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `YY.M.[$patch_number]`.
 
-## 9. Hand off to Anaconda's packaging team.
+> [!NOTE]
+> Conda-forge's PRs will be auto-created via the `regro-cf-autotick-bot`. Follow the instructions below if any changes need to be made to the recipe that were not automatically added (these instructions are only necessary for anyone who is _not_ a conda-forge feedstock maintainer, since maintainers can push changes directly to the autotick branch):
+> - Create a new branch based off of autotick's branch (autotick's branches usually use the `regro-cf-autotick-bot:XX.YY.[$patch_number]_[short hash]` syntax)
+> - Add any changes via commits to that new branch
+> - Open a new PR and push it against the `main` branch
+>
+> Make sure to include a comment on the original `autotick-bot` PR that a new pull request has been created, in order to avoid duplicating work!  `regro-cf-autotick-bot` will close the auto-created PR once the new PR is merged.
+>
+> For more information about this process, please read the ["Pushing to regro-cf-autotick-bot branch" section of the conda-forge documentation](https://conda-forge.org/docs/maintainer/updating_pkgs.html#pushing-to-regro-cf-autotick-bot-branch).
+
+
+## 10. Hand off to Anaconda's packaging team.
+
+> [!NOTE]
+> This step should NOT be done past Thursday morning EST; please start the process on a Monday, Tuesday, or Wednesday instead in order to avoid any potential debugging sessions over evenings or weekends.
 
 <details>
 <summary>Internal process</summary>
@@ -377,6 +434,6 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
 </details>
 
-## 10. Continue championing and shepherding.
+## 11. Continue championing and shepherding.
 
 Remember to make all relevant announcements and continue to update the release issue with the latest details as tasks are completed.

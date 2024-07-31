@@ -1,16 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Package installation implemented as a series of link/unlink transactions."""
+
+from __future__ import annotations
+
 import itertools
 import os
 import sys
 import warnings
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from itertools import chain
 from logging import getLogger
 from os.path import basename, dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
+from typing import TYPE_CHECKING, NamedTuple
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -75,6 +80,13 @@ from .path_actions import (
 )
 from .prefix_data import PrefixData, get_python_version_for_prefix
 
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from ..models.package_info import PackageInfo
+    from ..models.records import PackageRecord
+    from .path_actions import _Action
+
 log = getLogger(__name__)
 
 
@@ -105,8 +117,8 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = "{}-{}-{}".format(
-                prefix_record.name, prefix_record.version, prefix_record.build
+            extracted_package_dir = (
+                f"{prefix_record.name}-{prefix_record.version}-{prefix_record.build}"
             )
 
     meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
@@ -154,58 +166,44 @@ def match_specs_to_dists(packages_info_to_link, specs):
     return tuple(matched_specs)
 
 
-PrefixSetup = namedtuple(
-    "PrefixSetup",
-    (
-        "target_prefix",
-        "unlink_precs",
-        "link_precs",
-        "remove_specs",
-        "update_specs",
-        "neutered_specs",
-    ),
-)
+class PrefixSetup(NamedTuple):
+    target_prefix: str
+    unlink_precs: tuple[PackageRecord, ...]
+    link_precs: tuple[PackageRecord, ...]
+    remove_specs: tuple[MatchSpec, ...]
+    update_specs: tuple[MatchSpec, ...]
+    neutered_specs: tuple[MatchSpec, ...]
 
-PrefixActionGroup = namedtuple(
-    "PrefixActionGroup",
-    (
-        "remove_menu_action_groups",
-        "unlink_action_groups",
-        "unregister_action_groups",
-        "link_action_groups",
-        "register_action_groups",
-        "compile_action_groups",
-        "make_menu_action_groups",
-        "entry_point_action_groups",
-        "prefix_record_groups",
-    ),
-)
 
-# each PrefixGroup item is a sequence of ActionGroups
-ActionGroup = namedtuple(
-    "ActionGroup",
-    (
-        "type",
-        "pkg_data",
-        "actions",
-        "target_prefix",
-    ),
-)
+class ActionGroup(NamedTuple):
+    type: str
+    pkg_data: PackageInfo | None
+    actions: Iterable[_Action]
+    target_prefix: str
 
-ChangeReport = namedtuple(
-    "ChangeReport",
-    (
-        "prefix",
-        "specs_to_remove",
-        "specs_to_add",
-        "removed_precs",
-        "new_precs",
-        "updated_precs",
-        "downgraded_precs",
-        "superseded_precs",
-        "fetch_precs",
-    ),
-)
+
+class PrefixActionGroup(NamedTuple):
+    remove_menu_action_groups: Iterable[ActionGroup]
+    unlink_action_groups: Iterable[ActionGroup]
+    unregister_action_groups: Iterable[ActionGroup]
+    link_action_groups: Iterable[ActionGroup]
+    register_action_groups: Iterable[ActionGroup]
+    compile_action_groups: Iterable[ActionGroup]
+    make_menu_action_groups: Iterable[ActionGroup]
+    entry_point_action_groups: Iterable[ActionGroup]
+    prefix_record_groups: Iterable[ActionGroup]
+
+
+class ChangeReport(NamedTuple):
+    prefix: str
+    specs_to_remove: Iterable[MatchSpec]
+    specs_to_add: Iterable[MatchSpec]
+    removed_precs: Iterable[PackageRecord]
+    new_precs: Iterable[PackageRecord]
+    updated_precs: Iterable[PackageRecord]
+    downgraded_precs: Iterable[PackageRecord]
+    superseded_precs: Iterable[PackageRecord]
+    fetch_precs: Iterable[PackageRecord]
 
 
 class UnlinkLinkTransaction:
@@ -270,7 +268,7 @@ class UnlinkLinkTransaction:
 
         with Spinner(
             "Preparing transaction",
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             for stp in self.prefix_setups.values():
@@ -300,7 +298,7 @@ class UnlinkLinkTransaction:
 
         with Spinner(
             "Verifying transaction",
-            not context.verbosity and not context.quiet,
+            not context.verbose and not context.quiet,
             context.json,
         ):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
@@ -393,9 +391,9 @@ class UnlinkLinkTransaction:
             except OSError as e:
                 log.debug(repr(e))
                 raise CondaError(
-                    "Unable to create prefix directory '%s'.\n"
+                    f"Unable to create prefix directory '{target_prefix}'.\n"
                     "Check that you have sufficient permissions."
-                    "" % target_prefix
+                    ""
                 )
 
         # gather information from disk and caches
@@ -770,8 +768,8 @@ class UnlinkLinkTransaction:
                     or dep_name in pkg_names_being_unlnkd
                 ):
                     yield RemoveError(
-                        "'%s' is a dependency of conda and cannot be removed from\n"
-                        "conda's operating environment." % dep_name
+                        f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
+                        "conda's operating environment."
                     )
 
         # Verification 3. enforce disallowed_packages
@@ -851,7 +849,7 @@ class UnlinkLinkTransaction:
             exceptions = []
             with Spinner(
                 "Executing transaction",
-                not context.verbosity and not context.quiet,
+                not context.verbose and not context.quiet,
                 context.json,
             ):
                 # Execute unlink actions
@@ -961,7 +959,7 @@ class UnlinkLinkTransaction:
                 if context.rollback_enabled:
                     with Spinner(
                         "Rolling back transaction",
-                        not context.verbosity and not context.quiet,
+                        not context.verbose and not context.quiet,
                         context.json,
                     ):
                         reverse_actions = reversed(tuple(all_action_groups))
@@ -996,14 +994,14 @@ class UnlinkLinkTransaction:
         try:
             if axngroup.type == "unlink":
                 log.info(
-                    "===> UNLINKING PACKAGE: %s <===\n" "  prefix=%s\n",
+                    "===> UNLINKING PACKAGE: %s <===\n  prefix=%s\n",
                     prec.dist_str(),
                     target_prefix,
                 )
 
             elif axngroup.type == "link":
                 log.info(
-                    "===> LINKING PACKAGE: %s <===\n" "  prefix=%s\n" "  source=%s\n",
+                    "===> LINKING PACKAGE: %s <===\n  prefix=%s\n  source=%s\n",
                     prec.dist_str(),
                     target_prefix,
                     prec.extracted_package_dir,
@@ -1059,14 +1057,14 @@ class UnlinkLinkTransaction:
 
         if axngroup.type == "unlink":
             log.info(
-                "===> REVERSING PACKAGE UNLINK: %s <===\n" "  prefix=%s\n",
+                "===> REVERSING PACKAGE UNLINK: %s <===\n  prefix=%s\n",
                 prec.dist_str(),
                 target_prefix,
             )
 
         elif axngroup.type == "link":
             log.info(
-                "===> REVERSING PACKAGE LINK: %s <===\n" "  prefix=%s\n",
+                "===> REVERSING PACKAGE LINK: %s <===\n  prefix=%s\n",
                 prec.dist_str(),
                 target_prefix,
             )
@@ -1244,20 +1242,20 @@ class UnlinkLinkTransaction:
     def _change_report_str(self, change_report):
         # TODO (AV): add warnings about unverified packages in this function
         builder = ["", "## Package Plan ##\n"]
-        builder.append("  environment location: %s" % change_report.prefix)
+        builder.append(f"  environment location: {change_report.prefix}")
         builder.append("")
         if change_report.specs_to_remove:
             builder.append(
-                "  removed specs:%s"
-                % dashlist(
-                    sorted(str(s) for s in change_report.specs_to_remove), indent=4
+                "  removed specs:{}".format(
+                    dashlist(
+                        sorted(str(s) for s in change_report.specs_to_remove), indent=4
+                    )
                 )
             )
             builder.append("")
         if change_report.specs_to_add:
             builder.append(
-                "  added / updated specs:%s"
-                % dashlist(sorted(str(s) for s in change_report.specs_to_add), indent=4)
+                f"  added / updated specs:{dashlist(sorted(str(s) for s in change_report.specs_to_add), indent=4)}"
             )
             builder.append("")
 
@@ -1350,7 +1348,7 @@ class UnlinkLinkTransaction:
                 link_prec = change_report.new_precs[namekey]
                 add_single(
                     strip_global(namekey),
-                    f"{link_prec.record_id()} {link_prec['metadata_signature_status']}",
+                    f"{link_prec.record_id()} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.removed_precs:
@@ -1369,7 +1367,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.superseded_precs:
@@ -1383,7 +1381,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.downgraded_precs:
@@ -1394,7 +1392,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
         builder.append("")
         builder.append("")
@@ -1567,9 +1565,8 @@ def run_script(
                     #   create_env function
                     message = f"{action} failed for: {prec}"
                 else:
-                    message = (
-                        dals(
-                            """
+                    message = dals(
+                        """
                     %s script failed for package %s
                     location of failed script: %s
                     ==> script messages <==
@@ -1579,20 +1576,18 @@ def run_script(
                     stderr: %s
                     return code: %s
                     """
-                        )
-                        % (
-                            action,
-                            prec.dist_str(),
-                            path,
-                            m or "<None>",
-                            response.stdout,
-                            response.stderr,
-                            response.rc,
-                        )
+                    ) % (
+                        action,
+                        prec.dist_str(),
+                        path,
+                        m or "<None>",
+                        response.stdout,
+                        response.stderr,
+                        response.rc,
                     )
                 raise LinkError(message)
             else:
-                log.warn(
+                log.warning(
                     "%s script failed for package %s\n"
                     "consider notifying the package maintainer",
                     action,
@@ -1608,9 +1603,7 @@ def run_script(
                 rm_rf(script_caller)
             else:
                 log.warning(
-                    "CONDA_TEST_SAVE_TEMPS :: retaining run_script {}".format(
-                        script_caller
-                    )
+                    f"CONDA_TEST_SAVE_TEMPS :: retaining run_script {script_caller}"
                 )
 
 

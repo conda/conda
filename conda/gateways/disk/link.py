@@ -1,8 +1,12 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
-# Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
-#   which is MIT licensed by Jason R. Coombs.
-# https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
+# Copyright (C) 2012 Anaconda, Inc & Jason R. Coombs
+# SPDX-License-Identifier: BSD-3-Clause, MIT
+"""Disk utility functions for symlinking files and folders.
+
+Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
+which is MIT licensed by Jason R. Coombs.
+
+https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
+"""
 
 import sys
 from logging import getLogger
@@ -235,7 +239,7 @@ else:  # pragma: no cover
             return _is_symlink(next(find_files(path)))
         except OSError as orig_error:  # NOQA
             tmpl = "Error accessing {path}: {orig_error.message}"
-            raise builtins.WindowsError(local_format(tmpl))
+            raise OSError(local_format(tmpl))
 
     def find_files(spec):
         r"""

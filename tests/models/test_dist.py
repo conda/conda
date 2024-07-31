@@ -7,7 +7,7 @@ from tempfile import gettempdir
 import pytest
 
 from conda.base.constants import UNKNOWN_CHANNEL
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import env_var
 from conda.common.url import join_url, path_to_url
 from conda.gateways.disk.create import mkdir_p
@@ -57,6 +57,8 @@ def test_channel(fmt):
 
 @pytest.mark.parametrize("fmt", [".conda", ".tar.bz2"])
 def test_dist_with_channel_url(fmt):
+    reset_context()
+
     # standard named channel
     url = f"https://repo.anaconda.com/pkgs/main/win-64/spyder-app-2.3.8-py27_0{fmt}"
     d = Dist(url)

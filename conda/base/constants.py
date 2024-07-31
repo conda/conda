@@ -68,6 +68,8 @@ DEFAULTS_CHANNEL_NAME = "defaults"
 
 KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "noarch",
+    "emscripten-wasm32",
+    "wasi-wasm32",
     "freebsd-64",
     "linux-32",
     "linux-64",
@@ -107,6 +109,7 @@ DEFAULT_CUSTOM_CHANNELS = {
 DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = "base"
+UNUSED_ENV_NAME = "unused-env-name"
 
 ROOT_NO_RM = (
     "python",
@@ -153,7 +156,8 @@ CONDA_PACKAGE_EXTENSIONS = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
+CONDA_PACKAGE_PARTS = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
+CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
 CONDA_TEMP_EXTENSION = ".c~"
 CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR = ".logs"
@@ -258,8 +262,9 @@ class SatSolverChoice(ValueEnum):
     PYSAT = "pysat"
 
 
-#: The name of the default solver, currently "classic"
-DEFAULT_SOLVER = CLASSIC_SOLVER = "classic"
+#: The name of the default solver, currently "libmamba"
+DEFAULT_SOLVER = "libmamba"
+CLASSIC_SOLVER = "classic"
 
 
 class NoticeLevel(ValueEnum):
@@ -319,3 +324,8 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Not all python namespace packages are registered on PyPI. If a package
 # contains files in site-packages, it probably belongs in the python namespace.
+
+
+# Indicates whether or not external plugins (i.e., plugins that aren't shipped
+# with conda) are enabled
+NO_PLUGINS = False

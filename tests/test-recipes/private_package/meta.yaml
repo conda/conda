@@ -1,0 +1,15 @@
+package:
+  name: private-package
+  version: 1.0.0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    # since this is a noarch package we don't care that this is unix
+    - mkdir -p ${PREFIX}/bin
+    - echo "test" > ${PREFIX}/bin/file
+
+
+about:
+  summary: A private package

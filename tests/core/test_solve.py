@@ -1,26 +1,27 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import copy
-import platform
+import os
 import sys
 from pprint import pprint
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
-from conda._vendor.cpuinfo import get_cpu_info
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.compat import on_linux
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
 from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import SpecsConfigurationConflictError, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PrefixRecord
+from conda.models.version import VersionOrder
 from conda.resolve import MatchSpec
 from conda.testing.helpers import (
-    CHANNEL_DIR,
+    CHANNEL_DIR_V1,
+    add_subdir,
     add_subdir_to_iter,
     convert_to_dist_str,
     get_solver,
@@ -32,7 +33,10 @@ from conda.testing.helpers import (
     get_solver_must_unfreeze,
 )
 
+pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
+
+@pytest.mark.benchmark
 def test_solve_1(tmpdir):
     specs = (MatchSpec("numpy"),)
 
@@ -78,6 +82,11 @@ def test_solve_1(tmpdir):
 
 
 def test_solve_2(tmpdir):
+    if context.solver == "libmamba":
+        pytest.skip(
+            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+        )
+
     specs = (MatchSpec("numpy"),)
 
     with get_solver_aggregate_1(tmpdir, specs) as solver:
@@ -152,6 +161,11 @@ def test_solve_2(tmpdir):
 
 
 def test_virtual_package_solver(tmpdir, clear_cuda_version):
+    if context.solver == "libmamba":
+        pytest.skip(
+            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+        )
+
     specs = (MatchSpec("cudatoolkit"),)
 
     with env_var("CONDA_OVERRIDE_CUDA", "10.0"):
@@ -218,31 +232,30 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
             with pytest.raises(UnsatisfiableError) as exc:
                 solver.solve_final_state()
 
-    if sys.platform == "darwin":
-        if "ARM_8" in get_cpu_info()["arch"]:
-            plat = "osx-arm64"
-        else:
-            plat = "osx-64"
-    elif sys.platform == "linux":
-        plat = "linux-64"
-    elif sys.platform == "win32":
-        if platform.architecture()[0] == "32bit":
-            plat = "win-32"
-        else:
-            plat = "win-64"
+    if context.solver == "libmamba":
+        # LIBMAMBA ADJUSTMENT
+        # We have a different (yet equivalent) error message
+        possible_messages = [
+            dals(
+                """Encountered problems while solving:
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0"""
+            ),
+            dals(
+                """Encountered problems while solving:
+  - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
+            ),
+        ]
+        exc_msg = str(exc.value).strip()
+        assert any(msg in exc_msg for msg in possible_messages)
     else:
-        plat = "linux-64"
+        assert str(exc.value).strip() == dals(
+            f"""The following specifications were found to be incompatible with your system:
 
-    assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
-
-  - feature:/{}::__cuda==8.0=0
+  - feature:/{context._native_subdir()}::__cuda==8.0=0
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
-Your installed version is: 8.0""".format(
-            plat
+Your installed version is: 8.0"""
         )
-    )
 
 
 def test_cuda_fail_2(tmpdir, clear_cuda_version):
@@ -253,14 +266,29 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 solver.solve_final_state()
-
-    assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
+    if context.solver == "libmamba":
+        # LIBMAMBA ADJUSTMENT
+        # We have a different (yet equivalent) error message
+        possible_messages = [
+            dals(
+                """Encountered problems while solving:
+  - nothing provides __cuda >=9.0 needed by cudatoolkit-9.0-0"""
+            ),
+            dals(
+                """Encountered problems while solving:
+  - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
+            ),
+        ]
+        exc_msg = str(exc.value).strip()
+        assert any(msg in exc_msg for msg in possible_messages)
+    else:
+        assert str(exc.value).strip() == dals(
+            """The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
 
 Your installed version is: not available"""
-    )
+        )
 
 
 def test_cuda_constrain_absent(tmpdir, clear_cuda_version):
@@ -297,14 +325,12 @@ def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
+        f"""The following specifications were found to be incompatible with your system:
 
-  - feature:|@/{}::__cuda==8.0=0
+  - feature:|@/{context.subdir}::__cuda==8.0=0
   - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
 
-Your installed version is: 8.0""".format(
-            context.subdir
-        )
+Your installed version is: 8.0"""
     )
 
 
@@ -333,14 +359,12 @@ def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
-        """The following specifications were found to be incompatible with your system:
+        f"""The following specifications were found to be incompatible with your system:
 
-  - feature:|@/{}::__cuda==8.0=0
+  - feature:|@/{context.subdir}::__cuda==8.0=0
   - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
 
-Your installed version is: 8.0""".format(
-            context.subdir
-        )
+Your installed version is: 8.0"""
     )
 
 
@@ -357,7 +381,31 @@ def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
                 solver.solve_final_state()
 
 
-def test_prune_1(tmpdir):
+@pytest.mark.skipif(
+    not (on_win or on_mac or on_linux),
+    reason="archspec is only supported on win, mac or linux",
+)
+def test_archspec_call(tmpdir):
+    specs = (MatchSpec("numpy"),)
+
+    with env_vars(), patch("archspec.cpu.host") as archspec:
+        if "CONDA_OVERRIDE_ARCHSPEC" in os.environ:
+            del os.environ["CONDA_OVERRIDE_ARCHSPEC"]
+
+        with get_solver_cuda(tmpdir, specs) as solver:
+            solver.solve_final_state()
+            archspec.assert_called()
+
+
+def test_prune_1(tmpdir, request):
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
+
     specs = (
         MatchSpec("numpy=1.6"),
         MatchSpec("python=2.7.3"),
@@ -429,7 +477,331 @@ def test_prune_1(tmpdir):
         assert convert_to_dist_str(link_precs) == link_order
 
 
-def test_force_remove_1(tmpdir):
+def test_update_prune_1(tmpdir):
+    """Regression test: Ensure that update with prune is not taking the history
+    into account, since that stops it from removing packages that were removed
+    from the environment specs.
+    """
+    specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+    )
+
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    # Here numpy is removed from the specs (but the old specs are kept as
+    # history).
+    new_environment_specs = (MatchSpec("python=2.7.3"),)
+
+    with get_solver(
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        final_state_1 = solver.solve_final_state(prune=True)
+        pprint(convert_to_dist_str(final_state_1))
+
+        # Numpy should now be absent from the solved packages.
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+
+def test_update_prune_2(tmpdir, request):
+    """Regression test: Ensure that update with prune is pruning dependencies
+    of packages that are removed from environment as well.
+    """
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
+
+    specs = (
+        MatchSpec("python=2.7.3"),
+        MatchSpec("accelerate"),
+    )
+
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::libnvvm-1.0-p0",
+                "channel-1::mkl-rt-11.0-p0",
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::llvm-3.2-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::bitarray-0.8.1-py27_0",
+                "channel-1::llvmpy-0.11.2-py27_0",
+                "channel-1::meta-0.4.2.dev-py27_0",
+                "channel-1::mkl-service-1.0.0-py27_p0",
+                "channel-1::numpy-1.7.1-py27_p0",
+                "channel-1::numba-0.8.1-np17py27_0",
+                "channel-1::numexpr-2.1-np17py27_p0",
+                "channel-1::scipy-0.12.0-np17py27_p0",
+                "channel-1::numbapro-0.11.0-np17py27_p0",
+                "channel-1::scikit-learn-0.13.1-np17py27_p0",
+                "channel-1::mkl-11.0-np17py27_p0",
+                "channel-1::accelerate-1.1.0-np17py27_p0",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    # Here accelerate is removed from the specs (but the old specs are kept as
+    # history). This should cause every dependency of accelerate to disappear
+    # from the pruned package list.
+    new_environment_specs = (MatchSpec("python=2.7.3"),)
+
+    with get_solver(
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        final_state_1 = solver.solve_final_state(prune=True)
+        pprint(convert_to_dist_str(final_state_1))
+
+        # Every dependecy of accelerate should now be absent from the solved
+        # packages.
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+
+def test_update_prune_3(tmpdir, request):
+    """Ensure that update with prune is not removing packages that are still
+    needed by remaining specs.
+    """
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
+
+    specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+        MatchSpec("accelerate"),
+    )
+
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::libnvvm-1.0-p0",
+                "channel-1::mkl-rt-11.0-p0",
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::llvm-3.2-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::bitarray-0.8.1-py27_0",
+                "channel-1::llvmpy-0.11.2-py27_0",
+                "channel-1::meta-0.4.2.dev-py27_0",
+                "channel-1::mkl-service-1.0.0-py27_p0",
+                "channel-1::numpy-1.7.1-py27_p0",
+                "channel-1::numba-0.8.1-np17py27_0",
+                "channel-1::numexpr-2.1-np17py27_p0",
+                "channel-1::scipy-0.12.0-np17py27_p0",
+                "channel-1::numbapro-0.11.0-np17py27_p0",
+                "channel-1::scikit-learn-0.13.1-np17py27_p0",
+                "channel-1::mkl-11.0-np17py27_p0",
+                "channel-1::accelerate-1.1.0-np17py27_p0",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    # Here accelerate is removed from the specs (but the old specs are kept as
+    # history). This should cause every dependency of accelerate to disappear
+    # from the pruned package list, but numpy should be kept, because it is still
+    # in the specs.
+    new_environment_specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+    )
+
+    with get_solver(
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        final_state_1 = solver.solve_final_state(prune=True)
+        pprint(convert_to_dist_str(final_state_1))
+
+        # Every dependecy of accelerate should now be absent from the solved packages,
+        # but numpy should remain.
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+
+def test_update_prune_4(tmpdir):
+    """Regression test: Ensure that update with prune is not taking the history
+    into account, since that stops it from removing packages that were removed
+    from the environment specs.
+    """
+    specs = (
+        MatchSpec("numpy"),
+        MatchSpec("python=2.7.3"),
+    )
+
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    # Here numpy is removed from the specs (but the old specs are kept as
+    # history).
+    new_environment_specs = (MatchSpec("python=2.7.3"),)
+
+    with get_solver(
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        final_state_1 = solver.solve_final_state(
+            prune=True,
+            update_modifier=UpdateModifier.FREEZE_INSTALLED,
+        )
+        pprint(convert_to_dist_str(final_state_1))
+
+        # Numpy should now be absent from the solved packages.
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.3-7",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+
+@pytest.mark.parametrize("prune", [True, False])
+def test_update_prune_5(tmpdir, prune, capsys, request):
+    """Regression test: Check that prefix data is not taken into account when solving on prune."""
+    # "Create" a conda env with specs that "pin" dependencies.
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba" and not prune,
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
+
+    specs = (
+        MatchSpec("python=2.7"),
+        MatchSpec("numexpr==2.0.1=np17py27_p3"),
+    )
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+
+    out, _ = capsys.readouterr()
+    assert "Updating numexpr is constricted by" not in out
+
+    # If prefix data is evaluated it will conflict with "pinned" dependencies of new specs.
+    new_environment_specs = (
+        MatchSpec("python=2.7"),
+        MatchSpec("numexpr==2.0.1=np17py27_p2"),
+    )
+    with get_solver(
+        tmpdir,
+        new_environment_specs,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        solver.solve_final_state(prune=prune)
+
+    out, _ = capsys.readouterr()
+    solve_using_prefix_data = not prune
+    assert ("Updating numexpr is constricted by" in out) is solve_using_prefix_data
+
+
+def test_force_remove_1(tmpdir, request):
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Known limitation. VERIFY task needed to make this pass, but breaks other tests."
+            " See https://github.com/conda/conda-libmamba-solver/pull/302",
+            strict=True,
+        )
+    )
+
     specs = (MatchSpec("numpy[version=*,build=*py27*]"),)
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -686,10 +1058,18 @@ def test_only_deps_2(tmpdir):
 
 
 def test_update_all_1(tmpdir):
+    if context.solver == "libmamba":
+        # LIBMAMBA ADJUSTMENT
+        # Libmamba requires MatchSpec.conda_build_form() internally, which depends on `version` and
+        # `build` fields. `system` below is using only `build_number`, so we have to adapt the syntax
+        # accordingly. It should be the same result, but in a conda_build_form-friendly way:
+        system_spec = "system[version=*,build=*0]"
+    else:
+        system_spec = "system[version=*,build_number=0]"
     specs = (
         MatchSpec("numpy=1.5"),
         MatchSpec("python=2.6"),
-        MatchSpec("system[version=*,build_number=0]"),
+        MatchSpec(system_spec),
     )
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -763,6 +1143,9 @@ def test_update_all_1(tmpdir):
 
 
 def test_broken_install(tmpdir):
+    if context.solver == "libmamba":
+        pytest.skip("conda-libmamba-solver does not use a Solver._r (Resolve) object")
+
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -867,7 +1250,14 @@ def test_broken_install(tmpdir):
     assert not solver._r.environment_is_consistent(final_state_2_mod)
 
 
-def test_conda_downgrade(tmpdir):
+def test_conda_downgrade(tmpdir, request):
+    if context.solver == "libmamba":
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "libmamba",
+                reason="Known flaky:https://github.com/conda/conda-libmamba-solver/issues/317",
+            )
+        )
     specs = (MatchSpec("conda-build"),)
     with env_var(
         "CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol
@@ -939,7 +1329,7 @@ def test_conda_downgrade(tmpdir):
             unlink_order = (
                 # no conda downgrade
             )
-            link_order = add_subdir_to_iter(("channel-2::itsdangerous-0.24-py_0",))
+            link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
@@ -1050,8 +1440,24 @@ def test_conda_downgrade(tmpdir):
                     "channel-4::conda-build-3.12.1-py36_0",
                 )
             )
-            assert convert_to_dist_str(unlink_precs) == unlink_order
-            assert convert_to_dist_str(link_precs) == link_order
+            if context.solver == "libmamba":
+                # LIBMAMBA ADJUSTMENT
+                # We only check for conda itself and the explicit specs
+                # The other packages are slightly different;
+                # again libedit and ncurses are involved
+                # (they are also involved in test_fast_update_with_update_modifier_not_set)
+                for pkg in link_precs:
+                    if pkg.name == "conda":
+                        assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
+                    elif pkg.name == "python":
+                        assert pkg.version == "3.6.2"
+                    elif pkg.name == "conda-build":
+                        assert pkg.version == "3.12.1"
+                    elif pkg.name == "itsdangerous":
+                        assert pkg.version == "0.24"
+            else:
+                assert convert_to_dist_str(unlink_precs) == unlink_order
+                assert convert_to_dist_str(link_precs) == link_order
     finally:
         sys.prefix = saved_sys_prefix
 
@@ -1506,7 +1912,7 @@ def test_python2_update(tmpdir):
         )
         assert convert_to_dist_str(final_state_1) == order1
 
-    specs_to_add = (MatchSpec("python=3"),)
+    specs_to_add = (MatchSpec("python=3.7"),)
     with get_solver_4(
         tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
     ) as solver:
@@ -1546,7 +1952,28 @@ def test_python2_update(tmpdir):
                 "channel-4::conda-4.5.10-py37_0",
             )
         )
-        assert convert_to_dist_str(final_state_2) == order
+        full_solution = convert_to_dist_str(final_state_2)
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
+            # and cryptography-vectors (not present in regular conda)
+            # they are essentially the same functional solution; the important part here
+            # is that the env migrated to Python 3.7, so we only check some packages
+            important_parts = add_subdir_to_iter(
+                (
+                    "channel-4::python-3.7.0-hc3d631a_0",
+                    "channel-4::conda-4.5.10-py37_0",
+                    "channel-4::pycosat-0.6.3-py37h14c3975_0",
+                )
+            )
+
+            pprint("Important parts")
+            pprint(set(important_parts))
+            pprint("Full solution")
+            pprint(set(full_solution))
+            assert set(important_parts).issubset(set(full_solution))
+        else:
+            assert full_solution == order
 
 
 def test_update_deps_1(tmpdir):
@@ -1786,8 +2213,18 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-3.6.4-hc3d631a_1",  # python is upgraded
             )
         )
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-        assert convert_to_dist_str(link_precs) == link_order
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # We only check python was upgraded as expected, not the full solution
+            assert add_subdir(
+                "channel-4::python-2.7.14-h89e7a4a_22"
+            ) in convert_to_dist_str(unlink_precs)
+            assert add_subdir(
+                "channel-4::python-3.6.4-hc3d631a_1"
+            ) in convert_to_dist_str(link_precs)
+        else:
+            assert convert_to_dist_str(unlink_precs) == unlink_order
+            assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = (MatchSpec("sqlite"),)
     with get_solver_4(
@@ -1814,8 +2251,22 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-2.7.15-h1571d57_0",  # python is not upgraded
             )
         )
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-        assert convert_to_dist_str(link_precs) == link_order
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # We only check sqlite was upgraded as expected and python stays the same
+            assert add_subdir(
+                "channel-4::sqlite-3.21.0-h1bed415_2"
+            ) in convert_to_dist_str(unlink_precs)
+            sqlite = next(pkg for pkg in link_precs if pkg.name == "sqlite")
+            # mamba chooses a different sqlite version (3.23 instead of 3.24)
+            assert VersionOrder(sqlite.version) > VersionOrder("3.21")
+            # If Python was changed, it should have stayed at 2.7
+            python = next((pkg for pkg in link_precs if pkg.name == "python"), None)
+            if python:
+                assert python.version.startswith("2.7")
+        else:
+            assert convert_to_dist_str(unlink_precs) == unlink_order
+            assert convert_to_dist_str(link_precs) == link_order
 
     specs_to_add = (
         MatchSpec("sqlite"),
@@ -1921,11 +2372,22 @@ def test_pinned_1(tmpdir):
             prefix_records=final_state_1,
             history_specs=specs,
         ) as solver:
-            with pytest.raises(SpecsConfigurationConflictError) as exc:
-                solver.solve_final_state(ignore_pinned=False)
-            kwargs = exc.value._kwargs
-            assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
-            assert kwargs["pinned_specs"] == ["python=2.6"]
+            if context.solver == "libmamba":
+                # LIBMAMBA ADJUSTMENT
+                # Original tests checks for SpecsConfigurationConflictError
+                # being raised but libmamba will fails with UnsatisfiableError
+                # instead. Hence, we check the error string.
+                with pytest.raises(UnsatisfiableError) as exc_info:
+                    solver.solve_final_state(ignore_pinned=False)
+                error = str(exc_info.value)
+                assert "package scikit-learn-0.13" in error
+                assert "requires python 2.7*" in error
+            else:
+                with pytest.raises(SpecsConfigurationConflictError) as exc:
+                    solver.solve_final_state(ignore_pinned=False)
+                kwargs = exc.value._kwargs
+                assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
+                assert kwargs["pinned_specs"] == ["python=2.6"]
 
         specs_to_add = (MatchSpec("numba"),)
         history_specs = (
@@ -2030,7 +2492,12 @@ def test_pinned_1(tmpdir):
             assert convert_to_dist_str(final_state_5) == order
 
     # now update without pinning
-    specs_to_add = (MatchSpec("python"),)
+    if context.solver == "libmamba":
+        # LIBMAMBA ADJUSTMENT:
+        # libmamba decides to stay in python=2.6 unless explicit
+        specs_to_add = (MatchSpec("python=3"),)
+    else:
+        specs_to_add = (MatchSpec("python"),)
     history_specs = (
         MatchSpec("python"),
         MatchSpec("system=5.8=0"),
@@ -2331,7 +2798,18 @@ def test_remove_with_constrained_dependencies(tmpdir):
             assert spec in convert_to_dist_str(unlink_dists_2)
 
 
-def test_priority_1(tmpdir):
+def test_priority_1(tmpdir, request):
+    if context.solver == "libmamba":
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "libmamba",
+                reason="libmamba is 'lazier' to change channels if the installed one already "
+                "satisfies the request.",
+                strict=True,
+                run=False,
+            )
+        )
+
     with env_var(
         "CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol
     ):
@@ -2425,7 +2903,15 @@ def test_priority_1(tmpdir):
             assert "pandas" not in convert_to_dist_str(final_state_4)
 
 
-def test_features_solve_1(tmpdir):
+def test_features_solve_1(tmpdir, request):
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="Features not supported in libmamba",
+            strict=True,
+        )
+    )
+
     # in this test, channel-2 is a view of pkgs/free/linux-64
     #   and channel-4 is a view of the newer pkgs/main/linux-64
     # The channel list, equivalent to context.channels is ('channel-2', 'channel-4')
@@ -2590,7 +3076,9 @@ def test_freeze_deps_1(tmpdir):
             (
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
-                "channel-2::xz-5.2.3-0",
+                # LIBMAMBA ADJUSTMENT
+                # libmamba doesn't remove xz in this solve
+                *(() if context.solver == "libmamba" else ("channel-2::xz-5.2.3-0",)),
             )
         )
         link_order = add_subdir_to_iter(
@@ -2703,13 +3191,18 @@ def test_freeze_deps_1(tmpdir):
 
 
 def test_current_repodata_usage(tmpdir):
-    # force this to False, because otherwise tests fail when run with old conda-build
-    with env_var(
-        "CONDA_USE_ONLY_TAR_BZ2", False, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        solver = context.plugin_manager.get_cached_solver_backend()(
+    config = {
+        # force this to False, because otherwise tests
+        # fail when run with old conda-build
+        "CONDA_USE_ONLY_TAR_BZ2": False,
+        # explicitly set env var so libmamba recognizes
+        # the explicit setting (ignored otherwise)
+        "CONDA_REPODATA_FNS": "current_repodata.json",
+    }
+    with env_vars(config, stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        solver = context.plugin_manager.get_solver_backend()(
             tmpdir.strpath,
-            (Channel(CHANNEL_DIR),),
+            (Channel(CHANNEL_DIR_V1),),
             ("win-64",),
             specs_to_add=[MatchSpec("zlib")],
             repodata_fn="current_repodata.json",
@@ -2728,9 +3221,9 @@ def test_current_repodata_usage(tmpdir):
 
 
 def test_current_repodata_fallback(tmpdir):
-    solver = context.plugin_manager.get_cached_solver_backend()(
+    solver = context.plugin_manager.get_solver_backend()(
         tmpdir.strpath,
-        (Channel(CHANNEL_DIR),),
+        (Channel(CHANNEL_DIR_V1),),
         ("win-64",),
         specs_to_add=[MatchSpec("zlib=1.2.8")],
     )
@@ -2778,12 +3271,23 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
-        assert (
-            "incompatible with the existing python installation in your environment:"
-            in error_msg
-        )
-        assert "- scikit-learn==0.13 -> python=2.7" in error_msg
-        assert "Your python: python=2.6" in error_msg
+        # libmamba has a significantly more detailed (and different) error messages
+        if context.solver == "classic":
+            error_snippets = [
+                "incompatible with the existing python installation in your environment:",
+                "- scikit-learn==0.13 -> python=2.7",
+                "Your python: python=2.6",
+            ]
+        elif context.solver == "libmamba":
+            error_snippets = [
+                "Encountered problems while solving",
+                "Pins seem to be involved in the conflict. Currently pinned specs",
+                "python 2.6.*",
+                "scikit-learn 0.13",
+            ]
+
+        for snippet in error_snippets:
+            assert snippet in error_msg
 
     specs_to_add = (MatchSpec("unsatisfiable-with-py26"),)
     with get_solver(
@@ -2795,12 +3299,23 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
         error_msg = str(exc.value).strip()
-        assert (
-            "incompatible with the existing python installation in your environment:"
-            in error_msg
-        )
-        assert "- unsatisfiable-with-py26 -> python=2.7" in error_msg
-        assert "Your python: python=2.6"
+        # libmamba has a significantly more detailed (and different) error messages
+        if context.solver == "classic":
+            error_snippets = [
+                "incompatible with the existing python installation in your environment:",
+                "- unsatisfiable-with-py26 -> python=2.7",
+                "Your python: python=2.6",
+            ]
+        elif context.solver == "libmamba":
+            error_snippets = [
+                "Encountered problems while solving",
+                "Pins seem to be involved in the conflict. Currently pinned specs",
+                "python 2.6.*",
+                "unsatisfiable-with-py26",
+            ]
+
+        for snippet in error_snippets:
+            assert snippet in error_msg
 
 
 fake_index = [
@@ -2853,8 +3368,8 @@ def test_packages_in_solution_change_already_newest(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
         pre_packages, post_packages, fake_index
@@ -2866,8 +3381,8 @@ def test_packages_in_solution_change_needs_update(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
         pre_packages, post_packages, fake_index
@@ -2879,8 +3394,8 @@ def test_packages_in_solution_change_constrained(tmpdir):
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
         pre_packages, post_packages, fake_index
@@ -2920,8 +3435,8 @@ def test_determine_constricting_specs_conflicts(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -2959,8 +3474,8 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -3012,8 +3527,8 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -3052,8 +3567,8 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -3091,8 +3606,8 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -3116,8 +3631,8 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -3155,8 +3670,8 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
         ),
     ]
     spec = MatchSpec("mypkg")
-    solver = context.plugin_manager.get_cached_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None

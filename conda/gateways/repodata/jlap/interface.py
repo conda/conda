@@ -1,19 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""JLAP interface for repodata."""
+
 from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from conda.gateways.connection.session import CondaSession
-
+from ....base.context import context
+from ...connection.download import disable_ssl_verify_warning
+from ...connection.session import get_session
 from .. import (
     CACHE_CONTROL_KEY,
     ETAG_KEY,
     LAST_MODIFIED_KEY,
     URL_KEY,
-    RepodataCache,
     RepodataOnDisk,
     RepodataState,
     RepoInterface,
@@ -21,6 +23,9 @@ from .. import (
     conda_http_errors,
 )
 from . import fetch
+
+if TYPE_CHECKING:
+    from .. import RepodataCache
 
 log = logging.getLogger(__name__)
 
@@ -31,18 +36,11 @@ class JlapRepoInterface(RepoInterface):
         url: str,
         repodata_fn: str | None,
         *,
-        cache_path_json: str | Path,
-        cache_path_state: str | Path,
         cache: RepodataCache,
         **kwargs,
     ) -> None:
-        log.debug("Using CondaRepoJLAP")
+        log.debug("Using %s", self.__class__.__name__)
 
-        # TODO is there a better way to share these paths
-        self._cache_path_json = Path(cache_path_json)
-        self._cache_path_state = Path(cache_path_state)
-
-        # replaces self._cache_path_json/state
         self._cache = cache
 
         self._url = url
@@ -69,12 +67,15 @@ class JlapRepoInterface(RepoInterface):
         When repodata is not updated, it doesn't matter whether this function or
         the caller reads from a file.
         """
-        session = CondaSession()
+        session = get_session(self._url)
+
+        if not context.ssl_verify:
+            disable_ssl_verify_warning()
 
         repodata_url = f"{self._url}/{self._repodata_fn}"
 
         # XXX won't modify caller's state dict
-        state_ = RepodataState(dict=state)
+        state_ = self._repodata_state_copy(state)
 
         # at this point, self._cache.state == state == state_
 
@@ -124,3 +125,28 @@ class JlapRepoInterface(RepoInterface):
             raise RepodataOnDisk()
         else:
             return repodata_json_or_none
+
+    def _repodata_state_copy(self, state: dict | RepodataState):
+        return RepodataState(dict=state)
+
+
+class RepodataStateSkipFormat(RepodataState):
+    skip_formats: set[str]
+
+    def __init__(self, *args, skip_formats=set(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.skip_formats = set(skip_formats)
+
+    def should_check_format(self, format):
+        if format in self.skip_formats:
+            return False
+        return super().should_check_format(format)
+
+
+class ZstdRepoInterface(JlapRepoInterface):
+    """
+    Support repodata.json.zst (if available) without checking .jlap
+    """
+
+    def _repodata_state_copy(self, state: dict | RepodataState):
+        return RepodataStateSkipFormat(dict=state, skip_formats=["jlap"])

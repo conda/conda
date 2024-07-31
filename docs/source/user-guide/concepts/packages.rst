@@ -1,18 +1,14 @@
-==============
-Conda packages
-==============
-
-.. contents::
-   :local:
-   :depth: 2
+========
+Packages
+========
 
 .. _concept-conda-package:
 
-What is a conda package?
-========================
+What is a package?
+==================
 
-A conda package is a compressed tarball file (.tar.bz2) or
-.conda file that contains:
+A package is a compressed tarball file (``.tar.bz2``) or
+``.conda`` file that contains:
 
 * system-level libraries.
 * Python or other modules.
@@ -134,7 +130,7 @@ Anaconda metapackage
 --------------------
 
 The Anaconda metapackage is used in the creation of the
-`Anaconda Distribution <https://docs.anaconda.com/anaconda/>`_
+`Anaconda Distribution <https://docs.anaconda.com/free/anaconda/>`_
 installers so that they have a set of packages associated with them.
 Each installer release has a version number, which corresponds
 to a particular collection of packages at specific versions.
@@ -338,6 +334,6 @@ and unlink steps. For more information, see `Adding pre-link, post-link, and pre
 More information
 ================
 
-Go deeper on how to :ref:`manage packages <managing-pkgs>`.
+For more information, go for a deeper dive in our :doc:`managing packages guide <../tasks/manage-pkgs>`.
 Learn more about package metadata, repository structure and index,
 and package match specifications at :doc:`Package specifications <../concepts/pkg-specs>`.
