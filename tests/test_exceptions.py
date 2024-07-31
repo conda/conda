@@ -10,6 +10,7 @@ from pytest_mock import MockerFixture
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
+from conda.base.constants import PathConflict
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import (
@@ -82,18 +83,17 @@ def test_TooManyArgumentsError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_BasicClobberError():
+def test_BasicClobberError(monkeypatch: MonkeyPatch) -> None:
     source_path = "some/path/on/goodwin.ave"
     target_path = "some/path/to/wright.st"
     exc = BasicClobberError(source_path, target_path, context)
-    repr(exc)
-    with env_var(
-        "CONDA_PATH_CONFLICT",
-        "prevent",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+    assert context.path_conflict == PathConflict.prevent
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
