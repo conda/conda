@@ -5,14 +5,15 @@ import json
 import sys
 from unittest.mock import patch
 
-from pytest import CaptureFixture, MonkeyPatch, raises
+import pytest
+from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import PathConflict
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.io import captured, env_vars
+from conda.base.context import context, reset_context
+from conda.common.io import captured
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
@@ -759,15 +760,20 @@ def test_BinaryPrefixReplacementError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_PackagesNotFoundError_use_only_tar_bz2():
-    note = "use_only_tar_bz2"
-    for use_only_tar_bz2 in (True, False):
-        expected = note if use_only_tar_bz2 else ""
-        with env_vars(
-            {"CONDA_USE_ONLY_TAR_BZ2": str(use_only_tar_bz2)},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ), raises(PackagesNotFoundError, match=expected):
-            raise PackagesNotFoundError(
-                packages=["does-not-exist"],
-                channel_urls=["https://repo.anaconda.org/pkgs/main"],
-            )
+@pytest.mark.parametrize("use_only_tar_bz2", [True, False])
+def test_PackagesNotFoundError_use_only_tar_bz2(
+    monkeypatch: MonkeyPatch,
+    use_only_tar_bz2: bool,
+) -> None:
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", str(use_only_tar_bz2))
+    reset_context()
+    assert context.use_only_tar_bz2 is use_only_tar_bz2
+
+    with pytest.raises(
+        PackagesNotFoundError,
+        match="use_only_tar_bz2" if use_only_tar_bz2 else "",
+    ):
+        raise PackagesNotFoundError(
+            packages=["does-not-exist"],
+            channel_urls=["https://repo.anaconda.org/pkgs/main"],
+        )
