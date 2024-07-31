@@ -656,337 +656,340 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
     reason="Not reporting link type until refactoring display_actions "
     "after txn.verify()",
 )
-def test_display_actions_link_type():
-    with env_var(
-        "CONDA_SHOW_CHANNEL_URLS", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        actions = defaultdict(
-            list,
-            {
-                "LINK": [
-                    "cython-0.19.1-py33_0 2",
-                    "dateutil-1.5-py33_0 2",
-                    "numpy-1.7.1-py33_0 2",
-                    "python-3.3.2-0 2",
-                    "readline-6.2-0 2",
-                    "sqlite-3.7.13-0 2",
-                    "tk-8.5.13-0 2",
-                    "zlib-1.2.7-0 2",
-                ]
-            },
+def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_SHOW_CHANNEL_URLS", "False")
+    reset_context()
+    assert not context.show_channel_urls
+
+    actions = defaultdict(
+        list,
+        {
+            "LINK": [
+                "cython-0.19.1-py33_0 2",
+                "dateutil-1.5-py33_0 2",
+                "numpy-1.7.1-py33_0 2",
+                "python-3.3.2-0 2",
+                "readline-6.2-0 2",
+                "sqlite-3.7.13-0 2",
+                "tk-8.5.13-0 2",
+                "zlib-1.2.7-0 2",
+            ]
+        },
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    cython:   0.19.1-py33_0 (softlink)",
+            "    dateutil: 1.5-py33_0    (softlink)",
+            "    numpy:    1.7.1-py33_0  (softlink)",
+            "    python:   3.3.2-0       (softlink)",
+            "    readline: 6.2-0         (softlink)",
+            "    sqlite:   3.7.13-0      (softlink)",
+            "    tk:       8.5.13-0      (softlink)",
+            "    zlib:     1.2.7-0       (softlink)",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19.1-py33_0 2", "dateutil-2.1-py33_1 2"],
+            "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
+        },
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    cython:   0.19.1-py33_0 (softlink)",
-                "    dateutil: 1.5-py33_0    (softlink)",
-                "    numpy:    1.7.1-py33_0  (softlink)",
-                "    python:   3.3.2-0       (softlink)",
-                "    readline: 6.2-0         (softlink)",
-                "    sqlite:   3.7.13-0      (softlink)",
-                "    tk:       8.5.13-0      (softlink)",
-                "    zlib:     1.2.7-0       (softlink)",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython:   0.19-py33_0 --> 0.19.1-py33_0 (softlink)",
+            "    dateutil: 1.5-py33_0  --> 2.1-py33_1    (softlink)",
+            "",
         )
+    )
 
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19.1-py33_0 2", "dateutil-2.1-py33_1 2"],
-                "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
-            },
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19-py33_0 2", "dateutil-1.5-py33_0 2"],
+            "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
+        },
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    cython:   0.19.1-py33_0 --> 0.19-py33_0 (softlink)",
+            "    dateutil: 2.1-py33_1    --> 1.5-py33_0  (softlink)",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(
+        list,
+        {
+            "LINK": [
+                "cython-0.19.1-py33_0 1",
+                "dateutil-1.5-py33_0 1",
+                "numpy-1.7.1-py33_0 1",
+                "python-3.3.2-0 1",
+                "readline-6.2-0 1",
+                "sqlite-3.7.13-0 1",
+                "tk-8.5.13-0 1",
+                "zlib-1.2.7-0 1",
+            ]
+        },
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython:   0.19-py33_0 --> 0.19.1-py33_0 (softlink)",
-                "    dateutil: 1.5-py33_0  --> 2.1-py33_1    (softlink)",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    cython:   0.19.1-py33_0",
+            "    dateutil: 1.5-py33_0   ",
+            "    numpy:    1.7.1-py33_0 ",
+            "    python:   3.3.2-0      ",
+            "    readline: 6.2-0        ",
+            "    sqlite:   3.7.13-0     ",
+            "    tk:       8.5.13-0     ",
+            "    zlib:     1.2.7-0      ",
+            "",
         )
+    )
 
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19-py33_0 2", "dateutil-1.5-py33_0 2"],
-                "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
-            },
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19.1-py33_0 1", "dateutil-2.1-py33_1 1"],
+            "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
+        },
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython:   0.19-py33_0 --> 0.19.1-py33_0",
+            "    dateutil: 1.5-py33_0  --> 2.1-py33_1   ",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19-py33_0 1", "dateutil-1.5-py33_0 1"],
+            "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
+        },
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    cython:   0.19.1-py33_0 --> 0.19-py33_0 (softlink)",
-                "    dateutil: 2.1-py33_1    --> 1.5-py33_0  (softlink)",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    cython:   0.19.1-py33_0 --> 0.19-py33_0",
+            "    dateutil: 2.1-py33_1    --> 1.5-py33_0 ",
+            "",
         )
+    )
 
-        actions = defaultdict(
-            list,
-            {
-                "LINK": [
-                    "cython-0.19.1-py33_0 1",
-                    "dateutil-1.5-py33_0 1",
-                    "numpy-1.7.1-py33_0 1",
-                    "python-3.3.2-0 1",
-                    "readline-6.2-0 1",
-                    "sqlite-3.7.13-0 1",
-                    "tk-8.5.13-0 1",
-                    "zlib-1.2.7-0 1",
-                ]
-            },
+    actions = defaultdict(
+        list,
+        {
+            "LINK": [
+                "cython-0.19.1-py33_0 3",
+                "dateutil-1.5-py33_0 3",
+                "numpy-1.7.1-py33_0 3",
+                "python-3.3.2-0 3",
+                "readline-6.2-0 3",
+                "sqlite-3.7.13-0 3",
+                "tk-8.5.13-0 3",
+                "zlib-1.2.7-0 3",
+            ]
+        },
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    cython:   0.19.1-py33_0 (copy)",
+            "    dateutil: 1.5-py33_0    (copy)",
+            "    numpy:    1.7.1-py33_0  (copy)",
+            "    python:   3.3.2-0       (copy)",
+            "    readline: 6.2-0         (copy)",
+            "    sqlite:   3.7.13-0      (copy)",
+            "    tk:       8.5.13-0      (copy)",
+            "    zlib:     1.2.7-0       (copy)",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19.1-py33_0 3", "dateutil-2.1-py33_1 3"],
+            "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
+        },
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    cython:   0.19.1-py33_0",
-                "    dateutil: 1.5-py33_0   ",
-                "    numpy:    1.7.1-py33_0 ",
-                "    python:   3.3.2-0      ",
-                "    readline: 6.2-0        ",
-                "    sqlite:   3.7.13-0     ",
-                "    tk:       8.5.13-0     ",
-                "    zlib:     1.2.7-0      ",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython:   0.19-py33_0 --> 0.19.1-py33_0 (copy)",
+            "    dateutil: 1.5-py33_0  --> 2.1-py33_1    (copy)",
+            "",
         )
+    )
 
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19.1-py33_0 1", "dateutil-2.1-py33_1 1"],
-                "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
-            },
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19-py33_0 3", "dateutil-1.5-py33_0 3"],
+            "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
+        },
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    cython:   0.19.1-py33_0 --> 0.19-py33_0 (copy)",
+            "    dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    monkeypatch.setenv("CONDA_SHOW_CHANNEL_URLS", "True")
+    reset_context()
+    assert context.show_channel_urls
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython:   0.19-py33_0 --> 0.19.1-py33_0",
-                "    dateutil: 1.5-py33_0  --> 2.1-py33_1   ",
-                "",
-            )
+    d = Dist("cython-0.19.1-py33_0.tar.bz2")
+    index[d] = PackageRecord.from_objects(index[d], channel="my_channel")
+
+    d = Dist("dateutil-1.5-py33_0.tar.bz2")
+    index[d] = PackageRecord.from_objects(index[d], channel="my_channel")
+
+    actions = defaultdict(
+        list,
+        {
+            "LINK": [
+                "cython-0.19.1-py33_0 3",
+                "dateutil-1.5-py33_0 3",
+                "numpy-1.7.1-py33_0 3",
+                "python-3.3.2-0 3",
+                "readline-6.2-0 3",
+                "sqlite-3.7.13-0 3",
+                "tk-8.5.13-0 3",
+                "zlib-1.2.7-0 3",
+            ]
+        },
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    cython:   0.19.1-py33_0 my_channel (copy)",
+            "    dateutil: 1.5-py33_0    my_channel (copy)",
+            "    numpy:    1.7.1-py33_0  <unknown>  (copy)",
+            "    python:   3.3.2-0       <unknown>  (copy)",
+            "    readline: 6.2-0         <unknown>  (copy)",
+            "    sqlite:   3.7.13-0      <unknown>  (copy)",
+            "    tk:       8.5.13-0      <unknown>  (copy)",
+            "    zlib:     1.2.7-0       <unknown>  (copy)",
+            "",
         )
+    )
 
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19-py33_0 1", "dateutil-1.5-py33_0 1"],
-                "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
-            },
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19.1-py33_0 3", "dateutil-2.1-py33_1 3"],
+            "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
+        },
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython:   0.19-py33_0 <unknown>  --> 0.19.1-py33_0 my_channel (copy)",
+            "    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    <unknown>  (copy)",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(
+        list,
+        {
+            "LINK": ["cython-0.19-py33_0 3", "dateutil-1.5-py33_0 3"],
+            "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
+        },
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    cython:   0.19.1-py33_0 --> 0.19-py33_0",
-                "    dateutil: 2.1-py33_1    --> 1.5-py33_0 ",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown>  (copy)",
+            "    dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel (copy)",
+            "",
         )
-
-        actions = defaultdict(
-            list,
-            {
-                "LINK": [
-                    "cython-0.19.1-py33_0 3",
-                    "dateutil-1.5-py33_0 3",
-                    "numpy-1.7.1-py33_0 3",
-                    "python-3.3.2-0 3",
-                    "readline-6.2-0 3",
-                    "sqlite-3.7.13-0 3",
-                    "tk-8.5.13-0 3",
-                    "zlib-1.2.7-0 3",
-                ]
-            },
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    cython:   0.19.1-py33_0 (copy)",
-                "    dateutil: 1.5-py33_0    (copy)",
-                "    numpy:    1.7.1-py33_0  (copy)",
-                "    python:   3.3.2-0       (copy)",
-                "    readline: 6.2-0         (copy)",
-                "    sqlite:   3.7.13-0      (copy)",
-                "    tk:       8.5.13-0      (copy)",
-                "    zlib:     1.2.7-0       (copy)",
-                "",
-            )
-        )
-
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19.1-py33_0 3", "dateutil-2.1-py33_1 3"],
-                "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
-            },
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython:   0.19-py33_0 --> 0.19.1-py33_0 (copy)",
-                "    dateutil: 1.5-py33_0  --> 2.1-py33_1    (copy)",
-                "",
-            )
-        )
-
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19-py33_0 3", "dateutil-1.5-py33_0 3"],
-                "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
-            },
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    cython:   0.19.1-py33_0 --> 0.19-py33_0 (copy)",
-                "    dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)",
-                "",
-            )
-        )
-    with env_var(
-        "CONDA_SHOW_CHANNEL_URLS", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        d = Dist("cython-0.19.1-py33_0.tar.bz2")
-        index[d] = PackageRecord.from_objects(index[d], channel="my_channel")
-
-        d = Dist("dateutil-1.5-py33_0.tar.bz2")
-        index[d] = PackageRecord.from_objects(index[d], channel="my_channel")
-
-        actions = defaultdict(
-            list,
-            {
-                "LINK": [
-                    "cython-0.19.1-py33_0 3",
-                    "dateutil-1.5-py33_0 3",
-                    "numpy-1.7.1-py33_0 3",
-                    "python-3.3.2-0 3",
-                    "readline-6.2-0 3",
-                    "sqlite-3.7.13-0 3",
-                    "tk-8.5.13-0 3",
-                    "zlib-1.2.7-0 3",
-                ]
-            },
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    cython:   0.19.1-py33_0 my_channel (copy)",
-                "    dateutil: 1.5-py33_0    my_channel (copy)",
-                "    numpy:    1.7.1-py33_0  <unknown>  (copy)",
-                "    python:   3.3.2-0       <unknown>  (copy)",
-                "    readline: 6.2-0         <unknown>  (copy)",
-                "    sqlite:   3.7.13-0      <unknown>  (copy)",
-                "    tk:       8.5.13-0      <unknown>  (copy)",
-                "    zlib:     1.2.7-0       <unknown>  (copy)",
-                "",
-            )
-        )
-
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19.1-py33_0 3", "dateutil-2.1-py33_1 3"],
-                "UNLINK": ["cython-0.19-py33_0", "dateutil-1.5-py33_0"],
-            },
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython:   0.19-py33_0 <unknown>  --> 0.19.1-py33_0 my_channel (copy)",
-                "    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    <unknown>  (copy)",
-                "",
-            )
-        )
-
-        actions = defaultdict(
-            list,
-            {
-                "LINK": ["cython-0.19-py33_0 3", "dateutil-1.5-py33_0 3"],
-                "UNLINK": ["cython-0.19.1-py33_0", "dateutil-2.1-py33_1"],
-            },
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown>  (copy)",
-                "    dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel (copy)",
-                "",
-            )
-        )
+    )
 
 
 def test_display_actions_features():
