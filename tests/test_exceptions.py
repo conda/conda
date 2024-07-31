@@ -252,7 +252,7 @@ def test_DirectoryNotFoundError(monkeypatch: MonkeyPatch) -> None:
     assert c.stderr.strip() == "DirectoryNotFoundError: Groot"
 
 
-def test_MD5MismatchError():
+def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
     url = "https://download.url/path/to/file.tar.bz2"
     target_full_path = "/some/path/on/disk/another-name.tar.bz2"
     expected_md5sum = "abc123"
@@ -260,9 +260,13 @@ def test_MD5MismatchError():
     exc = ChecksumMismatchError(
         url, target_full_path, "md5", expected_md5sum, actual_md5sum
     )
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
@@ -277,9 +281,12 @@ def test_MD5MismatchError():
     assert json_obj["expected_checksum"] == expected_md5sum
     assert json_obj["actual_checksum"] == actual_md5sum
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
