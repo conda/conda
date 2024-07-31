@@ -10,8 +10,7 @@ import pytest
 
 import conda.instructions as inst
 from conda import CondaError
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.io import env_var
+from conda.base.context import context, reset_context
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import PackagesNotFoundError
 from conda.models.channel import Channel
@@ -1517,17 +1516,19 @@ def test_pinned_specs_all(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
-):
+    monkeypatch: MonkeyPatch,
+) -> None:
     # Test pinned specs conda configuration and pinned specs conda environment file
     specs1 = ("numpy 1.11", "python >3")
     specs2 = ("scipy ==0.14.2", "openjdk >=8")
     specs3 = ("requests=2.13",)
     specs = (*specs1, *specs3, *specs2)
-    with tmp_env() as prefix, env_var(
-        "CONDA_PINNED_PACKAGES",
-        "&".join(specs1),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
+
+    monkeypatch.setenv("CONDA_PINNED_PACKAGES", "&".join(specs1))
+    reset_context()
+    assert context.pinned_packages == specs1
+
+    with tmp_env() as prefix:
         (prefix / "conda-meta" / "pinned").write_text("\n".join(specs2) + "\n")
 
         # mock active prefix
