@@ -1467,17 +1467,17 @@ def generate_remove_action(prefix, unlink):
     return action
 
 
-def test_pinned_specs_CONDA_PINNED_PACKAGES():
+def test_pinned_specs_CONDA_PINNED_PACKAGES(monkeypatch: MonkeyPatch) -> None:
     # Test pinned specs environment variable
     specs = ("numpy 1.11", "python >3")
-    with env_var(
-        "CONDA_PINNED_PACKAGES",
-        "&".join(specs),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        pinned_specs = get_pinned_specs("/none")
-        assert pinned_specs != specs
-        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+    monkeypatch.setenv("CONDA_PINNED_PACKAGES", "&".join(specs))
+    reset_context()
+    assert context.pinned_packages == specs
+
+    pinned_specs = get_pinned_specs("/none")
+    assert pinned_specs != specs
+    assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
 
 def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
