@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Backported exports for conda-build."""
 
+from __future__ import annotations
+
 import errno
 import functools
 import os

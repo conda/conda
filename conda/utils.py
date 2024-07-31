@@ -15,41 +15,28 @@ from shutil import which
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
+from .common import path as _path
 from .common.compat import isiterable, on_win
-from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
 
 log = logging.getLogger(__name__)
 
 
-def path_identity(path):
-    """Used as a dummy path converter where no conversion necessary"""
-    return path
-
-
-def unix_path_to_win(path, root_prefix=""):
-    """Convert a path or :-separated string of paths into a Windows representation
-
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
-        # already a windows path
-        return path.replace("/", "\\")
-    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
-
-    def _translation(found_path):
-        group = found_path.group(0)
-        return "{}:{}".format(
-            group[len(root_prefix) + 1],
-            group[len(root_prefix) + 2 :].replace("/", "\\"),
-        )
-
-    translation = re.sub(path_re, _translation, path)
-    translation = re.sub(
-        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
-    )
-    return translation
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "path_identity",
+    _path.path_identity,
+    addendum="Use `conda.common.path.path_identity` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_path_to_win",
+    _path.unix_path_to_win,
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
 
 
 @deprecated(
@@ -58,16 +45,16 @@ def unix_path_to_win(path, root_prefix=""):
     addendum="Use `conda.common.path.win_path_to_unix` instead.",
 )
 def win_path_to_cygwin(path):
-    return win_path_to_unix(path, "/cygdrive")
+    return _path.win_path_to_unix(path, "/cygdrive")
 
 
 @deprecated(
     "25.3",
     "25.9",
-    addendum="Use `conda.utils.unix_path_to_win` instead.",
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
 def cygwin_path_to_win(path):
-    return unix_path_to_win(path, "/cygdrive")
+    return _path.unix_path_to_win(path, "/cygdrive")
 
 
 @deprecated("25.3", "25.9", addendum="Unused.")
@@ -111,8 +98,8 @@ _UNIX_SHELL_BASE = dict(
     echo="echo",
     env_script_suffix=".sh",
     nul="2>/dev/null",
-    path_from=path_identity,
-    path_to=path_identity,
+    path_from=_path.path_identity,
+    path_to=_path.path_identity,
     pathsep=":",
     printdefaultenv="echo $CONDA_DEFAULT_ENV",
     printpath="echo $PATH",
@@ -138,8 +125,8 @@ deprecated.constant(
 
 _MSYS2_SHELL_BASE = dict(
     _UNIX_SHELL_BASE,
-    path_from=unix_path_to_win,
-    path_to=win_path_to_unix,
+    path_from=_path.unix_path_to_win,
+    path_to=_path.win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
@@ -168,8 +155,8 @@ if on_win:
         #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
         #    printpath="echo %PATH%",
         #    exe="powershell.exe",
-        #    path_from=path_identity,
-        #    path_to=path_identity,
+        #    path_from=_path.path_identity,
+        #    path_to=_path.path_identity,
         #    slash_convert = ("/", "\\"),
         # ),
         "cmd.exe": dict(
@@ -191,8 +178,8 @@ if on_win:
             printpath="@echo %PATH%",
             exe="cmd.exe",
             shell_args=["/d", "/c"],
-            path_from=path_identity,
-            path_to=path_identity,
+            path_from=_path.path_identity,
+            path_to=_path.path_identity,
             slash_convert=("/", "\\"),
             sep="\\",
             pathsep=";",
@@ -201,8 +188,8 @@ if on_win:
             _UNIX_SHELL_BASE,
             exe="bash.exe",
             binpath="/Scripts/",  # mind the trailing slash.
-            path_from=cygwin_path_to_win,
-            path_to=win_path_to_cygwin,
+            path_from=_path.cygwin_path_to_win,
+            path_to=_path.win_path_to_cygwin,
         ),
         # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive

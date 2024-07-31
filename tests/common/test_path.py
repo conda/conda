@@ -1,7 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from contextlib import nullcontext
 from logging import getLogger
 
+import pytest
+
+from conda.common import path
 from conda.common.path import (
     get_major_minor_version,
     missing_pyc_files,
@@ -168,3 +174,21 @@ def test_get_major_minor_version_no_dot():
     assert get_major_minor_version("bin/python3.10", False) == "310"
     assert get_major_minor_version("lib/python310/site-packages/", False) == "310"
     assert get_major_minor_version("python3", False) is None
+
+
+@pytest.mark.parametrize(
+    "function,deprecated,raises",
+    [
+        ("win_path_to_unix", True, TypeError),
+        ("which", False, TypeError),
+    ],
+)
+def test_deprecations(
+    function: str,
+    deprecated: bool,
+    raises: type[Exception] | None,
+) -> None:
+    deprecated_context = pytest.deprecated_call() if deprecated else nullcontext()
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with deprecated_context, raises_context:
+        getattr(path, function)()
