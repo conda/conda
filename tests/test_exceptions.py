@@ -165,17 +165,17 @@ def test_UnknownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_SharedLinkPathClobberError():
+def test_SharedLinkPathClobberError(monkeypatch: MonkeyPatch) -> None:
     target_path = "some/where/in/shampoo/banana"
     incompatible_package_dists = "Groot"
     exc = SharedLinkPathClobberError(target_path, incompatible_package_dists, context)
-    with env_var(
-        "CONDA_PATH_CONFLICT",
-        "prevent",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+    assert context.path_conflict == PathConflict.prevent
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
