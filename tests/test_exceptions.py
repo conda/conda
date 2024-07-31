@@ -43,14 +43,18 @@ def username_not_in_post_mock(post_mock, username):
     return True
 
 
-def test_TooManyArgumentsError():
+def test_TooManyArgumentsError(monkeypatch: MonkeyPatch) -> None:
     expected = 2
     received = 5
     offending_arguments = "groot"
     exc = TooManyArgumentsError(expected, received, offending_arguments)
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
@@ -64,9 +68,12 @@ def test_TooManyArgumentsError():
     assert json_obj["received"] == 5
     assert json_obj["offending_arguments"] == "groot"
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
