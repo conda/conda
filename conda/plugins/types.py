@@ -269,7 +269,7 @@ class ReporterRendererBase(ABC):
         **kwargs,
     ) -> ProgressBarBase:
         """
-        Return a :class:`conda.common.io.ProgressBarBase` object to use a progress bar
+        Return a :class:`conda.common.io.ProgressBarBase` object to use as a progress bar
         """
 
     @classmethod
