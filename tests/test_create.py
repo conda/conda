@@ -623,11 +623,11 @@ def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixtu
         assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
-def test_override_channels(
+def test_override_channels_disabled(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-):
+) -> None:
     monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "no")
     reset_context()
     assert not context.override_channels_enabled
@@ -636,33 +636,93 @@ def test_override_channels(
         "create",
         f"--prefix={path_factory()}",
         "--override-channels",
-        "python",
+        "zlib",
         "--yes",
         raises=OperationNotAllowed,
     )
 
-    monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "yes")
-    reset_context()
-    assert context.override_channels_enabled
+    conda_cli(
+        "search",
+        "--override-channels",
+        "zlib",
+        "--json",
+        raises=OperationNotAllowed,
+    )
 
+
+def test_create_override_channels_enabled(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+) -> None:
     conda_cli(
         "create",
         f"--prefix={path_factory()}",
         "--override-channels",
-        "python",
+        "zlib",
         "--yes",
+        raises=ArgumentError,
+    )
+
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "--override-channels",
+        "--channel=defaults",
+        "zlib",
+        "--yes",
+    )
+    assert stdout
+    assert not stderr
+    assert not code
+
+    # should this case work?
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "--override-channels",
+        "defaults::zlib",
+        "--yes",
+        raises=ArgumentError,
+    )
+
+
+def test_search_override_channels_enabled(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+) -> None:
+    conda_cli(
+        "search",
+        "--override-channels",
+        "zlib",
+        "--json",
         raises=ArgumentError,
     )
 
     stdout, stderr, code = conda_cli(
         "search",
         "--override-channels",
-        "conda-test::flask",
+        "--channel=defaults",
+        "zlib",
         "--json",
     )
+    assert (parsed := json.loads(stdout))
+    assert len(parsed) == 1
+    assert len(parsed["zlib"]) > 0
     assert not stderr
-    assert len(json.loads(stdout)["flask"]) < 3
-    assert json.loads(stdout)["flask"][0]["noarch"] == "python"
+    assert not code
+
+    stdout, stderr, code = conda_cli(
+        "search",
+        "--override-channels",
+        "defaults::zlib",
+        "--json",
+    )
+    assert (parsed := json.loads(stdout))
+    assert len(parsed) == 1
+    assert len(parsed["zlib"]) > 0
+    assert not stderr
     assert not code
 
 
