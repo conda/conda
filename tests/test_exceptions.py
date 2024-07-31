@@ -108,20 +108,20 @@ def test_BasicClobberError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_KnownPackageClobberError():
+def test_KnownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     target_path = "some/where/on/goodwin.ave"
     colliding_dist_being_linked = "Groot"
     colliding_linked_dist = "Liquid"
     exc = KnownPackageClobberError(
         target_path, colliding_dist_being_linked, colliding_linked_dist, context
     )
-    with env_var(
-        "CONDA_PATH_CONFLICT",
-        "prevent",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+    assert context.path_conflict == PathConflict.prevent
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert (
