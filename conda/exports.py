@@ -54,7 +54,6 @@ from .gateways.connection.download import download as _download  # noqa: F401
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
-from .gateways.disk.delete import rm_rf as _rm_rf
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
@@ -145,7 +144,9 @@ class InstalledPackages:
 
 
 def rm_rf(path, max_retries=5, trash=True):
-    _rm_rf(path, max_retries, trash)
+    from .gateways.disk.delete import rm_rf
+
+    rm_rf(path)
     delete_prefix_from_linked_data(path)
 
 
