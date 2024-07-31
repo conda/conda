@@ -672,19 +672,23 @@ def test_print_unexpected_error_message_upload_username_with_unicode(
 
 @patch("requests.post", return_value=None)
 @patch("builtins.input", return_value="n")
-def test_print_unexpected_error_message_opt_out_1(input_mock, post_mock):
-    with env_var(
-        "CONDA_REPORT_ERRORS", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        AssertionError()
-        with captured() as c:
-            ExceptionHandler()(_raise_helper, AssertionError())
+def test_print_unexpected_error_message_opt_out_1(
+    input_mock,
+    post_mock,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_REPORT_ERRORS", "false")
+    reset_context()
+    assert not context.report_errors
 
-        assert input_mock.call_count == 0
-        assert post_mock.call_count == 0
-        assert c.stdout == ""
-        print(c.stderr, file=sys.stderr)
-        assert "conda version" in c.stderr
+    with captured() as c:
+        ExceptionHandler()(_raise_helper, AssertionError())
+
+    assert input_mock.call_count == 0
+    assert post_mock.call_count == 0
+    assert c.stdout == ""
+    print(c.stderr, file=sys.stderr)
+    assert "conda version" in c.stderr
 
 
 @patch("requests.post", return_value=None)
