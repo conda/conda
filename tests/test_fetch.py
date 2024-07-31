@@ -55,7 +55,7 @@ def test_download_connectionerror(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     assert context.remote_read_timeout_secs == 1
     assert context.remote_max_retries == 1
 
-    with pytest.raises(CondaHTTPError, match=r"Connection error:"):
+    with pytest.raises(CondaHTTPError, match=r"CONNECTION FAILED for url"):
         url = "http://240.0.0.0/"
         download(url, tmp_path)
 
@@ -70,7 +70,7 @@ def test_fetchrepodate_connectionerror(monkeypatch: MonkeyPatch) -> None:
     assert context.remote_read_timeout_secs == 1
     assert context.remote_max_retries == 1
 
-    with pytest.raises(CondaHTTPError, match=r"Connection error:"):
+    with pytest.raises(CondaHTTPError, match=r"CONNECTION FAILED for url"):
         url = "http://240.0.0.0/channel/osx-64"
         SubdirData(Channel(url)).repo_fetch.fetch_latest()
 
