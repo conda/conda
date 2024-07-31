@@ -419,13 +419,16 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_CommandNotFoundError_simple():
+def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
     cmd = "instate"
     exc = CommandNotFoundError(cmd)
 
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
@@ -435,9 +438,12 @@ def test_CommandNotFoundError_simple():
     assert json_obj["message"] == str(exc)
     assert json_obj["error"] == repr(exc)
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert c.stderr.strip() == (
