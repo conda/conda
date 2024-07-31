@@ -219,12 +219,16 @@ def test_CondaFileNotFoundError(monkeypatch: MonkeyPatch) -> None:
     assert c.stderr.strip() == "PathNotFoundError: Groot"
 
 
-def test_DirectoryNotFoundError():
+def test_DirectoryNotFoundError(monkeypatch: MonkeyPatch) -> None:
     directory = "Groot"
     exc = DirectoryNotFoundError(directory)
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
@@ -237,9 +241,12 @@ def test_DirectoryNotFoundError():
     assert json_obj["error"] == repr(exc)
     assert json_obj["path"] == "Groot"
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert c.stderr.strip() == "DirectoryNotFoundError: Groot"
