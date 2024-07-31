@@ -10,7 +10,6 @@ from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.auxlib.collection import AttrDict
-from conda.auxlib.ish import dals
 from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
 from conda.common.io import captured
@@ -78,9 +77,13 @@ def test_TooManyArgumentsError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == "TooManyArgumentsError:  Got 5 arguments (g, r, o, o, t) but expected 2."
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "TooManyArgumentsError:  Got 5 arguments (g, r, o, o, t) but expected 2.",
+            "",
+            "",
+        )
     )
 
 
@@ -97,15 +100,17 @@ def test_BasicClobberError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == dals(
-            """
-    ClobberError: Conda was asked to clobber an existing path.
-      source path: some/path/on/goodwin.ave
-      target path: some/path/to/wright.st
-    """
-        ).strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "ClobberError: Conda was asked to clobber an existing path.",
+            "  source path: some/path/on/goodwin.ave",
+            "  target path: some/path/to/wright.st",
+            "",
+            "",
+            "",
+            "",
+        )
     )
 
 
@@ -125,17 +130,19 @@ def test_KnownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == dals(
-            """
-    ClobberError: The package 'Groot' cannot be installed due to a
-    path collision for 'some/where/on/goodwin.ave'.
-    This path already exists in the target prefix, and it won't be removed by
-    an uninstall action in this transaction. The path appears to be coming from
-    the package 'Liquid', which is already installed in the prefix.
-    """
-        ).strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "ClobberError: The package 'Groot' cannot be installed due to a",
+            "path collision for 'some/where/on/goodwin.ave'.",
+            "This path already exists in the target prefix, and it won't be removed by",
+            "an uninstall action in this transaction. The path appears to be coming from",
+            "the package 'Liquid', which is already installed in the prefix.",
+            "",
+            "",
+            "",
+            "",
+        )
     )
 
 
@@ -152,17 +159,19 @@ def test_UnknownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == dals(
-            """
-    ClobberError: The package 'Groot' cannot be installed due to a
-    path collision for 'siebel/center/for/c.s'.
-    This path already exists in the target prefix, and it won't be removed
-    by an uninstall action in this transaction. The path is one that conda
-    doesn't recognize. It may have been created by another package manager.
-    """
-        ).strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "ClobberError: The package 'Groot' cannot be installed due to a",
+            "path collision for 'siebel/center/for/c.s'.",
+            "This path already exists in the target prefix, and it won't be removed",
+            "by an uninstall action in this transaction. The path is one that conda",
+            "doesn't recognize. It may have been created by another package manager.",
+            "",
+            "",
+            "",
+            "",
+        )
     )
 
 
@@ -179,15 +188,17 @@ def test_SharedLinkPathClobberError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == dals(
-            """
-    ClobberError: This transaction has incompatible packages due to a shared path.
-      packages: G, r, o, o, t
-      path: 'some/where/in/shampoo/banana'
-    """
-        ).strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "ClobberError: This transaction has incompatible packages due to a shared path.",
+            "  packages: G, r, o, o, t",
+            "  path: 'some/where/in/shampoo/banana'",
+            "",
+            "",
+            "",
+            "",
+        )
     )
 
 
@@ -217,7 +228,7 @@ def test_CondaFileNotFoundError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert c.stderr.strip() == "PathNotFoundError: Groot"
+    assert c.stderr == "\n".join(("", "PathNotFoundError: Groot", "", ""))
 
 
 def test_DirectoryNotFoundError(monkeypatch: MonkeyPatch) -> None:
@@ -250,7 +261,7 @@ def test_DirectoryNotFoundError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert c.stderr.strip() == "DirectoryNotFoundError: Groot"
+    assert c.stderr == "\n".join(("", "DirectoryNotFoundError: Groot", "", ""))
 
 
 def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
@@ -290,17 +301,18 @@ def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == dals(
-            """
-    ChecksumMismatchError: Conda detected a mismatch between the expected content and downloaded content
-    for url 'https://download.url/path/to/file.tar.bz2'.
-      download saved to: /some/path/on/disk/another-name.tar.bz2
-      expected md5: abc123
-      actual md5: deadbeef
-    """
-        ).strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "ChecksumMismatchError: Conda detected a mismatch between the expected content and downloaded content",
+            "for url 'https://download.url/path/to/file.tar.bz2'.",
+            "  download saved to: /some/path/on/disk/another-name.tar.bz2",
+            "  expected md5: abc123",
+            "  actual md5: deadbeef",
+            "",
+            "",
+            "",
+        )
     )
 
 
@@ -331,14 +343,15 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == dals(
-            """
-    PackagesNotFoundError: The following packages are missing from the target environment:
-      - Potato
-    """
-        ).strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "PackagesNotFoundError: The following packages are missing from the target environment:",
+            "  - Potato",
+            "",
+            "",
+            "",
+        )
     )
 
 
@@ -370,7 +383,9 @@ def test_CondaKeyError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert c.stderr.strip() == "CondaKeyError: 'Potato': Potato is not a key."
+    assert c.stderr == "\n".join(
+        ("", "CondaKeyError: 'Potato': Potato is not a key.", "", "")
+    )
 
 
 def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
@@ -407,16 +422,16 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        dals(
-            """
-            CondaHTTPError: HTTP Potato COULD NOT CONNECT for url <https://download.url/path/to/Potato.tar.gz>
-            Elapsed: 1.24
-
-            Potato
-            """
-        ).strip()
-        in c.stderr.strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "CondaHTTPError: HTTP Potato COULD NOT CONNECT for url <https://download.url/path/to/Potato.tar.gz>",
+            "Elapsed: 1.24",
+            "",
+            "Potato",
+            "",
+            "",
+        )
     )
 
 
@@ -447,9 +462,14 @@ def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert c.stderr.strip() == (
-        "CommandNotFoundError: No command 'conda instate'.\n"
-        "Did you mean 'conda install'?"
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "CommandNotFoundError: No command 'conda instate'.",
+            "Did you mean 'conda install'?",
+            "",
+            "",
+        )
     )
 
 
@@ -480,8 +500,13 @@ def test_CommandNotFoundError_conda_build(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert c.stderr.strip() == (
-        "CommandNotFoundError: To use 'conda build', install conda-build."
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "CommandNotFoundError: To use 'conda build', install conda-build.",
+            "",
+            "",
+        )
     )
 
 
@@ -745,18 +770,19 @@ def test_BinaryPrefixReplacementError(monkeypatch: MonkeyPatch) -> None:
         conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
-    assert (
-        c.stderr.strip()
-        == dals(
-            """
-    BinaryPrefixReplacementError: Refusing to replace mismatched data length in binary file.
-      path: some/where/by/boneyard/creek
-      placeholder: save/my/spot/in/374
-      new prefix: some/where/on/goodwin.ave
-      original data Length: 1404
-      new data length: 1104
-    """
-        ).strip()
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "BinaryPrefixReplacementError: Refusing to replace mismatched data length in binary file.",
+            "  path: some/where/by/boneyard/creek",
+            "  placeholder: save/my/spot/in/374",
+            "  new prefix: some/where/on/goodwin.ave",
+            "  original data Length: 1404",
+            "  new data length: 1104",
+            "",
+            "",
+            "",
+        )
     )
 
 
