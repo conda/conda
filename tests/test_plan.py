@@ -335,319 +335,320 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_display_actions_show_channel_urls():
-    with env_var(
-        "CONDA_SHOW_CHANNEL_URLS", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        actions = defaultdict(list)
-        sympy_prec = PackageRecord.from_objects(
-            get_matchspec_from_index(index, "channel-1::sympy==0.7.2=py27_0")
+def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_SHOW_CHANNEL_URLS", "True")
+    reset_context()
+    assert context.show_channel_urls
+
+    actions = defaultdict(list)
+    sympy_prec = PackageRecord.from_objects(
+        get_matchspec_from_index(index, "channel-1::sympy==0.7.2=py27_0")
+    )
+    numpy_prec = PackageRecord.from_objects(
+        get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py27_0")
+    )
+    numpy_prec.channel = sympy_prec.channel = Channel(None)
+    actions.update(
+        {
+            "FETCH": [
+                sympy_prec,
+                numpy_prec,
+            ]
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be downloaded:",
+            "",
+            "    package                    |            build",
+            "    ---------------------------|-----------------",
+            "    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>",
+            "    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>",
+            "    ------------------------------------------------------------",
+            "                                           Total:         9.9 MB",
+            "",
+            "",
         )
-        numpy_prec = PackageRecord.from_objects(
-            get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py27_0")
+    )
+
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "PREFIX": "/Users/aaronmeurer/anaconda/envs/test",
+            "SYMLINK_CONDA": [
+                "/Users/aaronmeurer/anaconda",
+            ],
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::python==3.3.2=0"),
+                get_matchspec_from_index(index, "channel-1::readline==6.2=0"),
+                get_matchspec_from_index(index, "channel-1::sqlite==3.7.13=0"),
+                get_matchspec_from_index(index, "channel-1::tk==8.5.13=0"),
+                get_matchspec_from_index(index, "channel-1::zlib==1.2.7=0"),
+            ],
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "  environment location: /Users/aaronmeurer/anaconda/envs/test",
+            "",
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    python:   3.3.2-0  channel-1",
+            "    readline: 6.2-0    channel-1",
+            "    sqlite:   3.7.13-0 channel-1",
+            "    tk:       8.5.13-0 channel-1",
+            "    zlib:     1.2.7-0  channel-1",
+            "",
+            "",
         )
-        numpy_prec.channel = sympy_prec.channel = Channel(None)
-        actions.update(
-            {
-                "FETCH": [
-                    sympy_prec,
-                    numpy_prec,
-                ]
-            }
+    )
+
+    actions["UNLINK"] = actions["LINK"]
+    actions["LINK"] = []
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "  environment location: /Users/aaronmeurer/anaconda/envs/test",
+            "",
+            "",
+            "The following packages will be REMOVED:",
+            "",
+            "    python:   3.3.2-0  channel-1",
+            "    readline: 6.2-0    channel-1",
+            "    sqlite:   3.7.13-0 channel-1",
+            "    tk:       8.5.13-0 channel-1",
+            "    zlib:     1.2.7-0  channel-1",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+            ],
+        }
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be downloaded:",
-                "",
-                "    package                    |            build",
-                "    ---------------------------|-----------------",
-                "    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>",
-                "    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>",
-                "    ------------------------------------------------------------",
-                "                                           Total:         9.9 MB",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython: 0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1",
+            "",
+            "",
         )
+    )
 
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "PREFIX": "/Users/aaronmeurer/anaconda/envs/test",
-                "SYMLINK_CONDA": [
-                    "/Users/aaronmeurer/anaconda",
-                ],
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::python==3.3.2=0"),
-                    get_matchspec_from_index(index, "channel-1::readline==6.2=0"),
-                    get_matchspec_from_index(index, "channel-1::sqlite==3.7.13=0"),
-                    get_matchspec_from_index(index, "channel-1::tk==8.5.13=0"),
-                    get_matchspec_from_index(index, "channel-1::zlib==1.2.7=0"),
-                ],
-            }
+    actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    cython: 0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0"),
+                get_matchspec_from_index(index, "channel-1::dateutil==1.5=py33_0"),
+                get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+                get_matchspec_from_index(index, "channel-1::dateutil==2.1=py33_1"),
+                get_matchspec_from_index(index, "channel-1::pip==1.3.1=py33_1"),
+            ],
+        }
+    )
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "  environment location: /Users/aaronmeurer/anaconda/envs/test",
-                "",
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    python:   3.3.2-0  channel-1",
-                "    readline: 6.2-0    channel-1",
-                "    sqlite:   3.7.13-0 channel-1",
-                "    tk:       8.5.13-0 channel-1",
-                "    zlib:     1.2.7-0  channel-1",
-                "",
-                "",
-            )
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following NEW packages will be INSTALLED:",
+            "",
+            "    numpy:    1.7.1-py33_0 channel-1",
+            "",
+            "The following packages will be REMOVED:",
+            "",
+            "    pip:      1.3.1-py33_1 channel-1",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython:   0.19-py33_0  channel-1 --> 0.19.1-py33_0 channel-1",
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    dateutil: 2.1-py33_1   channel-1 --> 1.5-py33_0    channel-1",
+            "",
+            "",
         )
+    )
 
-        actions["UNLINK"] = actions["LINK"]
-        actions["LINK"] = []
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0"),
+                get_matchspec_from_index(index, "channel-1::dateutil==2.1=py33_1"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+                get_matchspec_from_index(index, "channel-1::dateutil==1.5=py33_0"),
+            ],
+        }
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    with captured() as c:
+        display_actions(actions, index)
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "  environment location: /Users/aaronmeurer/anaconda/envs/test",
-                "",
-                "",
-                "The following packages will be REMOVED:",
-                "",
-                "    python:   3.3.2-0  channel-1",
-                "    readline: 6.2-0    channel-1",
-                "    sqlite:   3.7.13-0 channel-1",
-                "    tk:       8.5.13-0 channel-1",
-                "    zlib:     1.2.7-0  channel-1",
-                "",
-                "",
-            )
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython:   0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1",
+            "    dateutil: 1.5-py33_0  channel-1 --> 2.1-py33_1    channel-1",
+            "",
+            "",
         )
+    )
 
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                ],
-            }
+    actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    cython:   0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1",
+            "    dateutil: 2.1-py33_1    channel-1 --> 1.5-py33_0  channel-1",
+            "",
+            "",
         )
+    )
 
-        with captured() as c:
-            display_actions(actions, index)
+    cython_prec = PackageRecord.from_objects(
+        get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0")
+    )
+    dateutil_prec = PackageRecord.from_objects(
+        get_matchspec_from_index(index, "channel-1::dateutil==1.5=py33_0")
+    )
+    cython_prec.channel = dateutil_prec.channel = Channel("my_channel")
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython: 0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1",
-                "",
-                "",
-            )
+    actions = defaultdict(list)
+    actions.update(
+        {
+            "LINK": [
+                cython_prec,
+                get_matchspec_from_index(index, "channel-1::dateutil==2.1=py33_1"),
+            ],
+            "UNLINK": [
+                get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
+                dateutil_prec,
+            ],
+        }
+    )
+
+    with captured() as c:
+        display_actions(actions, index)
+
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be UPDATED:",
+            "",
+            "    cython:   0.19-py33_0 channel-1  --> 0.19.1-py33_0 my_channel",
+            "    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    channel-1 ",
+            "",
+            "",
         )
+    )
 
-        actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
+    actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
 
-        with captured() as c:
-            display_actions(actions, index)
+    with captured() as c:
+        display_actions(actions, index)
 
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    cython: 0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1",
-                "",
-                "",
-            )
+    assert c.stdout == "\n".join(
+        (
+            "",
+            "## Package Plan ##",
+            "",
+            "",
+            "The following packages will be DOWNGRADED:",
+            "",
+            "    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 channel-1 ",
+            "    dateutil: 2.1-py33_1    channel-1  --> 1.5-py33_0  my_channel",
+            "",
+            "",
         )
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0"),
-                    get_matchspec_from_index(index, "channel-1::dateutil==1.5=py33_0"),
-                    get_matchspec_from_index(index, "channel-1::numpy==1.7.1=py33_0"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                    get_matchspec_from_index(index, "channel-1::dateutil==2.1=py33_1"),
-                    get_matchspec_from_index(index, "channel-1::pip==1.3.1=py33_1"),
-                ],
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following NEW packages will be INSTALLED:",
-                "",
-                "    numpy:    1.7.1-py33_0 channel-1",
-                "",
-                "The following packages will be REMOVED:",
-                "",
-                "    pip:      1.3.1-py33_1 channel-1",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython:   0.19-py33_0  channel-1 --> 0.19.1-py33_0 channel-1",
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    dateutil: 2.1-py33_1   channel-1 --> 1.5-py33_0    channel-1",
-                "",
-                "",
-            )
-        )
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0"),
-                    get_matchspec_from_index(index, "channel-1::dateutil==2.1=py33_1"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                    get_matchspec_from_index(index, "channel-1::dateutil==1.5=py33_0"),
-                ],
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython:   0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1",
-                "    dateutil: 1.5-py33_0  channel-1 --> 2.1-py33_1    channel-1",
-                "",
-                "",
-            )
-        )
-
-        actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    cython:   0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1",
-                "    dateutil: 2.1-py33_1    channel-1 --> 1.5-py33_0  channel-1",
-                "",
-                "",
-            )
-        )
-
-        cython_prec = PackageRecord.from_objects(
-            get_matchspec_from_index(index, "channel-1::cython==0.19.1=py33_0")
-        )
-        dateutil_prec = PackageRecord.from_objects(
-            get_matchspec_from_index(index, "channel-1::dateutil==1.5=py33_0")
-        )
-        cython_prec.channel = dateutil_prec.channel = Channel("my_channel")
-
-        actions = defaultdict(list)
-        actions.update(
-            {
-                "LINK": [
-                    cython_prec,
-                    get_matchspec_from_index(index, "channel-1::dateutil==2.1=py33_1"),
-                ],
-                "UNLINK": [
-                    get_matchspec_from_index(index, "channel-1::cython==0.19=py33_0"),
-                    dateutil_prec,
-                ],
-            }
-        )
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be UPDATED:",
-                "",
-                "    cython:   0.19-py33_0 channel-1  --> 0.19.1-py33_0 my_channel",
-                "    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    channel-1 ",
-                "",
-                "",
-            )
-        )
-
-        actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
-
-        with captured() as c:
-            display_actions(actions, index)
-
-        assert c.stdout == "\n".join(
-            (
-                "",
-                "## Package Plan ##",
-                "",
-                "",
-                "The following packages will be DOWNGRADED:",
-                "",
-                "    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 channel-1 ",
-                "    dateutil: 2.1-py33_1    channel-1  --> 1.5-py33_0  my_channel",
-                "",
-                "",
-            )
-        )
+    )
 
 
 @pytest.mark.xfail(
