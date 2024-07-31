@@ -131,9 +131,9 @@ def display_health_checks(prefix: str, verbose: bool = False) -> None:
 
 
 def missing_files(prefix: str, verbose: bool) -> None:
-    print("Missing Files:\n")
     missing_files = find_packages_with_missing_files(prefix)
     if missing_files:
+        print(f"{X_MARK} Missing Files:\n")
         for package_name, missing_files in missing_files.items():
             if verbose:
                 delimiter = "\n  "
@@ -145,9 +145,9 @@ def missing_files(prefix: str, verbose: bool) -> None:
 
 
 def altered_files(prefix: str, verbose: bool) -> None:
-    print("Altered Files:\n")
     altered_packages = find_altered_packages(prefix)
     if altered_packages:
+        print(f"{X_MARK} Altered Files:\n")
         for package_name, altered_files in altered_packages.items():
             if verbose:
                 delimiter = "\n  "
@@ -159,8 +159,10 @@ def altered_files(prefix: str, verbose: bool) -> None:
 
 
 def env_txt_check(prefix: str, verbose: bool) -> None:
-    present = OK_MARK if check_envs_txt_file(prefix) else X_MARK
-    print(f"Environment listed in environments.txt file: {present}\n")
+    if check_envs_txt_file(prefix):
+        print(f"{OK_MARK} The environment is listed in the environments.txt file.\n")
+    else:
+        print(f"{X_MARK} The environment is not listed in the environments.txt file.\n")
 
 
 @hookimpl
