@@ -341,13 +341,17 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_CondaKeyError():
+def test_CondaKeyError(monkeypatch: MonkeyPatch) -> None:
     key = "Potato"
     message = "Potato is not a key."
     exc = CondaKeyError(key, message)
-    with env_var("CONDA_JSON", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
@@ -357,9 +361,12 @@ def test_CondaKeyError():
     assert json_obj["error"] == repr(exc)
     assert json_obj["key"] == "Potato"
 
-    with env_var("CONDA_JSON", "no", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            conda_exception_handler(_raise_helper, exc)
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
 
     assert not c.stdout
     assert c.stderr.strip() == "CondaKeyError: 'Potato': Potato is not a key."
