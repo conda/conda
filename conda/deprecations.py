@@ -299,7 +299,7 @@ class DeprecationHandler:
 
         def __getattr__(name: str) -> Any:
             if name == constant:
-                warnings.warn(message, category, stacklevel=2 + stack)
+                warnings.warn(message, category, stacklevel=3 + stack)
                 return value
 
             if super_getattr:
