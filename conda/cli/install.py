@@ -31,11 +31,6 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
-from ..env.env import print_result
-from ..env.installers.base import get_installer
-from ..env.specs import detect as detect_input_file
-from ..env.specs.requirements import RequirementsSpec
-from ..env.specs.yaml_file import YamlFileSpec
 from ..exceptions import (
     CondaExitZero,
     CondaImportError,
@@ -152,6 +147,12 @@ def get_revision(arg, json=False):
 
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
+    from ..env.env import print_result
+    from ..env.installers.base import get_installer
+    from ..env.specs import detect as detect_input_file
+    from ..env.specs.requirements import RequirementsSpec
+    from ..env.specs.yaml_file import YamlFileSpec
+
     context.validate_configuration()
     check_non_admin()
     # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
