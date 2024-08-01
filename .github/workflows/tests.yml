@@ -114,6 +114,7 @@ jobs:
           --file tests\requirements.txt
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
+          --file tests\requirements-activate.txt
           --file tests\requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
@@ -221,6 +222,7 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
+          --file tests/requirements-activate.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
@@ -234,6 +236,10 @@ jobs:
 
       - name: Conda List
         run: conda list --show-channel-urls
+
+      - name: Install Shells
+        # for conda activate tests
+        run: sudo apt update && sudo apt install ash csh fish tcsh zsh
 
       - name: Run Tests
         run: >
@@ -307,6 +313,7 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
+          --file tests/requirements-activate.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
@@ -465,6 +472,7 @@ jobs:
           --yes
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
+          --file tests/requirements-activate.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
@@ -478,6 +486,10 @@ jobs:
 
       - name: Conda List
         run: conda list --show-channel-urls
+
+      - name: Install Shells
+        # for conda activate tests
+        run: brew update && brew install fish
 
       - name: Run Tests
         run: >

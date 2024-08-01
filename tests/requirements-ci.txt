@@ -5,7 +5,6 @@ conda-forge::xdoctest
 coverage
 flask >=2.2  # jlap pytest fixture
 git
-pexpect
 pip
 pytest
 pytest-cov
