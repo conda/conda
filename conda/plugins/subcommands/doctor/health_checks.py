@@ -9,6 +9,8 @@ import os
 from logging import getLogger
 from pathlib import Path
 
+import requests
+
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
 from ....deprecations import deprecated
@@ -161,12 +163,21 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
 
 
 def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
-    if (path := os.getenv("REQUESTS_CA_BUNDLE")) and not Path(path).exists():
+    if not os.getenv("REQUESTS_CA_BUNDLE"):
+        return
+    elif not Path(os.getenv("REQUESTS_CA_BUNDLE")).exists():
         print(
             f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
         )
     else:
-        print(f"{OK_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a valid file.\n")
+        try:
+            response = requests.get("https://example.com")
+            if response:
+                print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
+        except OSError as e:
+            print(
+                f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
+            )
 
 
 @hookimpl

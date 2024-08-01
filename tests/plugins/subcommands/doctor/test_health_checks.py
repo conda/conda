@@ -260,7 +260,21 @@ def test_not_requests_ca_bundle_check_action(
     )
 
 
-def test_requests_ca_bundle_check_action(
+def test_requests_ca_bundle_check_action_fail_1(
+    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch, tmp_path: Path
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
+    reset_context()
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert (
+        f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
+        in captured.out
+    )
+
+
+def test_requests_ca_bundle_check_action_fail_2(
     env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch, tmp_path: Path
 ):
     prefix, _, _, _, _ = env_ok
@@ -269,7 +283,7 @@ def test_requests_ca_bundle_check_action(
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
-        f"{OK_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a valid file.\n"
+        f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`:"
         in captured.out
     )
 
