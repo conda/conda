@@ -7,6 +7,7 @@ corruption.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ....base.context import context
@@ -38,8 +39,14 @@ def configure_parser(parser: ArgumentParser):
 
 def execute(args: Namespace) -> None:
     """Run registered health_check plugins."""
-    print(f"Environment Health Report for: {context.target_prefix}\n")
-    context.plugin_manager.invoke_health_checks(context.target_prefix, context.verbose)
+    if not Path(context.target_prefix).exists():
+        print("Oops! The environment you specified does not exist.\n")
+        return
+    else:
+        print(f"Environment Health Report for: {context.target_prefix}\n")
+        context.plugin_manager.invoke_health_checks(
+            context.target_prefix, context.verbose
+        )
 
 
 @hookimpl
