@@ -7,6 +7,7 @@ Core logic for `conda [create|install|update|remove]` commands.
 See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
+from __future__ import annotations
 
 import os
 from logging import getLogger
@@ -30,6 +31,11 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..env.env import print_result
+from ..env.installers.base import get_installer
+from ..env.specs import detect as detect_input_file
+from ..env.specs.requirements import RequirementsSpec
+from ..env.specs.yaml_file import YamlFileSpec
 from ..exceptions import (
     CondaExitZero,
     CondaImportError,
@@ -41,6 +47,7 @@ from ..exceptions import (
     DirectoryNotFoundError,
     DryRunExit,
     EnvironmentLocationNotFound,
+    InvalidInstaller,
     NoBaseEnvironmentError,
     OperationNotAllowed,
     PackageNotInstalledError,
@@ -262,15 +269,66 @@ def install(args, parser, command="install"):
 
     specs = []
     if args.file:
-        for fpath in args.file:
-            try:
-                specs.extend(common.specs_from_url(fpath, json=context.json))
-            except UnicodeError:
-                raise CondaError(
-                    "Error reading file, file should be a text file containing"
-                    " packages \nconda create --help for details"
+        is_explicit = False
+        for idx, fpath in enumerate(args.file):
+            parsed = detect_input_file(filename=fpath)
+            if isinstance(parsed, YamlFileSpec):
+                if idx != 0:
+                    # We only allow a single --file to be a YAML file (for now)
+                    raise CondaError("YAML files can only be passed as the single --file argument.")
+                log.warning(
+                    "YAML support in 'conda {create,install,update,remove} --file' is experimental'"
                 )
-        if "@EXPLICIT" in specs:
+                env = parsed.environment
+                result = {"conda": None, "pip": None}
+                if len(env.dependencies) == 0:
+                    installer_type = "conda"
+                    pkg_specs = []
+                    installer = get_installer(installer_type)
+                    if context.dry_run:
+                        result[installer_type] = installer.dry_run(pkg_specs, args, env)
+                    else:
+                        result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+                else:
+                    for installer_type, pkg_specs in env.dependencies.items():
+                        try:
+                            installer = get_installer(installer_type)
+                            if context.dry_run:
+                                result[installer_type] = installer.dry_run(pkg_specs, args, env)
+                            else:
+                                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+                        except InvalidInstaller:
+                            raise CondaError(
+                                dals(
+                                    f"""
+                                    Unable to install package for {installer_type}.
+
+                                    Please double check and ensure your dependencies file has
+                                    the correct spelling. You might also try installing the
+                                    conda-env-{installer_type} package to see if provides
+                                    the required installer.
+                                    """
+                                )
+                            )
+
+                if env.variables:
+                    pd = PrefixData(prefix)
+                    pd.set_environment_env_vars(env.variables)
+
+                touch_nonadmin(prefix)
+                print_result(args, prefix, result)
+                return
+            elif isinstance(parsed, RequirementsSpec):
+                try:
+                    new_specs = common.specs_from_url(fpath, json=context.json)
+                    specs.extend(new_specs)
+                    is_explicit = "@EXPLICIT" in new_specs
+                except UnicodeError:
+                    raise CondaError(
+                        "Error reading file, file should be a text file containing"
+                        " packages \nconda create --help for details"
+                    )
+        if is_explicit:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             if newenv:
                 touch_nonadmin(prefix)
