@@ -45,7 +45,7 @@ def locker(cache: RepodataCache, qout, qin):
 
 
 @pytest.mark.parametrize("no_lock", [True, False])
-def test_lock_can_lock(tmp_path: Path, monkeypatch: MonkeyPatch, no_lock: bool) -> None:
+def test_lock_no_lock(tmp_path: Path, monkeypatch: MonkeyPatch, no_lock: bool) -> None:
     """
     Open lockfile, then open it again in a spawned subprocess. Assert subprocess
     times out (should take 10 seconds).
