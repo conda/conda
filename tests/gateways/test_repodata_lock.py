@@ -9,9 +9,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.base.context import context, reset_context
 from conda.common.compat import on_win
-from conda.common.io import env_vars
 from conda.gateways.repodata import RepodataCache, lock
 
 if TYPE_CHECKING:
@@ -80,21 +79,21 @@ def test_lock_no_lock(tmp_path: Path, monkeypatch: MonkeyPatch, no_lock: bool) -
 
 
 @pytest.mark.skipif(on_win, reason="emulate windows behavior for code coverage")
-def test_lock_rename(tmp_path):
+def test_lock_rename(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     class PunyPath(type(tmp_path)):
         def rename(self, path):
             if path.exists():
                 raise FileExistsError()
             return super().rename(path)
 
-    with env_vars(
-        {"CONDA_EXPERIMENTAL": "lock"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        cache = RepodataCache(tmp_path / "lockme", "puny.json")
-        cache.save("{}")
-        # RepodataCache first argument is the name of the cache file without an
-        # extension, doesn't create tmp_path/lockme as a directory.
-        puny = PunyPath(tmp_path, "puny.json.tmp")
-        puny.write_text('{"info":{}}')
-        cache.replace(puny)
+    monkeypatch.setenv("CONDA_EXPERIMENTAL", "lock")
+    reset_context()
+    assert context.experimental == ("lock",)
+
+    cache = RepodataCache(tmp_path / "lockme", "puny.json")
+    cache.save("{}")
+    # RepodataCache first argument is the name of the cache file without an
+    # extension, doesn't create tmp_path/lockme as a directory.
+    puny = PunyPath(tmp_path, "puny.json.tmp")
+    puny.write_text('{"info":{}}')
+    cache.replace(puny)
