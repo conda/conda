@@ -549,6 +549,27 @@ The default is ``False``.
    This is forced to ``True`` if conda-build is installed and older than 3.18.3,
    because older versions of conda break when conda feeds it the new file format.
 
+.. _reporters:
+
+``reporters``: configure output streams
+---------------------------------------
+
+
+.. versionadded:: 24.7.0
+   The ``reporters`` setting is only available with conda 24.7.0 or later.
+
+The ``reporters`` setting allows you to modify the way output is rendered for conda commands.
+This setting is primarily used as a way to select new reporter backends made available by plugins.
+
+For example, a plugin may create a new reporter backend called "colors". As a user, you would
+configure it in your ``.condarc`` file as shown below:
+
+.. code-block:: yaml
+
+   reporters:
+     - backend: colors
+       output: stdout
+
 Conda-build configuration
 =========================
 
