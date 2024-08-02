@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure
+
 name: Feature Request
 description: Create a feature request.
 labels:
@@ -13,7 +15,7 @@ body:
 
         Since there are already a lot of open issues, please also take a moment to search existing ones to see if your feature request has already been submitted. If you find something related, please upvote that issue and provide additional details as necessary.
 
-        💐 Thank you for helping to make Conda better. We would be unable to improve Conda without our community!
+        💐 Thank you for helping to make `conda/infrastructure` better. We would be unable to improve `conda/infrastructure` without our community!
   - type: checkboxes
     id: checks
     attributes:

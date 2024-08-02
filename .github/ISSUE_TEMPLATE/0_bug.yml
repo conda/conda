@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure
+
 name: Bug Report
 description: Create a bug report.
 labels:
@@ -13,7 +15,7 @@ body:
 
         Since there are already a lot of open issues, please also take a moment to search existing ones to see if your bug has already been reported. If you find something related, please upvote that issue and provide additional details as necessary.
 
-        💐 Thank you for helping to make Conda better. We would be unable to improve Conda without our community!
+        💐 Thank you for helping to make `conda/infrastructure` better. We would be unable to improve `conda/infrastructure` without our community!
   - type: checkboxes
     id: checks
     attributes:
@@ -31,45 +33,7 @@ body:
       description: What should have happened instead? Please provide as many details as possible. The more information provided, the more likely we are able to replicate your problem and offer a solution.
     validations:
       required: true
-  - type: textarea
-    id: info
-    attributes:
-      label: Conda Info
-      description: |
-        Let's collect some basic information about your conda install.
 
-        Please run the following command from your command line and paste the output below.
-
-        ```bash
-        conda info
-        ```
-      render: shell
-  - type: textarea
-    id: config
-    attributes:
-      label: Conda Config
-      description: |
-        Let's collect any customizations you may have for your conda install.
-
-        Please run the following command from your command line and paste the output below.
-
-        ```bash
-        conda config --show-sources
-        ```
-      render: shell
-  - type: textarea
-    id: list
-    attributes:
-      label: Conda list
-      description: |
-        The packages installed into your environment can offer clues as to the problem you are facing.
-
-        Please activate the environment within which you are encountering this bug, run the following command from your command line, and paste the output below.
-
-        ```bash
-        conda list --show-channel-urls
-        ```
-      render: shell
   - type: textarea
     id: context
     attributes:
