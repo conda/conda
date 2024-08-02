@@ -53,7 +53,8 @@ from .gateways.connection.download import TmpDownload  # noqa: F401
 from .gateways.connection.download import download as _download  # noqa: F401
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
-from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
+from .gateways.disk.delete import delete_trash  # noqa: F401
+from .gateways.disk.delete import rm_rf as move_to_trash
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
@@ -141,6 +142,16 @@ class Completer:  # pragma: no cover
 @deprecated("25.3", "25.9", addendum="Unused.")
 class InstalledPackages:
     pass
+
+
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "move_to_trash",
+    move_to_trash,
+    addendum="Use `conda.gateways.disk.delete.rm_rf` instead.",
+)
+del move_to_trash
 
 
 def rm_rf(path, max_retries=5, trash=True):
