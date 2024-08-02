@@ -272,7 +272,7 @@ def install(args, parser, command="install"):
     if args.file:
         is_explicit = False
         for idx, fpath in enumerate(args.file):
-            parsed = detect_input_file(filename=fpath)
+            parsed = detect_input_file(name=Path(prefix).name, filename=fpath)
             if isinstance(parsed, YamlFileSpec):
                 if idx != 0:
                     # We only allow a single --file to be a YAML file (for now)
