@@ -280,7 +280,7 @@ def test_anaconda_token_with_private_package(
     capsys.readouterr()
 
     # Step 2. Now with the token make sure we can see the package
-    channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
+    channel_url = "https://conda-web.anaconda.org/t/co-de3376bc-5463-41fe-8d14-878c7e6a8253/conda-test"
     stdout, _, _ = conda_cli(
         "search",
         f"--channel={channel_url}",
