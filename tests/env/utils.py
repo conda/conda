@@ -27,6 +27,7 @@ parser_config = {
 
 
 @contextmanager
+@deprecated("25.3", "25.9", addendum="Use `conda.testing.tmp_envs_dir` instead.")
 def make_temp_envs_dir():
     envs_dir = mkdtemp()
     try:

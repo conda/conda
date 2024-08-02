@@ -62,7 +62,6 @@ from .constants import (
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
-    PREFIX_NAME_DISALLOWED_CHARS_WIN,
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
@@ -2068,21 +2067,12 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
 
-    disallowed = (
-        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
-    )
-    if disallowed.intersection(prefix_name):
-        if "%" in disallowed:
-            # This symbol causes formatting errors in the message below when raised.
-            # It needs to be escaped as a double %% in order to be rendered correctly.
-            # Raw strings didn't help.
-            disallowed.remove("%")
-            disallowed.add("%%")
+    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
         raise CondaValueError(
             dals(
                 f"""
                 Invalid environment name: {prefix_name!r}
-                Characters not allowed: {disallowed}
+                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
                 If you are specifying a path to an environment, the `-p`
                 flag should be used instead.
                 """

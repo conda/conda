@@ -46,6 +46,7 @@ from .base.constants import (
 )
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
+from .common.path import path_identity as _path_identity
 from .common.path import paths_equal
 from .deprecations import deprecated
 
@@ -1001,7 +1002,7 @@ def native_path_to_unix(
     if paths is None:
         return None
     elif not on_win:
-        return path_identity(paths)
+        return _path_identity(paths)
 
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)
@@ -1052,7 +1053,7 @@ def unix_path_to_native(
     if paths is None:
         return None
     elif not on_win:
-        return path_identity(paths)
+        return _path_identity(paths)
 
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)
@@ -1100,13 +1101,13 @@ def unix_path_to_native(
         return tuple(win_path.split(ntpath.pathsep))
 
 
-def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
-    if paths is None:
-        return None
-    elif isinstance(paths, str):
-        return os.path.normpath(paths)
-    else:
-        return tuple(os.path.normpath(path) for path in paths)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "path_identity",
+    _path_identity,
+    addendum="Use `conda.common.path.path_identity` instead.",
+)
 
 
 def backslash_to_forwardslash(
@@ -1230,7 +1231,7 @@ class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
     path_conversion = staticmethod(
-        backslash_to_forwardslash if on_win else path_identity
+        backslash_to_forwardslash if on_win else _path_identity
     )
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
@@ -1257,7 +1258,7 @@ class XonshActivator(_Activator):
 class CmdExeActivator(_Activator):
     pathsep_join = ";".join
     sep = "\\"
-    path_conversion = staticmethod(path_identity)
+    path_conversion = staticmethod(_path_identity)
     script_extension = ".bat"
     tempfile_extension = ".bat"
     command_join = "\n"
@@ -1322,7 +1323,7 @@ class FishActivator(_Activator):
 class PowerShellActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "\\" if on_win else "/"
-    path_conversion = staticmethod(path_identity)
+    path_conversion = staticmethod(_path_identity)
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"

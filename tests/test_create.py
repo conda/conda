@@ -11,11 +11,7 @@ from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
-from os.path import (
-    basename,
-    exists,
-    isdir,
-)
+from os.path import basename, isdir
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_call, check_output
@@ -45,7 +41,6 @@ from conda.common.serialize import json_dump, yaml_round_trip_load
 from conda.core.index import get_reduced_index
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
-from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
@@ -628,11 +623,11 @@ def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixtu
         assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
-def test_override_channels(
+def test_override_channels_disabled(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-):
+) -> None:
     monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "no")
     reset_context()
     assert not context.override_channels_enabled
@@ -641,33 +636,93 @@ def test_override_channels(
         "create",
         f"--prefix={path_factory()}",
         "--override-channels",
-        "python",
+        "zlib",
         "--yes",
         raises=OperationNotAllowed,
     )
 
-    monkeypatch.setenv("CONDA_OVERRIDE_CHANNELS_ENABLED", "yes")
-    reset_context()
-    assert context.override_channels_enabled
+    conda_cli(
+        "search",
+        "--override-channels",
+        "zlib",
+        "--json",
+        raises=OperationNotAllowed,
+    )
 
+
+def test_create_override_channels_enabled(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+) -> None:
     conda_cli(
         "create",
         f"--prefix={path_factory()}",
         "--override-channels",
-        "python",
+        "zlib",
         "--yes",
+        raises=ArgumentError,
+    )
+
+    stdout, stderr, code = conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "--override-channels",
+        "--channel=defaults",
+        "zlib",
+        "--yes",
+    )
+    assert stdout
+    assert not stderr
+    assert not code
+
+    # should this case work?
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "--override-channels",
+        "defaults::zlib",
+        "--yes",
+        raises=ArgumentError,
+    )
+
+
+def test_search_override_channels_enabled(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+) -> None:
+    conda_cli(
+        "search",
+        "--override-channels",
+        "zlib",
+        "--json",
         raises=ArgumentError,
     )
 
     stdout, stderr, code = conda_cli(
         "search",
         "--override-channels",
-        "conda-test::flask",
+        "--channel=defaults",
+        "zlib",
         "--json",
     )
+    assert (parsed := json.loads(stdout))
+    assert len(parsed) == 1
+    assert len(parsed["zlib"]) > 0
     assert not stderr
-    assert len(json.loads(stdout)["flask"]) < 3
-    assert json.loads(stdout)["flask"][0]["noarch"] == "python"
+    assert not code
+
+    stdout, stderr, code = conda_cli(
+        "search",
+        "--override-channels",
+        "defaults::zlib",
+        "--json",
+    )
+    assert (parsed := json.loads(stdout))
+    assert len(parsed) == 1
+    assert len(parsed["zlib"]) > 0
+    assert not stderr
     assert not code
 
 
@@ -2080,19 +2135,22 @@ def test_offline_with_empty_index_cache(
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
     tmp_channel: TmpChannelFixture,
+    path_factory: PathFactoryFixture,
 ):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
 
     SubdirData._cache_.clear()
 
+    # mock index cache so it will be empty
+    mocker.patch(
+        "conda.base.context.Context.pkgs_dirs",
+        new_callable=mocker.PropertyMock,
+        return_value=(str(path_factory()),),
+    )
+
     try:
         with tmp_env() as prefix, tmp_channel("zlib") as (_, channel):
-            # Clear the index cache.
-            index_cache_dir = create_cache_dir()
-            conda_cli("clean", "--index-cache", "--yes")
-            assert not exists(index_cache_dir)
-
             # Then attempt to install a package with --offline. The package (zlib) is
             # available in a local channel, however its dependencies are not. Make sure
             # that a) it fails because the dependencies are not available and b)
