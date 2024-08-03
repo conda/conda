@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
+    from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
 
@@ -221,4 +222,4 @@ class CondaRepodataPatch(NamedTuple):
     """
 
     name: str
-    action: Callable[[dict], dict]
+    action: Callable[[Channel, dict], dict]

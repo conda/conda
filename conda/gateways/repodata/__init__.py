@@ -18,7 +18,7 @@ import warnings
 from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ... import CondaError
 from ...auxlib.logz import stringify
@@ -730,7 +730,7 @@ class RepodataFetch:
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
             try:
-                parsed = json.loads(parsed)
+                parsed = cast(dict, json.loads(parsed))
             except json.JSONDecodeError as exc:
                 exc.args = (
                     f'{exc.args[0]}; got "{parsed[:ERROR_SNIPPET_LENGTH]}"',
@@ -739,8 +739,7 @@ class RepodataFetch:
                 raise
 
         # allow plugins to modify the repodata and state
-        for pre_solve in context.plugin_manager.get_hook_results("repodata_patches"):
-            parsed = pre_solve.action(self.channel, parsed)
+        parsed = context.plugin_manager.apply_repodata_patches(self.channel, parsed)
 
         return parsed, state
 
