@@ -8,20 +8,7 @@
        - any noteworthy (or hacky) choices to be aware of,
        - or what the problem resolved here looked like. -->
 
-### Checklist - did you ...
 
-<!-- If any of the following items aren't relevant to your contribution,
-     please still tick them so we know you've gone through the checklist. -->
-
-- [ ] Add a file to the `news` directory ([using the template](../blob/main/news/TEMPLATE)) for the next release's release notes?
-     <!-- All "significant" changes should get an entry:
-            - user-facing changes or enhancements
-            - bug fixes
-            - deprecations
-            - documentation updates
-            - other changes -->
-- [ ] Add / update necessary tests?
-- [ ] Add / update outdated documentation?
 
 <!-- Just as a reminder, everyone in all conda org spaces (including PRs)
      must follow the Conda Org Code of Conduct (link below).
@@ -31,5 +18,5 @@
      let us know!
 
      Helpful links:
-       - Conda Org COC: https://github.com/conda-incubator/governance/blob/main/CODE_OF_CONDUCT.md
-       - Contributing docs: ../blob/main/CONTRIBUTING.md -->
+       - Conda Org COC: https://github.com/conda/conda/blob/main/CODE_OF_CONDUCT.md
+       - Contributing docs: https://github.com/conda/conda/blob/main/CONTRIBUTING.md -->
