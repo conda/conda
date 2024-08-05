@@ -9,16 +9,16 @@ from unittest.mock import Mock, patch
 import pytest
 
 from conda.auxlib.ish import dals
+from conda.base.constants import DepsModifier, UpdateModifier
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
-from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import SpecsConfigurationConflictError, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
+from conda.models.match_spec import MatchSpec
 from conda.models.records import PrefixRecord
 from conda.models.version import VersionOrder
-from conda.resolve import MatchSpec
 from conda.testing.helpers import (
     CHANNEL_DIR_V1,
     add_subdir,
