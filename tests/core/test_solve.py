@@ -3365,6 +3365,9 @@ fake_index = [
 
 
 def test_packages_in_solution_change_already_newest(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
@@ -3378,6 +3381,9 @@ def test_packages_in_solution_change_already_newest(tmpdir):
 
 
 def test_packages_in_solution_change_needs_update(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
@@ -3391,6 +3397,9 @@ def test_packages_in_solution_change_needs_update(tmpdir):
 
 
 def test_packages_in_solution_change_constrained(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     specs = MatchSpec("mypkg")
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
@@ -3404,6 +3413,9 @@ def test_packages_in_solution_change_constrained(tmpdir):
 
 
 def test_determine_constricting_specs_conflicts(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC,
@@ -3443,6 +3455,9 @@ def test_determine_constricting_specs_conflicts(tmpdir):
 
 
 def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC,
@@ -3482,6 +3497,9 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
 
 
 def test_determine_constricting_specs_multi_conflicts(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC,
@@ -3536,6 +3554,9 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
 
 
 def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC,
@@ -3575,6 +3596,9 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
 
 
 def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC,
@@ -3614,6 +3638,9 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
 
 
 def test_determine_constricting_specs_no_conflicts_free(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC,
@@ -3639,6 +3666,9 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
 
 
 def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
+    if context.solver != "classic":
+        pytest.skip("This test only applies to the classic solver")
+
     solution_prec = [
         PrefixRecord(
             package_type=PackageType.NOARCH_GENERIC,
