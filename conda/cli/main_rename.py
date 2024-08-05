@@ -13,6 +13,8 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from conda.deprecations import deprecated
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
 
