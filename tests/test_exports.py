@@ -13,13 +13,11 @@ from conda.common.compat import on_win
 @pytest.mark.parametrize(
     "function,raises",
     [
-        ("IndexRecord", TypeError),
         ("iteritems", TypeError),
         ("Completer", None),
         ("InstalledPackages", None),
         ("hash_file", TypeError),
         ("verify", TypeError),
-        ("fetch_index", TypeError),
         ("symlink_conda", TypeError),
         ("_symlink_conda_hlp", TypeError),
         pytest.param(

@@ -33,9 +33,8 @@ from .common.compat import on_win  # noqa: F401
 from .common.path import win_path_to_unix  # noqa: F401
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
-from .core.index import fetch_index as _fetch_index  # noqa: F401
 from .core.index import get_index as _get_index
-from .core.package_cache_data import ProgressiveFetchExtract, rm_fetched  # noqa: F401
+from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
 from .core.subdir_data import cache_fn_url  # noqa: F401
@@ -61,7 +60,6 @@ from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
 from .models.enums import FileMode, PathType  # noqa: F401
-from .models.records import PackageRecord
 from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .plan import display_actions as _display_actions
 from .plan import (  # noqa: F401
@@ -105,13 +103,6 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
-deprecated.constant(
-    "24.3",
-    "24.9",
-    "IndexRecord",
-    PackageRecord,
-    addendum="Use `conda.models.records.PackageRecord` instead.",
-)
 # Replacements for six exports for compatibility
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
@@ -202,12 +193,6 @@ def get_index(
     index = _get_index(
         channel_urls, prepend, platform, use_local, use_cache, unknown, prefix
     )
-    return {Dist(prec): prec for prec in index.values()}
-
-
-@deprecated("24.3", "24.9", addendum="Use `conda.core.index.fetch_index` instead.")
-def fetch_index(channel_urls, use_cache=False, index=None):
-    index = _fetch_index(channel_urls, use_cache, index)
     return {Dist(prec): prec for prec in index.values()}
 
 
