@@ -16,6 +16,7 @@ from shutil import which
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
+from .common.path import path_identity as _path_identity
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
@@ -23,9 +24,13 @@ from .deprecations import deprecated
 log = logging.getLogger(__name__)
 
 
-def path_identity(path):
-    """Used as a dummy path converter where no conversion necessary"""
-    return path
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "path_identity",
+    _path_identity,
+    addendum="Use `conda.common.path.path_identity` instead.",
+)
 
 
 def unix_path_to_win(path, root_prefix=""):
@@ -111,8 +116,8 @@ _UNIX_SHELL_BASE = dict(
     echo="echo",
     env_script_suffix=".sh",
     nul="2>/dev/null",
-    path_from=path_identity,
-    path_to=path_identity,
+    path_from=_path_identity,
+    path_to=_path_identity,
     pathsep=":",
     printdefaultenv="echo $CONDA_DEFAULT_ENV",
     printpath="echo $PATH",
@@ -168,8 +173,8 @@ if on_win:
         #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
         #    printpath="echo %PATH%",
         #    exe="powershell.exe",
-        #    path_from=path_identity,
-        #    path_to=path_identity,
+        #    path_from=_path_identity,
+        #    path_to=_path_identity,
         #    slash_convert = ("/", "\\"),
         # ),
         "cmd.exe": dict(
@@ -191,8 +196,8 @@ if on_win:
             printpath="@echo %PATH%",
             exe="cmd.exe",
             shell_args=["/d", "/c"],
-            path_from=path_identity,
-            path_to=path_identity,
+            path_from=_path_identity,
+            path_to=_path_identity,
             slash_convert=("/", "\\"),
             sep="\\",
             pathsep=";",

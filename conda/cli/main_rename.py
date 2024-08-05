@@ -13,8 +13,6 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
-
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
 
@@ -81,8 +79,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-@deprecated.argument("24.3", "24.9", "name")
-@deprecated.argument("24.3", "24.9", "prefix")
 def validate_src() -> str:
     """
     Ensure that we are receiving at least one valid value for the environment
