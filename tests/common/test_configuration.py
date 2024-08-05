@@ -3,8 +3,6 @@
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from shutil import rmtree
-from tempfile import mkdtemp
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -28,7 +26,6 @@ from conda.common.configuration import (
     ValidationError,
     YamlRawParameter,
     custom_expandvars,
-    load_file_configs,
     pretty_list,
     raise_errors,
     unique_sequence_map,
@@ -444,50 +441,42 @@ def test_env_var_config_empty_sequence():
         [environ.pop(key) for key in test_dict]
 
 
-def test_load_raw_configs():
-    try:
-        tempdir = Path(mkdtemp()).resolve()
-        condarc = tempdir / ".condarc"
-        condarcd = tempdir / "condarc.d"
-        f1 = condarcd / "file1.yml"
-        f2 = condarcd / "file2.yml"
-        not_a_file = tempdir / "not_a_file"
+def test_load_raw_configs(tmp_path: Path) -> None:
+    condarc = tmp_path / ".condarc"
+    condarcd = tmp_path / "condarc.d"
+    f1 = condarcd / "file1.yml"
+    f2 = condarcd / "file2.yml"
+    not_a_file = tmp_path / "not_a_file"
 
-        condarcd.mkdir(exist_ok=True, parents=True)
+    condarcd.mkdir(exist_ok=True, parents=True)
 
-        f1.write_text(test_yaml_raw["file1"])
-        f2.write_text(test_yaml_raw["file2"])
-        condarc.write_text(test_yaml_raw["file3"])
+    f1.write_text(test_yaml_raw["file1"])
+    f2.write_text(test_yaml_raw["file2"])
+    condarc.write_text(test_yaml_raw["file3"])
 
-        search_path = [condarc, not_a_file, condarcd]
+    search_path = [condarc, not_a_file, condarcd]
 
-        raw_data = load_file_configs(search_path)
-        assert condarc in raw_data
-        assert not_a_file not in raw_data
-        assert f1 in raw_data
-        assert f2 in raw_data
-        assert raw_data[condarc]["channels"].value(None)[0].value(None) == "wile"
-        assert raw_data[f1]["always_yes"].value(None) == "no"
-        assert raw_data[f2]["proxy_servers"].value(None)["http"].value(None) == "marv"
+    config = Configuration(search_path)
+    assert condarc in config.raw_data
+    assert not_a_file not in config.raw_data
+    assert f1 in config.raw_data
+    assert f2 in config.raw_data
+    assert config.raw_data[condarc]["channels"].value(None)[0].value(None) == "wile"
+    assert config.raw_data[f1]["always_yes"].value(None) == "no"
+    assert (
+        config.raw_data[f2]["proxy_servers"].value(None)["http"].value(None) == "marv"
+    )
 
-        config = SampleConfiguration(search_path)
-
-        from pprint import pprint
-
-        for key, val in config.collect_all().items():
-            print(key)
-            pprint(val)
-        assert config.channels == (
-            "wile",
-            "porky",
-            "bugs",
-            "elmer",
-            "daffy",
-            "tweety",
-            "foghorn",
-        )
-    finally:
-        rmtree(tempdir, ignore_errors=True)
+    config = SampleConfiguration(search_path)
+    assert config.channels == (
+        "wile",
+        "porky",
+        "bugs",
+        "elmer",
+        "daffy",
+        "tweety",
+        "foghorn",
+    )
 
 
 def test_important_primitive_map_merges():
