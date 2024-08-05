@@ -21,14 +21,6 @@ from ....base.context import context
 from ....common.compat import on_win
 from ....common.io import dashlist, time_recorder
 from ....common.iterators import groupby_to_dict as groupby
-from ....common.logic import (
-    TRUE,
-    Clauses,
-    PycoSatSolver,
-    PyCryptoSatSolver,
-    PySatSolver,
-    minimal_unsatisfiable_subset,
-)
 from ....common.toposort import toposort
 from ....exceptions import (
     CondaDependencyError,
@@ -41,6 +33,14 @@ from ....models.enums import NoarchType, PackageType
 from ....models.match_spec import MatchSpec
 from ....models.records import PackageRecord
 from ....models.version import VersionOrder
+from .logic import (
+    TRUE,
+    Clauses,
+    PycoSatSolver,
+    PyCryptoSatSolver,
+    PySatSolver,
+    minimal_unsatisfiable_subset,
+)
 
 try:
     from frozendict import frozendict

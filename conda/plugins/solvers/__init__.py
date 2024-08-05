@@ -9,7 +9,7 @@ from .. import CondaSolver, hookimpl
 @hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten
 def conda_solvers():
     """The classic solver as shipped by default in conda."""
-    from .classic import ClassicSolver
+    from .classic.solver import ClassicSolver
 
     yield CondaSolver(
         name=CLASSIC_SOLVER,
