@@ -66,14 +66,14 @@ class Index(UserDict):
     Channels
         represent packages available from standard sources identified with a url, mostly online,
         but can also be on a local filesystem using the `file://` scheme.
-        Programatically, channels are represented by :class:`conda.models.Channel`, their data
-        is fetched using :class:`conda.index.subdir_data.SubdirData`.
+        Programatically, channels are represented by :class:`conda.models.channel.Channel`, their data
+        is fetched using :class:`conda.core.subdir_data.SubdirData`.
 
-        For more information see :ref:`condepts-channels`.
+        For more information see :ref:`concepts-channels`.
 
     Prefix
         represents packages that are already installed. Every :class:`Index` can be associated
-        with exactly one Prefix, which is the location of one of the conda :ref:`concepts-environments`.
+        with exactly one Prefix, which is the location of one of the conda :ref:`concepts-conda-environments`.
         The package information about the installed packages is represented by :class:`conda.prefix.prefix_data.PrefixData`.
 
     Package Cache
