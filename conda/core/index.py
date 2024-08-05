@@ -65,7 +65,7 @@ class Index(UserDict):
 
     Channels
         represent packages available from standard sources identified with a url, mostly online,
-        but can also be on a local filesystem using the `file://` scheme.
+        but can also be on a local filesystem using the ``file://`` scheme.
         Programatically, channels are represented by :class:`conda.models.channel.Channel`, their data
         is fetched using :class:`conda.core.subdir_data.SubdirData`.
 
@@ -197,7 +197,7 @@ class Index(UserDict):
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
-        return f"Index(channels=[{channels}])"
+        return f"<{self.__class__.__name__}(channels=[{channels}])>"
 
     def get_reduced_index(self, specs):
         return ReducedIndex(
@@ -412,7 +412,7 @@ class ReducedIndex(Index):
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
-        return f"ReducedIndex(spec={self.specs}, channels=[{channels}])"
+        return f"<ReducedIndex(spec={self.specs}, channels=[{channels}])>"
 
     def _derive_reduced_index(self):
         records = IndexedSet()
