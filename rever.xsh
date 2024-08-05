@@ -1,3 +1,5 @@
+# edit this in [[ source.html_url ]]
+
 $ACTIVITIES = ["authors", "changelog"]
 
 # Basic settings
