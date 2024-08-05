@@ -154,8 +154,10 @@ class PrefixPathAction(PathAction, metaclass=ABCMeta):
 
 
 class CreateInPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
-    # All CreatePathAction subclasses must create a SINGLE new path
-    #   the short/in-prefix version of that path must be returned by execute()
+    """
+    All CreatePathAction subclasses must create a SINGLE new path
+    the short/in-prefix version of that path must be returned by execute()
+    """
 
     def __init__(
         self,

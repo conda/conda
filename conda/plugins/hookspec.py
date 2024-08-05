@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
+        CondaTransactionAction,
         CondaVirtualPackage,
     )
 
@@ -331,4 +332,49 @@ class CondaSpecs:
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
+        """
+
+    @_hookspec
+    def conda_transaction_action(self) -> Iterable[CondaTransactionAction]:
+        """
+        Register new transaction action
+
+        The example below defines a simple action that places a marker file in prefix.
+
+        **Example:**
+
+        .. code-block:: python
+
+        from conda import plugins
+        from conda.core.path_actions import CreateInPrefixPathAction
+        from conda.gateways.disk.update import touch
+        from conda.gateways.disk.delete import rm_rf
+
+        @plugins.hookimpl
+        def conda_transaction_action():
+            yield plugins.CondaTransactionAction(
+                name="marker_file_action",
+                action=MarkerFileAction,
+            )
+
+        class MarkerFileAction(CreateInPrefixPathAction):
+            @classmethod
+            def create_actions(
+                cls, transaction_context, package_info, target_prefix, requested_link_type
+            ):
+                return (cls(transaction_context, package_info, target_prefix),)
+
+            def __init__(self, transaction_context, package_info, target_prefix):
+                super().__init__(
+                    transaction_context, package_info, None, None, target_prefix, "my_marker"
+                )
+                self._file_created = False
+
+            def execute(self):
+                log.log(TRACE, "touching marker file %s", self.target_full_path)
+                self._file_created = touch(self.target_full_path)
+
+            def reverse(self):
+                if self._file_created:
+                    rm_rf(self.target_full_path)
         """
