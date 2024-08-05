@@ -15,10 +15,10 @@ from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
-from conda.core.package_cache_data import download
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import DirectoryNotACondaEnvironmentError, PackagesNotFoundError
+from conda.gateways.connection.download import download
 from conda.gateways.disk.delete import move_path_to_trash, path_is_clean, rm_rf
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
