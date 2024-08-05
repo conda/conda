@@ -1,3 +1,5 @@
+
+
 # Development Environment
 
 1. Clone the repo you just forked on GitHub to your local machine. Configure
@@ -237,3 +239,13 @@ $ conda-build tests/test-recipes/activate_deactivate_package tests/test-recipes/
 ```
 
 Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.
+
+## More guides
+
+```{toctree}
+---
+maxdepth: 1
+---
+
+http-proxy
+```

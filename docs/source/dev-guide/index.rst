@@ -8,7 +8,7 @@ Developer guide
 
    architecture
    contributing
-   development-environment
+   development-environment/index
    deep-dives/index
    writing-tests/index
    deprecations
