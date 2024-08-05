@@ -2,25 +2,25 @@
 # Setting up an HTTP Proxy
 
 Conda supports usage of HTTP proxy servers via the [requests](https://docs.python-requests.org)
-library. The follow guide shows you how to set up an HTTP proxy server locally using docker
-and squid.
+library. The following guide shows you how to set up an HTTP proxy server locally using
+[docker](https://www.docker.com/) and [squid](http://www.squid-cache.org/).
 
 ## Requirements
 
-Before following this guide, make sure that you have Docker installed and the `htpasswd` command
-line tool.
+Before following this guide, make sure that you have Docker and the `htpasswd` command
+line tool installed.
 
 
 ## Creating our project files
 
-First, we need to create a directory that will hold our `Dockerfile`, `squid.conf` and `htpasswd`
-files:
+First, we need to create a directory that will hold the files we are going to create:
+`Dockerfile`, `squid.conf` and `htpasswd`.
 
 ```commandline
 mkdir squid-proxy
 ```
 
-After that, we create a `squid.conf` in this folder with the following contents:
+After that, we create `squid.conf` in this folder with the following contents:
 
 ```
 auth_param basic program /usr/lib/squid/digest_pw_auth /etc/squid/passwords
@@ -39,9 +39,11 @@ Once that is created, we need to create our `passwords` file. We do that by usin
 htpassword -c passwords <username>
 ```
 
+```{admonition} Note
 `<username>` can be whatever username you would like to select.
+```
 
-The last step is to create the `Dockerfile` that will use the two files we have just created:
+The last step is creating the `Dockerfile` that will use the two files we have just created:
 
 ```dockerfile
 FROM ubuntu/squid:latest
