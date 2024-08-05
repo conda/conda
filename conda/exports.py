@@ -68,7 +68,7 @@ from .plan import (  # noqa: F401
     execute_plan,
     install_actions,
 )
-from .resolve import (  # noqa: F401
+from .plugins.solvers.classic.resolve import (  # noqa: F401
     MatchSpec,
     Resolve,
     ResolvePackageNotFound,

@@ -60,7 +60,7 @@ from ..gateways.disk.test import (
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
-from ..resolve import MatchSpec
+from ..plugins.solvers.classic.resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
 from .path_actions import (
