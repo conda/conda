@@ -7,7 +7,6 @@ corruption.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ....base.context import context
@@ -17,6 +16,7 @@ from ....cli.helpers import (
     add_parser_verbose,
 )
 from ....deprecations import deprecated
+from ....gateways.disk.test import is_conda_environment
 from ... import CondaSubcommand, hookimpl
 
 if TYPE_CHECKING:
@@ -39,7 +39,8 @@ def configure_parser(parser: ArgumentParser):
 
 def execute(args: Namespace) -> None:
     """Run registered health_check plugins."""
-    if not Path(context.target_prefix).exists():
+    prefix = context.target_prefix
+    if not is_conda_environment(prefix):
         print("Oops! The environment you specified does not exist.\n")
         return
     else:
