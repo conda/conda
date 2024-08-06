@@ -16,6 +16,7 @@ from ....cli.helpers import (
     add_parser_verbose,
 )
 from ....deprecations import deprecated
+from ....exceptions import EnvironmentLocationNotFound
 from ....gateways.disk.test import is_conda_environment
 from ... import CondaSubcommand, hookimpl
 
@@ -41,8 +42,7 @@ def execute(args: Namespace) -> None:
     """Run registered health_check plugins."""
     prefix = context.target_prefix
     if not is_conda_environment(prefix):
-        print("Oops! The environment you specified does not exist.\n")
-        return
+        raise EnvironmentLocationNotFound(prefix)
     else:
         print(f"Environment Health Report for: {context.target_prefix}\n")
         context.plugin_manager.invoke_health_checks(
