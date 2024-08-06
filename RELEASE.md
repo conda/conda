@@ -1,26 +1,24 @@
-<!-- These docs are updated and synced from https://github.com/conda/infra -->
+<!-- edit this in [[ source.html_url ]] -->
 
-<!-- (TODO: the first three links here should be updated with the `repo.url` syntax once it works!) -->
-[epic template]: https://github.com/conda/conda/issues/new?assignees=&labels=epic&template=epic.yml
-[compare]: https://github.com/conda/infrastructure/compare
-[new release]: https://github.com/conda/infrastructure/releases/new
-<!-- links -->
+[epic template]: [[ repo.html_url ]]/issues/new?assignees=&labels=epic&template=epic.yml
+[compare]: [[ repo.html_url ]]/compare
+[new release]: [[ repo.html_url ]]/releases/new
 [infrastructure]: https://github.com/conda/infrastructure
 [rever docs]: https://regro.github.io/rever-docs
 [release docs]: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
 [merge conflicts]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/about-merge-conflicts
-[Anaconda Recipes]: https://github.com/AnacondaRecipes/conda-feedstock
-[conda-forge]: https://github.com/conda-forge/conda-feedstock
+[Anaconda Recipes]: https://github.com/AnacondaRecipes/[[ repo.name ]]-feedstock
+[conda-forge]: https://github.com/conda-forge/[[ repo.name ]]-feedstock
 
 # Release Process
 
 > [!NOTE]
-> Throughout this document are references to the version number as `YY.M.[$patch_number]`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
+> Throughout this document are references to the version number as `[[ placeholder ]].[$patch_number]`, this should be replaced with the correct version number. Do **not** prefix the version with a lowercase `v`.
 
 ## 1. Open the release issue and cut a release branch. (do this ~1 week prior to release)
 
 > [!NOTE]
-> The new release branch should adhere to the naming convention of `YY.M.x` (make sure to put the `.x` at the end!). In the case of patch/hotfix releases, however, do NOT cut a new release branch; instead, use the previously-cut release branch with the appropriate `YY.M.x` version numbers.
+> The new release branch should adhere to the naming convention of `[[ placeholder ]].x` (make sure to put the `.x` at the end!). In the case of patch/hotfix releases, however, do NOT cut a new release branch; instead, use the previously-cut release branch with the appropriate `[[ placeholder ]].x` version numbers.
 
 Use the issue template below to create the release issue. After creating the release issue, pin it for easy access.
 
@@ -30,7 +28,7 @@ Use the issue template below to create the release issue. After creating the rel
 ```markdown
 ### Summary
 
-Placeholder for `{{ repo.name }} YY.M.x` release.
+Placeholder for `[[ repo.name ]] [[ placeholder ]].x` release.
 
 | Pilot | <pilot> |
 |---|---|
@@ -38,18 +36,18 @@ Placeholder for `{{ repo.name }} YY.M.x` release.
 
 ### Tasks
 
-[milestone]: {{ repo.url }}/milestone/<milestone>
-[process]: {{ repo.url }}/blob/main/RELEASE.md
-[releases]: {{ repo.url }}/releases
-[main]: https://github.com/AnacondaRecipes/{{ repo.name }}-feedstock
-[conda-forge]: https://github.com/conda-forge/{{ repo.name }}-feedstock
-[ReadTheDocs]: https://readthedocs.com/projects/continuumio-{{ repo.name }}/
+[milestone]: [[ repo.html_url ]]/milestone/<milestone>
+[process]: [[ repo.html_url ]]/blob/main/RELEASE.md
+[releases]: [[ repo.html_url ]]/releases
+[main]: https://github.com/AnacondaRecipes/[[ repo.name ]]-feedstock
+[conda-forge]: https://github.com/conda-forge/[[ repo.name ]]-feedstock
+[ReadTheDocs]: https://readthedocs.com/projects/continuumio-[[ repo.name ]]/
 
 <details open>  <!-- feel free to remove the open attribute once this section is completed -->
 <summary><h4>The week before release week</h4></summary>
 
-- [ ] Create release branch (named `YY.M.x`)
-- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/rc-{{ repo.name }}-YY.M.x`)
+- [ ] Create release branch (named `[[ placeholder ]].x`)
+- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/rc-[[ repo.name ]]-[[ placeholder ]].x`)
 - [ ] [Complete outstanding PRs][milestone]
 - [ ] Test release candidates
     <!-- indicate here who has signed off on testing -->
@@ -61,8 +59,8 @@ Placeholder for `{{ repo.name }} YY.M.x` release.
 
 - [ ] Create release PR (see [release process][process])
 - [ ] [Publish release][releases]
-- [ ] Merge `YY.M.x` back into `main`
-- [ ] Activate the `YY.M.x` branch on [ReadTheDocs][ReadTheDocs]
+- [ ] Merge `[[ placeholder ]].x` back into `main`
+- [ ] Activate the `[[ placeholder ]].x` branch on [ReadTheDocs][ReadTheDocs]
 - [ ] Feedstocks
     - [ ] Bump version & update dependencies/tests in [Anaconda, Inc.'s feedstock][main]
     - [ ] Bump version & update dependencies/tests in [conda-forge feedstock][conda-forge]
@@ -89,12 +87,12 @@ If a patch release is necessary, reopen the original release issue and append th
 
 ```markdown
 <details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>Patch YY.M.N</h4></summary>
+<summary><h4>Patch [[ placeholder ]].[$patch_number]</h4></summary>
 
 - [ ] <!-- list issues & PRs that need to be resolved here -->
 - [ ] Create release PR (see [release process][process])
 - [ ] [Publish release][releases]
-- [ ] Merge `YY.M.x` back into `main`
+- [ ] Merge `[[ placeholder ]].x` back into `main`
 - [ ] Feedstocks
     - [ ] Bump version & update dependencies/tests in [Anaconda, Inc.'s feedstock][main]
     - [ ] Bump version & update dependencies/tests in [conda-forge feedstock][conda-forge]
@@ -116,7 +114,7 @@ Let various interested parties know about the upcoming release; at minimum, cond
 
 ### Canary Builds for Manual Testing
 
-Once the release PRs are filed, successful canary builds will be available on `https://anaconda.org/conda-canary/conda/files?channel=rc-{{ repo.name }}-YY.M.x` for manual testing.
+Once the release PRs are filed, successful canary builds will be available on `https://anaconda.org/conda-canary/conda/files?channel=rc-[[ repo.name ]]-[[ placeholder ]].x` for manual testing.
 
 > [!NOTE]
 > You do not need to apply the `build::review` label for release PRs; every commit to the release branch builds and uploads canary builds to the respective `rc-` label.
@@ -141,7 +139,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 2. Clone and `cd` into the repository if you haven't done so already:
 
     ```bash
-    (rever) $ git clone git@github.com:{{ repo.user }}/{{ repo.name }}.git
+    (rever) $ git clone git@github.com:[[ repo.user ]]/[[ repo.name ]].git
     (rever) $ cd conda
     ```
 
@@ -149,13 +147,13 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
     ```bash
     (rever) $ git fetch upstream
-    (rever) $ git checkout YY.M.x
+    (rever) $ git checkout [[ placeholder ]].x
     ```
 
 2. Create a versioned branch, this is where rever will make its changes:
 
     ```bash
-    (rever) $ git checkout -b changelog-YY.M.[$patch_number]
+    (rever) $ git checkout -b changelog-[[ placeholder ]].[$patch_number]
     ```
 
 2. Run `rever --activities authors <VERSION>`:
@@ -183,7 +181,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - Here's a sample run where we undo the commit made by rever in order to commit the changes to `.authors.yml` separately:
 
         ```bash
-        (rever) $ rever --activities authors --force YY.M.[$patch_number]
+        (rever) $ rever --activities authors --force [[ placeholder ]].[$patch_number]
 
         # changes were made to .authors.yml as per the prior bullet
         (rever) $ git diff --name-only HEAD HEAD~1
@@ -312,8 +310,8 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.[$patch_number]
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.[$patch_number]
+        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for [[ placeholder ]].[$patch_number]
+        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for [[ placeholder ]].[$patch_number]
         ```
 
 7. Since rever does not include stats on first-time contributors, we will need to add this manually.
@@ -334,18 +332,18 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.M.[$patch_number]
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.M.[$patch_number]
+        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for [[ placeholder ]].[$patch_number]
+        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for [[ placeholder ]].[$patch_number]
         + 93fdf029fd4cf235872c12cab12a1f7e8f95a755 Add first-time contributions
         ```
 
 8. Push this versioned branch.
 
     ```bash
-    (rever) $ git push -u upstream changelog-YY.M.[$patch_number]
+    (rever) $ git push -u upstream changelog-[[ placeholder ]].[$patch_number]
     ```
 
-9. Open the Release PR targing the `YY.M.x` branch.
+9. Open the Release PR targing the `[[ placeholder ]].x` branch.
 
     <details>
     <summary>GitHub PR Template</summary>
@@ -369,8 +367,8 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
     | Field | Value |
     |---|---|
-    | Choose a tag | `YY.M.[$patch_number]` |
-    | Target | `YY.M.x` |
+    | Choose a tag | `[[ placeholder ]].[$patch_number]` |
+    | Target | `[[ placeholder ]].x` |
     | Body | copy/paste blurb from `CHANGELOG.md` |
 
 </details>
@@ -391,14 +389,14 @@ To publish the release, go to the project's release page (e.g., https://github.c
 
 1. From the main "< > Code" page of the repository, select the drop down menu next to the `main` branch button and then select "View all branches" at the very bottom.
 
-2. Find the applicable `YY.M.x` branch and click the "New pull request" button.
+2. Find the applicable `[[ placeholder ]].x` branch and click the "New pull request" button.
 
-3. "Base" should point to `main` while "Compare" should point to `YY.M.x`.
+3. "Base" should point to `main` while "Compare" should point to `[[ placeholder ]].x`.
 
 4. Ensure that all of the commits being pulled in look accurate, then select "Create pull request".
 
 > [!NOTE]
-> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], create a temporary "connector branch" dedicated to fixing merge conflicts separately from the `YY.M.x` and `main` branches.
+> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], create a temporary "connector branch" dedicated to fixing merge conflicts separately from the `[[ placeholder ]].x` and `main` branches.
 
 5. Review and merge the pull request the same as any code change pull request.
 
@@ -407,7 +405,7 @@ To publish the release, go to the project's release page (e.g., https://github.c
 
 </details>
 
-## 9. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `YY.M.[$patch_number]`.
+## 9. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `[[ placeholder ]].[$patch_number]`.
 
 > [!NOTE]
 > Conda-forge's PRs will be auto-created via the `regro-cf-autotick-bot`. Follow the instructions below if any changes need to be made to the recipe that were not automatically added (these instructions are only necessary for anyone who is _not_ a conda-forge feedstock maintainer, since maintainers can push changes directly to the autotick branch):
