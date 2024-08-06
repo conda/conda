@@ -132,10 +132,8 @@ def user_data_dir(  # noqa: F811
 ):
     # Defer platformdirs import to reduce import time for conda activate.
     global user_data_dir
-    try:
-        from platformdirs import user_data_dir
-    except ImportError:  # pragma: no cover
-        from .._vendor.appdirs import user_data_dir
+    from platformdirs import user_data_dir
+
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
@@ -675,17 +673,6 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    @deprecated(
-        "24.3",
-        "24.9",
-        addendum="Please use `conda.base.context.context.root_prefix` instead.",
-    )
-    def root_dir(self) -> os.PathLike:
-        # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
-        # because it is more consistent with other names
-        return self.root_prefix
-
-    @property
     def root_writable(self):
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
@@ -785,7 +772,7 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "24.9",
+        "25.3",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
@@ -1143,10 +1130,7 @@ class Context(Configuration):
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
             try:
-                try:
-                    import distro
-                except ImportError:
-                    from .._vendor import distro
+                import distro
 
                 distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
@@ -1167,13 +1151,6 @@ class Context(Configuration):
         # None, None if not on Linux
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
-
-    @property
-    @deprecated("24.3", "24.9")
-    def cpu_flags(self):
-        # DANGER: This is rather slow
-        info = _get_cpu_info()
-        return info["flags"]
 
     @memoizedproperty
     @unique_sequence_map(unique_key="backend")
@@ -2018,15 +1995,6 @@ def replace_context_default(pushing=None, argparse_args=None):
 # be a stated goal to set conda_tests_ctxt_mgmt_def_pol to replace_context_default
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
-
-
-@deprecated("24.3", "24.9")
-@lru_cache(maxsize=None)
-def _get_cpu_info():
-    # DANGER: This is rather slow
-    from .._vendor.cpuinfo import get_cpu_info
-
-    return frozendict(get_cpu_info())
 
 
 def env_name(prefix):

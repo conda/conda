@@ -24,7 +24,6 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
-from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
@@ -35,9 +34,6 @@ from ..gateways.repodata import (
     cache_fn_url,
     create_cache_dir,
     get_repo_interface,
-)
-from ..gateways.repodata import (
-    get_cache_control_max_age as _get_cache_control_max_age,
 )
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
@@ -51,15 +47,6 @@ log = getLogger(__name__)
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.gateways.repodata.get_cache_control_max_age` instead.",
-)
-def get_cache_control_max_age(cache_control_value: str) -> int:
-    return _get_cache_control_max_age(cache_control_value)
 
 
 class SubdirDataType(type):
