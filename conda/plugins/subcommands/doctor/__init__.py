@@ -15,7 +15,6 @@ from ....cli.helpers import (
     add_parser_prefix,
     add_parser_verbose,
 )
-
 from ....exceptions import EnvironmentLocationNotFound
 from ....gateways.disk.test import is_conda_environment
 from ... import CondaSubcommand, hookimpl
