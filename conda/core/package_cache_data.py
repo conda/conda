@@ -37,7 +37,6 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..deprecations import deprecated
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
@@ -1025,25 +1024,3 @@ def done_callback(
         if finish:
             progress_bar.finish()
             progress_bar.refresh()
-
-
-@deprecated("24.3", "24.9")
-def rm_fetched(dist):
-    """
-    Checks to see if the requested package is in the cache; and if so, it removes both
-    the package itself and its extracted contents.
-    """
-    # in conda/exports.py and conda_build/conda_interface.py, but not actually
-    #   used in conda-build
-    raise NotImplementedError()
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.gateways.connection.download.download` instead.",
-)
-def download(url, dst_path, session=None, md5sum=None, urlstxt=False, retries=3):
-    from ..gateways.connection.download import download as gateway_download
-
-    gateway_download(url, dst_path, md5sum)
