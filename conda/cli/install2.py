@@ -29,8 +29,13 @@ def install(args: Namespace, _, command: str) -> int:
 
     from ..base.context import context
     from ..env.specs import detect as detect_input_file
-    from ..exceptions import PackageNotInstalledError
-    from ..models.environment import Environment
+    from ..exceptions import (
+        ArgumentError,
+        CondaError,
+        InvalidSpec,
+        PackageNotInstalledError,
+    )
+    from ..models.environment import Environment, NeedsNameOrPrefix
     from ..models.match_spec import MatchSpec
     from .install import handle_txn
 
@@ -64,28 +69,41 @@ def install(args: Namespace, _, command: str) -> int:
             input_file = detect_input_file(name=cli_env.name or "_", filename=path)
             file_envs.append(_conda_env_to_environment(input_file))
 
-    env = Environment.merge(cli_env, *file_envs)
+    try:
+        env = Environment.merge(cli_env, *file_envs)
+    except NeedsNameOrPrefix:
+        raise ArgumentError("one of the arguments -n/--name -p/--prefix is required")
+
     if env.exists():
-        existing_env = Environment.from_prefix(env.prefix)
+        # TODO: If we changed the Solver logic, this merged environment could
+        # hold all the information required to simply invoke the solution.
+        # We will probably need to pass this _without_ the history.
+        existing_env = Environment.from_prefix(env.prefix, load_history=False, load_pins=False)
+        if command == "update":
+            installed_names = {spec.name for spec in existing_env.installed()}
+            for requirement in env.requirements:
+                if not requirement.is_name_only_spec:
+                    raise InvalidSpec(
+                        f"Invalid spec: {requirement}.\n"
+                        "'conda update' only accepts name-only specs. "
+                        "Use 'conda install' to specify a constraint."
+                    )
+                if requirement.name not in installed_names:
+                    raise PackageNotInstalledError(env.prefix, requirement)
         env = Environment.merge(existing_env, env)
+    else:
+        if command != "create":
+            raise CondaError(f"'conda {command}' can only be used with existing environments.")
+        # TODO: Create prefix (should this be part of the transaction system)
 
     if env.solver_options.explicit:
+        if command == "update":
+            raise CondaError("'conda update' doesn't support explicit changes.")
         # invoke explicit solve and obtain transaction
-        transaction = explicit_transaction(env)
+        transaction = explicit_transaction(env, args, command)
     else:
-        if env.prefix.exists():
-            existing_env = Environment.from_prefix(env.prefix)
-            if command == "update":
-                installed_names = {spec.name for spec in existing_env.installed()}
-                not_found = []
-                for requirement in env.requirements:
-                    if requirement.name not in installed_names:
-                        not_found.append(str(requirement))
-                if not_found:
-                    raise PackageNotInstalledError(env.prefix, ", ".join(not_found))
-            env = Environment.merge(env, existing_env)
         # invoke the solver loop and obtain transaction
-        transaction = solver_transaction(env)
+        transaction = solver_transaction(env, args, command)
 
     # TODO: temporary, just to see how the env looks like
     if True: # context.dry_run:
@@ -94,6 +112,8 @@ def install(args: Namespace, _, command: str) -> int:
 
     # Handle transaction; maybe add here the environment directory creation and stuff
     handle_txn(transaction, env.prefix, args, not env.prefix.exists())
+    # TODO: we also need to dump the Environment state into conda-meta, maybe as part
+    # of the transaction system.
 
 
 def _conda_env_to_environment(parsed) -> Environment:
@@ -108,9 +128,9 @@ def _conda_env_to_environment(parsed) -> Environment:
     )
 
 
-def explicit_transaction(environment: Environment):
+def explicit_transaction(environment: Environment, args: Namespace, command: str):
     ...
 
 
-def solver_transaction(environment: Environment):
+def solver_transaction(environment: Environment, args: Namespace, command: str):
     ...

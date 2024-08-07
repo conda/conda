@@ -35,6 +35,10 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+class NeedsNameOrPrefix(ValueError):
+    pass
+
+
 @dataclass
 class SolverOptions:
     explicit: bool = False
@@ -104,7 +108,7 @@ class Environment:
             if not self.name:
                 self.name = self.prefix.name
         elif validate and not self.name and not self.prefix:
-            raise ValueError("'Environment' needs either 'name' or 'prefix'.")
+            raise NeedsNameOrPrefix("'Environment' needs either 'name' or 'prefix'.")
         self.channels = [
             Channel(channel) for channel in self.channels or context.channels
         ]
@@ -190,12 +194,24 @@ class Environment:
         else:
             solver_options = None
         last_modified = max([env.last_modified or 0 for env in environments])
-        channels = list(dict.fromkeys(channel for env in environments for channel in env.channels))
+        channels = list(
+            dict.fromkeys(channel for env in environments for channel in env.channels)
+        )
         requirements = list(
-            dict.fromkeys(chain(requirement for env in environments for requirement in env.requirements))
+            dict.fromkeys(
+                chain(
+                    requirement
+                    for env in environments
+                    for requirement in env.requirements
+                )
+            )
         )
         constraints = list(
-            dict.fromkeys(chain(constraint for env in environments for constraint in env.constraints))
+            dict.fromkeys(
+                chain(
+                    constraint for env in environments for constraint in env.constraints
+                )
+            )
         )
         configuration = {
             k: v for env in environments for (k, v) in env.configuration.items()
@@ -217,7 +233,13 @@ class Environment:
         )
 
     @classmethod
-    def from_prefix(cls, prefix: PathLike, validate: bool = True) -> Environment:
+    def from_prefix(
+        cls,
+        prefix: PathLike,
+        validate: bool = True,
+        load_history: bool = True,
+        load_pins: bool = True,
+    ) -> Environment:
         prefix = Path(prefix)
         if not prefix.is_dir():
             raise DirectoryNotFoundError(f"Prefix {prefix} is not a directory!")
@@ -236,8 +258,14 @@ class Environment:
         channels = context.channels
         channel_options = ChannelOptions()  # TODO: Check if this is saved anywhere
         last_modified = (prefix / PREFIX_MAGIC_FILE).stat().st_mtime
-        requirements = list(History(prefix).get_requested_specs_map().values())
-        constraints = get_pinned_specs(prefix)
+        if load_history:
+            requirements = list(History(prefix).get_requested_specs_map().values())
+        else:
+            requirements = []
+        if load_pins:
+            constraints = get_pinned_specs(prefix)
+        else:
+            constraints = []
         solver_options = SolverOptions()  # TODO: Check if this is saved anywhere
         try:
             configuration = yaml_safe_load(prefix / "condarc")
@@ -298,9 +326,12 @@ class Environment:
         return data
 
     def installed(self) -> Iterable[PrefixRecord]:
+        assert self.exists(), f"Environment at '{self.prefix}' does not exist."
         if self._prefix_data is None:
             self._prefix_data = PrefixData(self.prefix)
         yield from self._prefix_data.iter_records()
 
     def exists(self) -> bool:
-        return self.prefix.is_dir() and (self.prefix / "conda-meta" / "history").is_file()
+        return (
+            self.prefix.is_dir() and (self.prefix / "conda-meta" / "history").is_file()
+        )
