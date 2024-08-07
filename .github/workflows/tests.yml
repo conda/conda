@@ -580,9 +580,6 @@ jobs:
       - name: conda list
         run: conda list --show-channel-urls
 
-      - name: show squid logs
-        run: docker logs "${{ job.services.squid.id }}"
-
       - name: make proxy request
         run: curl -s http://localhost:8118
 
