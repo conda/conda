@@ -26,7 +26,6 @@ from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
-from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
@@ -249,10 +248,6 @@ class PrefixData(metaclass=PrefixDataType):
                 is_writable = file_path_is_writable(test_path)
             self.__is_writable = is_writable
         return self.__is_writable
-
-    @deprecated("24.3", "24.9")
-    def _has_python(self):
-        return "python" in self._prefix_records
 
     @property
     def _python_pkg_record(self):

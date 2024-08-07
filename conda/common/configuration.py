@@ -41,7 +41,6 @@ from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..common.iterators import unique
-from ..deprecations import deprecated
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
@@ -464,12 +463,6 @@ class DefaultValueRawParameter(RawParameter):
             return None
         else:
             raise ThisShouldNeverHappenError()  # pragma: no cover
-
-
-@deprecated("24.3", "24.9")
-def load_file_configs(search_path: Iterable[Path | str], **kwargs) -> dict[Path, dict]:
-    expanded_paths = Configuration._expand_search_path(search_path, **kwargs)
-    return dict(Configuration._load_search_path(expanded_paths))
 
 
 class LoadedParameter(metaclass=ABCMeta):
