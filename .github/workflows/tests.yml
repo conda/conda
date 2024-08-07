@@ -517,11 +517,11 @@ jobs:
         image: ghcr.io/travishathaway/conda-squid-auth-proxy:latest
         ports:
           - 8118:8118
-        options: >-
-          --health-cmd "curl -s http://localhost:8118"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        # options: >-
+        #   --health-cmd "curl -s http://localhost:8118"
+        #   --health-interval 10s
+        #   --health-timeout 5s
+        #   --health-retries 5
 
     defaults:
       run:
