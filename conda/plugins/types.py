@@ -10,6 +10,7 @@ Each type corresponds to the plugin hook for which it is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -213,6 +214,33 @@ class CondaSetting:
     aliases: tuple[str, ...] = tuple()
 
 
+class ProgressBarBase(ABC):
+    def __init__(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ):
+        self.description = description
+        self._io_context_manager = io_context_manager
+
+    @abstractmethod
+    def update_to(self, fraction) -> None: ...
+
+    @abstractmethod
+    def refresh(self) -> None: ...
+
+    @abstractmethod
+    def close(self) -> None: ...
+
+    def finish(self):
+        self.update_to(1)
+
+    @classmethod
+    def get_lock(cls):
+        pass
+
+
 class ReporterRendererBase(ABC):
     """
     Base class for all reporter renderers.
@@ -232,6 +260,24 @@ class ReporterRendererBase(ABC):
         """
         Render a list of environments
         """
+
+    @abstractmethod
+    def progress_bar(
+        self,
+        description: str,
+        io_context_manager: Callable[[], ContextManager],
+        **kwargs,
+    ) -> ProgressBarBase:
+        """
+        Return a :class:`~conda.plugins.types.ProgressBarBase~` object to use as a progress bar
+        """
+
+    @classmethod
+    def progress_bar_context_manager(cls, io_context_manager) -> ContextManager:
+        """
+        Returns a null context by default but allows plugins to define their own if necessary
+        """
+        return nullcontext()
 
 
 @dataclass
