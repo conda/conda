@@ -68,22 +68,6 @@ def captured(disallow_stderr=True):
             raise Exception(f"Got stderr output: {c.stderr}")
 
 
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
-)
-@contextmanager
-def set_active_prefix(prefix: str) -> None:
-    old_prefix = os.environ["CONDA_PREFIX"]
-
-    try:
-        os.environ["CONDA_PREFIX"] = prefix
-        yield
-    finally:
-        os.environ["CONDA_PREFIX"] = old_prefix
-
-
 def assert_equals(a, b, output=""):
     output = f"{a.lower()!r} != {b.lower()!r}" + "\n\n" + output
     assert a.lower() == b.lower(), output

@@ -1,0 +1,50 @@
+conda/governance:
+  # [required] community files
+  - CODE_OF_CONDUCT.md
+
+conda/infrastructure:
+  # [required] general workflows
+  - .github/workflows/cla.yml
+  - .github/workflows/update.yml
+
+  # [optional] to include repo in https://github.com/orgs/conda/projects/2
+  - .github/workflows/issues.yml
+  - .github/workflows/labels.yml
+  - .github/workflows/project.yml
+
+  # [optional] stale bot workflows
+  - .github/workflows/stale.yml
+  - .github/workflows/lock.yml
+
+  # [optional] general processes for the conda org
+  - src: templates/HOW_WE_USE_GITHUB.md
+    dst: HOW_WE_USE_GITHUB.md
+
+  # [optional] standard issue templates
+  - src: templates/issues/bug.yml
+    dst: .github/ISSUE_TEMPLATE/0_bug.yml
+
+  - src: templates/issues/feature.yml
+    dst: .github/ISSUE_TEMPLATE/1_feature.yml
+
+  - src: templates/issues/documentation.yml
+    dst: .github/ISSUE_TEMPLATE/2_documentation.yml
+
+  - src: templates/issues/epic.yml
+    dst: .github/ISSUE_TEMPLATE/epic.yml
+
+  # [optional] standard PR template
+  - src: templates/pull_requests/base.md
+    dst: .github/PULL_REQUEST_TEMPLATE.md
+  # - src: templates/pull_requests/news_tests_docs.md
+  #   dst: .github/template-files/templates/pull_request_template_details.md
+
+  # [optional] rever release files
+  # - src: templates/releases/RELEASE.md
+  #   dst: RELEASE.md
+  #   with:
+  #     placeholder: YY.M
+  # - src: templates/releases/rever.xsh
+  #   dst: rever.xsh
+  # - src: templates/releases/TEMPLATE
+  #   dst: news/TEMPLATE
