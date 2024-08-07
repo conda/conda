@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from conda.deprecations import deprecated
+from conda.exceptions import CondaEnvException
+from conda.gateways.disk.test import is_conda_environment
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -81,23 +83,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-def validate_src(json: bool = False) -> str:
-    """
-    Ensure that we are receiving at least one valid value for the environment
-    to be renamed and that the "base" environment is not being renamed
-    """
-    from ..base.context import context
-    from ..exceptions import CondaEnvException
-    from ..gateways.disk.test import is_conda_environment
-    from .install import validate_prefix_exists
+def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
+    """Ensure that the new prefix does not contain protected directories."""
 
-    prefix = Path(context.target_prefix)
-    validate_prefix_exists(prefix)
-
-    if prefix.samefile(context.root_prefix):
-        raise CondaEnvException("The 'base' environment cannot be renamed")
-    if context.active_prefix and prefix.samefile(context.active_prefix):
-        raise CondaEnvException("Cannot rename the active environment")
     if is_conda_environment(Path(prefix).parent):
         raise CondaEnvException(
             f"The specified prefix '{prefix}' "
@@ -108,6 +96,25 @@ def validate_src(json: bool = False) -> str:
             "new conda environment. Aborting.",
             json,
         )
+
+
+def validate_src() -> str:
+    """
+    Ensure that we are receiving at least one valid value for the environment
+    to be renamed and that the "base" environment is not being renamed
+    """
+    from ..base.context import context
+    from .install import validate_prefix_exists
+
+    prefix = Path(context.target_prefix)
+    validate_prefix_exists(prefix)
+
+    if prefix.samefile(context.root_prefix):
+        raise CondaEnvException("The 'base' environment cannot be renamed")
+    if context.active_prefix and prefix.samefile(context.active_prefix):
+        raise CondaEnvException("Cannot rename the active environment")
+    else:
+        check_protected_dirs(prefix)
 
     return str(prefix)
 
