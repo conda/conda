@@ -81,14 +81,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-def validate_src() -> str:
+def validate_src(json: bool = False) -> str:
     """
     Ensure that we are receiving at least one valid value for the environment
     to be renamed and that the "base" environment is not being renamed
     """
     from ..base.context import context
     from ..exceptions import CondaEnvException
-    from .install import check_protected_dirs, validate_prefix_exists
+    from ..gateways.disk.test import is_conda_environment
+    from .install import validate_prefix_exists
 
     prefix = Path(context.target_prefix)
     validate_prefix_exists(prefix)
@@ -97,8 +98,16 @@ def validate_src() -> str:
         raise CondaEnvException("The 'base' environment cannot be renamed")
     if context.active_prefix and prefix.samefile(context.active_prefix):
         raise CondaEnvException("Cannot rename the active environment")
-    else:
-        check_protected_dirs(prefix)
+    if is_conda_environment(Path(prefix).parent):
+        raise CondaEnvException(
+            f"The specified prefix '{prefix}' "
+            "appears to be a top level directory within an existing conda environment "
+            "(i.e., {history_file} exists). Creating an environment in this location "
+            "has the potential to irreversibly corrupt your conda installation and/or "
+            "other conda environments, please choose a different location for your "
+            "new conda environment. Aborting.",
+            json,
+        )
 
     return str(prefix)
 

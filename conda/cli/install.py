@@ -76,22 +76,6 @@ def validate_prefix_exists(prefix: str | Path) -> None:
         raise CondaEnvException("The environment you have specified does not exist.")
 
 
-def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
-    """Ensure that the new prefix does not contain protected directories."""
-    history_file = Path(prefix).parent / "conda-meta" / "history"
-
-    if history_file.is_file():
-        raise CondaEnvException(
-            f"The specified prefix '{prefix}' "
-            "appears to be a top level directory within an existing conda environment "
-            "(i.e., {history_file} exists). Creating an environment in this location "
-            "has the potential to irreversibly corrupt your conda installation and/or "
-            "other conda environments, please choose a different location for your "
-            "new conda environment. Aborting.",
-            json,
-        )
-
-
 def validate_new_prefix(dest: str, force: bool = False) -> str:
     """Ensure that the new prefix does not exist."""
     from ..base.context import context, validate_prefix_name
