@@ -24,6 +24,7 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
+from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
