@@ -411,6 +411,46 @@ class PackageRecord(DictSafeMixin, Entity):
         super().__init__(*args, **kwargs)
         self.metadata = set()
 
+    @classmethod
+    def make_feature_record(cls, feature_name):
+        # necessary for the SAT solver to do the right thing with features
+        pkg_name = f"{feature_name}@"
+        return cls(
+            name=pkg_name,
+            version="0",
+            build="0",
+            channel="@",
+            subdir=context.subdir,
+            md5="12345678901234567890123456789012",
+            track_features=(feature_name,),
+            build_number=0,
+            fn=pkg_name,
+        )
+
+    @classmethod
+    def make_virtual_package(
+        cls, name: str, version: str | None = None, build_string: str | None = None
+    ) -> PackageRecord:
+        """
+        Create a virtual package record.
+
+        :param name: The name of the virtual package.
+        :param version: The version of the virtual package, defaults to "0".
+        :param build_string: The build string of the virtual package, defaults to "0".
+        :return: A PackageRecord representing the virtual package.
+        """
+        return cls(
+            package_type=PackageType.VIRTUAL_SYSTEM,
+            name=name,
+            version=version or "0",
+            build_string=build_string or "0",
+            channel="@",
+            subdir=context.subdir,
+            md5="12345678901234567890123456789012",
+            build_number=0,
+            fn=name,
+        )
+
 
 class Md5Field(StringField):
     def __init__(self):

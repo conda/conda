@@ -18,7 +18,7 @@ from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
 from ..common.io import env_var
 from ..core.prefix_data import PrefixData
-from ..core.subdir_data import SubdirData, make_feature_record
+from ..core.subdir_data import SubdirData
 from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
@@ -164,7 +164,7 @@ def add_feature_records_legacy(index):
             all_features.update(rec.track_features)
 
     for feature_name in all_features:
-        rec = make_feature_record(feature_name)
+        rec = PackageRecord.make_feature_record(feature_name)
         index[rec] = rec
 
 

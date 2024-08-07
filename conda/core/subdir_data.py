@@ -566,6 +566,11 @@ class SubdirData(metaclass=SubdirDataType):
         return self.url_w_subdir
 
 
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use `conda.core.models.records.PackageRecord.make_feature_record` instead.",
+)
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
     pkg_name = f"{feature_name}@"

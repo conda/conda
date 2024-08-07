@@ -27,7 +27,7 @@ from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
-from .subdir_data import SubdirData, make_feature_record
+from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
     from typing import Any
@@ -135,29 +135,6 @@ class Index(UserDict):
         self.track_features = context.track_features
         self.add_system = add_system
 
-    def _make_virtual_package(
-        self, name: str, version: str | None = None, build_string: str | None = None
-    ) -> PackageRecord:
-        """
-        Create a virtual package record.
-
-        :param name: The name of the virtual package.
-        :param version: The version of the virtual package, defaults to "0".
-        :param build_string: The build string of the virtual package, defaults to "0".
-        :return: A PackageRecord representing the virtual package.
-        """
-        return PackageRecord(
-            package_type=PackageType.VIRTUAL_SYSTEM,
-            name=name,
-            version=version or "0",
-            build_string=build_string or "0",
-            channel="@",
-            subdir=context.subdir,
-            md5="12345678901234567890123456789012",
-            build_number=0,
-            fn=name,
-        )
-
     @property
     def system_packages(self):
         try:
@@ -165,7 +142,7 @@ class Index(UserDict):
         except AttributeError:
             self._system_packages = {
                 (
-                    rec := self._make_virtual_package(
+                    rec := PackageRecord.make_virtual_package(
                         f"__{package.name}", package.version, package.build
                     )
                 ): rec
@@ -179,7 +156,7 @@ class Index(UserDict):
             return self._features
         except AttributeError:
             self._features = {
-                (rec := make_feature_record(feature)): rec
+                (rec := PackageRecord.make_feature_record(feature)): rec
                 for feature in context.track_features
             }
         return self._features
@@ -358,7 +335,7 @@ class Index(UserDict):
         if self.track_features and key.name.endswith("@"):
             for feature in self.track_features:
                 if feature == key.name[:-1]:
-                    return make_feature_record(feature)
+                    return PackageRecord.make_feature_record(feature)
         prec = self._retrieve_from_channels(key)
         prec = self._update_from_prefix(key, prec)
         if self.use_cache:
@@ -501,7 +478,7 @@ class ReducedIndex(Index):
             known_features.update((*rec.track_features, *rec.features))
         known_features.update(context.track_features)
         for ftr_str in known_features:
-            rec = make_feature_record(ftr_str)
+            rec = PackageRecord.make_feature_record(ftr_str)
             self._data[rec] = rec
 
         self._data.update(self.system_packages)
@@ -664,7 +641,9 @@ def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
 
 
 @deprecated(
-    "24.9", "25.3", addendum="Use `conda.core.Index._make_virtual_package` instead."
+    "24.9",
+    "25.3",
+    addendum="Use `conda.core.models.records.PackageRecord.make_virtual_package` instead.",
 )
 def _make_virtual_package(
     name: str, version: str | None = None, build_string: str | None = None
@@ -701,7 +680,7 @@ def _supplement_index_with_features(
     :param features: A list of feature names to add to the index.
     """
     for feature in chain(context.track_features, features):
-        rec = make_feature_record(feature)
+        rec = PackageRecord.make_feature_record(feature)
         index[rec] = rec
 
 
@@ -717,7 +696,9 @@ def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> 
     if isinstance(index, Index):
         return
     for package in context.plugin_manager.get_virtual_packages():
-        rec = _make_virtual_package(f"__{package.name}", package.version, package.build)
+        rec = PackageRecord.make_virtual_package(
+            f"__{package.name}", package.version, package.build
+        )
         index[rec] = rec
 
 
