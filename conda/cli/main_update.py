@@ -100,5 +100,4 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
-    install(args, parser, "update")
-    return 0
+    return install(args, parser, "update")

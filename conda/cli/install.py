@@ -6,6 +6,8 @@ Core logic for `conda [create|install|update|remove]` commands.
 
 See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
+
+Note that 'remove' only uses `handle_txt()`, but not `install()`.
 """
 from __future__ import annotations
 

@@ -391,7 +391,7 @@ def strip_pkg_extension(path: str):
     return path, None
 
 
-def is_package_file(path):
+def is_package_file(path_or_spec: str | "MatchSpec") -> bool:
     """
     Examples:
         >>> is_package_file("/path/_license-1.1-py27_1.tar.bz2")
@@ -403,6 +403,10 @@ def is_package_file(path):
     """
     # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
     #       import rules and to avoid a global lookup.
+    if not isinstance(path_or_spec, str) and hasattr(path_or_spec, "get"):
+        path = path_or_spec.get("url") or ""
+    else:
+        path = path_or_spec
     return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
 
 

@@ -7,7 +7,8 @@ This could actually be merged with conda.core.prefix_data. They kind of have the
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import InitVar, dataclass, field
 from datetime import datetime
 from itertools import chain
 from logging import getLogger
@@ -15,7 +16,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 from ..base.constants import PREFIX_MAGIC_FILE, PREFIX_STATE_FILE, ChannelPriority
-from ..base.context import context, locate_prefix_by_name
+from ..base.context import context, validate_prefix_name
+from ..common.path import is_package_file
 from ..common.serialize import yaml_safe_load
 from ..core.prefix_data import PrefixData
 from ..core.solve import get_pinned_specs
@@ -79,13 +81,16 @@ class Environment:
     last_modified: str | None = None
     channels: Iterable[Channel | str] | None = None
     channel_options: ChannelOptions = None
-    requirements: Iterable[MatchSpec | str] | None = None
-    constraints: Iterable[MatchSpec | str] | None = None
+    requirements: Iterable[MatchSpec | str] | None = field(default_factory=list)
+    constraints: Iterable[MatchSpec | str] | None = field(default_factory=list)
     solver_options: SolverOptions | None = None
-    configuration: dict[str, Any] | None = None
-    variables: dict[str, str] | None = None
+    configuration: dict[str, Any] | None = field(default_factory=dict)
+    variables: dict[str, str] | None = field(default_factory=dict)
 
-    def __post_init__(self):
+    validate: InitVar[bool] = True
+
+    def __post_init__(self, validate: bool):
+        self.validate = validate
         if self.version > self._max_supported_version:
             raise ValueError(
                 f"This conda version only supports schema versions up to "
@@ -93,27 +98,38 @@ class Environment:
                 "Try updating to a more recent conda to handle this input."
             )
         if self.name and not self.prefix:
-            self.prefix = Path(locate_prefix_by_name(self.name))
+            self.prefix = Path(validate_prefix_name(self.name, context))
         elif self.prefix:
-            self.prefix = Path(self.prefix)
+            self.prefix = os.getcwd() / Path(self.prefix)
             if not self.name:
                 self.name = self.prefix.name
-        elif not self.name and not self.prefix:
+        elif validate and not self.name and not self.prefix:
             raise ValueError("'Environment' needs either 'name' or 'prefix'.")
         self.channels = [
             Channel(channel) for channel in self.channels or context.channels
         ]
-        self.requirements = [MatchSpec(spec) for spec in self.requirements or ()]
-        self.constraints = [MatchSpec(spec) for spec in self.constraints or ()]
-        if self.channel_options is None:
+        self.requirements = [MatchSpec(spec) for spec in self.requirements]
+        self.constraints = [MatchSpec(spec) for spec in self.constraints]
+        if validate and self.channel_options is None:
             self.channel_options = ChannelOptions()
-        if self.solver_options is None:
-            self.solver_options = SolverOptions()
-
+        if validate and self.solver_options is None:
+            if all([is_package_file(pkg) for pkg in self.requirements]):
+                self.solver_options = SolverOptions(explicit=True)
+            else:
+                self.solver_options = SolverOptions()
+        elif (
+            self.validate
+            and self.solver_options.explicit
+            and not all([is_package_file(pkg) for pkg in self.requirements])
+        ):
+            raise ValueError(
+                "'Environment.solver_options.explicit' is true but "
+                "'requirements' contains non-path/URL specifications."
+            )
         self._prefix_data = None
 
     @classmethod
-    def merge(cls, *environments: Environment) -> Environment:
+    def merge(cls, *environments: Environment, validate: bool = True) -> Environment:
         """
         Keeps first name and/or prefix. Both if their basename match. Otherwise name wins.
         Keeps first description, channel_options, solver_options.
@@ -139,19 +155,47 @@ class Environment:
         description = next(
             (env.description for env in environments if env.description), None
         )
-        channel_options = next(
-            (env.channel_options for env in environments if env.channel_options), None
-        )
-        solver_options = next(
-            (env.solver_options for env in environments if env.solver_options), None
-        )
+        all_channel_options = [
+            env.channel_options for env in environments if env.channel_options
+        ]
+        if all_channel_options:
+            if all(
+                all_channel_options[0] == options for options in all_channel_options[1:]
+            ):
+                channel_options = all_channel_options[0]
+            elif validate:
+                raise ValueError("All 'channel_options' fields must be equal.")
+            else:
+                log.warning(
+                    "Different 'channel_options' detected. Keeping only first one..."
+                )
+                channel_options = all_channel_options[0]
+        else:
+            channel_options = None
+        all_solver_options = [
+            env.solver_options for env in environments if env.solver_options
+        ]
+        if all_solver_options:
+            if all(
+                all_solver_options[0] == options for options in all_solver_options[1:]
+            ):
+                solver_options = all_solver_options[0]
+            elif validate:
+                raise ValueError("All 'solver_options' fields must be equal.")
+            else:
+                log.warning(
+                    "Different 'solver_options' detected. Keeping only first one..."
+                )
+                solver_options = all_solver_options[0]
+        else:
+            solver_options = None
         last_modified = max([env.last_modified or 0 for env in environments])
-        channels = list(dict.fromkeys(chain(env.channels for env in environments)))
+        channels = list(dict.fromkeys(channel for env in environments for channel in env.channels))
         requirements = list(
-            dict.fromkeys(chain(env.requirements for env in environments))
+            dict.fromkeys(chain(requirement for env in environments for requirement in env.requirements))
         )
         constraints = list(
-            dict.fromkeys(chain(env.constraints for env in environments))
+            dict.fromkeys(chain(constraint for env in environments for constraint in env.constraints))
         )
         configuration = {
             k: v for env in environments for (k, v) in env.configuration.items()
@@ -169,10 +213,11 @@ class Environment:
             solver_options=solver_options,
             configuration=configuration,
             variables=variables,
+            validate=validate,
         )
 
     @classmethod
-    def from_prefix(cls, prefix: PathLike) -> Environment:
+    def from_prefix(cls, prefix: PathLike, validate: bool = True) -> Environment:
         prefix = Path(prefix)
         if not prefix.is_dir():
             raise DirectoryNotFoundError(f"Prefix {prefix} is not a directory!")
@@ -187,9 +232,8 @@ class Environment:
         # This is an import from an old "history-only" conda environment
 
         name = prefix.name
-        channels = (
-            context.channels
-        )  # TODO: Check with channels coming from PrefixData info?
+        # TODO: Check with channels coming from PrefixData info?
+        channels = context.channels
         channel_options = ChannelOptions()  # TODO: Check if this is saved anywhere
         last_modified = (prefix / PREFIX_MAGIC_FILE).stat().st_mtime
         requirements = list(History(prefix).get_requested_specs_map().values())
@@ -213,16 +257,19 @@ class Environment:
             solver_options=solver_options,
             configuration=configuration,
             variables=variables,
+            validate=validate,
         )
 
     @classmethod
-    def from_conda_meta(cls, path: PathLike, check_exists: bool = True):
+    def from_conda_meta(
+        cls, path: PathLike, check_exists: bool = True, validate: bool = True
+    ):
         path = Path(path)
         if check_exists and not path.is_file():
             raise OSError(f"'{cls._default_filename}' file not found at {path}")
         with path.open() as f:
             data = yaml_safe_load(f)
-        return cls(**data)
+        return cls(validate=validate, **data)
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -250,3 +297,6 @@ class Environment:
         if self._prefix_data is None:
             self._prefix_data = PrefixData(self.prefix)
         yield from self._prefix_data.iter_records()
+
+    def exists(self) -> bool:
+        return self.prefix.is_dir() and (self.prefix / "conda-meta" / "history").is_file()
