@@ -515,8 +515,6 @@ jobs:
     services:
       squid:
         image: ghcr.io/travishathaway/conda-squid-auth-proxy:latest
-        ports:
-          - 8118:8118
 
     defaults:
       run:
