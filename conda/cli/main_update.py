@@ -88,7 +88,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from .install import install
+    from .install2 import install
 
     if context.force:
         print(

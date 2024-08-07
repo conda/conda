@@ -29,6 +29,7 @@ def install(args: Namespace, _, command: str) -> int:
 
     from ..base.context import context
     from ..env.specs import detect as detect_input_file
+    from ..exceptions import PackageNotInstalledError
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from .install import handle_txn
@@ -74,6 +75,14 @@ def install(args: Namespace, _, command: str) -> int:
     else:
         if env.prefix.exists():
             existing_env = Environment.from_prefix(env.prefix)
+            if command == "update":
+                installed_names = {spec.name for spec in existing_env.installed()}
+                not_found = []
+                for requirement in env.requirements:
+                    if requirement.name not in installed_names:
+                        not_found.append(str(requirement))
+                if not_found:
+                    raise PackageNotInstalledError(env.prefix, ", ".join(not_found))
             env = Environment.merge(env, existing_env)
         # invoke the solver loop and obtain transaction
         transaction = solver_transaction(env)
