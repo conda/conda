@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import Namespace
+
     from ..models.environment import Environment
 
 
@@ -40,9 +41,16 @@ def install(args: Namespace, _, command: str) -> int:
             spec = MatchSpec(pkg)
             if spec.name not in names:
                 specs.append(spec)
+
+    if command != "create" and not args.name and not args.prefix:
+        name = None
+        prefix = context.active_prefix
+    else:
+        name = args.name
+        prefix = args.prefix
     cli_env = Environment(
-        name=args.name,
-        prefix=args.prefix,
+        name=name,
+        prefix=prefix,
         requirements=specs,
         validate=False,
     )
@@ -50,6 +58,8 @@ def install(args: Namespace, _, command: str) -> int:
     file_envs = []
     if args.file:
         for path in args.file:
+            # TODO: reimplement this conda.env part with a plugin system
+            # that knows about conda.models.environment natively
             input_file = detect_input_file(name=cli_env.name or "_", filename=path)
             file_envs.append(_conda_env_to_environment(input_file))
 
@@ -58,19 +68,20 @@ def install(args: Namespace, _, command: str) -> int:
         existing_env = Environment.from_prefix(env.prefix)
         env = Environment.merge(existing_env, env)
 
-    if context.dry_run:
-        print(json.dumps(env.to_dict(), indent=2, default=str))
-        return 0
-
     if env.solver_options.explicit:
         # invoke explicit solve and obtain transaction
-        transaction = ...
+        transaction = explicit_transaction(env)
     else:
         if env.prefix.exists():
             existing_env = Environment.from_prefix(env.prefix)
             env = Environment.merge(env, existing_env)
         # invoke the solver loop and obtain transaction
-        transaction = ...
+        transaction = solver_transaction(env)
+
+    # TODO: temporary, just to see how the env looks like
+    if True: # context.dry_run:
+        print(json.dumps(env.to_dict(), indent=2, default=str))
+        return 0
 
     # Handle transaction; maybe add here the environment directory creation and stuff
     handle_txn(transaction, env.prefix, args, not env.prefix.exists())
@@ -86,3 +97,11 @@ def _conda_env_to_environment(parsed) -> Environment:
         variables=parsed.environment.variables or {},
         validate=False,
     )
+
+
+def explicit_transaction(environment: Environment):
+    ...
+
+
+def solver_transaction(environment: Environment):
+    ...

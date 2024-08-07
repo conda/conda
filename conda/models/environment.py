@@ -239,16 +239,20 @@ class Environment:
         requirements = list(History(prefix).get_requested_specs_map().values())
         constraints = get_pinned_specs(prefix)
         solver_options = SolverOptions()  # TODO: Check if this is saved anywhere
-        if (prefix / "condarc").is_file():
+        try:
             configuration = yaml_safe_load(prefix / "condarc")
-        if (prefix / PREFIX_STATE_FILE).is_file():
+        except OSError:
+            configuration = {}
+        try:
             variables = json.loads((prefix / PREFIX_STATE_FILE).read_text()).get(
                 "env_vars"
             )
+        except OSError:
+            variables = {}
         return cls(
             name=name,
             prefix=prefix,
-            description=f"Imported on {datetime.now()}",
+            description=f"Imported from '{prefix}' on {datetime.now()}",
             last_modified=last_modified,
             channels=channels,
             channel_options=channel_options,
