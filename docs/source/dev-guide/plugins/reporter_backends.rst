@@ -29,7 +29,7 @@ of these reporter backend types is shown below:
    }
 
 Via its plugins system, conda allows you to define entirely new reporter backends. This gives
-you an extreme amount of flexibility when it comes to modifying how conda looks
+you a substantial amount of flexibility when it comes to modifying how conda looks
 and feels. The first step to doing this is by creating your own subclass of
 :class:`~conda.plugins.types.ReporterRendererBase`. You then register it by using the
 ``conda_reporter_backends`` hook.
@@ -102,7 +102,7 @@ Defining ``ReporterRendererBase``
 ---------------------------------
 
 The first class we define, ``PprintReporterRenderer``, is a subclass of
-:class:`~conda.plugins.types.ReporterRendererBase`. The base class is an abstract base class which requires us
+:class:`~conda.plugins.types.ReporterRendererBase`. The base class is an abstract base class which requires us to
 define our own implementations of its abstract methods. These abstract methods are used by conda when rendering output
 and are where all the customization we want to do occurs.
 
