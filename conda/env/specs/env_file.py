@@ -6,9 +6,9 @@ from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from .. import env
 
 
-class YamlFileSpec:
+class EnvironmentFileSpec:
     _environment = None
-    extensions = {".yaml", ".yml"}
+    extensions = {".json", ".yaml", ".yml"}
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
@@ -25,7 +25,7 @@ class YamlFileSpec:
             self.msg = e.message
             return False
         except TypeError:
-            self.msg = f"{self.filename} is not a valid yaml file."
+            self.msg = f"{self.filename} is not a valid environment file."
             return False
 
     @property

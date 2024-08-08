@@ -1,0 +1,6 @@
+{
+  "name": "nlp",
+  "dependencies": [
+    "nltk"
+  ]
+}

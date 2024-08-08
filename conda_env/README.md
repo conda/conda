@@ -88,3 +88,8 @@ dependencies:
 ```
 
 **Recommendation:** Always create your `environment.yml` file by hand.
+
+## `environment.json`
+
+`environment.yml` works in the same way as `environment.yml`, i.e., it uses
+the same keys, but uses ``json`` instead of ``yaml`` as data format.

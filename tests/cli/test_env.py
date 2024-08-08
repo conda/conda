@@ -255,6 +255,17 @@ def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
 
 
 @pytest.mark.integration
+def test_conda_env_create_http_json(conda_cli: CondaCLIFixture, tmp_path: Path):
+    """Test `conda env create --file=https://some-website.com/environment.json`."""
+    conda_cli(
+        *("env", "create"),
+        f"--prefix={tmp_path}",
+        "--file=https://raw.githubusercontent.com/swaldhoer/conda/gh-12942/tests/env/support/simple.json",
+    )
+    assert (tmp_path / "conda-meta" / "history").is_file()
+
+
+@pytest.mark.integration
 def test_update(env1: str, conda_cli: CondaCLIFixture):
     create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create")
