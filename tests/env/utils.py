@@ -6,6 +6,7 @@ from tempfile import mkdtemp
 from conda.cli.main_env_create import configure_parser as create_configure_parser
 from conda.cli.main_env_update import configure_parser as update_configure_parser
 from conda.cli.main_export import configure_parser as export_configure_parser
+from conda.deprecations import deprecated
 from conda.gateways.disk.delete import rm_rf
 
 
