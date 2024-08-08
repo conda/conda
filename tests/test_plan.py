@@ -86,7 +86,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -122,7 +122,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
             ],
         }
     )
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -148,7 +148,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
     actions["UNLINK"] = actions["LINK"]
     actions["LINK"] = []
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -183,7 +183,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -202,7 +202,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
 
     actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -235,7 +235,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -278,7 +278,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -298,7 +298,7 @@ def test_display_actions_0(monkeypatch: MonkeyPatch) -> None:
 
     actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -339,7 +339,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -378,7 +378,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -404,7 +404,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
     actions["UNLINK"] = actions["LINK"]
     actions["LINK"] = []
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -439,7 +439,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -458,7 +458,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
 
     actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -491,7 +491,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -534,7 +534,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -554,7 +554,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
 
     actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -594,7 +594,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -614,7 +614,7 @@ def test_display_actions_show_channel_urls(monkeypatch: MonkeyPatch) -> None:
 
     actions["LINK"], actions["UNLINK"] = actions["UNLINK"], actions["LINK"]
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -659,7 +659,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -687,7 +687,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -709,7 +709,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -739,7 +739,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -767,7 +767,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -789,7 +789,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -819,7 +819,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -847,7 +847,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -869,7 +869,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -909,7 +909,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -937,7 +937,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -959,7 +959,7 @@ def test_display_actions_link_type(monkeypatch: MonkeyPatch) -> None:
         },
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -989,7 +989,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1017,7 +1017,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1047,7 +1047,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1076,7 +1076,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1105,7 +1105,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     # NB: Packages whose version do not changed are put in UPDATED
@@ -1135,7 +1135,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1166,7 +1166,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1194,7 +1194,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1224,7 +1224,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1253,7 +1253,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
@@ -1282,7 +1282,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     # NB: Packages whose version do not changed are put in UPDATED
@@ -1312,7 +1312,7 @@ def test_display_actions_features(monkeypatch: MonkeyPatch) -> None:
         }
     )
 
-    with captured() as c:
+    with captured() as c, pytest.deprecated_call():
         display_actions(actions, index)
 
     assert c.stdout == "\n".join(
