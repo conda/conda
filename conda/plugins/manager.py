@@ -20,8 +20,8 @@ import pluggy
 
 from ..auxlib.ish import dals
 from ..base.context import add_plugin_setting, context
-from ..exceptions import CondaValueError, PluginError
-from . import post_solves, solvers, subcommands, virtual_packages
+from ..exceptions import CondaValueError, InvalidInstaller, PluginError
+from . import env_installers, post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvInstaller,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -197,6 +198,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["env_installers"]
+    ) -> list[CondaEnvInstaller]: ...
 
     def get_hook_results(self, name):
         """
@@ -390,6 +396,27 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
+    def get_env_installer(self, section: str) -> CondaEnvInstaller:
+        """
+        Returns the env installer registered for the given section.
+
+        Raises PluginError if more than one installer is found for the same section.
+
+        Raises InvalidInstaller if no installer were found for that section.
+        """
+        found = []
+        for hook in self.get_hook_results("env_installers"):
+            if section in hook.types:
+                found.append(hook)
+        if len(found) == 1:
+            return found[0]
+        if found:
+            names = ", ".join([hook.name for hook in found])
+            raise PluginError(
+                f"Too many env installers registered for '{section}': {names}"
+            )
+        raise InvalidInstaller(f"Could not find env installer for '{section}'.")
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -405,6 +432,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         health_checks,
         *post_solves.plugins,
+        *env_installers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
