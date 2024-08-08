@@ -120,8 +120,8 @@ def validate_src() -> str:
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use `conda.cli.install.validate_new_prefix` instead.",
 )
 def validate_destination(dest: str, force: bool = False) -> str:
