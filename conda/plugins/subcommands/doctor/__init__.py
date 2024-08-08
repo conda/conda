@@ -35,10 +35,8 @@ def execute(args: Namespace) -> None:
     if not is_conda_environment(prefix):
         raise EnvironmentLocationNotFound(prefix)
     else:
-        print(f"Environment Health Report for: {context.target_prefix}\n")
-        context.plugin_manager.invoke_health_checks(
-            context.target_prefix, context.verbose
-        )
+        print(f"Environment Health Report for: {prefix}\n")
+        context.plugin_manager.invoke_health_checks(prefix, context.verbose)
 
 
 @hookimpl
