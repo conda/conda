@@ -122,6 +122,7 @@ class Index(UserDict):
                 for expanded_channel in expanded_channels
             ]
             self.expanded_channels.extend(expanded_channels)
+        # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
         if prefix is None:
