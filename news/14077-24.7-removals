@@ -1,0 +1,66 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.models.leased_path_entry` as pending deprecation. (#14077)
+* Postpone `conda.base.context.Context.conda_exe` to `conda 25.3`. (#14077)
+* Postpone `conda.cli.python_api` to `conda 25.9`. (#14077)
+* Remove `conda._vendor.appdirs`. Use `platformdirs` instead. (#14077)
+* Remove `conda._vendor.cpuinfo`. (#14077)
+* Remove `conda._vendor.distro`. Use `distro` instead. (#14077)
+* Remove `conda.auxlib.collection.call_each`. (#14077)
+* Remove `conda.auxlib.collection.firstitem`. (#14077)
+* Remove `conda.auxlib.compat.NoneType`. (#14077)
+* Remove `conda.auxlib.compat.primitive_types`. (#14077)
+* Remove `conda.auxlib.compat.utf8_writer`. (#14077)
+* Remove `conda.auxlib.exceptions.AssignmentError`. (#14077)
+* Remove `conda.auxlib.exceptions.AuthenticationError`. (#14077)
+* Remove `conda.auxlib.exceptions.InitializationError`. (#14077)
+* Remove `conda.auxlib.exceptions.NotFoundError`. (#14077)
+* Remove `conda.auxlib.exceptions.SenderError`. (#14077)
+* Remove `conda.auxlib.type_coercion.boolify_truthy_string_ok`. (#14077)
+* Remove `conda.auxlib.type_coercion.listify`. (#14077)
+* Remove `conda.base.context.Context.root_dir`. Use `conda.base.context.Context.root_prefix` instead. (#14077)
+* Remove `conda.base.exceptions`. (#14077)
+* Remove `conda.cli.main.generate_parser`. Use `conda.cli.conda_argparse.generate_parser` instead. (#14077)
+* Remove `conda.cli.main.init_loggers(context)` (#14077)
+* Remove `conda.cli.main_rename.validate_src(name)`. (#14077)
+* Remove `conda.cli.main_rename.validate_src(prefix)`. (#14077)
+* Remove `conda.common.configuration.load_file_configs`. (#14077)
+* Remove `conda.common.decorators.env_override`. (#14077)
+* Remove `conda.common.decorators`. (#14077)
+* Remove `conda.common.disk.temporary_content_in_file`. Use `tempfile` instead. (#14077)
+* Remove `conda.core.package_cache_data.download`. Use `conda.gateways.connection.download.download` instead. (#14077)
+* Remove `conda.core.package_cache_data.rm_fetched`. (#14077)
+* Remove `conda.core.package_cache`. Use `conda.core.package_cache_data` instead. (#14077)
+* Remove `conda.core.prefix_data.PrefixData._has_python`. (#14077)
+* Remove `conda.core.subdir_data.get_cache_control_max_age`. Use `conda.gateways.repodata.get_cache_control_max_age` instead. (#14077)
+* Remove `conda.exports.fetch_index`. Use `conda.core.index.fetch_index` instead. (#14077)
+* Remove `conda.exports.IndexRecord`. Use `conda.models.records.PackageRecord` instead. (#14077)
+* Remove `conda.gateways.anaconda_client.EnvAppDirs`. Use `platformdirs` instead. (#14077)
+* Remove `conda.gateways.connection.adapters.ftp.FTPAdapter.stor`. (#14077)
+* Remove `conda.gateways.connection.adapters.ftp.parse_multipart_files` (#14077)
+* Remove `conda.gateways.logging.set_verbosity`. Use `conda.gateways.logging.set_log_level` instead. (#14077)
+* Remove `conda.gateways.logging.VERBOSITY_LEVELS`. (#14077)
+* Remove `conda.models.dist.IndexRecord`. Use `conda.models.records.PackageRecord` instead. (#14077)
+* Remove `conda.models.enum.LeasedPathType`. (#14077)
+* Remove `conda.models.leased_path_entry.LeasedPathEntry`. (#14077)
+* Remove `conda.plugins.subcommands.doctor.get_prefix`. Use `conda.base.context.context.target_prefix` instead. (#14077)
+* Remove `conda.plugins.subcommands.doctor.health_checks.display_health_checks`. (#14077)
+* Remove `conda.plugins.subcommands.doctor.health_checks.display_report_heading`. (#14077)
+* Remove `conda.testing.helpers.set_active_prefix`. Use `mocker.patch('conda.base.context.Context.active_prefix')` instead. (#14077)
+* Remove `tests.env.utils.run_command`. Use `conda_cli` fixture instead. (#14077)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -8,13 +8,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import reset_context
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
     altered_files,
     check_envs_txt_file,
-    display_health_checks,
     env_txt_check,
     find_altered_packages,
     find_packages_with_missing_files,
@@ -25,7 +23,6 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Iterable
 
-    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
 
@@ -276,59 +273,3 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     prefix, _, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(prefix) == {}
-
-
-@pytest.mark.parametrize("verbose", [True, False])
-def test_display_health_checks(
-    env_ok: tuple[Path, str, str, str, str],
-    verbose: bool,
-    capsys,
-    monkeypatch: MonkeyPatch,
-):
-    """Test that runs display_health_checks without missing or altered files."""
-    prefix, bin_doctor, lib_doctor, ignored_doctor, package = env_ok
-    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
-    reset_context()
-    display_health_checks(prefix, verbose=verbose)
-    captured = capsys.readouterr()
-    assert "There are no packages with missing files." in captured.out
-    assert "There are no packages with altered files." in captured.out
-
-
-@pytest.mark.parametrize("verbose", [True, False])
-def test_display_health_checks_missing_files(
-    env_missing_files: tuple[Path, str, str, str, str],
-    verbose: bool,
-    capsys,
-    monkeypatch: MonkeyPatch,
-):
-    """Test that runs display_health_checks with missing files"""
-    prefix, bin_doctor, _, ignored_doctor, package = env_missing_files
-    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
-    reset_context()
-    display_health_checks(prefix, verbose=verbose)
-    captured = capsys.readouterr()
-    if verbose:
-        assert str(bin_doctor) in captured.out
-        assert str(ignored_doctor) not in captured.out
-    else:
-        assert f"{package}: 1" in captured.out
-
-
-@pytest.mark.parametrize("verbose", [True, False])
-def test_display_health_checks_altered_files(
-    env_altered_files: tuple[Path, str, str, str, str],
-    verbose: bool,
-    capsys,
-    monkeypatch: MonkeyPatch,
-):
-    """Test that runs display_health_checks with altered files"""
-    prefix, _, lib_doctor, _, package = env_altered_files
-    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
-    reset_context()
-    display_health_checks(prefix, verbose=verbose)
-    captured = capsys.readouterr()
-    if verbose:
-        assert str(lib_doctor) in captured.out
-    else:
-        assert f"{package}: 1" in captured.out
