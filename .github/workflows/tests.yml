@@ -633,13 +633,7 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup and start squid
-        run: >
-          apt update
-          && apt upgrade --yes
-          && DEBIAN_FRONTEND=noninteractive apt install --yes squid &&
-          && echo "auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwords\nauth_param basic realm proxy\nacl authenticated proxy_auth REQUIRED\nhttp_access allow authenticated\nhttp_port 8118" > /etc/squid/squid.conf
-          && echo "admin:$apr1$foJbPHfy$K54kqCzIEYgxAGTAtJrgv1" > /etc/squid/passwords
-          && squid
+        run: bash tests/setup_squid.sh
 
       - name: Conda Install
         run: >
