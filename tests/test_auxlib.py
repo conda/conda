@@ -41,4 +41,5 @@ MUTABLE = ([1, 1, 2], {1, 1, 2}, {1: 1, 2: 2})
     ],
 )
 def test_deepfreeze(unfrozen: Any) -> None:
-    assert make_immutable(unfrozen) == deepfreeze(unfrozen, {Enum: lambda x: x})
+    with pytest.deprecated_call():
+        assert make_immutable(unfrozen) == deepfreeze(unfrozen, {Enum: lambda x: x})
