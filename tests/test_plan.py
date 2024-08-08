@@ -1349,7 +1349,8 @@ def test_execute_plan(monkeypatch: MonkeyPatch):
     monkeypatch.setitem(inst.commands, "INSTRUCTION", INSTRUCTION_CMD)
 
     old_plan = ["# plan", "INSTRUCTION arg"]
-    execute_plan(old_plan)
+    with pytest.deprecated_call():
+        execute_plan(old_plan)
 
     assert INSTRUCTION_CMD.called
     assert INSTRUCTION_CMD.arg == "arg"
