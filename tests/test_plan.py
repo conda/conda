@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
+from contextlib import nullcontext
 from random import randint
 from typing import TYPE_CHECKING
 
 import pytest
 
 import conda.instructions as inst
-from conda import CondaError
+from conda import CondaError, plan
 from conda.base.context import context, reset_context
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import PackagesNotFoundError
@@ -17,28 +18,10 @@ from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
-from conda.plan import (
-    _get_best_prec_match,
-    _handle_menuinst,
-    _inject_UNLINKLINKTRANSACTION,
-    _plan_from_actions,
-    _update_old_plan,
-    add_defaults_to_specs,
-    add_unlink,
-    display_actions,
-    execute_actions,
-    execute_instructions,
-    execute_plan,
-    get_blank_actions,
-    install_actions,
-    print_dists,
-    revert_actions,
-)
+from conda.plan import _update_old_plan, add_unlink, display_actions, execute_plan
 from conda.testing.helpers import captured, get_index_r_1
 
 if TYPE_CHECKING:
-    from typing import Callable
-
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
@@ -1546,27 +1529,26 @@ def test_pinned_specs_all(
 
 
 @pytest.mark.parametrize(
-    "function",
+    "function,raises",
     [
-        print_dists,
-        display_actions,
-        add_unlink,
-        add_defaults_to_specs,
-        _get_best_prec_match,
-        revert_actions,
-        execute_actions,
-        _plan_from_actions,
-        _inject_UNLINKLINKTRANSACTION,
-        _handle_menuinst,
-        install_actions,
-        get_blank_actions,
-        execute_plan,
-        execute_instructions,
-        _update_old_plan,
+        ("print_dists", TypeError),
+        ("display_actions", TypeError),
+        ("add_unlink", TypeError),
+        ("add_defaults_to_specs", TypeError),
+        ("_get_best_prec_match", TypeError),
+        ("revert_actions", TypeError),
+        ("execute_actions", TypeError),
+        ("_plan_from_actions", TypeError),
+        ("_inject_UNLINKLINKTRANSACTION", TypeError),
+        ("_handle_menuinst", TypeError),
+        ("install_actions", TypeError),
+        ("get_blank_actions", TypeError),
+        ("execute_plan", TypeError),
+        ("execute_instructions", TypeError),
+        ("_update_old_plan", TypeError),
     ],
 )
-def test_deprecations(function: Callable) -> None:
-    with pytest.deprecated_call(), pytest.raises(TypeError):
-        # only care whether we are properly warning about upcoming deprecation
-        # we expect all of these functions to fail spectacularly
-        function()
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(plan, function)()
