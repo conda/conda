@@ -43,7 +43,7 @@ def test_install_freezes_env_by_default(
 
 
 def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
+    with tmp_env() as prefix, pytest.deprecated_call():
         file = prefix / "tempfile.txt"
         file.write_text("test")
         dir = prefix / "conda-meta"
