@@ -52,7 +52,11 @@ def install(prefix, specs, args, env, *_, **kwargs):
             prune=getattr(args, "prune", False),
             update_modifier=UpdateModifier.FREEZE_INSTALLED,
         )
-    except (UnsatisfiableError, SystemExit):
+    except (UnsatisfiableError, SystemExit) as exc:
+        # See this comment for 'allow_retry' details
+        # https://github.com/conda/conda/blob/b4592e9eb0/conda/cli/install.py#L417-L429
+        if not getattr(exc, "allow_retry", True):
+            raise exc
         unlink_link_transaction = solver.solve_for_transaction(
             prune=getattr(args, "prune", False), update_modifier=NULL
         )
