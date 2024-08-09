@@ -46,6 +46,7 @@ from .exceptions import (  # noqa: F401
     LockError,
     PaddingError,
     PathNotFoundError,
+    ResolvePackageNotFound,
     UnsatisfiableError,
 )
 from .gateways.connection.download import TmpDownload  # noqa: F401
@@ -60,6 +61,7 @@ from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
 from .models.enums import FileMode, PathType  # noqa: F401
+from .models.match_spec import MatchSpec  # noqa: F401
 from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .plan import display_actions as _display_actions
 from .plan import (  # noqa: F401
@@ -68,10 +70,8 @@ from .plan import (  # noqa: F401
     execute_plan,
     install_actions,
 )
-from .resolve import (  # noqa: F401
-    MatchSpec,
+from .plugins.solvers.classic.resolve import (  # noqa: F401
     Resolve,
-    ResolvePackageNotFound,
     Unsatisfiable,
 )
 from .utils import human_bytes, unix_path_to_win, url_path  # noqa: F401

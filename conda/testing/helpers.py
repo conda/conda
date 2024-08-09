@@ -24,7 +24,7 @@ from ..gateways.disk.read import lexists
 from ..history import History
 from ..models.channel import Channel
 from ..models.records import PackageRecord, PrefixRecord
-from ..resolve import Resolve
+from ..plugins.solvers.classic.resolve import Resolve
 
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(

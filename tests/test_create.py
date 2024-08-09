@@ -66,7 +66,7 @@ from conda.gateways.subprocess import (
 )
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.resolve import Resolve
+from conda.plugins.solvers.classic.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2
 from conda.testing.integration import (
     BIN_DIRECTORY,

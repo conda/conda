@@ -4,7 +4,12 @@ from itertools import chain, combinations, permutations, product
 
 import pytest
 
-from conda.common.logic import FALSE, TRUE, Clauses, minimal_unsatisfiable_subset
+from conda.plugins.solvers.classic.logic import (
+    FALSE,
+    TRUE,
+    Clauses,
+    minimal_unsatisfiable_subset,
+)
 from conda.testing.helpers import raises
 
 # These routines implement logical tests with short-circuiting
