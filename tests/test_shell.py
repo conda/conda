@@ -6,7 +6,6 @@ import os
 import platform
 import sys
 from functools import lru_cache
-from itertools import chain
 from logging import getLogger
 from os.path import dirname, isdir, join
 from pathlib import Path
@@ -33,7 +32,7 @@ from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable, Iterator
+    from typing import Any, Callable, Iterable, Iterator
 
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
@@ -1008,7 +1007,9 @@ def test_activate_deactivate_modify_path(
 
 
 @pytest.fixture
-def create_stackable_envs(tmp_env: TmpEnvFixture):
+def create_stackable_envs(
+    tmp_env: TmpEnvFixture,
+) -> Iterator[tuple[str, dict[str, Any]]]:
     # generate stackable environments, two with curl and one without curl
     which = f"{'where' if on_win else 'which -a'} curl"
 
@@ -1025,7 +1026,7 @@ def create_stackable_envs(tmp_env: TmpEnvFixture):
                 paths = (path,) if path.exists() else ()
             self.paths = paths
 
-    _run_command(
+    sys = _run_command(
         "conda config --set auto_activate_base false",
         which,
     )
@@ -1098,16 +1099,23 @@ def _run_command(*lines):
         (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
+def test_stacking(
+    create_stackable_envs: tuple[str, dict[str, Any]],
+    auto_stack: int,
+    stack: str,
+    run: str,
+    expected: str,
+) -> None:
     which, envs = create_stackable_envs
-    stack = filter(None, stack.split(","))
-    expected = filter(None, expected.split(","))
-    expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
-    assert (
-        _run_command(
-            f"conda config --set auto_stack {auto_stack}",
-            *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
-            f'conda run -p "{envs[run.strip()].prefix}" {which}',
-        )
-        == expected
-    )
+    assert _run_command(
+        f"conda config --set auto_stack {auto_stack}",
+        *(
+            f'conda activate "{envs[env.strip()].prefix}"'
+            for env in filter(None, stack.split(","))
+        ),
+        f'conda run -p "{envs[run.strip()].prefix}" {which}',
+    ) == [
+        path
+        for env in filter(None, expected.split(","))
+        for path in envs[env.strip()].paths
+    ]
