@@ -170,7 +170,7 @@ class Index(UserDict):
             self._prefix_data = PrefixData(self.prefix_path)
         return self._prefix_data
 
-    def reload(self, prefix=False, cache=False, features=False, system=False):
+    def reload(self, *, prefix=False, cache=False, features=False, system=False):
         if prefix:
             if self.prefix_data:
                 self.prefix_data.reload()
