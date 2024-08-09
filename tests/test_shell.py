@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 
     from conda.testing import CondaCLIFixture, PathFactoryFixture
 
+pytestmark = pytest.mark.integration
+
 
 log = getLogger(__name__)
 
@@ -577,7 +579,6 @@ def basic_csh(shell, prefix, prefix2, prefix3):
     shell.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize(
     "shell_name,script",
     [
@@ -638,7 +639,6 @@ def test_basic_integration(
 
 @pytest.mark.skipif(not which("fish"), reason="fish not installed")
 @pytest.mark.xfail(reason="fish and pexpect don't seem to work together?")
-@pytest.mark.integration
 def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, _, _ = shell_wrapper_integration
 
@@ -670,7 +670,6 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
     not which_powershell() or platform.machine() == "arm64",
     reason="PowerShell not installed or not supported on platform",
 )
-@pytest.mark.integration
 def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, venusaur = shell_wrapper_integration
 
@@ -731,7 +730,6 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 @pytest.mark.skipif(
     not which_powershell() or not on_win, reason="Windows, PowerShell specific test"
 )
-@pytest.mark.integration
 def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, str]):
     prefix, _, _ = shell_wrapper_integration
 
@@ -759,7 +757,6 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-@pytest.mark.integration
 def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, _ = shell_wrapper_integration
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
@@ -836,7 +833,6 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 
 @skip_unsupported_bash
 @pytest.mark.skipif(on_win, reason="Temporary skip, larger refactor necessary")
-@pytest.mark.integration
 def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
     with InteractiveShell("bash") as shell:
@@ -855,7 +851,6 @@ def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-@pytest.mark.integration
 def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
     with InteractiveShell("cmd.exe") as shell:
@@ -873,7 +868,6 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
 
 
 @skip_unsupported_bash
-@pytest.mark.integration
 def test_legacy_activate_deactivate_bash(
     shell_wrapper_integration: tuple[str, str, str],
 ):
@@ -912,7 +906,6 @@ def test_legacy_activate_deactivate_bash(
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-@pytest.mark.integration
 def test_legacy_activate_deactivate_cmd_exe(
     shell_wrapper_integration: tuple[str, str, str],
 ):
@@ -975,7 +968,6 @@ def prefix():
     rm_rf(root)
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize(
     ["shell"],
     [
