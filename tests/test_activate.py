@@ -62,13 +62,6 @@ activate_args = ["activate", dev_arg]
 reactivate_args = ["reactivate", dev_arg]
 deactivate_args = ["deactivate", dev_arg]
 
-if on_win:
-    import ctypes
-
-    PYTHONIOENCODING = "cp" + str(ctypes.cdll.kernel32.GetACP())
-else:
-    PYTHONIOENCODING = None
-
 # a unique prompt (makes it easy to know that our values are showing up correctly)
 DEFAULT_PROMPT = " >>(testing)>> "
 
