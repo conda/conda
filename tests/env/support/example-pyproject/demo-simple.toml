@@ -1,0 +1,15 @@
+[tool.conda.environment]
+name = "demo"
+channels = [
+    "pytorch",
+    "nvidia",
+    "defaults",
+]
+dependencies = [
+    "pytorch",
+    "pytorch-cuda",
+    "torchaudio",
+    "torchvision",
+    "pip",
+    {pip = ["requests"]},
+]

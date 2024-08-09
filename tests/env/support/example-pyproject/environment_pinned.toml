@@ -1,0 +1,10 @@
+[tool.conda.environment]
+name = "test"
+dependencies = [
+    "flask==2.0.2",
+]
+
+[tool.conda.environment.variables]
+FIXED = "fixed"
+CHANGES = "original_value"
+GETS_DELETED = "not_actually_removed_though"
