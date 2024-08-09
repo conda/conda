@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
+    from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
 
@@ -210,3 +211,15 @@ class CondaSetting:
     description: str
     parameter: Parameter
     aliases: tuple[str, ...] = tuple()
+
+
+class CondaRepodataPatch(NamedTuple):
+    """
+    A conda repodata patch.
+
+    :param name: Repodata patch name
+    :param action: Callable that will be run when the repodata is patched.
+    """
+
+    name: str
+    action: Callable[[Channel, dict], dict]

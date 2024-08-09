@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
     from ..common.configuration import ParameterLoader
     from ..core.solve import Solver
+    from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from .types import (
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaRepodataPatch,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -197,6 +199,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["repodata_patches"]
+    ) -> list[CondaRepodataPatch]: ...
 
     def get_hook_results(self, name):
         """
@@ -381,6 +388,11 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def apply_repodata_patches(self, channel: Channel, parsed: dict) -> dict:
+        for pre_solve in context.plugin_manager.get_hook_results("repodata_patches"):
+            parsed = pre_solve.action(channel, parsed)
+        return parsed
 
     def load_settings(self) -> None:
         """

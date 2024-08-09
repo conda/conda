@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaRepodataPatch,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -331,4 +332,25 @@ class CondaSpecs:
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
+        """
+
+    @_hookspec
+    def conda_repodata_patches(self) -> Iterable[CondaRepodataPatch]:
+        """
+        Register repodata patches in conda.
+        **Example:**
+        .. code-block:: python
+            from conda import plugins
+
+
+            def example_repodata_patch(repodata):
+                print("repodata patch action")
+
+
+            @plugins.hookimpl
+            def conda_repodata_patches():
+                yield CondaRepodataPatch(
+                    name="example-repodata-patch",
+                    action=example_repodata_patch,
+                )
         """
