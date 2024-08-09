@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import os
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
@@ -19,9 +20,21 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib.ish import dals
+from ..base.constants import RECOGNIZED_URL_SCHEMES
 from ..base.context import add_plugin_setting, context
-from ..exceptions import CondaValueError, PluginError
-from . import post_solves, solvers, subcommands, virtual_packages
+from ..exceptions import (
+    CondaValueError,
+    EnvironmentFileExtensionNotValid,
+    EnvironmentFileNotFound,
+    PluginError,
+)
+from . import (
+    env_specs,
+    post_solves,
+    solvers,
+    subcommands,
+    virtual_packages,
+)
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
@@ -36,6 +49,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvSpec,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -197,6 +211,9 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
+
+    @overload
+    def get_hook_results(self, name: Literal["env_specs"]) -> list[CondaEnvSpec]: ...
 
     def get_hook_results(self, name):
         """
@@ -390,6 +407,40 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
+    def get_env_spec_handler(
+        self, remote_definition: str = "", filename: str = "environment.yml"
+    ) -> CondaEnvSpec:
+        hooks = self.get_hook_results("env_specs")
+        # match by protocol
+        if "://" in (remote_definition or ""):
+            protocol, _ = remote_definition.split("://", 1)
+            for hook in hooks:
+                if not hook.protocols:
+                    continue
+                if protocol in hook.protocols:
+                    return hook
+        elif remote_definition:
+            # must be the binstar handler, which takes a remote environment
+            for hook in hooks:
+                if hook.name == "binstar":
+                    return hook
+        elif filename:
+            # match by extensions
+            path = os.path.expandvars(os.path.expanduser(filename))
+            extension = os.path.splitext(path)[-1]
+            protocol = path.split("://", 1)[0]
+            if os.path.exists(path) or protocol in RECOGNIZED_URL_SCHEMES:
+                for hook in hooks:
+                    if not hook.extensions:
+                        continue
+                    if extension in hook.extensions:
+                        return hook
+                raise EnvironmentFileExtensionNotValid(path)
+            raise EnvironmentFileNotFound(filename=path)
+        raise PluginError(
+            f"Could not find any env spec handlers for '{remote_definition}'."
+        )
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -405,6 +456,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         health_checks,
         *post_solves.plugins,
+        *env_specs.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

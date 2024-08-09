@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from typing import Type, Union
 
+from ...base.context import context
+from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
@@ -16,14 +18,26 @@ from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
 FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
 
 
+@deprecated(
+    "24.7",
+    "25.1",
+    addendum="Use conda.base.context.plugin_manager.get_env_spec_handler.",
+)
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
     Determine spec class to use from the provided ``filename``
 
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
+    from .requirements import RequirementsSpec
+    from .yaml_file import YamlFileSpec
+
+    if filename.startswith("file://"):
+        filename = filename[len("file://") :]
+
     # Check extensions
     all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
     _, ext = os.path.splitext(filename)
@@ -43,9 +57,10 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
         raise EnvironmentFileNotFound(filename=filename)
 
 
-SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
-
-
+@deprecated.argument("24.7", "25.1", "name")
+@deprecated.argument(
+    "24.7", "25.1", "directory", addendum="Specify the full path in filename"
+)
 def detect(
     name: str = None,
     filename: str = None,
@@ -56,19 +71,12 @@ def detect(
     Return the appropriate spec type to use.
 
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
-    :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
-    if remote_definition is not None:
-        spec = BinstarSpec(name=remote_definition)
-        if spec.can_handle():
-            return spec
-        else:
-            raise SpecNotFound(spec.msg)
-
-    if filename is not None:
-        spec_class = get_spec_class_from_file(filename)
-        spec = spec_class(name=name, filename=filename, directory=directory)
-        if spec.can_handle():
-            return spec
-
+    spec_hook = context.plugin_manager.get_env_spec_handler(
+        remote_definition=remote_definition,
+        filename=filename,
+    )
+    spec = spec_hook.handler_class(remote_definition or filename)
+    if spec.can_handle():
+        return spec
     raise SpecNotFound(spec.msg)

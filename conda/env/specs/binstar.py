@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
+from .base import BaseEnvSpec
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 ENVIRONMENT_TYPE = "env"
 
 
-class BinstarSpec:
+class BinstarSpec(BaseEnvSpec):
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
