@@ -39,7 +39,6 @@ from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFoun
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
-from conda.testing.helpers import tempdir
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -228,12 +227,11 @@ def get_scripts_export_unset_vars(
     )
 
 
-def test_activate_environment_not_found(reset_environ: None):
+def test_activate_environment_not_found(reset_environ: None, tmp_path: Path):
     activator = PosixActivator()
 
-    with tempdir() as td:
-        with pytest.raises(EnvironmentLocationNotFound):
-            activator.build_activate(td)
+    with pytest.raises(EnvironmentLocationNotFound):
+        activator.build_activate(str(tmp_path))
 
     with pytest.raises(EnvironmentLocationNotFound):
         activator.build_activate("/not/an/environment")
@@ -377,15 +375,15 @@ def test_replace_prefix_in_path_2(monkeypatch: MonkeyPatch):
     assert len(path_elements) == len(old_path.split(";"))
 
 
-def test_default_env(reset_environ: None):
+def test_default_env(reset_environ: None, tmp_path: Path):
     activator = PosixActivator()
     assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
 
-    with tempdir() as td:
-        assert td == activator._default_env(td)
+    assert str(tmp_path) == activator._default_env(str(tmp_path))
 
-        p = mkdir_p(join(td, "envs", "named-env"))
-        assert "named-env" == activator._default_env(p)
+    prefix = tmp_path / "envs" / "named-env"
+    prefix.mkdir(parents=True)
+    assert "named-env" == activator._default_env(str(prefix))
 
 
 def test_build_activate_dont_activate_unset_var(
