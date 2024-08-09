@@ -35,9 +35,7 @@ from conda.base.context import context, reset_context
 from conda.cli.main import main_sourced
 from conda.common.compat import on_win
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
-from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.update import touch
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -1034,15 +1032,15 @@ def shell_wrapper_unit(path_factory: PathFactoryFixture) -> str:
     yield str(prefix)
 
 
-def make_dot_d_files(prefix, extension):
-    mkdir_p(join(prefix, "etc", "conda", "activate.d"))
-    mkdir_p(join(prefix, "etc", "conda", "deactivate.d"))
+def make_dot_d_files(prefix: str | os.PathLike, extension: str) -> None:
+    (activated := Path(prefix, "etc", "conda", "activate.d")).mkdir(parents=True)
+    (deactivated := Path(prefix, "etc", "conda", "deactivate.d")).mkdir(parents=True)
 
-    touch(join(prefix, "etc", "conda", "activate.d", "ignore.txt"))
-    touch(join(prefix, "etc", "conda", "deactivate.d", "ignore.txt"))
+    (activated / "ignore.txt").touch()
+    (deactivated / "ignore.txt").touch()
 
-    touch(join(prefix, "etc", "conda", "activate.d", f"activate1{extension}"))
-    touch(join(prefix, "etc", "conda", "deactivate.d", f"deactivate1{extension}"))
+    (activated / f"activate1{extension}").touch()
+    (deactivated / f"deactivate1{extension}").touch()
 
 
 @pytest.mark.skipif(
