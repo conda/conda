@@ -1444,8 +1444,7 @@ def test_cmd_exe_basic(
     assert not stderr
     assert not err
 
-    with open(activate_result) as fh:
-        activate_data = fh.read()
+    activate_data = Path(activate_result).read_text()
     rm_rf(activate_result)
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
@@ -1473,8 +1472,7 @@ def test_cmd_exe_basic(
     assert not stderr
     assert not err
 
-    with open(reactivate_result) as fh:
-        reactivate_data = fh.read()
+    reactivate_data = Path(reactivate_result).read_text()
     rm_rf(reactivate_result)
 
     new_path_parts = activator._replace_prefix_in_path(
@@ -1511,8 +1509,7 @@ def test_cmd_exe_basic(
     assert not stderr
     assert not err
 
-    with open(deactivate_result) as fh:
-        deactivate_data = fh.read()
+    deactivate_data = Path(deactivate_result).read_text()
     rm_rf(deactivate_result)
 
     new_path = activator.pathsep_join(
