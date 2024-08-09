@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from contextlib import nullcontext
 from itertools import chain
@@ -38,7 +39,6 @@ from conda.base.constants import (
 from conda.base.context import context, reset_context
 from conda.cli.main import main_sourced
 from conda.common.compat import on_win
-from conda.common.io import captured
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -48,7 +48,7 @@ from conda.testing.helpers import tempdir
 if TYPE_CHECKING:
     from typing import Iterable
 
-    from pytest import MonkeyPatch
+    from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.activate import _Activator
@@ -1345,15 +1345,18 @@ def test_unix_path_to_native(
     assert unix_path_to_native(paths, prefix) == expected
 
 
-def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+def test_posix_basic(
+    shell_wrapper_unit: str,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
-    with captured() as c:
-        rc = main_sourced("shell.posix", *activate_args, shell_wrapper_unit)
-    assert not c.stderr
-    assert rc == 0
-    activate_data = c.stdout
+    err = main_sourced("shell.posix", *activate_args, shell_wrapper_unit)
+    activate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
     conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
@@ -1382,7 +1385,6 @@ def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
         "conda_exe_unset": conda_exe_unset,
         "conda_exe_export": conda_exe_export,
     }
-    import re
 
     assert activate_data == re.sub(r"\n\n+", "\n", e_activate_data)
 
@@ -1391,11 +1393,10 @@ def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
     activator = PosixActivator()
-    with captured() as c:
-        rc = main_sourced("shell.posix", *reactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    reactivate_data = c.stdout
+    err = main_sourced("shell.posix", *reactivate_args)
+    reactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
@@ -1429,11 +1430,10 @@ def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     }
     assert reactivate_data == re.sub(r"\n\n+", "\n", e_reactivate_data)
 
-    with captured() as c:
-        rc = main_sourced("shell.posix", *deactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    deactivate_data = c.stdout
+    err = main_sourced("shell.posix", *deactivate_args)
+    deactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
@@ -1474,17 +1474,20 @@ def test_posix_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
-def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+def test_cmd_exe_basic(
+    shell_wrapper_unit: str,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     # NOTE :: We do not want dev mode here.
     context.dev = False
     activator = CmdExeActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
-    with captured() as c:
-        rc = main_sourced("shell.cmd.exe", "activate", shell_wrapper_unit)
-    assert not c.stderr
-    assert rc == 0
-    activate_result = c.stdout
+    err = main_sourced("shell.cmd.exe", "activate", shell_wrapper_unit)
+    activate_result, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     with open(activate_result) as fh:
         activate_data = fh.read()
@@ -1521,10 +1524,10 @@ def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
     activator = CmdExeActivator()
-    with captured() as c:
-        assert main_sourced("shell.cmd.exe", "reactivate") == 0
-    assert not c.stderr
-    reactivate_result = c.stdout
+    err = main_sourced("shell.cmd.exe", "reactivate")
+    reactivate_result, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     with open(reactivate_result) as fh:
         reactivate_data = fh.read()
@@ -1565,10 +1568,10 @@ def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
         "conda_prompt_modifier": get_prompt_modifier(shell_wrapper_unit),
     }
 
-    with captured() as c:
-        assert main_sourced("shell.cmd.exe", "deactivate") == 0
-    assert not c.stderr
-    deactivate_result = c.stdout
+    err = main_sourced("shell.cmd.exe", "deactivate")
+    deactivate_result, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     with open(deactivate_result) as fh:
         deactivate_data = fh.read()
@@ -1603,15 +1606,18 @@ def test_cmd_exe_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     assert deactivate_data == e_deactivate_data
 
 
-def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+def test_csh_basic(
+    shell_wrapper_unit: str,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
-    with captured() as c:
-        rc = main_sourced("shell.csh", *activate_args, shell_wrapper_unit)
-    assert not c.stderr
-    assert rc == 0
-    activate_data = c.stdout
+    err = main_sourced("shell.csh", *activate_args, shell_wrapper_unit)
+    activate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
     conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
@@ -1646,11 +1652,10 @@ def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
     activator = CshActivator()
-    with captured() as c:
-        rc = main_sourced("shell.csh", *reactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    reactivate_data = c.stdout
+    err = main_sourced("shell.csh", *reactivate_args)
+    reactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
@@ -1689,11 +1694,11 @@ def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
         "native_prefix": shell_wrapper_unit,
     }
     assert reactivate_data == e_reactivate_data
-    with captured() as c:
-        rc = main_sourced("shell.csh", *deactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    deactivate_data = c.stdout
+
+    err = main_sourced("shell.csh", *deactivate_args)
+    deactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
@@ -1732,15 +1737,18 @@ def test_csh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     assert deactivate_data == e_deactivate_data
 
 
-def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+def test_xonsh_basic(
+    shell_wrapper_unit: str,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
-    with captured() as c:
-        rc = main_sourced("shell.xonsh", *activate_args, shell_wrapper_unit)
-    assert not c.stderr
-    assert rc == 0
-    activate_data = c.stdout
+    err = main_sourced("shell.xonsh", *activate_args, shell_wrapper_unit)
+    activate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
     conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
@@ -1781,11 +1789,10 @@ def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
     activator = XonshActivator()
-    with captured() as c:
-        rc = main_sourced("shell.xonsh", *reactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    reactivate_data = c.stdout
+    err = main_sourced("shell.xonsh", *reactivate_args)
+    reactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
@@ -1829,11 +1836,10 @@ def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     e_reactivate_data = e_reactivate_template % e_reactivate_info
     assert reactivate_data == e_reactivate_data
 
-    with captured() as c:
-        rc = main_sourced("shell.xonsh", *deactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    deactivate_data = c.stdout
+    err = main_sourced("shell.xonsh", *deactivate_args)
+    deactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
@@ -1877,15 +1883,18 @@ def test_xonsh_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     assert deactivate_data == e_deactivate_data
 
 
-def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+def test_fish_basic(
+    shell_wrapper_unit: str,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
-    with captured() as c:
-        rc = main_sourced("shell.fish", *activate_args, shell_wrapper_unit)
-    assert not c.stderr
-    assert rc == 0
-    activate_data = c.stdout
+    err = main_sourced("shell.fish", *activate_args, shell_wrapper_unit)
+    activate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
     conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
@@ -1917,11 +1926,10 @@ def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
     activator = FishActivator()
-    with captured() as c:
-        rc = main_sourced("shell.fish", *reactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    reactivate_data = c.stdout
+    err = main_sourced("shell.fish", *reactivate_args)
+    reactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
@@ -1959,11 +1967,10 @@ def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     }
     assert reactivate_data == e_reactivate_data
 
-    with captured() as c:
-        rc = main_sourced("shell.fish", *deactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    deactivate_data = c.stdout
+    err = main_sourced("shell.fish", *deactivate_args)
+    deactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
@@ -1998,15 +2005,18 @@ def test_fish_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     assert deactivate_data == e_deactivate_data
 
 
-def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+def test_powershell_basic(
+    shell_wrapper_unit: str,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
-    with captured() as c:
-        rc = main_sourced("shell.powershell", *activate_args, shell_wrapper_unit)
-    assert not c.stderr
-    assert rc == 0
-    activate_data = c.stdout
+    err = main_sourced("shell.powershell", *activate_args, shell_wrapper_unit)
+    activate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
     conda_exe_export, conda_exe_unset = get_scripts_export_unset_vars(activator)
@@ -2037,11 +2047,10 @@ def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
     activator = PowerShellActivator()
-    with captured() as c:
-        rc = main_sourced("shell.powershell", *reactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    reactivate_data = c.stdout
+    err = main_sourced("shell.powershell", *reactivate_args)
+    reactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
@@ -2070,11 +2079,10 @@ def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
         "conda_prompt_modifier": get_prompt_modifier(shell_wrapper_unit),
     }
 
-    with captured() as c:
-        rc = main_sourced("shell.powershell", *deactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    deactivate_data = c.stdout
+    err = main_sourced("shell.powershell", *deactivate_args)
+    deactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
@@ -2103,15 +2111,18 @@ def test_powershell_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     }
 
 
-def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
+def test_json_basic(
+    shell_wrapper_unit: str,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
-    with captured() as c:
-        rc = main_sourced("shell.posix+json", *activate_args, shell_wrapper_unit)
-    assert not c.stderr
-    assert rc == 0
-    activate_data = c.stdout
+    err = main_sourced("shell.posix+json", *activate_args, shell_wrapper_unit)
+    activate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
     export_vars, unset_vars = activator.get_export_unset_vars(
@@ -2145,11 +2156,10 @@ def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
     activator = _build_activator_cls("posix+json")()
-    with captured() as c:
-        rc = main_sourced("shell.posix+json", *reactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    reactivate_data = c.stdout
+    err = main_sourced("shell.posix+json", *reactivate_args)
+    reactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
@@ -2191,11 +2201,10 @@ def test_json_basic(shell_wrapper_unit: str, monkeypatch: MonkeyPatch):
     }
     assert json.loads(reactivate_data) == e_reactivate_data
 
-    with captured() as c:
-        rc = main_sourced("shell.posix+json", *deactivate_args)
-    assert not c.stderr
-    assert rc == 0
-    deactivate_data = c.stdout
+    err = main_sourced("shell.posix+json", *deactivate_args)
+    deactivate_data, stderr = capsys.readouterr()
+    assert not stderr
+    assert not err
 
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
