@@ -172,6 +172,8 @@ class Index(UserDict):
         if prefix:
             if self.prefix_data:
                 self.prefix_data.reload()
+            if self._data:
+                self._supplement_index_dict_with_prefix()
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
@@ -202,20 +204,20 @@ class Index(UserDict):
     def data(self, value):
         self._data = value
 
-    def _supplement_index_dict_with_prefix(self, index_dict):
+    def _supplement_index_dict_with_prefix(self):
         """
         Supplement the index with information from its prefix.
         """
         # supplement index with information from prefix/conda-meta
         for prefix_record in self.prefix_data.iter_records():
-            if prefix_record in index_dict:
-                current_record = index_dict[prefix_record]
+            if prefix_record in self._data:
+                current_record = self._data[prefix_record]
                 if current_record.channel == prefix_record.channel:
                     # The downloaded repodata takes priority, so we do not overwrite.
                     # We do, however, copy the link information so that the solver (i.e. resolve)
                     # knows this package is installed.
                     link = prefix_record.get("link") or EMPTY_LINK
-                    index_dict[prefix_record] = PrefixRecord.from_objects(
+                    self._data[prefix_record] = PrefixRecord.from_objects(
                         current_record, prefix_record, link=link
                     )
                 else:
@@ -228,7 +230,7 @@ class Index(UserDict):
                     prefix_channel = prefix_record.channel
                     prefix_channel._Channel__canonical_name = prefix_channel.url()
                     del prefix_record._PackageRecord__pkey
-                    index_dict[prefix_record] = prefix_record
+                    self._data[prefix_record] = prefix_record
             else:
                 # If the package is not in the repodata, use the local data.
                 # If the channel is known but the package is not in the index, it
@@ -237,7 +239,7 @@ class Index(UserDict):
                 # other version of the package to this one. On the other hand, if
                 # it is in a channel we don't know about, assign it a value just
                 # above the priority of all known channels.
-                index_dict[prefix_record] = prefix_record
+                self._data[prefix_record] = prefix_record
 
     def _supplement_index_dict_with_cache(self, index_dict: dict[Any, Any]) -> None:
         """
@@ -578,7 +580,7 @@ def _supplement_index_with_prefix(
     """
     # supplement index with information from prefix/conda-meta
     if isinstance(prefix, PrefixData):
-        prefix_data = Path(prefix)
+        prefix_data = prefix
         prefix_path = prefix.prefix_path
     else:
         prefix_path = Path(prefix)
