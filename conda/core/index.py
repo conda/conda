@@ -141,6 +141,14 @@ class Index(UserDict):
         self._additional_features.extend(features)
 
     @property
+    def cache_entries(self):
+        try:
+            return self._cache_entries
+        except AttributeError:
+            self.reload(cache=True)
+        return self._cache_entries
+
+    @property
     def system_packages(self):
         try:
             return self._system_packages
@@ -169,12 +177,16 @@ class Index(UserDict):
             self._prefix_data = PrefixData(self.prefix_path)
         return self._prefix_data
 
-    def reload(self, prefix=False, features=False):
+    def reload(self, prefix=False, cache=False, features=False):
         if prefix:
             if self.prefix_data:
                 self.prefix_data.reload()
             if self._data:
                 self._supplement_index_dict_with_prefix()
+        if cache:
+            self._cache_entries = PackageCacheData.get_all_extracted_entries()
+            if self._data:
+                self._supplement_index_dict_with_cache()
         if features:
             self._features = {
                 (rec := PackageRecord.make_feature_record(feature)): rec
@@ -249,22 +261,17 @@ class Index(UserDict):
                 # above the priority of all known channels.
                 self._data[prefix_record] = prefix_record
 
-    def _supplement_index_dict_with_cache(self, index_dict: dict[Any, Any]) -> None:
-        """
-        Supplement the given index with packages from the cache.
-
-        :param index: The package index to supplement.
-        """
+    def _supplement_index_dict_with_cache(self) -> None:
         # supplement index with packages from the cache
-        for pcrec in PackageCacheData.get_all_extracted_entries():
-            if pcrec in index_dict:
+        for pcrec in self._cache_entries:
+            if pcrec in self._data:
                 # The downloaded repodata takes priority
-                current_record = index_dict[pcrec]
-                index_dict[pcrec] = PackageCacheRecord.from_objects(
+                current_record = self._data[pcrec]
+                self._data[pcrec] = PackageCacheRecord.from_objects(
                     current_record, pcrec
                 )
             else:
-                index_dict[pcrec] = pcrec
+                self._data[pcrec] = pcrec
 
     def _realize(self):
         _data = {}
@@ -324,7 +331,7 @@ class Index(UserDict):
         return prec
 
     def _update_from_cache(self, key, prec):
-        for pcrec in PackageCacheData.get_all_extracted_entries():
+        for pcrec in self.cache_entries:
             if pcrec == key:
                 if prec:
                     # The downloaded repodata takes priority
