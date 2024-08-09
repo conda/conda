@@ -171,21 +171,22 @@ class Index(UserDict):
         return self._prefix_data
 
     def reload(self, *, prefix=False, cache=False, features=False, system=False):
+        has_data = hasattr(self, "_data")
         if prefix:
             if self.prefix_data:
                 self.prefix_data.reload()
-            if self._data:
+            if has_data:
                 self._supplement_index_dict_with_prefix()
         if cache:
             self._cache_entries = PackageCacheData.get_all_extracted_entries()
-            if self._data:
+            if has_data:
                 self._supplement_index_dict_with_cache()
         if features:
             self._features = {
                 (rec := PackageRecord.make_feature_record(feature)): rec
                 for feature in chain(context.track_features, self._additional_features)
             }
-            if self._data:
+            if has_data:
                 self._data.update(self.features)
         if system:
             self._system_packages = {
@@ -196,7 +197,7 @@ class Index(UserDict):
                 ): rec
                 for package in context.plugin_manager.get_virtual_packages()
             }
-            if self._data:
+            if has_data:
                 self._data.update(self.system_packages)
 
     def __repr__(self):
