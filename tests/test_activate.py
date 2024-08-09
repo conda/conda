@@ -25,7 +25,6 @@ from conda.activate import (
     native_path_to_unix,
     unix_path_to_native,
 )
-from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
@@ -1889,7 +1888,7 @@ def test_powershell_basic(
         "deactivate.d",
         "deactivate1.ps1",
     )
-    assert reactivate_data == dals(
+    assert reactivate_data == (
         f'. "{deactivate1}"\n'
         f'$Env:PATH = "{activator.pathsep_join(new_path_parts)}"\n'
         f'$Env:CONDA_SHLVL = "1"\n'
