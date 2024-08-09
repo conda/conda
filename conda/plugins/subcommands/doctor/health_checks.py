@@ -5,17 +5,16 @@
 from __future__ import annotations
 
 import json
+import os
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING
+
+import requests
 
 from ....core.envs_manager import get_user_environments_txt_file
 from ....exceptions import CondaError
 from ....gateways.disk.read import compute_sum
 from ... import CondaHealthCheck, hookimpl
-
-if TYPE_CHECKING:
-    import os
 
 logger = getLogger(__name__)
 
@@ -150,8 +149,29 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
         print(f"{X_MARK} The environment is not listed in the environments.txt file.\n")
 
 
+def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
+    if not os.getenv("REQUESTS_CA_BUNDLE"):
+        return
+    elif not Path(os.getenv("REQUESTS_CA_BUNDLE")).exists():
+        print(
+            f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
+        )
+    else:
+        try:
+            response = requests.get("https://example.com")
+            if response:
+                print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
+        except OSError as e:
+            print(
+                f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
+            )
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
     yield CondaHealthCheck(name="Altered Files", action=altered_files)
     yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)
+    yield CondaHealthCheck(
+        name="REQUESTS_CA_BUNDLE Check", action=requests_ca_bundle_check
+    )
