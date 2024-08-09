@@ -269,11 +269,16 @@ def argv(args_list):
 
 @contextmanager
 def _logger_lock():
-    logging._acquireLock()
+    try:
+        # Python 3.13+
+        acquire, release = logging._prepareFork, logging._afterFork
+    except AttributeError:
+        acquire, release = logging._acquireLock, logging._releaseLock
+    acquire()
     try:
         yield
     finally:
-        logging._releaseLock()
+        release()
 
 
 @contextmanager
