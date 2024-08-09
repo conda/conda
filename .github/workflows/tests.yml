@@ -183,7 +183,7 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Setup and start squid
-        run: bash tests/setup_squid.sh
+        run: sudo -u root bash tests/setup_squid.sh
 
       - name: Conda Install
         run: >
