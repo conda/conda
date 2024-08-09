@@ -580,9 +580,6 @@ jobs:
       - name: conda list
         run: conda list --show-channel-urls
 
-      - name: show squid logs
-        run: docker logs "${{ job.services.squid.id }}"
-
       - name: Run Tests
         run: >
           pytest tests/test_auth_proxy.py
@@ -658,9 +655,6 @@ jobs:
 
       - name: conda list
         run: conda list --show-channel-urls
-
-      - name: Test proxy
-        run: curl -s http://localhost:8118
 
       - name: Run Tests
         run: >
