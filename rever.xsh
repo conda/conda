@@ -1,4 +1,4 @@
-# edit this in [[ source.html_url ]]
+# edit this in https://github.com/conda/infrastructure
 
 $ACTIVITIES = ["authors", "changelog"]
 

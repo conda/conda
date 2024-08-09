@@ -101,6 +101,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
+    from ..cli.main_rename import check_protected_dirs
     from ..core.prefix_data import PrefixData
     from ..env import specs
     from ..env.env import get_filename, print_result
@@ -128,6 +129,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
+    check_protected_dirs(prefix)
 
     # TODO, add capability
     # common.ensure_override_channels_requires_channel(args)
