@@ -135,6 +135,10 @@ class Index(UserDict):
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.track_features = context.track_features
         self.add_system = add_system
+        self._additional_features = []
+
+    def add_features(self, features: list[str]):
+        self._additional_features.extend(features)
 
     @property
     def system_packages(self):
@@ -156,10 +160,7 @@ class Index(UserDict):
         try:
             return self._features
         except AttributeError:
-            self._features = {
-                (rec := PackageRecord.make_feature_record(feature)): rec
-                for feature in context.track_features
-            }
+            self.reload(features=True)
         return self._features
 
     @property
@@ -168,12 +169,19 @@ class Index(UserDict):
             self._prefix_data = PrefixData(self.prefix_path)
         return self._prefix_data
 
-    def reload(self, prefix=False):
+    def reload(self, prefix=False, features=False):
         if prefix:
             if self.prefix_data:
                 self.prefix_data.reload()
             if self._data:
                 self._supplement_index_dict_with_prefix()
+        if features:
+            self._features = {
+                (rec := PackageRecord.make_feature_record(feature)): rec
+                for feature in chain(context.track_features, self._additional_features)
+            }
+            if self._data:
+                self._data.update(self.features)
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
@@ -672,7 +680,11 @@ def _make_virtual_package(
     )
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated(
+    "24.9",
+    "25.3",
+    addendum="Use :meth:`~conda.core.Index.reload(features=True)` and :meth:`~conda.core.Index.add_features` instead.",
+)
 def _supplement_index_with_features(
     index: dict[PackageRecord, PackageRecord], features: list[str] = []
 ) -> None:
