@@ -492,7 +492,7 @@ class ReducedIndex(Index):
         self._data = {rec: rec for rec in records}
 
         if self.prefix_data:
-            self._supplement_index_dict_with_prefix(self._data)
+            self._supplement_index_dict_with_prefix()
 
         # add feature records for the solver
         known_features = set()
