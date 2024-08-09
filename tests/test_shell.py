@@ -31,13 +31,13 @@ from conda.gateways.disk.update import touch
 from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
-log = getLogger(__name__)
-
 if TYPE_CHECKING:
     from typing import Callable, Iterable, Iterator
 
     from conda.testing import CondaCLIFixture, PathFactoryFixture
 
+
+log = getLogger(__name__)
 
 # Here, by removing --dev you can try weird situations that you may want to test, upgrade paths
 # and the like? What will happen is that the conda being run and the shell scripts it's being run
