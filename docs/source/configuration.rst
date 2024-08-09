@@ -1,3 +1,5 @@
+.. _auto-config-reference:
+
 Configuration
 =============
 
