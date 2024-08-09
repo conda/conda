@@ -278,19 +278,18 @@ class Index(UserDict):
                 self._data[pcrec] = pcrec
 
     def _realize(self):
-        _data = {}
+        self._data = {}
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
-                _data.update((prec, prec) for prec in subdir_data.iter_records())
+                self._data.update((prec, prec) for prec in subdir_data.iter_records())
         if self.prefix_data:
-            self._supplement_index_dict_with_prefix(_data)
+            self._supplement_index_dict_with_prefix()
         if self.use_cache:
-            self._supplement_index_dict_with_cache(_data)
+            self._supplement_index_dict_with_cache()
         if self.track_features:
-            _data.update(self.features)
+            self._data.update(self.features)
         if self.add_system:
-            _data.update(self.system_packages)
-        self._data = _data
+            self._data.update(self.system_packages)
 
     def _retrieve_from_channels(self, key):
         for subdir_datas in reversed(self.channels.values()):
