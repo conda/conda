@@ -153,14 +153,7 @@ class Index(UserDict):
         try:
             return self._system_packages
         except AttributeError:
-            self._system_packages = {
-                (
-                    rec := PackageRecord.make_virtual_package(
-                        f"__{package.name}", package.version, package.build
-                    )
-                ): rec
-                for package in context.plugin_manager.get_virtual_packages()
-            }
+            self.reload(system=True)
         return self._system_packages
 
     @property
@@ -177,7 +170,7 @@ class Index(UserDict):
             self._prefix_data = PrefixData(self.prefix_path)
         return self._prefix_data
 
-    def reload(self, prefix=False, cache=False, features=False):
+    def reload(self, prefix=False, cache=False, features=False, system=False):
         if prefix:
             if self.prefix_data:
                 self.prefix_data.reload()
@@ -194,6 +187,17 @@ class Index(UserDict):
             }
             if self._data:
                 self._data.update(self.features)
+        if system:
+            self._system_packages = {
+                (
+                    rec := PackageRecord.make_virtual_package(
+                        f"__{package.name}", package.version, package.build
+                    )
+                ): rec
+                for package in context.plugin_manager.get_virtual_packages()
+            }
+            if self._data:
+                self._data.update(self.system_packages)
 
     def __repr__(self):
         channels = ", ".join(self.channels.keys())
