@@ -16,7 +16,12 @@ on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
 on_linux = bool(sys.platform == "linux")
 
-FILESYSTEM_ENCODING = sys.getfilesystemencoding()
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "FILESYSTEM_ENCODING",
+    _FILESYSTEM_ENCODING := sys.getfilesystemencoding(),
+)
 
 # Control some tweakables that will be removed finally.
 ENCODE_ENVIRONMENT = True
@@ -143,7 +148,7 @@ def ensure_unicode(value):
 @deprecated("25.3", "25.9")
 def ensure_fs_path_encoding(value):
     try:
-        return value.encode(FILESYSTEM_ENCODING)
+        return value.encode(_FILESYSTEM_ENCODING)
     except AttributeError:
         return value
     except UnicodeEncodeError:
