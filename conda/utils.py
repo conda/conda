@@ -17,7 +17,8 @@ from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.path import path_identity as _path_identity
-from .common.path import win_path_to_unix
+from .common.path import unix_path_to_win as _unix_path_to_win
+from .common.path import win_path_to_unix as _win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
 
@@ -32,29 +33,21 @@ deprecated.constant(
     addendum="Use `conda.common.path.path_identity` instead.",
 )
 
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_path_to_win",
+    _unix_path_to_win,
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
 
-def unix_path_to_win(path, root_prefix=""):
-    """Convert a path or :-separated string of paths into a Windows representation
-
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
-        # already a windows path
-        return path.replace("/", "\\")
-    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
-
-    def _translation(found_path):
-        group = found_path.group(0)
-        return "{}:{}".format(
-            group[len(root_prefix) + 1],
-            group[len(root_prefix) + 2 :].replace("/", "\\"),
-        )
-
-    translation = re.sub(path_re, _translation, path)
-    translation = re.sub(
-        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
-    )
-    return translation
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "win_path_to_unix",
+    _win_path_to_unix,
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+)
 
 
 @deprecated(
@@ -63,16 +56,16 @@ def unix_path_to_win(path, root_prefix=""):
     addendum="Use `conda.common.path.win_path_to_unix` instead.",
 )
 def win_path_to_cygwin(path):
-    return win_path_to_unix(path, "/cygdrive")
+    return _win_path_to_unix(path, "/cygdrive")
 
 
 @deprecated(
     "25.3",
     "25.9",
-    addendum="Use `conda.utils.unix_path_to_win` instead.",
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
 def cygwin_path_to_win(path):
-    return unix_path_to_win(path, "/cygdrive")
+    return _unix_path_to_win(path, "/cygdrive")
 
 
 @deprecated("25.3", "25.9", addendum="Unused.")
@@ -143,8 +136,8 @@ deprecated.constant(
 
 _MSYS2_SHELL_BASE = dict(
     _UNIX_SHELL_BASE,
-    path_from=unix_path_to_win,
-    path_to=win_path_to_unix,
+    path_from=_unix_path_to_win,
+    path_to=_win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
