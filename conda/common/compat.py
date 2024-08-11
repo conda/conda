@@ -80,6 +80,7 @@ def open(
         )
 
 
+@deprecated("25.3", "25.9", addendum="Use class' `metadata=` keyword argument instead.")
 def six_with_metaclass(meta, *bases):
     """Create a base class with a metaclass."""
 
