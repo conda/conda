@@ -130,6 +130,7 @@ def ensure_text_type(value) -> str:
         return value
 
 
+@deprecated("25.3", "25.9")
 def ensure_unicode(value):
     try:
         return value.decode("unicode_escape")
