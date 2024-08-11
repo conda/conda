@@ -877,6 +877,7 @@ def ensure_binary(value):
         return value
 
 
+@deprecated("25.3", "25.9")
 def ensure_fs_path_encoding(value):
     try:
         return value.decode(FILESYSTEM_ENCODING)
