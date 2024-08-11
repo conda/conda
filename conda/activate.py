@@ -867,6 +867,7 @@ def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
+@deprecated("25.3", "25.9", addendum="Use `conda.common.compat.ensure_binary` instead.")
 def ensure_binary(value):
     try:
         return value.encode("utf-8")
