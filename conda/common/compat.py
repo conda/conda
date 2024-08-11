@@ -56,6 +56,7 @@ def isiterable(obj):
 from collections import OrderedDict as odict  # noqa: F401
 
 
+@deprecated("25.3", "25.9", addendum="Use builtin `open` instead.")
 def open(
     file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
 ):
