@@ -22,9 +22,10 @@ from pexpect.popen_spawn import PopenSpawn
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda import __version__ as conda_version
-from conda.activate import activator_map, native_path_to_unix
+from conda.activate import activator_map
 from conda.base.context import context
 from conda.common.compat import on_win
+from conda.common.path import path_identity, win_path_to_unix
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
@@ -80,7 +81,8 @@ skip_unsupported_bash = pytest.mark.skipif(
 
 
 class InteractiveShellType(type):
-    EXE = quote_for_shell(native_path_to_unix(sys.executable))
+    convert_path = win_path_to_unix if on_win else path_identity
+    EXE = quote_for_shell(convert_path(sys.executable))
     SHELLS: dict[str, dict] = {
         "posix": {
             "activator": "posix",

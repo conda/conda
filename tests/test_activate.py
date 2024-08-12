@@ -22,7 +22,6 @@ from conda.activate import (
     PowerShellActivator,
     XonshActivator,
     _build_activator_cls,
-    native_path_to_unix,
 )
 from conda.base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
@@ -33,6 +32,7 @@ from conda.base.constants import (
 from conda.base.context import context, reset_context
 from conda.cli.main import main_sourced
 from conda.common.compat import on_win
+from conda.common.path import win_path_to_unix
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.delete import rm_rf
 
@@ -362,10 +362,8 @@ def test_replace_prefix_in_path_2(monkeypatch: MonkeyPatch):
     activator = PosixActivator()
     path_elements = activator._replace_prefix_in_path(path1, path2)
 
-    assert path_elements[0] == native_path_to_unix(one_more)
-    assert path_elements[1] == native_path_to_unix(
-        next(activator._get_path_dirs(path2))
-    )
+    assert path_elements[0] == win_path_to_unix(one_more)
+    assert path_elements[1] == win_path_to_unix(next(activator._get_path_dirs(path2)))
     assert len(path_elements) == len(old_path.split(";"))
 
 

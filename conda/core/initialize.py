@@ -69,6 +69,7 @@ from ..common.path import (
     get_python_short_path,
     get_python_site_packages_short_path,
     win_path_ok,
+    win_path_to_unix,
 )
 from ..exceptions import CondaValueError
 from ..gateways.disk.create import copy, mkdir_p
@@ -1179,9 +1180,7 @@ def install_conda_csh(target_path, conda_prefix):
 
 def _config_fish_content(conda_prefix):
     if on_win:
-        from ..activate import native_path_to_unix
-
-        conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
+        conda_exe = win_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
     else:
         conda_exe = join(conda_prefix, "bin", "conda")
     conda_initialize_content = dals(
@@ -1293,9 +1292,7 @@ def init_fish_user(target_path, conda_prefix, reverse):
 
 def _config_xonsh_content(conda_prefix):
     if on_win:
-        from ..activate import native_path_to_unix
-
-        conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
+        conda_exe = win_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
     else:
         conda_exe = join(conda_prefix, "bin", "conda")
     conda_initialize_content = dals(
@@ -1382,9 +1379,7 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
 
 def _bashrc_content(conda_prefix, shell):
     if on_win:
-        from ..activate import native_path_to_unix
-
-        conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
+        conda_exe = win_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
         conda_initialize_content = dals(
             """
         # >>> conda initialize >>>
