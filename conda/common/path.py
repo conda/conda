@@ -492,6 +492,7 @@ class _Cygpath:
 
 def win_path_to_unix(
     paths: str | Iterable[str] | None,
+    prefix: str = "",
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
@@ -542,7 +543,8 @@ def win_path_to_unix(
 
 
 def unix_path_to_win(
-    paths: str | Iterable[str] | None, prefix: str
+    paths: str | Iterable[str] | None,
+    prefix: str = "",
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
