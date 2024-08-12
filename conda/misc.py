@@ -223,8 +223,10 @@ def touch_nonadmin(prefix):
             fo.write("")
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
+def clone_env(prefix1: str, prefix2: str, verbose=True, quiet=False, index_args=None):
     """Clone existing prefix1 into new prefix2."""
+    prefix1 = str(prefix1)
+    prefix2 = str(prefix2)
     untracked_files = untracked(prefix1)
 
     # Discard conda, conda-env and any package that depends on them
@@ -289,10 +291,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         raise PackagesNotFoundError(notfound)
 
     # Assemble the URL and channel list
-    urls = {}
-    for prec in drecs:
-        urls[prec] = prec["url"]
-
+    urls = {prec: prec["url"] for prec in drecs}
     precs = tuple(PrefixGraph(urls).graph)
     urls = [urls[prec] for prec in precs]
 

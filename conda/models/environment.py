@@ -21,7 +21,12 @@ from ..common.path import is_package_file
 from ..common.serialize import yaml_safe_load
 from ..core.prefix_data import PrefixData
 from ..core.solve import get_pinned_specs
-from ..exceptions import DirectoryNotACondaEnvironmentError, DirectoryNotFoundError
+from ..exceptions import (
+    CondaValueError,
+    DirectoryNotACondaEnvironmentError,
+    DirectoryNotFoundError,
+    NeedsNameOrPrefix,
+)
 from ..history import History
 from .channel import Channel
 from .match_spec import MatchSpec
@@ -35,13 +40,8 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-class NeedsNameOrPrefix(ValueError):
-    pass
-
-
 @dataclass
 class SolverOptions:
-    explicit: bool = False
     solver: str | None = None
     channel_priority: ChannelPriority = ChannelPriority.STRICT
 
@@ -117,19 +117,7 @@ class Environment:
         if validate and self.channel_options is None:
             self.channel_options = ChannelOptions()
         if validate and self.solver_options is None:
-            if all([is_package_file(pkg) for pkg in self.requirements]):
-                self.solver_options = SolverOptions(explicit=True)
-            else:
-                self.solver_options = SolverOptions()
-        elif (
-            self.validate
-            and self.solver_options.explicit
-            and not all([is_package_file(pkg) for pkg in self.requirements])
-        ):
-            raise ValueError(
-                "'Environment.solver_options.explicit' is true but "
-                "'requirements' contains non-path/URL specifications."
-            )
+            self.solver_options = SolverOptions()
         self._prefix_data = None
 
     @classmethod
@@ -185,7 +173,7 @@ class Environment:
             ):
                 solver_options = all_solver_options[0]
             elif validate:
-                raise ValueError("All 'solver_options' fields must be equal.")
+                raise ValueError(f"All 'solver_options' fields must be equal: {all_solver_options}")
             else:
                 log.warning(
                     "Different 'solver_options' detected. Keeping only first one..."
@@ -335,3 +323,11 @@ class Environment:
         return (
             self.prefix.is_dir() and (self.prefix / "conda-meta" / "history").is_file()
         )
+
+    def explicit(self) -> bool:
+        n_explicit = sum(1 for pkg in self.requirements if is_package_file(pkg))
+        if n_explicit == len(self.requirements):
+            return True
+        if n_explicit == 0:
+            return False
+        raise CondaValueError("cannot mix specifications with conda package URL / paths.")

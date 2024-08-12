@@ -1200,6 +1200,10 @@ class PluginError(CondaError):
     pass
 
 
+class NeedsNameOrPrefix(CondaValueError):
+    pass
+
+
 def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
