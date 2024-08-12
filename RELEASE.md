@@ -1,10 +1,8 @@
-<!-- These docs are updated and synced from https://github.com/conda/infra -->
+<!-- edit this in https://github.com/conda/infrastructure -->
 
-<!-- (TODO: the first three links here should be updated with the `repo.url` syntax once it works!) -->
 [epic template]: https://github.com/conda/conda/issues/new?assignees=&labels=epic&template=epic.yml
-[compare]: https://github.com/conda/infrastructure/compare
-[new release]: https://github.com/conda/infrastructure/releases/new
-<!-- links -->
+[compare]: https://github.com/conda/conda/compare
+[new release]: https://github.com/conda/conda/releases/new
 [infrastructure]: https://github.com/conda/infrastructure
 [rever docs]: https://regro.github.io/rever-docs
 [release docs]: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
@@ -30,7 +28,7 @@ Use the issue template below to create the release issue. After creating the rel
 ```markdown
 ### Summary
 
-Placeholder for `{{ repo.name }} YY.M.x` release.
+Placeholder for `conda YY.M.x` release.
 
 | Pilot | <pilot> |
 |---|---|
@@ -38,18 +36,18 @@ Placeholder for `{{ repo.name }} YY.M.x` release.
 
 ### Tasks
 
-[milestone]: {{ repo.url }}/milestone/<milestone>
-[process]: {{ repo.url }}/blob/main/RELEASE.md
-[releases]: {{ repo.url }}/releases
-[main]: https://github.com/AnacondaRecipes/{{ repo.name }}-feedstock
-[conda-forge]: https://github.com/conda-forge/{{ repo.name }}-feedstock
-[ReadTheDocs]: https://readthedocs.com/projects/continuumio-{{ repo.name }}/
+[milestone]: https://github.com/conda/conda/milestone/<milestone>
+[process]: https://github.com/conda/conda/blob/main/RELEASE.md
+[releases]: https://github.com/conda/conda/releases
+[main]: https://github.com/AnacondaRecipes/conda-feedstock
+[conda-forge]: https://github.com/conda-forge/conda-feedstock
+[ReadTheDocs]: https://readthedocs.com/projects/continuumio-conda/
 
 <details open>  <!-- feel free to remove the open attribute once this section is completed -->
 <summary><h4>The week before release week</h4></summary>
 
 - [ ] Create release branch (named `YY.M.x`)
-- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/rc-{{ repo.name }}-YY.M.x`)
+- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/rc-conda-YY.M.x`)
 - [ ] [Complete outstanding PRs][milestone]
 - [ ] Test release candidates
     <!-- indicate here who has signed off on testing -->
@@ -89,7 +87,7 @@ If a patch release is necessary, reopen the original release issue and append th
 
 ```markdown
 <details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>Patch YY.M.N</h4></summary>
+<summary><h4>Patch YY.M.[$patch_number]</h4></summary>
 
 - [ ] <!-- list issues & PRs that need to be resolved here -->
 - [ ] Create release PR (see [release process][process])
@@ -116,7 +114,7 @@ Let various interested parties know about the upcoming release; at minimum, cond
 
 ### Canary Builds for Manual Testing
 
-Once the release PRs are filed, successful canary builds will be available on `https://anaconda.org/conda-canary/conda/files?channel=rc-{{ repo.name }}-YY.M.x` for manual testing.
+Once the release PRs are filed, successful canary builds will be available on `https://anaconda.org/conda-canary/conda/files?channel=rc-conda-YY.M.x` for manual testing.
 
 > [!NOTE]
 > You do not need to apply the `build::review` label for release PRs; every commit to the release branch builds and uploads canary builds to the respective `rc-` label.
@@ -141,7 +139,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 2. Clone and `cd` into the repository if you haven't done so already:
 
     ```bash
-    (rever) $ git clone git@github.com:{{ repo.user }}/{{ repo.name }}.git
+    (rever) $ git clone git@github.com:/conda.git
     (rever) $ cd conda
     ```
 

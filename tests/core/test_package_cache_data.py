@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 from pytest import MonkeyPatch
 
-import conda.core.package_cache
 from conda import CondaError, CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context
@@ -543,8 +542,3 @@ def test_cover_extract_bad_package(tmp_path):
     with open(fullpath, "w") as archive:
         archive.write("")
     PackageCacheData.first_writable()._make_single_record(str(fullpath))
-
-
-def test_conda_build_alias():
-    """conda-build wants to use an old import."""
-    assert conda.core.package_cache.ProgressiveFetchExtract
