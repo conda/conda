@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 
 OK_MARK = "✅"
 X_MARK = "❌"
+CA_BUNDLE_TEST_URL = "https://example.com"  # IANA reserved domain (more info: https://www.iana.org/help/example-domains)
 
 
 @deprecated("24.3", "24.9")
@@ -171,7 +172,7 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
         )
     else:
         try:
-            response = requests.get("https://example.com")
+            response = requests.get(CA_BUNDLE_TEST_URL)
             if response:
                 print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
         except OSError as e:
