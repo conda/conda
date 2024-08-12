@@ -42,7 +42,7 @@ from .base.constants import (
 )
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
-from .common.path import _Cygwin, paths_equal, unix_path_to_win, win_path_to_unix
+from .common.path import _Cygpath, paths_equal, unix_path_to_win, win_path_to_unix
 from .common.path import path_identity as _path_identity
 from .deprecations import deprecated
 
@@ -882,11 +882,11 @@ def ensure_fs_path_encoding(value):
 deprecated.constant(
     "25.3",
     "25.9",
-    "_Cygwin",
-    _Cygwin,
-    addendum="Use `conda.common.path._Cygwin` instead.",
+    "_Cygpath",
+    _Cygpath,
+    addendum="Use `conda.common.path._Cygpath` instead.",
 )
-del _Cygwin
+del _Cygpath
 
 deprecated.constant(
     "25.3",

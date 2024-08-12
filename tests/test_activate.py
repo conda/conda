@@ -3223,7 +3223,7 @@ def test_metavars_force_uppercase(
     "function,raises",
     [
         ("path_identity", TypeError),
-        ("_Cygwin", TypeError),
+        ("_Cygpath", TypeError),
         ("native_path_to_unix", TypeError),
         ("unix_path_to_native", TypeError),
     ],
