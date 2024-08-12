@@ -247,7 +247,7 @@ class ValueEnum(Enum):
         return f"{self.value}"
 
 
-class ChannelPriorityNew(ValueEnum, metaclass=ChannelPriorityMeta):
+class ChannelPriority(ValueEnum, metaclass=ChannelPriorityMeta):
     __name__ = "ChannelPriority"
 
     STRICT = "strict"
