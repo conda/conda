@@ -10,7 +10,7 @@
 
 Mark `conda.activate.ensure_binary` as pending deprecation. Use `conda.common.compat.ensure_binary` instead. (#14144)
 Mark `conda.activate.ensure_fs_path_encoding` as pending deprecation. (#14144)
-Mark `conda.common.compat.six_with_metaclass` as pending deprecation. Use class' `metadata=` keyword argument instead. (#14144)
+Mark `conda.common.compat.six_with_metaclass` as pending deprecation. Use class' `metaclass=` keyword argument instead. (#14144)
 Mark `conda.common.compat.open` as pending deprecation. Use builtin `open` instead. (#14144)
 Mark `conda.common.compat.ensure_unicode` as pending deprecation. (#14144)
 Mark `conda.common.compat.ensure_fs_path_encoding` as pending deprecation. (#14144)
