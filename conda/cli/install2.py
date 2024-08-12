@@ -36,6 +36,7 @@ def install(args: Namespace, _, command: str) -> int:
     # Build explicit transactions
     # OR Build solver transactions
     # Handle transaction
+    from tempfile import mkdtemp
 
     from ..base.constants import REPODATA_FN
     from ..base.context import context
@@ -119,7 +120,13 @@ def install(args: Namespace, _, command: str) -> int:
     try:
         env = Environment.merge(cli_env, *file_envs)
     except NeedsNameOrPrefix:
-        raise ArgumentError("one of the arguments -n/--name -p/--prefix is required")
+        if context.dry_run:
+            cli_env.prefix = mkdtemp(prefix="unused-conda-env")
+            env = Environment.merge(cli_env, *file_envs)
+        else:
+            raise ArgumentError(
+                "one of the arguments -n/--name -p/--prefix is required"
+            )
 
     if env.exists():
         # TODO: If we changed the Solver logic, this merged environment could
@@ -129,15 +136,15 @@ def install(args: Namespace, _, command: str) -> int:
             env.prefix, load_history=False, load_pins=False
         )
         if command == "update":
-            installed_names = {spec.name for spec in existing_env.installed()}
+            installed_pkgs = list(existing_env.installed())
             for requirement in env.requirements:
                 if not requirement.is_name_only_spec:
                     raise InvalidSpec(
-                        f"Invalid spec: {requirement}.\n"
+                        f"Invalid spec for 'conda update': {requirement}.\n"
                         "'conda update' only accepts name-only specs. "
                         "Use 'conda install' to specify a constraint."
                     )
-                if requirement.name not in installed_names:
+                if not any(requirement.match(pkg) for pkg in installed_pkgs):
                     raise PackageNotInstalledError(env.prefix, requirement)
         env = Environment.merge(existing_env, env)
     else:
@@ -157,7 +164,11 @@ def install(args: Namespace, _, command: str) -> int:
 
     # Handle transaction; maybe add here the environment directory creation and stuff
     handle_txn(
-        transaction, str(env.prefix), args, not env.prefix.exists(), variables=env.variables
+        transaction,
+        str(env.prefix),
+        args,
+        not env.prefix.exists(),
+        variables=env.variables,
     )
 
 
@@ -237,7 +248,12 @@ def explicit_transaction(environment: Environment, args: Namespace, command: str
         )
 
     stp = PrefixSetup(
-        str(environment.prefix), records_to_unlink, records_to_link, (), specs_to_update, ()
+        str(environment.prefix),
+        records_to_unlink,
+        records_to_link,
+        (),
+        specs_to_update,
+        (),
     )
 
     return UnlinkLinkTransaction(stp)
