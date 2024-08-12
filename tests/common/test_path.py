@@ -308,7 +308,7 @@ def test_text_translations():
 def test_win_path_to_unix(
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
-    expected: list[str | list[str] | None],
+    expected: str | list[str] | None,
     cygpath: bool,
 ) -> None:
     if not cygpath:
