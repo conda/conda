@@ -496,8 +496,6 @@ def win_path_to_unix(
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
-    elif not on_win:
-        return path_identity(paths)
 
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)
@@ -548,8 +546,6 @@ def unix_path_to_win(
 ) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
-    elif not on_win:
-        return path_identity(paths)
 
     # short-circuit if we don't get any paths
     paths = paths if isinstance(paths, str) else tuple(paths)

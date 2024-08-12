@@ -927,7 +927,7 @@ def backslash_to_forwardslash(
 class PosixActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(win_path_to_unix)
+    path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
@@ -980,7 +980,7 @@ class PosixActivator(_Activator):
 class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(win_path_to_unix)
+    path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1083,7 +1083,7 @@ class CmdExeActivator(_Activator):
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = staticmethod(win_path_to_unix)
+    path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
