@@ -9,9 +9,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
-from ....deprecations import deprecated
 from ....exceptions import CondaError
 from ....gateways.disk.read import compute_sum
 from ... import CondaHealthCheck, hookimpl
@@ -23,12 +21,6 @@ logger = getLogger(__name__)
 
 OK_MARK = "✅"
 X_MARK = "❌"
-
-
-@deprecated("24.3", "24.9")
-def display_report_heading(prefix: str) -> None:
-    """Displays our report heading."""
-    print(f"Environment Health Report for: {Path(prefix)}\n")
 
 
 def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
@@ -123,17 +115,10 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
     return altered_packages
 
 
-@deprecated("24.3", "24.9")
-def display_health_checks(prefix: str, verbose: bool = False) -> None:
-    """Prints health report."""
-    print(f"Environment Health Report for: {prefix}\n")
-    context.plugin_manager.invoke_health_checks(prefix, verbose)
-
-
 def missing_files(prefix: str, verbose: bool) -> None:
-    print("Missing Files:\n")
     missing_files = find_packages_with_missing_files(prefix)
     if missing_files:
+        print(f"{X_MARK} Missing Files:\n")
         for package_name, missing_files in missing_files.items():
             if verbose:
                 delimiter = "\n  "
@@ -145,9 +130,9 @@ def missing_files(prefix: str, verbose: bool) -> None:
 
 
 def altered_files(prefix: str, verbose: bool) -> None:
-    print("Altered Files:\n")
     altered_packages = find_altered_packages(prefix)
     if altered_packages:
+        print(f"{X_MARK} Altered Files:\n")
         for package_name, altered_files in altered_packages.items():
             if verbose:
                 delimiter = "\n  "
@@ -159,8 +144,10 @@ def altered_files(prefix: str, verbose: bool) -> None:
 
 
 def env_txt_check(prefix: str, verbose: bool) -> None:
-    present = OK_MARK if check_envs_txt_file(prefix) else X_MARK
-    print(f"Environment listed in environments.txt file: {present}\n")
+    if check_envs_txt_file(prefix):
+        print(f"{OK_MARK} The environment is listed in the environments.txt file.\n")
+    else:
+        print(f"{X_MARK} The environment is not listed in the environments.txt file.\n")
 
 
 @hookimpl

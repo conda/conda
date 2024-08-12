@@ -3,7 +3,13 @@
 # Much of this forked from https://github.com/gforsyth/xonda
 # Copyright (c) 2016, Gil Forsyth, All rights reserved.
 # Original code licensed under BSD-3-Clause.
-from xonsh.lazyasd import lazyobject
+
+try:
+    # xonsh >= 0.18.0
+    from xonsh.lib.lazyasd import lazyobject
+except:
+    # xonsh < 0.18.0
+    from xonsh.lazyasd import lazyobject
 
 if 'CONDA_EXE' not in ${...}:
     ![python -m conda init --dev out> conda-dev-init.sh]

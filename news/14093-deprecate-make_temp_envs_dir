@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `tests.env.utils.make_temp_envs_dir` as pending deprecation. Use `tmp_envs_dir` fixture instead. (#14093)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
