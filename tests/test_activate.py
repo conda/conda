@@ -3512,6 +3512,8 @@ def test_metavars_force_uppercase(
     "function,raises",
     [
         ("path_identity", TypeError),
+        ("ensure_binary", TypeError),
+        ("ensure_fs_path_encoding", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
