@@ -10,12 +10,13 @@ conda.cli.main_remove for the entry points into this module.
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from typing import Iterable
 
+    from ..core.link import UnlinkLinkTransaction
     from ..models.environment import Environment
 
 
@@ -36,6 +37,7 @@ def install(args: Namespace, _, command: str) -> int:
     # OR Build solver transactions
     # Handle transaction
 
+    from ..base.constants import REPODATA_FN
     from ..base.context import context
     from ..env.specs import detect as detect_input_file
     from ..exceptions import (
@@ -50,14 +52,6 @@ def install(args: Namespace, _, command: str) -> int:
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from .install import clone, handle_txn, print_activate
-
-    index_args = {
-        "use_cache": args.use_index_cache,
-        "channel_urls": context.channels,
-        "unknown": args.unknown,
-        "prepend": not args.override_channels,
-        "use_local": args.use_local,
-    }
 
     # First, let's create an 'Environment' for the information exposed in the CLI (no files)
     specs = [MatchSpec(pkg) for pkg in args.packages]
@@ -80,6 +74,18 @@ def install(args: Namespace, _, command: str) -> int:
         requirements=specs,
         validate=False,
     )
+
+    repodata_fns = args.repodata_fns or list(context.repodata_fns)
+    if REPODATA_FN not in repodata_fns:
+        repodata_fns.append(REPODATA_FN)
+    index_args = {
+        "use_cache": args.use_index_cache,
+        "channel_urls": context.channels,
+        "unknown": args.unknown,
+        "prepend": not args.override_channels,
+        "use_local": args.use_local,
+        "repodata_fn": repodata_fns[-1],  # default to latest (usually repodata.json)
+    }
 
     # Environment cloning is an early exit task; we already have the necessary information
     if command == "create" and args.clone:
@@ -141,32 +147,29 @@ def install(args: Namespace, _, command: str) -> int:
             )
         # TODO: Create prefix (should this be part of the transaction system)
 
-    if env.explicit:
+    if env.is_explicit():
         # invoke explicit solve and obtain transaction
         transaction = explicit_transaction(env, args, command)
+    elif command == "install" and args.revision:
+        transaction = revision_transaction(env.prefix, args.revision, index_args)
     else:
-        # invoke the solver loop and obtain transaction
-        transaction = solver_transaction(env, args, command)
-
-    # TODO: temporary, just to see how the env looks like
-    if True:  # context.dry_run:
-        print(json.dumps(env.to_dict(), indent=2, default=str))
-        return 0
+        transaction = solver_transaction(env, args, command, index_args, repodata_fns)
 
     # Handle transaction; maybe add here the environment directory creation and stuff
-    handle_txn(transaction, env.prefix, args, not env.prefix.exists())
-    # TODO: we also need to dump the Environment state into conda-meta, maybe as part
-    # of the transaction system.
+    handle_txn(
+        transaction, str(env.prefix), args, not env.prefix.exists(), variables=env.variables
+    )
 
 
 def _conda_env_to_environment(parsed) -> Environment:
     from ..models.environment import Environment
 
+    env = parsed.environment
     return Environment(
-        name=parsed.name if parsed.name != "_" else None,
-        channels=parsed.environment.channels,
-        requirements=parsed.environment.dependencies.get("conda", []),
-        variables=parsed.environment.variables or {},
+        name=env.name if env.name != "_" else None,
+        channels=env.channels,
+        requirements=env.dependencies.get("conda", []),
+        variables=env.variables or {},
         validate=False,
     )
 
@@ -234,16 +237,228 @@ def explicit_transaction(environment: Environment, args: Namespace, command: str
         )
 
     stp = PrefixSetup(
-        environment.prefix,
-        records_to_unlink,
-        records_to_link,
-        (),
-        specs_to_update,
-        (),
+        str(environment.prefix), records_to_unlink, records_to_link, (), specs_to_update, ()
     )
 
     return UnlinkLinkTransaction(stp)
 
 
-def solver_transaction(environment: Environment, args: Namespace, command: str):
-    ...
+def solver_transaction(
+    environment: Environment,
+    args: Namespace,
+    command: str,
+    index_args: dict,
+    repodata_fns: Iterable[str],
+) -> UnlinkLinkTransaction:
+    from ..base.context import context
+
+    if context.solver == "classic":
+        return _classic_solver_transaction(
+            environment, args, command, index_args, repodata_fns
+        )
+    return _simple_solver_transaction(environment, args, command, repodata_fns)
+
+
+def _classic_solver_transaction(
+    environment: Environment,
+    args: Namespace,
+    command: str,
+    index_args: dict,
+    repodata_fns: Iterable[str],
+) -> UnlinkLinkTransaction:
+    """Loops through the repodata filenames and frozen/unfrozen modes til it succeeds."""
+    from ..base.constants import DepsModifier, UpdateModifier
+    from ..base.context import context
+    from ..common.constants import NULL
+    from ..core.index import calculate_channel_urls
+    from ..exceptions import (
+        CondaImportError,
+        PackagesNotFoundError,
+        ResolvePackageNotFound,
+        SpecsConfigurationConflictError,
+        UnsatisfiableError,
+    )
+
+    # This helps us differentiate between an update, the --freeze-installed option, and the retry
+    # behavior in our initial fast frozen solve
+    _should_retry_unfrozen = (
+        hasattr(args, "update_modifier")
+        and args.update_modifier
+        not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS, NULL)
+    ) and environment.exists()
+
+    for repodata_fn in repodata_fns:
+        try:
+            solver_backend = context.plugin_manager.get_cached_solver_backend()
+            solver = solver_backend(
+                environment.prefix,
+                environment.channels,
+                context.subdirs,
+                specs_to_add=environment.requirements,
+                repodata_fn=repodata_fn,
+                command=command,
+            )
+            update_modifier = context.update_modifier
+            if command == "install" and args.update_modifier == NULL:
+                update_modifier = UpdateModifier.FREEZE_INSTALLED
+            deps_modifier = context.deps_modifier
+            if command == "update":
+                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+
+            return solver.solve_for_transaction(
+                deps_modifier=deps_modifier,
+                update_modifier=update_modifier,
+                force_reinstall=context.force_reinstall or context.force,
+                should_retry_solve=(
+                    _should_retry_unfrozen or repodata_fn != repodata_fns[-1]
+                ),
+            )
+
+        except (ResolvePackageNotFound, PackagesNotFoundError) as e:
+            if not getattr(e, "allow_retry", True):
+                raise e  # see note in next except block
+            # end of the line.  Raise the exception
+            if repodata_fn == repodata_fns[-1]:
+                # PackagesNotFoundError is the only exception type we want to raise.
+                #    Over time, we should try to get rid of ResolvePackageNotFound
+                if isinstance(e, PackagesNotFoundError):
+                    raise e
+                else:
+                    channels_urls = tuple(
+                        calculate_channel_urls(
+                            channel_urls=index_args["channel_urls"],
+                            prepend=index_args["prepend"],
+                            platform=None,
+                            use_local=index_args["use_local"],
+                        )
+                    )
+                    # convert the ResolvePackageNotFound into PackagesNotFoundError
+                    raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+
+        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+            if not getattr(e, "allow_retry", True):
+                # TODO: This is a temporary workaround to allow downstream libraries
+                # to inject this attribute set to False and skip the retry logic
+                # Other solvers might implement their own internal retry logic without
+                # depending --freeze-install implicitly like conda classic does. Example
+                # retry loop in conda-libmamba-solver:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
+                # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
+                # so we don't have go through all the repodatas and freeze-installed logic
+                # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
+                raise e
+            # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
+            if not hasattr(args, "update_modifier"):
+                if repodata_fn == repodata_fns[-1]:
+                    raise e
+            elif _should_retry_unfrozen:
+                try:
+                    return solver.solve_for_transaction(
+                        deps_modifier=deps_modifier,
+                        update_modifier=UpdateModifier.UPDATE_SPECS,
+                        force_reinstall=context.force_reinstall or context.force,
+                        should_retry_solve=(repodata_fn != repodata_fns[-1]),
+                    )
+                except (
+                    UnsatisfiableError,
+                    SystemExit,
+                    SpecsConfigurationConflictError,
+                ) as e:
+                    # Unsatisfiable package specifications/no such revision/import error
+                    if e.args and "could not import" in e.args[0]:
+                        raise CondaImportError(str(e))
+                    # we want to fall through without raising if we're not at the end of the list
+                    #    of fns.  That way, we fall to the next fn.
+                    if repodata_fn == repodata_fns[-1]:
+                        raise e
+            elif repodata_fn != repodata_fns[-1]:
+                continue  # if we hit this, we should retry with next repodata source
+            else:
+                # end of the line.  Raise the exception
+                # Unsatisfiable package specifications/no such revision/import error
+                if e.args and "could not import" in e.args[0]:
+                    raise CondaImportError(str(e))
+                raise e
+
+
+def _simple_solver_transaction(
+    environment: Environment,
+    args: Namespace,
+    command: str,
+    repodata_fns: Iterable[str],
+) -> UnlinkLinkTransaction:
+    """Loops through the repodata filenames, and only raises on the last one."""
+    from ..base.constants import DepsModifier, UpdateModifier
+    from ..base.context import context
+    from ..common.constants import NULL
+    from ..exceptions import (
+        PackagesNotFoundError,
+        ResolvePackageNotFound,
+        SpecsConfigurationConflictError,
+        UnsatisfiableError,
+    )
+
+    for repodata_fn in repodata_fns:
+        try:
+            solver_backend = context.plugin_manager.get_cached_solver_backend()
+            solver = solver_backend(
+                str(environment.prefix),
+                environment.channels,
+                context.subdirs,
+                specs_to_add=environment.requirements,
+                repodata_fn=repodata_fn,
+                command=command,
+            )
+            update_modifier = context.update_modifier
+            if command == "install" and args.update_modifier == NULL:
+                update_modifier = UpdateModifier.FREEZE_INSTALLED
+            deps_modifier = context.deps_modifier
+            if command == "update":
+                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+
+            return solver.solve_for_transaction(
+                deps_modifier=deps_modifier,
+                update_modifier=update_modifier,
+                force_reinstall=context.force_reinstall or context.force,
+            )
+        except (
+            ResolvePackageNotFound,
+            PackagesNotFoundError,
+            UnsatisfiableError,
+            SystemExit,
+            SpecsConfigurationConflictError,
+        ) as e:
+            if repodata_fn == repodata_fns[-1]:  # last attempt, we raise
+                raise e
+
+
+def revision_transaction(prefix: str, revision: int, index_args: dict):
+    from ..base.context import context
+    from ..common.io import Spinner
+    from ..core.index import get_index
+    from .install import get_revision, revert_actions
+
+    repodata_fn = index_args.get("repodata_fn", context.repodata_fns[-1])
+    with Spinner(
+        f"Collecting package metadata ({repodata_fn})",
+        not context.verbose and not context.quiet,
+        context.json,
+    ):
+        index = get_index(
+            channel_urls=index_args["channel_urls"],
+            prepend=index_args["prepend"],
+            platform=None,
+            use_local=index_args["use_local"],
+            use_cache=index_args["use_cache"],
+            unknown=index_args["unknown"],
+            prefix=prefix,
+            repodata_fn=repodata_fn,
+        )
+    revision_idx = get_revision(revision)
+    with Spinner(
+        f"Reverting to revision {revision_idx}",
+        not context.verbose and not context.quiet,
+        context.json,
+    ):
+        return revert_actions(str(prefix), revision_idx, index)

@@ -86,6 +86,7 @@ class Environment:
     channels: Iterable[Channel | str] | None = None
     channel_options: ChannelOptions = None
     requirements: Iterable[MatchSpec | str] | None = field(default_factory=list)
+    # TODO: pip requirements are currently ignored, we need to decide the data structure
     constraints: Iterable[MatchSpec | str] | None = field(default_factory=list)
     solver_options: SolverOptions | None = None
     configuration: dict[str, Any] | None = field(default_factory=dict)
@@ -324,7 +325,7 @@ class Environment:
             self.prefix.is_dir() and (self.prefix / "conda-meta" / "history").is_file()
         )
 
-    def explicit(self) -> bool:
+    def is_explicit(self) -> bool:
         n_explicit = sum(1 for pkg in self.requirements if is_package_file(pkg))
         if n_explicit == len(self.requirements):
             return True

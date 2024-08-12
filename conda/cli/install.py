@@ -9,9 +9,11 @@ conda.cli.main_remove for the entry points into this module.
 
 Note that 'remove' only uses `handle_txt()`, but not `install()`.
 """
+
 from __future__ import annotations
 
 import os
+from argparse import Namespace
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
@@ -278,7 +280,9 @@ def install(args, parser, command="install"):
             if isinstance(parsed, YamlFileSpec):
                 if idx != 0:
                     # We only allow a single --file to be a YAML file (for now)
-                    raise CondaError("YAML files can only be passed as the single --file argument.")
+                    raise CondaError(
+                        "YAML files can only be passed as the single --file argument."
+                    )
                 log.warning(
                     "YAML support in 'conda {create,install,update,remove} --file' is experimental'"
                 )
@@ -291,15 +295,21 @@ def install(args, parser, command="install"):
                     if context.dry_run:
                         result[installer_type] = installer.dry_run(pkg_specs, args, env)
                     else:
-                        result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+                        result[installer_type] = installer.install(
+                            prefix, pkg_specs, args, env
+                        )
                 else:
                     for installer_type, pkg_specs in env.dependencies.items():
                         try:
                             installer = get_installer(installer_type)
                             if context.dry_run:
-                                result[installer_type] = installer.dry_run(pkg_specs, args, env)
+                                result[installer_type] = installer.dry_run(
+                                    pkg_specs, args, env
+                                )
                             else:
-                                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+                                result[installer_type] = installer.install(
+                                    prefix, pkg_specs, args, env
+                                )
                         except InvalidInstaller:
                             raise CondaError(
                                 dals(
@@ -522,7 +532,8 @@ def install(args, parser, command="install"):
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 
-def revert_actions(prefix, revision=-1, index=None):
+def revert_actions(prefix, revision=-1, index=None) -> UnlinkLinkTransaction:
+    index = index or {}
     # TODO: If revision raise a revision error, should always go back to a safe revision
     h = History(prefix)
     # TODO: need a History method to get user-requested specs for revision number
@@ -560,7 +571,14 @@ def revert_actions(prefix, revision=-1, index=None):
     return UnlinkLinkTransaction(setup)
 
 
-def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
+def handle_txn(
+    unlink_link_transaction: UnlinkLinkTransaction,
+    prefix: str,
+    args: Namespace,
+    newenv: bool,
+    remove_op: bool = False,
+    variables: dict[str, str] = None,
+):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
@@ -594,6 +612,9 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     except SystemExit as e:
         raise CondaSystemExit("Exiting", e)
+
+    if variables:
+        PrefixData(prefix).set_environment_env_vars(variables)
 
     if newenv:
         touch_nonadmin(prefix)
