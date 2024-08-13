@@ -51,7 +51,6 @@ class SolverOptions:
 
     def to_dict(self):
         return {
-            "explicit": self.explicit,
             "solver": self.solver,
             "channel_priority": self.channel_priority,
         }
