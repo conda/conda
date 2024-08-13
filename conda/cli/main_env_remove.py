@@ -63,6 +63,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         use_local=None,
         use_cache=None,
         offline=None,
+        package_names="",
         force=True,
         pinned=None,
         keep_env=False,
