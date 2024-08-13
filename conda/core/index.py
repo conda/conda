@@ -30,7 +30,7 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Iterable, Self
 
 
 log = getLogger(__name__)
@@ -89,15 +89,15 @@ class Index(UserDict):
 
     def __init__(
         self,
-        channels=(),
-        prepend=True,
-        platform=None,
-        subdirs=None,
-        use_local=False,
-        use_cache=None,
-        prefix=None,
-        repodata_fn=context.repodata_fns[-1],
-        add_system=False,
+        channels: tuple[str, ...] = (),
+        prepend: bool = True,
+        platform: str | None = None,
+        subdirs: tuple[str, ...] | None = None,
+        use_local: bool = False,
+        use_cache: bool | None = None,
+        prefix: str | None = None,
+        repodata_fn: str | None = context.repodata_fns[-1],
+        add_system: bool = False,
     ) -> None:
         if use_local:
             channels = ["local"] + list(channels)
@@ -141,7 +141,7 @@ class Index(UserDict):
         self._additional_features.extend(features)
 
     @property
-    def cache_entries(self):
+    def cache_entries(self) -> tuple[PackageCacheRecord]:
         try:
             return self._cache_entries
         except AttributeError:
@@ -149,7 +149,7 @@ class Index(UserDict):
         return self._cache_entries
 
     @property
-    def system_packages(self):
+    def system_packages(self) -> dict[PackageRecord, PackageRecord]:
         try:
             return self._system_packages
         except AttributeError:
@@ -157,7 +157,7 @@ class Index(UserDict):
         return self._system_packages
 
     @property
-    def features(self):
+    def features(self) -> dict[PackageRecord, PackageRecord]:
         try:
             return self._features
         except AttributeError:
@@ -165,12 +165,19 @@ class Index(UserDict):
         return self._features
 
     @property
-    def prefix_data(self):
+    def prefix_data(self) -> PrefixData:
         if self._prefix_data is None and self.prefix_path:
             self._prefix_data = PrefixData(self.prefix_path)
         return self._prefix_data
 
-    def reload(self, *, prefix=False, cache=False, features=False, system=False):
+    def reload(
+        self,
+        *,
+        prefix: bool = False,
+        cache: bool = False,
+        features: bool = False,
+        system: bool = False,
+    ) -> None:
         has_data = hasattr(self, "_data")
         if prefix:
             if self.prefix_data:
@@ -200,11 +207,11 @@ class Index(UserDict):
             if has_data:
                 self._data.update(self.system_packages)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         channels = ", ".join(self.channels.keys())
         return f"<{self.__class__.__name__}(channels=[{channels}])>"
 
-    def get_reduced_index(self, specs):
+    def get_reduced_index(self, specs: Iterable[MatchSpec]) -> ReducedIndex:
         return ReducedIndex(
             specs=specs,
             channels=self._channels,
@@ -218,7 +225,7 @@ class Index(UserDict):
         )
 
     @property
-    def data(self):
+    def data(self) -> dict[PackageRecord, PackageRecord]:
         try:
             return self._data
         except AttributeError:
@@ -226,10 +233,10 @@ class Index(UserDict):
             return self._data
 
     @data.setter
-    def data(self, value):
+    def data(self, value: dict[PackageRecord, PackageRecord]) -> None:
         self._data = value
 
-    def _supplement_index_dict_with_prefix(self):
+    def _supplement_index_dict_with_prefix(self) -> None:
         """
         Supplement the index with information from its prefix.
         """
@@ -278,7 +285,7 @@ class Index(UserDict):
             else:
                 self._data[pcrec] = pcrec
 
-    def _realize(self):
+    def _realize(self) -> None:
         self._data = {}
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
@@ -292,7 +299,7 @@ class Index(UserDict):
         if self.add_system:
             self._data.update(self.system_packages)
 
-    def _retrieve_from_channels(self, key):
+    def _retrieve_from_channels(self, key: PackageRecord) -> PackageRecord | None:
         for subdir_datas in reversed(self.channels.values()):
             for subdir_data in subdir_datas:
                 if key.subdir != subdir_data.channel.subdir:
@@ -306,7 +313,7 @@ class Index(UserDict):
                     return prec
         return None
 
-    def _retrieve_all_from_channels(self, key):
+    def _retrieve_all_from_channels(self, key: PackageRecord) -> list[PackageRecord]:
         precs = []
         for subdir_datas in reversed(self.channels.values()):
             for subdir_data in subdir_datas:
@@ -318,7 +325,9 @@ class Index(UserDict):
                 precs.extend(prec_candidates)
         return precs
 
-    def _update_from_prefix(self, key, prec):
+    def _update_from_prefix(
+        self, key: PackageRecord, prec: PackageRecord | None
+    ) -> PackageRecord | None:
         prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
         if prefix_prec:
             if prec:
@@ -334,7 +343,9 @@ class Index(UserDict):
                 prec = prefix_prec
         return prec
 
-    def _update_from_cache(self, key, prec):
+    def _update_from_cache(
+        self, key: PackageRecord, prec: PackageRecord | None
+    ) -> PackageRecord | None:
         for pcrec in self.cache_entries:
             if pcrec == key:
                 if prec:
@@ -344,7 +355,7 @@ class Index(UserDict):
                     return pcrec
         return prec
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: PackageRecord) -> PackageRecord:
         assert isinstance(key, PackageRecord)
         try:
             return self._data[key]
@@ -366,14 +377,14 @@ class Index(UserDict):
             raise KeyError((key,))
         return prec
 
-    def __contains__(self, key):
+    def __contains__(self, key: PackageRecord) -> bool:
         try:
             _ = self[key]
             return True
         except (PackagesNotFoundError, KeyError):
             return False
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         inst = self.__class__.__new__(self.__class__)
         inst.__dict__.update(self.__dict__)
         if "_data" in self.__dict__:
@@ -384,16 +395,16 @@ class Index(UserDict):
 class ReducedIndex(Index):
     def __init__(
         self,
-        specs,
-        channels=(),
-        prepend=True,
-        platform=None,
-        subdirs=None,
-        use_local=False,
-        use_cache=None,
-        prefix=None,
-        repodata_fn=context.repodata_fns[-1],
-        add_system=False,
+        specs: Iterable[MatchSpec],
+        channels: tuple[str, ...] = (),
+        prepend: bool = True,
+        platform: str | None = None,
+        subdirs: tuple[str, ...] | None = None,
+        use_local: bool = False,
+        use_cache: bool | None = None,
+        prefix: str | None = None,
+        repodata_fn: str | None = context.repodata_fns[-1],
+        add_system: bool = False,
     ) -> None:
         super().__init__(
             channels,
@@ -409,11 +420,11 @@ class ReducedIndex(Index):
         self.specs = specs
         self._derive_reduced_index()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         channels = ", ".join(self.channels.keys())
         return f"<ReducedIndex(spec={self.specs}, channels=[{channels}])>"
 
-    def _derive_reduced_index(self):
+    def _derive_reduced_index(self) -> None:
         records = IndexedSet()
         collected_names = set()
         collected_track_features = set()
