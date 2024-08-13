@@ -13,10 +13,10 @@ Note that 'remove' only uses `handle_txt()`, but not `install()`.
 from __future__ import annotations
 
 import os
-from argparse import Namespace
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -66,6 +66,9 @@ from ..models.prefix_graph import PrefixGraph
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+
+if TYPE_CHECKING:
+    from argparse import Namespace
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
