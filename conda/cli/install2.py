@@ -10,7 +10,9 @@ conda.cli.main_remove for the entry points into this module.
 
 from __future__ import annotations
 
+import os
 from logging import getLogger
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -37,9 +39,10 @@ def install(args: Namespace, _, command: str) -> int:
     from ..base.constants import REPODATA_FN
     from ..base.context import context
     from ..common.constants import NULL
-    from ..misc import touch_nonadmin
+    from ..core.prefix_data import PrefixData
+    from ..misc import _clone_untracked_files
     from .common import check_non_admin
-    from .install import clone, handle_txn, print_activate
+    from .install import handle_txn
 
     # 1. General checks
     context.validate_configuration()
@@ -78,20 +81,27 @@ def install(args: Namespace, _, command: str) -> int:
         "repodata_fn": repodata_fns[-1],  # default to latest (usually repodata.json)
     }
 
-    # 5. Build a transaction object using one of the different strategies:
+    # 5. Prepare the post-transaction callables (some tasks require extra changes after the
+    #    core transaction is done, but we want to do it before the final prints are sent).
+    post_transaction_callables = []
+    if env.variables:
+        post_transaction_callables.append(
+            lambda: PrefixData(env.prefix).set_environment_env_vars(env.variables)
+        )
+
+    # 6. Build a transaction object using one of the different strategies:
     #    clone an env, revert to a previous revision, explicit URLs/path, regular solve
     if getattr(args, "clone", False):
-        # TODO: Make it return a transaction too, like explicit does
-        clone(
-            src_arg=args.clone,
-            dst_prefix=str(env.prefix),
-            json=context.json,
-            quiet=context.quiet,
-            index_args=index_args,
+        source_prefix = _name_or_prefix_to_path(args.clone)
+        transaction, untracked_files = clone_transaction(
+            source_prefix, str(env.prefix), index_args
         )
-        touch_nonadmin(env.prefix)
-        print_activate(args.name or str(env.prefix))
-        return 0
+        if untracked_files:
+            post_transaction_callables.append(
+                lambda: _clone_untracked_files(
+                    str(source_prefix), str(env.prefix), untracked_files
+                )
+            )
     elif getattr(args, "revision", None) not in (None, NULL):
         transaction = revision_transaction(env.prefix, args.revision, index_args)
     elif env.is_explicit():
@@ -106,7 +116,7 @@ def install(args: Namespace, _, command: str) -> int:
         str(env.prefix),
         args,
         command == "create",
-        variables=env.variables,
+        post_transaction_callables=post_transaction_callables,
     )
 
 
@@ -604,6 +614,72 @@ def _check_subdir_override():
                 raise OperationNotAllowed(msg)
 
 
+def clone_transaction(
+    source_prefix: str | Path, target_prefix: str | Path, index_args=None
+) -> UnlinkLinkTransaction:
+    """
+    Like conda.misc.clone_env, but returns the transaction before building it.
+
+    It doesn't implement (intentionally) these features of the original function:
+    - Filter conda, conda-env out
+    - Block disallowed packages
+    """
+    from ..base.context import context
+    from ..common.io import Spinner
+    from ..core.index import get_index
+    from ..core.link import PrefixSetup, UnlinkLinkTransaction
+    from ..core.prefix_data import PrefixData
+    from ..exceptions import PackagesNotFoundError
+    from ..misc import _get_best_prec_match, untracked
+    from ..models.match_spec import MatchSpec
+    from ..models.prefix_graph import PrefixGraph
+
+    with Spinner(
+        f"Collecting metadata ({source_prefix})",
+        not context.verbose and not context.quiet,
+        context.json,
+    ):
+        untracked_files = untracked(source_prefix)
+        source_records = set(PrefixData(source_prefix).iter_records())
+
+        # Resolve URLs for packages that do not have URLs
+        records_without_url = [
+            record for record in source_records if not record.get("url")
+        ]
+        if records_without_url:
+            not_found = []
+            index = get_index(**(index_args or {}))
+            for record in records_without_url:
+                spec = MatchSpec(
+                    name=record.name, version=record.version, build=record.build
+                )
+                matches = tuple(prec for prec in index.values() if spec.match(prec))
+                if not matches:
+                    not_found.append(spec)
+                elif len(matches) == 1:
+                    source_records.remove(record)
+                    source_records.append(matches[0])
+                else:
+                    source_records.remove(record)
+                    source_records.append(_get_best_prec_match(matches))
+            if not_found:
+                raise PackagesNotFoundError(not_found)
+
+        # Build the link transaction with the obtained records
+        link_records = tuple(PrefixGraph(source_records).graph)
+        setup = PrefixSetup(target_prefix, (), link_records, (), (), ())
+
+    if not context.json and not context.quiet:
+        print(f"Will clone to {target_prefix}:")
+        print(f"- {len(link_records)} package{'s' if len(link_records) != 1 else ''}")
+        if untracked_files:
+            print(
+                f"- {len(untracked_files)} untracked file"
+                f"{'s' if len(untracked_files) != 1 else ''}"
+            )
+    return UnlinkLinkTransaction(setup), untracked_files
+
+
 def _check_clone(args: Namespace):
     from ..exceptions import TooManyArgumentsError
 
@@ -614,3 +690,15 @@ def _check_clone(args: Namespace):
             offending_arguments=[*args.packages, *args.file],
             optional_message="did not expect any arguments for --clone",
         )
+
+def _name_or_prefix_to_path(name_or_prefix: str) -> Path:
+    from ..base.context import locate_prefix_by_name
+    from ..exceptions import DirectoryNotFoundError
+
+    if os.sep in name_or_prefix:
+        path = Path(name_or_prefix).resolve()
+        if not path.is_dir():
+            raise DirectoryNotFoundError(name_or_prefix)
+    else:
+        path = Path(locate_prefix_by_name(name_or_prefix))
+    return path

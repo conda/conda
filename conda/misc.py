@@ -307,9 +307,23 @@ def clone_env(prefix1: str, prefix2: str, verbose=True, quiet=False, index_args=
     if context.dry_run:
         raise DryRunExit()
 
+    _clone_untracked_files(prefix1, prefix2, untracked_files)
+
+    actions = explicit(
+        urls,
+        prefix2,
+        verbose=not quiet,
+        index=index,
+        force_extract=False,
+        index_args=index_args,
+    )
+    return actions, untracked_files
+
+
+def _clone_untracked_files(source_prefix, target_prefix, untracked_files):
     for f in untracked_files:
-        src = join(prefix1, f)
-        dst = join(prefix2, f)
+        src = join(source_prefix, f)
+        dst = join(target_prefix, f)
         dst_dir = dirname(dst)
         if islink(dst_dir) or isfile(dst_dir):
             rm_rf(dst_dir)
@@ -327,7 +341,7 @@ def clone_env(prefix1: str, prefix2: str, verbose=True, quiet=False, index_args=
 
         try:
             s = data.decode("utf-8")
-            s = s.replace(prefix1, prefix2)
+            s = s.replace(source_prefix, target_prefix)
             data = s.encode("utf-8")
         except UnicodeDecodeError:  # data is binary
             pass
@@ -335,16 +349,6 @@ def clone_env(prefix1: str, prefix2: str, verbose=True, quiet=False, index_args=
         with open(dst, "wb") as fo:
             fo.write(data)
         shutil.copystat(src, dst)
-
-    actions = explicit(
-        urls,
-        prefix2,
-        verbose=not quiet,
-        index=index,
-        force_extract=False,
-        index_args=index_args,
-    )
-    return actions, untracked_files
 
 
 def _get_best_prec_match(precs):

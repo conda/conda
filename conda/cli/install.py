@@ -69,6 +69,7 @@ from .main_config import set_keys
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from typing import Iterable
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -609,7 +610,7 @@ def handle_txn(
     args: Namespace,
     newenv: bool,
     remove_op: bool = False,
-    variables: dict[str, str] = None,
+    post_transaction_callables: Iterable[callable] = (),
 ):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
@@ -645,8 +646,8 @@ def handle_txn(
     except SystemExit as e:
         raise CondaSystemExit("Exiting", e)
 
-    if variables:
-        PrefixData(prefix).set_environment_env_vars(variables)
+    for func in post_transaction_callables:
+        func()
 
     if newenv:
         touch_nonadmin(prefix)
