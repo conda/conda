@@ -33,9 +33,11 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
+    ConfigurationObject,
     ConfigurationType,
     EnvRawParameter,
     MapParameter,
+    ObjectParameter,
     ParameterLoader,
     PrimitiveParameter,
     SequenceParameter,
@@ -194,6 +196,17 @@ def ssl_verify_validation(value):
     return True
 
 
+class ReporterBackendsConfig(ConfigurationObject):
+    """
+    Used specifically for the ``Context.reporter_backends`` property
+    """
+
+    def __init__(self):
+        self.something = PrimitiveParameter("", element_type=str)
+        self.console = MapParameter(PrimitiveParameter("", element_type=str))
+        self.json = MapParameter(PrimitiveParameter("", element_type=str))
+
+
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -340,6 +353,12 @@ class Context(Configuration):
     _reporters = ParameterLoader(
         SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
         aliases=("reporters",),
+    )
+
+    reporter_backends = ParameterLoader(
+        ObjectParameter(
+            ReporterBackendsConfig()
+        )  # , default=ReporterBackendsDefaults())
     )
 
     ####################################################

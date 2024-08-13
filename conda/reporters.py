@@ -6,15 +6,16 @@ Holds functions for output rendering in conda
 
 from __future__ import annotations
 
+import sys
+
 from .base.context import context
 
 
 def render(data, style: str | None = None, **kwargs) -> None:
     for settings in context.reporters:
         reporter = context.plugin_manager.get_reporter_backend(settings.get("backend"))
-        output = context.plugin_manager.get_reporter_output(settings.get("output"))
 
-        if reporter is None or output is None:
+        if reporter is None:
             continue
 
         renderer = reporter.renderer()
@@ -28,5 +29,4 @@ def render(data, style: str | None = None, **kwargs) -> None:
 
         data_str = render_func(data, **kwargs)
 
-        with output.stream() as file:
-            file.write(data_str)
+        sys.stdout.write(data_str)

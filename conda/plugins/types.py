@@ -17,7 +17,7 @@ from requests.auth import AuthBase
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Any, Callable, ContextManager
+    from typing import Any, Callable
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
@@ -252,23 +252,3 @@ class CondaReporterBackend:
     name: str
     description: str
     renderer: type[ReporterRendererBase]
-
-
-@dataclass
-class CondaReporterOutput:
-    """
-    Return type to use when defining a conda reporter output plugin hook.
-
-    For details on how this is used, see:
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_reporter_outputs`.
-
-    :param name: name of the reporter output (e.g., ``email_reporter``)
-                 This is how the reporter backend references it in configuration files.
-    :param description: short description of what the reporter output does
-    :param stream: a callable object returning a context manager that yields a
-                  :class:`~io.TextIOBase` compatible object.
-    """
-
-    name: str
-    description: str
-    stream: Callable[[], ContextManager]

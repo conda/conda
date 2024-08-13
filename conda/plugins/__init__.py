@@ -33,7 +33,6 @@ from .types import (  # noqa: F401
     CondaPreCommand,
     CondaPreSolve,
     CondaReporterBackend,
-    CondaReporterOutput,
     CondaSetting,
     CondaSolver,
     CondaSubcommand,
