@@ -128,6 +128,10 @@ def install(args: Namespace, _, command: str) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
+    if context.force_32bit and paths_equal(env.prefix, context.root_prefix):
+        # TODO: Deprecate this setting?
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+
     if command == "create":
         check_prefix(str(env.prefix), json=context.json)
         _check_subdir_override()
@@ -374,8 +378,6 @@ def _classic_solver_transaction(
             )
 
         except (ResolvePackageNotFound, PackagesNotFoundError) as e:
-            if not getattr(e, "allow_retry", True):
-                raise e  # see note in next except block
             # end of the line.  Raise the exception
             if repodata_fn == repodata_fns[-1]:
                 # PackagesNotFoundError is the only exception type we want to raise.
@@ -395,18 +397,6 @@ def _classic_solver_transaction(
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
-            if not getattr(e, "allow_retry", True):
-                # TODO: This is a temporary workaround to allow downstream libraries
-                # to inject this attribute set to False and skip the retry logic
-                # Other solvers might implement their own internal retry logic without
-                # depending --freeze-install implicitly like conda classic does. Example
-                # retry loop in conda-libmamba-solver:
-                # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
-                # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
-                # so we don't have go through all the repodatas and freeze-installed logic
-                # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
-                # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
-                raise e
             # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if not hasattr(args, "update_modifier"):
                 if repodata_fn == repodata_fns[-1]:
