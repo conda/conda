@@ -43,6 +43,7 @@ def install(args: Namespace, _, command: str) -> int:
 
     from ..base.constants import REPODATA_FN, UpdateModifier
     from ..base.context import context
+    from ..common.constants import NULL
     from ..common.path import paths_equal
     from ..env.specs import detect as detect_input_file
     from ..exceptions import (
@@ -187,11 +188,11 @@ def install(args: Namespace, _, command: str) -> int:
         touch_nonadmin(env.prefix)
         print_activate(args.name or str(env.prefix))
         return 0
+    elif getattr(args, "revision", None) not in (None, NULL):
+        transaction = revision_transaction(env.prefix, args.revision, index_args)
     elif env.is_explicit():
         # invoke explicit solve and obtain transaction
         transaction = explicit_transaction(env, args, command)
-    elif command == "install" and args.revision:
-        transaction = revision_transaction(env.prefix, args.revision, index_args)
     else:
         transaction = solver_transaction(env, args, command, index_args, repodata_fns)
 
@@ -200,7 +201,7 @@ def install(args: Namespace, _, command: str) -> int:
         transaction,
         str(env.prefix),
         args,
-        not env.prefix.exists(),
+        command == "create",
         variables=env.variables,
     )
 

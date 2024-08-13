@@ -326,6 +326,8 @@ class Environment:
         )
 
     def is_explicit(self) -> bool:
+        if not self.requirements:
+            return False
         n_explicit = sum(1 for pkg in self.requirements if is_package_file(pkg))
         if n_explicit == len(self.requirements):
             return True
