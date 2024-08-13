@@ -94,7 +94,6 @@ def install(args: Namespace, _, command: str) -> int:
         prefix=prefix,
         requirements=specs,
         validate=False,
-        channels=args.channel,
     )
 
     repodata_fns = args.repodata_fns or list(context.repodata_fns)
@@ -489,6 +488,18 @@ def _simple_solver_transaction(
             SystemExit,
             SpecsConfigurationConflictError,
         ) as e:
+            if not getattr(e, "allow_retry", True):
+                # TODO: This is a temporary workaround to allow downstream libraries
+                # to inject this attribute set to False and skip the retry logic
+                # Other solvers might implement their own internal retry logic without
+                # depending --freeze-install implicitly like conda classic does. Example
+                # retry loop in conda-libmamba-solver:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
+                # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
+                # so we don't have go through all the repodatas and freeze-installed logic
+                # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
+                raise e
             if repodata_fn == repodata_fns[-1]:  # last attempt, we raise
                 raise e
 
