@@ -691,6 +691,7 @@ def _check_clone(args: Namespace):
             optional_message="did not expect any arguments for --clone",
         )
 
+
 def _name_or_prefix_to_path(name_or_prefix: str) -> Path:
     from ..base.context import locate_prefix_by_name
     from ..exceptions import DirectoryNotFoundError
