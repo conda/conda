@@ -137,11 +137,11 @@ class Environment:
         if names:
             name = names[0]
             if len(names) > 1:
-                log.warning("Picking first environment name %s", name)
+                log.debug("Several names passed %s. Picking first one %s", names, name)
         if prefixes:
             prefix = prefixes[0]
             if len(prefixes) > 1:
-                log.warning("Picking first environment prefix %s", prefix)
+                log.debug("Several prefixes passed %s. Picking first one %s", prefixes, prefix)
         if name and prefix and name != prefix.name:
             log.warning("Picked name %s and prefix %s do not match. Overriding prefix")
             prefix = None

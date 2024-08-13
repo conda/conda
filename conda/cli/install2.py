@@ -10,6 +10,7 @@ conda.cli.main_remove for the entry points into this module.
 
 from __future__ import annotations
 
+from logging import getLogger
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,6 +19,8 @@ if TYPE_CHECKING:
 
     from ..core.link import UnlinkLinkTransaction
     from ..models.environment import Environment
+
+log = getLogger(__name__)
 
 
 def install(args: Namespace, _, command: str) -> int:
@@ -38,21 +41,37 @@ def install(args: Namespace, _, command: str) -> int:
     # Handle transaction
     from tempfile import mkdtemp
 
-    from ..base.constants import REPODATA_FN
+    from ..base.constants import REPODATA_FN, UpdateModifier
     from ..base.context import context
+    from ..common.path import paths_equal
     from ..env.specs import detect as detect_input_file
     from ..exceptions import (
         ArgumentError,
-        CondaError,
+        CondaOSError,
+        CondaValueError,
+        DirectoryNotACondaEnvironmentError,
+        EnvironmentLocationNotFound,
         InvalidSpec,
         NeedsNameOrPrefix,
+        NoBaseEnvironmentError,
         PackageNotInstalledError,
-        TooManyArgumentsError,
     )
+    from ..gateways.disk.create import mkdir_p
+    from ..gateways.disk.delete import delete_trash, path_is_clean
     from ..misc import touch_nonadmin
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
-    from .install import clone, handle_txn, print_activate
+    from .common import check_non_admin
+    from .install import check_prefix, clone, handle_txn, print_activate
+
+    context.validate_configuration()
+    check_non_admin()
+    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
+    #    because it deduplicates records that exist as both formats.  Forcing this to
+    #    repodata.json ensures that .tar.bz2 files are available
+    if context.use_only_tar_bz2:
+        log.info("use_only_tar_bz2 is true; overriding repodata_fns")
+        args.repodata_fns = ("repodata.json",)
 
     # First, let's create an 'Environment' for the information exposed in the CLI (no files)
     specs = [MatchSpec(pkg) for pkg in args.packages]
@@ -74,6 +93,7 @@ def install(args: Namespace, _, command: str) -> int:
         prefix=prefix,
         requirements=specs,
         validate=False,
+        channels=args.channel,
     )
 
     repodata_fns = args.repodata_fns or list(context.repodata_fns)
@@ -87,26 +107,6 @@ def install(args: Namespace, _, command: str) -> int:
         "use_local": args.use_local,
         "repodata_fn": repodata_fns[-1],  # default to latest (usually repodata.json)
     }
-
-    # Environment cloning is an early exit task; we already have the necessary information
-    if command == "create" and args.clone:
-        if args.packages or args.file:
-            raise TooManyArgumentsError(
-                expected=0,
-                received=len(args.packages) + len(args.file),
-                offending_arguments=[*args.packages, *args.file],
-                optional_message="did not expect any arguments for --clone",
-            )
-        clone(
-            src_arg=args.clone,
-            dst_prefix=cli_env.prefix,
-            json=context.json,
-            quiet=context.quiet,
-            index_args=index_args,
-        )
-        touch_nonadmin(cli_env.prefix)
-        print_activate(args.name or cli_env.prefix)
-        return 0
 
     # Now let's process potential files passed via --file
     file_envs = []
@@ -128,7 +128,13 @@ def install(args: Namespace, _, command: str) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
-    if env.exists():
+    if command == "create":
+        check_prefix(str(env.prefix), json=context.json)
+        _check_subdir_override()
+        if args.clone:
+            _check_clone(args)
+    elif env.exists():
+        delete_trash(prefix)
         # TODO: If we changed the Solver logic, this merged environment could
         # hold all the information required to simply invoke the solution.
         # For now, we need to pass this _without_ the history or pins.
@@ -137,24 +143,51 @@ def install(args: Namespace, _, command: str) -> int:
         )
         if command == "update":
             installed_pkgs = list(existing_env.installed())
-            for requirement in env.requirements:
-                if not requirement.is_name_only_spec:
-                    raise InvalidSpec(
-                        f"Invalid spec for 'conda update': {requirement}.\n"
-                        "'conda update' only accepts name-only specs. "
-                        "Use 'conda install' to specify a constraint."
-                    )
-                if not any(requirement.match(pkg) for pkg in installed_pkgs):
-                    raise PackageNotInstalledError(env.prefix, requirement)
-        env = Environment.merge(existing_env, env)
-    else:
-        if command != "create":
-            raise CondaError(
-                f"'conda {command}' can only be used with existing environments."
-            )
-        # TODO: Create prefix (should this be part of the transaction system)
+            if env.requirements:
+                for requirement in env.requirements:
+                    if not requirement.is_name_only_spec:
+                        raise InvalidSpec(
+                            f"Invalid spec for 'conda update': {requirement}.\n"
+                            "'conda update' only accepts name-only specs. "
+                            "Use 'conda install' to specify a constraint."
+                        )
+                    if not any(requirement.match(pkg) for pkg in installed_pkgs):
+                        raise PackageNotInstalledError(env.prefix, requirement)
+            elif context.update_modifier != UpdateModifier.UPDATE_ALL:
+                raise CondaValueError(
+                    "no package names supplied\n"
+                    "# Example: conda update -n myenv scipy"
+                )
 
-    if env.is_explicit():
+        env = Environment.merge(existing_env, env)
+    elif not (env.prefix / "conda-meta" / "history").is_file():
+        if paths_equal(prefix, context.conda_prefix):
+            raise NoBaseEnvironmentError()
+        else:
+            if not path_is_clean(prefix):
+                raise DirectoryNotACondaEnvironmentError(prefix)
+    elif getattr(args, "mkdir", False):
+        # --mkdir is deprecated and marked for removal in conda 25.3
+        try:
+            mkdir_p(env.prefix)
+        except OSError as e:
+            raise CondaOSError(f"Could not create directory: {env.prefix}", caused_by=e)
+    else:
+        raise EnvironmentLocationNotFound(env.prefix)
+
+    if getattr(args, "clone", False):
+        # TODO: Make it return a transaction too, like explicit does
+        clone(
+            src_arg=args.clone,
+            dst_prefix=env.prefix,
+            json=context.json,
+            quiet=context.quiet,
+            index_args=index_args,
+        )
+        touch_nonadmin(env.prefix)
+        print_activate(args.name or str(env.prefix))
+        return 0
+    elif env.is_explicit():
         # invoke explicit solve and obtain transaction
         transaction = explicit_transaction(env, args, command)
     elif command == "install" and args.revision:
@@ -179,7 +212,11 @@ def _conda_env_to_environment(parsed) -> Environment:
     return Environment(
         name=env.name if env.name != "_" else None,
         channels=env.channels,
-        requirements=env.dependencies.get("conda", []),
+        requirements=[
+            dep
+            for dep in env.dependencies.get("conda", ())
+            if str(dep).upper() != "@EXPLICIT"
+        ],
         variables=env.variables or {},
         validate=False,
     )
@@ -216,11 +253,14 @@ def explicit_transaction(environment: Environment, args: Namespace, command: str
                     specs_to_link.append(spec)
             else:
                 specs_to_link.append(spec)
+    else:
+        specs_to_link = environment.requirements
+
+    pfe = ProgressiveFetchExtract(specs_to_link)
 
     if context.dry_run:
         raise DryRunExit()
 
-    pfe = ProgressiveFetchExtract(specs_to_link)
     pfe.execute()
 
     if context.download_only:
@@ -238,7 +278,7 @@ def explicit_transaction(environment: Environment, args: Namespace, command: str
         record = next(PackageCacheData.query_all(spec), None)
         if record:
             records_to_link.append(record)
-            specs_to_update(spec)
+            specs_to_update.append(spec)
         else:
             specs_with_missing_record.append(spec)
 
@@ -478,3 +518,57 @@ def revision_transaction(prefix: str, revision: int, index_args: dict):
         context.json,
     ):
         return revert_actions(str(prefix), revision_idx, index)
+
+
+def _check_subdir_override():
+    from ..auxlib.ish import dals
+    from ..base.context import context
+    from ..common.path import paths_equal
+    from ..exceptions import OperationNotAllowed
+
+    if context.subdir != context._native_subdir():
+        # We will only allow a different subdir if it's specified by global
+        # configuration, environment variable or command line argument. IOW,
+        # prevent a non-base env configured for a non-native subdir from leaking
+        # its subdir to a newer env.
+        context_sources = context.collect_all()
+        if context_sources.get("cmd_line", {}).get("subdir") == context.subdir:
+            pass  # this is ok
+        elif context_sources.get("envvars", {}).get("subdir") == context.subdir:
+            pass  # this is ok too
+        # config does not come from envvars or cmd_line, it must be a file
+        # that's ok as long as it's a base env or a global file
+        elif not paths_equal(context.active_prefix, context.root_prefix):
+            # this is only ok as long as it's base environment
+            active_env_config = next(
+                (
+                    config
+                    for path, config in context_sources.items()
+                    if paths_equal(context.active_prefix, path.parent)
+                ),
+                None,
+            )
+            if active_env_config.get("subdir") == context.subdir:
+                # In practice this never happens; the subdir info is not even
+                # loaded from the active env for conda create :shrug:
+                msg = dals(
+                    f"""
+                    Active environment configuration ({context.active_prefix}) is
+                    implicitly requesting a non-native platform ({context.subdir}).
+                    Please deactivate first or explicitly request the platform via
+                    the --platform=[value] command line flag.
+                    """
+                )
+                raise OperationNotAllowed(msg)
+
+
+def _check_clone(args: Namespace):
+    from ..exceptions import TooManyArgumentsError
+
+    if args.packages or args.file:
+        raise TooManyArgumentsError(
+            expected=0,
+            received=len(args.packages) + len(args.file),
+            offending_arguments=[*args.packages, *args.file],
+            optional_message="did not expect any arguments for --clone",
+        )
