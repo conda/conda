@@ -7,7 +7,6 @@ import sys
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
 
-from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
 from ..common.constants import NULL
