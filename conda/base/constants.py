@@ -12,7 +12,7 @@ import struct
 from enum import Enum, EnumMeta
 from os.path import join
 
-from ..common.compat import on_win, six_with_metaclass
+from ..common.compat import on_win
 
 PREFIX_PLACEHOLDER = (
     "/opt/anaconda1anaconda2"
@@ -247,7 +247,7 @@ class ValueEnum(Enum):
         return f"{self.value}"
 
 
-class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
+class ChannelPriority(ValueEnum, metaclass=ChannelPriorityMeta):
     __name__ = "ChannelPriority"
 
     STRICT = "strict"

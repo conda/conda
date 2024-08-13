@@ -16,7 +16,12 @@ on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
 on_linux = bool(sys.platform == "linux")
 
-FILESYSTEM_ENCODING = sys.getfilesystemencoding()
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "FILESYSTEM_ENCODING",
+    _FILESYSTEM_ENCODING := sys.getfilesystemencoding(),
+)
 
 # Control some tweakables that will be removed finally.
 ENCODE_ENVIRONMENT = True
@@ -56,6 +61,7 @@ def isiterable(obj):
 from collections import OrderedDict as odict  # noqa: F401
 
 
+@deprecated("25.3", "25.9", addendum="Use builtin `open` instead.")
 def open(
     file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
 ):
@@ -80,6 +86,11 @@ def open(
         )
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use class' `metaclass=` keyword argument instead.",
+)
 def six_with_metaclass(meta, *bases):
     """Create a base class with a metaclass."""
 
@@ -128,6 +139,7 @@ def ensure_text_type(value) -> str:
         return value
 
 
+@deprecated("25.3", "25.9")
 def ensure_unicode(value):
     try:
         return value.decode("unicode_escape")
@@ -137,9 +149,10 @@ def ensure_unicode(value):
         return value
 
 
+@deprecated("25.3", "25.9")
 def ensure_fs_path_encoding(value):
     try:
-        return value.encode(FILESYSTEM_ENCODING)
+        return value.encode(_FILESYSTEM_ENCODING)
     except AttributeError:
         return value
     except UnicodeEncodeError:
