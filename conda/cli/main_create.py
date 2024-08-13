@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from argparse import _StoreTrueAction
 from logging import getLogger
-from os.path import isdir
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated

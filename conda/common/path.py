@@ -29,7 +29,10 @@ from .compat import on_win
 if TYPE_CHECKING:
     from typing import Iterable, Sequence
 
+    from ..models.match_spec import MatchSpec
+
     PathType = str | os.PathLike
+
 
 log = getLogger(__name__)
 
@@ -391,7 +394,7 @@ def strip_pkg_extension(path: str):
     return path, None
 
 
-def is_package_file(path_or_spec: str | "MatchSpec") -> bool:
+def is_package_file(path_or_spec: str | MatchSpec) -> bool:
     """
     Examples:
         >>> is_package_file("/path/_license-1.1-py27_1.tar.bz2")

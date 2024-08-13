@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Models to specify input variables for the creation of conda environments
 
@@ -140,7 +142,9 @@ class Environment:
         if prefixes:
             prefix = prefixes[0]
             if len(prefixes) > 1:
-                log.debug("Several prefixes passed %s. Picking first one %s", prefixes, prefix)
+                log.debug(
+                    "Several prefixes passed %s. Picking first one %s", prefixes, prefix
+                )
         if name and prefix and name != prefix.name:
             log.warning("Picked name %s and prefix %s do not match. Overriding prefix")
             prefix = None
@@ -173,7 +177,9 @@ class Environment:
             ):
                 solver_options = all_solver_options[0]
             elif validate:
-                raise ValueError(f"All 'solver_options' fields must be equal: {all_solver_options}")
+                raise ValueError(
+                    f"All 'solver_options' fields must be equal: {all_solver_options}"
+                )
             else:
                 log.warning(
                     "Different 'solver_options' detected. Keeping only first one..."
@@ -332,4 +338,6 @@ class Environment:
             return True
         if n_explicit == 0:
             return False
-        raise CondaValueError("cannot mix specifications with conda package URL / paths.")
+        raise CondaValueError(
+            "cannot mix specifications with conda package URL / paths."
+        )

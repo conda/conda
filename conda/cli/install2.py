@@ -1,4 +1,4 @@
-# Copyright (C) 2024 conda contributors
+# Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Conda package installation logic, revisited.
 
@@ -233,7 +233,9 @@ def explicit_transaction(environment: Environment, args: Namespace, command: str
     from ..exceptions import CondaExitZero, DryRunExit, SpecNotFound
 
     if not environment.requirements:
-        return UnlinkLinkTransaction(PrefixSetup(str(environment.prefix), (), (), (), (), ()))
+        return UnlinkLinkTransaction(
+            PrefixSetup(str(environment.prefix), (), (), (), (), ())
+        )
 
     records_to_unlink = []
     specs_to_link = []
