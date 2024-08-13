@@ -247,12 +247,8 @@ def check_non_admin():
         from ..exceptions import OperationNotAllowed
 
         raise OperationNotAllowed(
-            dals(
-                """
-            The create, install, update, and remove operations have been disabled
-            on your system for non-privileged users.
-        """
-            )
+            "The create, install, update, and remove operations have been disabled\n"
+            "on your system for non-privileged users."
         )
 
 

@@ -30,72 +30,42 @@ def install(args: Namespace, _, command: str) -> int:
 
     1. Raise an error because the CLI was insufficient or invalid
     2. Clone an existing environment to a new one: 'conda create --clone'
-    3. Process 'explicit' transactions (lockfiles, or if all specs are URLs or paths)
-    4. Massage all the inputs for the solver, invoke the solver, and process the final transaction
+    3. Revert to a previous revision via 'conda install --revision'
+    4. Process 'explicit' transactions (lockfiles, or if all specs are URLs or paths)
+    5. Massage all the inputs for the solver, invoke the solver, and process the final transaction
     """
-    # Parse all inputs to build an Environment instance
-    # Retrieve the necessary information from the Environment
-    # Set up environment workspace or import if existing
-    # Build explicit transactions
-    # OR Build solver transactions
-    # Handle transaction
-    from tempfile import mkdtemp
-
-    from ..base.constants import REPODATA_FN, UpdateModifier
+    from ..base.constants import REPODATA_FN
     from ..base.context import context
     from ..common.constants import NULL
-    from ..common.path import paths_equal
-    from ..env.specs import detect as detect_input_file
-    from ..exceptions import (
-        ArgumentError,
-        CondaOSError,
-        CondaValueError,
-        DirectoryNotACondaEnvironmentError,
-        EnvironmentLocationNotFound,
-        InvalidSpec,
-        NeedsNameOrPrefix,
-        NoBaseEnvironmentError,
-        PackageNotInstalledError,
-    )
-    from ..gateways.disk.create import mkdir_p
-    from ..gateways.disk.delete import delete_trash, path_is_clean
     from ..misc import touch_nonadmin
-    from ..models.environment import Environment
-    from ..models.match_spec import MatchSpec
     from .common import check_non_admin
-    from .install import check_prefix, clone, handle_txn, print_activate
+    from .install import clone, handle_txn, print_activate
 
+    # 1. General checks
     context.validate_configuration()
     check_non_admin()
-    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
-    #    because it deduplicates records that exist as both formats.  Forcing this to
-    #    repodata.json ensures that .tar.bz2 files are available
-    if context.use_only_tar_bz2:
-        log.info("use_only_tar_bz2 is true; overriding repodata_fns")
-        args.repodata_fns = ("repodata.json",)
 
-    # First, let's create an 'Environment' for the information exposed in the CLI (no files)
-    specs = [MatchSpec(pkg) for pkg in args.packages]
-    if command == "create" and not args.no_default_packages:
-        names = {spec.name for spec in specs}
-        for pkg in context.create_default_packages:
-            spec = MatchSpec(pkg)
-            if spec.name not in names:
-                specs.append(spec)
-
-    if command != "create" and not args.name and not args.prefix:
-        name = None
-        prefix = context.active_prefix
-    else:
-        name = args.name
-        prefix = args.prefix
-    cli_env = Environment(
-        name=name,
-        prefix=prefix,
-        requirements=specs,
-        validate=False,
+    # 2. Gather all CLI inputs in an 'environment' model. This object holds all the
+    # information needed for the different transaction inputs below
+    env = _assemble_environment(
+        command=command,
+        name=args.name,
+        prefix=args.prefix,
+        specs=args.packages,
+        files=args.file,
+        inject_default_packages=command == "create" and not args.no_default_packages,
     )
 
+    # 3. Now we can run prefix-dependent checks
+    _prefix_required_checks(environment=env, command=command, args=args)
+
+    # 4. Prepare some index arguments needed in some of the transactions below
+    if context.use_only_tar_bz2:
+        # this is sort of a hack. current_repodata.json may not have any .tar.bz2 files,
+        # because it deduplicates records that exist as both formats. Forcing this to
+        # repodata.json ensures that .tar.bz2 files are available
+        log.info("use_only_tar_bz2 is true; overriding repodata_fns")
+        args.repodata_fns = ("repodata.json",)
     repodata_fns = args.repodata_fns or list(context.repodata_fns)
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
@@ -108,77 +78,8 @@ def install(args: Namespace, _, command: str) -> int:
         "repodata_fn": repodata_fns[-1],  # default to latest (usually repodata.json)
     }
 
-    # Now let's process potential files passed via --file
-    file_envs = []
-    if args.file:
-        for path in args.file:
-            # TODO: reimplement this conda.env part with a plugin system
-            # that knows about conda.models.environment natively
-            input_file = detect_input_file(name=cli_env.name or "_", filename=path)
-            file_envs.append(_conda_env_to_environment(input_file))
-
-    try:
-        env = Environment.merge(cli_env, *file_envs)
-    except NeedsNameOrPrefix:
-        if context.dry_run:
-            cli_env.prefix = mkdtemp(prefix="unused-conda-env")
-            env = Environment.merge(cli_env, *file_envs)
-        else:
-            raise ArgumentError(
-                "one of the arguments -n/--name -p/--prefix is required"
-            )
-
-    if context.force_32bit and paths_equal(env.prefix, context.root_prefix):
-        # TODO: Deprecate this setting?
-        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-
-    if command == "create":
-        check_prefix(str(env.prefix), json=context.json)
-        _check_subdir_override()
-        if args.clone:
-            _check_clone(args)
-    elif env.exists():
-        delete_trash(prefix)
-        # TODO: If we changed the Solver logic, this merged environment could
-        # hold all the information required to simply invoke the solution.
-        # For now, we need to pass this _without_ the history or pins.
-        existing_env = Environment.from_prefix(
-            env.prefix, load_history=False, load_pins=False
-        )
-        if command == "update":
-            installed_pkgs = list(existing_env.installed())
-            if env.requirements:
-                for requirement in env.requirements:
-                    if not requirement.is_name_only_spec:
-                        raise InvalidSpec(
-                            f"Invalid spec for 'conda update': {requirement}.\n"
-                            "'conda update' only accepts name-only specs. "
-                            "Use 'conda install' to specify a constraint."
-                        )
-                    if not any(requirement.match(pkg) for pkg in installed_pkgs):
-                        raise PackageNotInstalledError(env.prefix, requirement)
-            elif context.update_modifier != UpdateModifier.UPDATE_ALL:
-                raise CondaValueError(
-                    "no package names supplied\n"
-                    "# Example: conda update -n myenv scipy"
-                )
-
-        env = Environment.merge(existing_env, env)
-    elif not (env.prefix / "conda-meta" / "history").is_file():
-        if paths_equal(env.prefix, context.conda_prefix):
-            raise NoBaseEnvironmentError()
-        else:
-            if not path_is_clean(env.prefix):
-                raise DirectoryNotACondaEnvironmentError(env.prefix)
-    elif getattr(args, "mkdir", False):
-        # --mkdir is deprecated and marked for removal in conda 25.3
-        try:
-            mkdir_p(env.prefix)
-        except OSError as e:
-            raise CondaOSError(f"Could not create directory: {env.prefix}", caused_by=e)
-    else:
-        raise EnvironmentLocationNotFound(env.prefix)
-
+    # 5. Build a transaction object using one of the different strategies:
+    #    clone an env, revert to a previous revision, explicit URLs/path, regular solve
     if getattr(args, "clone", False):
         # TODO: Make it return a transaction too, like explicit does
         clone(
@@ -199,7 +100,7 @@ def install(args: Namespace, _, command: str) -> int:
     else:
         transaction = solver_transaction(env, args, command, index_args, repodata_fns)
 
-    # Handle transaction; maybe add here the environment directory creation and stuff
+    # 6. Handle transaction
     handle_txn(
         transaction,
         str(env.prefix),
@@ -207,6 +108,137 @@ def install(args: Namespace, _, command: str) -> int:
         command == "create",
         variables=env.variables,
     )
+
+
+def _assemble_environment(
+    command: str,
+    name: str | None = None,
+    prefix: str | None = None,
+    specs: Iterable[str] = (),
+    files: Iterable[str] = (),
+    inject_default_packages: bool = True,
+) -> Environment:
+    from tempfile import mkdtemp
+
+    from ..base.context import context
+    from ..env.specs import detect as detect_input_file
+    from ..exceptions import (
+        ArgumentError,
+        NeedsNameOrPrefix,
+    )
+    from ..models.environment import Environment
+    from ..models.match_spec import MatchSpec
+
+    # First, let's create an 'Environment' for the information exposed in the CLI (no files)
+    specs = [MatchSpec(pkg) for pkg in specs]
+    if command == "create" and inject_default_packages:
+        names = {spec.name for spec in specs}
+        for pkg in context.create_default_packages:
+            spec = MatchSpec(pkg)
+            if spec.name not in names:
+                specs.append(spec)
+
+    if command != "create" and not name and not prefix:
+        name = None
+        prefix = context.active_prefix
+    cli_env = Environment(
+        name=name,
+        prefix=prefix,
+        requirements=specs,
+        validate=False,
+    )
+
+    # Now let's process potential files passed via --file
+    file_envs = []
+    if files:
+        for path in files:
+            # TODO: reimplement this conda.env part with a plugin system
+            # that knows about conda.models.environment natively
+            input_file = detect_input_file(name=cli_env.name or "_", filename=path)
+            file_envs.append(_conda_env_to_environment(input_file))
+
+    try:
+        return Environment.merge(cli_env, *file_envs)
+    except NeedsNameOrPrefix:
+        if context.dry_run:
+            cli_env.prefix = mkdtemp(prefix="unused-conda-env")
+            return Environment.merge(cli_env, *file_envs)
+        else:
+            raise ArgumentError(
+                "one of the arguments -n/--name -p/--prefix is required"
+            )
+
+
+def _prefix_required_checks(environment: Environment, command: str, args: Namespace):
+    from ..base.constants import UpdateModifier
+    from ..base.context import context
+    from ..common.path import paths_equal
+    from ..exceptions import (
+        CondaOSError,
+        CondaValueError,
+        DirectoryNotACondaEnvironmentError,
+        EnvironmentLocationNotFound,
+        InvalidSpec,
+        NoBaseEnvironmentError,
+        PackageNotInstalledError,
+    )
+    from ..gateways.disk.create import mkdir_p
+    from ..gateways.disk.delete import delete_trash, path_is_clean
+    from ..models.environment import Environment
+    from .install import check_prefix
+
+    if context.force_32bit and paths_equal(environment.prefix, context.root_prefix):
+        # TODO: Deprecate this setting?
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+
+    if command == "create":
+        check_prefix(str(environment.prefix), json=context.json)
+        _check_subdir_override()
+        if args.clone:
+            _check_clone(args)
+    elif environment.exists():
+        delete_trash(environment.prefix)
+        # TODO: If we changed the Solver logic, this merged environment could
+        # hold all the information required to simply invoke the solution.
+        # For now, we need to pass this _without_ the history or pins.
+        existing_environment = Environment.from_prefix(
+            environment.prefix, load_history=False, load_pins=False
+        )
+        if command == "update":
+            installed_pkgs = list(existing_environment.installed())
+            if environment.requirements:
+                for requirement in environment.requirements:
+                    if not requirement.is_name_only_spec:
+                        raise InvalidSpec(
+                            f"Invalid spec for 'conda update': {requirement}.\n"
+                            "'conda update' only accepts name-only specs. "
+                            "Use 'conda install' to specify a constraint."
+                        )
+                    if not any(requirement.match(pkg) for pkg in installed_pkgs):
+                        raise PackageNotInstalledError(environment.prefix, requirement)
+            elif context.update_modifier != UpdateModifier.UPDATE_ALL:
+                raise CondaValueError(
+                    "no package names supplied\n"
+                    "# Example: conda update -n myenv scipy"
+                )
+
+        environment = Environment.merge(existing_environment, environment)
+    elif not (environment.prefix / "conda-meta" / "history").is_file():
+        if paths_equal(environment.prefix, context.conda_prefix):
+            raise NoBaseEnvironmentError()
+        else:
+            if not path_is_clean(environment.prefix):
+                raise DirectoryNotACondaEnvironmentError(environment.prefix)
+    elif getattr(args, "mkdir", False):
+        # --mkdir is deprecated and marked for removal in conda 25.3
+        try:
+            mkdir_p(environment.prefix)
+        except OSError as e:
+            raise CondaOSError(
+                f"Could not create directory: {environment.prefix}", caused_by=e
+            )
+    else:
+        raise EnvironmentLocationNotFound(environment.prefix)
 
 
 def _conda_env_to_environment(parsed) -> Environment:
