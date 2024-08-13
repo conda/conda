@@ -253,7 +253,7 @@ class PackageRecord(DictSafeMixin, Entity):
     :class:`PackageCacheRecord`. These capture the same information, but are augmented with
     additional information relevant for these two sources of packages.
 
-    Further note that :class``PackageRecord` makes use of its :attr:`_pkey`
+    Further note that :class:`PackageRecord` makes use of its :attr:`_pkey`
     for comparison and hash generation.
     This means that for common operations, like comparisons between :class:`PackageRecord` s
     and reference of :class:`PackageRecord` s in mappings, _different_ objects appear identical.
@@ -295,7 +295,7 @@ class PackageRecord(DictSafeMixin, Entity):
     fn = FilenameField(aliases=("filename",))
     """str: The filename of the package.
 
-    Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>` is true (default: false).
+    Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>` is ``true`` (default: ``false``).
     """
 
     md5 = StringField(
