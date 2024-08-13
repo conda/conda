@@ -344,11 +344,14 @@ def _classic_solver_transaction(
 
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
+    args_set_update_modifier = (
+        hasattr(args, "update_modifier") and args.update_modifier != NULL
+    )
     _should_retry_unfrozen = (
-        hasattr(args, "update_modifier")
-        and args.update_modifier
-        not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS, NULL)
-    ) and environment.exists()
+        not args_set_update_modifier
+        or args.update_modifier
+        not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
+    ) and command != "create"
 
     for repodata_fn in repodata_fns:
         try:
@@ -407,7 +410,7 @@ def _classic_solver_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
                         force_reinstall=context.force_reinstall or context.force,
-                        should_retry_solve=(repodata_fn != repodata_fns[-1]),
+                        should_retry_solve=repodata_fn != repodata_fns[-1],
                     )
                 except (
                     UnsatisfiableError,
