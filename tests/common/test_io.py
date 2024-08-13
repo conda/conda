@@ -62,6 +62,7 @@ def test_attach_stderr_handler():
     assert logr.handlers[0].name == "stderr"
     assert logr.handlers[0].level is WARN
     assert logr.level is NOTSET
+    assert logr.getEffectiveLevel() is WARN
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message not in c.stderr
@@ -76,7 +77,7 @@ def test_attach_stderr_handler():
     assert len(logr.handlers) == 1
     assert logr.handlers[0].name == "stderr"
     assert logr.handlers[0].level is DEBUG
-    assert logr.level is NOTSET
+    assert logr.level is DEBUG
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message in c.stderr

@@ -12,8 +12,8 @@
 
 ### Docs
 
-* Update conda cheatsheet text and add it directly to cheatsheet page. (#13889)
+* <news item>
 
 ### Other
 
-* <news item>
+* Update xonsh support to accomodate deprecated import path (#14047)

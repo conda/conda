@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes parsing error when history file only contains a single commented line (#13960)
+* Enable `conda doctor` to check whether the environment exists or not before trying to generate a health report. (#14112)
 
 ### Deprecations
 

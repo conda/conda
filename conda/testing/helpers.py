@@ -19,7 +19,6 @@ from ..common.io import captured as common_io_captured
 from ..common.io import env_var
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
-from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..history import History
@@ -66,22 +65,6 @@ def captured(disallow_stderr=True):
         c.stderr = strip_expected(c.stderr)
         if disallow_stderr and c.stderr:
             raise Exception(f"Got stderr output: {c.stderr}")
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
-)
-@contextmanager
-def set_active_prefix(prefix: str) -> None:
-    old_prefix = os.environ["CONDA_PREFIX"]
-
-    try:
-        os.environ["CONDA_PREFIX"] = prefix
-        yield
-    finally:
-        os.environ["CONDA_PREFIX"] = old_prefix
 
 
 def assert_equals(a, b, output=""):

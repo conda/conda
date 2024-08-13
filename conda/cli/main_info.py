@@ -11,7 +11,7 @@ import json
 import os
 import re
 import sys
-from argparse import SUPPRESS, _StoreTrueAction
+from argparse import SUPPRESS
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
@@ -53,20 +53,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-a",
         "--all",
-        dest="verbosity",
-        action=deprecated.action(
-            "24.3",
-            "24.9",
-            _StoreTrueAction,
-            addendum="Use `--verbose` instead.",
-        ),
+        action="store_true",
+        help="Show all information.",
     )
     p.add_argument(
         "--base",
         action="store_true",
         help="Display base environment path.",
     )
-    # TODO: deprecate 'conda info --envs' and create 'conda list --envs'
     p.add_argument(
         "-e",
         "--envs",
@@ -405,10 +399,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
      * ``conda info``
      * ``conda info --base``
-     * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
+     * ``conda info <package_spec> ...``
      * ``conda info --unsafe-channels``
-     * ``conda info --envs`` (deprecated) (no ``--json``)
-     * ``conda info --system`` (deprecated) (no ``--json``)
+     * ``conda info --envs``
+     * ``conda info --system``
     """
 
     from ..base.context import context
@@ -430,13 +424,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     options = "envs", "system"
 
-    if context.verbose or context.json:
+    if args.all or context.json:
         for option in options:
             setattr(args, option, True)
     info_dict = get_info_dict()
 
     if (
-        context.verbose or all(not getattr(args, opt) for opt in options)
+        args.all or all(not getattr(args, opt) for opt in options)
     ) and not context.json:
         print(get_main_info_str(info_dict) + "\n")
 

@@ -12,4 +12,5 @@ install
 activation
 context
 solvers
+logging
 ```

@@ -40,6 +40,7 @@ extensions = [
     "sphinx_reredirects",
     "sphinx_sitemap",
     "sphinxarg.ext",
+    "sphinxcontrib.mermaid",
     "sphinxcontrib.plantuml",
     "sphinxcontrib.programoutput",
     "sphinx_design",

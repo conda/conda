@@ -3,10 +3,6 @@
 import json
 from os.path import isdir
 
-import pytest
-from packaging.version import parse
-
-import conda
 from conda.common.io import env_var
 from conda.testing import CondaCLIFixture
 
@@ -70,22 +66,12 @@ def test_info(conda_cli: CondaCLIFixture):
     assert not stderr
     assert not err
 
-    stdout_verbose, stderr, err = conda_cli("info", "--verbose")
-    assert stdout_basic in stdout_verbose
-    assert stdout_envs in stdout_verbose
-    assert stdout_sys in stdout_verbose
+    stdout_all, stderr, err = conda_cli("info", "--all")
+    assert stdout_basic in stdout_all
+    assert stdout_envs in stdout_all
+    assert stdout_sys in stdout_all
     assert not stderr
     assert not err
-
-
-# conda info --all
-def test_info_all(conda_cli: CondaCLIFixture):
-    with pytest.warns(
-        PendingDeprecationWarning
-        if parse(conda.__version__) < parse("24.3")
-        else FutureWarning,
-    ):
-        conda_cli("info", "--all")
 
 
 # conda info --json
