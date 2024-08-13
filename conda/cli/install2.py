@@ -228,6 +228,9 @@ def explicit_transaction(environment: Environment, args: Namespace, command: str
     from ..core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
     from ..exceptions import CondaExitZero, DryRunExit, SpecNotFound
 
+    if not environment.requirements:
+        return UnlinkLinkTransaction(PrefixSetup(str(environment.prefix), (), (), (), (), ()))
+
     records_to_unlink = []
     specs_to_link = []
     if environment.exists():
