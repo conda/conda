@@ -6,27 +6,62 @@ Holds functions for output rendering in conda
 
 from __future__ import annotations
 
+import logging
 import sys
 
+from .base.constants import (
+    DEFAULT_CONSOLE_REPORTER_BACKEND,
+    DEFAULT_JSON_REPORTER_BACKEND,
+)
 from .base.context import context
+from .exceptions import CondaError
+
+logger = logging.getLogger(__name__)
 
 
 def render(data, style: str | None = None, **kwargs) -> None:
-    for settings in context.reporters:
-        reporter = context.plugin_manager.get_reporter_backend(settings.get("backend"))
+    """
+    Used to render output in conda
+
+    The output will either be rendered as "json" or normal "console" output to stdout.
+    This function allows us to configure different reporter backends for these two types
+    of output.
+    """
+    if context.json:
+        backend = context.reporter_backends.json.get(
+            "backend", DEFAULT_JSON_REPORTER_BACKEND
+        )
+    else:
+        backend = context.reporter_backends.console.get(
+            "backend", DEFAULT_CONSOLE_REPORTER_BACKEND
+        )
+
+    reporter = context.plugin_manager.get_reporter_backend(backend)
+
+    if reporter is None:
+        logger.warning(
+            f'Unable to find reporter backend: "{backend}"; '
+            f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
+        )
+        reporter = context.plugin_manager.get_reporter_backend(
+            DEFAULT_CONSOLE_REPORTER_BACKEND
+        )
 
         if reporter is None:
-            continue
+            raise CondaError(
+                "There are no available reporter backends to render output. This conda installation"
+                " is most likely corrupt and requires a re-installation."
+            )
 
-        renderer = reporter.renderer()
+    renderer = reporter.renderer()
 
-        if style is not None:
-            render_func = getattr(renderer, style, None)
-            if render_func is None:
-                raise AttributeError(f"'{style}' is not a valid reporter backend style")
-        else:
-            render_func = getattr(renderer, "render")
+    if style is not None:
+        render_func = getattr(renderer, style, None)
+        if render_func is None:
+            raise AttributeError(f"'{style}' is not a valid reporter backend style")
+    else:
+        render_func = getattr(renderer, "render")
 
-        data_str = render_func(data, **kwargs)
+    data_str = render_func(data, **kwargs)
 
-        sys.stdout.write(data_str)
+    sys.stdout.write(data_str)

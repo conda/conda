@@ -34,9 +34,7 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
         renderer=DummyReporterRenderer,
     )
     plugin_manager = SimpleNamespace(get_reporter_backend=lambda _: reporter_backend)
-    reporters = (
-        {"backend": "test-reporter-backend", "stream": "test-reporter-output"},
-    )
+    reporters = {"backend": "test-reporter-backend"}
 
     context = mocker.patch("conda.reporters.context")
     context.plugin_manager = plugin_manager

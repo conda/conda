@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ...base.constants import DEFAULT_JSON_REPORTER_BACKEND
 from ...common.serialize import json_dump
 from .. import CondaReporterBackend, hookimpl
 from ..types import ReporterRendererBase
@@ -43,7 +44,7 @@ def conda_reporter_backends():
     that can be passed to reporter outputs.
     """
     yield CondaReporterBackend(
-        name="json",
+        name=DEFAULT_JSON_REPORTER_BACKEND,
         description="Default implementation for JSON reporting in conda",
         renderer=JSONReporterRenderer,
     )

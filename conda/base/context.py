@@ -42,7 +42,6 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
-    unique_sequence_map,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -202,7 +201,6 @@ class ReporterBackendsConfig(ConfigurationObject):
     """
 
     def __init__(self):
-        self.something = PrimitiveParameter("", element_type=str)
         self.console = MapParameter(PrimitiveParameter("", element_type=str))
         self.json = MapParameter(PrimitiveParameter("", element_type=str))
 
@@ -350,16 +348,7 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    _reporters = ParameterLoader(
-        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
-        aliases=("reporters",),
-    )
-
-    reporter_backends = ParameterLoader(
-        ObjectParameter(
-            ReporterBackendsConfig()
-        )  # , default=ReporterBackendsDefaults())
-    )
+    reporter_backends = ParameterLoader(ObjectParameter(ReporterBackendsConfig()))
 
     ####################################################
     #               Channel Configuration              #
@@ -1171,25 +1160,6 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
-    @unique_sequence_map(unique_key="backend")
-    def reporters(self) -> tuple[Mapping[str, str]]:
-        """
-        Determine the value of reporters based on other settings and the ``self._reporters``
-        value itself.
-        """
-        if not self._reporters:
-            return (
-                {
-                    "backend": "json" if self.json else "console",
-                    "output": "stdout",
-                    "verbosity": self.verbosity,
-                    "quiet": self.quiet,
-                },
-            )
-
-        return self._reporters
-
     @property
     def category_map(self):
         return {
@@ -1282,6 +1252,7 @@ class Context(Configuration):
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
                 "envvars_force_uppercase",
+                "reporter_backends",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1317,7 +1288,6 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
-                "reporters",
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1697,12 +1667,6 @@ class Context(Configuration):
                 Disable progress bar display and other output.
                 """
             ),
-            reporters=dals(
-                """
-                A list of mappings that allow the configuration of one or more output streams
-                (e.g. stdout or file).
-                """
-            ),
             remote_connect_timeout_secs=dals(
                 """
                 The number seconds conda will wait for your client to establish a connection
@@ -1900,6 +1864,12 @@ class Context(Configuration):
             envvars_force_uppercase=dals(
                 """
                 Force uppercase for new environment variable names. Defaults to True.
+                """
+            ),
+            reporter_backends=dals(
+                """
+                Configure different backends to be used while rendering normal console output
+                and json output
                 """
             ),
         )

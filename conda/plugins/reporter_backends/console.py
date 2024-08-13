@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from os.path import basename, dirname
 
-from ...base.constants import ROOT_ENV_NAME
+from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
 from ...base.context import context
 from ...common.path import paths_equal
 from .. import CondaReporterBackend, hookimpl
@@ -62,7 +62,7 @@ def conda_reporter_backends():
     Reporter backend for console
     """
     yield CondaReporterBackend(
-        name="console",
+        name=DEFAULT_CONSOLE_REPORTER_BACKEND,
         description="Default implementation for console reporting in conda",
         renderer=ConsoleReporterRenderer,
     )

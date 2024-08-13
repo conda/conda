@@ -24,7 +24,6 @@ from ..exceptions import CondaValueError, PluginError
 from . import (
     post_solves,
     reporter_backends,
-    reporter_outputs,
     solvers,
     subcommands,
     virtual_packages,
@@ -433,7 +432,6 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
-        *reporter_outputs.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

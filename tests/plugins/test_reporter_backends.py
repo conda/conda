@@ -60,7 +60,7 @@ def test_default_reporter_backends_are_registered(default_reporter_backend_plugi
     """
     reporter_backends = default_reporter_backend_plugin.get_reporter_backends()
 
-    expected_defaults = {"console", "json"}
+    expected_defaults = {"classic", "json"}
     actual_defaults = {backend.name for backend in reporter_backends}
 
     assert expected_defaults == actual_defaults
@@ -69,9 +69,9 @@ def test_default_reporter_backends_are_registered(default_reporter_backend_plugi
 @pytest.mark.parametrize(
     "method,backend,argument,expected",
     [
-        ("render", "console", "test", "test"),
+        ("render", "classic", "test", "test"),
         ("render", "json", "test", '"test"'),
-        ("detail_view", "console", {"test": "something"}, "\n test : something\n\n"),
+        ("detail_view", "classic", {"test": "something"}, "\n test : something\n\n"),
         ("detail_view", "json", {"test": "something"}, '{\n  "test": "something"\n}'),
     ],
 )

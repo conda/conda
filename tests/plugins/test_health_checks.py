@@ -3,6 +3,7 @@
 import pytest
 
 from conda import plugins
+from conda.plugins.reporter_backends import plugins as reporter_backends_plugins
 from conda.plugins.subcommands import doctor
 from conda.plugins.types import CondaHealthCheck
 
@@ -25,6 +26,7 @@ def plugin_manager_with_doctor_command(plugin_manager):
     Registers the `conda doctor` subcommand
     """
     plugin_manager.load_plugins(doctor)
+    plugin_manager.load_plugins(*reporter_backends_plugins)
 
     return plugin_manager
 
