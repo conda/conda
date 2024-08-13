@@ -165,11 +165,11 @@ def install(args: Namespace, _, command: str) -> int:
 
         env = Environment.merge(existing_env, env)
     elif not (env.prefix / "conda-meta" / "history").is_file():
-        if paths_equal(prefix, context.conda_prefix):
+        if paths_equal(env.prefix, context.conda_prefix):
             raise NoBaseEnvironmentError()
         else:
-            if not path_is_clean(prefix):
-                raise DirectoryNotACondaEnvironmentError(prefix)
+            if not path_is_clean(env.prefix):
+                raise DirectoryNotACondaEnvironmentError(env.prefix)
     elif getattr(args, "mkdir", False):
         # --mkdir is deprecated and marked for removal in conda 25.3
         try:
@@ -183,7 +183,7 @@ def install(args: Namespace, _, command: str) -> int:
         # TODO: Make it return a transaction too, like explicit does
         clone(
             src_arg=args.clone,
-            dst_prefix=env.prefix,
+            dst_prefix=str(env.prefix),
             json=context.json,
             quiet=context.quiet,
             index_args=index_args,
@@ -359,7 +359,7 @@ def _classic_solver_transaction(
         try:
             solver_backend = context.plugin_manager.get_cached_solver_backend()
             solver = solver_backend(
-                environment.prefix,
+                str(environment.prefix),
                 environment.channels,
                 context.subdirs,
                 specs_to_add=environment.requirements,
@@ -518,7 +518,7 @@ def revision_transaction(prefix: str, revision: int, index_args: dict):
             use_local=index_args["use_local"],
             use_cache=index_args["use_cache"],
             unknown=index_args["unknown"],
-            prefix=prefix,
+            prefix=str(prefix),
             repodata_fn=repodata_fn,
         )
     revision_idx = get_revision(revision)
