@@ -9,18 +9,19 @@ that contains all the methods a plugin author must implement in order to change 
 and feel of conda. If only overriding a subset of these is desired, a sub class of
 an existing reporter backend can be used.
 
-To configure a reporter backend, it must be set as a ``backend`` for the
-``reporter`` setting in a configuration file. This setting must configure one ``output``
-(e.g. ``stdout``).
+To configure a reporter backend, you must use the ``reporter_backends`` setting. This setting
+allows you to configure different backends for console and json output. Console output is
+the normal output you see when using conda and json output is what is render when the
+``--json`` option is provided or ``json`` is set to ``true`` in the ``.condarc`` file.
 
-Below is an example showing the configuration for the default reporter backend ``console`` to
-use the ``stdout`` reporter output:
+Below is an example showing the configuration for the default reporter backend for ``console``
+which is ``classic``:
 
 .. code-block:: yaml
 
-   reporters:
-     - backend: console
-       output: stdout
+   reporter_backends:
+     console:
+       backend: classic
 
 
 .. autoapiclass:: conda.plugins.types.CondaReporterBackend

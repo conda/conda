@@ -48,7 +48,6 @@ if TYPE_CHECKING:
         CondaPreCommand,
         CondaPreSolve,
         CondaReporterBackend,
-        CondaReporterOutput,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -210,11 +209,6 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
-
-    @overload
-    def get_hook_results(
-        self, name: Literal["reporter_outputs"]
-    ) -> list[CondaReporterOutput]: ...
 
     def get_hook_results(self, name):
         """
