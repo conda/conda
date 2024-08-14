@@ -8,7 +8,11 @@ from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import DirectoryNotACondaEnvironmentError, PackagesNotFoundError
+from conda.exceptions import (
+    CondaEnvException,
+    DirectoryNotACondaEnvironmentError,
+    PackagesNotFoundError,
+)
 from conda.gateways.disk.delete import path_is_clean, rm_rf
 from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
@@ -55,9 +59,11 @@ def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         ):
             conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
 
-        conda_cli("create", f"--prefix={dir}", "--yes")
-        conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
-        assert package_is_installed(dir, "python")
+        with pytest.raises(
+            CondaEnvException,
+            match="appears to be a top level directory within an existing conda environment",
+        ):
+            conda_cli("create", f"--prefix={dir}", "--yes")
 
         rm_rf(prefix, clean_empty_parents=True)
         assert path_is_clean(dir)

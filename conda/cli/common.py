@@ -10,7 +10,7 @@ from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
 from pathlib import Path
 
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
@@ -275,12 +275,11 @@ def validate_prefix(prefix):
 
 def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
-
     if is_conda_environment(Path(prefix).parent):
         raise CondaEnvException(
             f"The specified prefix '{prefix}' "
             "appears to be a top level directory within an existing conda environment "
-            "(i.e., {history_file} exists). Creating an environment in this location "
+            f"(i.e., '{PREFIX_MAGIC_FILE}' exists). Creating an environment in this location "
             "has the potential to irreversibly corrupt your conda installation and/or "
             "other conda environments, please choose a different location for your "
             "new conda environment. Aborting.",
