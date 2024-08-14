@@ -658,10 +658,10 @@ def clone_transaction(
                     not_found.append(spec)
                 elif len(matches) == 1:
                     source_records.remove(record)
-                    source_records.append(matches[0])
+                    source_records.add(matches[0])
                 else:
                     source_records.remove(record)
-                    source_records.append(_get_best_prec_match(matches))
+                    source_records.add(_get_best_prec_match(matches))
             if not_found:
                 raise PackagesNotFoundError(not_found)
 
