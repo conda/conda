@@ -74,7 +74,7 @@ class Index(UserDict):
     Prefix
         represents packages that are already installed. Every :class:`Index` can be associated
         with exactly one Prefix, which is the location of one of the conda :ref:`concepts-conda-environments`.
-        The package information about the installed packages is represented by :class:`conda.prefix.prefix_data.PrefixData`.
+        The package information about the installed packages is represented by :class:`conda.core.prefix_data.PrefixData`.
 
     Package Cache
         represents packages that are locally unpacked, but may not be installed in the environment
@@ -89,7 +89,7 @@ class Index(UserDict):
 
     def __init__(
         self,
-        channels: tuple[str, ...] = (),
+        channels: tuple[str | Channel, ...] = (),
         prepend: bool = True,
         platform: str | None = None,
         subdirs: tuple[str, ...] | None = None,
@@ -99,6 +99,27 @@ class Index(UserDict):
         repodata_fn: str | None = context.repodata_fns[-1],
         add_system: bool = False,
     ) -> None:
+        """Initializes a new index with the desired components.
+
+        Args:
+          channels: channels identified by canonical names or URLS or Channel objects;
+            for more details, see :meth:`conda.models.channel.Channel.from_value`
+          prepend: if ``True`` (default), add configured channel with higher priority than passed channels;
+            if ``False``, do *not* add configured channels.
+          platform: see ``subdirs``.
+          subdirs: platform and subdirs determine the selection of subdirs in the channels;
+            if both are ``None``, subdirs is taken from the configuration;
+            if both are given, ``subdirs`` takes precedence and ``platform`` is ignored;
+            if only ``platform`` is given, subdirs will be ``(platform, "noarch")``;
+            if ``subdirs`` is given, subdirs will be ``subdirs``.
+          use_local: if ``True``, add the special "local" channel for locally built packages with lowest priority.
+          use_cache: if ``True``, add packages from the package cache.
+          prefix: associate prefix with this index and add its packages.
+          repodata_fn: filename of the repodata, default taken from config, almost always "repodata.json".
+          add_system: if ``True``, add system packages, that is virtual packages defined by plugins, usually used
+            to make intrinsic information about the system, such as cpu architecture or operating system, available
+            to the solver.
+        """
         if use_local:
             channels = ["local"] + list(channels)
         if prepend:
