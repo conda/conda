@@ -13,9 +13,9 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from conda.deprecations import deprecated
-from conda.exceptions import CondaEnvException
-from conda.gateways.disk.test import is_conda_environment
+from ..deprecations import deprecated
+from ..exceptions import CondaEnvException
+from .common import check_protected_dirs as _check_protected_dirs
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -81,21 +81,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.set_defaults(func="conda.cli.main_rename.execute")
 
     return p
-
-
-def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
-    """Ensure that the new prefix does not contain protected directories."""
-
-    if is_conda_environment(Path(prefix).parent):
-        raise CondaEnvException(
-            f"The specified prefix '{prefix}' "
-            "appears to be a top level directory within an existing conda environment "
-            "(i.e., {history_file} exists). Creating an environment in this location "
-            "has the potential to irreversibly corrupt your conda installation and/or "
-            "other conda environments, please choose a different location for your "
-            "new conda environment. Aborting.",
-            json,
-        )
 
 
 def validate_src() -> str:
@@ -179,3 +164,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         clone_and_remove()
     return 0
+
+
+@deprecated("24.9", "25.3", addendum="Moved to conda.cli.common")
+def check_protected_dirs(*args, **kwargs):
+    return _check_protected_dirs(*args, **kwargs)

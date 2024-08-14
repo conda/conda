@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
 
+from __future__ import annotations
+
 import re
 import sys
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
+from pathlib import Path
 
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
@@ -14,10 +17,12 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..exceptions import (
+    CondaEnvException,
     CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
+from ..gateways.disk.test import is_conda_environment
 from ..models.match_spec import MatchSpec
 
 
@@ -266,3 +271,18 @@ def validate_prefix(prefix):
         raise EnvironmentLocationNotFound(prefix)
 
     return prefix
+
+
+def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
+    """Ensure that the new prefix does not contain protected directories."""
+
+    if is_conda_environment(Path(prefix).parent):
+        raise CondaEnvException(
+            f"The specified prefix '{prefix}' "
+            "appears to be a top level directory within an existing conda environment "
+            "(i.e., {history_file} exists). Creating an environment in this location "
+            "has the potential to irreversibly corrupt your conda installation and/or "
+            "other conda environments, please choose a different location for your "
+            "new conda environment. Aborting.",
+            json,
+        )

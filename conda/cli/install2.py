@@ -197,7 +197,7 @@ def _prefix_dependent_checks(environment: Environment, command: str, args: Names
     from ..gateways.disk.create import mkdir_p
     from ..gateways.disk.delete import delete_trash, path_is_clean, rm_rf
     from ..models.environment import Environment
-    from .common import confirm_yn
+    from .common import check_protected_dirs, confirm_yn
     from .install import check_prefix
 
     if context.force_32bit and paths_equal(environment.prefix, context.root_prefix):
@@ -206,6 +206,7 @@ def _prefix_dependent_checks(environment: Environment, command: str, args: Names
 
     if command == "create":
         check_prefix(str(environment.prefix), json=context.json)
+        check_protected_dirs(str(environment.prefix))
         if environment.exists():
             if paths_equal(environment.prefix, context.root_prefix):
                 raise CondaValueError("The target prefix is the base prefix. Aborting.")
@@ -222,7 +223,8 @@ def _prefix_dependent_checks(environment: Environment, command: str, args: Names
             )
             log.info("Removing existing environment %s", environment.prefix)
             rm_rf(environment.prefix)
-        elif environment.prefix.is_dir():  # path exists but it's not a conda environment
+        elif environment.prefix.is_dir():
+            # path exists but it's not a conda environment
             confirm_yn(
                 "WARNING: A directory already exists at the target location "
                 f"'{environment.prefix}'\n"
