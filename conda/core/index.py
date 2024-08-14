@@ -156,10 +156,6 @@ class Index(UserDict):
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.track_features = context.track_features
         self.add_system = add_system
-        self._additional_features = []
-
-    def add_features(self, features: list[str]):
-        self._additional_features.extend(features)
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord]:
@@ -212,7 +208,7 @@ class Index(UserDict):
         if features:
             self._features = {
                 (rec := PackageRecord.make_feature_record(feature)): rec
-                for feature in chain(context.track_features, self._additional_features)
+                for feature in context.track_features
             }
             if has_data:
                 self._data.update(self.features)
@@ -726,7 +722,7 @@ def _make_virtual_package(
 @deprecated(
     "24.9",
     "25.3",
-    addendum="Use :meth:`~conda.core.Index.reload(features=True)` and :meth:`~conda.core.Index.add_features` instead.",
+    addendum="Use :meth:`~conda.core.Index.reload(features=True)` instead.",
 )
 def _supplement_index_with_features(
     index: dict[PackageRecord, PackageRecord], features: list[str] = []
