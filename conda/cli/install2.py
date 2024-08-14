@@ -60,7 +60,7 @@ def install(args: Namespace, _, command: str) -> int:
     )
 
     # 3. Now we can run prefix-dependent checks
-    _prefix_required_checks(environment=env, command=command, args=args)
+    _prefix_dependent_checks(environment=env, command=command, args=args)
 
     # 4. Prepare some index arguments needed in some of the transactions below
     if context.use_only_tar_bz2:
@@ -105,12 +105,11 @@ def install(args: Namespace, _, command: str) -> int:
     elif getattr(args, "revision", None) not in (None, NULL):
         transaction = revision_transaction(env.prefix, args.revision, index_args)
     elif env.is_explicit():
-        # invoke explicit solve and obtain transaction
         transaction = explicit_transaction(env, args, command)
     else:
         transaction = solver_transaction(env, args, command, index_args, repodata_fns)
 
-    # 6. Handle transaction
+    # 7. Handle transaction
     handle_txn(
         transaction,
         str(env.prefix),
@@ -179,7 +178,7 @@ def _assemble_environment(
             )
 
 
-def _prefix_required_checks(environment: Environment, command: str, args: Namespace):
+def _prefix_dependent_checks(environment: Environment, command: str, args: Namespace):
     from ..base.constants import UpdateModifier
     from ..base.context import context
     from ..common.path import paths_equal
