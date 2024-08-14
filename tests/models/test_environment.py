@@ -7,4 +7,3 @@ from conda.models.environment import Environment
 def test_environment():
     env = Environment(name="test")
     assert env.name == "test"
-

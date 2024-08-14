@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
+
 def get_env_vars(prefix):
     pd = PrefixData(prefix)
 
