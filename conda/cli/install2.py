@@ -61,6 +61,8 @@ def install(args: Namespace, _, command: str) -> int:
 
     # 3. Now we can run prefix-dependent checks
     _prefix_dependent_checks(environment=env, command=command, args=args)
+    args.prefix = str(env.prefix)
+    context.__init__(argparse_args=args)  # update 'context.target_prefix'
 
     # 4. Prepare some index arguments needed in some of the transactions below
     if context.use_only_tar_bz2:
@@ -127,8 +129,9 @@ def _assemble_environment(
     files: Iterable[str] = (),
     inject_default_packages: bool = True,
 ) -> Environment:
-    from tempfile import mkdtemp
+    from tempfile import mktemp
 
+    from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
     from ..env.specs import detect as detect_input_file
     from ..exceptions import (
@@ -170,7 +173,7 @@ def _assemble_environment(
         return Environment.merge(cli_env, *file_envs)
     except NeedsNameOrPrefix:
         if context.dry_run:
-            cli_env.prefix = mkdtemp(prefix="unused-conda-env")
+            cli_env.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
             return Environment.merge(cli_env, *file_envs)
         else:
             raise ArgumentError(
@@ -192,8 +195,9 @@ def _prefix_dependent_checks(environment: Environment, command: str, args: Names
         PackageNotInstalledError,
     )
     from ..gateways.disk.create import mkdir_p
-    from ..gateways.disk.delete import delete_trash, path_is_clean
+    from ..gateways.disk.delete import delete_trash, path_is_clean, rm_rf
     from ..models.environment import Environment
+    from .common import confirm_yn
     from .install import check_prefix
 
     if context.force_32bit and paths_equal(environment.prefix, context.root_prefix):
@@ -202,6 +206,31 @@ def _prefix_dependent_checks(environment: Environment, command: str, args: Names
 
     if command == "create":
         check_prefix(str(environment.prefix), json=context.json)
+        if environment.exists():
+            if paths_equal(environment.prefix, context.root_prefix):
+                raise CondaValueError("The target prefix is the base prefix. Aborting.")
+            if context.dry_run:
+                raise CondaValueError(
+                    "Cannot `create --dry-run` with an existing conda environment"
+                )
+            confirm_yn(
+                f"WARNING: A conda environment already exists at '{environment.prefix}'\n\n"
+                "Remove existing environment?\nThis will remove ALL directories contained within "
+                "this specified prefix directory, including any other conda environments.\n\n",
+                default="no",
+                dry_run=False,
+            )
+            log.info("Removing existing environment %s", environment.prefix)
+            rm_rf(environment.prefix)
+        elif environment.prefix.is_dir():  # path exists but it's not a conda environment
+            confirm_yn(
+                "WARNING: A directory already exists at the target location "
+                f"'{environment.prefix}'\n"
+                "but it is not a conda environment.\n"
+                "Continue creating environment",
+                default="no",
+                dry_run=False,
+            )
         _check_subdir_override()
         if args.clone:
             _check_clone(args)
