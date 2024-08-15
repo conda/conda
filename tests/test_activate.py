@@ -2354,14 +2354,28 @@ def test_metavars_force_uppercase(
 
 
 @pytest.mark.parametrize(
-    "function,raises",
+    "name,attr,raises",
     [
-        ("path_identity", TypeError),
-        ("ensure_binary", TypeError),
-        ("ensure_fs_path_encoding", TypeError),
+        ("path_identity", None, TypeError),
+        ("ensure_binary", None, TypeError),
+        ("ensure_fs_path_encoding", None, TypeError),
+        ("_Cygpath", None, TypeError),
+        ("_Cygpath", "RE_UNIX", TypeError),
+        ("_Cygpath", "translate_unix", TypeError),
+        ("_Cygpath", "RE_DRIVE", TypeError),
+        ("_Cygpath", "translation_drive", TypeError),
+        ("_Cygpath", "RE_MOUNT", TypeError),
+        ("_Cygpath", "translation_mount", TypeError),
+        ("_Cygpath", "RE_ROOT", TypeError),
+        ("_Cygpath", "translation_root", TypeError),
+        ("native_path_to_unix", None, TypeError),
+        ("unix_path_to_native", None, TypeError),
     ],
 )
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+def test_deprecations(name: str, attr: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
-        getattr(activate, function)()
+        function = getattr(activate, name)
+        if attr:
+            function = getattr(function, attr)
+        function()
