@@ -1222,10 +1222,6 @@ ROUNDTRIP_PATHS = {
 }
 
 
-@pytest.mark.skipif(
-    not on_win,
-    reason="native_path_to_unix is path_identity on non-windows",
-)
 @pytest.mark.parametrize(
     "unix_paths,win_paths",
     [
@@ -1409,7 +1405,17 @@ ROUNDTRIP_PATHS = {
 )
 @pytest.mark.parametrize(
     "cygpath",
-    [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
+    [
+        pytest.param(
+            True,
+            id="cygpath",
+            marks=pytest.mark.skipif(
+                not on_win,
+                reason="cygpath is only available on Windows",
+            ),
+        ),
+        pytest.param(False, id="fallback"),
+    ],
 )
 def test_path_conversion(
     tmp_path: Path,
