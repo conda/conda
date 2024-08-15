@@ -97,7 +97,7 @@ class Index(UserDict):
         use_cache: bool | None = None,
         prefix: str | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
-        add_system: bool = False,
+        use_system: bool = False,
     ) -> None:
         """Initializes a new index with the desired components.
 
@@ -116,7 +116,7 @@ class Index(UserDict):
           use_cache: if ``True``, add packages from the package cache.
           prefix: associate prefix with this index and add its packages.
           repodata_fn: filename of the repodata, default taken from config, almost always "repodata.json".
-          add_system: if ``True``, add system packages, that is virtual packages defined by plugins, usually used
+          use_system: if ``True``, add system packages, that is virtual packages defined by plugins, usually used
             to make intrinsic information about the system, such as cpu architecture or operating system, available
             to the solver.
         """
@@ -155,7 +155,7 @@ class Index(UserDict):
         self._prefix_data = None
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.track_features = context.track_features
-        self.add_system = add_system
+        self.use_system = use_system
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord]:
@@ -238,7 +238,7 @@ class Index(UserDict):
             use_cache=self.use_cache,
             prefix=self.prefix_path,
             repodata_fn=self._repodata_fn,
-            add_system=self.add_system,
+            use_system=self.use_system,
         )
 
     @property
@@ -313,7 +313,7 @@ class Index(UserDict):
             self._supplement_index_dict_with_cache()
         if self.track_features:
             self._data.update(self.features)
-        if self.add_system:
+        if self.use_system:
             self._data.update(self.system_packages)
 
     def _retrieve_from_channels(self, key: PackageRecord) -> PackageRecord | None:
@@ -421,7 +421,7 @@ class ReducedIndex(Index):
         use_cache: bool | None = None,
         prefix: str | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
-        add_system: bool = False,
+        use_system: bool = False,
     ) -> None:
         super().__init__(
             channels,
@@ -432,7 +432,7 @@ class ReducedIndex(Index):
             use_cache,
             prefix,
             repodata_fn,
-            add_system,
+            use_system,
         )
         self.specs = specs
         self._derive_reduced_index()
@@ -844,5 +844,5 @@ def get_reduced_index(
         use_cache=False,
         prefix=prefix,
         repodata_fn=repodata_fn,
-        add_system=True,
+        use_system=True,
     )
