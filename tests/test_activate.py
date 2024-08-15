@@ -1176,9 +1176,15 @@ ROUNDTRIP_PATHS = {
         ["\\\\mount\\PreserveCASE", "\\\\mount\\\\\\PreserveCASE"],
     ),
     # drive (1 leading slash + 1 letter)
-    "drive bare": (
-        ["/C", "/c"],  # → C:\\
-        ["C:\\", "c:", "C:"],  # → /c/
+    "drive bare [/c > C:\\]": (
+        # /c & /C doesn't roundtrip, so we split the case into two, see below
+        [None, "/c", "/C"],  # → C:\\
+        ["C:\\"],  # → /c/
+    ),
+    "drive bare [C: > /c]": (
+        # c: & C: doesn't roundtrip, so we split the case into two, see above
+        ["/c"],  # → C:\\
+        [None, "c:", "C:"],  # → /c
     ),
     "drive bare [trailing]": (
         ["/c/", "/C/", "/c//", "/C///"],
@@ -1432,6 +1438,8 @@ def test_path_conversion(
         win_indirection = unix_path_to_native(unix_indirection, root=unix_root)
 
     def expand(path):
+        if path is None:
+            return None
         if isinstance(path, str):
             return path.format(ROOT=win_root, INDIRECTION=win_indirection)
         return tuple(map(expand, path))
@@ -1439,23 +1447,22 @@ def test_path_conversion(
     unix_paths = expand(unix_paths)
     win_paths = expand(win_paths)
 
-    unix_roundtrip = unix_paths[0]
-    win_roundtrip = win_paths[0]
-
     if not cygpath:
         # test without cygpath
         mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    for unix_path in unix_paths:
-        converted = unix_path_to_native(unix_path, root=unix_root)
-        assert (
-            converted == win_roundtrip
-        ), f"{unix_path} → {converted} ≠ {win_roundtrip}"
-    for win_path in win_paths:
-        converted = native_path_to_unix(win_path, root=win_root)
-        assert (
-            converted == unix_roundtrip
-        ), f"{win_path} → {converted} ≠ {unix_roundtrip}"
+    if win_roundtrip := win_paths[0]:
+        for unix_path in filter(None, unix_paths):
+            converted = unix_path_to_native(unix_path, root=unix_root)
+            assert (
+                converted == win_roundtrip
+            ), f"{unix_path} → {converted} ≠ {win_roundtrip}"
+    if unix_roundtrip := unix_paths[0]:
+        for win_path in filter(None, win_paths):
+            converted = native_path_to_unix(win_path, root=win_root)
+            assert (
+                converted == unix_roundtrip
+            ), f"{win_path} → {converted} ≠ {unix_roundtrip}"
 
 
 def test_posix_basic(
