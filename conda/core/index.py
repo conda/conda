@@ -71,20 +71,30 @@ class Index(UserDict):
 
         For more information see :ref:`concepts-channels`.
 
+        Individual packages from channels are usually represented by :class:`conda.models.records.PackageRecord`.
+
     Prefix
         represents packages that are already installed. Every :class:`Index` can be associated
         with exactly one Prefix, which is the location of one of the conda :ref:`concepts-conda-environments`.
         The package information about the installed packages is represented by :class:`conda.core.prefix_data.PrefixData`.
+
+        Individual packages from prefixes are usually represented by :class:`conda.models.records.PrefixRecord`.
 
     Package Cache
         represents packages that are locally unpacked, but may not be installed in the environment
         associated with this index. These are usually packages that have been installed in any environment
         of the local conda installation, but may have been removed from all environments by now.
 
+        Individual packages from the package are usually represented by :class:`conda.models.records.PackageCacheRecord`.
+
     Virtual Packages
         represent properties of the system, not actual conda packages in the normal sense. These are,
         for example, system packages that inform the solver about the operating system in use, or
         track features that can be used to steer package priority.
+
+        Individual virtual packages are represented by special :class:`conda.models.records.PackageRecord`,
+        see :meth:`conda.models.records.PackageRecord.make_virtual_package` and
+        :meth:`conda.models.records.PackageRecord.make_feature_record`.
     """
 
     def __init__(
@@ -159,6 +169,11 @@ class Index(UserDict):
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord]:
+        """Contents of the package cache if active.
+
+        Returns:
+          All packages available from the package cache.
+        """
         try:
             return self._cache_entries
         except AttributeError:
@@ -167,6 +182,11 @@ class Index(UserDict):
 
     @property
     def system_packages(self) -> dict[PackageRecord, PackageRecord]:
+        """System packages provided by plugins.
+
+        Returns:
+          Identity mapping of the available system packages in a ``dict``.
+        """
         try:
             return self._system_packages
         except AttributeError:
@@ -175,6 +195,11 @@ class Index(UserDict):
 
     @property
     def features(self) -> dict[PackageRecord, PackageRecord]:
+        """Active tracking features.
+
+        Returns:
+          Identity mapping of the local tracking features in a ``dict``.
+        """
         try:
             return self._features
         except AttributeError:
@@ -183,6 +208,11 @@ class Index(UserDict):
 
     @property
     def prefix_data(self) -> PrefixData:
+        """Contents of the prefix.
+
+        Returns:
+          Object giving access to the prefix.
+        """
         if self._prefix_data is None and self.prefix_path:
             self._prefix_data = PrefixData(self.prefix_path)
         return self._prefix_data
@@ -195,6 +225,17 @@ class Index(UserDict):
         features: bool = False,
         system: bool = False,
     ) -> None:
+        """Reload one or more of the index components.
+
+        Can be used to refresh the index with new information, for example after a new
+        package has been installed into the index.
+
+        Args:
+          prefix: if ``True``, reload the prefix data.
+          cache: if ``True``, reload the package cache.
+          features: if ``True``, reload the tracking features.
+          system: if ``True``, reload the system packages.
+        """
         has_data = hasattr(self, "_data")
         if prefix:
             if self.prefix_data:
@@ -229,6 +270,17 @@ class Index(UserDict):
         return f"<{self.__class__.__name__}(channels=[{channels}])>"
 
     def get_reduced_index(self, specs: Iterable[MatchSpec]) -> ReducedIndex:
+        """Create a reduced index with a subset of packages.
+
+        Can be used to create a reduced index as a subset from an existing index.
+
+        Args:
+          specs: the specs that span the subset.
+
+        Returns:
+          a reduced index with the same sources as this index, but limited to ``specs``
+          and their dependency graph.
+        """
         return ReducedIndex(
             specs=specs,
             channels=self._channels,
@@ -243,6 +295,17 @@ class Index(UserDict):
 
     @property
     def data(self) -> dict[PackageRecord, PackageRecord]:
+        """The entire index as a dict; avoid if possible.
+
+        Warning:
+          This returns the entire contents of the index as a single identity mapping in
+          a ``dict``. This may be convenient, but it comes at a cost because all sources
+          must be fully loaded at significant overhead for :class:`~conda.models.records.PackageRecord`
+          construction for **every** package.
+
+          Hence, all uses of :attr:`data`, including all iteration over the entire index,
+          is strongly discouraged.
+        """
         try:
             return self._data
         except AttributeError:
@@ -410,6 +473,18 @@ class Index(UserDict):
 
 
 class ReducedIndex(Index):
+    """Index that contains a subset of available packages.
+
+    Like :class:`Index`, this makes information about packages from the same four
+    sources available. However, the contents of the reduced index is limited to
+    a subset of packages relevant to a given specification.
+    This works by taking into account all packages that match the given specification
+    together with their dependencies and their dependencies dependencies, etc.
+
+    Note:
+        See :meth:`Index.get_reduced_index` for convenient construction.
+    """
+
     def __init__(
         self,
         specs: Iterable[MatchSpec],
@@ -423,6 +498,12 @@ class ReducedIndex(Index):
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
     ) -> None:
+        """Initialize a new reduced index.
+
+        Args:
+          specs: the collection of specifications that span the subset of packages.
+          all other args: see :class:`Index`.
+        """
         super().__init__(
             channels,
             prepend,
