@@ -1180,14 +1180,16 @@ class ObjectParameter(Parameter):
         object_parameter_attrs = {
             attr_name: parameter_type
             for attr_name, parameter_type in vars(self._element_type).items()
-            if isinstance(parameter_type, Parameter) and attr_name in value.keys()
+            if isinstance(parameter_type, Parameter)
         }
 
         # recursively load object fields
         loaded_attrs = {}
         for attr_name, parameter_type in object_parameter_attrs.items():
-            raw_child_value = value.get(attr_name)
-            loaded_child_value = parameter_type.load(name, raw_child_value)
+            if raw_child_value := value.get(attr_name):
+                loaded_child_value = parameter_type.load(name, raw_child_value)
+            else:
+                loaded_child_value = parameter_type.default
             loaded_attrs[attr_name] = loaded_child_value
 
         # copy object and replace Parameter with LoadedParameter fields
