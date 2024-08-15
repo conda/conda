@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 
+import ntpath
 import os
+import posixpath
 import re
 import subprocess
 from functools import lru_cache, reduce
@@ -20,17 +22,20 @@ from os.path import (
     split,
     splitext,
 )
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
-from .. import CondaError
-from ..deprecations import deprecated
-from .compat import on_win
+from ... import CondaError
+from ...deprecations import deprecated
+from ..compat import on_win
+from ._cygpath import nt_to_posix, posix_to_nt, resolve_paths
 
 if TYPE_CHECKING:
-    from typing import Iterable, Sequence
+    from typing import Iterable, Sequence, Union
 
-    PathType = str | os.PathLike
+    PathType = Union[str, os.PathLike[str]]
+    PathsType = Iterable[PathType]
 
 log = getLogger(__name__)
 
@@ -328,50 +333,6 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path
 
 
-def win_path_to_unix(path, root_prefix=""):
-    # If the user wishes to drive conda from MSYS2 itself while also having
-    # msys2 packages in their environment this allows the path conversion to
-    # happen relative to the actual shell. The onus is on the user to set
-    # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
-    # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
-    if not path:
-        return ""
-
-    # rebind to shutil to avoid triggering the deprecation warning
-    from shutil import which
-
-    bash = which("bash")
-    if bash:
-        cygpath = os.environ.get(
-            "CYGPATH", os.path.join(os.path.dirname(bash), "cygpath.exe")
-        )
-    else:
-        cygpath = os.environ.get("CYGPATH", "cygpath.exe")
-    try:
-        path = (
-            subprocess.check_output([cygpath, "-up", path])
-            .decode("ascii")
-            .split("\n")[0]
-        )
-    except Exception as e:
-        log.debug(f"{e!r}", exc_info=True)
-
-        # Convert a path or ;-separated string of paths into a unix representation
-        # Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-        def _translation(found_path):  # NOQA
-            found = (
-                found_path.group(1)
-                .replace("\\", "/")
-                .replace(":", "")
-                .replace("//", "/")
-            )
-            return root_prefix + "/" + found
-
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[/\\\\]+(?:[^:*?"<>|]+[/\\\\]+)*[^:*?"<>|;/\\\\]+?(?![a-zA-Z]:))'  # noqa
-        path = re.sub(path_re, _translation, path).replace(";/", ":/")
-    return path
-
-
 def which(executable):
     """Backwards-compatibility wrapper. Use `shutil.which` directly if possible."""
     from shutil import which
@@ -412,12 +373,108 @@ def is_package_file(path):
     return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
 
 
-def path_identity(
-    paths: PathType | Iterable[PathType] | None,
-) -> str | tuple[str, ...] | None:
+def path_identity(paths: PathType | PathsType | None) -> str | tuple[str, ...] | None:
     if paths is None:
         return None
     elif isinstance(paths, (str, os.PathLike)):
         return os.path.normpath(paths)
     else:
         return tuple(os.path.normpath(path) for path in paths)
+
+
+def _path_to(
+    paths: PathType | PathsType | None,
+    *,
+    root: str | None,
+    cygdrive: bool,
+    to_unix: bool,
+) -> str | tuple[str, ...] | None:
+    if paths is None:
+        return None
+
+    # short-circuit if we don't get any paths
+    paths = paths if isinstance(paths, str) else tuple(paths)
+    if not paths:
+        return "." if isinstance(paths, str) else ()
+
+    if root is None:
+        from ...base.context import context
+
+        root = context.target_prefix
+
+    if to_unix:
+        from_pathsep = ntpath.pathsep
+        cygpath_arg = "--unix"
+        cygpath_fallback = nt_to_posix
+        to_pathsep = posixpath.pathsep
+        to_sep = posixpath.sep
+    else:
+        from_pathsep = posixpath.pathsep
+        cygpath_arg = "--windows"
+        cygpath_fallback = posix_to_nt
+        to_pathsep = ntpath.pathsep
+        to_sep = ntpath.sep
+
+    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
+    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
+    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
+    # different points in the Windows filesystem.  We do our path conversions with one and
+    # expect the results to work with the other.  It does not.
+
+    # TODO: search prefix for cygpath instead of deriving it from bash
+    bash = which("bash")
+    cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
+    joined = (
+        str(paths)
+        if isinstance(paths, (str, os.PathLike))
+        else from_pathsep.join(map(str, paths))
+    )
+
+    try:
+        # if present, use cygpath to convert paths since its more reliable
+        converted = subprocess.run(
+            [cygpath, cygpath_arg, "--path", joined],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+
+        # remove duplicate path seps
+        converted = resolve_paths(converted, to_pathsep, to_sep)
+    except FileNotFoundError:
+        # fallback logic when cygpath is not available
+        # i.e. conda without anything else installed
+        log.warning("cygpath is not available, fallback to manual path conversion")
+
+        # convert root since they may also be of different format
+        root = cygpath_fallback(root, root, cygdrive)
+
+        converted = cygpath_fallback(joined, root, cygdrive)
+    except Exception as err:
+        log.error("Unexpected cygpath error (%s)", err)
+        raise
+
+    if isinstance(paths, str):
+        return converted
+    elif not converted:
+        return ()
+    else:
+        return tuple(converted.split(to_pathsep))
+
+
+def win_path_to_unix(
+    paths: PathType | PathsType | None,
+    *,
+    root: str | None = None,
+    cygdrive: bool = False,
+) -> str | tuple[str, ...] | None:
+    return _path_to(paths, root=root, cygdrive=cygdrive, to_unix=True)
+
+
+def unix_path_to_win(
+    paths: PathType | PathsType | None,
+    *,
+    root: str | None = None,
+    cygdrive: bool = False,
+) -> str | tuple[str, ...] | None:
+    return _path_to(paths, root=root, cygdrive=cygdrive, to_unix=False)

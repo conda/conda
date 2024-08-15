@@ -15,9 +15,11 @@ from shutil import which
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
+from .base.context import context
 from .common.compat import isiterable, on_win
 from .common.path import path_identity as _path_identity
-from .common.path import win_path_to_unix
+from .common.path import unix_path_to_win as _unix_path_to_win
+from .common.path import win_path_to_unix as _win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
 
@@ -33,6 +35,11 @@ deprecated.constant(
 )
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
 def unix_path_to_win(path, root_prefix=""):
     """Convert a path or :-separated string of paths into a Windows representation
 
@@ -63,16 +70,16 @@ def unix_path_to_win(path, root_prefix=""):
     addendum="Use `conda.common.path.win_path_to_unix` instead.",
 )
 def win_path_to_cygwin(path):
-    return win_path_to_unix(path, "/cygdrive")
+    return _win_path_to_unix(path, root=context.target_prefix, cygdrive=True)
 
 
 @deprecated(
     "25.3",
     "25.9",
-    addendum="Use `conda.utils.unix_path_to_win` instead.",
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
 def cygwin_path_to_win(path):
-    return unix_path_to_win(path, "/cygdrive")
+    return _unix_path_to_win(path, root=context.target_prefix, cygdrive=True)
 
 
 @deprecated("25.3", "25.9", addendum="Unused.")
@@ -143,8 +150,8 @@ deprecated.constant(
 
 _MSYS2_SHELL_BASE = dict(
     _UNIX_SHELL_BASE,
-    path_from=unix_path_to_win,
-    path_to=win_path_to_unix,
+    path_from=lambda path: _unix_path_to_win(path, root=context.target_prefix),
+    path_to=lambda path: _win_path_to_unix(path, root=context.target_prefix),
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
