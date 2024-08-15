@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes `ObjectParameter`'s ability to appropriately handle defaults (#14149)
+* Fix `conda.common.configuration.ObjectParameter`'s ability to appropriately handle defaults. (#14149)
 
 ### Deprecations
 

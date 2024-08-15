@@ -269,10 +269,7 @@ test_yaml_raw = {
         """
     ),
     # Used to make sure when nothing is defined appropriate defaults are set
-    "objectFile4": dals(
-        """
-        """
-    ),
+    "objectFile4": "",
 }
 
 
