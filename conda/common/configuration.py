@@ -1195,11 +1195,6 @@ class ObjectParameter(Parameter):
         for attr_name, loaded_child_parameter in loaded_attrs.items():
             object_copy.__setattr__(attr_name, loaded_child_parameter)
 
-        # we do this for the default values which were not copied above
-        for attr_name, parameter_type in vars(self._element_type).items():
-            if attr_name not in value.keys():
-                setattr(object_copy, attr_name, parameter_type.default)
-
         return ObjectLoadedParameter(
             name,
             object_copy,
