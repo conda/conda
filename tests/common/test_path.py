@@ -1,15 +1,32 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
+import os.path
+import re
 from logging import getLogger
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+import pytest
+
+from conda.base.context import context
+from conda.common.compat import on_win
 from conda.common.path import (
     get_major_minor_version,
     missing_pyc_files,
     path_identity,
+    unix_path_to_win,
     url_to_path,
     win_path_backout,
+    win_path_to_unix,
 )
+
+if TYPE_CHECKING:
+    from typing import Iterable
+
+    from pytest_mock import MockerFixture
 
 log = getLogger(__name__)
 
@@ -193,3 +210,197 @@ def test_path_identity(tmp_path: Path) -> None:
         str(tmp_path),
         str(tmp_path),
     )
+
+
+@pytest.mark.parametrize(
+    "paths,expected",
+    [
+        pytest.param(None, None, id="None"),
+        pytest.param((), (), id="empty tuple"),
+        pytest.param([], (), id="empty list"),
+        pytest.param({}, (), id="empty dict"),
+        pytest.param(set(), (), id="empty set"),
+    ],
+)
+def test_path_conversion_falsy(
+    paths: str | Iterable[str] | None, expected: str | Iterable[str] | None
+) -> None:
+    assert win_path_to_unix(paths) == expected
+    assert unix_path_to_win(paths) == expected
+
+
+@pytest.mark.parametrize(
+    # NOTE: we automatically test for paths with redundant slashes
+    # NOTE: for windows paths we offer two roots; LIB (the resolved path) and ALT (the same path but with indirection)
+    "unix,win,roundtrip",
+    # there are three patterns in the parameterized tests:
+    #   unix → win → unix (roundtrip), defined as (<unix>, <win>, True)
+    #   only unix → win (no roundtrip), defined as (<unix>, <win>, None)
+    #   only win → unix (no roundtrip), defined as (None, <win>, <unix>)
+    [
+        # cwd
+        pytest.param(".", ".", True, id="cwd"),
+        pytest.param("", ".", None, id="cwd"),
+        pytest.param(None, "", ".", id="cwd"),
+        pytest.param("./", ".\\", True, id="cwd"),
+        # root (1 or 3+ leading slashes)
+        pytest.param("/", "{LIB}\\", True, id="root"),
+        pytest.param("///", "{LIB}\\", None, id="root"),
+        pytest.param("////", "{LIB}\\", None, id="root"),
+        pytest.param(None, "{ALT}\\", "/", id="root"),
+        pytest.param("/root", "{LIB}\\root", True, id="root"),
+        pytest.param("///root", "{LIB}\\root", None, id="root"),
+        pytest.param("////root", "{LIB}\\root", None, id="root"),
+        pytest.param(None, "{ALT}\\root", "/root", id="root"),
+        pytest.param("/root/", "{LIB}\\root\\", True, id="root"),
+        pytest.param("///root/", "{LIB}\\root\\", None, id="root"),
+        pytest.param("////root/", "{LIB}\\root\\", None, id="root"),
+        pytest.param(None, "{ALT}\\root\\", "/root/", id="root"),
+        pytest.param("/root/CaSe", "{LIB}\\root\\CaSe", True, id="root"),
+        pytest.param("///root/CaSe", "{LIB}\\root\\CaSe", None, id="root"),
+        pytest.param(None, "{ALT}\\root\\CaSe", "/root/CaSe", id="root"),
+        # UNC mount (2 leading slashes)
+        pytest.param("//", "\\\\", True, id="UNC"),
+        pytest.param("//mount", "\\\\mount", True, id="UNC"),
+        pytest.param("//mount/", "\\\\mount\\", True, id="UNC"),
+        pytest.param("//mount//", "\\\\mount\\", None, id="UNC"),
+        pytest.param(None, "\\\\mount\\", "//mount/", id="UNC"),
+        pytest.param("//mount/CaSe", "\\\\mount\\CaSe", True, id="UNC"),
+        pytest.param("//mount//CaSe", "\\\\mount\\CaSe", None, id="UNC"),
+        pytest.param(None, "\\\\mount\\CaSe", "//mount/CaSe", id="UNC"),
+        # drive (1 leading slash + 1 letter)
+        # /c & /C doesn't roundtrip
+        pytest.param("/c", "C:\\", None, id="drive"),
+        pytest.param("/C", "C:\\", None, id="drive"),
+        # c: & C: doesn't roundtrip
+        pytest.param(None, "c:", "/c", id="drive"),
+        pytest.param(None, "C:", "/c", id="drive"),
+        pytest.param("/c/", "C:\\", True, id="drive"),
+        pytest.param("/C/", "C:\\", None, id="drive"),
+        pytest.param("/c//", "C:\\", None, id="drive"),
+        pytest.param("/C//", "C:\\", None, id="drive"),
+        pytest.param(None, "c:\\", "/c/", id="drive"),
+        pytest.param(None, "C:\\", "/c/", id="drive"),
+        pytest.param("/c/drive", "C:\\drive", True, id="drive"),
+        pytest.param(None, "c:\\drive", "/c/drive", id="drive"),
+        pytest.param(None, "C:\\drive", "/c/drive", id="drive"),
+        pytest.param(None, "c:\\drive", "/c/drive", id="drive"),
+        pytest.param("/c/drive/CaSe", "C:\\drive\\CaSe", True, id="drive"),
+        pytest.param(None, "c:\\drive\\CaSe", "/c/drive/CaSe", id="drive"),
+        # relative path
+        pytest.param("relative", "relative", True, id="relative"),
+        pytest.param("relative/", "relative\\", True, id="relative"),
+        pytest.param("relative/CaSe", "relative\\CaSe", True, id="relative"),
+        # odd cases
+        pytest.param("path:", "path;.", None, id="colon"),
+        pytest.param(None, "path;.", "path:.", id="colon"),
+        pytest.param(None, "path;", "path", id="colon"),
+        pytest.param("path::", "path;.;.", None, id="colon"),
+        pytest.param("path:.:.", "path;.;.", True, id="colon"),
+        pytest.param(None, "path;;", "path", id="colon"),
+        pytest.param("path::other", "path;.;other", None, id="colon"),
+        pytest.param(None, "path;;other", "path:other", id="colon"),
+        pytest.param("path:.:other", "path;.;other", True, id="colon"),
+        # cygpath errors (works with fallback)
+        # pytest.param("path/../other", "path\\..\\other", True, id="parent"),
+    ],
+)
+@pytest.mark.parametrize(
+    "cygpath",
+    [
+        pytest.param(
+            True,
+            id="cygpath",
+            marks=pytest.mark.skipif(
+                not on_win,
+                reason="cygpath is only available on Windows",
+            ),
+        ),
+        pytest.param(False, id="fallback"),
+    ],
+)
+def test_path_conversion(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    unix: str | None,
+    win: str,
+    roundtrip: str | bool | None,
+    cygpath: bool,
+) -> None:
+    # ensure we are testing either a roundtrip, win → unix, or unix → win
+    assert isinstance(win, str)
+    if roundtrip in (True, None):
+        # roundtrip or unix → win
+        assert isinstance(unix, str)
+    else:
+        # win → unix
+        assert unix is None and isinstance(roundtrip, str)
+
+    if on_win:
+        try:
+            # create a symlink
+            (root_symlink := tmp_path / "root").symlink_to(context.target_prefix)
+            (non_root_symlink := tmp_path / "non_root").mkdir()
+        except OSError:
+            # OSError: unable to make symlinks
+            root_symlink = non_root_symlink = Path(context.target_prefix)
+
+        win_root = context.target_prefix
+        win_alt = os.path.join(non_root_symlink, ".", "..", root_symlink.name)
+    else:
+        # cygpath doesn't exist so we don't have to align with what cygpath would return
+        # besides, using Unix paths and expecting a valid Windows path doesn't make sense
+        win_root = "Z:\\fake\\root"
+        win_alt = "Z:\\fake\\non_root\\.\\..\\root"
+
+    if not cygpath:
+        # test without cygpath
+        mocker.patch("subprocess.run", side_effect=FileNotFoundError)
+
+    win = win.format(LIB=f"{win_root}\\Library", ALT=f"{win_alt}\\Library")
+
+    def double(path, sep):
+        # double path delimiters but leave leading delimiters untouched as they
+        # distinguish between drives, root, and mounts
+        if match := re.match(r"([/\\]+)(.*)", path):
+            leading, path = match.groups()
+            path = leading + re.sub(r"[/\\]+", re.escape(sep * 2), path)
+        return path
+
+    if unix is not None:
+        # test unix → win
+        converted = unix_path_to_win(unix, root=win_root)
+        assert converted == win, f"{unix} → {converted} ≠ {win}"
+
+        # test unix with redundant // → win
+        unix_double = double(unix, r"/")
+        converted = unix_path_to_win(unix_double, root=win_root)
+        assert converted == win, f"{unix_double} → {converted} ≠ {win}"
+
+        # test cygdrive
+        # NOTE: only Cygwin cygpath can handle /cygdrive/... paths, since we expect to
+        # be using MSYS cygpath skip testing unless testing fallback
+        if unix.startswith(("/c", "/C")) and not cygpath:
+            cygdrive = f"/cygdrive{unix}"
+            converted = unix_path_to_win(cygdrive, root=win_root, cygdrive=True)
+            assert converted == win, f"{cygdrive} → {converted} ≠ {win}"
+
+    if roundtrip is not None:
+        # test win → unix
+        converted = win_path_to_unix(win, root=win_root)
+        assert isinstance(roundtrip := unix or roundtrip, str)
+        assert converted == roundtrip, f"{win} → {converted} ≠ {roundtrip}"
+
+        # test win with redundant \ → unix
+        win_double = double(win, r"\\")
+        converted = win_path_to_unix(win_double, root=win_root)
+        assert converted == roundtrip, f"{win_double} → {converted} ≠ {roundtrip}"
+
+        # test cygdrive
+        # test cygdrive
+        # NOTE: only Cygwin cygpath can handle /cygdrive/... paths, since we expect to
+        # be using MSYS cygpath skip testing unless testing fallback
+        if roundtrip.startswith(("/c", "/C")) and not cygpath:
+            cygdrive = f"/cygdrive{roundtrip}"
+            converted = win_path_to_unix(win, root=win_root, cygdrive=True)
+            assert converted == cygdrive, f"{win} → {converted} ≠ {cygdrive}"

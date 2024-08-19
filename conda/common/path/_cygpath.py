@@ -11,15 +11,29 @@ from ...deprecations import deprecated
 
 
 def nt_to_posix(path: str, root: str, cygdrive: bool = False) -> str:
+    """
+    A fallback implementation of `cygpath --unix`.
+
+    Args:
+        path: The path to convert.
+        root: The (Windows path-style) root directory to use for the conversion.
+        cygdrive: Whether to use the Cygwin-style drive prefix.
+    """
     if ntpath.pathsep in path:
         return posixpath.pathsep.join(
-            nt_to_posix(path, root, cygdrive) for path in path.split(ntpath.pathsep)
+            converted
+            for path in path.split(ntpath.pathsep)
+            if (converted := nt_to_posix(path, root, cygdrive))
         )
+
+    # cygpath drops empty strings
+    if not path:
+        return path
 
     # Revert in reverse order of the transformations in posix_to_nt:
     # 1. root filesystem forms:
     #      {root}\Library\root
-    #    → /here/there
+    #    → /root
     # 2. mount forms:
     #      \\mount
     #    → //mount
@@ -32,29 +46,40 @@ def nt_to_posix(path: str, root: str, cygdrive: bool = False) -> str:
 
     # continue performing substitutions until a match is found
     subs = 0
+
+    # only absolute paths can be detected as root or mount formats
     if ntpath.isabs(path):
-        normalized, subs = _get_RE_WIN_ROOT(root).subn(
-            _to_unix_root, _nt_normpath(path)
-        )
+        # normalize the path (removing any path indirections)
+        normalized = ntpath.normpath(path)
+        # ntpath.normpath strips trailing slashes, add them back
+        if path[-1] in "/\\":
+            normalized += ntpath.sep
+        # attempt to match root
+        normalized, subs = _get_RE_WIN_ROOT(root).subn(_to_unix_root, normalized)
         # only keep the normalized path if the root was matched
-        path = normalized if subs else path
-    if not subs:
-        path, subs = RE_WIN_MOUNT.subn(_to_unix_mount, path)
+        if subs:
+            path = normalized
+
+        # attempt to match mount
+        if not subs:
+            path, subs = RE_WIN_MOUNT.subn(_to_unix_mount, path)
+
+    # attempt to match drive
     if not subs:
         path = RE_WIN_DRIVE.sub(partial(_to_unix_drive, cygdrive=cygdrive), path)
 
     return _resolve_path(path, posixpath.sep)
 
 
-def _nt_normpath(path: str) -> str:
-    norm = ntpath.normpath(path)
+def _posix_normpath(path: str) -> str:
+    norm = posixpath.normpath(path)
     if path[-1] in "/\\":
-        norm += ntpath.sep
+        norm += posixpath.sep
     return norm
 
 
 def _get_RE_WIN_ROOT(root: str) -> re.Pattern:
-    root = _nt_normpath(root)
+    root = ntpath.normpath(root)
     root = re.escape(root)
     root = re.sub(r"[/\\]+", r"[/\\]+", root)
     return re.compile(
@@ -139,12 +164,22 @@ def translate_unix(match: re.Match) -> str:
 
 
 def posix_to_nt(path: str, root: str, cygdrive: bool = False) -> str:
-    # cygdrive is unused, but it's passed in to keep the signature consistent with nt_to_posix
+    """
+    A fallback implementation of `cygpath --windows`.
 
+    Args:
+        path: The path to convert.
+        root: The (Windows path-style) root directory to use for the conversion.
+        cygdrive: Unused. Present to keep the signature consistent with `nt_to_posix`.
+    """
     if posixpath.pathsep in path:
         return ntpath.pathsep.join(
             posix_to_nt(path, root) for path in path.split(posixpath.pathsep)
         )
+
+    # cygpath converts a "" to "."
+    if not path:
+        return "."
 
     # Reverting a Unix path means unpicking MSYS2/Cygwin
     # conventions -- in order!
@@ -161,11 +196,20 @@ def posix_to_nt(path: str, root: str, cygdrive: bool = False) -> str:
     # 3. anything else
 
     # continue performing substitutions until a match is found
-    path, subs = RE_UNIX_DRIVE.subn(_to_win_drive, path)
-    if not subs:
-        path, subs = RE_UNIX_MOUNT.subn(_to_win_mount, path)
-    if not subs:
-        path = RE_UNIX_ROOT.sub(partial(_to_win_root, root=root), path)
+    subs = 0
+
+    # only absolute paths can be detected as drive letter, mount, or root formats
+    if posixpath.isabs(path):
+        # attempt to match drive
+        path, subs = RE_UNIX_DRIVE.subn(_to_win_drive, path)
+
+        # attempt to match mount
+        if not subs:
+            path, subs = RE_UNIX_MOUNT.subn(_to_win_mount, path)
+
+        # attempt to match root
+        if not subs:
+            path = RE_UNIX_ROOT.sub(partial(_to_win_root, root=root), path)
 
     return _resolve_path(path, ntpath.sep)
 

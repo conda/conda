@@ -90,7 +90,7 @@ def url_to_path(url):
             f"You can only turn absolute file: urls into paths (not {url})"
         )
     _, netloc, path, _, _ = urlsplit(url)
-    from .url import percent_decode
+    from ..url import percent_decode
 
     path = percent_decode(path)
     if netloc not in ("", "localhost", "127.0.0.1", "::1"):
@@ -384,8 +384,8 @@ def path_identity(paths: PathType | PathsType | None) -> str | tuple[str, ...] |
 
 def _path_to(
     paths: PathType | PathsType | None,
-    *,
     root: str | None,
+    *,
     cygdrive: bool,
     to_unix: bool,
 ) -> str | tuple[str, ...] | None:
@@ -393,9 +393,9 @@ def _path_to(
         return None
 
     # short-circuit if we don't get any paths
-    paths = paths if isinstance(paths, str) else tuple(paths)
+    paths = paths if isinstance(paths, (str, os.PathLike)) else tuple(paths)
     if not paths:
-        return "." if isinstance(paths, str) else ()
+        return "." if isinstance(paths, (str, os.PathLike)) else ()
 
     if root is None:
         from ...base.context import context
@@ -438,23 +438,29 @@ def _path_to(
             capture_output=True,
             check=True,
         ).stdout.strip()
-
-        # remove duplicate path seps
-        converted = resolve_paths(converted, to_pathsep, to_sep)
     except FileNotFoundError:
         # fallback logic when cygpath is not available
         # i.e. conda without anything else installed
         log.warning("cygpath is not available, fallback to manual path conversion")
 
-        # convert root since they may also be of different format
-        root = cygpath_fallback(root, root, cygdrive)
-
         converted = cygpath_fallback(joined, root, cygdrive)
-    except Exception as err:
-        log.error("Unexpected cygpath error (%s)", err)
+    except subprocess.CalledProcessError as err:
+        log.error(
+            "Unexpected cygpath error\n  %s: %s\n  stdout: %s\n  stderr: %s",
+            err.__class__.__name__,
+            err,
+            err.stdout.strip(),
+            err.stderr.strip(),
+        )
         raise
+    except Exception as err:
+        log.error("Unexpected cygpath error\n  %s: %s", err.__class__.__name__, err)
+        raise
+    else:
+        # cygpath doesn't always remove duplicate path seps
+        converted = resolve_paths(converted, to_pathsep, to_sep)
 
-    if isinstance(paths, str):
+    if isinstance(paths, (str, os.PathLike)):
         return converted
     elif not converted:
         return ()
@@ -464,8 +470,8 @@ def _path_to(
 
 def win_path_to_unix(
     paths: PathType | PathsType | None,
-    *,
     root: str | None = None,
+    *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:
     return _path_to(paths, root=root, cygdrive=cygdrive, to_unix=True)
@@ -473,8 +479,8 @@ def win_path_to_unix(
 
 def unix_path_to_win(
     paths: PathType | PathsType | None,
-    *,
     root: str | None = None,
+    *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:
-    return _path_to(paths, root=root, cygdrive=cygdrive, to_unix=False)
+    return _path_to(paths, root, cygdrive=cygdrive, to_unix=False)

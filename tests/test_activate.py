@@ -1110,187 +1110,223 @@ def test_native_path_to_unix(
     assert native_path_to_unix(paths) in expected
 
 
+@pytest.mark.skipif(
+    not on_win,
+    reason="native_path_to_unix is path_identity on non-windows",
+)
 @pytest.mark.parametrize(
     "paths,expected",
     [
+        # falsy
         pytest.param(None, None, id="None"),
+        pytest.param("", ".", id="empty string"),
         pytest.param((), (), id="empty tuple"),
-        pytest.param([], (), id="empty list"),
-        pytest.param({}, (), id="empty dict"),
-        pytest.param(set(), (), id="empty set"),
-    ],
-)
-def test_path_conversion_falsy(
-    paths: str | Iterable[str] | None, expected: str | Iterable[str] | None
-) -> None:
-    assert native_path_to_unix(paths) == expected
-    assert unix_path_to_native(paths) == expected
-
-
-@pytest.mark.parametrize(
-    "unix_paths,win_paths",
-    [
-        # cwd
-        pytest.param([".", ""], [".", ""], id="cwd"),
+        # MSYS2
         pytest.param(
-            ["./", ".//", ".///"],
-            [".\\", ".\\\\", ".\\\\\\"],
-            id="cwd [trailing]",
-        ),
-        # root (1 or 3+ leading slashes)
-        pytest.param(
-            # [roundtrip, alternative, ...]
-            ["/", "///", "////"],  # unix
-            ["{ROOT}\\Library\\", "{INDIRECTION}\\\\Library\\\\\\"],  # windows
-            id="root bare",
+            # 1 leading slash = root
+            "/",
+            "{WINDOWS}\\Library\\",
+            id="root",
         ),
         pytest.param(
-            ["/root", "///root", "////root"],
-            ["{ROOT}\\Library\\root", "{INDIRECTION}\\\\Library\\\\\\root"],
+            # 1 leading slash + 1 letter = drive
+            "/c",
+            "C:\\",
+            id="drive",
+        ),
+        pytest.param(
+            # 1 leading slash + 1 letter = drive
+            "/c/",
+            "C:\\",
+            id="drive [trailing]",
+        ),
+        pytest.param(
+            # 1 leading slash + 2+ letters = root path
+            "/root",
+            "{WINDOWS}\\Library\\root",
             id="root path",
         ),
         pytest.param(
-            ["/root/", "///root/", "////root/"],
-            ["{ROOT}\\Library\\root\\", "{INDIRECTION}\\\\Library\\\\\\root\\\\\\\\"],
+            # 1 leading slash + 2+ letters = root path
+            "/root/",
+            "{WINDOWS}\\Library\\root\\",
             id="root path [trailing]",
         ),
         pytest.param(
-            ["/root/PreserveCASE", "/root//PreserveCASE", "///root////PreserveCASE"],
-            [
-                "{ROOT}\\Library\\root\\PreserveCASE",
-                "{INDIRECTION}\\\\Library\\\\\\root\\\\PreserveCASE",
-            ],
-            id="root path [case]",
+            # 2 leading slashes = UNC mount
+            "//",
+            "\\\\",
+            id="bare UNC mount",
         ),
-        # UNC mount (2 leading slashes)
-        pytest.param(["//"], ["\\\\"], id="UNC bare"),
-        pytest.param(["//mount"], ["\\\\mount"], id="UNC mount"),
         pytest.param(
-            ["//mount/", "//mount///"],
-            ["\\\\mount\\", "\\\\mount\\\\\\"],
+            # 2 leading slashes = UNC mount
+            "//mount",
+            "\\\\mount",
+            id="UNC mount",
+        ),
+        pytest.param(
+            # 2 leading slashes = UNC mount
+            "//mount/",
+            "\\\\mount\\",
             id="UNC mount [trailing]",
         ),
         pytest.param(
-            ["//mount/PreserveCASE", "//mount///PreserveCASE"],
-            ["\\\\mount\\PreserveCASE", "\\\\mount\\\\\\PreserveCASE"],
-            id="UNC mount [case]",
-        ),
-        # drive (1 leading slash + 1 letter)
-        pytest.param(
-            # /c & /C doesn't roundtrip, so we split the case into two, see below
-            [None, "/c", "/C"],  # → C:\\
-            ["C:\\"],  # → /c/
-            id="drive bare [/c > C:\\]",
+            # 3+ leading slashes = root
+            "///",
+            "{WINDOWS}\\Library\\",
+            id="root [leading]",
         ),
         pytest.param(
-            # c: & C: doesn't roundtrip, so we split the case into two, see above
-            ["/c"],  # → C:\\
-            [None, "c:", "C:"],  # → /c
-            id="drive bare [C: > /c]",
+            # 3+ leading slashes = root path
+            "///root",
+            "{WINDOWS}\\Library\\root",
+            id="root path [leading]",
         ),
         pytest.param(
-            ["/c/", "/C/", "/c//", "/C///"],
-            ["C:\\", "c:\\", "C:\\\\"],
-            id="drive bare [trailing]",
+            # 3+ leading slashes = root
+            "////",
+            "{WINDOWS}\\Library\\",
+            id="root [leading, trailing]",
         ),
         pytest.param(
-            ["/c/drive", "/c//drive", "/c///drive"],
-            ["C:\\drive", "C:\\\\drive", "c:\\\\\\drive"],
-            id="drive path",
+            # 3+ leading slashes = root path
+            "///root/",
+            "{WINDOWS}\\Library\\root\\",
+            id="root path [leading, trailing]",
         ),
         pytest.param(
-            [
-                "/c/drive/PreserveCASE",
-                "/c//drive//PreserveCASE",
-                "/c///drive///PreserveCASE",
-            ],
-            [
-                "C:\\drive\\PreserveCASE",
-                "C:\\\\drive\\\\PreserveCASE",
-                "c:\\\\drive\\\\\\PreserveCASE",
-            ],
-            id="drive path [case]",
-        ),
-        # relative path
-        pytest.param(["relative"], ["relative"], id="relative"),
-        pytest.param(
-            ["relative/", "relative//", "relative///"],
-            ["relative\\", "relative\\\\", "relative\\\\\\"],
-            id="relative [trailing]",
+            # a normal path
+            "/c/path/to/One",
+            "C:\\path\\to\\One",
+            id="normal path",
         ),
         pytest.param(
-            ["relative/PreserveCASE", "relative//PreserveCASE"],
-            ["relative\\PreserveCASE", "relative\\\\PreserveCASE"],
-            id="relative [case]",
+            # a normal path
+            "/c//path///to////One",
+            "C:\\path\\to\\One",
+            id="normal path [extra]",
         ),
+        pytest.param(
+            # a normal path
+            "/c/path/to/One/",
+            "C:\\path\\to\\One\\",
+            id="normal path [trailing]",
+        ),
+        pytest.param(
+            # a normal UNC path
+            "//mount/to/One",
+            "\\\\mount\\to\\One",
+            id="UNC path",
+        ),
+        pytest.param(
+            # a normal UNC path
+            "//mount//to///One",
+            "\\\\mount\\to\\One",
+            id="UNC path [extra]",
+        ),
+        pytest.param(
+            # a normal root path
+            "/path/to/One",
+            "{WINDOWS}\\Library\\path\\to\\One",
+            id="root path",
+        ),
+        pytest.param(
+            # a normal root path
+            "/path//to///One",
+            "{WINDOWS}\\Library\\path\\to\\One",
+            id="root path [extra]",
+        ),
+        pytest.param(
+            # relative path stays relative
+            "relative/path/to/One",
+            "relative\\path\\to\\One",
+            id="relative",
+        ),
+        pytest.param(
+            # relative path stays relative
+            "relative//path///to////One",
+            "relative\\path\\to\\One",
+            id="relative [extra]",
+        ),
+        pytest.param(
+            "/c/path/to/One://path/to/One:/path/to/One:relative/path/to/One",
+            (
+                "C:\\path\\to\\One;"
+                "\\\\path\\to\\One;"
+                "{WINDOWS}\\Library\\path\\to\\One;"
+                "relative\\path\\to\\One"
+            ),
+            id="path;...",
+        ),
+        pytest.param(
+            ["/c/path/to/One"],
+            ("C:\\path\\to\\One",),
+            id="list[path]",
+        ),
+        pytest.param(
+            ("/c/path/to/One", "/c/path/Two", "//mount/Three"),
+            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+            id="tuple[path, ...]",
+        ),
+        # XXX Cygwin and MSYS2's cygpath programs are not mutually
+        # aware meaning that MSYS2's cygpath treats
+        # /cygrive/c/here/there as a regular absolute path and returns
+        # {prefix}\Library\cygdrive\c\here\there.  And vice versa.
+        #
+        # cygwin
+        # pytest.param(
+        #     "/cygdrive/c/path/to/One",
+        #     "C:\\path\\to\\One",
+        #     id="Cygwin drive letter path (cygwin)",
+        # ),
+        # pytest.param(
+        #     ["/cygdrive/c/path/to/One"],
+        #     ("C:\\path\\to\\One",),
+        #     id="list[path] (cygwin)",
+        # ),
+        # pytest.param(
+        #     ("/cygdrive/c/path/to/One", "/cygdrive/c/path/Two", "//mount/Three"),
+        #     ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
+        #     id="tuple[path, ...] (cygwin)",
+        # ),
+    ],
+)
+@pytest.mark.parametrize(
+    "unix",
+    [
+        pytest.param(True, id="Unix"),
+        pytest.param(False, id="Windows"),
     ],
 )
 @pytest.mark.parametrize(
     "cygpath",
-    [
-        pytest.param(
-            True,
-            id="cygpath",
-            marks=pytest.mark.skipif(
-                not on_win,
-                reason="cygpath is only available on Windows",
-            ),
-        ),
-        pytest.param(False, id="fallback"),
-    ],
+    [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
 )
-def test_path_conversion(
-    tmp_path: Path,
+def test_unix_path_to_native(
+    tmp_env: TmpEnvFixture,
     mocker: MockerFixture,
-    unix_paths,
-    win_paths,
+    paths: str | Iterable[str] | None,
+    expected: str | tuple[str, ...] | None,
+    unix: bool,
     cygpath: bool,
 ) -> None:
-    try:
-        # create a symlink
-        (root_symlink := tmp_path / "root").symlink_to(context.target_prefix)
-        (non_root_symlink := tmp_path / "non_root").mkdir()
-    except OSError:
-        # OSError: unable to make symlinks
-        root_symlink = non_root_symlink = Path(context.target_prefix)
+    windows_prefix = context.target_prefix
 
-    if on_win:
-        win_root = context.target_prefix
-        win_indirection = str(non_root_symlink / "." / ".." / root_symlink.name)
-        unix_root = native_path_to_unix(win_root, root="")
-        unix_indirection = native_path_to_unix(win_indirection, root=win_root)
-    else:
-        unix_root = context.target_prefix
-        unix_indirection = str(non_root_symlink / "." / ".." / root_symlink.name)
-        win_root = unix_path_to_native(unix_root, root="")
-        win_indirection = unix_path_to_native(unix_indirection, root=unix_root)
+    def format(path: str) -> str:
+        return path.format(WINDOWS=windows_prefix)
 
-    def expand(path):
-        if path is None:
-            return None
-        if isinstance(path, str):
-            return path.format(ROOT=win_root, INDIRECTION=win_indirection)
-        return tuple(map(expand, path))
-
-    unix_paths = expand(unix_paths)
-    win_paths = expand(win_paths)
+    if expected:
+        expected = (
+            tuple(map(format, expected))
+            if isinstance(expected, tuple)
+            else format(expected)
+        )
 
     if not cygpath:
         # test without cygpath
         mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    if win_roundtrip := win_paths[0]:
-        for unix_path in filter(None, unix_paths):
-            converted = unix_path_to_native(unix_path, root=unix_root)
-            assert (
-                converted == win_roundtrip
-            ), f"{unix_path} → {converted} ≠ {win_roundtrip}"
-    if unix_roundtrip := unix_paths[0]:
-        for win_path in filter(None, win_paths):
-            converted = native_path_to_unix(win_path, root=win_root)
-            assert (
-                converted == unix_roundtrip
-            ), f"{win_path} → {converted} ≠ {unix_roundtrip}"
+    assert unix_path_to_native(paths, windows_prefix) == expected
 
 
 def test_posix_basic(
@@ -2182,28 +2218,14 @@ def test_metavars_force_uppercase(
 
 
 @pytest.mark.parametrize(
-    "name,attr,raises",
+    "function,raises",
     [
-        ("path_identity", None, TypeError),
-        ("ensure_binary", None, TypeError),
-        ("ensure_fs_path_encoding", None, TypeError),
-        ("_Cygpath", None, TypeError),
-        ("_Cygpath", "RE_UNIX", TypeError),
-        ("_Cygpath", "translate_unix", TypeError),
-        ("_Cygpath", "RE_DRIVE", TypeError),
-        ("_Cygpath", "translation_drive", TypeError),
-        ("_Cygpath", "RE_MOUNT", TypeError),
-        ("_Cygpath", "translation_mount", TypeError),
-        ("_Cygpath", "RE_ROOT", TypeError),
-        ("_Cygpath", "translation_root", TypeError),
-        ("native_path_to_unix", None, TypeError),
-        ("unix_path_to_native", None, TypeError),
+        ("path_identity", TypeError),
+        ("ensure_binary", TypeError),
+        ("ensure_fs_path_encoding", TypeError),
     ],
 )
-def test_deprecations(name: str, attr: str, raises: type[Exception] | None) -> None:
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
-        function = getattr(activate, name)
-        if attr:
-            function = getattr(function, attr)
-        function()
+        getattr(activate, function)()
