@@ -62,7 +62,6 @@ from .constants import (
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
-    PREFIX_NAME_DISALLOWED_CHARS_WIN,
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
@@ -125,7 +124,7 @@ user_rc_path = abspath(expanduser("~/.condarc"))
 sys_rc_path = join(sys.prefix, ".condarc")
 
 
-def user_data_dir(
+def user_data_dir(  # noqa: F811
     appname: str | None = None,
     appauthor: str | None | Literal[False] = None,
     version: str | None = None,
@@ -133,10 +132,8 @@ def user_data_dir(
 ):
     # Defer platformdirs import to reduce import time for conda activate.
     global user_data_dir
-    try:
-        from platformdirs import user_data_dir
-    except ImportError:  # pragma: no cover
-        from .._vendor.appdirs import user_data_dir
+    from platformdirs import user_data_dir
+
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
@@ -676,17 +673,6 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    @deprecated(
-        "24.3",
-        "24.9",
-        addendum="Please use `conda.base.context.context.root_prefix` instead.",
-    )
-    def root_dir(self) -> os.PathLike:
-        # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
-        # because it is more consistent with other names
-        return self.root_prefix
-
-    @property
     def root_writable(self):
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
@@ -786,7 +772,7 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "24.9",
+        "25.3",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
@@ -1144,10 +1130,7 @@ class Context(Configuration):
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
             try:
-                try:
-                    import distro
-                except ImportError:
-                    from .._vendor import distro
+                import distro
 
                 distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
@@ -1168,13 +1151,6 @@ class Context(Configuration):
         # None, None if not on Linux
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
-
-    @property
-    @deprecated("24.3", "24.9")
-    def cpu_flags(self):
-        # DANGER: This is rather slow
-        info = _get_cpu_info()
-        return info["flags"]
 
     @memoizedproperty
     @unique_sequence_map(unique_key="backend")
@@ -2021,15 +1997,6 @@ def replace_context_default(pushing=None, argparse_args=None):
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
 
-@deprecated("24.3", "24.9")
-@lru_cache(maxsize=None)
-def _get_cpu_info():
-    # DANGER: This is rather slow
-    from .._vendor.cpuinfo import get_cpu_info
-
-    return frozendict(get_cpu_info())
-
-
 def env_name(prefix):
     # counter part to `locate_prefix_by_name()` below
     if not prefix:
@@ -2068,21 +2035,12 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
 
-    disallowed = (
-        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
-    )
-    if disallowed.intersection(prefix_name):
-        if "%" in disallowed:
-            # This symbol causes formatting errors in the message below when raised.
-            # It needs to be escaped as a double %% in order to be rendered correctly.
-            # Raw strings didn't help.
-            disallowed.remove("%")
-            disallowed.add("%%")
+    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
         raise CondaValueError(
             dals(
                 f"""
                 Invalid environment name: {prefix_name!r}
-                Characters not allowed: {disallowed}
+                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
                 If you are specifying a path to an environment, the `-p`
                 flag should be used instead.
                 """

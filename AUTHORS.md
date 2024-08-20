@@ -125,6 +125,7 @@ Authors are sorted alphabetically.
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
+* Erik Whiting
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
@@ -215,6 +216,7 @@ Authors are sorted alphabetically.
 * Kara de la Marck
 * Katherine Abrikian
 * Katherine Kinnaman
+* Kelvin Ou
 * Ken Odegard
 * Kenneth Laskoski
 * Kenneth Schackart
@@ -369,6 +371,7 @@ Authors are sorted alphabetically.
 * Sean Ross-Ross
 * Sebastien Awwad
 * Sergio Oller
+* Serhii Kupriienko
 * Shannon Green
 * Shaun Thompson
 * Shaun Walbridge
@@ -399,6 +402,7 @@ Authors are sorted alphabetically.
 * Thomas Kluyver
 * Thomas Lam
 * Thomas Wiecki
+* Thorsten Beier
 * Théo Segonds
 * Tian Zhang
 * Tianchen Zhong
@@ -448,6 +452,7 @@ Authors are sorted alphabetically.
 * mcopes73
 * oinizan
 * ovz
+* padeoe
 * peter1000
 * pre-commit CI
 * saraneem

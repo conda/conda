@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Revert `--all` deprecation in `conda info`. (#14004)
+* Mark `conda.exports.move_to_trash` as pending deprecation. Use `conda.gateways.disk.delete.rm_rf` instead. (#14118)
 
 ### Docs
 
