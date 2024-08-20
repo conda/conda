@@ -337,16 +337,9 @@ def test_path_conversion(
         assert unix is None and isinstance(roundtrip, str)
 
     if on_win:
-        try:
-            # create a symlink
-            (root_symlink := tmp_path / "root").symlink_to(context.target_prefix)
-            (non_root_symlink := tmp_path / "non_root").mkdir()
-        except OSError:
-            # OSError: unable to make symlinks
-            root_symlink = non_root_symlink = Path(context.target_prefix)
-
-        win_root = context.target_prefix
-        win_alt = os.path.join(non_root_symlink, ".", "..", root_symlink.name)
+        win_root = Path(context.target_prefix)
+        # using `os.path.join` instead of `pathlib` otherwise the . indirection is removed
+        win_alt = os.path.join(win_root, ".", "..", win_root.name)
     else:
         # cygpath doesn't exist so we don't have to align with what cygpath would return
         # besides, using Unix paths and expecting a valid Windows path doesn't make sense
