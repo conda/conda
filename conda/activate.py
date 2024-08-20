@@ -634,10 +634,6 @@ class _Activator(metaclass=abc.ABCMeta):
     @deprecated.argument("24.9", "25.3", "extra_library_bin")
     def _get_path_dirs(self, prefix):
         if on_win:  # pragma: unix no cover
-            # if the prefix looks like a unix path we need to convert it to a windows path
-            if re.match("^(/cygdrive)?/[A-Za-z]/.*", prefix):
-                prefix = unix_path_to_win(prefix, root="")
-
             yield prefix.rstrip(self.sep)
 
             # We need to stat(2) for possible environments because
@@ -648,9 +644,14 @@ class _Activator(metaclass=abc.ABCMeta):
             # We could include clang32 and mingw32 variants
             variants = []
             for variant in ["ucrt64", "clang64", "mingw64", "clangarm64"]:
-                path = self.sep.join((prefix, "Library", variant))
+                # if the prefix is a Unix path we need to convert it to a Windows path
+                # before checking whether the path exists
+                if re.match("^(/cygdrive)?/[A-Za-z]/.*", prefix):
+                    win_prefix = unix_path_to_win(prefix, root="")
+                else:
+                    win_prefix = prefix
 
-                if isdir(path):
+                if Path(win_prefix, "Library", variant).is_dir():
                     variants.append(variant)
 
             if len(variants) > 1:
