@@ -270,7 +270,7 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
             )
         else:
             assert lines.startswith(f"#!{python_full_path}\n")
-    assert last_line == "sys.exit(%s())" % func
+    assert last_line == f"sys.exit({func}())"
 
     py_ep_axn.reverse()
     assert not isfile(py_ep_axn.target_full_path)

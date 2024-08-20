@@ -150,7 +150,7 @@ def replace_prefix(
                 subdir=subdir,
             )
         else:
-            raise CondaIOError("Invalid mode: %r" % mode)
+            raise CondaIOError(f"Invalid mode: {mode!r}")
     return data
 
 
@@ -194,7 +194,9 @@ def binary_replace(
         return match.group().replace(search, replacement) + b"\0" * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros)
+    pat = re.compile(
+        re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros, flags=re.DOTALL
+    )
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 

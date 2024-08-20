@@ -391,9 +391,9 @@ class UnlinkLinkTransaction:
             except OSError as e:
                 log.debug(repr(e))
                 raise CondaError(
-                    "Unable to create prefix directory '%s'.\n"
+                    f"Unable to create prefix directory '{target_prefix}'.\n"
                     "Check that you have sufficient permissions."
-                    "" % target_prefix
+                    ""
                 )
 
         # gather information from disk and caches
@@ -768,8 +768,8 @@ class UnlinkLinkTransaction:
                     or dep_name in pkg_names_being_unlnkd
                 ):
                     yield RemoveError(
-                        "'%s' is a dependency of conda and cannot be removed from\n"
-                        "conda's operating environment." % dep_name
+                        f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
+                        "conda's operating environment."
                     )
 
         # Verification 3. enforce disallowed_packages
@@ -1242,20 +1242,20 @@ class UnlinkLinkTransaction:
     def _change_report_str(self, change_report):
         # TODO (AV): add warnings about unverified packages in this function
         builder = ["", "## Package Plan ##\n"]
-        builder.append("  environment location: %s" % change_report.prefix)
+        builder.append(f"  environment location: {change_report.prefix}")
         builder.append("")
         if change_report.specs_to_remove:
             builder.append(
-                "  removed specs:%s"
-                % dashlist(
-                    sorted(str(s) for s in change_report.specs_to_remove), indent=4
+                "  removed specs:{}".format(
+                    dashlist(
+                        sorted(str(s) for s in change_report.specs_to_remove), indent=4
+                    )
                 )
             )
             builder.append("")
         if change_report.specs_to_add:
             builder.append(
-                "  added / updated specs:%s"
-                % dashlist(sorted(str(s) for s in change_report.specs_to_add), indent=4)
+                f"  added / updated specs:{dashlist(sorted(str(s) for s in change_report.specs_to_add), indent=4)}"
             )
             builder.append("")
 
@@ -1587,7 +1587,7 @@ def run_script(
                     )
                 raise LinkError(message)
             else:
-                log.warn(
+                log.warning(
                     "%s script failed for package %s\n"
                     "consider notifying the package maintainer",
                     action,

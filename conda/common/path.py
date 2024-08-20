@@ -29,6 +29,8 @@ from .compat import on_win
 if TYPE_CHECKING:
     from typing import Iterable, Sequence
 
+    PathType = str | os.PathLike
+
 log = getLogger(__name__)
 
 PATH_MATCH_REGEX = (
@@ -79,7 +81,7 @@ def url_to_path(url):
         return url
     if not url.startswith("file://"):  # pragma: no cover
         raise CondaError(
-            "You can only turn absolute file: urls into paths (not %s)" % url
+            f"You can only turn absolute file: urls into paths (not {url})"
         )
     _, netloc, path, _, _ = urlsplit(url)
     from .url import percent_decode
@@ -190,7 +192,7 @@ def get_python_site_packages_short_path(python_version):
         return "Lib/site-packages"
     else:
         py_ver = get_major_minor_version(python_version)
-        return "lib/python%s/site-packages" % py_ver
+        return f"lib/python{py_ver}/site-packages"
 
 
 _VERSION_REGEX = re.compile(r"[0-9]+\.[0-9]+")
@@ -346,7 +348,7 @@ def win_path_to_unix(path, root_prefix=""):
             .split("\n")[0]
         )
     except Exception as e:
-        log.debug("%r" % e, exc_info=True)
+        log.debug(f"{e!r}", exc_info=True)
 
         # Convert a path or ;-separated string of paths into a unix representation
         # Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
@@ -402,3 +404,14 @@ def is_package_file(path):
     # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
     #       import rules and to avoid a global lookup.
     return path[-6:] == ".conda" or path[-8:] == ".tar.bz2"
+
+
+def path_identity(
+    paths: PathType | Iterable[PathType] | None,
+) -> str | tuple[str, ...] | None:
+    if paths is None:
+        return None
+    elif isinstance(paths, (str, os.PathLike)):
+        return os.path.normpath(paths)
+    else:
+        return tuple(os.path.normpath(path) for path in paths)

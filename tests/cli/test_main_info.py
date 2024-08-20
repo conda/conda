@@ -37,7 +37,7 @@ def test_info_unsafe_channels(reset_conda_context: None, conda_cli: CondaCLIFixt
         assert not err
 
 
-# conda info --all | --envs | --system
+# conda info --verbose | --envs | --system
 def test_info(conda_cli: CondaCLIFixture):
     stdout_basic, stderr, err = conda_cli("info")
     assert "platform" in stdout_basic
@@ -67,9 +67,9 @@ def test_info(conda_cli: CondaCLIFixture):
     assert not err
 
     stdout_all, stderr, err = conda_cli("info", "--all")
-    assert stdout_basic in stdout_all, "`conda info` not in `conda info --all`"
-    assert stdout_envs in stdout_all, "`conda info --envs` not in `conda info --all`"
-    assert stdout_sys in stdout_all, "`conda info --system` not in `conda info --all`"
+    assert stdout_basic in stdout_all
+    assert stdout_envs in stdout_all
+    assert stdout_sys in stdout_all
     assert not stderr
     assert not err
 

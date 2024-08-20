@@ -300,7 +300,7 @@ class MatchSpec(metaclass=MatchSpecType):
     def __repr__(self):
         builder = [f'{self.__class__.__name__}("{self}"']
         if self.target:
-            builder.append(', target="%s"' % self.target)
+            builder.append(f', target="{self.target}"')
         if self.optional:
             builder.append(", optional=True")
         builder.append(")")
@@ -314,14 +314,14 @@ class MatchSpec(metaclass=MatchSpecType):
         if channel_matcher and channel_matcher.exact_value:
             builder.append(str(channel_matcher))
         elif channel_matcher and not channel_matcher.matches_all:
-            brackets.append("channel=%s" % str(channel_matcher))
+            brackets.append(f"channel={str(channel_matcher)}")
 
         subdir_matcher = self._match_components.get("subdir")
         if subdir_matcher:
             if channel_matcher and channel_matcher.exact_value:
-                builder.append("/%s" % subdir_matcher)
+                builder.append(f"/{subdir_matcher}")
             else:
-                brackets.append("subdir=%s" % subdir_matcher)
+                brackets.append(f"subdir={subdir_matcher}")
 
         name_matcher = self._match_components.get("name", "*")
         builder.append(("::%s" if builder else "%s") % name_matcher)
@@ -332,10 +332,10 @@ class MatchSpec(metaclass=MatchSpecType):
         if version:
             version = str(version)
             if any(s in version for s in "><$^|,"):
-                brackets.append("version='%s'" % version)
+                brackets.append(f"version='{version}'")
             elif version[:2] in ("!=", "~="):
                 if build:
-                    brackets.append("version='%s'" % version)
+                    brackets.append(f"version='{version}'")
                 else:
                     builder.append(version)
             elif version[-2:] == ".*":
@@ -352,13 +352,13 @@ class MatchSpec(metaclass=MatchSpecType):
         if build:
             build = str(build)
             if any(s in build for s in "><$^|,"):
-                brackets.append("build='%s'" % build)
+                brackets.append(f"build='{build}'")
             elif "*" in build:
-                brackets.append("build=%s" % build)
+                brackets.append(f"build={build}")
             elif version_exact:
                 builder.append("=" + build)
             else:
-                brackets.append("build=%s" % build)
+                brackets.append(f"build={build}")
 
         _skip = {"channel", "subdir", "name", "version", "build"}
         if "url" in self._match_components and "fn" in self._match_components:
@@ -375,7 +375,7 @@ class MatchSpec(metaclass=MatchSpecType):
                     brackets.append(f"{key}={value}")
 
         if brackets:
-            builder.append("[%s]" % ",".join(brackets))
+            builder.append("[{}]".format(",".join(brackets)))
 
         return "".join(builder)
 
@@ -419,7 +419,7 @@ class MatchSpec(metaclass=MatchSpecType):
         not_fields = set(kwargs) - MatchSpec.FIELD_NAMES_SET
         if not_fields:
             raise InvalidMatchSpec(
-                self._original_spec_str, "Cannot match on field(s): %s" % not_fields
+                self._original_spec_str, f"Cannot match on field(s): {not_fields}"
             )
         _make_component = MatchSpec._make_component
         return frozendict(_make_component(key, value) for key, value in kwargs.items())
@@ -499,7 +499,7 @@ class MatchSpec(metaclass=MatchSpecType):
             target_groups = groupby(attrgetter("target"), group)
             target_groups.pop(None, None)
             if len(target_groups) > 1:
-                raise ValueError("Incompatible MatchSpec merge:%s" % dashlist(group))
+                raise ValueError(f"Incompatible MatchSpec merge:{dashlist(group)}")
             merged_specs.append(
                 reduce(lambda x, y: x._merge(y, union), group)
                 if len(group) > 1
@@ -718,7 +718,7 @@ def _parse_spec_str(spec_str):
         name, spec_str = m3.groups()
         if name is None:
             raise InvalidMatchSpec(
-                original_spec_str, "no package name found in '%s'" % spec_str
+                original_spec_str, f"no package name found in '{spec_str}'"
             )
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")
@@ -891,7 +891,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
                 self._re_match = re.compile(value).match
             elif "*" in value:
                 value = re.escape(value).replace("\\*", r".*")
-                self._re_match = re.compile(r"^(?:%s)$" % value).match
+                self._re_match = re.compile(rf"^(?:{value})$").match
         except re.error as e:
             raise InvalidMatchSpec(
                 value, f"Contains an invalid regular expression. '{e}'"
@@ -944,7 +944,7 @@ class SplitStrMatch(MatchInterface):
 
     def __repr__(self):
         if self._raw_value:
-            return "{%s}" % ", ".join("'%s'" % s for s in sorted(self._raw_value))
+            return "{{{}}}".format(", ".join(f"'{s}'" for s in sorted(self._raw_value)))
         else:
             return "set()"
 
@@ -986,7 +986,7 @@ class FeatureMatch(MatchInterface):
         return self._raw_value == other
 
     def __repr__(self):
-        return "[%s]" % ", ".join("'%s'" % k for k in sorted(self._raw_value))
+        return "[{}]".format(", ".join(f"'{k}'" for k in sorted(self._raw_value)))
 
     def __str__(self):
         return " ".join(sorted(self._raw_value))
@@ -1012,7 +1012,7 @@ class ChannelMatch(GlobStrMatch):
                     self._re_match = re.compile(value).match
                 elif "*" in value:
                     self._re_match = re.compile(
-                        r"^(?:%s)$" % value.replace("*", r".*")
+                        r"^(?:{})$".format(value.replace("*", r".*"))
                     ).match
                 else:
                     value = Channel(value)
@@ -1038,12 +1038,12 @@ class ChannelMatch(GlobStrMatch):
 
     def __str__(self):
         try:
-            return "%s" % self._raw_value.name
+            return f"{self._raw_value.name}"
         except AttributeError:
-            return "%s" % self._raw_value
+            return f"{self._raw_value}"
 
     def __repr__(self):
-        return "'%s'" % self.__str__()
+        return f"'{self.__str__()}'"
 
 
 class CaseInsensitiveStrMatch(GlobLowerStrMatch):

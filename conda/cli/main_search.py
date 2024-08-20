@@ -179,7 +179,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if args.envs:
         with Spinner(
-            "Searching environments for %s" % spec,
+            f"Searching environments for {spec}",
             not context.verbose and not context.quiet,
             context.json,
         ):
@@ -244,7 +244,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
         )
     if not matches and not args.skip_flexible_search and spec.get_exact_value("name"):
-        flex_spec = MatchSpec(spec, name="*%s*" % spec.name)
+        flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
         matches = sorted(

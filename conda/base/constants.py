@@ -12,7 +12,7 @@ import struct
 from enum import Enum, EnumMeta
 from os.path import join
 
-from ..common.compat import on_win, six_with_metaclass
+from ..common.compat import on_win
 
 PREFIX_PLACEHOLDER = (
     "/opt/anaconda1anaconda2"
@@ -109,6 +109,7 @@ DEFAULT_CUSTOM_CHANNELS = {
 DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = "base"
+UNUSED_ENV_NAME = "unused-env-name"
 
 ROOT_NO_RM = (
     "python",
@@ -246,7 +247,7 @@ class ValueEnum(Enum):
         return f"{self.value}"
 
 
-class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
+class ChannelPriority(ValueEnum, metaclass=ChannelPriorityMeta):
     __name__ = "ChannelPriority"
 
     STRICT = "strict"

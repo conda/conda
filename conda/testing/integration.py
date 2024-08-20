@@ -289,7 +289,7 @@ def run_command(command, prefix, *arguments, **kwargs) -> tuple[str, str, int]:
     cap_args = () if not kwargs.get("no_capture") else (None, None)
     # list2cmdline is not exact, but it is only informational.
     print(
-        "\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % " ".join(arguments),
+        "\n\nEXECUTING COMMAND >>> $ conda {}\n\n".format(" ".join(arguments)),
         file=sys.stderr,
     )
     with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(
@@ -449,8 +449,7 @@ def package_is_installed(
         return None
     elif len(prefix_recs) > 1:
         raise AssertionError(
-            "Multiple packages installed.%s"
-            % (dashlist(prec.dist_str() for prec in prefix_recs))
+            f"Multiple packages installed.{dashlist(prec.dist_str() for prec in prefix_recs)}"
         )
     else:
         return prefix_recs[0]

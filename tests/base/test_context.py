@@ -5,6 +5,7 @@ from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
 from tempfile import gettempdir
+from types import SimpleNamespace
 from unittest import mock
 
 import pytest
@@ -70,6 +71,11 @@ TEST_CONDARC = dals(
       rsync: 'false'
     aggressive_update_packages: []
     channel_priority: false
+    reporters:
+      - backend: json
+        output: stdout
+      - backend: console
+        output: stdout
     """
 )
 
@@ -106,7 +112,7 @@ def test_old_channel_alias(testdata: None):
     platform = context.subdir
 
     cf_urls = [
-        "ftp://new.url:8082/conda-forge/%s" % platform,
+        f"ftp://new.url:8082/conda-forge/{platform}",
         "ftp://new.url:8082/conda-forge/noarch",
     ]
     assert Channel("conda-forge").urls() == cf_urls
@@ -759,3 +765,68 @@ def test_get_plugin_config_data_skip_bad_values():
     plugin_config_data = get_plugin_config_data(raw_data)
 
     assert plugin_config_data == {}
+
+
+def test_reporters_from_config_file(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values
+    """
+    assert context.reporters == (
+        {"backend": "json", "output": "stdout"},
+        {"backend": "console", "output": "stdout"},
+    )
+
+
+def test_reporters_json_is_true(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values when ``context.json``
+    is true.
+    """
+    args = SimpleNamespace(json=True)
+    reset_context((), args)
+
+    assert context.reporters == (
+        {
+            "backend": "json",
+            "output": "stdout",
+            "quiet": False,
+            "verbosity": context.verbosity,
+        },
+    )
+
+    reset_context()
+
+
+def test_reporters_quiet_is_true(testdata):
+    """
+    Ensure that the ``reporters`` property returns the correct values when ``context.quiet``
+    is true.
+    """
+    args = SimpleNamespace(quiet=True)
+    reset_context((), args)
+
+    assert context.reporters == (
+        {
+            "backend": "console",
+            "output": "stdout",
+            "verbosity": context.verbosity,
+            "quiet": True,
+        },
+    )
+
+    reset_context()
+
+
+def test_reporters_default_value():
+    """
+    Ensure that the ``reporters`` property returns the correct values when nothing is set including
+    values from configuration files.
+    """
+    assert context.reporters == (
+        {
+            "backend": "console",
+            "output": "stdout",
+            "quiet": False,
+            "verbosity": context.verbosity,
+        },
+    )

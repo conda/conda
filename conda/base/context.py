@@ -40,6 +40,7 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    unique_sequence_map,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -123,7 +124,7 @@ user_rc_path = abspath(expanduser("~/.condarc"))
 sys_rc_path = join(sys.prefix, ".condarc")
 
 
-def user_data_dir(
+def user_data_dir(  # noqa: F811
     appname: str | None = None,
     appauthor: str | None | Literal[False] = None,
     version: str | None = None,
@@ -131,10 +132,8 @@ def user_data_dir(
 ):
     # Defer platformdirs import to reduce import time for conda activate.
     global user_data_dir
-    try:
-        from platformdirs import user_data_dir
-    except ImportError:  # pragma: no cover
-        from .._vendor.appdirs import user_data_dir
+    from platformdirs import user_data_dir
+
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
@@ -156,7 +155,7 @@ def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):
-        return "channel_alias value '%s' must have scheme/protocol." % value
+        return f"channel_alias value '{value}' must have scheme/protocol."
     return True
 
 
@@ -178,7 +177,7 @@ def default_python_validation(value):
         # Set to None or '' meaning no python pinning
         return True
 
-    return "default_python value '%s' not of the form '[23].[0-9][0-9]?' or ''" % value
+    return f"default_python value '{value}' not of the form '[23].[0-9][0-9]?' or ''"
 
 
 def ssl_verify_validation(value):
@@ -187,10 +186,10 @@ def ssl_verify_validation(value):
             return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
         elif value != "truststore" and not exists(value):
             return (
-                "ssl_verify value '%s' must be a boolean, a path to a "
+                f"ssl_verify value '{value}' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
                 "certificates of trusted CAs, or 'truststore' to use the "
-                "operating system certificate store." % value
+                "operating system certificate store."
             )
     return True
 
@@ -338,6 +337,11 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
+    _reporters = ParameterLoader(
+        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
+        aliases=("reporters",),
+    )
+
     ####################################################
     #               Channel Configuration              #
     ####################################################
@@ -435,6 +439,7 @@ class Context(Configuration):
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
     #               Solver Configuration               #
@@ -668,17 +673,6 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    @deprecated(
-        "24.3",
-        "24.9",
-        addendum="Please use `conda.base.context.context.root_prefix` instead.",
-    )
-    def root_dir(self) -> os.PathLike:
-        # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
-        # because it is more consistent with other names
-        return self.root_prefix
-
-    @property
     def root_writable(self):
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
@@ -778,7 +772,7 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "24.9",
+        "25.3",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
@@ -1053,7 +1047,7 @@ class Context(Configuration):
             return logging.WARNING  # 30
 
     def solver_user_agent(self):
-        user_agent = "solver/%s" % self.solver
+        user_agent = f"solver/{self.solver}"
         try:
             solver_backend = self.plugin_manager.get_cached_solver_backend()
             # Solver.user_agent has to be a static or class method
@@ -1136,10 +1130,7 @@ class Context(Configuration):
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
             try:
-                try:
-                    import distro
-                except ImportError:
-                    from .._vendor import distro
+                import distro
 
                 distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
@@ -1161,12 +1152,24 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @property
-    @deprecated("24.3", "24.9")
-    def cpu_flags(self):
-        # DANGER: This is rather slow
-        info = _get_cpu_info()
-        return info["flags"]
+    @memoizedproperty
+    @unique_sequence_map(unique_key="backend")
+    def reporters(self) -> tuple[Mapping[str, str]]:
+        """
+        Determine the value of reporters based on other settings and the ``self._reporters``
+        value itself.
+        """
+        if not self._reporters:
+            return (
+                {
+                    "backend": "json" if self.json else "console",
+                    "output": "stdout",
+                    "verbosity": self.verbosity,
+                    "quiet": self.quiet,
+                },
+            )
+
+        return self._reporters
 
     @property
     def category_map(self):
@@ -1259,6 +1262,7 @@ class Context(Configuration):
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
+                "envvars_force_uppercase",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1294,6 +1298,7 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
+                "reporters",
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1673,6 +1678,12 @@ class Context(Configuration):
                 Disable progress bar display and other output.
                 """
             ),
+            reporters=dals(
+                """
+                A list of mappings that allow the configuration of one or more output streams
+                (e.g. stdout or file).
+                """
+            ),
             remote_connect_timeout_secs=dals(
                 """
                 The number seconds conda will wait for your client to establish a connection
@@ -1867,6 +1878,11 @@ class Context(Configuration):
                 Disable check for `repodata.json.zst`; use `repodata.json` only.
                 """
             ),
+            envvars_force_uppercase=dals(
+                """
+                Force uppercase for new environment variable names. Defaults to True.
+                """
+            ),
         )
 
 
@@ -1979,15 +1995,6 @@ def replace_context_default(pushing=None, argparse_args=None):
 # be a stated goal to set conda_tests_ctxt_mgmt_def_pol to replace_context_default
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
-
-
-@deprecated("24.3", "24.9")
-@lru_cache(maxsize=None)
-def _get_cpu_info():
-    # DANGER: This is rather slow
-    from .._vendor.cpuinfo import get_cpu_info
-
-    return frozendict(get_cpu_info())
 
 
 def env_name(prefix):
@@ -2112,7 +2119,7 @@ def _first_writable_envs_dir():
                 open(envs_dir_magic_file, "a").close()
                 return envs_dir
             except OSError:
-                log.trace("Tried envs_dir but not writable: %s", envs_dir)
+                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
         else:
             from ..gateways.disk.create import create_envs_directory
 

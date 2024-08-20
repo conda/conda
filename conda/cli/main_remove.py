@@ -50,7 +50,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda remove scipy
 
-        Remove a list of packages from an environemnt 'myenv'::
+        Remove a list of packages from an environment 'myenv'::
 
             conda remove -n myenv scipy curl wheel
 

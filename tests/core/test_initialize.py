@@ -470,15 +470,15 @@ def test_install_conda_fish(verbose):
             remainder,
         ) = created_file_contents.split("\n", 4)
         if on_win:
-            assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % conda_exe
-            assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
-            assert third_line == 'set _CONDA_EXE (cygpath "%s")' % conda_exe
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % python_exe
+            assert first_line == f'set -gx CONDA_EXE (cygpath "{conda_exe}")'
+            assert second_line == f'set _CONDA_ROOT (cygpath "{conda_prefix}")'
+            assert third_line == f'set _CONDA_EXE (cygpath "{conda_exe}")'
+            assert fourth_line == f'set -gx CONDA_PYTHON_EXE (cygpath "{python_exe}")'
         else:
-            assert first_line == 'set -gx CONDA_EXE "%s"' % conda_exe
-            assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'set _CONDA_EXE "%s"' % conda_exe
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE "%s"' % python_exe
+            assert first_line == f'set -gx CONDA_EXE "{conda_exe}"'
+            assert second_line == f'set _CONDA_ROOT "{conda_prefix}"'
+            assert third_line == f'set _CONDA_EXE "{conda_exe}"'
+            assert fourth_line == f'set -gx CONDA_PYTHON_EXE "{python_exe}"'
 
         with open(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")
@@ -505,11 +505,12 @@ def test_install_conda_xsh(verbose):
 
         first_line, remainder = created_file_contents.split("\n", 1)
         if on_win:
-            assert first_line == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(
-                conda_exe
+            assert (
+                first_line
+                == f'$CONDA_EXE = "{XonshActivator.path_conversion(conda_exe)}"'
             )
         else:
-            assert first_line == '$CONDA_EXE = "%s"' % conda_exe
+            assert first_line == f'$CONDA_EXE = "{conda_exe}"'
 
         with open(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
@@ -539,15 +540,15 @@ def test_install_conda_csh(verbose):
             remainder,
         ) = created_file_contents.split("\n", 4)
         if on_win:
-            assert first_line == "setenv CONDA_EXE `cygpath %s`" % conda_exe
-            assert second_line == "setenv _CONDA_ROOT `cygpath %s`" % conda_prefix
-            assert third_line == "setenv _CONDA_EXE `cygpath %s`" % conda_exe
-            assert fourth_line == "setenv CONDA_PYTHON_EXE `cygpath %s`" % python_exe
+            assert first_line == f"setenv CONDA_EXE `cygpath {conda_exe}`"
+            assert second_line == f"setenv _CONDA_ROOT `cygpath {conda_prefix}`"
+            assert third_line == f"setenv _CONDA_EXE `cygpath {conda_exe}`"
+            assert fourth_line == f"setenv CONDA_PYTHON_EXE `cygpath {python_exe}`"
         else:
-            assert first_line == 'setenv CONDA_EXE "%s"' % conda_exe
-            assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'setenv _CONDA_EXE "%s"' % conda_exe
-            assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % python_exe
+            assert first_line == f'setenv CONDA_EXE "{conda_exe}"'
+            assert second_line == f'setenv _CONDA_ROOT "{conda_prefix}"'
+            assert third_line == f'setenv _CONDA_EXE "{conda_exe}"'
+            assert fourth_line == f'setenv CONDA_PYTHON_EXE "{python_exe}"'
 
         with open(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")
@@ -902,7 +903,7 @@ def test_init_sh_user_tcsh_unix(verbose):
         with open(target_path) as fh:
             tcshrc_contet = fh.read()
 
-        conda_csh = "%s/etc/profile.d/conda.csh" % conda_temp_prefix
+        conda_csh = f"{conda_temp_prefix}/etc/profile.d/conda.csh"
         # tcsh/csh doesn't give users the ability to register a function.
         # Make sure that conda doesn't try to register a function
         conda_eval_string = 'eval "$__conda_setup"'

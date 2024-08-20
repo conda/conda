@@ -228,7 +228,7 @@ def read_has_prefix(path):
         elif len(parts) == 3:
             return ParseResult(parts[0], FileMode(parts[1]), parts[2])
         else:
-            raise CondaVerificationError("Invalid has_prefix file at path: %s" % path)
+            raise CondaVerificationError(f"Invalid has_prefix file at path: {path}")
 
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}

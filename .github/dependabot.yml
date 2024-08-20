@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /docs/
+    schedule:
+      interval: monthly
+    allow:
+      # Allow only production updates for Sphinx
+      - dependency-name: sphinx
+        dependency-type: production
+    groups:
+      docs:
+        patterns:
+          - '*'
+  - package-ecosystem: github-actions
+    directory: /.github/workflows
+    schedule:
+      interval: monthly
+    groups:
+      workflows:
+        patterns:
+          - '*'

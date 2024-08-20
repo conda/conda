@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
+from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
@@ -29,13 +30,12 @@ from ..base.constants import (
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
-from ..common.constants import NULL
+from ..common.constants import NULL, TRACE
 from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..deprecations import deprecated
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
@@ -125,7 +125,16 @@ class PackageCacheData(metaclass=PackageCacheType):
                 or isfile(full_path)
                 and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)
             ):
-                package_cache_record = self._make_single_record(base_name)
+                try:
+                    package_cache_record = self._make_single_record(base_name)
+                except ValidationError as err:
+                    # ValidationError: package fields are invalid
+                    log.warning(
+                        f"Failed to create package cache record for '{base_name}'. {err}"
+                    )
+                    package_cache_record = None
+
+                # if package_cache_record is None, it means we couldn't create a record, ignore
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
 
@@ -269,7 +278,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         if pc_entry is not None:
             return pc_entry
         raise CondaError(
-            "No package '%s' found in cache directories." % package_ref.dist_str()
+            f"No package '{package_ref.dist_str()}' found in cache directories."
         )
 
     @classmethod
@@ -321,7 +330,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             self.__is_writable = i_wri
             log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
-            log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
+            log.log(TRACE, "package cache directory '%s' does not exist", self.pkgs_dir)
             self.__is_writable = i_wri = None
         return i_wri
 
@@ -361,7 +370,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         from conda_package_handling.api import InvalidArchiveError
 
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
-        log.trace("adding to package cache %s", package_tarball_full_path)
+        log.log(TRACE, "adding to package cache %s", package_tarball_full_path)
         extracted_package_dir, pkg_ext = strip_pkg_extension(package_tarball_full_path)
 
         # try reading info/repodata_record.json
@@ -991,25 +1000,3 @@ def done_callback(
         if finish:
             progress_bar.finish()
             progress_bar.refresh()
-
-
-@deprecated("24.3", "24.9")
-def rm_fetched(dist):
-    """
-    Checks to see if the requested package is in the cache; and if so, it removes both
-    the package itself and its extracted contents.
-    """
-    # in conda/exports.py and conda_build/conda_interface.py, but not actually
-    #   used in conda-build
-    raise NotImplementedError()
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.gateways.connection.download.download` instead.",
-)
-def download(url, dst_path, session=None, md5sum=None, urlstxt=False, retries=3):
-    from ..gateways.connection.download import download as gateway_download
-
-    gateway_download(url, dst_path, md5sum)

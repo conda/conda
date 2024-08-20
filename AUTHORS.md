@@ -125,6 +125,7 @@ Authors are sorted alphabetically.
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
+* Erik Whiting
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
@@ -153,6 +154,7 @@ Authors are sorted alphabetically.
 * Hsin-Hsiang Peng
 * Hugo Buddelmeijer
 * Iain Gillis
+* Ian Fitchet
 * Ian Stokes-Rees
 * Igor Igamberdiev
 * Ikko Eltociear Ashimine
@@ -203,6 +205,7 @@ Authors are sorted alphabetically.
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
 * Julien Schueller
+* Justin Wood (Callek)
 * Justus Schwabedal
 * Justyn Harriman
 * Kahlil Hodgson
@@ -213,6 +216,7 @@ Authors are sorted alphabetically.
 * Kara de la Marck
 * Katherine Abrikian
 * Katherine Kinnaman
+* Kelvin Ou
 * Ken Odegard
 * Kenneth Laskoski
 * Kenneth Schackart
@@ -294,12 +298,14 @@ Authors are sorted alphabetically.
 * Murray Read
 * NaincyKumariKnoldus
 * Nate Coraor
+* Nathan Nguyen
 * Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
 * Nicholas Pierotti
 * Nick Eubank
+* Nicky Sandhu
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
@@ -365,6 +371,7 @@ Authors are sorted alphabetically.
 * Sean Ross-Ross
 * Sebastien Awwad
 * Sergio Oller
+* Serhii Kupriienko
 * Shannon Green
 * Shaun Thompson
 * Shaun Walbridge
@@ -395,6 +402,7 @@ Authors are sorted alphabetically.
 * Thomas Kluyver
 * Thomas Lam
 * Thomas Wiecki
+* Thorsten Beier
 * Théo Segonds
 * Tian Zhang
 * Tianchen Zhong
@@ -444,6 +452,7 @@ Authors are sorted alphabetically.
 * mcopes73
 * oinizan
 * ovz
+* padeoe
 * peter1000
 * pre-commit CI
 * saraneem

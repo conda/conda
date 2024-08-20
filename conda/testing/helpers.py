@@ -19,7 +19,6 @@ from ..common.io import captured as common_io_captured
 from ..common.io import env_var
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData, make_feature_record
-from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..history import History
@@ -31,7 +30,8 @@ from ..resolve import Resolve
 TEST_DATA_DIR = os.environ.get(
     "CONDA_TEST_DATA_DIR", abspath(join(dirname(__file__), "..", "..", "tests", "data"))
 )
-CHANNEL_DIR = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR = CHANNEL_DIR_V1 = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR_V2 = abspath(join(TEST_DATA_DIR, "base_url_channel"))
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
@@ -52,7 +52,7 @@ def raises(exception, func, string=None):
             assert string in e.args[0]
         print(e)
         return True
-    raise Exception("did not raise, gave %s" % a)
+    raise Exception(f"did not raise, gave {a}")
 
 
 @contextmanager
@@ -64,23 +64,7 @@ def captured(disallow_stderr=True):
     finally:
         c.stderr = strip_expected(c.stderr)
         if disallow_stderr and c.stderr:
-            raise Exception("Got stderr output: %s" % c.stderr)
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
-)
-@contextmanager
-def set_active_prefix(prefix: str) -> None:
-    old_prefix = os.environ["CONDA_PREFIX"]
-
-    try:
-        os.environ["CONDA_PREFIX"] = prefix
-        yield
-    finally:
-        os.environ["CONDA_PREFIX"] = old_prefix
+            raise Exception(f"Got stderr output: {c.stderr}")
 
 
 def assert_equals(a, b, output=""):

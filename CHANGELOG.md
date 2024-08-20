@@ -1,5 +1,190 @@
 [//]: # (current developments)
 
+## 24.7.1 (2024-07-24)
+
+### Bug fixes
+
+* Revert potential regression introduced in #13975. The previously forbidden characters (`^`, `%`, `!`, `=`, `(`, `)`, `\`) are allowed again until the impact is assessed. (#14065)
+
+### Contributors
+
+* @jaimergp
+
+
+
+## 24.7.0 (2024-07-17)
+
+### Enhancements
+
+* Add a new `reporters` setting for configuring output. (#13736)
+* Report traceback of plugin loading errors with verbosity 2 or higher (`-vv` or more). (#13742 via #13846)
+* Skip checking for `.pyc` and `.pyo` files in the `conda doctor` "missing files" health check. (#13370 via #13931)
+* **Breaking change**  `conda list --explicit` will not print authentication details by default. A new flag `--auth` has been added so folks can opt-in to this behaviour. (#13936)
+* Print transaction report for `@EXPLICIT` lockfile installs too. (#13940)
+* Do not require `-n/--name` or `-p/--prefix` if `conda create` is invoked with `--dry-run`. (#13941)
+* Add an `envvars_force_uppercase` setting which defaults to `True`, uppercasing all environment variables (thereby justifying `conda`'s current behaviour); when `envvars_force_uppercase` is set to `False`, conda will only save preserved-case variable names. (#13713 via #13943)
+* Alias `conda env list` command to `conda info --envs`. (#13972)
+
+### Bug fixes
+
+* Improve treatment of logger levels. (#13735)
+* Mask authentication details in `conda-meta/*.json` metadata. (#13937)
+* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* Fix parsing error when history file only contains a single commented line. (#13960)
+* Add missing `emscripten` and `wasi` entries to the recognized platforms, and `wasm32` to the recognized architectures. (#13095)
+* Fix checksum comparisons in `conda.gateways.connection.download.download()` to be case insensitive. (#13969)
+* Disallow some more characters in Windows for prefix names (`^`, `%`, `!`, `=`, `(`, `)`, `\`). These characters complicate or prevent environment activation if present. (#12558 via #13975)
+* Fix caching when `repodata.json` contains `\r\n` line endings. (#14002 via #14003)
+* Fix `conda.core.portability.binary_replace` not matching chunks that end with `\n`. (#14043 via #14044)
+
+### Deprecations
+
+* Mark `conda.gateways.logging.initialize_root_logger` as pending deprecation. (#13735, #14046)
+* Mark `conda.cli.main_env_list.execute` as pending deprecation. Use `conda.cli.main_info.execute` instead. (#13972)
+* Revert `--all` deprecation in `conda info`. (#14004)
+* Mark `conda.exports.iteritems` as pending deprecation. Use builtin `dict.items()` instead. (#14034)
+* Mark `conda.exports.Completer` as pending deprecation. (#14034)
+* Mark `conda.exports.InstalledPackages` as pending deprecation. (#14034)
+* Mark `conda.exports.KEYS` as pending deprecation. (#14034)
+* Mark `conda.exports.KEYS_DIR` as pending deprecation. (#14034)
+* Mark `conda.exports.hash_file` as pending deprecation. (#14034)
+* Mark `conda.exports.verify` as pending deprecation. (#14034)
+* Mark `conda.exports.symlink_conda` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.exports._symlink_conda_hlp` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.exports.win_conda_bat_redirect` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.win_path_to_cygwin` as pending deprecation. Use `conda.common.path.win_path_to_unix` instead. (#14034)
+* Mark `conda.utils.cygwin_path_to_win` as pending deprecation. Use `conda.utils.unix_path_to_win` instead. (#14034)
+* Mark `conda.utils.translate_stream` as pending deprecation. (#14034)
+* Mark `conda.utils.unix_shell_base` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.msys2_shell_base` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.shells` as pending deprecation. Use `conda.activate` instead. (#14034)
+
+### Docs
+
+* Clarify proxy server configuration in documentation. (#12856)
+* Add type hints and doc strings to `conda.core.envs_manager`. (#13817)
+* Add logging overview as deep-dive. (#13735)
+* Update conda cheatsheet text and add it directly to cheatsheet page. (#13889)
+* Add cheatsheet PDF download to cheatsheet page. (#13909)
+* Add `ssl_verify: truststore` to the user guide. (#13935)
+* Fix the help text of the `satisfied-skip-solve` flag. (#13946)
+* Add a section explaining how to correctly raise exceptions from a plugin. (#13741 via #13950)
+* Add new article for configuring `envs_dirs` and `pkgs_dirs`. (#13954)
+
+### Other
+
+* Replace calls to `logger.warn` with `logger.warning`. (#13963)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @erik-whiting made their first contribution in https://github.com/conda/conda/pull/13877
+* @ifitchet
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kelvinou01 made their first contribution in https://github.com/conda/conda/pull/14044
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @Nathann03
+* @zeehio
+* @skupr-anaconda made their first contribution in https://github.com/conda/conda/pull/13946
+* @tl-hbk
+* @DerThorsten made their first contribution in https://github.com/conda/conda/pull/13962
+* @travishathaway
+* @dependabot[bot]
+* @padeoe made their first contribution in https://github.com/conda/conda/pull/12856
+* @pre-commit-ci[bot]
+
+
+
+## 24.5.0 (2024-05-08)
+
+### Enhancements
+
+* Report which `MatchSpec` item caused `Invalid*Spec` exceptions for more informative error messages. (#11203 via #13598)
+* MSYS2 packages can now use the upstream installation prefixes. (#13649)
+* Add support for CEP-15 `base_url` field in `repodata.json`. (#13137 via #13744)
+* In custom channel settings, allow specification of channel URLs using a glob-like wildcard pattern, e.g. for user with auth handler plugins. (#13778 via #13779)
+
+### Bug fixes
+
+* Fix `conda notices --json` to correctly output JSON. (#13561)
+* Fix prefix replacement for Windows `subdir` on Unix. (#13689)
+
+### Deprecations
+
+* Mark `conda.plan._get_best_prec_match` as pending deprecation. Use `conda.misc._get_best_prec_match` instead. (#12421)
+* Mark `conda.plan._handle_menuinst` as pending deprecation. (#12421)
+* Mark `conda.plan._inject_UNLINKLINKTRANSACTION` as pending deprecation. (#12421)
+* Mark `conda.plan._plan_from_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.add_defaults_to_specs` as pending deprecation. (#12421)
+* Mark `conda.plan.add_unlink` as pending deprecation. (#12421)
+* Mark `conda.plan.display_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.execute_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.get_blank_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.install_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.print_dists` as pending deprecation. (#12421)
+* Mark `conda.plan.revert_actions` as pending deprecation. Use `conda.cli.install.revert_actions` instead. (#12421)
+* Mark `conda.plan` as an entrypoint as pending deprecation. (#12421)
+* Mark `conda.activate._Activator.add_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
+* Mark `conda.activate._Activator.get_scripts_export_unset_vars` as pending deprecation. Use `get_scripts_export_unset_vars` helper function in `test_activate.py` instead. (#13720)
+* Mark `conda.activate._Activator._get_path_dirs(extra_library_bin)` as pending deprecation. (#13720)
+* Mark `conda.activate.JSONFormatMixin.get_scripts_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
+* Mark `conda.gateways.logging.trace` as pending deprecation. Use `Logger.log(conda.common.constants.TRACE, msg)` instead. (#13732)
+* Mark `conda create --mkdir` as pending deprecation. The argument is redundant and unnecessary. (#13751)
+* Mark `conda install --mkdir` as pending deprecation. Use `conda create` instead. (#13751)
+* Mark `conda._vendor.frozendict` as pending deprecation. Use `frozendict` instead. (#13767 via #13766)
+* Mark `conda.auxlib.collection.make_immutable` as pending deprecation. Use `frozendict.deepfreeze` instead. (#13801)
+* Mark `conda.plan.execute_plan` as pending deprecation. (#13869)
+* Mark `conda.plan.execute_instructions` as pending deprecation. (#13869)
+* Mark `conda.plan._update_old_plan` as pending deprecation. (#13869)
+
+### Docs
+
+* Add type hints and doc strings to `conda.core.index`. (#13816)
+
+### Other
+
+* Remove `setuptools` remainings (`MANIFEST.in`, `wheel` build dependency) not required since the move to `hatch` in #12509. (#13684)
+* Remove and update any imports inside conda that is importing from `conda/exports.py`. (#13869)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dbast
+* @ifitchet made their first contribution in https://github.com/conda/conda/pull/13649
+* @isuruf
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @mattkram
+* @Nathann03 made their first contribution in https://github.com/conda/conda/pull/13816
+* @dwr-psandhu made their first contribution in https://github.com/conda/conda/pull/13770
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 24.4.0 (2024-04-24)
+
+### Enhancements
+
+* For Windows users, the stub executables used for Python entrypoints in packages are now codesigned. (#13721)
+
+### Contributors
+
+* @dholth
+* @jezdez
+* @Callek made their first contribution in https://github.com/conda/conda/pull/13721
+
+
 ## 24.3.0 (2024-03-12)
 
 ### Enhancements
@@ -24,6 +209,7 @@
 * Fix excess resource usage by log handling when fetching repodata. (#13541 via #13628)
 * Re-enable `--subdir` and `--platform` flags to be available for `conda env create` command. (#13632)
 * Fix `__archspec` virtual package on Windows to return microarchitecture instead of the default `x86_64`. (#13641)
+* Check `Content-Length` is nonzero before calculating progress, avoiding a possible `ZeroDivisionError`. (#13653, #13671)
 
 ### Deprecations
 

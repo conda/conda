@@ -1,138 +1,124 @@
 # Builds
-- name: build::review
-  description: trigger a build for this PR
-  color: "7B4052"
+  - name: build::review
+    description: trigger a build for this PR
+    color: '#7b4052'
 
 # Types
-- name: type::installer
-  description: indicates a request or issue pertaining to the installer
-  color: "fff2cc"
-- name: type::packaging
-  description: indicates a request regarding a package
-  color: "fff2cc"
+  - name: type::installer
+    description: indicates a request or issue pertaining to the installer
+    color: '#fff2cc'
+  - name: type::packaging
+    description: indicates a request regarding a package
+    color: '#fff2cc'
 
 # Solver
-- name: solver
-  description: pertains to the solver
-  color: "d4c5f9"
-  aliases: [tag-solver]
-- name: solver::messaging
-  description: pertains to the solver's messaging
-  color: "d4c5f9"
-  aliases: [tag-solver_messaging]
-- name: solver::performance
-  description: pertains to the solver's performance
-  color: "d4c5f9"
-  aliases: [tag-solver_performance]
-- name: solver::behavior
-  description: pertains to the solver's behavior
-  color: "d4c5f9"
-  aliases: [tag-solver_behavior]
-- name: solver::libmamba
-  description: pertains to the libmamba solver
-  color: "d4c5f9"
-  aliases: [tag-solver_libmamba]
-- name: solver::pycosat
-  description: pertains to the pycosat solver
-  color: "d4c5f9"
-  aliases: []
+  - name: solver
+    description: pertains to the solver
+    color: '#d4c5f9'
+    aliases: [tag-solver]
+  - name: solver::messaging
+    description: pertains to the solver's messaging
+    color: '#d4c5f9'
+    aliases: [tag-solver_messaging]
+  - name: solver::performance
+    description: pertains to the solver's performance
+    color: '#d4c5f9'
+    aliases: [tag-solver_performance]
+  - name: solver::behavior
+    description: pertains to the solver's behavior
+    color: '#d4c5f9'
+    aliases: [tag-solver_behavior]
+  - name: solver::libmamba
+    description: pertains to the libmamba solver
+    color: '#d4c5f9'
+    aliases: [tag-solver_libmamba]
+  - name: solver::pycosat
+    description: pertains to the pycosat solver
+    color: '#d4c5f9'
 
 # CLI
-- name: cli
-  description: pertains to the CLI interface
-  color: "91E4E5"
-  aliases: [type-shell]
-- name: cli::cmd
-  description: pertains to the CLI in CMD
-  color: "91E4E5"
-  aliases: [type-shell-cmd]
-- name: cli::fish
-  description: pertains to the CLI in fish
-  color: "91E4E5"
-  aliases: [type-shell-fish]
-- name: cli::posix
-  description: pertains to the CLI in Posix compliant shells (e.g. Bash, Zsh, KornShell, etc.)
-  color: "91E4E5"
-  aliases: [type-shell-posix]
-- name: cli::powershell
-  description: pertains to the CLI in PowerShell
-  color: "91E4E5"
-  aliases: [type-shell-powershell]
-- name: cli::tcsh
-  description: pertains to the CLI in tcsh/CSH
-  color: "91E4E5"
-  aliases: [type-shell-tcsh]
-- name: cli::xonsh
-  description: pertains to the CLI in Xonsh
-  color: "91E4E5"
-  aliases: [type-shell-xonsh]
+  - name: cli
+    description: pertains to the CLI interface
+    color: '#91e4e5'
+    aliases: [type-shell]
+  - name: cli::cmd
+    description: pertains to the CLI in CMD
+    color: '#91e4e5'
+    aliases: [type-shell-cmd]
+  - name: cli::fish
+    description: pertains to the CLI in fish
+    color: '#91e4e5'
+    aliases: [type-shell-fish]
+  - name: cli::posix
+    description: pertains to the CLI in Posix compliant shells (e.g. Bash, Zsh, KornShell, etc.)
+    color: '#91e4e5'
+    aliases: [type-shell-posix]
+  - name: cli::powershell
+    description: pertains to the CLI in PowerShell
+    color: '#91e4e5'
+    aliases: [type-shell-powershell]
+  - name: cli::tcsh
+    description: pertains to the CLI in tcsh/CSH
+    color: '#91e4e5'
+    aliases: [type-shell-tcsh]
+  - name: cli::xonsh
+    description: pertains to the CLI in Xonsh
+    color: '#91e4e5'
+    aliases: [type-shell-xonsh]
 
 # Plugins
-- name: plugins
-  description: pertains to a plugin/subcommand
-  color: "386BAF"
-  aliases: [tag-plugins]
-- name: plugins::env
-  description: pertains to conda-env
-  color: "386BAF"
-  aliases: [tag-conda_env, tag-environment_spec, "tag::environment-spec"]
-- name: plugins::run
-  description: pertains to conda-run
-  color: "386BAF"
-  aliases: [tag-conda_run]
-- name: plugins::create
-  description: pertains to conda-create
-  color: "386BAF"
-  aliases: [tag-clone]
-- name: plugins::config
-  description: pertains to conda-config
-  color: "386BAF"
-  aliases: [tag-config]
-- name: plugins::activate
-  description: pertains to conda-activate or conda-deactivate
-  color: "386BAF"
-- name: plugins::init
-  description: pertains to conda-init
-  color: "386BAF"
+  - name: plugins
+    description: pertains to a plugin/subcommand
+    color: '#386baf'
+    aliases: [tag-plugins]
+  - name: plugins::env
+    description: pertains to conda-env
+    color: '#386baf'
+    aliases:
+      - tag-conda_env
+      - tag-environment_spec
+      - tag::environment-spec
+  - name: plugins::run
+    description: pertains to conda-run
+    color: '#386baf'
+    aliases: [tag-conda_run]
+  - name: plugins::create
+    description: pertains to conda-create
+    color: '#386baf'
+    aliases: [tag-clone]
+  - name: plugins::config
+    description: pertains to conda-config
+    color: '#386baf'
+    aliases: [tag-config]
+  - name: plugins::activate
+    description: pertains to conda-activate or conda-deactivate
+    color: '#386baf'
+  - name: plugins::init
+    description: pertains to conda-init
+    color: '#386baf'
 
 # Tags
-- name: tag::ssl
-  description: related to an SSL issue
-  color: "86C579"
-  aliases: []
-- name: tag::compatibility
-  description: related to compatibility issues with other software
-  color: "86C579"
-  aliases: []
-- name: tag::auth
+  - name: tag::ssl
+    description: related to an SSL issue
+    color: '#86c579'
+  - name: tag::compatibility
+    description: related to compatibility issues with other software
+    color: '#86c579'
+  - name: tag::auth
   # description:
-  color: "86C579"
-  aliases: []
-- name: tag::artifact-verification
-  description: related to artifact verification and related content trust issues
-  color: "86C579"
-  aliases: []
-- name: tag::pip
-  description: related to conda-pip issues
-  color: "86C579"
-  aliases: []
-- name: tag::multi-user
-  description: related to shared/multi-user installs
-  color: "86C579"
-  aliases: []
-- name: tag::experimental
-  description: related to an experimental feature
-  color: "86C579"
-  aliases: []
-- name: tag::update
-  description: related to an upgrade issue
-  color: "86C579"
-  aliases: []
-
-# Deprecated
-- name: priority-high
-  description: "[deprecated] use severity::*"
-  color: "888888"
-- name: priority-low
-  description: "[deprecated] use severity::*"
-  color: "888888"
+    color: '#86c579'
+  - name: tag::artifact-verification
+    description: related to artifact verification and related content trust issues
+    color: '#86c579'
+  - name: tag::pip
+    description: related to conda-pip issues
+    color: '#86c579'
+  - name: tag::multi-user
+    description: related to shared/multi-user installs
+    color: '#86c579'
+  - name: tag::experimental
+    description: related to an experimental feature
+    color: '#86c579'
+  - name: tag::update
+    description: related to an upgrade issue
+    color: '#86c579'

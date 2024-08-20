@@ -181,8 +181,8 @@ def test_register_env_directory_creation_error(mocker):
     conda_dir = os.path.dirname(get_user_environments_txt_file())
 
     assert value is None
-    assert len(mock_log.warn.mock_calls) == 1
+    assert len(mock_log.warning.mock_calls) == 1
 
-    mock_call, *_ = mock_log.warn.mock_calls
+    mock_call, *_ = mock_log.warning.mock_calls
 
     assert f"Could not create {conda_dir}" in mock_call.args[0]

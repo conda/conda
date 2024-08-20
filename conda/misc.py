@@ -7,10 +7,12 @@ import re
 import shutil
 import sys
 from collections import defaultdict
+from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open
+from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
@@ -26,9 +28,10 @@ from .exceptions import (
 )
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
-from .models.match_spec import MatchSpec
+from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
-from .plan import _get_best_prec_match
+
+log = getLogger(__name__)
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -77,7 +80,7 @@ def explicit(
         # parse URL
         m = url_pat.match(spec)
         if m is None:
-            raise ParseError("Could not parse explicit URL: %s" % spec)
+            raise ParseError(f"Could not parse explicit URL: {spec}")
         url_p, fn, md5sum = m.group("url_p"), m.group("fn"), m.group("md5")
         url = join_url(url_p, fn)
         # url_p is everything but the tarball_basename and the md5sum
@@ -139,6 +142,8 @@ def explicit(
     )
 
     txn = UnlinkLinkTransaction(stp)
+    if not context.json and not context.quiet:
+        txn.print_transaction_summary()
     txn.execute()
 
 
@@ -341,3 +346,18 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         index_args=index_args,
     )
     return actions, untracked_files
+
+
+def _get_best_prec_match(precs):
+    assert precs
+    for channel in context.channels:
+        channel_matcher = ChannelMatch(channel)
+        prec_matches = tuple(
+            prec for prec in precs if channel_matcher.match(prec.channel.name)
+        )
+        if prec_matches:
+            break
+    else:
+        prec_matches = precs
+    log.warning("Multiple packages found: %s", dashlist(prec_matches))
+    return prec_matches[0]
