@@ -10,13 +10,14 @@ from functools import partial
 from ...deprecations import deprecated
 
 
-def nt_to_posix(path: str, root: str, cygdrive: bool = False) -> str:
+def nt_to_posix(path: str, root: str | None, cygdrive: bool = False) -> str:
     """
     A fallback implementation of `cygpath --unix`.
 
     Args:
         path: The path to convert.
         root: The (Windows path-style) root directory to use for the conversion.
+              If not provided, no checks for root paths will be made.
         cygdrive: Whether to use the Cygwin-style drive prefix.
     """
     if ntpath.pathsep in path:
@@ -49,16 +50,18 @@ def nt_to_posix(path: str, root: str, cygdrive: bool = False) -> str:
 
     # only absolute paths can be detected as root or mount formats
     if ntpath.isabs(path):
-        # normalize the path (removing any path indirections)
-        normalized = ntpath.normpath(path)
-        # ntpath.normpath strips trailing slashes, add them back
-        if path[-1] in "/\\":
-            normalized += ntpath.sep
-        # attempt to match root
-        normalized, subs = _get_RE_WIN_ROOT(root).subn(_to_unix_root, normalized)
-        # only keep the normalized path if the root was matched
-        if subs:
-            path = normalized
+        # only attempt to match root if a root is defined
+        if root:
+            # normalize the path (removing any path indirections)
+            normalized = ntpath.normpath(path)
+            # ntpath.normpath strips trailing slashes, add them back
+            if path[-1] in "/\\":
+                normalized += ntpath.sep
+            # attempt to match root
+            normalized, subs = _get_RE_WIN_ROOT(root).subn(_to_unix_root, normalized)
+            # only keep the normalized path if the root was matched
+            if subs:
+                path = normalized
 
         # attempt to match mount
         if not subs:
@@ -163,13 +166,14 @@ def translate_unix(match: re.Match) -> str:
     )
 
 
-def posix_to_nt(path: str, root: str, cygdrive: bool = False) -> str:
+def posix_to_nt(path: str, root: str | None, cygdrive: bool = False) -> str:
     """
     A fallback implementation of `cygpath --windows`.
 
     Args:
         path: The path to convert.
         root: The (Windows path-style) root directory to use for the conversion.
+              If not provided, no checks for root paths will be made.
         cygdrive: Unused. Present to keep the signature consistent with `nt_to_posix`.
     """
     if posixpath.pathsep in path:
@@ -207,8 +211,8 @@ def posix_to_nt(path: str, root: str, cygdrive: bool = False) -> str:
         if not subs:
             path, subs = RE_UNIX_MOUNT.subn(_to_win_mount, path)
 
-        # attempt to match root
-        if not subs:
+        # only attempt to match root if a root is defined
+        if root and not subs:
             path = RE_UNIX_ROOT.sub(partial(_to_win_root, root=root), path)
 
     return _resolve_path(path, ntpath.sep)
@@ -318,9 +322,8 @@ def _resolve_path(path: str, sep: str) -> str:
     leading = ""
     if match := re.match(r"^([/\\]+)(.*)$", path):
         leading, path = match.groups()
-    return re.sub(r"[/\\]", re.escape(sep), leading) + re.sub(
-        r"[/\\]+", re.escape(sep), path
-    )
+    sep = re.escape(sep)
+    return re.sub(r"[/\\]", sep, leading) + re.sub(r"[/\\]+", sep, path)
 
 
 def resolve_paths(paths: str, pathsep: str, sep: str) -> str:

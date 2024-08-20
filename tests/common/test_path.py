@@ -359,42 +359,45 @@ def test_path_conversion(
 
     win = win.format(LIB=f"{win_root}\\Library", ALT=f"{win_alt}\\Library")
 
-    def double(path, sep):
-        # double path delimiters but leave leading delimiters untouched as they
-        # distinguish between drives, root, and mounts
-        if match := re.match(r"([/\\]+)(.*)", path):
+    def replace(path: str, sep: str) -> str:
+        if match := re.match(r"^([/\\]+)(.*)$", path):
             leading, path = match.groups()
-            path = leading + re.sub(r"[/\\]+", re.escape(sep * 2), path)
+            return leading + re.sub(r"[/\\]+", re.escape(sep), path)
         return path
 
     if unix is not None:
         # test unix → win
-        converted = unix_path_to_win(unix, root=win_root)
-        assert converted == win, f"{unix} → {converted} ≠ {win}"
+        path = unix_path_to_win(unix, root=win_root)
+        assert path == win, f"{unix} (to win)→ {path} ≠ {win}"
 
         # test unix with redundant // → win
-        unix_double = double(unix, r"/")
-        converted = unix_path_to_win(unix_double, root=win_root)
-        assert converted == win, f"{unix_double} → {converted} ≠ {win}"
+        double = replace(unix, "/" * 2)
+        path = unix_path_to_win(double, root=win_root)
+        assert path == win, f"{unix} → {double} → {path} ≠ {win}"
 
         # test cygdrive
         # NOTE: only Cygwin cygpath can handle /cygdrive/... paths, since we expect to
         # be using MSYS cygpath skip testing unless testing fallback
         if unix.startswith(("/c", "/C")) and not cygpath:
             cygdrive = f"/cygdrive{unix}"
-            converted = unix_path_to_win(cygdrive, root=win_root, cygdrive=True)
-            assert converted == win, f"{cygdrive} → {converted} ≠ {win}"
+            path = unix_path_to_win(cygdrive, root=win_root, cygdrive=True)
+            assert path == win, f"{unix} → {cygdrive} → {path} ≠ {win}"
 
     if roundtrip is not None:
         # test win → unix
-        converted = win_path_to_unix(win, root=win_root)
+        path = win_path_to_unix(win, root=win_root)
         assert isinstance(roundtrip := unix or roundtrip, str)
-        assert converted == roundtrip, f"{win} → {converted} ≠ {roundtrip}"
+        assert path == roundtrip, f"{win} (to unix)→ {path} ≠ {roundtrip}"
 
         # test win with redundant \ → unix
-        win_double = double(win, r"\\")
-        converted = win_path_to_unix(win_double, root=win_root)
-        assert converted == roundtrip, f"{win_double} → {converted} ≠ {roundtrip}"
+        double = replace(win, "\\" * 2)
+        path = win_path_to_unix(double, root=win_root)
+        assert path == roundtrip, f"{win} → {double} → {path} ≠ {roundtrip}"
+
+        # test win with forward / → unix
+        forward = replace(win, "/")
+        path = win_path_to_unix(forward, root=win_root)
+        assert path == roundtrip, f"{win} → {forward} → {path} ≠ {roundtrip}"
 
         # test cygdrive
         # test cygdrive
@@ -402,5 +405,5 @@ def test_path_conversion(
         # be using MSYS cygpath skip testing unless testing fallback
         if roundtrip.startswith(("/c", "/C")) and not cygpath:
             cygdrive = f"/cygdrive{roundtrip}"
-            converted = win_path_to_unix(win, root=win_root, cygdrive=True)
-            assert converted == cygdrive, f"{win} → {converted} ≠ {cygdrive}"
+            path = win_path_to_unix(win, root=win_root, cygdrive=True)
+            assert path == cygdrive, f"{win} → {path} ≠ {cygdrive}"

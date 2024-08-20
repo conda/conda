@@ -397,7 +397,7 @@ def _path_to(
     if not paths:
         return "." if isinstance(paths, (str, os.PathLike)) else ()
 
-    if root is None:
+    if on_win and root is None:
         from ...base.context import context
 
         root = context.target_prefix
@@ -474,6 +474,17 @@ def win_path_to_unix(
     *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:
+    """Convert Windows paths to Unix paths.
+
+    .. note::
+        Can be expected to produce unexpected results when run on Unix.
+
+    Args:
+        paths: The path(s) to convert.
+        root: The (Windows path-style) root directory to use for the conversion.
+              If not provided, no checks for root paths will be made.
+        cygdrive: Whether to use the Cygwin-style drive prefix.
+    """
     return _path_to(paths, root=root, cygdrive=cygdrive, to_unix=True)
 
 
@@ -483,4 +494,15 @@ def unix_path_to_win(
     *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:
+    """Convert Unix paths to Windows paths.
+
+    .. note::
+        Can be expected to produce unexpected results when run on Unix.
+
+    Args:
+        paths: The path(s) to convert.
+        root: The (Windows path-style) root directory to use for the conversion.
+              If not provided, no checks for root paths will be made.
+        cygdrive: Unused. Present to keep the signature consistent with `win_path_to_unix`.
+    """
     return _path_to(paths, root, cygdrive=cygdrive, to_unix=False)
