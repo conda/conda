@@ -22,7 +22,10 @@ logger = getLogger(__name__)
 
 OK_MARK = "✅"
 X_MARK = "❌"
-CA_BUNDLE_TEST_URL = "https://example.com"  # IANA reserved domain (more info: https://www.iana.org/help/example-domains)
+CA_BUNDLE_TEST_URL = context.channel_alias.urls()[
+    0
+]  # using one of the channel aliases url ensures that the health check also runs on machines that are on an intranet connection. As in such a case the `context.channel_alias.urls()[0]` might be pointing to an internal url.
+# CA_BUNDLE_TEST_URL = "https://example.com"  # IANA reserved domain (more info: https://www.iana.org/help/example-domains)
 
 
 @deprecated("24.3", "24.9")
