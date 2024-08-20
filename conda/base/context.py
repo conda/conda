@@ -33,11 +33,9 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
-    ConfigurationObject,
     ConfigurationType,
     EnvRawParameter,
     MapParameter,
-    ObjectParameter,
     ParameterLoader,
     PrimitiveParameter,
     SequenceParameter,
@@ -55,6 +53,7 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,
+    DEFAULT_CONSOLE_REPORTER_BACKEND,
     DEFAULT_CUSTOM_CHANNELS,
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
@@ -193,16 +192,6 @@ def ssl_verify_validation(value):
                 "operating system certificate store."
             )
     return True
-
-
-class ReporterBackendsConfig(ConfigurationObject):
-    """
-    Used specifically for the ``Context.reporter_backends`` property
-    """
-
-    def __init__(self):
-        self.console = MapParameter(PrimitiveParameter("", element_type=str))
-        self.json = MapParameter(PrimitiveParameter("", element_type=str))
 
 
 class Context(Configuration):
@@ -348,8 +337,6 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    reporter_backends = ParameterLoader(ObjectParameter(ReporterBackendsConfig()))
-
     ####################################################
     #               Channel Configuration              #
     ####################################################
@@ -428,7 +415,10 @@ class Context(Configuration):
     dry_run = ParameterLoader(PrimitiveParameter(False))
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
     force = ParameterLoader(PrimitiveParameter(False))
-    json = ParameterLoader(PrimitiveParameter(False))
+    json = ParameterLoader(PrimitiveParameter(False, element_type=(bool, str)))
+    console = ParameterLoader(
+        PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str)
+    )
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
@@ -1243,6 +1233,7 @@ class Context(Configuration):
                 "changeps1",
                 "env_prompt",
                 "json",
+                "console",
                 "notify_outdated_conda",
                 "quiet",
                 "report_errors",
@@ -1252,7 +1243,6 @@ class Context(Configuration):
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
                 "envvars_force_uppercase",
-                "reporter_backends",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1866,10 +1856,10 @@ class Context(Configuration):
                 Force uppercase for new environment variable names. Defaults to True.
                 """
             ),
-            reporter_backends=dals(
-                """
-                Configure different backends to be used while rendering normal console output
-                and json output
+            console=dals(
+                f"""
+                Configure different backends to be used while rendering normal console output.
+                Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
                 """
             ),
         )

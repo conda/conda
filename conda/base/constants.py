@@ -270,7 +270,7 @@ CLASSIC_SOLVER = "classic"
 DEFAULT_JSON_REPORTER_BACKEND = "json"
 
 #: The name of the default console reporter backend
-DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
+DEFAULT_CONSOLE_REPORTER_BACKEND = "default"
 
 
 class NoticeLevel(ValueEnum):

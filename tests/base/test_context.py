@@ -70,11 +70,6 @@ TEST_CONDARC = dals(
       rsync: 'false'
     aggressive_update_packages: []
     channel_priority: false
-    reporter_backends:
-      json:
-        backend: json
-      console:
-        backend: classic
     """
 )
 
@@ -764,11 +759,3 @@ def test_get_plugin_config_data_skip_bad_values():
     plugin_config_data = get_plugin_config_data(raw_data)
 
     assert plugin_config_data == {}
-
-
-def test_reporter_backends_from_config_file(testdata):
-    """
-    Ensure that the ``reporters`` property returns the correct values
-    """
-    assert context.reporter_backends.console == {"backend": "classic"}
-    assert context.reporter_backends.json == {"backend": "json"}

@@ -27,14 +27,12 @@ def render(data, style: str | None = None, **kwargs) -> None:
     This function allows us to configure different reporter backends for these two types
     of output.
     """
-    if context.json:
-        backend = context.reporter_backends.json.get(
-            "backend", DEFAULT_JSON_REPORTER_BACKEND
-        )
+    if context.json is True:
+        backend = DEFAULT_JSON_REPORTER_BACKEND
+    elif isinstance(context.json, str):
+        backend = context.json
     else:
-        backend = context.reporter_backends.console.get(
-            "backend", DEFAULT_CONSOLE_REPORTER_BACKEND
-        )
+        backend = context.console
 
     reporter = context.plugin_manager.get_reporter_backend(backend)
 
