@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from typing import Type, Union
 
+from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
@@ -46,11 +47,11 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
 SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
 
 
+@deprecated.argument("24.7", "25.3", "remote_definition")
 def detect(
-    name: str = None,
-    filename: str = None,
-    directory: str = None,
-    remote_definition: str = None,
+    name: str | None = None,
+    filename: str | None = None,
+    directory: str | None = None,
 ) -> SpecTypes:
     """
     Return the appropriate spec type to use.
@@ -58,13 +59,6 @@ def detect(
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
-    if remote_definition is not None:
-        spec = BinstarSpec(name=remote_definition)
-        if spec.can_handle():
-            return spec
-        else:
-            raise SpecNotFound(spec.msg)
-
     if filename is not None:
         spec_class = get_spec_class_from_file(filename)
         spec = spec_class(name=name, filename=filename, directory=directory)

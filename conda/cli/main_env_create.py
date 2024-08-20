@@ -10,10 +10,12 @@ import os
 from argparse import (
     ArgumentParser,
     Namespace,
+    _StoreAction,
     _SubParsersAction,
 )
 
 from .. import CondaError
+from ..deprecations import deprecated
 from ..notices import notices
 
 
@@ -83,7 +85,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "remote_definition",
         help="Remote environment definition / IPython notebook",
-        action="store",
+        action=deprecated.action(
+            "24.7",
+            "25.9",
+            _StoreAction,
+            addendum="Use `conda env create --file=URL` instead.",
+        ),
         default=None,
         nargs="?",
     )
@@ -115,7 +122,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         name=args.name,
         filename=get_filename(args.file),
         directory=os.getcwd(),
-        remote_definition=args.remote_definition,
     )
     env = spec.environment
 
