@@ -6,7 +6,6 @@ import os
 import platform
 import sys
 from functools import lru_cache
-from itertools import chain
 from logging import getLogger
 from os.path import dirname, join
 from pathlib import Path
@@ -29,7 +28,7 @@ from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable, Iterator
+    from typing import Any, Callable, Iterable, Iterator
 
     from pytest import TempPathFactory
 
@@ -325,7 +324,9 @@ def which_powershell():
 
 
 @pytest.fixture
-def shell_wrapper_integration(path_factory: PathFactoryFixture) -> tuple[str, str, str]:
+def shell_wrapper_integration(
+    path_factory: PathFactoryFixture,
+) -> Iterator[tuple[str, str, str]]:
     prefix = path_factory(
         prefix=uuid4().hex[:4], name=SPACER_CHARACTER, suffix=uuid4().hex[:4]
     )
@@ -576,7 +577,6 @@ def basic_csh(shell, prefix, prefix2, prefix3):
     shell.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize(
     "shell_name,script",
     [
@@ -637,7 +637,6 @@ def test_basic_integration(
 
 @pytest.mark.skipif(not which("fish"), reason="fish not installed")
 @pytest.mark.xfail(reason="fish and pexpect don't seem to work together?")
-@pytest.mark.integration
 def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, _, _ = shell_wrapper_integration
 
@@ -669,7 +668,6 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
     not which_powershell() or platform.machine() == "arm64",
     reason="PowerShell not installed or not supported on platform",
 )
-@pytest.mark.integration
 def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, venusaur = shell_wrapper_integration
 
@@ -730,7 +728,6 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 @pytest.mark.skipif(
     not which_powershell() or not on_win, reason="Windows, PowerShell specific test"
 )
-@pytest.mark.integration
 def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, str]):
     prefix, _, _ = shell_wrapper_integration
 
@@ -758,7 +755,6 @@ def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, s
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-@pytest.mark.integration
 def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, charizard, _ = shell_wrapper_integration
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
@@ -835,7 +831,6 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 
 @skip_unsupported_bash
 @pytest.mark.skipif(on_win, reason="Temporary skip, larger refactor necessary")
-@pytest.mark.integration
 def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
     with InteractiveShell("bash") as shell:
@@ -854,7 +849,6 @@ def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-@pytest.mark.integration
 def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str]):
     context.dev = True
     with InteractiveShell("cmd.exe") as shell:
@@ -872,7 +866,6 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
 
 
 @skip_unsupported_bash
-@pytest.mark.integration
 def test_legacy_activate_deactivate_bash(
     shell_wrapper_integration: tuple[str, str, str],
 ):
@@ -911,7 +904,6 @@ def test_legacy_activate_deactivate_bash(
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-@pytest.mark.integration
 def test_legacy_activate_deactivate_cmd_exe(
     shell_wrapper_integration: tuple[str, str, str],
 ):
@@ -971,7 +963,6 @@ def prefix(tmp_path_factory: TempPathFactory) -> Iterator[Path]:
     yield prefix
 
 
-@pytest.mark.integration
 @pytest.mark.parametrize(
     ["shell"],
     [
@@ -1011,7 +1002,9 @@ def test_activate_deactivate_modify_path(
 
 
 @pytest.fixture
-def create_stackable_envs(tmp_env: TmpEnvFixture):
+def create_stackable_envs(
+    tmp_env: TmpEnvFixture,
+) -> Iterator[tuple[str, dict[str, Any]]]:
     # generate stackable environments, two with curl and one without curl
     which = f"{'where' if on_win else 'which -a'} curl"
 
@@ -1064,7 +1057,6 @@ def _run_command(*lines):
 
 
 # see https://github.com/conda/conda/pull/11257#issuecomment-1050531320
-@pytest.mark.integration
 @pytest.mark.parametrize(
     ("auto_stack", "stack", "run", "expected"),
     [
@@ -1101,16 +1093,23 @@ def _run_command(*lines):
         (5, "base,not", "not", "base,sys"),
     ],
 )
-def test_stacking(create_stackable_envs, auto_stack, stack, run, expected):
+def test_stacking(
+    create_stackable_envs: tuple[str, dict[str, Any]],
+    auto_stack: int,
+    stack: str,
+    run: str,
+    expected: str,
+) -> None:
     which, envs = create_stackable_envs
-    stack = filter(None, stack.split(","))
-    expected = filter(None, expected.split(","))
-    expected = list(chain.from_iterable(envs[env.strip()].paths for env in expected))
-    assert (
-        _run_command(
-            f"conda config --set auto_stack {auto_stack}",
-            *(f'conda activate "{envs[env.strip()].prefix}"' for env in stack),
-            f'conda run -p "{envs[run.strip()].prefix}" {which}',
-        )
-        == expected
-    )
+    assert _run_command(
+        f"conda config --set auto_stack {auto_stack}",
+        *(
+            f'conda activate "{envs[env.strip()].prefix}"'
+            for env in filter(None, stack.split(","))
+        ),
+        f'conda run -p "{envs[run.strip()].prefix}" {which}',
+    ) == [
+        path
+        for env in filter(None, expected.split(","))
+        for path in envs[env.strip()].paths
+    ]
