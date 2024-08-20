@@ -644,14 +644,14 @@ class _Activator(metaclass=abc.ABCMeta):
             # We could include clang32 and mingw32 variants
             variants = []
             for variant in ["ucrt64", "clang64", "mingw64", "clangarm64"]:
-                # if the prefix is a Unix path we need to convert it to a Windows path
-                # before checking whether the path exists
-                if re.match("^(/cygdrive)?/[A-Za-z]/.*", prefix):
-                    win_prefix = unix_path_to_win(prefix, root="")
-                else:
-                    win_prefix = prefix
+                path = self.sep.join((prefix, "Library", variant))
 
-                if Path(win_prefix, "Library", variant).is_dir():
+                # MSYS2 /c/
+                # cygwin /cygdrive/c/
+                if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
+                    path = unix_path_to_win(path, prefix)
+
+                if isdir(path):
                     variants.append(variant)
 
             if len(variants) > 1:
