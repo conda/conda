@@ -384,7 +384,7 @@ def path_identity(paths: PathType | PathsType | None) -> str | tuple[str, ...] |
 
 def _path_to(
     paths: PathType | PathsType | None,
-    root: str | None,
+    root: PathType | None,
     *,
     cygdrive: bool,
     to_unix: bool,
@@ -470,7 +470,7 @@ def _path_to(
 
 def win_path_to_unix(
     paths: PathType | PathsType | None,
-    root: str | None = None,
+    root: PathType | None = None,
     *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:
@@ -490,7 +490,7 @@ def win_path_to_unix(
 
 def unix_path_to_win(
     paths: PathType | PathsType | None,
-    root: str | None = None,
+    root: PathType | None = None,
     *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:

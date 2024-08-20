@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 import ntpath
+import os
 import posixpath
 import re
 from functools import partial
+from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 
+if TYPE_CHECKING:
+    from . import PathType
 
-def nt_to_posix(path: str, root: str | None, cygdrive: bool = False) -> str:
+
+def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -> str:
     """
     A fallback implementation of `cygpath --unix`.
 
@@ -20,6 +25,9 @@ def nt_to_posix(path: str, root: str | None, cygdrive: bool = False) -> str:
               If not provided, no checks for root paths will be made.
         cygdrive: Whether to use the Cygwin-style drive prefix.
     """
+    path = os.fspath(path)
+    root = os.fspath(root) if root else None
+
     if ntpath.pathsep in path:
         return posixpath.pathsep.join(
             converted
@@ -166,7 +174,7 @@ def translate_unix(match: re.Match) -> str:
     )
 
 
-def posix_to_nt(path: str, root: str | None, cygdrive: bool = False) -> str:
+def posix_to_nt(path: PathType, root: PathType | None, cygdrive: bool = False) -> str:
     """
     A fallback implementation of `cygpath --windows`.
 
@@ -176,6 +184,9 @@ def posix_to_nt(path: str, root: str | None, cygdrive: bool = False) -> str:
               If not provided, no checks for root paths will be made.
         cygdrive: Unused. Present to keep the signature consistent with `nt_to_posix`.
     """
+    path = os.fspath(path)
+    root = os.fspath(root) if root else None
+
     if posixpath.pathsep in path:
         return ntpath.pathsep.join(
             posix_to_nt(path, root) for path in path.split(posixpath.pathsep)
