@@ -1292,13 +1292,6 @@ def test_native_path_to_unix(
     ],
 )
 @pytest.mark.parametrize(
-    "unix",
-    [
-        pytest.param(True, id="Unix"),
-        pytest.param(False, id="Windows"),
-    ],
-)
-@pytest.mark.parametrize(
     "cygpath",
     [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
 )
@@ -1307,7 +1300,6 @@ def test_unix_path_to_native(
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
     expected: str | tuple[str, ...] | None,
-    unix: bool,
     cygpath: bool,
 ) -> None:
     windows_prefix = context.target_prefix
