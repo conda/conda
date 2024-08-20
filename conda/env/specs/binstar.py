@@ -8,6 +8,7 @@ import re
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+from ...deprecations import deprecated
 from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from types import ModuleType
 
     from ...env.env import Environment
+
+deprecated.module("24.7", "25.9")
 
 ENVIRONMENT_TYPE = "env"
 
@@ -72,13 +75,13 @@ class BinstarSpec:
         return len(self.file_data) > 0
 
     @cached_property
-    def binstar(self) -> ModuleType:
+    def binstar(self) -> ModuleType | None:
         try:
             from binstar_client.utils import get_server_api
 
             return get_server_api()
         except ImportError:
-            pass
+            return None
 
     @cached_property
     def file_data(self) -> list[dict[str, str]]:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Type, Union
+from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 from ...exceptions import (
@@ -12,11 +12,14 @@ from ...exceptions import (
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from .binstar import BinstarSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
-FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+if TYPE_CHECKING:
+    from typing import Type, Union
+
+    FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+    SpecTypes = Union[YamlFileSpec, RequirementsSpec]
 
 
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
@@ -26,7 +29,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
     # Check extensions
-    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+    all_valid_exts = {*YamlFileSpec.extensions, *RequirementsSpec.extensions}
     _, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
@@ -40,11 +43,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
             return YamlFileSpec
         elif ext in RequirementsSpec.extensions:
             return RequirementsSpec
-    else:
-        raise EnvironmentFileNotFound(filename=filename)
-
-
-SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
+    raise EnvironmentFileNotFound(filename=filename)
 
 
 @deprecated.argument("24.7", "25.3", "remote_definition")
