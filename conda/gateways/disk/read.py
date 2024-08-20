@@ -21,7 +21,6 @@ from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import open
 from ...common.pkg_formats.python import (
     PythonDistribution,
     PythonEggInfoDistribution,

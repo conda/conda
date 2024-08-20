@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..common._os import is_admin
-from ..common.compat import ensure_text_type, on_win, open
+from ..common.compat import ensure_text_type, on_win
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment

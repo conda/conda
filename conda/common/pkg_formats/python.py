@@ -21,7 +21,6 @@ from posixpath import normpath as posix_normpath
 
 from ... import CondaError
 from ...auxlib.decorators import memoizedproperty
-from ..compat import open
 from ..iterators import groupby_to_dict as groupby
 from ..path import (
     get_major_minor_version,
