@@ -20,9 +20,10 @@ if TYPE_CHECKING:
 
 deprecated.module("24.7", "25.9")
 
-ENVIRONMENT_TYPE = "env"
+deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
 
 
+@deprecated("24.7", "25.9")
 class BinstarSpec:
     """
     spec = BinstarSpec('darth/deathstar')
@@ -85,9 +86,7 @@ class BinstarSpec:
 
     @cached_property
     def file_data(self) -> list[dict[str, str]]:
-        return [
-            data for data in self.package["files"] if data["type"] == ENVIRONMENT_TYPE
-        ]
+        return [data for data in self.package["files"] if data["type"] == "env"]
 
     @cached_property
     def environment(self) -> Environment:
