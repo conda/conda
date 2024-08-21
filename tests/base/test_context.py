@@ -15,7 +15,11 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.constants import ChannelPriority, PathConflict
+from conda.base.constants import (
+    DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+    ChannelPriority,
+    PathConflict,
+)
 from conda.base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     context,
@@ -368,15 +372,14 @@ def test_target_prefix(
     assert context.target_prefix == str(envs1 / "blarg")
 
 
-def test_aggressive_update_packages(testdata: None):
-    assert context.aggressive_update_packages == ()
-    specs = ["certifi", "openssl>=1.1"]
-    with env_var(
-        "CONDA_AGGRESSIVE_UPDATE_PACKAGES",
-        ",".join(specs),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
+def test_aggressive_update_packages(monkeypatch: MonkeyPatch) -> None:
+    assert context._aggressive_update_packages == DEFAULT_AGGRESSIVE_UPDATE_PACKAGES
+
+    specs = ("certifi", "openssl>=1.1")
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", ",".join(specs))
+    reset_context()
+    assert context._aggressive_update_packages == specs
+    assert context.aggressive_update_packages == tuple(map(MatchSpec, specs))
 
 
 def test_channel_priority(testdata: None):
