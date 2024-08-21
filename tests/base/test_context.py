@@ -259,16 +259,15 @@ def test_custom_multichannels(testdata: None):
     )
 
 
-def test_restore_free_channel(testdata: None):
-    assert "https://repo.anaconda.com/pkgs/free" not in context.default_channels
-    with env_var(
-        "CONDA_RESTORE_FREE_CHANNEL",
-        "true",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert (
-            context.default_channels.index("https://repo.anaconda.com/pkgs/free") == 1
-        )
+def test_restore_free_channel(monkeypatch: MonkeyPatch) -> None:
+    free_channel = "https://repo.anaconda.com/pkgs/free"
+    assert free_channel not in context.default_channels
+
+    monkeypatch.setenv("CONDA_RESTORE_FREE_CHANNEL", "true")
+    reset_context()
+    assert context.restore_free_channel
+
+    assert context.default_channels[1] == free_channel
 
 
 def test_proxy_servers(testdata: None):
