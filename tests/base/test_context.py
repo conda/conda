@@ -283,13 +283,11 @@ def test_conda_build_root_dir(testdata: None):
     assert context.conda_build["root-dir"] == "/some/test/path"
 
 
-def test_clobber_enum(testdata: None):
-    with env_var(
-        "CONDA_PATH_CONFLICT",
-        "prevent",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.path_conflict == PathConflict.prevent
+@pytest.mark.parametrize("path_conflict", PathConflict.__members__)
+def test_clobber_enum(monkeypatch: MonkeyPatch, path_conflict: str) -> None:
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", path_conflict)
+    reset_context()
+    assert context.path_conflict == PathConflict(path_conflict)
 
 
 def test_context_parameter_map(testdata: None):
