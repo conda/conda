@@ -1,11 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import os
 from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
-from tempfile import gettempdir
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -28,13 +31,15 @@ from conda.common.url import join_url, path_to_url
 from conda.core.package_cache_data import PackageCacheData
 from conda.exceptions import CondaValueError, EnvironmentNameNotFound
 from conda.gateways.disk.create import create_package_cache_directory, mkdir_p
-from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.update import touch
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.testing.helpers import tempdir
 from conda.utils import on_win
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
 
 TEST_CONDARC = dals(
     """
@@ -200,62 +205,51 @@ def test_conda_envs_path(testdata: None):
             del os.environ["CONDA_ENVS_PATH"]
 
 
-def test_conda_bld_path(testdata: None):
-    conda_bld_path = join(gettempdir(), "conda-bld")
+def test_conda_bld_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    conda_bld_path = str(tmp_path)
     conda_bld_url = path_to_url(conda_bld_path)
-    try:
-        mkdir_p(conda_bld_path)
-        with env_var(
-            "CONDA_BLD_PATH",
-            conda_bld_path,
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            assert len(context.conda_build_local_paths) >= 1
-            assert context.conda_build_local_paths[0] == conda_bld_path
 
-            channel = Channel("local")
-            assert channel.channel_name == "local"
-            assert channel.channel_location is None
-            assert channel.platform is None
-            assert channel.package_filename is None
-            assert channel.auth is None
-            assert channel.token is None
-            assert channel.scheme is None
-            assert channel.canonical_name == "local"
-            assert channel.url() is None
-            urls = list(
-                chain.from_iterable(
-                    (
-                        join_url(url, context.subdir),
-                        join_url(url, "noarch"),
-                    )
-                    for url in context.conda_build_local_urls
-                )
-            )
-            assert channel.urls() == urls
+    monkeypatch.setenv("CONDA_BLD_PATH", conda_bld_path)
+    reset_context()
+    assert context.bld_path == conda_bld_path
+    assert len(context.conda_build_local_paths) >= 1
+    assert context.conda_build_local_paths[0] == conda_bld_path
 
-            channel = Channel(conda_bld_url)
-            assert channel.canonical_name == "local"
-            assert channel.platform is None
-            assert channel.package_filename is None
-            assert channel.auth is None
-            assert channel.token is None
-            assert channel.scheme == "file"
-            assert channel.urls() == [
-                join_url(conda_bld_url, context.subdir),
-                join_url(conda_bld_url, "noarch"),
-            ]
-            assert channel.url() == join_url(conda_bld_url, context.subdir)
-            assert (
-                channel.channel_name.lower()
-                == win_path_backout(conda_bld_path).lstrip("/").lower()
-            )
-            assert (
-                channel.channel_location == ""
-            )  # location really is an empty string; all path information is in channel_name
-            assert channel.canonical_name == "local"
-    finally:
-        rm_rf(conda_bld_path)
+    channel = Channel("local")
+    assert channel.channel_name == "local"
+    assert channel.channel_location is None
+    assert channel.platform is None
+    assert channel.package_filename is None
+    assert channel.auth is None
+    assert channel.token is None
+    assert channel.scheme is None
+    assert channel.canonical_name == "local"
+    assert channel.url() is None
+    assert channel.urls() == [
+        join_url(url, subdir)
+        for url in context.conda_build_local_urls
+        for subdir in (context.subdir, "noarch")
+    ]
+
+    channel = Channel(conda_bld_url)
+    assert channel.canonical_name == "local"
+    assert channel.platform is None
+    assert channel.package_filename is None
+    assert channel.auth is None
+    assert channel.token is None
+    assert channel.scheme == "file"
+    assert channel.urls() == [
+        join_url(conda_bld_url, context.subdir),
+        join_url(conda_bld_url, "noarch"),
+    ]
+    assert channel.url() == join_url(conda_bld_url, context.subdir)
+    assert (
+        channel.channel_name.lower()
+        == win_path_backout(conda_bld_path).lstrip("/").lower()
+    )
+    # location really is an empty string; all path information is in channel_name
+    assert channel.channel_location == ""
+    assert channel.canonical_name == "local"
 
 
 def test_custom_multichannels(testdata: None):
