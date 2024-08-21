@@ -28,7 +28,7 @@ from conda.base.context import (
     validate_prefix_name,
 )
 from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
-from conda.common.io import env_var, env_vars
+from conda.common.io import env_var
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
@@ -386,49 +386,49 @@ def test_channel_priority(testdata: None):
     assert context.channel_priority == ChannelPriority.DISABLED
 
 
-def test_threads(testdata: None):
+def test_threads(monkeypatch: MonkeyPatch) -> None:
     default_value = None
     assert context.default_threads == default_value
     assert context.repodata_threads == default_value
     assert context.verify_threads == 1
     assert context.execute_threads == 1
 
-    with env_var(
-        "CONDA_DEFAULT_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_DEFAULT_THREADS", "3")
+        reset_context()
         assert context.default_threads == 3
         assert context.verify_threads == 3
         assert context.repodata_threads == 3
         assert context.execute_threads == 3
 
-    with env_var(
-        "CONDA_VERIFY_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_VERIFY_THREADS", "3")
+        reset_context()
         assert context.default_threads == default_value
         assert context.verify_threads == 3
         assert context.repodata_threads == default_value
         assert context.execute_threads == 1
 
-    with env_var(
-        "CONDA_REPODATA_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_REPODATA_THREADS", "3")
+        reset_context()
         assert context.default_threads == default_value
         assert context.verify_threads == 1
         assert context.repodata_threads == 3
         assert context.execute_threads == 1
 
-    with env_var(
-        "CONDA_EXECUTE_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_EXECUTE_THREADS", "3")
+        reset_context()
         assert context.default_threads == default_value
         assert context.verify_threads == 1
         assert context.repodata_threads == default_value
         assert context.execute_threads == 3
 
-    with env_vars(
-        {"CONDA_EXECUTE_THREADS": "3", "CONDA_DEFAULT_THREADS": "1"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_EXECUTE_THREADS", "3")
+        m.setenv("CONDA_DEFAULT_THREADS", "1")
+        reset_context()
         assert context.default_threads == 1
         assert context.verify_threads == 1
         assert context.repodata_threads == 1
