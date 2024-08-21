@@ -348,7 +348,7 @@ def test_path_conversion(
         win_prefix = PureWindowsPath(context.target_prefix)
         if os.getenv("CI"):
             # only create a symlink on CI Windows machine since it requires admin privileges
-            win_alt = tmp_path
+            win_alt = tmp_path / "symlink"
             win_alt.symlink_to(win_prefix, target_is_directory=True)
         else:
             win_alt = win_prefix
