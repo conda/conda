@@ -56,7 +56,7 @@ def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -
     # continue performing substitutions until a match is found
     subs = 0
 
-    # only absolute paths can be detected as root or mount formats
+    # only absolute paths can be detected as root, mount, or drive formats
     if ntpath.isabs(path):
         # only attempt to match root if a root is defined
         if root:
@@ -75,9 +75,9 @@ def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -
         if not subs:
             path, subs = RE_WIN_MOUNT.subn(_to_unix_mount, path)
 
-    # attempt to match drive
-    if not subs:
-        path = RE_WIN_DRIVE.sub(partial(_to_unix_drive, cygdrive=cygdrive), path)
+        # attempt to match drive
+        if not subs:
+            path = RE_WIN_DRIVE.sub(partial(_to_unix_drive, cygdrive=cygdrive), path)
 
     return _resolve_path(path, posixpath.sep)
 
