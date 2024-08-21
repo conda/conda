@@ -274,7 +274,7 @@ def test_path_conversion_falsy(
         # /c & /C doesn't roundtrip because the normal form is /c/ -- see below
         pytest.param("/c", "C:\\", None, id="drive"),
         pytest.param("/C", "C:\\", None, id="drive"),
-        # c: & C: doesn't roundtrip because the normal form is c:\ (or c:\\ in a string)
+        # c: & C: doesn't roundtrip because the normal form is c:\ -- see below
         pytest.param(None, "c:", "/c", id="drive"),
         pytest.param(None, "C:", "/c", id="drive"),
         pytest.param("/c/", "C:\\", True, id="drive"),
