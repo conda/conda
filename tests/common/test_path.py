@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 import ntpath
+import os
 import re
 from logging import getLogger
-from pathlib import Path
+from pathlib import WindowsPath
 from typing import TYPE_CHECKING
 
 import pytest
@@ -24,6 +25,7 @@ from conda.common.path import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Iterable
 
     from pytest_mock import MockerFixture
@@ -342,11 +344,17 @@ def test_path_conversion(
         assert unix is None and isinstance(roundtrip, str)
 
     if on_win:
-        win_prefix = Path(context.target_prefix)
+        win_prefix = WindowsPath(context.target_prefix)
+        if os.getenv("CI"):
+            # only create a symlink on CI Windows machine since it requires admin privileges
+            win_alt = tmp_path
+            win_alt.symlink_to(win_prefix, target_is_directory=True)
+        else:
+            win_alt = win_prefix
     else:
         # cygpath doesn't exist so we don't have to align with what cygpath would return
         # besides, using Unix paths and expecting a valid Windows path doesn't make sense
-        win_prefix = Path("Z:\\fake\\prefix")
+        win_prefix = win_alt = WindowsPath("Z:\\fake\\prefix")
 
     if not cygpath:
         # test without cygpath
@@ -355,7 +363,7 @@ def test_path_conversion(
     win = win.format(
         # using `ntpath.join` instead of `pathlib` otherwise the CWD part (`.`) is consumed as a no-op
         ROOT=ntpath.join(win_prefix, "Library"),
-        ALT=ntpath.join(win_prefix, ".", "..", win_prefix.name, "Library"),
+        ALT=ntpath.join(win_alt, ".", "..", win_alt.name, "Library"),
     )
 
     def replace(path: str, sep: str) -> str:
