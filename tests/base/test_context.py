@@ -41,6 +41,8 @@ from conda.utils import on_win
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
+    from conda.testing import PathFactoryFixture
+
 TEST_CONDARC = dals(
     """
     custom_channels:
@@ -321,20 +323,21 @@ def test_context_parameters_have_descriptions(testdata: None):
         pprint(context.describe_parameter(name))
 
 
-def test_local_build_root_custom_rc(testdata: None):
+def test_local_build_root_custom_rc(
+    testdata: None,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactoryFixture,
+) -> None:
+    # testdata sets conda-build.root-dir
     assert context.local_build_root == abspath("/some/test/path")
 
-    test_path_1 = join(os.getcwd(), "test_path_1")
-    with env_var(
-        "CONDA_CROOT", test_path_1, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        assert context.local_build_root == test_path_1
+    monkeypatch.setenv("CONDA_BLD_PATH", bld_path := str(path_factory()))
+    reset_context()
+    assert context.local_build_root == bld_path
 
-    test_path_2 = join(os.getcwd(), "test_path_2")
-    with env_var(
-        "CONDA_BLD_PATH", test_path_2, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        assert context.local_build_root == test_path_2
+    monkeypatch.setenv("CONDA_CROOT", croot := str(path_factory()))
+    reset_context()
+    assert context.local_build_root == croot
 
 
 def test_default_target_is_root_prefix(testdata: None):
