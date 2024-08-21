@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import os.path
+import ntpath
 import re
 from logging import getLogger
 from pathlib import Path
@@ -231,7 +231,9 @@ def test_path_conversion_falsy(
 
 @pytest.mark.parametrize(
     # NOTE: we automatically test for paths with redundant slashes
-    # NOTE: for windows paths we offer two roots; LIB (the resolved path) and ALT (the same path but with indirection)
+    # NOTE: for windows paths we offer two roots for testing:
+    #         - ROOT (resolved path), e.g., Z:\\root
+    #         - ALT (unresolved path), e.g., Z:\\non_root\\.\\..\\root
     "unix,win,roundtrip",
     # there are three patterns in the parameterized tests:
     #   unix → win → unix (roundtrip), defined as (<unix>, <win>, True)
@@ -244,20 +246,20 @@ def test_path_conversion_falsy(
         pytest.param(None, "", ".", id="cwd"),
         pytest.param("./", ".\\", True, id="cwd"),
         # root (1 or 3+ leading slashes)
-        pytest.param("/", "{LIB}\\", True, id="root"),
-        pytest.param("///", "{LIB}\\", None, id="root"),
-        pytest.param("////", "{LIB}\\", None, id="root"),
+        pytest.param("/", "{ROOT}\\", True, id="root"),
+        pytest.param("///", "{ROOT}\\", None, id="root"),
+        pytest.param("////", "{ROOT}\\", None, id="root"),
         pytest.param(None, "{ALT}\\", "/", id="root"),
-        pytest.param("/root", "{LIB}\\root", True, id="root"),
-        pytest.param("///root", "{LIB}\\root", None, id="root"),
-        pytest.param("////root", "{LIB}\\root", None, id="root"),
+        pytest.param("/root", "{ROOT}\\root", True, id="root"),
+        pytest.param("///root", "{ROOT}\\root", None, id="root"),
+        pytest.param("////root", "{ROOT}\\root", None, id="root"),
         pytest.param(None, "{ALT}\\root", "/root", id="root"),
-        pytest.param("/root/", "{LIB}\\root\\", True, id="root"),
-        pytest.param("///root/", "{LIB}\\root\\", None, id="root"),
-        pytest.param("////root/", "{LIB}\\root\\", None, id="root"),
+        pytest.param("/root/", "{ROOT}\\root\\", True, id="root"),
+        pytest.param("///root/", "{ROOT}\\root\\", None, id="root"),
+        pytest.param("////root/", "{ROOT}\\root\\", None, id="root"),
         pytest.param(None, "{ALT}\\root\\", "/root/", id="root"),
-        pytest.param("/root/CaSe", "{LIB}\\root\\CaSe", True, id="root"),
-        pytest.param("///root/CaSe", "{LIB}\\root\\CaSe", None, id="root"),
+        pytest.param("/root/CaSe", "{ROOT}\\root\\CaSe", True, id="root"),
+        pytest.param("///root/CaSe", "{ROOT}\\root\\CaSe", None, id="root"),
         pytest.param(None, "{ALT}\\root\\CaSe", "/root/CaSe", id="root"),
         # UNC mount (2 leading slashes)
         pytest.param("//", "\\\\", True, id="UNC"),
@@ -340,20 +342,21 @@ def test_path_conversion(
         assert unix is None and isinstance(roundtrip, str)
 
     if on_win:
-        win_root = Path(context.target_prefix)
-        # using `os.path.join` instead of `pathlib` otherwise the CWD part (`.`) is consumed as a no-op
-        win_alt = os.path.join(win_root, ".", "..", win_root.name)
+        win_prefix = Path(context.target_prefix)
     else:
         # cygpath doesn't exist so we don't have to align with what cygpath would return
         # besides, using Unix paths and expecting a valid Windows path doesn't make sense
-        win_root = "Z:\\fake\\root"
-        win_alt = "Z:\\fake\\non_root\\.\\..\\root"
+        win_prefix = Path("Z:\\fake\\prefix")
 
     if not cygpath:
         # test without cygpath
         mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    win = win.format(LIB=f"{win_root}\\Library", ALT=f"{win_alt}\\Library")
+    win = win.format(
+        # using `ntpath.join` instead of `pathlib` otherwise the CWD part (`.`) is consumed as a no-op
+        ROOT=ntpath.join(win_prefix, "Library"),
+        ALT=ntpath.join(win_prefix, ".", "..", win_prefix.name, "Library"),
+    )
 
     def replace(path: str, sep: str) -> str:
         if match := re.match(r"^([/\\]+)(.*)$", path):
@@ -363,43 +366,43 @@ def test_path_conversion(
 
     if unix is not None:
         # test unix → win
-        path = unix_path_to_win(unix, root=win_root)
+        path = unix_path_to_win(unix, prefix=win_prefix)
         assert path == win, f"{unix} (to win)→ {path} ≠ {win}"
 
         # test unix with redundant // → win
         double = replace(unix, "/" * 2)
-        path = unix_path_to_win(double, root=win_root)
+        path = unix_path_to_win(double, prefix=win_prefix)
         assert path == win, f"{unix} → {double} → {path} ≠ {win}"
 
         # test cygdrive
         # NOTE: only Cygwin cygpath can handle /cygdrive/... paths, since we expect to
-        # be using MSYS cygpath skip testing unless testing fallback
+        # be using MSYS2 cygpath skip testing unless testing fallback
         if unix.startswith(("/c", "/C")) and not cygpath:
             cygdrive = f"/cygdrive{unix}"
-            path = unix_path_to_win(cygdrive, root=win_root, cygdrive=True)
+            path = unix_path_to_win(cygdrive, prefix=win_prefix, cygdrive=True)
             assert path == win, f"{unix} → {cygdrive} → {path} ≠ {win}"
 
     if roundtrip is not None:
         # test win → unix
-        path = win_path_to_unix(win, root=win_root)
+        path = win_path_to_unix(win, prefix=win_prefix)
         assert isinstance(roundtrip := unix or roundtrip, str)
         assert path == roundtrip, f"{win} (to unix)→ {path} ≠ {roundtrip}"
 
         # test win with redundant \ → unix
         double = replace(win, "\\" * 2)
-        path = win_path_to_unix(double, root=win_root)
+        path = win_path_to_unix(double, prefix=win_prefix)
         assert path == roundtrip, f"{win} → {double} → {path} ≠ {roundtrip}"
 
         # test win with forward / → unix
         forward = replace(win, "/")
-        path = win_path_to_unix(forward, root=win_root)
+        path = win_path_to_unix(forward, prefix=win_prefix)
         assert path == roundtrip, f"{win} → {forward} → {path} ≠ {roundtrip}"
 
         # test cygdrive
         # test cygdrive
         # NOTE: only Cygwin cygpath can handle /cygdrive/... paths, since we expect to
-        # be using MSYS cygpath skip testing unless testing fallback
+        # be using MSYS2 cygpath skip testing unless testing fallback
         if roundtrip.startswith(("/c", "/C")) and not cygpath:
             cygdrive = f"/cygdrive{roundtrip}"
-            path = win_path_to_unix(win, root=win_root, cygdrive=True)
+            path = win_path_to_unix(win, prefix=win_prefix, cygdrive=True)
             assert path == cygdrive, f"{win} → {path} ≠ {cygdrive}"

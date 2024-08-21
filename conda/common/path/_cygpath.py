@@ -15,24 +15,24 @@ if TYPE_CHECKING:
     from . import PathType
 
 
-def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -> str:
+def nt_to_posix(path: PathType, prefix: PathType | None, cygdrive: bool = False) -> str:
     """
     A fallback implementation of `cygpath --unix`.
 
     Args:
         path: The path to convert.
-        root: The (Windows path-style) root directory to use for the conversion.
+        prefix: The Windows style prefix directory to use for the conversion.
               If not provided, no checks for root paths will be made.
         cygdrive: Whether to use the Cygwin-style drive prefix.
     """
     path = os.fspath(path)
-    root = os.fspath(root) if root else None
+    prefix = os.fspath(prefix) if prefix else None
 
     if ntpath.pathsep in path:
         return posixpath.pathsep.join(
             converted
             for path in path.split(ntpath.pathsep)
-            if (converted := nt_to_posix(path, root, cygdrive))
+            if (converted := nt_to_posix(path, prefix, cygdrive))
         )
 
     # cygpath drops empty strings
@@ -41,7 +41,7 @@ def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -
 
     # Revert in reverse order of the transformations in posix_to_nt:
     # 1. root filesystem forms:
-    #      {root}\Library\root
+    #      {prefix}\Library\root
     #    → /root
     # 2. mount forms:
     #      \\mount
@@ -57,19 +57,20 @@ def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -
     subs = 0
 
     # only absolute paths can be detected as root, mount, or drive formats
-    if ntpath.isabs(path):
-        # only attempt to match root if a root is defined
-        if root:
-            # normalize the path (removing any path indirections)
-            normalized = ntpath.normpath(path)
+    # NOTE: C: & c: are absolute paths but ntpath.isabs doesn't recognize it
+    if ntpath.isabs(path) or path in ("C:", "c:"):
+        # only attempt to match root if prefix is defined
+        if prefix:
+            # normalize/resolve the path
+            norm_path = ntpath.normpath(path)
             # ntpath.normpath strips trailing slashes, add them back
             if path[-1] in "/\\":
-                normalized += ntpath.sep
+                norm_path += ntpath.sep
             # attempt to match root
-            normalized, subs = _get_RE_WIN_ROOT(root).subn(_to_unix_root, normalized)
+            norm_path, subs = _get_RE_WIN_ROOT(prefix).subn(_to_unix_root, norm_path)
             # only keep the normalized path if the root was matched
             if subs:
-                path = normalized
+                path = norm_path
 
         # attempt to match mount
         if not subs:
@@ -82,15 +83,27 @@ def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -
     return _resolve_path(path, posixpath.sep)
 
 
-def _get_RE_WIN_ROOT(root: str) -> re.Pattern:
-    root = ntpath.normpath(root)
-    root = re.escape(root)
-    root = re.sub(r"[/\\]+", r"[/\\]+", root)
+def _get_root(prefix: str) -> str:
+    # normalize path to remove duplicate slashes, .., and .
+    prefix = ntpath.normpath(prefix)
+
+    # root is defined as:
+    #   {root}\usr\lib\msys-2.0.dll
+    # the conda community chose to define that as:
+    #   %CONDA_PREFIX%\Library\usr\lib\msys-2.0.dll
+    # so we need to match the root path as:
+    #   {prefix}\Library
+    # ref: https://github.com/conda/conda/pull/14157#discussion_r1725384636
+    return ntpath.join(prefix, "Library")
+
+
+def _get_RE_WIN_ROOT(prefix: str) -> re.Pattern:
+    root = _get_root(prefix)
     return re.compile(
         rf"""
         ^
-        {root}[/\\]+Library
-        (?P<path>[/\\].*)?
+        {re.escape(root)}
+        (?P<path>.*)?
         $
         """,
         flags=re.VERBOSE,
@@ -167,22 +180,22 @@ def translate_unix(match: re.Match) -> str:
     )
 
 
-def posix_to_nt(path: PathType, root: PathType | None, cygdrive: bool = False) -> str:
+def posix_to_nt(path: PathType, prefix: PathType | None, cygdrive: bool = False) -> str:
     """
     A fallback implementation of `cygpath --windows`.
 
     Args:
         path: The path to convert.
-        root: The (Windows path-style) root directory to use for the conversion.
+        prefix: The Windows style prefix directory to use for the conversion.
               If not provided, no checks for root paths will be made.
         cygdrive: Unused. Present to keep the signature consistent with `nt_to_posix`.
     """
     path = os.fspath(path)
-    root = os.fspath(root) if root else None
+    prefix = os.fspath(prefix) if prefix else None
 
     if posixpath.pathsep in path:
         return ntpath.pathsep.join(
-            posix_to_nt(path, root) for path in path.split(posixpath.pathsep)
+            posix_to_nt(path, prefix) for path in path.split(posixpath.pathsep)
         )
 
     # cygpath converts a "" to "."
@@ -200,14 +213,14 @@ def posix_to_nt(path: PathType, root: PathType | None, cygdrive: bool = False) -
     #    → \\mount
     # 3. root filesystem forms:
     #      /root
-    #    → {root}\Library\root
+    #    → {prefix}\Library\root
     # 3. anything else
 
-    # continue performing substitutions until a match is found
-    subs = 0
-
-    # only absolute paths can be detected as drive letter, mount, or root formats
+    # only absolute paths can be detected as drive, mount, or root formats
     if posixpath.isabs(path):
+        # continue performing substitutions until a match is found
+        subs = 0
+
         # attempt to match drive
         path, subs = RE_UNIX_DRIVE.subn(_to_win_drive, path)
 
@@ -215,8 +228,9 @@ def posix_to_nt(path: PathType, root: PathType | None, cygdrive: bool = False) -
         if not subs:
             path, subs = RE_UNIX_MOUNT.subn(_to_win_mount, path)
 
-        # only attempt to match root if a root is defined
-        if root and not subs:
+        # only attempt to match root if prefix is defined
+        if prefix and not subs:
+            root = _get_root(prefix)
             path = RE_UNIX_ROOT.sub(partial(_to_win_root, root=root), path)
 
     return _resolve_path(path, ntpath.sep)
@@ -303,7 +317,7 @@ RE_UNIX_ROOT = re.compile(
 
 def _to_win_root(match: re.Match, root: str) -> str:
     path = match.group("path")
-    return f"{root}\\Library{path}"
+    return f"{root}{path}"
 
 
 deprecated.constant(

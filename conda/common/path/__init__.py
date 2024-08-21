@@ -384,7 +384,7 @@ def path_identity(paths: PathType | PathsType | None) -> str | tuple[str, ...] |
 
 def _path_to(
     paths: PathType | PathsType | None,
-    root: PathType | None,
+    prefix: PathType | None,
     *,
     cygdrive: bool,
     to_unix: bool,
@@ -397,10 +397,10 @@ def _path_to(
     if not paths:
         return "." if isinstance(paths, (str, os.PathLike)) else ()
 
-    if on_win and root is None:
+    if on_win and prefix is None:
         from ...base.context import context
 
-        root = context.target_prefix
+        prefix = context.target_prefix
 
     if to_unix:
         from_pathsep = ntpath.pathsep
@@ -443,7 +443,7 @@ def _path_to(
         # i.e. conda without anything else installed
         log.warning("cygpath is not available, fallback to manual path conversion")
 
-        converted = cygpath_fallback(joined, root, cygdrive)
+        converted = cygpath_fallback(joined, prefix, cygdrive)
     except subprocess.CalledProcessError as err:
         log.error(
             "Unexpected cygpath error\n  %s: %s\n  stdout: %s\n  stderr: %s",
@@ -470,7 +470,7 @@ def _path_to(
 
 def win_path_to_unix(
     paths: PathType | PathsType | None,
-    root: PathType | None = None,
+    prefix: PathType | None = None,
     *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:
@@ -481,16 +481,16 @@ def win_path_to_unix(
 
     Args:
         paths: The path(s) to convert.
-        root: The (Windows path-style) root directory to use for the conversion.
-              If not provided, no checks for root paths will be made.
+        prefix: The (Windows path-style) prefix directory to use for the conversion.
+              If not provided, no checks for prefix paths will be made.
         cygdrive: Whether to use the Cygwin-style drive prefix.
     """
-    return _path_to(paths, root=root, cygdrive=cygdrive, to_unix=True)
+    return _path_to(paths, prefix=prefix, cygdrive=cygdrive, to_unix=True)
 
 
 def unix_path_to_win(
     paths: PathType | PathsType | None,
-    root: PathType | None = None,
+    prefix: PathType | None = None,
     *,
     cygdrive: bool = False,
 ) -> str | tuple[str, ...] | None:
@@ -501,8 +501,8 @@ def unix_path_to_win(
 
     Args:
         paths: The path(s) to convert.
-        root: The (Windows path-style) root directory to use for the conversion.
-              If not provided, no checks for root paths will be made.
+        prefix: The (Windows path-style) prefix directory to use for the conversion.
+              If not provided, no checks for prefix paths will be made.
         cygdrive: Unused. Present to keep the signature consistent with `win_path_to_unix`.
     """
-    return _path_to(paths, root, cygdrive=cygdrive, to_unix=False)
+    return _path_to(paths, prefix, cygdrive=cygdrive, to_unix=False)
