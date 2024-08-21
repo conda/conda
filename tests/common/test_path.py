@@ -269,10 +269,10 @@ def test_path_conversion_falsy(
         pytest.param("//mount//CaSe", "\\\\mount\\CaSe", None, id="UNC"),
         pytest.param(None, "\\\\mount\\CaSe", "//mount/CaSe", id="UNC"),
         # drive (1 leading slash + 1 letter)
-        # /c & /C doesn't roundtrip
+        # /c & /C doesn't roundtrip because the normal form is /c/ -- see below
         pytest.param("/c", "C:\\", None, id="drive"),
         pytest.param("/C", "C:\\", None, id="drive"),
-        # c: & C: doesn't roundtrip
+        # c: & C: doesn't roundtrip because the normal form is c:\ (or c:\\ in a string)
         pytest.param(None, "c:", "/c", id="drive"),
         pytest.param(None, "C:", "/c", id="drive"),
         pytest.param("/c/", "C:\\", True, id="drive"),
@@ -291,7 +291,7 @@ def test_path_conversion_falsy(
         pytest.param("relative", "relative", True, id="relative"),
         pytest.param("relative/", "relative\\", True, id="relative"),
         pytest.param("relative/CaSe", "relative\\CaSe", True, id="relative"),
-        # odd cases
+        # PATH forms
         pytest.param("path:", "path;.", None, id="colon"),
         pytest.param(None, "path;.", "path:.", id="colon"),
         pytest.param(None, "path;", "path", id="colon"),
