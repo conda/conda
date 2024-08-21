@@ -181,6 +181,9 @@ def setup(sphinx):
     sphinx.connect("autoapi-skip-member", skip_log)
 
 
+# Used to make version number available as a global variable in pages
+rst_epilog = f".. |version| replace:: {version}"
+
 # -----------------------------------------------------------------------------
 # Source code links
 # -----------------------------------------------------------------------------

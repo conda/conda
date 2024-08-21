@@ -113,9 +113,11 @@ To see your conda version, use the following command::
 
    conda --version
 
-No matter which environment you run this command in, conda displays its current version::
+No matter which environment you run this command in, conda displays its current version:
 
-   conda 23.10.0
+.. parsed-literal::
+
+   conda \ |version|\
 
 .. note::
    If you get an error message ``command not found: conda``, close and reopen
