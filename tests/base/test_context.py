@@ -28,14 +28,10 @@ from conda.common.io import env_var, env_vars
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
-from conda.core.package_cache_data import PackageCacheData
 from conda.exceptions import CondaValueError, EnvironmentNameNotFound
-from conda.gateways.disk.create import create_package_cache_directory, mkdir_p
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.disk.update import touch
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.testing.helpers import tempdir
 from conda.utils import on_win
 
 if TYPE_CHECKING:
@@ -344,34 +340,32 @@ def test_default_target_is_root_prefix(testdata: None):
     assert context.target_prefix == context.root_prefix
 
 
-def test_target_prefix(testdata: None):
-    with tempdir() as prefix:
-        mkdir_p(join(prefix, "first", "envs"))
-        mkdir_p(join(prefix, "second", "envs"))
-        create_package_cache_directory(join(prefix, "first", "pkgs"))
-        create_package_cache_directory(join(prefix, "second", "pkgs"))
-        envs_dirs = (join(prefix, "first", "envs"), join(prefix, "second", "envs"))
-        with env_var(
-            "CONDA_ENVS_DIRS",
-            os.pathsep.join(envs_dirs),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # with both dirs writable, choose first
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
-            assert context.target_prefix == join(envs_dirs[0], "blarg")
+def test_target_prefix(
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    (envs1 := path_factory()).mkdir()
+    (envs2 := path_factory()).mkdir()
+    envs_dirs = (str(envs1), str(envs2))
 
-            # with first dir read-only, choose second
-            PackageCacheData._cache_.clear()
-            make_read_only(join(envs_dirs[0], ".conda_envs_dir_test"))
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
-            assert context.target_prefix == join(envs_dirs[1], "blarg")
+    monkeypatch.setenv("CONDA_ENVS_DIRS", os.pathsep.join(envs_dirs))
+    reset_context()
+    assert context._envs_dirs == envs_dirs
+    assert context.envs_dirs[:2] == envs_dirs
 
-            # if first dir is read-only but environment exists, choose first
-            PackageCacheData._cache_.clear()
-            mkdir_p(join(envs_dirs[0], "blarg"))
-            touch(join(envs_dirs[0], "blarg", "history"))
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
-            assert context.target_prefix == join(envs_dirs[0], "blarg")
+    # with both dirs writable, choose first
+    reset_context(argparse_args=SimpleNamespace(name="blarg"))
+    assert context.target_prefix == str(envs1 / "blarg")
+
+    # with first dir read-only, choose second
+    make_read_only(envs1 / ".conda_envs_dir_test")
+    reset_context(argparse_args=SimpleNamespace(name="blarg"))
+    assert context.target_prefix == str(envs2 / "blarg")
+
+    # if first dir is read-only but environment exists, choose first
+    (envs1 / "blarg").mkdir()
+    reset_context(argparse_args=SimpleNamespace(name="blarg"))
+    assert context.target_prefix == str(envs1 / "blarg")
 
 
 def test_aggressive_update_packages(testdata: None):
