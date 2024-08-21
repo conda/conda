@@ -7,7 +7,7 @@ import ntpath
 import os
 import re
 from logging import getLogger
-from pathlib import WindowsPath
+from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING
 
 import pytest
@@ -25,7 +25,7 @@ from conda.common.path import (
 )
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from pathlib import Path, PurePath
     from typing import Iterable
 
     from pytest_mock import MockerFixture
@@ -343,8 +343,9 @@ def test_path_conversion(
         # win → unix
         assert unix is None and isinstance(roundtrip, str)
 
+    win_alt: PurePath
     if on_win:
-        win_prefix = WindowsPath(context.target_prefix)
+        win_prefix = PureWindowsPath(context.target_prefix)
         if os.getenv("CI"):
             # only create a symlink on CI Windows machine since it requires admin privileges
             win_alt = tmp_path
@@ -354,7 +355,7 @@ def test_path_conversion(
     else:
         # cygpath doesn't exist so we don't have to align with what cygpath would return
         # besides, using Unix paths and expecting a valid Windows path doesn't make sense
-        win_prefix = win_alt = WindowsPath("Z:\\fake\\prefix")
+        win_prefix = win_alt = PureWindowsPath("Z:\\fake\\prefix")
 
     if not cygpath:
         # test without cygpath
