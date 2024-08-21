@@ -301,6 +301,9 @@ def test_path_conversion_falsy(
         pytest.param("path::other", "path;.;other", None, id="PATH"),
         pytest.param(None, "path;;other", "path:other", id="PATH"),
         pytest.param("path:.:other", "path;.;other", True, id="PATH"),
+        pytest.param(":path", ".;path", None, id="PATH"),
+        pytest.param(None, ";path", "path", id="PATH"),
+        pytest.param(".:path", ".;path", True, id="PATH"),
         # cygpath errors (works with fallback)
         # pytest.param("path/../other", "path\\..\\other", True, id="parent"),
     ],
