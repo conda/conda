@@ -101,9 +101,8 @@ Conda looks in the following locations for a ``.condarc`` file:
 
   if on_win:
       SEARCH_PATH = (
-          "C:/ProgramData/conda/.condarc",
-          "C:/ProgramData/conda/condarc",
-          "C:/ProgramData/conda/condarc.d",
+          "C:/Users/<your_info>/.condarc",
+          "C:/Users/<your_info/AppData/Local/<name_of_Anaconda_distribution>/.condarc",
       )
   else:
       SEARCH_PATH = (
