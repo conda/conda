@@ -341,7 +341,7 @@ def test_path_conversion(
 
     if on_win:
         win_root = Path(context.target_prefix)
-        # using `os.path.join` instead of `pathlib` otherwise the . indirection is removed
+        # using `os.path.join` instead of `pathlib` otherwise the CWD part (`.`) is consumed as a no-op
         win_alt = os.path.join(win_root, ".", "..", win_root.name)
     else:
         # cygpath doesn't exist so we don't have to align with what cygpath would return
