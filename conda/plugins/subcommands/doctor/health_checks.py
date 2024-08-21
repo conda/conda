@@ -9,10 +9,12 @@ import os
 from logging import getLogger
 from pathlib import Path
 
-import requests
+from requests.exceptions import RequestException
 
+from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
 from ....exceptions import CondaError
+from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
 from ... import CondaHealthCheck, hookimpl
 
@@ -20,10 +22,7 @@ logger = getLogger(__name__)
 
 OK_MARK = "✅"
 X_MARK = "❌"
-CA_BUNDLE_TEST_URL = context.channel_alias.urls()[
-    0
-]  # using one of the channel aliases url ensures that the health check also runs on machines that are on an intranet connection. As in such a case the `context.channel_alias.urls()[0]` might be pointing to an internal url.
-# CA_BUNDLE_TEST_URL = "https://example.com"  # IANA reserved domain (more info: https://www.iana.org/help/example-domains)
+# using one of the channel aliases url ensures that the health check also runs on machines that are on an intranet connection. As in such a case the `context.channel_alias.urls()[0]` might be pointing to an internal url.
 
 
 def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
@@ -154,18 +153,21 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
 
 
 def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
-    if not os.getenv("REQUESTS_CA_BUNDLE"):
+    ca_bundle_test_url = context.channel_alias.url()[0]
+    requests_ca_bundle = os.getenv("REQUESTS_CA_BUNDLE")
+    if not requests_ca_bundle:
         return
-    elif not Path(os.getenv("REQUESTS_CA_BUNDLE")).exists():
+    elif not Path(requests_ca_bundle).exists():
         print(
             f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
         )
     else:
+        session = get_session(ca_bundle_test_url)
         try:
-            response = requests.get(CA_BUNDLE_TEST_URL)
-            if response:
-                print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
-        except OSError as e:
+            response = session.get(ca_bundle_test_url)
+            response.raise_for_status()
+            print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
+        except (OSError, RequestException) as e:
             print(
                 f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
             )

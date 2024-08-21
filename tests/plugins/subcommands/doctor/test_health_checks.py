@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.context import reset_context
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
