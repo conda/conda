@@ -21,14 +21,12 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
-    conda_tests_ctxt_mgmt_def_pol,
     context,
     get_plugin_config_data,
     reset_context,
     validate_prefix_name,
 )
 from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
-from conda.common.io import env_var
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
@@ -604,16 +602,13 @@ def test_channel_settings(testdata: None):
     )
 
 
-def test_subdirs():
+def test_subdirs(monkeypatch: MonkeyPatch) -> None:
     assert context.subdirs == (context.subdir, "noarch")
 
     subdirs = ("linux-highest", "linux-64", "noarch")
-    with env_var(
-        "CONDA_SUBDIRS",
-        ",".join(subdirs),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.subdirs == subdirs
+    monkeypatch.setenv("CONDA_SUBDIRS", ",".join(subdirs))
+    reset_context()
+    assert context.subdirs == subdirs
 
 
 def test_local_build_root_default_rc():
