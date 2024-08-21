@@ -82,13 +82,6 @@ def nt_to_posix(path: PathType, root: PathType | None, cygdrive: bool = False) -
     return _resolve_path(path, posixpath.sep)
 
 
-def _posix_normpath(path: str) -> str:
-    norm = posixpath.normpath(path)
-    if path[-1] in "/\\":
-        norm += posixpath.sep
-    return norm
-
-
 def _get_RE_WIN_ROOT(root: str) -> re.Pattern:
     root = ntpath.normpath(root)
     root = re.escape(root)
