@@ -26,7 +26,7 @@ def test_environment():
     assert env.channel_options.repodata_fns == context.repodata_fns
     assert env.solver_options.solver == context.solver
     assert env.solver_options.channel_priority == context.channel_priority
-    assert env.last_modified == datetime.fromisoformat("2024-01-01 00:10:00Z")
+    assert env.last_modified == datetime.fromisoformat("2024-01-01 00:10:00")
     assert env.configuration == {}
     assert env.variables == {}
 
