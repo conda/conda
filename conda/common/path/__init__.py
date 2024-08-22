@@ -384,7 +384,7 @@ def path_identity(paths: PathType | PathsType | None) -> str | tuple[str, ...] |
 
 def _path_to(
     paths: PathType | PathsType | None,
-    prefix: PathType | None,
+    prefix: PathType | None = None,
     *,
     cygdrive: bool,
     to_unix: bool,

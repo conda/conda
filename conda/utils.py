@@ -15,7 +15,6 @@ from shutil import which
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
-from .base.context import context
 from .common.compat import isiterable, on_win
 from .common.path import path_identity as _path_identity
 from .common.path import unix_path_to_win as _unix_path_to_win
@@ -70,7 +69,7 @@ def unix_path_to_win(path, root_prefix=""):
     addendum="Use `conda.common.path.win_path_to_unix` instead.",
 )
 def win_path_to_cygwin(path):
-    return _win_path_to_unix(path, root=context.target_prefix, cygdrive=True)
+    return _win_path_to_unix(path, cygdrive=True)
 
 
 @deprecated(
@@ -79,7 +78,7 @@ def win_path_to_cygwin(path):
     addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
 def cygwin_path_to_win(path):
-    return _unix_path_to_win(path, root=context.target_prefix, cygdrive=True)
+    return _unix_path_to_win(path, cygdrive=True)
 
 
 @deprecated("25.3", "25.9", addendum="Unused.")
@@ -150,8 +149,8 @@ deprecated.constant(
 
 _MSYS2_SHELL_BASE = dict(
     _UNIX_SHELL_BASE,
-    path_from=lambda path: _unix_path_to_win(path, root=context.target_prefix),
-    path_to=lambda path: _win_path_to_unix(path, root=context.target_prefix),
+    path_from=_unix_path_to_win,
+    path_to=_win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
