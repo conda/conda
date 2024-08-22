@@ -45,11 +45,13 @@ log = getLogger(__name__)
 @dataclass
 class SolverOptions:
     solver: str | None = None
-    channel_priority: ChannelPriority = ChannelPriority.STRICT
+    channel_priority: ChannelPriority | None = None
 
     def __post_init__(self):
         if self.solver is None:
             self.solver = context.solver
+        if self.channel_priority is None:
+            self.channel_priority = context.channel_priority
 
     def to_dict(self):
         return {
@@ -83,7 +85,7 @@ class Environment:
     name: str | None = None
     prefix: PathLike | None = None
     description: str | None = None
-    last_modified: str | None = None
+    last_modified: datetime | str | None = None
     channels: Iterable[Channel | str] | None = None
     channel_options: ChannelOptions = None
     requirements: Iterable[MatchSpec | str] | None = field(default_factory=list)
@@ -111,15 +113,23 @@ class Environment:
                 self.name = self.prefix.name
         elif validate and not self.name and not self.prefix:
             raise NeedsNameOrPrefix("'Environment' needs either 'name' or 'prefix'.")
-        self.channels = [
-            Channel(channel) for channel in self.channels or context.channels
-        ]
+        if isinstance(self.channels, (str, Channel)):
+            self.channels = [self.channels]
+        elif self.channels is None:
+            self.channels = context.channels if validate else []
+        self.channels = [Channel(channel) for channel in self.channels]
         self.requirements = [MatchSpec(spec) for spec in self.requirements]
         self.constraints = [MatchSpec(spec) for spec in self.constraints]
+        if validate and self.description is None:
+            self.description = ""
         if validate and self.channel_options is None:
             self.channel_options = ChannelOptions()
         if validate and self.solver_options is None:
             self.solver_options = SolverOptions()
+        if validate and self.last_modified is None:
+            self.last_modified = datetime.now()
+        if validate and isinstance(self.last_modified, str):
+            self.last_modified = datetime.fromisoformat(self.last_modified)
         self._prefix_data = None
 
     @classmethod
@@ -193,18 +203,14 @@ class Environment:
         )
         requirements = list(
             dict.fromkeys(
-                chain(
-                    requirement
-                    for env in environments
-                    for requirement in env.requirements
-                )
+                requirement
+                for env in environments
+                for requirement in env.requirements
             )
         )
         constraints = list(
             dict.fromkeys(
-                chain(
-                    constraint for env in environments for constraint in env.constraints
-                )
+                constraint for env in environments for constraint in env.constraints
             )
         )
         configuration = {
