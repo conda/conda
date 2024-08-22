@@ -12,7 +12,6 @@ import json
 import os
 from dataclasses import InitVar, dataclass, field
 from datetime import datetime
-from itertools import chain
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
@@ -203,9 +202,7 @@ class Environment:
         )
         requirements = list(
             dict.fromkeys(
-                requirement
-                for env in environments
-                for requirement in env.requirements
+                requirement for env in environments for requirement in env.requirements
             )
         )
         constraints = list(
