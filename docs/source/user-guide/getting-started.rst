@@ -117,7 +117,7 @@ No matter which environment you run this command in, conda displays its current 
 
 .. parsed-literal::
 
-   conda \ |version|\
+   conda |version|
 
 .. note::
    If you get an error message ``command not found: conda``, close and reopen
