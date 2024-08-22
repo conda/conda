@@ -87,11 +87,11 @@ def _get_root(prefix: str) -> str:
     # normalize path to remove duplicate slashes, .., and .
     prefix = ntpath.normpath(prefix)
 
-    # root is defined as:
+    # MSYS2's root filesystem, /, is defined relative to this DLL:
     #   {root}\usr\lib\msys-2.0.dll
-    # the conda community chose to define that as:
+    # the conda community has chosen to install that DLL as:
     #   %CONDA_PREFIX%\Library\usr\lib\msys-2.0.dll
-    # so we need to match the root path as:
+    # so we can infer the root path is:
     #   {prefix}\Library
     # ref: https://github.com/conda/conda/pull/14157#discussion_r1725384636
     return ntpath.join(prefix, "Library")

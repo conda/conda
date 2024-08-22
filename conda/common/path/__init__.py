@@ -477,7 +477,7 @@ def win_path_to_unix(
     """Convert Windows paths to Unix paths.
 
     .. note::
-        Can be expected to produce unexpected results when run on Unix.
+        Produces unexpected results when run on Unix.
 
     Args:
         paths: The path(s) to convert.
@@ -497,7 +497,7 @@ def unix_path_to_win(
     """Convert Unix paths to Windows paths.
 
     .. note::
-        Can be expected to produce unexpected results when run on Unix.
+        Produces unexpected results when run on Unix.
 
     Args:
         paths: The path(s) to convert.
