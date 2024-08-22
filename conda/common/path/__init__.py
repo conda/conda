@@ -430,6 +430,7 @@ def _path_to(
         else from_pathsep.join(map(str, paths))
     )
 
+    converted: str | None = None
     try:
         # if present, use cygpath to convert paths since its more reliable
         converted = subprocess.run(
@@ -439,26 +440,30 @@ def _path_to(
             check=True,
         ).stdout.strip()
     except FileNotFoundError:
-        # fallback logic when cygpath is not available
-        # i.e. conda without anything else installed
+        # FileNotFoundError: cygpath not available, happens when conda is installed without anything else
         log.warning("cygpath is not available, fallback to manual path conversion")
-
-        converted = cygpath_fallback(joined, prefix, cygdrive)
     except subprocess.CalledProcessError as err:
+        # CalledProcessError: cygpath failed for some reason
         log.error(
-            "Unexpected cygpath error\n  %s: %s\n  stdout: %s\n  stderr: %s",
+            "Unexpected cygpath error, fallback to manual path conversion\n  %s: %s\n  stdout: %s\n  stderr: %s",
             err.__class__.__name__,
             err,
             err.stdout.strip(),
             err.stderr.strip(),
         )
-        raise
     except Exception as err:
-        log.error("Unexpected cygpath error\n  %s: %s", err.__class__.__name__, err)
-        raise
+        # Exception: unexpected error
+        log.error(
+            "Unexpected cygpath error, fallback to manual path conversion\n  %s: %s",
+            err.__class__.__name__,
+            err,
+        )
     else:
         # cygpath doesn't always remove duplicate path seps
         converted = resolve_paths(converted, to_pathsep, to_sep)
+
+    if converted is None:
+        converted = cygpath_fallback(joined, prefix, cygdrive)
 
     if isinstance(paths, (str, os.PathLike)):
         return converted
