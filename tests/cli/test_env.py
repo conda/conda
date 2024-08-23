@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
-    from conda.testing import CondaCLIFixture, PathFactoryFixture
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -530,29 +530,29 @@ def test_env_export_with_variables(
 
 
 @pytest.mark.integration
-def test_env_export_json(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+def test_env_export_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-    prefix = path_factory()
-    conda_cli("create", f"--prefix={prefix}", "zlib", "--yes")
-    assert Path(prefix).exists()
+    with tmp_env() as prefix:
+        conda_cli("create", f"--prefix={prefix}", "zlib", "--yes")
+        assert Path(prefix).exists()
 
-    stdout, _, _ = conda_cli("env", "export", f"--prefix={prefix}", "--json")
+        stdout, _, _ = conda_cli("env", "export", f"--prefix={prefix}", "--json")
 
-    env_description = json.loads(stdout)
-    assert len(env_description["dependencies"])
-    for spec_str in env_description["dependencies"]:
-        assert spec_str.count("=") == 2
+        env_description = json.loads(stdout)
+        assert len(env_description["dependencies"])
+        for spec_str in env_description["dependencies"]:
+            assert spec_str.count("=") == 2
 
-    # regression test for #6220
-    stdout, stderr, _ = conda_cli(
-        "env", "export", f"--prefix={prefix}", "--no-builds", "--json"
-    )
-    assert not stderr
+        # regression test for #6220
+        stdout, stderr, _ = conda_cli(
+            "env", "export", f"--prefix={prefix}", "--no-builds", "--json"
+        )
+        assert not stderr
 
-    env_description = json.loads(stdout)
-    assert len(env_description["dependencies"])
-    for spec_str in env_description["dependencies"]:
-        assert spec_str.count("=") == 1
+        env_description = json.loads(stdout)
+        assert len(env_description["dependencies"])
+        for spec_str in env_description["dependencies"]:
+            assert spec_str.count("=") == 1
 
 
 @pytest.mark.integration
