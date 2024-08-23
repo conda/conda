@@ -530,19 +530,22 @@ def test_env_export_with_variables(
 
 
 @pytest.mark.integration
-def test_env_export_json(env1: str, conda_cli: CondaCLIFixture):
+def test_env_export_json(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-    conda_cli("create", f"--name={env1}", "zlib", "--yes")
-    assert env_is_created(env1)
+    prefix = path_factory()
+    conda_cli("create", f"--prefix={prefix}", "zlib", "--yes")
+    assert Path(prefix).exists()
 
-    stdout, _, _ = conda_cli("env", "export", f"--name={env1}", "--json")
+    stdout, _, _ = conda_cli("env", "export", f"--prefix={prefix}", "--json")
 
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
+    env_description = json.loads(stdout)
+    assert len(env_description["dependencies"])
+    for spec_str in env_description["dependencies"]:
+        assert spec_str.count("=") == 2
 
     # regression test for #6220
     stdout, stderr, _ = conda_cli(
-        "env", "export", f"--name={env1}", "--no-builds", "--json"
+        "env", "export", f"--prefix={prefix}", "--no-builds", "--json"
     )
     assert not stderr
 
@@ -550,9 +553,6 @@ def test_env_export_json(env1: str, conda_cli: CondaCLIFixture):
     assert len(env_description["dependencies"])
     for spec_str in env_description["dependencies"]:
         assert spec_str.count("=") == 1
-
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
 
 
 @pytest.mark.integration
