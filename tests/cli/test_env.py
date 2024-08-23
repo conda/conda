@@ -532,9 +532,7 @@ def test_env_export_with_variables(
 @pytest.mark.integration
 def test_env_export_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-    with tmp_env() as prefix:
-        conda_cli("create", f"--prefix={prefix}", "zlib", "--yes")
-        assert Path(prefix).exists()
+    with tmp_env("zlib") as prefix:
 
         stdout, _, _ = conda_cli("env", "export", f"--prefix={prefix}", "--json")
 
