@@ -400,7 +400,6 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
         health_checks,

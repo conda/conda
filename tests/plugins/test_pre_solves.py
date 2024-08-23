@@ -5,7 +5,6 @@ from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.exceptions import DryRunExit
-from conda.plugins import solvers
 from conda.plugins.manager import CondaPluginManager
 from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
@@ -32,8 +31,8 @@ def pre_solve_plugin(
     pre_solve_plugin = PreSolvePlugin()
     plugin_manager.register(pre_solve_plugin)
 
-    # register solvers
-    plugin_manager.load_plugins(solvers)
+    # register classic solver
+    plugin_manager.load_entrypoints("conda", "conda-classic-solver")
 
     return pre_solve_plugin
 
