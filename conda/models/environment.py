@@ -12,7 +12,6 @@ import json
 import os
 from dataclasses import InitVar, dataclass, field
 from datetime import datetime
-from itertools import chain
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
@@ -155,7 +154,7 @@ class Environment:
                 log.debug(
                     "Several prefixes passed %s. Picking first one %s", prefixes, prefix
                 )
-        if name and prefix and name != prefix.name:
+        if name and prefix and name != prefix.name and name != "base":
             log.warning("Picked name %s and prefix %s do not match. Overriding prefix")
             prefix = None
         description = next(
