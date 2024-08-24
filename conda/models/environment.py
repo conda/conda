@@ -202,9 +202,7 @@ class Environment:
         )
         requirements = list(
             dict.fromkeys(
-                requirement
-                for env in environments
-                for requirement in env.requirements
+                requirement for env in environments for requirement in env.requirements
             )
         )
         constraints = list(
