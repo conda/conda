@@ -239,9 +239,9 @@ def _prefix_dependent_checks(environment: Environment, command: str, args: Names
     elif environment.exists():
         # Check if we are editing 'base'
         if not args.break_base_env and paths_equal(environment.prefix, context.root_prefix):
-            raise CondaValueError(
-                "The target prefix is the base prefix. This is discouraged. If you really want to "
-                "modify the 'base' environment, use the --break-base-env flag at your own risk."
+            log.warning(
+                "The target prefix is the base prefix. This is discouraged and will raise an error "
+                "in the future. Use --break-base-env to remove this warning, at your own risk."
             )
 
         delete_trash(environment.prefix)
