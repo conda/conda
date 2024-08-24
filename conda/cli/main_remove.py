@@ -20,6 +20,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .actions import NullCountAction
     from .helpers import (
         add_output_and_prompt_options,
+        add_parser_break_base_env,
         add_parser_channels,
         add_parser_networking,
         add_parser_prefix,
@@ -103,6 +104,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
+    add_parser_break_base_env(p)
 
     add_parser_networking(p)
     add_output_and_prompt_options(p)

@@ -19,6 +19,7 @@ from ..notices import notices
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
+        add_parser_break_base_env,
         add_parser_json,
         add_parser_prefix,
         add_parser_solver,
@@ -69,6 +70,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     add_parser_json(p)
     add_parser_solver(p)
+    add_parser_break_base_env(p)
+
     p.set_defaults(func="conda.cli.main_env_update.execute")
 
     return p

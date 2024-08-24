@@ -420,6 +420,19 @@ def add_parser_solver(p: ArgumentParser) -> None:
     )
 
 
+def add_parser_break_base_env(p: ArgumentParser) -> None:
+    """
+    Add a command-line flag to control whether modify the 'base'
+    environment is allowed or not.
+    """
+    p.add_argument(
+        "--break-base-env",
+        dest="break_base_env",
+        action="store_true",
+        help="Allow modifications of the 'base' environment. Strongly discouraged.",
+    )
+
+
 def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
 

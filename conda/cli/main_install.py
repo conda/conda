@@ -23,6 +23,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from .actions import NullCountAction
     from .helpers import (
+        add_parser_break_base_env,
         add_parser_create_install_update,
         add_parser_prune,
         add_parser_solver,
@@ -92,7 +93,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     solver_mode_options, package_install_options, _ = add_parser_create_install_update(
         p
     )
-
+    add_parser_break_base_env(p)
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
     solver_mode_options.add_argument(
