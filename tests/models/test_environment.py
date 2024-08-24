@@ -16,7 +16,7 @@ def test_environment():
         channels="conda-forge",
         requirements=["python", "numpy<2"],
         constraints=["blas"],
-        last_modified="2024-01-01 00:10:00Z",
+        last_modified="2024-01-01 00:10:00",
     )
     assert env.name == env.prefix.name == "test"
     assert env.description == ""
