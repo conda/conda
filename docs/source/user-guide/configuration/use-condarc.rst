@@ -95,17 +95,17 @@ version of conda, use the ``conda config --describe`` command.
 Searching for .condarc
 ======================
 
-Conda looks in the following locations for a ``.condarc`` file:
+For Windows users, Miniconda can be installed into any directory that you can write into. The default installation directory also depends on a few factors:
+
+- Single-user installations where the installer determines that the user is a domain user: %LOCALAPPDATA%\miniconda3
+- Single-user installations for non-domain users (should apply to many personal computers): %USERPROFILE%\miniconda3
+- All-users installations: %PUBLIC%\miniconda3.
+
+In non-Windows operating sytems, conda looks in the following locations for a ``.condarc`` file:
 
 .. code-block:: python
 
-  if on_win:
-      SEARCH_PATH = (
-          "C:/ProgramData/conda/.condarc",
-          "C:/ProgramData/conda/condarc",
-          "C:/ProgramData/conda/condarc.d",
-      )
-  else:
+  if not on_win:
       SEARCH_PATH = (
           "/etc/conda/.condarc",
           "/etc/conda/condarc",
@@ -143,7 +143,7 @@ to $HOME/.config should be used.
 ``CONDARC`` must be a path to a file named ``.condarc``, ``condarc``, or end with a YAML suffix (``.yml`` or ``.yaml``).
 
 .. note::
-   Any condarc files that exist in any of these special search path
+   Any ``.condarc`` files that exist in any of these special search path
    directories need to end in a valid yaml extension (".yml" or ".yaml").
 
 
