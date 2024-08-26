@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
-    from conda.testing import CondaCLIFixture, PathFactoryFixture
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -530,29 +530,26 @@ def test_env_export_with_variables(
 
 
 @pytest.mark.integration
-def test_env_export_json(env1: str, conda_cli: CondaCLIFixture):
+def test_env_export_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-    conda_cli("create", f"--name={env1}", "zlib", "--yes")
-    assert env_is_created(env1)
+    with tmp_env("zlib") as prefix:
+        stdout, _, _ = conda_cli("env", "export", f"--prefix={prefix}", "--json")
 
-    stdout, _, _ = conda_cli("env", "export", f"--name={env1}", "--json")
+        env_description = json.loads(stdout)
+        assert len(env_description["dependencies"])
+        for spec_str in env_description["dependencies"]:
+            assert spec_str.count("=") == 2
 
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
+        # regression test for #6220
+        stdout, stderr, _ = conda_cli(
+            "env", "export", f"--prefix={prefix}", "--no-builds", "--json"
+        )
+        assert not stderr
 
-    # regression test for #6220
-    stdout, stderr, _ = conda_cli(
-        "env", "export", f"--name={env1}", "--no-builds", "--json"
-    )
-    assert not stderr
-
-    env_description = json.loads(stdout)
-    assert len(env_description["dependencies"])
-    for spec_str in env_description["dependencies"]:
-        assert spec_str.count("=") == 1
-
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
+        env_description = json.loads(stdout)
+        assert len(env_description["dependencies"])
+        for spec_str in env_description["dependencies"]:
+            assert spec_str.count("=") == 1
 
 
 @pytest.mark.integration
