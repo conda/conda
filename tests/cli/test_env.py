@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
-    from conda.testing import CondaCLIFixture, PathFactoryFixture
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -140,23 +140,17 @@ def test_conda_env_create_no_existent_file_with_name(conda_cli: CondaCLIFixture)
 
 
 @pytest.mark.integration
-def test_create_valid_remote_env(conda_cli: CondaCLIFixture):
+def test_deprecated_binstar(conda_cli: CondaCLIFixture):
     """
     Test retrieving an environment using the BinstarSpec (i.e. it retrieves it from anaconda.org)
 
     This tests the `remote_origin` command line argument.
     """
-    try:
+    with pytest.warns(FutureWarning), pytest.raises(EnvironmentFileNotFound):
         conda_cli("env", "create", "conda-test/env-remote")
-        assert env_is_created("env-remote")
 
-        stdout, _, _ = conda_cli("info", "--json")
-
-        parsed = json.loads(stdout)
-        assert [env for env in parsed["envs"] if env.endswith("env-remote")]
-    finally:
-        # manual cleanup
-        conda_cli("remove", "--name=env-remote", "--all", "--yes")
+    with pytest.warns(FutureWarning), pytest.raises(EnvironmentFileNotFound):
+        conda_cli("env", "update", "conda-test/env-remote")
 
 
 @pytest.mark.integration
@@ -536,29 +530,26 @@ def test_env_export_with_variables(
 
 
 @pytest.mark.integration
-def test_env_export_json(env1: str, conda_cli: CondaCLIFixture):
+def test_env_export_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     """Test conda env export."""
-    conda_cli("create", f"--name={env1}", "zlib", "--yes")
-    assert env_is_created(env1)
+    with tmp_env("zlib") as prefix:
+        stdout, _, _ = conda_cli("env", "export", f"--prefix={prefix}", "--json")
 
-    stdout, _, _ = conda_cli("env", "export", f"--name={env1}", "--json")
+        env_description = json.loads(stdout)
+        assert len(env_description["dependencies"])
+        for spec_str in env_description["dependencies"]:
+            assert spec_str.count("=") == 2
 
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
+        # regression test for #6220
+        stdout, stderr, _ = conda_cli(
+            "env", "export", f"--prefix={prefix}", "--no-builds", "--json"
+        )
+        assert not stderr
 
-    # regression test for #6220
-    stdout, stderr, _ = conda_cli(
-        "env", "export", f"--name={env1}", "--no-builds", "--json"
-    )
-    assert not stderr
-
-    env_description = json.loads(stdout)
-    assert len(env_description["dependencies"])
-    for spec_str in env_description["dependencies"]:
-        assert spec_str.count("=") == 1
-
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
+        env_description = json.loads(stdout)
+        assert len(env_description["dependencies"])
+        for spec_str in env_description["dependencies"]:
+            assert spec_str.count("=") == 1
 
 
 @pytest.mark.integration
