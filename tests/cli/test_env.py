@@ -33,7 +33,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 # Environment names we use during our tests
 TEST_ENV1 = "env1"
 
-# Environment config files we use for out tests
+# Environment config files we use for our tests
 ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
@@ -375,12 +375,11 @@ def test_update_env_no_action_json_output(
 
 
 @pytest.mark.integration
-def test_remove_dry_run(env1: str, conda_cli: CondaCLIFixture):
+def test_remove_dry_run(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     # Test for GH-10231
-    create_env(ENVIRONMENT_CA_CERTIFICATES)
-    conda_cli("env", "create")
-    conda_cli("env", "remove", f"--name={env1}", "--dry-run")
-    assert env_is_created(env1)
+    with tmp_env() as prefix:
+        conda_cli("env", "remove", f"--prefix={prefix}", "--dry-run")
+        assert Path(prefix).exists()
 
 
 @pytest.mark.integration
