@@ -61,8 +61,7 @@ def isiterable(obj):
 from collections import OrderedDict as odict  # noqa: F401
 
 
-@deprecated("25.3", "25.9", addendum="Use builtin `open` instead.")
-def open(
+def open_utf8(
     file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
 ):
     if "b" in mode:
@@ -84,6 +83,13 @@ def open(
             newline=newline,
             closefd=closefd,
         )
+
+
+@deprecated("25.3", "25.9", addendum="Use `conda.common.compat.open_utf8` instead.")
+def open(
+    file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
+):
+    return open_utf8(file, mode, buffering, encoding, errors, newline, closefd)
 
 
 @deprecated(
