@@ -61,6 +61,7 @@ from ..common.compat import (
     ensure_utf8_encoding,
     on_mac,
     on_win,
+    open,
 )
 from ..common.path import (
     expand,

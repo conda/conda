@@ -11,7 +11,7 @@ from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 
 from .base.context import context
-from .common.compat import on_mac, on_win
+from .common.compat import on_mac, on_win, open
 from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url

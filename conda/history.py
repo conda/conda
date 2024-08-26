@@ -22,7 +22,7 @@ from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
-from .common.compat import ensure_text_type
+from .common.compat import ensure_text_type, open
 from .common.iterators import groupby_to_dict as groupby
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
