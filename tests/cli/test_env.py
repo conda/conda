@@ -140,23 +140,17 @@ def test_conda_env_create_no_existent_file_with_name(conda_cli: CondaCLIFixture)
 
 
 @pytest.mark.integration
-def test_create_valid_remote_env(conda_cli: CondaCLIFixture):
+def test_deprecated_binstar(conda_cli: CondaCLIFixture):
     """
     Test retrieving an environment using the BinstarSpec (i.e. it retrieves it from anaconda.org)
 
     This tests the `remote_origin` command line argument.
     """
-    try:
+    with pytest.warns(FutureWarning), pytest.raises(EnvironmentFileNotFound):
         conda_cli("env", "create", "conda-test/env-remote")
-        assert env_is_created("env-remote")
 
-        stdout, _, _ = conda_cli("info", "--json")
-
-        parsed = json.loads(stdout)
-        assert [env for env in parsed["envs"] if env.endswith("env-remote")]
-    finally:
-        # manual cleanup
-        conda_cli("remove", "--name=env-remote", "--all", "--yes")
+    with pytest.warns(FutureWarning), pytest.raises(EnvironmentFileNotFound):
+        conda_cli("env", "update", "conda-test/env-remote")
 
 
 @pytest.mark.integration
