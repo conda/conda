@@ -415,7 +415,7 @@ class Context(Configuration):
     dry_run = ParameterLoader(PrimitiveParameter(False))
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
     force = ParameterLoader(PrimitiveParameter(False))
-    json = ParameterLoader(PrimitiveParameter(False, element_type=(bool, str)))
+    json = ParameterLoader(PrimitiveParameter(False))
     console = ParameterLoader(
         PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str)
     )
