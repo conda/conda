@@ -244,22 +244,30 @@ def test_not_env_txt_check_action(
     assert X_MARK in captured.out
 
 
-def test_not_requests_ca_bundle_check_action(
-    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch
+def test_requests_ca_bundle_check_action_passes(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys,
+    monkeypatch,
+    tmp_path: Path,
+    mocker: MockerFixture,
 ):
+    from requests import Response
+
     prefix, _, _, _, _ = env_ok
-    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
     reset_context()
+    response = Response()
+    response.status_code = 200
+    mocker.patch(
+        "conda.gateways.connection.session.CondaSession.get", return_value=response
+    )
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
-    assert (
-        f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
-        in captured.out
-    )
+    assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
 
 
 def test_requests_ca_bundle_check_action_fail_1(
-    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch, tmp_path: Path
+    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch
 ):
     prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
