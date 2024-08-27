@@ -278,7 +278,10 @@ def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
             print(url + (f"#{md5}" if md5 else ""))
         elif add_sha256:
             sha256 = prefix_record.get("sha256")
-            print(url + (f"#{sha256}" if sha256 else ""))
+        if add_md5 or add_sha256:
+            hash_key = "md5" if add_md5 else "sha256"
+            hash_value = prefix_record.get(hash_key)
+            print(url + (f"#{hash_value}" if hash_value else ""))
         else:
             print(url)
 

@@ -51,7 +51,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
 url_pat = re.compile(
     r"(?:(?P<url_p>.+)(?:[/\\]))?"
     r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
-    r"(:?#("
+    r"(?:#("
     r"(?P<md5>[0-9a-f]{32})"
     r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
     r"))?$"
