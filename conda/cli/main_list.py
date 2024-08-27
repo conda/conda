@@ -273,11 +273,6 @@ def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
             continue
         if remove_auth:
             url = common_url.remove_auth(common_url.split_anaconda_token(url)[0])
-        if add_md5:
-            md5 = prefix_record.get("md5")
-            print(url + (f"#{md5}" if md5 else ""))
-        elif add_sha256:
-            sha256 = prefix_record.get("sha256")
         if add_md5 or add_sha256:
             hash_key = "md5" if add_md5 else "sha256"
             hash_value = prefix_record.get(hash_key)
