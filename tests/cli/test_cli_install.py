@@ -56,7 +56,7 @@ def test_find_conflicts_called_once(
         }
     }
     mocked_find_conflicts = mocker.patch(
-        "conda.resolve.Resolve.find_conflicts",
+        "conda_classic_solver.resolve.Resolve.find_conflicts",
         side_effect=UnsatisfiableError(bad_deps, strict=True),
     )
     channels = (
