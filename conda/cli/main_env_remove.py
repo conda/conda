@@ -72,7 +72,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-@deprecated("25.3", "99.9", addendum="Use `conda.cli.main_remove.execute` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.cli.main_remove.execute` instead.")
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..cli.main_remove import execute as remove
 
