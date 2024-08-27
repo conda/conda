@@ -366,10 +366,11 @@ def test_make_initialize_plan_cmd_exe(verbose):
 def test_make_entry_point(verbose):
     with tempdir() as conda_temp_prefix:
         conda_prefix = abspath(sys.prefix)
-        if on_win:
-            conda_exe_path = join(conda_temp_prefix, "Scripts", "conda-script.py")
-        else:
-            conda_exe_path = join(conda_temp_prefix, "bin", "conda")
+        conda_exe_path = join(
+            conda_temp_prefix,
+            BIN_DIRECTORY,
+            "conda-script.py" if on_win else "conda",
+        )
         result = make_entry_point(
             conda_exe_path, conda_prefix, "conda.entry.point", "run"
         )

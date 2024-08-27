@@ -1174,12 +1174,11 @@ def install_conda_csh(target_path, conda_prefix):
 
 
 def _config_fish_content(conda_prefix):
+    conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
         from ..activate import native_path_to_unix
 
-        conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
-    else:
-        conda_exe = join(conda_prefix, "bin", "conda")
+        conda_exe = native_path_to_unix(conda_exe)
     conda_initialize_content = dals(
         """
         # >>> conda initialize >>>
@@ -1288,12 +1287,11 @@ def init_fish_user(target_path, conda_prefix, reverse):
 
 
 def _config_xonsh_content(conda_prefix):
+    conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
         from ..activate import native_path_to_unix
 
-        conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
-    else:
-        conda_exe = join(conda_prefix, "bin", "conda")
+        conda_exe = native_path_to_unix(conda_exe)
     conda_initialize_content = dals(
         """
     # >>> conda initialize >>>
@@ -1377,10 +1375,11 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
 
 
 def _bashrc_content(conda_prefix, shell):
+    conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
         from ..activate import native_path_to_unix
 
-        conda_exe = native_path_to_unix(join(conda_prefix, "Scripts", "conda.exe"))
+        conda_exe = native_path_to_unix(conda_exe)
         conda_initialize_content = dals(
             """
         # >>> conda initialize >>>
@@ -1395,7 +1394,6 @@ def _bashrc_content(conda_prefix, shell):
             "shell": shell,
         }
     else:
-        conda_exe = join(conda_prefix, "bin", "conda")
         if shell in ("csh", "tcsh"):
             conda_initialize_content = dals(
                 """
@@ -1707,10 +1705,7 @@ def init_long_path(target_path):
 
 
 def _powershell_profile_content(conda_prefix):
-    if on_win:
-        conda_exe = join(conda_prefix, "Scripts", "conda.exe")
-    else:
-        conda_exe = join(conda_prefix, "bin", "conda")
+    conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
 
     conda_powershell_module = dals(
         f"""

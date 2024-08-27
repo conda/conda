@@ -811,12 +811,11 @@ class Context(Configuration):
                 "CONDA_PYTHON_EXE": sys.executable,
             }
         else:
-            bin_dir = "Scripts" if on_win else "bin"
             exe = "conda.exe" if on_win else "conda"
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
             return {
-                "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
+                "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
                 "_CE_M": "",
                 "_CE_CONDA": "",
                 "CONDA_PYTHON_EXE": sys.executable,
