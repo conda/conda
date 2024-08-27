@@ -14,7 +14,12 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_con
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open_utf8
 from conda.common.io import captured, env_var, env_vars
-from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
+from conda.common.path import (
+    BIN_DIRECTORY,
+    get_python_short_path,
+    win_path_backout,
+    win_path_ok,
+)
 from conda.core.initialize import (
     Result,
     _get_python_info,
@@ -37,7 +42,6 @@ from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
 from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
-from conda.testing.integration import BIN_DIRECTORY
 
 CONDA_EXE = "conda.exe" if on_win else "conda"
 

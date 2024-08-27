@@ -64,8 +64,8 @@ from ..common.compat import (
     open_utf8,
 )
 from ..common.path import (
+    BIN_DIRECTORY,
     expand,
-    get_bin_directory_short_path,
     get_python_short_path,
     get_python_site_packages_short_path,
     win_path_ok,
@@ -456,9 +456,7 @@ def make_install_plan(conda_prefix):
         {
             "function": install_activate.__name__,
             "kwargs": {
-                "target_path": join(
-                    conda_prefix, get_bin_directory_short_path(), "activate"
-                ),
+                "target_path": join(conda_prefix, BIN_DIRECTORY, "activate"),
                 "conda_prefix": conda_prefix,
             },
         }
@@ -467,9 +465,7 @@ def make_install_plan(conda_prefix):
         {
             "function": install_deactivate.__name__,
             "kwargs": {
-                "target_path": join(
-                    conda_prefix, get_bin_directory_short_path(), "deactivate"
-                ),
+                "target_path": join(conda_prefix, BIN_DIRECTORY, "deactivate"),
                 "conda_prefix": conda_prefix,
             },
         }
@@ -1074,7 +1070,7 @@ def install_deactivate_bat(target_path, conda_prefix):
 
 
 def install_activate(target_path, conda_prefix):
-    # target_path: join(conda_prefix, get_bin_directory_short_path(), 'activate')
+    # target_path: join(conda_prefix, BIN_DIRECTORY, 'activate')
     src_path = join(CONDA_PACKAGE_ROOT, "shell", "bin", "activate")
     file_content = f'#!/bin/sh\n_CONDA_ROOT="{conda_prefix}"\n'
     with open_utf8(src_path) as fsrc:
@@ -1083,7 +1079,7 @@ def install_activate(target_path, conda_prefix):
 
 
 def install_deactivate(target_path, conda_prefix):
-    # target_path: join(conda_prefix, get_bin_directory_short_path(), 'deactivate')
+    # target_path: join(conda_prefix, BIN_DIRECTORY, 'deactivate')
     src_path = join(CONDA_PACKAGE_ROOT, "shell", "bin", "deactivate")
     file_content = f'#!/bin/sh\n_CONDA_ROOT="{conda_prefix}"\n'
     with open_utf8(src_path) as fsrc:
