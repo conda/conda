@@ -187,6 +187,9 @@ jobs:
             default-channel: conda-forge
           - test-type: unit
             test-group: 3
+        include:
+          - python-version: '3.13.0rc1'
+            default-channel: conda-forge
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
