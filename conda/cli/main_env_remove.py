@@ -11,7 +11,7 @@ from argparse import (
     _SubParsersAction,
 )
 
-from conda.deprecations import deprecated
+from ..deprecations import deprecated
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
