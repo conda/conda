@@ -123,6 +123,46 @@ Use the terminal for the following steps:
 
    You can also use ``conda info --envs``.
 
+.. _specifying-environment-platform:
+
+Specifying a different target platform for an environment
+=========================================================
+
+By default, ``conda`` will create environments targeting the platform
+currently running on. You can check which one is yours by running
+``conda info`` and checking the ``platform`` entry.
+
+However, in some cases you might want to create an environment for a
+different target platform or architecture. To do so, use the
+``--platform`` flag available in the ``conda create`` and
+``conda env create`` commands. The value must be a valid platform.
+
+For example, a user running macOS on the Apple Silicon platform
+might want to create a ``python`` environment for Intel processors
+and emulate the executables with Rosetta. The command would be:
+
+.. code::
+
+   conda create --platform osx-64 --name python-x64 python
+
+Note that you can't specify this flag for existing environments.
+The environment will be annotated with the custom configuration and
+subsequent operations on it will remember the target platform.
+
+This flag also allows specifying a different OS (e.g. create a Linux
+environment on macOS), but we don't recommend its usage outside
+``--dry-run`` operations. Common problems include:
+
+- The environment cannot be solved because virtual packages are missing.
+  You can workaround this issue by exporting the necessary
+  ``CONDA_OVERRIDE_****`` environment variables. For example, solving
+  for Linux from macOS, you will probably need ``CONDA_OVERRIDE_LINUX=1``
+  and ``CONDA_OVERRIDE_GLIBC=2.17``.
+- The environment can be solved, but extraction and linking fails due
+  filesystem limitations (case insensitive systems, incompatible paths,
+  etc). The only workaround here is to use ``--dry-run --json`` to obtain
+  the solution and process the payload into a lockfile that can be shared
+  with the target machine.
 
 .. _specifying-location:
 
