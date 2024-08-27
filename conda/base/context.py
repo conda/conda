@@ -1876,7 +1876,14 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     from ..models.channel import Channel
 
     Channel._reset_state()
+
     # need to import here to avoid circular dependency
+
+    # clear function cache
+    from ..reporters import _get_render_func
+
+    _get_render_func.cache_clear()
+
     return context
 
 
