@@ -12,7 +12,7 @@ from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.common import stdout_json
-from conda.common.compat import on_win, open
+from conda.common.compat import on_win, open_utf8
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
 from conda.core.initialize import (
@@ -371,7 +371,7 @@ def test_make_entry_point(verbose):
         )
         assert result == Result.MODIFIED
 
-        with open(conda_exe_path) as fh:
+        with open_utf8(conda_exe_path) as fh:
             ep_contents = fh.read()
 
         if on_win:
@@ -424,7 +424,7 @@ def test_install_conda_sh(verbose):
         result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         from conda.activate import PosixActivator
@@ -440,7 +440,7 @@ def test_install_conda_sh(verbose):
         assert line2 == "export _CE_CONDA=''"
         assert line3.startswith("export CONDA_PYTHON_EXE=")
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.sh")
         ) as fh:
             original_contents = fh.read()
@@ -459,7 +459,7 @@ def test_install_conda_fish(verbose):
         result = install_conda_fish(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         (
@@ -480,7 +480,7 @@ def test_install_conda_fish(verbose):
             assert third_line == f'set _CONDA_EXE "{conda_exe}"'
             assert fourth_line == f'set -gx CONDA_PYTHON_EXE "{python_exe}"'
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")
         ) as fh:
             original_contents = fh.read()
@@ -500,7 +500,7 @@ def test_install_conda_xsh(verbose):
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         first_line, remainder = created_file_contents.split("\n", 1)
@@ -512,7 +512,7 @@ def test_install_conda_xsh(verbose):
         else:
             assert first_line == f'$CONDA_EXE = "{conda_exe}"'
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
+        with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -529,7 +529,7 @@ def test_install_conda_csh(verbose):
         result = install_conda_csh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         (
@@ -550,7 +550,7 @@ def test_install_conda_csh(verbose):
             assert third_line == f'setenv _CONDA_EXE "{conda_exe}"'
             assert fourth_line == f'setenv CONDA_PYTHON_EXE "{python_exe}"'
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")
         ) as fh:
             original_contents = fh.read()
@@ -567,12 +567,14 @@ def test_install_condabin_conda_bat(verbose):
         result = install_condabin_conda_bat(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         remainder = created_file_contents
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")) as fh:
+        with open_utf8(
+            join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+        ) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -832,12 +834,12 @@ def test_init_sh_user_unix(verbose):
             """
         )
 
-        with open(target_path, "w") as fh:
+        with open_utf8(target_path, "w") as fh:
             fh.write(initial_content)
 
         init_sh_user(target_path, conda_temp_prefix, "bash")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             new_content = fh.read()
 
         expected_new_content = dals(
@@ -888,7 +890,7 @@ def test_init_sh_user_unix(verbose):
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             reversed_content = fh.read()
         print(reversed_content)
         assert reversed_content == expected_reversed_content
@@ -900,7 +902,7 @@ def test_init_sh_user_tcsh_unix(verbose):
         target_path = join(conda_temp_prefix, ".tcshrc")
         init_sh_user(target_path, conda_temp_prefix, "tcsh")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             tcshrc_contet = fh.read()
 
         conda_csh = f"{conda_temp_prefix}/etc/profile.d/conda.csh"
@@ -940,12 +942,12 @@ def test_init_sh_user_windows(verbose):
             """
         )
 
-        with open(target_path, "w") as fh:
+        with open_utf8(target_path, "w") as fh:
             fh.write(initial_content)
 
         init_sh_user(target_path, conda_prefix, "bash")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             new_content = fh.read()
 
         print(new_content)
@@ -988,7 +990,7 @@ def test_init_sh_user_windows(verbose):
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             reversed_content = fh.read()
         print(reversed_content)
         assert reversed_content == expected_reversed_content
@@ -1082,7 +1084,7 @@ def test_init_sh_system(verbose):
         target_path = join(td, "conda.sh")
         conda_prefix = join(td, "b", "c")
         init_sh_system(target_path, conda_prefix)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             content = fh.read().strip().splitlines()
         assert content[0] == "# >>> conda initialize >>>"
         assert (
