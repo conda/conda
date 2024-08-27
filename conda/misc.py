@@ -11,7 +11,7 @@ from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 
 from .base.context import context
-from .common.compat import on_mac, on_win, open
+from .common.compat import on_mac, on_win, open_utf8
 from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
@@ -219,7 +219,7 @@ def touch_nonadmin(prefix):
     if on_win and exists(join(context.root_prefix, ".nonadmin")):
         if not isdir(prefix):
             os.makedirs(prefix)
-        with open(join(prefix, ".nonadmin"), "w") as fo:
+        with open_utf8(join(prefix, ".nonadmin"), "w") as fo:
             fo.write("")
 
 
@@ -321,7 +321,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             continue
 
         try:
-            with open(src, "rb") as fi:
+            with open_utf8(src, "rb") as fi:
                 data = fi.read()
         except OSError:
             continue
@@ -333,7 +333,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         except UnicodeDecodeError:  # data is binary
             pass
 
-        with open(dst, "wb") as fo:
+        with open_utf8(dst, "wb") as fo:
             fo.write(data)
         shutil.copystat(src, dst)
 
