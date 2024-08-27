@@ -83,6 +83,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
+      REQUIREMENTS_ZSTANDARD: ${{ matrix.python-version == '3.13.0rc1' && '' || 'zstandard >=0.15' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -116,6 +117,7 @@ jobs:
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          ${{ env.REQUIREMENTS_ZSTANDARD }}
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -188,7 +190,7 @@ jobs:
           - test-type: unit
             test-group: 3
         include:
-          - python-version: '3.13.0rc1'
+          - python-version: 3.13.0rc1
             # note that this requires conda-forge/label/python_rc in
             # addition to the conda-forge channel to get conda-forge's
             # _python_rc package
@@ -197,6 +199,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      REQUIREMENTS_ZSTANDARD: ${{ matrix.python-version == '3.13.0rc1' && '' || 'zstandard >=0.15' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -229,6 +232,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          ${{ env.REQUIREMENTS_ZSTANDARD }}
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -284,6 +288,7 @@ jobs:
         python-version: ['3.12']
     env:
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      REQUIREMENTS_ZSTANDARD: ${{ matrix.python-version == '3.13.0rc1' && '' || 'zstandard >=0.15' }}
 
     steps:
       - name: Checkout Source
@@ -315,6 +320,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          ${{ env.REQUIREMENTS_ZSTANDARD }}
           python=${{ matrix.python-version }}
 
       - name: Install CodSpeed
@@ -438,6 +444,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      REQUIREMENTS_ZSTANDARD: ${{ matrix.python-version == '3.13.0rc1' && '' || 'zstandard >=0.15' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -473,6 +480,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          ${{ env.REQUIREMENTS_ZSTANDARD }}
           python=${{ matrix.python-version }}
 
       - name: Conda Info

@@ -15,7 +15,6 @@ from unittest.mock import Mock
 import jsonpatch
 import pytest
 import requests
-import zstandard
 from pytest import FixtureRequest, MonkeyPatch
 
 import conda.gateways.repodata
@@ -39,6 +38,11 @@ from conda.gateways.repodata import (
 )
 from conda.gateways.repodata.jlap import core, fetch, interface
 from conda.models.channel import Channel
+
+try:
+    import zstandard
+except ImportError:
+    zstandard = None
 
 
 def test_server_available(package_server: socket):
@@ -223,6 +227,9 @@ def test_download_and_hash(
     assert response2.status_code == 304
     assert destination.read_text() == t
     # however the hash will not be recomputed
+
+    if zstandard is None:
+        return
 
     (package_repository_base / "osx-64" / "repodata.json.zst").write_bytes(
         zstandard.ZstdCompressor().compress(

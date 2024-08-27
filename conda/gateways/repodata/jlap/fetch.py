@@ -15,8 +15,12 @@ from hashlib import blake2b
 from typing import TYPE_CHECKING
 
 import jsonpatch
-import zstandard
 from requests import HTTPError
+
+try:
+    import zstandard
+except ImportError:
+    zstandard = None
 
 from conda.common.url import mask_anaconda_token
 
@@ -246,7 +250,7 @@ def download_and_hash(
     length = 0
     # is there a status code for which we must clear the file?
     if response.status_code == 200:
-        if is_zst:
+        if is_zst and zstandard is not None:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
                 HashWriter(dest_path.open("wb"), hasher),  # type: ignore
