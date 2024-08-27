@@ -15,6 +15,7 @@ from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import (
     CondaEnvException,
+    DryRunExit,
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
@@ -375,11 +376,14 @@ def test_update_env_no_action_json_output(
 
 
 @pytest.mark.integration
-def test_remove_dry_run(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_remove_dry_run(env1: str, conda_cli: CondaCLIFixture):
     # Test for GH-10231
-    with tmp_env() as prefix:
-        conda_cli("env", "remove", f"--prefix={prefix}", "--dry-run")
-        assert Path(prefix).exists()
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
+    conda_cli("env", "create")
+    assert env_is_created(env1)
+
+    with pytest.raises(DryRunExit):
+        conda_cli("env", "remove", f"--name={env1}", "--dry-run")
 
 
 @pytest.mark.integration
