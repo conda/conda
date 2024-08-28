@@ -1,9 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import json
-from contextlib import contextmanager
-from os.path import isdir
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -11,14 +13,15 @@ from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CorruptedEnvironmentError
-from conda.testing import TmpEnvFixture
 from conda.testing.helpers import record
-from tests.data.env_metadata import (
-    PATH_TEST_ENV_1,
-    PATH_TEST_ENV_2,
-    PATH_TEST_ENV_3,
-    PATH_TEST_ENV_4,
-)
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from conda.testing import TmpEnvFixture
+
+
+DATA_DIR = Path(__file__).parent.parent / "data"
 
 
 def _print_output(*args):
@@ -32,35 +35,12 @@ class DummyPythonRecord:
     files = []
 
 
-@contextmanager
-def set_on_win(val):
-    import conda.common.path
-    import conda.common.pkg_formats.python
-    import conda.core.prefix_data
-
-    on_win_saved = conda.common.path.on_win
-    win_path_ok_saved_1 = conda.core.prefix_data.win_path_ok
-    win_path_ok_saved_2 = conda.common.pkg_formats.python.win_path_ok
-    rm_rf_saved = conda.core.prefix_data.rm_rf
-    try:
-        conda.common.path.on_win = val
-        conda.core.prefix_data.rm_rf = lambda x: None
-        if val and not on_win:
-            conda.core.prefix_data.win_path_ok = lambda x: x
-            conda.common.pkg_formats.python.win_path_ok = lambda x: x
-        yield
-    finally:
-        conda.common.path.on_win = on_win_saved
-        conda.core.prefix_data.win_path_ok = win_path_ok_saved_1
-        conda.common.pkg_formats.python.win_path_ok = win_path_ok_saved_2
-        conda.core.prefix_data.rm_rf = rm_rf_saved
-
-
-def test_pip_interop_windows():
-    test_cases = (
-        (
-            PATH_TEST_ENV_3,
-            (
+@pytest.mark.parametrize(
+    "path,expected_output",
+    [
+        pytest.param(
+            PATH_TEST_ENV_3 := DATA_DIR / "env_metadata" / "envpy37win",
+            {
                 "babel",
                 "backports-functools-lru-cache",
                 "chardet",
@@ -98,11 +78,13 @@ def test_pip_interop_windows():
                 "urllib3",
                 "virtualenv",
                 "w3lib",
-            ),
+            },
+            id=PATH_TEST_ENV_3.name,
+            marks=pytest.mark.skipif(not on_win, reason="Windows only"),
         ),
-        (
-            PATH_TEST_ENV_4,
-            (
+        pytest.param(
+            PATH_TEST_ENV_4 := DATA_DIR / "env_metadata" / "envpy27win_whl",
+            {
                 "asn1crypto",
                 "attrs",
                 "automat",
@@ -162,33 +144,13 @@ def test_pip_interop_windows():
                 "virtualenv",
                 "w3lib",
                 "zope-interface",
-            ),
+            },
+            id=PATH_TEST_ENV_4.name,
+            marks=pytest.mark.skipif(not on_win, reason="Windows only"),
         ),
-    )
-
-    for path, expected_output in test_cases:
-        with set_on_win(True):
-            if isdir(path):
-                prefixdata = PrefixData(path, pip_interop_enabled=True)
-                prefixdata.load()
-                records = prefixdata._load_site_packages()
-                record_names = tuple(sorted(records.keys()))
-                print("RECORDS", record_names)
-                assert len(record_names), len(expected_output)
-                _print_output(expected_output, record_names)
-                for record_name in record_names:
-                    _print_output(record_name)
-                    assert record_name in expected_output
-                for record_name in expected_output:
-                    _print_output(record_name)
-                    assert record_name in record_names
-
-
-def test_pip_interop_osx():
-    test_cases = (
-        (
-            PATH_TEST_ENV_1,
-            (
+        pytest.param(
+            PATH_TEST_ENV_1 := DATA_DIR / "env_metadata" / "envpy27osx",
+            {
                 "asn1crypto",
                 "babel",
                 "backports-functools-lru-cache",
@@ -233,11 +195,13 @@ def test_pip_interop_osx():
                 "urllib3",
                 "virtualenv",
                 "w3lib",
-            ),
+            },
+            id=PATH_TEST_ENV_1.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
-        (
-            PATH_TEST_ENV_2,
-            (
+        pytest.param(
+            PATH_TEST_ENV_2 := DATA_DIR / "env_metadata" / "envpy37osx_whl",
+            {
                 "asn1crypto",
                 "attrs",
                 "automat",
@@ -293,26 +257,26 @@ def test_pip_interop_osx():
                 "virtualenv",
                 "w3lib",
                 "zope-interface",
-            ),
+            },
+            id=PATH_TEST_ENV_2.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
-    )
+    ],
+)
+def test_pip_interop(
+    mocker: MockerFixture,
+    path: Path,
+    expected_output: set[str],
+) -> None:
+    # test envs with packages installed using either `pip install <pth-to-wheel>` or
+    # `python setup.py install`
+    mocker.patch("conda.core.prefix_data.rm_rf")
 
-    for path, expected_output in test_cases:
-        if isdir(path):
-            with set_on_win(False):
-                prefixdata = PrefixData(path, pip_interop_enabled=True)
-                prefixdata.load()
-                records = prefixdata._load_site_packages()
-                record_names = tuple(sorted(records.keys()))
-                print("RECORDS", record_names)
-                assert len(record_names), len(expected_output)
-                _print_output(expected_output, record_names)
-                for record_name in record_names:
-                    _print_output(record_name)
-                    assert record_name in expected_output
-                for record_name in expected_output:
-                    _print_output(record_name)
-                    assert record_name in record_names
+    prefixdata = PrefixData(path, pip_interop_enabled=True)
+    prefixdata.load()
+    records = prefixdata._load_site_packages()
+
+    assert set(records) == expected_output
 
 
 def test_get_conda_anchor_files_and_records():

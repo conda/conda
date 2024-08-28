@@ -84,13 +84,6 @@ import os
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-# Test environment installed using either `pip install <pth-to-wheel>` or
-# `python setup.py install`
-PATH_TEST_ENV_1 = os.path.join(HERE, "envpy27osx")
-PATH_TEST_ENV_2 = os.path.join(HERE, "envpy37osx_whl")
-PATH_TEST_ENV_3 = os.path.join(HERE, "envpy37win")
-PATH_TEST_ENV_4 = os.path.join(HERE, "envpy27win_whl")
-
 METADATA_241_PATH = os.path.join(HERE, "pep241", "PKG-INFO")
 METADATA_314_PATH = os.path.join(HERE, "pep314", "PKG-INFO")
 METADATA_345_PATH = os.path.join(HERE, "pep345", "PKG-INFO")
