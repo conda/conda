@@ -1,14 +1,25 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
+from conda.base.context import reset_context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+from conda.testing.integration import package_is_installed
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Literal
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 
 @pytest.fixture
@@ -117,3 +128,71 @@ def test_list_explicit(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--explicit", "--auth")
         assert curl["dist_name"] in stdout
         assert "/t/some-fake-token/" in stdout  # with --auth we do
+
+
+@pytest.mark.integration
+def test_export(
+    parametrized_solver_fixture: Literal["libmamba", "classic"],
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """Test that `conda list --export` output can be used to create a similar environment."""
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
+    # assert context.channels == ("defaults",)
+
+    # use "cheap" packages with no dependencies
+    with tmp_env("pkgs/main::zlib") as prefix:
+        assert package_is_installed(prefix, "pkgs/main::zlib")
+
+        output, _, _ = conda_cli("list", f"--prefix={prefix}", "--export")
+
+        env_txt = path_factory(suffix=".txt")
+        env_txt.write_text(output)
+
+        with tmp_env("--file", env_txt) as prefix2:
+            assert package_is_installed(prefix, "pkgs/main::zlib")
+
+            output2, _, _ = conda_cli("list", f"--prefix={prefix2}", "--export")
+            assert output == output2
+
+
+# Using --quiet here as a no-op flag for test simplicity
+@pytest.mark.parametrize("checksum_flag", ("--quiet", "--md5", "--sha256"))
+@pytest.mark.integration
+def test_explicit(
+    parametrized_solver_fixture: Literal["libmamba", "classic"],
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    checksum_flag: str,
+):
+    """Test that `conda list --explicit` output can be used to recreate an identical environment."""
+    # use "cheap" packages with no dependencies
+    with tmp_env("pkgs/main::zlib", "conda-forge::ca-certificates") as prefix:
+        assert package_is_installed(prefix, "pkgs/main::zlib")
+        assert package_is_installed(prefix, "conda-forge::ca-certificates")
+
+        output, _, _ = conda_cli(
+            "list",
+            f"--prefix={prefix}",
+            "--explicit",
+            checksum_flag,
+        )
+
+    env_txt = path_factory(suffix=".txt")
+    env_txt.write_text(output)
+
+    with tmp_env("--file", env_txt) as prefix2:
+        assert package_is_installed(prefix2, "pkgs/main::zlib")
+        assert package_is_installed(prefix2, "conda-forge::ca-certificates")
+
+        output2, _, _ = conda_cli(
+            "list",
+            f"--prefix={prefix2}",
+            "--explicit",
+            checksum_flag,
+        )
+        assert output == output2

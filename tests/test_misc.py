@@ -1,18 +1,26 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import codecs
-from pathlib import Path
+from contextlib import nullcontext
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from pytest_mock import MockerFixture
 
 from conda.common.compat import on_mac, on_win
 from conda.core.subdir_data import cache_fn_url
-from conda.exceptions import CondaExitZero
-from conda.misc import explicit, url_pat, walk_prefix
-from conda.testing import CondaCLIFixture
+from conda.exceptions import CondaExitZero, ParseError
+from conda.misc import _match_specs_from_explicit, explicit, url_pat, walk_prefix
 from conda.utils import Utf8NamedTemporaryFile
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
+
+    from conda.testing import CondaCLIFixture
 
 
 def test_Utf8NamedTemporaryFile():
@@ -157,3 +165,59 @@ def test_walk_prefix(tmpdir):  # tmpdir is a py.test utility
         answer.add("python.app")
 
     assert walk_prefix(tmpdir.strpath) == answer
+
+
+@pytest.mark.parametrize(
+    "url, checksum, raises",
+    (
+        [
+            "https://conda.anaconda.org/conda-forge/noarch/doc8-1.1.1-pyhd8ed1ab_0.conda",
+            "5e9e17751f19d03c4034246de428582e",
+            None,
+        ],
+        [
+            "https://conda.anaconda.org/conda-forge/noarch/conda-24.1.0-pyhd3eb1b0_0.conda",
+            "2707f68aada792d1cf3a44c51d55b38b0cd65b0c192d2a5f9ef0550dc149a7d3",
+            None,
+        ],
+        [
+            "https://conda.anaconda.org/conda-forge/noarch/conda-24.1.0-pyhd3eb1b0_0.conda",
+            "sha256:2707f68aada792d1cf3a44c51d55b38b0cd65b0c192d2a5f9ef0550dc149a7d3",
+            None,
+        ],
+        [
+            "https://conda.anaconda.org/conda-forge/noarch/conda-24.1.0-pyhd3eb1b0_0.conda",
+            "sha123:2707f68aada792d1cf3a44c51d55b38b0cd65b0c192d2a5f9ef0550dc149a7d3",
+            ParseError,
+        ],
+        [
+            "https://conda.anaconda.org/conda-forge/noarch/conda-24.1.0-pyhd3eb1b0_0.conda",
+            "md5:5e9e17751f19d03c4034246de428582e",  # this is not valid syntax; use without 'md5:'
+            ParseError,
+        ],
+        [
+            "doc8-1.1.1-pyhd8ed1ab_0.conda",
+            "5e9e17751f19d03c4034246de428582e",
+            None,
+        ],
+        [
+            "../doc8-1.1.1-pyhd8ed1ab_0.conda",
+            "5e9e17751f19d03c4034246de428582e",
+            None,
+        ],
+        [
+            "../doc8-1.1.1-pyhd8ed1ab_0.conda",
+            "5e9e17751f19d03",
+            ParseError,
+        ],
+    ),
+)
+def test_explicit_parser(url: str, checksum: str, raises: Exception | None):
+    lines = [url + (f"#{checksum}" if checksum else "")]
+    with pytest.raises(raises) if raises else nullcontext():
+        specs = list(_match_specs_from_explicit(lines))
+
+        assert len(specs) == 1
+        spec = specs[0]
+        assert spec.get("url").split("/")[-1] == url.split("/")[-1]
+        assert checksum.rsplit(":", 1)[-1] in (spec.get("md5"), spec.get("sha256"))
