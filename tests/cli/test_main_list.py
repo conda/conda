@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import reset_context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.testing.integration import package_is_installed
@@ -15,7 +14,6 @@ from conda.testing.integration import package_is_installed
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
@@ -134,12 +132,14 @@ def test_export(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
 ):
     """Test that `conda list --export` output can be used to create a similar environment."""
-    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
-    reset_context()
-    # assert context.channels == ("defaults",)
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=("defaults",),
+    )
 
     # use "cheap" packages with no dependencies
     with tmp_env("pkgs/main::zlib") as prefix:
