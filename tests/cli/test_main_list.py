@@ -14,7 +14,6 @@ from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Literal
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
@@ -132,7 +131,6 @@ def test_list_explicit(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_export(
-    parametrized_solver_fixture: Literal["libmamba", "classic"],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
@@ -163,7 +161,6 @@ def test_export(
 @pytest.mark.parametrize("checksum_flag", ("--quiet", "--md5", "--sha256"))
 @pytest.mark.integration
 def test_explicit(
-    parametrized_solver_fixture: Literal["libmamba", "classic"],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
