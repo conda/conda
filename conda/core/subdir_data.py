@@ -561,15 +561,4 @@ class SubdirData(metaclass=SubdirDataType):
 )
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = f"{feature_name}@"
-    return PackageRecord(
-        name=pkg_name,
-        version="0",
-        build="0",
-        channel="@",
-        subdir=context.subdir,
-        md5="12345678901234567890123456789012",
-        track_features=(feature_name,),
-        build_number=0,
-        fn=pkg_name,
-    )
+    return PackageRecord.feature(feature_name)
