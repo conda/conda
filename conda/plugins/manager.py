@@ -368,6 +368,19 @@ class CondaPluginManager(pluggy.PluginManager):
         This method must return a valid ``CondaReporterBackend`` object or else it will
         raise an exception.
         """
+        reporter_backends = {
+            reporter_backend.name: reporter_backend
+            for reporter_backend in self.get_reporter_backends()
+        }
+        reporter_backend = reporter_backends.get(name, None)
+        if reporter_backend is None:
+            log.warning(
+                f'Unable to find reporter backend: "{name}"; '
+                f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
+            )
+            return reporter_backends.get(DEFAULT_CONSOLE_REPORTER_BACKEND)
+        else:
+            return reporter_backend
         reporter_backend_objs = self.get_reporter_backends()
 
         for reporter_backend in reporter_backend_objs:

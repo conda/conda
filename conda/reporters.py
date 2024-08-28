@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@lru_cache
+@lru_cache(maxsize=None)
 def _get_render_func(style: str | None = None) -> Callable:
     """
     Retrieves the render function to use

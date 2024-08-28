@@ -35,7 +35,9 @@ class JSONReporterRenderer(ReporterRendererBase):
         return json_dump({"envs": data})
 
 
-@hookimpl
+@hookimpl(
+    tryfirst=True
+)  # make sure the default json reporter backend can't be overridden
 def conda_reporter_backends():
     """
     Reporter backend for JSON

@@ -56,7 +56,9 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         return "\n".join(output)
 
 
-@hookimpl
+@hookimpl(
+    tryfirst=True
+)  # make sure the default console reporter backend can't be overridden
 def conda_reporter_backends():
     """
     Reporter backend for console
