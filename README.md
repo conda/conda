@@ -1,6 +1,6 @@
 [conda-logo]: https://s3.amazonaws.com/conda-dev/conda_logo.svg
-[codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main.svg?label=coverage
 [tests-badge]: https://img.shields.io/github/actions/workflow/status/conda/conda/tests.yml?branch=main&event=schedule&logo=github
+[codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main?logo=codecov
 [codspeed-badge]: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
 [release-badge]: https://img.shields.io/github/release/conda/conda.svg
 [gitpod]: https://gitpod.io/button/open-in-gitpod.svg
