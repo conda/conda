@@ -147,7 +147,7 @@ def add_feature_records_legacy(index):
             all_features.update(rec.track_features)
 
     for feature_name in all_features:
-        rec = PackageRecord.make_feature_record(feature_name)
+        rec = PackageRecord.feature(feature_name)
         index[rec] = rec
 
 

@@ -93,8 +93,8 @@ class Index(UserDict):
         track features that can be used to steer package priority.
 
         Individual virtual packages are represented by special :class:`conda.models.records.PackageRecord`,
-        see :meth:`conda.models.records.PackageRecord.make_virtual_package` and
-        :meth:`conda.models.records.PackageRecord.make_feature_record`.
+        see :meth:`conda.models.records.PackageRecord.virtual_package` and
+        :meth:`conda.models.records.PackageRecord.feature`.
     """
 
     def __init__(
@@ -248,15 +248,15 @@ class Index(UserDict):
                 self._supplement_index_dict_with_cache()
         if features:
             self._features = {
-                (rec := PackageRecord.make_feature_record(feature)): rec
-                for feature in context.track_features
+                (rec := PackageRecord.feature(track_feature)): rec
+                for track_feature in context.track_features
             }
             if has_data:
                 self._data.update(self.features)
         if system:
             self._system_packages = {
                 (
-                    rec := PackageRecord.make_virtual_package(
+                    rec := PackageRecord.virtual_package(
                         f"__{package.name}", package.version, package.build
                     )
                 ): rec
@@ -446,9 +446,9 @@ class Index(UserDict):
         except KeyError:
             pass
         if self.track_features and key.name.endswith("@"):
-            for feature in self.track_features:
-                if feature == key.name[:-1]:
-                    return PackageRecord.make_feature_record(feature)
+            for track_feature in self.track_features:
+                if track_feature == key.name[:-1]:
+                    return PackageRecord.feature(track_feature)
         prec = self._retrieve_from_channels(key)
         prec = self._update_from_prefix(key, prec)
         if self.use_cache:
@@ -608,8 +608,8 @@ class ReducedIndex(Index):
         for rec in self._data.values():
             known_features.update((*rec.track_features, *rec.features))
         known_features.update(context.track_features)
-        for ftr_str in known_features:
-            rec = PackageRecord.make_feature_record(ftr_str)
+        for known_feature in known_features:
+            rec = PackageRecord.feature(known_feature)
             self._data[rec] = rec
 
         self._data.update(self.system_packages)
@@ -774,7 +774,7 @@ def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
 @deprecated(
     "24.9",
     "25.3",
-    addendum="Use `conda.core.models.records.PackageRecord.make_virtual_package` instead.",
+    addendum="Use `conda.core.models.records.PackageRecord.virtual_package` instead.",
 )
 def _make_virtual_package(
     name: str, version: str | None = None, build_string: str | None = None
@@ -815,7 +815,7 @@ def _supplement_index_with_features(
     :param features: A list of feature names to add to the index.
     """
     for feature in chain(context.track_features, features):
-        rec = PackageRecord.make_feature_record(feature)
+        rec = PackageRecord.feature(feature)
         index[rec] = rec
 
 
@@ -831,7 +831,7 @@ def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> 
     if isinstance(index, Index):
         return
     for package in context.plugin_manager.get_virtual_packages():
-        rec = PackageRecord.make_virtual_package(
+        rec = PackageRecord.virtual_package(
             f"__{package.name}", package.version, package.build
         )
         index[rec] = rec

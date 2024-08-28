@@ -557,7 +557,7 @@ class SubdirData(metaclass=SubdirDataType):
 @deprecated(
     "24.9",
     "25.3",
-    addendum="Use `conda.core.models.records.PackageRecord.make_feature_record` instead.",
+    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
 )
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features

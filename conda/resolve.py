@@ -185,13 +185,13 @@ class Resolve:
 
         filter.update(
             {
-                PackageRecord.make_feature_record(fstr): False
-                for fstr in self.trackers.keys()
+                PackageRecord.feature(name): False
+                for name in self.trackers.keys()
             }
         )
         if features:
             filter.update(
-                {PackageRecord.make_feature_record(fstr): True for fstr in features}
+                {PackageRecord.feature(name): True for name in features}
             )
         return filter
 
@@ -810,7 +810,7 @@ class Resolve:
         # Determine all valid packages in the dependency graph
         reduced_index2 = {
             prec: prec
-            for prec in (PackageRecord.make_feature_record(fstr) for fstr in features)
+            for prec in (PackageRecord.feature(name) for name in features)
         }
         specs_by_name_seed = {}
         for s in explicit_specs:

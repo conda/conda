@@ -479,7 +479,7 @@ class PackageRecord(DictSafeMixin, Entity):
         self.metadata = set()
 
     @classmethod
-    def make_feature_record(cls, feature_name):
+    def feature(cls, feature_name) -> PackageRecord:
         # necessary for the SAT solver to do the right thing with features
         pkg_name = f"{feature_name}@"
         return cls(
@@ -495,7 +495,7 @@ class PackageRecord(DictSafeMixin, Entity):
         )
 
     @classmethod
-    def make_virtual_package(
+    def virtual_package(
         cls, name: str, version: str | None = None, build_string: str | None = None
     ) -> PackageRecord:
         """
