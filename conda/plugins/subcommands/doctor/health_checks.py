@@ -5,17 +5,18 @@
 from __future__ import annotations
 
 import json
+import os
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING
 
+from requests.exceptions import RequestException
+
+from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
 from ....exceptions import CondaError
+from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
 from ... import CondaHealthCheck, hookimpl
-
-if TYPE_CHECKING:
-    import os
 
 logger = getLogger(__name__)
 
@@ -150,8 +151,35 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
         print(f"{X_MARK} The environment is not listed in the environments.txt file.\n")
 
 
+def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
+    # Use a channel aliases url since users may be on an intranet and
+    # have customized their conda setup to point to an internal mirror.
+    ca_bundle_test_url = context.channel_alias.url()[0]
+
+    requests_ca_bundle = os.getenv("REQUESTS_CA_BUNDLE")
+    if not requests_ca_bundle:
+        return
+    elif not Path(requests_ca_bundle).exists():
+        print(
+            f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
+        )
+    else:
+        session = get_session(ca_bundle_test_url)
+        try:
+            response = session.get(ca_bundle_test_url)
+            response.raise_for_status()
+            print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
+        except (OSError, RequestException) as e:
+            print(
+                f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
+            )
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
     yield CondaHealthCheck(name="Altered Files", action=altered_files)
     yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)
+    yield CondaHealthCheck(
+        name="REQUESTS_CA_BUNDLE Check", action=requests_ca_bundle_check
+    )
