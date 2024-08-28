@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from .. import CondaError
+from ..deprecations import deprecated
 from .compat import on_win
 
 if TYPE_CHECKING:
@@ -271,6 +272,7 @@ def ensure_pad(name, pad="_"):
         return f"{pad}{name}{pad}"
 
 
+@deprecated("25.3", "25.9")
 def is_private_env_name(env_name):
     """
 
@@ -284,6 +286,7 @@ def is_private_env_name(env_name):
     return env_name and env_name[0] == env_name[-1] == "_"
 
 
+@deprecated("25.3", "25.9")
 def is_private_env_path(env_path):
     """
 
