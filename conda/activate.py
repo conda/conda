@@ -45,7 +45,7 @@ from .base.constants import (
     PREFIX_STATE_FILE,
 )
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, on_win
+from .common.compat import on_win
 from .common.path import path_identity as _path_identity
 from .common.path import paths_equal
 from .deprecations import deprecated
@@ -879,6 +879,8 @@ def ensure_binary(value):
 
 @deprecated("25.3", "25.9")
 def ensure_fs_path_encoding(value):
+    from .common.compat import FILESYSTEM_ENCODING
+
     try:
         return value.decode(FILESYSTEM_ENCODING)
     except AttributeError:
