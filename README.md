@@ -1,5 +1,4 @@
 [conda-logo]: https://s3.amazonaws.com/conda-dev/conda_logo.svg
-[images-badge]: https://github.com/conda/conda/actions/workflows/images.yml/badge.svg
 [codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main.svg?label=coverage
 [tests-badge]: https://img.shields.io/github/actions/workflow/status/conda/conda/tests.yml?branch=main&event=schedule&logo=github
 [codspeed-badge]: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
