@@ -121,8 +121,8 @@ import pytest
             "conda_env.specs.get_spec_class_from_file",
             "conda.env.specs.get_spec_class_from_file",
         ),
-        ("conda_env.specs.FileSpecTypes", "conda.env.specs.FileSpecTypes"),
-        ("conda_env.specs.SpecTypes", "conda.env.specs.SpecTypes"),
+        # ("conda_env.specs.FileSpecTypes", "conda.env.specs.FileSpecTypes"),  # hidden behind TYPE_CHECKING
+        # ("conda_env.specs.SpecTypes", "conda.env.specs.SpecTypes"),  # hidden behind TYPE_CHECKING
         ("conda_env.specs.detect", "conda.env.specs.detect"),
         (
             "conda_env.specs.binstar.ENVIRONMENT_TYPE",
