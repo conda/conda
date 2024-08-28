@@ -5,7 +5,6 @@ from __future__ import annotations
 import codecs
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 
@@ -77,11 +76,12 @@ def test_url_pat_3():
     assert match is None
 
 
-# Patching ProgressiveFetchExtract prevents trying to download a package from the url.
-# Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
-@patch("conda.misc.ProgressiveFetchExtract")
-def test_explicit_no_cache(ProgressiveFetchExtract):
+def test_explicit_no_cache(mocker: MockerFixture) -> None:
     """Test that explicit() raises and notifies if none of the specs were found in the cache."""
+    # Patching ProgressiveFetchExtract prevents trying to download a package from the url.
+    # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
+    mocker.patch("conda.misc.ProgressiveFetchExtract")
+
     with pytest.raises(AssertionError, match="No package cache records found"):
         explicit(
             [
