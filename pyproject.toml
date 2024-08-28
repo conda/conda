@@ -92,6 +92,9 @@ sort = "Miss"
 # store relative paths in coverage information
 relative_files = true
 
+[tool.coverage.html]
+show_contexts = true
+
 [tool.hatch.build]
 include = ["conda", "conda_env"]
 
@@ -112,6 +115,7 @@ addopts = [
   "--cov-branch",
   "--cov-report=term",  # print summary table to screen
   "--cov-report=xml",  # for codecov/codecov-action upload
+  "--cov-report=html:test-report.html",  # for context debugging (which test ran this line?)
   "--cov-context=test",
   "--durations=16",
   "--junitxml=test-report.xml",
