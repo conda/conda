@@ -152,12 +152,9 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
 
 
 def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
-    ca_bundle_test_url = context.channel_alias.url()[
-        0
-    ]  # using one of the channel aliases url ensures that the health
-    # check also runs on machines that are on an intranet connection.
-    # As in such a case the `context.channel_alias.urls()[0]` might
-    # be pointing to an internal url.
+    # Use a channel aliases url since users may be on an intranet and
+    # have customized their conda setup to point to an internal mirror.
+    ca_bundle_test_url = context.channel_alias.url()[0]
 
     requests_ca_bundle = os.getenv("REQUESTS_CA_BUNDLE")
     if not requests_ca_bundle:

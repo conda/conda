@@ -7,8 +7,8 @@ import uuid
 from typing import TYPE_CHECKING
 
 import pytest
+from requests import Response
 
-from conda.base.context import reset_context
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Iterable
 
+    from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
 
 
@@ -246,16 +247,13 @@ def test_not_env_txt_check_action(
 
 def test_requests_ca_bundle_check_action_passes(
     env_ok: tuple[Path, str, str, str, str],
-    capsys,
-    monkeypatch,
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
     tmp_path: Path,
     mocker: MockerFixture,
 ):
-    from requests import Response
-
     prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
-    reset_context()
     response = Response()
     response.status_code = 200
     mocker.patch(
@@ -266,12 +264,13 @@ def test_requests_ca_bundle_check_action_passes(
     assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
 
 
-def test_requests_ca_bundle_check_action_fail_1(
-    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch
+def test_requests_ca_bundle_check_action_non_existent_path(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
 ):
     prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
-    reset_context()
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
@@ -280,12 +279,14 @@ def test_requests_ca_bundle_check_action_fail_1(
     )
 
 
-def test_requests_ca_bundle_check_action_fail_2(
-    env_ok: tuple[Path, str, str, str, str], capsys, monkeypatch, tmp_path: Path
+def test_requests_ca_bundle_check_action_fails(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
 ):
     prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
-    reset_context()
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
