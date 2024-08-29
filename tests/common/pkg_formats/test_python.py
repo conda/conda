@@ -5,7 +5,8 @@
 import os
 import tempfile
 from errno import ENOENT
-from os.path import basename, lexists
+from os.path import basename
+from pathlib import Path
 from pprint import pprint
 
 import pytest
@@ -29,7 +30,8 @@ from conda.common.pkg_formats.python import (
     split_spec,
 )
 from conda.common.url import join_url
-from tests.data.env_metadata import METADATA_VERSION_PATHS
+
+ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
 
 
 # Helpers
@@ -400,9 +402,12 @@ def test_metadata():
     assert path is None
 
     # Check versions
-    for fpath in METADATA_VERSION_PATHS:
-        if not lexists(fpath):
-            pytest.skip(f"test files not found: {fpath}")
+    for fpath in (
+        str(ENV_METADATA_DIR / "pep241" / "PKG-INFO"),
+        str(ENV_METADATA_DIR / "pep314" / "PKG-INFO"),
+        str(ENV_METADATA_DIR / "pep345" / "PKG-INFO"),
+        str(ENV_METADATA_DIR / "pep566" / "PKG-INFO"),
+    ):
         meta = PythonDistributionMetadata(fpath)
         a = meta.get_dist_requirements()
         b = meta.get_python_requirements()

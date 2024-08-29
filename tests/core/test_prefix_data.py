@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from conda.testing import TmpEnvFixture
 
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
 
 
 def _print_output(*args):
@@ -39,7 +39,7 @@ class DummyPythonRecord:
     "path,expected_output",
     [
         pytest.param(
-            PATH_TEST_ENV_3 := DATA_DIR / "env_metadata" / "envpy37win",
+            PATH_TEST_ENV_3 := ENV_METADATA_DIR / "envpy37win",
             {
                 "babel",
                 "backports-functools-lru-cache",
@@ -83,7 +83,7 @@ class DummyPythonRecord:
             marks=pytest.mark.skipif(not on_win, reason="Windows only"),
         ),
         pytest.param(
-            PATH_TEST_ENV_4 := DATA_DIR / "env_metadata" / "envpy27win_whl",
+            PATH_TEST_ENV_4 := ENV_METADATA_DIR / "envpy27win_whl",
             {
                 "asn1crypto",
                 "attrs",
@@ -149,7 +149,7 @@ class DummyPythonRecord:
             marks=pytest.mark.skipif(not on_win, reason="Windows only"),
         ),
         pytest.param(
-            PATH_TEST_ENV_1 := DATA_DIR / "env_metadata" / "envpy27osx",
+            PATH_TEST_ENV_1 := ENV_METADATA_DIR / "envpy27osx",
             {
                 "asn1crypto",
                 "babel",
@@ -200,7 +200,7 @@ class DummyPythonRecord:
             marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
         pytest.param(
-            PATH_TEST_ENV_2 := DATA_DIR / "env_metadata" / "envpy37osx_whl",
+            PATH_TEST_ENV_2 := ENV_METADATA_DIR / "envpy37osx_whl",
             {
                 "asn1crypto",
                 "attrs",
