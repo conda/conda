@@ -15,6 +15,7 @@ from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import (
     CondaEnvException,
+    DryRunExit,
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
@@ -33,7 +34,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 # Environment names we use during our tests
 TEST_ENV1 = "env1"
 
-# Environment config files we use for out tests
+# Environment config files we use for our tests
 ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
@@ -379,8 +380,10 @@ def test_remove_dry_run(env1: str, conda_cli: CondaCLIFixture):
     # Test for GH-10231
     create_env(ENVIRONMENT_CA_CERTIFICATES)
     conda_cli("env", "create")
-    conda_cli("env", "remove", f"--name={env1}", "--dry-run")
     assert env_is_created(env1)
+
+    with pytest.raises(DryRunExit):
+        conda_cli("env", "remove", f"--name={env1}", "--dry-run")
 
 
 @pytest.mark.integration

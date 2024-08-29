@@ -9,6 +9,7 @@ import sys
 from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from typing import Iterable
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
@@ -50,17 +51,14 @@ def conda_installed_files(prefix, exclude_self_build=False):
 url_pat = re.compile(
     r"(?:(?P<url_p>.+)(?:[/\\]))?"
     r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
-    r"(:?#(?P<md5>[0-9a-f]{32}))?$"
+    r"(?:#("
+    r"(?P<md5>[0-9a-f]{32})"
+    r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+    r"))?$"
 )
 
 
-def explicit(
-    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
-):
-    actions = defaultdict(list)
-    actions["PREFIX"] = prefix
-
-    fetch_specs = []
+def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
     for spec in specs:
         if spec == "@EXPLICIT":
             continue
@@ -81,11 +79,24 @@ def explicit(
         m = url_pat.match(spec)
         if m is None:
             raise ParseError(f"Could not parse explicit URL: {spec}")
-        url_p, fn, md5sum = m.group("url_p"), m.group("fn"), m.group("md5")
+        url_p, fn = m.group("url_p"), m.group("fn")
         url = join_url(url_p, fn)
-        # url_p is everything but the tarball_basename and the md5sum
+        # url_p is everything but the tarball_basename and the checksum
+        checksums = {}
+        if md5 := m.group("md5"):
+            checksums["md5"] = md5
+        if sha256 := m.group("sha256"):
+            checksums["sha256"] = sha256
+        yield MatchSpec(url, **checksums)
 
-        fetch_specs.append(MatchSpec(url, md5=md5sum) if md5sum else MatchSpec(url))
+
+def explicit(
+    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
+):
+    actions = defaultdict(list)
+    actions["PREFIX"] = prefix
+
+    fetch_specs = list(_match_specs_from_explicit(specs))
 
     if context.dry_run:
         raise DryRunExit()
