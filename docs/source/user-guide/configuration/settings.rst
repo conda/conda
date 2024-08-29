@@ -803,6 +803,7 @@ These are:
 - ``proxy_servers``
 - ``verify_ssl``
 - ``allowlist_channels``
+- ``denylist_channels``
 
 This allows you to store the credentials of a private repository in an
 environment variable, like so:
