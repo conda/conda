@@ -20,7 +20,7 @@ from .. import CondaReporterBackend, hookimpl
 from ..types import ProgressBarBase, ReporterRendererBase
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, ContextManager
+    from typing import Any
 
 
 class JSONProgressBar(ProgressBarBase):
@@ -83,10 +83,9 @@ class JSONReporterRenderer(ReporterRendererBase):
     def progress_bar(
         self,
         description: str,
-        io_context_manager: Callable[[], ContextManager],
         **kwargs,
     ) -> ProgressBarBase:
-        return JSONProgressBar(description, io_context_manager, **kwargs)
+        return JSONProgressBar(description, **kwargs)
 
 
 @hookimpl(
