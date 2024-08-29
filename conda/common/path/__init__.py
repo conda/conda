@@ -54,22 +54,22 @@ if TYPE_CHECKING:
     PathsType = Iterable[PathType]
 
 __all__ = [
-    "tokenized_startswith",
+    "explode_directories",
     "get_all_directories",
     "get_leaf_directories",
-    "explode_directories",
-    "pyc_path",
-    "missing_pyc_files",
-    "parse_entry_point_def",
-    "get_python_short_path",
-    "get_python_site_packages_short_path",
     "get_major_minor_version",
     "get_python_noarch_target_path",
-    "win_path_ok",
-    "win_path_double_escape",
-    "win_path_backout",
-    "win_path_to_unix",
+    "get_python_short_path",
+    "get_python_site_packages_short_path",
+    "missing_pyc_files",
+    "parse_entry_point_def",
+    "pyc_path",
+    "tokenized_startswith",
     "unix_path_to_win",
+    "win_path_backout",
+    "win_path_double_escape",
+    "win_path_ok",
+    "win_path_to_unix",
 ]
 
 log = getLogger(__name__)
