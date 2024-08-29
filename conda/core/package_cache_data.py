@@ -782,11 +782,10 @@ class ProgressiveFetchExtract:
             return
         if not self._prepared:
             self.prepare()
-        pbar_context_manager = get_progress_bar_context_manager()
 
         assert not context.dry_run
 
-        with pbar_context_manager:
+        with get_progress_bar_context_manager() as pbar_context:
             if self._executed:
                 return
             if not self._prepared:
@@ -836,7 +835,9 @@ class ProgressiveFetchExtract:
                         # Not sure when this is reached.
                         continue
 
-                    progress_bar = self._progress_bar(prec_or_spec, leave=False)
+                    progress_bar = self._progress_bar(
+                        prec_or_spec, context_manager=pbar_context, leave=False
+                    )
 
                     progress_bars[prec_or_spec] = progress_bar
 
