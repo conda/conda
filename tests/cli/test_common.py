@@ -128,7 +128,7 @@ def test_print_envs_list(capsys):
     """
     Test the case for print_envs_list when output=True
 
-    TODO: this function deprecated and this test should be remove when this function is removed
+    TODO: this function is deprecated and this test should be remove when this function is removed
     """
     print_envs_list(["test"])
     captured = capsys.readouterr()
@@ -140,7 +140,7 @@ def test_print_envs_list_output_false(capsys):
     """
     Test the case for print_envs_list when output=False
 
-    TODO: this function deprecated and this test should be remove when this function is removed
+    TODO: this function is deprecated and this test should be remove when this function is removed
     """
     print_envs_list(["test"], output=False)
     captured = capsys.readouterr()

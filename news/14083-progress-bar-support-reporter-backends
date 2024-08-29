@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds progress bar support for reporter backends plugin hook (#14083)
+* Adds progress bar support for reporter backends plugin hook. (#14083)
 
 ### Bug fixes
 

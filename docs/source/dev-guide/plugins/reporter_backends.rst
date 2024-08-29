@@ -107,7 +107,7 @@ Defining ``ReporterRendererBase``
 ---------------------------------
 
 The first class we define, ``PprintReporterRenderer``, is a subclass of
-:class:`~conda.plugins.types.ReporterRendererBase`. The base class is an abstract base class which requires us
+:class:`~conda.plugins.types.ReporterRendererBase`. The base class is an abstract base class which requires us to
 define our own implementations of its abstract methods. These abstract methods are used by conda when rendering output
 and are where all the customization we want to do occurs.
 
