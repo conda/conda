@@ -164,7 +164,7 @@ environment on macOS), but we don't recommend its usage outside of
   filesystem limitations (case insensitive systems, incompatible paths,
   etc). The only workaround here is to use ``--dry-run --json`` to obtain
   the solution and process the payload into a lockfile that can be shared
-  with the target machine.
+  with the target machine. See :ref:`dry-run-explicit` for more details.
 
 .. _specifying-location:
 
@@ -946,3 +946,42 @@ To verify that the environment was removed, in your terminal window, run:
 
 The environments list that displays should not show the removed
 environment.
+
+.. _dry-run-explicit:
+
+Create explicit lockfiles without creating an environment
+=========================================================
+
+``@EXPLICIT`` lockfiles allow you to (re)create environments without invoking the solver.
+They consist of a ``@EXPLICIT`` header plus a list of conda package URLs optionally followed
+by their MD5 or SHA256 hash.
+
+They can be obtained from existing environments via ``conda list --explicit``, as seen in ...
+But what if you only need the lockfile? Would you need create a temporary environment first just
+to delete it later? There's a way of using the JSON outputs and ``jq`` to avoid this.
+
+You'll need ``jq`` in your system. You can install via ``conda`` (e.g. ``conda create -n jq jq``)
+or via your system package manager.
+
+The command looks like this for Linux and macOS (replace ``MATCHSPECS_GO_HERE`` with the relevant
+packages you want):
+
+.. code::
+
+   echo "@EXPLICIT" > explicit.txt
+   CONDA_PKGS_DIRS=$(mktemp -d) conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+
+The syntax in Windows only needs some small changes:
+
+.. code::
+
+   echo "@EXPLICIT" > explicit.txt
+   set "CONDA_PKGS_DIRS=%TMP%\conda-%RANDOM%"
+   conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+   set "CONDA_PKGS_DIRS="
+
+The resulting ``explicit.txt`` can be used to create a new environment with:
+
+.. code::
+
+   conda create -n new-environment --file explicit.txt
