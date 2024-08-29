@@ -128,8 +128,8 @@ Use the terminal for the following steps:
 Specifying a different target platform for an environment
 =========================================================
 
-By default, ``conda`` will create environments targeting the platform
-currently running on. You can check which one is yours by running
+By default, ``conda`` will create environments targeting the platform it's
+currently running on. You can check which platform you are currently on by running
 ``conda info`` and checking the ``platform`` entry.
 
 However, in some cases you might want to create an environment for a
@@ -145,13 +145,14 @@ and emulate the executables with Rosetta. The command would be:
 
    conda create --platform osx-64 --name python-x64 python
 
-Note that you can't specify this flag for existing environments.
-The environment will be annotated with the custom configuration and
-subsequent operations on it will remember the target platform.
+.. note::
+   You can't specify the ``--platform`` flag for existing environments. 
+   When created, the environment will be annotated with the custom configuration and
+   subsequent operations on it will remember the target platform.
 
-This flag also allows specifying a different OS (e.g. create a Linux
-environment on macOS), but we don't recommend its usage outside
-``--dry-run`` operations. Common problems include:
+This flag also allows specifying a different OS (e.g. creating a Linux
+environment on macOS), but we don't recommend its usage outside of
+``--dry-run`` operations. Common problems with mismatched OSes include:
 
 - The environment cannot be solved because virtual packages are missing.
   You can workaround this issue by exporting the necessary
