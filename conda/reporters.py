@@ -6,86 +6,87 @@ Holds functions for output rendering in conda
 
 from __future__ import annotations
 
+import logging
+import sys
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import ContextManager
 
+from .base.constants import (
+    DEFAULT_JSON_REPORTER_BACKEND,
+)
 from .base.context import context
-from .plugins.types import ProgressBarBase
+
+if TYPE_CHECKING:
+    from typing import Callable
+
+    from .plugins.types import ProgressBarBase
+
+logger = logging.getLogger(__name__)
+
+
+def _get_reporter_backend() -> str:
+    """
+    Determine the current reporter backend being used
+    """
+    if context.json:
+        backend = DEFAULT_JSON_REPORTER_BACKEND
+    else:
+        backend = context.console
+
+    return backend
+
+
+@lru_cache(maxsize=None)
+def _get_render_func(style: str | None = None) -> Callable:
+    """
+    Retrieves the render function to use
+    """
+    backend = _get_reporter_backend()
+    reporter = context.plugin_manager.get_reporter_backend(backend)
+
+    renderer = reporter.renderer()
+
+    if style is not None:
+        render_func = getattr(renderer, style, None)
+        if render_func is None:
+            raise AttributeError(f"'{style}' is not a valid reporter backend style")
+    else:
+        render_func = getattr(renderer, "render")
+
+    return render_func
 
 
 def render(data, style: str | None = None, **kwargs) -> None:
-    for settings in context.reporters:
-        reporter = context.plugin_manager.get_reporter_backend(settings.get("backend"))
-        output = context.plugin_manager.get_reporter_output(settings.get("output"))
-
-        if reporter is None or output is None:
-            continue
-
-        renderer = reporter.renderer()
-
-        if style is not None:
-            render_func = getattr(renderer, style, None)
-            if render_func is None:
-                raise AttributeError(f"'{style}' is not a valid reporter backend style")
-        else:
-            render_func = getattr(renderer, "render")
-
-        data_str = render_func(data, **kwargs)
-
-        with output.stream() as file:
-            file.write(data_str)
-
-
-class ProgressBarManager(ProgressBarBase):
     """
-    Used to proxy calls to the registered reporter handler progress bar instances
+    Used to render output in conda
+
+    The output will either be rendered as "json" or normal "console" output to stdout.
+    This function allows us to configure different reporter backends for these two types
+    of output.
     """
-
-    def __init__(self, progress_bars):
-        self._progress_bars = progress_bars
-
-    def update_to(self, fraction) -> None:
-        for progress_bar in self._progress_bars:
-            progress_bar.update_to(fraction)
-
-    def close(self) -> None:
-        for progress_bar in self._progress_bars:
-            progress_bar.close()
-
-    def refresh(self) -> None:
-        for progress_bar in self._progress_bars:
-            progress_bar.refresh()
+    render_func = _get_render_func(style)
+    data_str = render_func(data, **kwargs)
+    sys.stdout.write(data_str)
 
 
-def get_progress_bar_manager(description: str, **kwargs) -> ProgressBarManager:
-    progress_bars = []
-
-    for settings in context.reporters:
-        reporter = context.plugin_manager.get_reporter_backend(settings.get("backend"))
-        output = context.plugin_manager.get_reporter_output(settings.get("output"))
-        progress_bar = reporter.renderer().progress_bar(
-            description, output.stream(), settings=settings, **kwargs
-        )
-
-        progress_bars.append(progress_bar)
-
-    return ProgressBarManager(progress_bars)
-
-
-def get_progress_bar_context_managers() -> list[ContextManager]:
+def get_progress_bar(description: str, **kwargs) -> ProgressBarBase:
     """
-    Retrieve all progress bar context managers to use with registered reporters
+    Retrieve the progress bar for the currently configured reporter backend
     """
-    context_managers = []
+    backend = _get_reporter_backend()
+    reporter = context.plugin_manager.get_reporter_backend(backend)
 
-    for settings in context.reporters:
-        reporter = context.plugin_manager.get_reporter_backend(settings.get("backend"))
-        output = context.plugin_manager.get_reporter_output(settings.get("output"))
+    return reporter.renderer().progress_bar(description, **kwargs)
 
-        context_managers.append(
-            reporter.renderer.progress_bar_context_manager(output.stream())
-        )
 
-    return context_managers
+def get_progress_bar_context_manager() -> ContextManager:
+    """
+    Retrieve progress bar context manager to use with registered reporter
+    """
+    backend = _get_reporter_backend()
+    reporter = context.plugin_manager.get_reporter_backend(backend)
+
+    return reporter.renderer().progress_bar_context_manager()

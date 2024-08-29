@@ -8,19 +8,16 @@ This reporter backend provides the default output for conda.
 
 from __future__ import annotations
 
+import sys
 from errno import EPIPE, ESHUTDOWN
 from os.path import basename, dirname
-from typing import TYPE_CHECKING
 
-from ...base.constants import ROOT_ENV_NAME
+from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from .. import CondaReporterBackend, hookimpl
 from ..types import ProgressBarBase, ReporterRendererBase
-
-if TYPE_CHECKING:
-    from typing import Callable, ContextManager
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -46,15 +43,13 @@ class TQDMProgressBar(ProgressBarBase):
     def __init__(
         self,
         description: str,
-        io_context_manager: Callable[[], ContextManager],
         position=None,
         leave=True,
         **kwargs,
     ) -> None:
-        super().__init__(description, io_context_manager)
+        super().__init__(description)
 
         self.enabled = True
-        self.file = self._io_context_manager.__enter__()
 
         bar_format = "{desc}{bar} | {percentage:3.0f}% "
 
@@ -64,12 +59,11 @@ class TQDMProgressBar(ProgressBarBase):
                 bar_format=bar_format,
                 ascii=True,
                 total=1,
-                file=self.file,
+                file=sys.stdout,
                 position=position,
                 leave=leave,
             )
         except OSError as e:
-            self._io_context_manager.__exit__(None, None, None)
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
             else:
@@ -80,7 +74,6 @@ class TQDMProgressBar(ProgressBarBase):
             if self.enabled:
                 self.pbar.update(fraction - self.pbar.n)
         except OSError as e:
-            self._io_context_manager.__exit__(None, None, None)
             if e.errno in (EPIPE, ESHUTDOWN):
                 self.enabled = False
             else:
@@ -90,7 +83,6 @@ class TQDMProgressBar(ProgressBarBase):
     def close(self) -> None:
         if self.enabled:
             self.pbar.close()
-        self._io_context_manager.__exit__(None, None, None)
 
     def refresh(self) -> None:
         if self.enabled:
@@ -148,25 +140,26 @@ class ConsoleReporterRenderer(ReporterRendererBase):
     def progress_bar(
         self,
         description: str,
-        io_context_manager: Callable[[], ContextManager],
         **kwargs,
     ) -> ProgressBarBase:
         """
         Determines whether to return a TQDMProgressBar or QuietProgressBar
         """
         if context.quiet:
-            return QuietProgressBar(description, io_context_manager, **kwargs)
+            return QuietProgressBar(description, **kwargs)
         else:
-            return TQDMProgressBar(description, io_context_manager, **kwargs)
+            return TQDMProgressBar(description, **kwargs)
 
 
-@hookimpl
+@hookimpl(
+    tryfirst=True
+)  # make sure the default console reporter backend can't be overridden
 def conda_reporter_backends():
     """
     Reporter backend for console
     """
     yield CondaReporterBackend(
-        name="console",
+        name=DEFAULT_CONSOLE_REPORTER_BACKEND,
         description="Default implementation for console reporting in conda",
         renderer=ConsoleReporterRenderer,
     )

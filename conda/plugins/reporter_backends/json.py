@@ -9,9 +9,11 @@ essentially just a wrapper around ``conda.common.serialize.json_dump``.
 
 from __future__ import annotations
 
+import sys
 from threading import RLock
 from typing import TYPE_CHECKING
 
+from ...base.constants import DEFAULT_JSON_REPORTER_BACKEND
 from ...common.io import swallow_broken_pipe
 from ...common.serialize import json_dump
 from .. import CondaReporterBackend, hookimpl
@@ -29,18 +31,16 @@ class JSONProgressBar(ProgressBarBase):
     def __init__(
         self,
         description: str,
-        io_context_manager: Callable[[], ContextManager],
         enabled: bool = True,
         **kwargs,
     ):
-        super().__init__(description, io_context_manager)
-        self.file = self._io_context_manager.__enter__()
+        super().__init__(description)
         self.enabled = enabled
 
     def update_to(self, fraction) -> None:
         with self.get_lock():
             if self.enabled:
-                self.file.write(
+                sys.stdout.write(
                     f'{{"fetch":"{self.description}","finished":false,"maxval":1,"progress":{fraction:f}}}\n\0'
                 )
 
@@ -51,12 +51,10 @@ class JSONProgressBar(ProgressBarBase):
     def close(self):
         with self.get_lock():
             if self.enabled:
-                self.file.write(
+                sys.stdout.write(
                     f'{{"fetch":"{self.description}","finished":true,"maxval":1,"progress":1}}\n\0'
                 )
-                self.file.flush()
-
-        self._io_context_manager.__exit__(None, None, None)
+                sys.stdout.flush()
 
     @classmethod
     def get_lock(cls):
@@ -91,7 +89,9 @@ class JSONReporterRenderer(ReporterRendererBase):
         return JSONProgressBar(description, io_context_manager, **kwargs)
 
 
-@hookimpl
+@hookimpl(
+    tryfirst=True
+)  # make sure the default json reporter backend can't be overridden
 def conda_reporter_backends():
     """
     Reporter backend for JSON
@@ -100,7 +100,7 @@ def conda_reporter_backends():
     that can be passed to reporter outputs.
     """
     yield CondaReporterBackend(
-        name="json",
+        name=DEFAULT_JSON_REPORTER_BACKEND,
         description="Default implementation for JSON reporting in conda",
         renderer=JSONReporterRenderer,
     )

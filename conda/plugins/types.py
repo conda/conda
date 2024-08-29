@@ -218,11 +218,9 @@ class ProgressBarBase(ABC):
     def __init__(
         self,
         description: str,
-        io_context_manager: Callable[[], ContextManager],
         **kwargs,
     ):
         self.description = description
-        self._io_context_manager = io_context_manager
 
     @abstractmethod
     def update_to(self, fraction) -> None: ...
@@ -265,7 +263,6 @@ class ReporterRendererBase(ABC):
     def progress_bar(
         self,
         description: str,
-        io_context_manager: Callable[[], ContextManager],
         **kwargs,
     ) -> ProgressBarBase:
         """
@@ -273,7 +270,7 @@ class ReporterRendererBase(ABC):
         """
 
     @classmethod
-    def progress_bar_context_manager(cls, io_context_manager) -> ContextManager:
+    def progress_bar_context_manager(cls) -> ContextManager:
         """
         Returns a null context by default but allows plugins to define their own if necessary
         """
@@ -298,23 +295,3 @@ class CondaReporterBackend:
     name: str
     description: str
     renderer: type[ReporterRendererBase]
-
-
-@dataclass
-class CondaReporterOutput:
-    """
-    Return type to use when defining a conda reporter output plugin hook.
-
-    For details on how this is used, see:
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_reporter_outputs`.
-
-    :param name: name of the reporter output (e.g., ``email_reporter``)
-                 This is how the reporter backend references it in configuration files.
-    :param description: short description of what the reporter output does
-    :param stream: a callable object returning a context manager that yields a
-                  :class:`~io.TextIOBase` compatible object.
-    """
-
-    name: str
-    description: str
-    stream: Callable[[], ContextManager]

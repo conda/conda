@@ -32,7 +32,7 @@ def test_console_reporter_renderer():
     assert isinstance(progress_bar, TQDMProgressBar)
 
     progress_bar_context_manager = (
-        console_reporter_renderer.progress_bar_context_manager(None)
+        console_reporter_renderer.progress_bar_context_manager()
     )
     assert isinstance(progress_bar_context_manager, nullcontext)
 

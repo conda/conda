@@ -3,6 +3,7 @@
 import pytest
 
 from conda import plugins
+from conda.plugins.reporter_backends import plugins as reporter_backends_plugins
 from conda.plugins.types import CondaPreCommand
 
 
@@ -25,6 +26,7 @@ def pre_command_plugin(mocker, plugin_manager):
 
     pre_command_plugin = PreCommandPlugin()
     plugin_manager.register(pre_command_plugin)
+    plugin_manager.load_plugins(*reporter_backends_plugins)
 
     return pre_command_plugin
 

@@ -8,7 +8,6 @@ import codecs
 import os
 from collections import defaultdict
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
-from contextlib import ExitStack
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -56,7 +55,7 @@ from ..gateways.disk.read import (
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
-from ..reporters import get_progress_bar_context_managers, get_progress_bar_manager
+from ..reporters import get_progress_bar, get_progress_bar_context_manager
 from ..utils import human_bytes
 from .path_actions import CacheUrlAction, ExtractPackageAction
 
@@ -783,15 +782,11 @@ class ProgressiveFetchExtract:
             return
         if not self._prepared:
             self.prepare()
-        context_managers = get_progress_bar_context_managers()
+        pbar_context_manager = get_progress_bar_context_manager()
 
         assert not context.dry_run
 
-        with ExitStack() as stack:
-            progress_context_managers = [
-                stack.enter_context(manager) for manager in context_managers
-            ]
-
+        with pbar_context_manager:
             if self._executed:
                 return
             if not self._prepared:
@@ -841,11 +836,7 @@ class ProgressiveFetchExtract:
                         # Not sure when this is reached.
                         continue
 
-                    progress_bar = self._progress_bar(
-                        prec_or_spec,
-                        leave=False,
-                        progress_context_managers=progress_context_managers,
-                    )
+                    progress_bar = self._progress_bar(prec_or_spec, leave=False)
 
                     progress_bars[prec_or_spec] = progress_bar
 
@@ -923,7 +914,7 @@ class ProgressiveFetchExtract:
 
     @staticmethod
     def _progress_bar(
-        prec_or_spec, position=None, leave=False, progress_context_managers=None
+        prec_or_spec, position=None, leave=False, context_manager=None
     ) -> ProgressBarBase:
         description = ""
         if prec_or_spec.name and prec_or_spec.version:
@@ -937,11 +928,11 @@ class ProgressiveFetchExtract:
         if len(size_str) > 0:
             description += "%-9s | " % size_str
 
-        progress_bar = get_progress_bar_manager(
+        progress_bar = get_progress_bar(
             description,
+            context_manager=context_manager,
             position=position,
             leave=leave,
-            progress_context_managers=progress_context_managers,
             enabled=not context.verbose and not context.quiet and IS_INTERACTIVE,
         )
 

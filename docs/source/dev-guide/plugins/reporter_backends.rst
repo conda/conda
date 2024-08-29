@@ -7,6 +7,11 @@ for existing conda commands. Internally, conda uses this to differentiate betwee
 displaying normal, "console" output or displaying "json" output. An example of each
 of these reporter backend types is shown below:
 
+To configure a reporter backend, you must use the ``reporter_backends`` setting. This setting
+allows you to configure different backends for console and json output. Console output is
+the normal output you see when using conda, and json output is rendered when the
+``--json`` option is provided or ``json`` is set to ``true`` in the ``.condarc`` file.
+
 .. code-block:: shell
 
    # "console" output
@@ -28,7 +33,7 @@ of these reporter backend types is shown below:
    ...
    }
 
-Via its plugins system, conda allows you to define entirely new reporter backends. This gives
+Via its plugins system, conda allows you to define new reporter backends. This gives
 you an extreme amount of flexibility when it comes to modifying how conda looks
 and feels. The first step to doing this is by creating your own subclass of
 :class:`~conda.plugins.types.ReporterRendererBase`. You then register it by using the
@@ -123,11 +128,14 @@ our plugin which returns the ``PprintReporterRenderer`` class wrapped in a
 :class:`~conda.plugins.types.CondaReporterBackend` object. By registering it with ``name`` set to ``pprint``,
 we will be able to reference this plugin in the ``reporters`` section of our configuration:
 
+Below is an example showing the configuration for the default reporter backend for ``console``
+which is ``classic``:
+
 .. code-block:: yaml
 
-   reporters:
-     - backend: pprint
-       output: stdout
+   reporter_backends:
+     console:
+       backend: classic
 
 Further reading
 ===============
