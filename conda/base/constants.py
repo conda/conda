@@ -266,6 +266,12 @@ class SatSolverChoice(ValueEnum):
 DEFAULT_SOLVER = "libmamba"
 CLASSIC_SOLVER = "classic"
 
+#: The name of the default json reporter backend
+DEFAULT_JSON_REPORTER_BACKEND = "json"
+
+#: The name of the default console reporter backend
+DEFAULT_CONSOLE_REPORTER_BACKEND = "default"
+
 
 class NoticeLevel(ValueEnum):
     CRITICAL = "critical"

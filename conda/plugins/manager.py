@@ -19,12 +19,12 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib.ish import dals
+from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import CondaError, CondaValueError, PluginError
 from . import (
     post_solves,
     reporter_backends,
-    reporter_outputs,
     solvers,
     subcommands,
     virtual_packages,
@@ -49,7 +49,6 @@ if TYPE_CHECKING:
         CondaPreCommand,
         CondaPreSolve,
         CondaReporterBackend,
-        CondaReporterOutput,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -212,11 +211,6 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
 
-    @overload
-    def get_hook_results(
-        self, name: Literal["reporter_outputs"]
-    ) -> list[CondaReporterOutput]: ...
-
     def get_hook_results(self, name):
         """
         Return results of the plugin hooks with the given name and
@@ -366,18 +360,46 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))
 
-    def get_reporter_backend(self, name: str) -> CondaReporterBackend | None:
-        for reporter_backend in self.get_reporter_backends():
+    def get_reporter_backend(self, name: str) -> CondaReporterBackend:
+        """
+        Attempts to find a reporter backend while providing a fallback option if it is
+        not found.
+
+        This method must return a valid ``CondaReporterBackend`` object or else it will
+        raise an exception.
+        """
+        reporter_backends = {
+            reporter_backend.name: reporter_backend
+            for reporter_backend in self.get_reporter_backends()
+        }
+        reporter_backend = reporter_backends.get(name, None)
+        if reporter_backend is None:
+            log.warning(
+                f'Unable to find reporter backend: "{name}"; '
+                f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
+            )
+            return reporter_backends.get(DEFAULT_CONSOLE_REPORTER_BACKEND)
+        else:
+            return reporter_backend
+        reporter_backend_objs = self.get_reporter_backends()
+
+        for reporter_backend in reporter_backend_objs:
             if reporter_backend.name == name:
                 return reporter_backend
 
-    def get_reporter_outputs(self) -> tuple[CondaReporterOutput, ...]:
-        return tuple(self.get_hook_results("reporter_outputs"))
+        log.warning(
+            f'Unable to find reporter backend: "{name}"; '
+            f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
+        )
 
-    def get_reporter_output(self, name: str) -> CondaReporterOutput | None:
-        for reporter_output in self.get_reporter_outputs():
-            if reporter_output.name == name:
-                return reporter_output
+        for reporter_backend in reporter_backend_objs:
+            if reporter_backend.name == DEFAULT_CONSOLE_REPORTER_BACKEND:
+                return reporter_backend
+
+        raise CondaError(
+            "There are no available reporter backends to render output. This conda installation"
+            " is most likely corrupt and requires a re-installation."
+        )
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
@@ -441,7 +463,6 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
-        *reporter_outputs.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

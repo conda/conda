@@ -2,14 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import sys
-from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.plugins import CondaReporterBackend, CondaReporterOutput
+from conda.plugins import CondaReporterBackend
 from conda.plugins.types import ReporterRendererBase
 from conda.reporters import render
 
@@ -25,11 +23,6 @@ class DummyReporterRenderer(ReporterRendererBase):
         return f"detail_view: {data}"
 
 
-@contextmanager
-def dummy_io():
-    yield sys.stdout
-
-
 def test_reporter_manager(capsys: CaptureFixture, mocker):
     """
     Ensure basic coverage of the :class:`~conda.common.io.ReporterManager` class.
@@ -40,16 +33,8 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
         description="test",
         renderer=DummyReporterRenderer,
     )
-    reporter_output = CondaReporterOutput(
-        name="test-reporter-output", description="test", stream=dummy_io
-    )
-    plugin_manager = SimpleNamespace(
-        get_reporter_backend=lambda _: reporter_backend,
-        get_reporter_output=lambda _: reporter_output,
-    )
-    reporters = (
-        {"backend": "test-reporter-backend", "stream": "test-reporter-output"},
-    )
+    plugin_manager = SimpleNamespace(get_reporter_backend=lambda _: reporter_backend)
+    reporters = {"backend": "test-reporter-backend"}
 
     context = mocker.patch("conda.reporters.context")
     context.plugin_manager = plugin_manager
