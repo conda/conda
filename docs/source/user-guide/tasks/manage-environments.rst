@@ -146,7 +146,7 @@ and emulate the executables with Rosetta. The command would be:
    conda create --platform osx-64 --name python-x64 python
 
 .. note::
-   You can't specify the ``--platform`` flag for existing environments. 
+   You can't specify the ``--platform`` flag for existing environments.
    When created, the environment will be annotated with the custom configuration and
    subsequent operations on it will remember the target platform.
 
