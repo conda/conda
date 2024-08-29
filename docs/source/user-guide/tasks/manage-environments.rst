@@ -135,7 +135,7 @@ currently running on. You can check which platform you are currently on by runni
 However, in some cases you might want to create an environment for a
 different target platform or architecture. To do so, use the
 ``--platform`` flag available in the ``conda create`` and
-``conda env create`` commands. See ``--subdir, --platform`` 
+``conda env create`` commands. See ``--subdir, --platform``
 in :doc:`/commands/create` for more information about allowed values.
 
 For example, a user running macOS on the Apple Silicon platform
