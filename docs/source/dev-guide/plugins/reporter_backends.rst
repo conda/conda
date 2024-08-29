@@ -126,16 +126,22 @@ Registering the plugin hook
 Finally, we define the ``conda_reporter_backends`` function with the ``plugins.hookimpl`` decorator to register
 our plugin which returns the ``PprintReporterRenderer`` class wrapped in a
 :class:`~conda.plugins.types.CondaReporterBackend` object. By registering it with ``name`` set to ``pprint``,
-we will be able to reference this plugin in the ``reporters`` section of our configuration:
+we will be able to reference this plugin as a new backend for the ``console`` setting.
 
-Below is an example showing the configuration for the default reporter backend for ``console``
-which is ``classic``:
+Using the reporter backend
+--------------------------
+
+To use our newly registered reporter backend, it can either be specified in our ``.condarc`` configuration file:
 
 .. code-block:: yaml
 
-   reporter_backends:
-     console:
-       backend: classic
+   console: pprint
+
+Or, it can be specified at the command line using the ``--console`` option:
+
+.. code-block:: bash
+
+   conda info --envs --console=pprint
 
 Further reading
 ===============
