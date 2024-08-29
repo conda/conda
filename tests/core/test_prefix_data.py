@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,17 +23,6 @@ if TYPE_CHECKING:
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
-
-
-def _print_output(*args):
-    """Helper function to print output in case of failed tests."""
-    for arg in args:
-        print(arg)
-    print("\n")
-
-
-class DummyPythonRecord:
-    files = []
 
 
 @pytest.mark.parametrize(
@@ -280,35 +270,39 @@ def test_pip_interop(
 
 
 def test_get_conda_anchor_files_and_records():
-    valid_tests = [
-        "v/site-packages/spam.egg-info/PKG-INFO",
-        "v/site-packages/foo.dist-info/RECORD",
-        "v/site-packages/bar.egg-info",
-    ]
-    invalid_tests = [
-        "v/site-packages/valid-package/_vendor/invalid-now.egg-info/PKG-INFO",
-        "i/site-packages/stuff.egg-link",
-        "i/spam.egg-info/PKG-INFO",
-        "i/foo.dist-info/RECORD",
-        "i/bar.egg-info",
-        "i/site-packages/spam",
-        "i/site-packages/foo",
-        "i/site-packages/bar",
-    ]
-    tests = valid_tests + invalid_tests
-    records = []
-    for path in tests:
-        record = DummyPythonRecord()
-        record.files = [path]
-        records.append(record)
+    @dataclass
+    class DummyPythonRecord:
+        files: list[str]
 
-    output = get_conda_anchor_files_and_records("v/site-packages", records)
-    expected_output = {}
-    for i in range(len(valid_tests)):
-        expected_output[valid_tests[i]] = records[i]
+    valid_records = {
+        path: DummyPythonRecord([path])
+        for path in (
+            "v/site-packages/spam.egg-info/PKG-INFO",
+            "v/site-packages/foo.dist-info/RECORD",
+            "v/site-packages/bar.egg-info",
+        )
+    }
+    invalid_records = {
+        path: DummyPythonRecord([path])
+        for path in (
+            "v/site-packages/valid-package/_vendor/invalid-now.egg-info/PKG-INFO",
+            "i/site-packages/stuff.egg-link",
+            "i/spam.egg-info/PKG-INFO",
+            "i/foo.dist-info/RECORD",
+            "i/bar.egg-info",
+            "i/site-packages/spam",
+            "i/site-packages/foo",
+            "i/site-packages/bar",
+        )
+    }
 
-    _print_output(output, expected_output)
-    assert output == expected_output
+    assert (
+        get_conda_anchor_files_and_records(
+            "v/site-packages",
+            [*valid_records.values(), *invalid_records.values()],
+        )
+        == valid_records
+    )
 
 
 def test_corrupt_unicode_conda_meta_json():
