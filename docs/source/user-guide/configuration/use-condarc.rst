@@ -101,7 +101,30 @@ For Windows users, Miniconda can be installed into any directory that you can wr
 - Single-user installations for non-domain users (should apply to many personal computers): %USERPROFILE%\miniconda3
 - All-users installations: %PUBLIC%\miniconda3.
 
-In non-Windows operating sytems, conda looks in the following locations for a ``.condarc`` file:
+For UNIX like operating systems, conda searches the following locations for ``.condarc`` files in order:
+
+- Locations in the ``/etc/`` folder:
+  - ``/etc/conda/.condarc``
+  - ``/etc/conda/condarc``
+  - ``/etc/conda/condarc.d/``
+- Locations in the ``/var/lib/conda`` directory:
+  - ``/var/lib/conda/.condarc``
+  - ``/var/lib/conda/condarc``
+  - ``/var/lib/conda/condarc.d/``
+- Locations in the conda installation itself and the user's home directory:
+  - ``$CONDA_ROOT/.condarc``
+  - ``$CONDA_ROOT/condarc``
+  - ``$CONDA_ROOT/condarc.d/``
+  - ``$XDG_CONFIG_HOME/conda/.condarc``
+  - ``$XDG_CONFIG_HOME/conda/condarc``
+  - ``$XDG_CONFIG_HOME/conda/condarc.d/``
+  - ``~/.config/conda/.condarc``
+  - ``~/.config/conda/condarc``
+  - ``~/.config/conda/condarc.d/``
+  - ``~/.conda/.condarc``
+  - ``~/.conda/condarc``
+  - ``~/.conda/condarc.d/``
+  - ``~/.condarc``
 
 .. code-block:: python
 
