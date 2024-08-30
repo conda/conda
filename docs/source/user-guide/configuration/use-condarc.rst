@@ -69,7 +69,7 @@ For Windows users, conda can be installed into any directory that you can write 
 
 - Single-user installations where the installer determines that the user is a domain user: %LOCALAPPDATA%\miniconda3
 - Single-user installations for non-domain users (should apply to many personal computers): %USERPROFILE%\miniconda3
-- All-users installations: %PUBLIC%\miniconda3.
+- All-users installations: %ALLUSERSPROFILE%\miniconda3.
 
 .. note::
 
