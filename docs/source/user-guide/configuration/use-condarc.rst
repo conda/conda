@@ -14,6 +14,7 @@ The conda configuration file, ``.condarc``, is an optional runtime configuration
 
    A ``.condarc`` file can also be used in an administrator-controlled installation to override the users’ configuration. See :doc:`admin-multi-user-install`.
 
+
 The ``.condarc`` file can change many parameters, including:
 
 * Where conda looks for packages.
@@ -64,11 +65,16 @@ Conda supports a wide range of configuration options. This page gives a non-exha
 Searching for .condarc
 ======================
 
-For Windows users, Miniconda can be installed into any directory that you can write into. The default installation directory also depends on a few factors:
+For Windows users, conda can be installed into any directory that you can write into. The default installation directory for Miniconda could be either of the following depending on what type of user you are:
 
 - Single-user installations where the installer determines that the user is a domain user: %LOCALAPPDATA%\miniconda3
 - Single-user installations for non-domain users (should apply to many personal computers): %USERPROFILE%\miniconda3
 - All-users installations: %PUBLIC%\miniconda3.
+
+.. note::
+
+   The above example is for Miniconda only. Windows users of Anaconda, miniforge, etc. are encouraged to contribute to this documentation.
+
 
 For UNIX like operating systems, conda searches the following locations for ``.condarc`` files in order:
 
@@ -95,47 +101,12 @@ For UNIX like operating systems, conda searches the following locations for ``.c
   - ``~/.conda/condarc.d/``
   - ``~/.condarc``
 
-.. code-block:: python
-
-  if not on_win:
-      SEARCH_PATH = (
-          "/etc/conda/.condarc",
-          "/etc/conda/condarc",
-          "/etc/conda/condarc.d/",
-          "/var/lib/conda/.condarc",
-          "/var/lib/conda/condarc",
-          "/var/lib/conda/condarc.d/",
-      )
-
-  SEARCH_PATH += (
-      "$CONDA_ROOT/.condarc",
-      "$CONDA_ROOT/condarc",
-      "$CONDA_ROOT/condarc.d/",
-      "$XDG_CONFIG_HOME/conda/.condarc",
-      "$XDG_CONFIG_HOME/conda/condarc",
-      "$XDG_CONFIG_HOME/conda/condarc.d/",
-      "~/.config/conda/.condarc",
-      "~/.config/conda/condarc",
-      "~/.config/conda/condarc.d/",
-      "~/.conda/.condarc",
-      "~/.conda/condarc",
-      "~/.conda/condarc.d/",
-      "~/.condarc",
-      "$CONDA_PREFIX/.condarc",
-      "$CONDA_PREFIX/condarc",
-      "$CONDA_PREFIX/condarc.d/",
-      "$CONDARC",
-  )
-
-``XDG_CONFIG_HOME`` is the path to where user-specific configuration files should
-be stored defined following The XDG Base Directory Specification (XDGBDS). Default
-to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
-``CONDA_PREFIX`` is the path to the current active environment.
-``CONDARC`` must be a path to a file named ``.condarc``, ``condarc``, or end with a YAML suffix (``.yml`` or ``.yaml``).
+
+``XDG_CONFIG_HOME`` is the path to where user-specific configuration files should be stored defined following The XDG Base Directory Specification (XDGBDS). Default to $HOME/.config should be used.
 
 .. note::
-   Any ``.condarc`` files that exist in any of these special search path    directories need to end in a valid yaml extension (".yml" or ".yaml").
+   Any ``.condarc`` files that exist in any of these special search path directories for UNIX like systems need to end in a valid yaml extension (".yml" or ".yaml").
 
 
 Conflict merging strategy
