@@ -7,19 +7,12 @@ Using the .condarc conda configuration file
 Overview
 ========
 
-The conda configuration file, ``.condarc``, is an optional
-runtime configuration file that allows advanced users to
-configure various aspects of conda, such as which channels it
-searches for packages, proxy settings, and environment
-directories. For all of the conda configuration options,
-see the :doc:`configuration page <../../configuration>`.
+The conda configuration file, ``.condarc``, is an optional runtime configuration file that allows advanced users to configure various aspects of conda, such as which channels it searches for packages, proxy settings, and environment directories. For all of the conda configuration options, see the :doc:`configuration page <../../configuration>`.
 
 
 .. note::
 
-   A ``.condarc`` file can also be used in an
-   administrator-controlled installation to override the users’
-   configuration. See :doc:`admin-multi-user-install`.
+   A ``.condarc`` file can also be used in an administrator-controlled installation to override the users’ configuration. See :doc:`admin-multi-user-install`.
 
 The ``.condarc`` file can change many parameters, including:
 
@@ -29,24 +22,18 @@ The ``.condarc`` file can change many parameters, including:
 
 * Where conda lists known environments.
 
-* Whether to update the Bash prompt with the currently activated
-  environment name.
+* Whether to update the Bash prompt with the currently activated environment name.
 
-* Whether user-built packages should be uploaded to
-  `Anaconda.org <http://anaconda.org>`_.
+* Whether user-built packages should be uploaded to `Anaconda.org <http://anaconda.org>`_.
 
 * What default packages or features to include in new environments.
 
 Creating and editing
 ====================
 
-The ``.condarc`` file is not included by default, but it is
-automatically created in your home directory the first time you
-run the ``conda config`` command. To create or modify a ``.condarc``
-file, open a terminal and enter the ``conda config`` command.
+The ``.condarc`` file is not included by default, but it is automatically created in your home directory the first time you run the ``conda config`` command. To create or modify a ``.condarc`` file, open a terminal and enter the ``conda config`` command.
 
-The ``.condarc`` configuration file follows simple
-`YAML syntax <https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html>`_.
+The ``.condarc`` configuration file follows simple `YAML syntax <https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html>`_.
 
 **Example:**
 
@@ -54,24 +41,13 @@ The ``.condarc`` configuration file follows simple
 
   conda config --add channels conda-forge
 
-Alternatively, you can open a text editor such as Notepad
-on Windows, TextEdit on macOS, or VS Code. Name the new file
-``.condarc`` and save it to your user home directory or root
-directory. To edit the ``.condarc`` file, open it from your
-home or root directory and make edits in the same way you would
-with any other text file. If the ``.condarc`` file is in the root
-environment, it will override any in the home directory.
+Alternatively, you can open a text editor such as Notepad on Windows, TextEdit on macOS, or VS Code. Name the new file ``.condarc`` and save it to your user home directory or root directory. To edit the ``.condarc`` file, open it from your home or root directory and make edits in the same way you would with any other text file. If the ``.condarc`` file is in the root environment, it will override any in the home directory.
 
-You can find information about your ``.condarc`` file by typing
-``conda info`` in your terminal. This will give you information about
-your ``.condarc`` file, including where it is located.
+You can find information about your ``.condarc`` file by typing ``conda info`` in your terminal. This will give you information about your ``.condarc`` file, including where it is located.
 
-You can also download a :ref:`sample .condarc file
-<sample-condarc>` to edit in your editor and save to your user
-home directory or root directory.
+You can also download a :ref:`sample .condarc file <sample-condarc>` to edit in your editor and save to your user home directory or root directory.
 
-To set configuration options, edit the ``.condarc`` file directly
-or use the ``conda config --set`` command.
+To set configuration options, edit the ``.condarc`` file directly or use the ``conda config --set`` command.
 
 **Example:**
 
@@ -79,16 +55,9 @@ To set the ``auto_update_conda option`` to ``False``, run::
 
   conda config --set auto_update_conda False
 
-For a complete list of conda config commands, see the
-:doc:`command reference <../../commands/config>`. The same list
-is available at the terminal by running
-``conda config --help``. You can also see the `conda channel
-configuration <https://conda.io/projects/conda/en/latest/configuration.html>`_ for more information.
+For a complete list of conda config commands, see the :doc:`command reference <../../commands/config>`. The same list is available at the terminal by running ``conda config --help``. You can also see the `conda channel configuration <https://conda.io/projects/conda/en/latest/configuration.html>`_ for more information.
 
-Conda supports a wide range of configuration options. This page
-gives a non-exhaustive list of the most frequently used options and
-their usage. For a complete list of all available options for your
-version of conda, use the ``conda config --describe`` command.
+Conda supports a wide range of configuration options. This page gives a non-exhaustive list of the most frequently used options and their usage. For a complete list of all available options for your version of conda, use the ``conda config --describe`` command.
 
 .. _condarc_search_precedence:
 
@@ -166,8 +135,7 @@ to $HOME/.config should be used.
 ``CONDARC`` must be a path to a file named ``.condarc``, ``condarc``, or end with a YAML suffix (``.yml`` or ``.yaml``).
 
 .. note::
-   Any ``.condarc`` files that exist in any of these special search path
-   directories need to end in a valid yaml extension (".yml" or ".yaml").
+   Any ``.condarc`` files that exist in any of these special search path    directories need to end in a valid yaml extension (".yml" or ".yaml").
 
 
 Conflict merging strategy
@@ -181,11 +149,7 @@ When conflicts between configurations arise, the following strategies are employ
 Precedence
 ----------
 
-The precedence by which the conda configuration is built out is shown below.
-Each new arrow takes precedence over the ones before it. For example, config
-files (by parse order) will be superseded by any of the other configuration
-options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``)
-will always take precedence over the other 3.
+The precedence by which the conda configuration is built out is shown below. Each new arrow takes precedence over the ones before it. For example, config files (by parse order) will be superseded by any of the other configuration options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``) will always take precedence over the other 3.
 
 .. figure:: /img/config-precedence.png
 
@@ -194,9 +158,7 @@ will always take precedence over the other 3.
 Obtaining information from the .condarc file
 ============================================
 
-You can use the following commands to get the effective settings for conda.
-The effective settings are those that have merged settings from all the sources
-mentioned above.
+You can use the following commands to get the effective settings for conda. The effective settings are those that have merged settings from all the sources mentioned above.
 
 To get all keys and their values:
 
@@ -218,20 +180,15 @@ To show all the configuration file sources and their contents::
 Saving settings to your .condarc file
 =====================================
 
-The ``.condarc`` file can also be modified via conda commands.
-Below are several examples of how to do this.
+The ``.condarc`` file can also be modified via conda commands. Below are several examples of how to do this.
 
-To add a new value, such as
-http://conda.anaconda.org/mutirri, to a specific key, such as
-channels:
+To add a new value, such as http://conda.anaconda.org/conda-forge, to a specific key, such as channels:
 
 .. code-block:: bash
 
-   conda config --add channels http://conda.anaconda.org/mutirri
+   conda config --add channels http://conda.anaconda.org/conda-forge
 
-To remove an existing value, such as
-http://conda.anaconda.org/mutirri from a specific key, such as
-channels:
+To remove an existing value, such as http://conda.anaconda.org/mutirri from a specific key, such as channels:
 
 .. code-block:: bash
 
@@ -243,9 +200,7 @@ To remove a key, such as channels, and all of its values:
 
    conda config --remove-key channels
 
-To configure channels and their priority for a single
-environment, make a ``.condarc`` file in the :ref:`root directory
-of that environment <config-channels>`.
+To configure channels and their priority for a single environment, make a ``.condarc`` file in the :ref:`root directory of that environment <config-channels>`.
 
 .. _sample-condarc:
 
@@ -266,10 +221,9 @@ it can be edited directly. Below is an example ``.condarc`` file:
   # Use "defaults" to automatically include all default channels.
   # Non-url channels will be interpreted as Anaconda.org usernames
   # (this can be changed by modifying the channel_alias key; see below).
-  # The default is just 'defaults'.
+  # The default for miniforge should not be 'defaults' but rather `conda-forge`.
   channels:
-    - r
-    - defaults
+    - conda-forge
 
   # Show channel URLs when displaying what is going to be downloaded
   # and in 'conda list'. The default is False.
