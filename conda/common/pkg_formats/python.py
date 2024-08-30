@@ -21,7 +21,7 @@ from posixpath import normpath as posix_normpath
 
 from ... import CondaError
 from ...auxlib.decorators import memoizedproperty
-from ..compat import open
+from ..compat import open_utf8
 from ..iterators import groupby_to_dict as groupby
 from ..path import (
     get_major_minor_version,
@@ -210,7 +210,7 @@ class PythonDistribution:
         for fname in self.REQUIRES_FILES:
             fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
-                with open(fpath) as fh:
+                with open_utf8(fpath) as fh:
                     data = fh.read()
 
                 requires, extras = self._parse_requires_file_data(data)
@@ -278,7 +278,7 @@ class PythonDistribution:
                 return tuple(records)
 
             csv_delimiter = ","
-            with open(manifest_full_path) as csvfile:
+            with open_utf8(manifest_full_path) as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
                 records = process_csv_row(record_reader)
@@ -377,7 +377,7 @@ class PythonDistribution:
         for fname in self.ENTRY_POINTS_FILES:
             fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
-                with open(fpath) as fh:
+                with open_utf8(fpath) as fh:
                     data = fh.read()
         return self._parse_entries_file_data(data)
 
@@ -608,7 +608,7 @@ class PythonDistributionMetadata:
 
             # FIXME: Is this a correct assumption for the encoding?
             # This was needed due to some errors on windows
-            with open(fpath) as fp:
+            with open_utf8(fpath) as fp:
                 data = parser.parse(fp)
 
         return cls._message_to_dict(data)
@@ -938,7 +938,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
 
     egg_link_path = join(prefix_path, win_path_ok(egg_link_file))
     try:
-        with open(egg_link_path) as fh:
+        with open_utf8(egg_link_path) as fh:
             # See: https://setuptools.readthedocs.io/en/latest/formats.html#egg-links
             # "...Each egg-link file should contain a single file or directory name
             # with no newlines..."
@@ -946,7 +946,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     except UnicodeDecodeError:
         from locale import getpreferredencoding
 
-        with open(egg_link_path, encoding=getpreferredencoding()) as fh:
+        with open_utf8(egg_link_path, encoding=getpreferredencoding()) as fh:
             egg_link_contents = fh.readlines()[0].strip()
 
     if lexists(egg_link_contents):

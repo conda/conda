@@ -1,17 +1,21 @@
 [conda-logo]: https://s3.amazonaws.com/conda-dev/conda_logo.svg
-[tests-badge]: https://github.com/conda/conda/actions/workflows/tests.yml/badge.svg
-[images-badge]: https://github.com/conda/conda/actions/workflows/images.yml/badge.svg
-[codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main.svg?label=coverage
+[tests-badge]: https://img.shields.io/github/actions/workflow/status/conda/conda/tests.yml?branch=main&event=schedule&logo=github&label=tests
+[codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main?logo=codecov
 [codspeed-badge]: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
-[release-badge]: https://img.shields.io/github/release/conda/conda.svg
+[release-badge]: https://img.shields.io/github/v/release/conda/conda?logo=github
+[anaconda-badge]: https://img.shields.io/conda/vn/anaconda/conda?logo=anaconda
+[conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/conda?logo=conda-forge
 [gitpod]: https://gitpod.io/button/open-in-gitpod.svg
 
 [![Conda Logo][conda-logo]](https://github.com/conda/conda)
 
-[![Tests (GitHub Actions)][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml)
+[![GitHub Scheduled Tests][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml?query=branch%3Amain+event%3Aschedule)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
 [![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
-[![latest release version][release-badge]](https://github.com/conda/conda/releases)
+<br>
+[![GitHub Release][release-badge]](https://github.com/conda/conda/releases)
+[![Anaconda Package][anaconda-badge]](https://anaconda.org/anaconda/conda)
+[![conda-forge Package][conda-forge-badge]](https://anaconda.org/conda-forge/conda)
 
 Conda is a cross-platform, language-agnostic binary package manager. It is the
 package manager used by [Anaconda](https://www.anaconda.com/distribution/) installations, but it may be

@@ -44,7 +44,7 @@ from ..common.configuration import (
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
-from ..common.path import expand, paths_equal
+from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
 from .constants import (
@@ -776,9 +776,8 @@ class Context(Configuration):
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
-        bin_dir = "Scripts" if on_win else "bin"
         exe = "conda.exe" if on_win else "conda"
-        return join(self.conda_prefix, bin_dir, exe)
+        return join(self.conda_prefix, BIN_DIRECTORY, exe)
 
     @property
     def av_data_dir(self):
@@ -812,12 +811,11 @@ class Context(Configuration):
                 "CONDA_PYTHON_EXE": sys.executable,
             }
         else:
-            bin_dir = "Scripts" if on_win else "bin"
             exe = "conda.exe" if on_win else "conda"
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
             return {
-                "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
+                "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
                 "_CE_M": "",
                 "_CE_CONDA": "",
                 "CONDA_PYTHON_EXE": sys.executable,
