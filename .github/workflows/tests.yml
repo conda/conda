@@ -15,6 +15,11 @@ on:
   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_dispatch
   workflow_dispatch:
 
+  # no payload
+  schedule:
+      # https://crontab.guru/#37_18_*_*_*
+    - cron: 37 18 * * *
+
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
   # or commit SHA as a fallback. If a new build is triggered under that
@@ -62,7 +67,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
     strategy:
@@ -161,7 +166,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -334,7 +339,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -397,7 +402,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:
@@ -511,7 +516,10 @@ jobs:
     needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
     if: >-
       !cancelled()
-      && needs.changes.outputs.code == 'true'
+      && (
+        github.event_name == 'schedule'
+        || needs.changes.outputs.code == 'true'
+      )
 
     runs-on: ubuntu-latest
     steps:

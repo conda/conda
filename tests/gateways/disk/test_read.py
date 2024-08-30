@@ -1,24 +1,21 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from os.path import dirname, isdir, join
-from pprint import pprint
+from __future__ import annotations
 
-import pytest
+from pathlib import Path
+from pprint import pprint
 
 from conda.common.compat import on_win
 from conda.common.path import get_python_site_packages_short_path
 from conda.common.serialize import json_dump, json_load
 from conda.gateways.disk.read import read_python_record
-from tests.data.env_metadata import __file__ as env_metadata_file
 
-ENV_METADATA_DIR = dirname(env_metadata_file)
+ENV_METADATA_DIR = Path(__file__).parent.parent.parent / "data" / "env_metadata"
 
 
 def test_scrapy_py36_osx_whl():
     anchor_file = "lib/python3.6/site-packages/Scrapy-1.5.1.dist-info/RECORD"
-    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
@@ -79,9 +76,7 @@ def test_scrapy_py36_osx_whl():
 
 def test_twilio_py36_osx_whl():
     anchor_file = "lib/python3.6/site-packages/twilio-6.16.1.dist-info/RECORD"
-    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
     pprint(prefix_rec.depends)
     pprint(prefix_rec.constrains)
@@ -132,9 +127,7 @@ def test_twilio_py36_osx_whl():
 
 def test_pyjwt_py36_osx_whl():
     anchor_file = "lib/python3.6/site-packages/PyJWT-1.6.4.dist-info/RECORD"
-    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
@@ -176,9 +169,7 @@ def test_pyjwt_py36_osx_whl():
 
 def test_cherrypy_py36_osx_whl():
     anchor_file = "lib/python3.6/site-packages/CherryPy-17.2.0.dist-info/RECORD"
-    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
@@ -227,9 +218,7 @@ def test_cherrypy_py36_osx_whl():
 
 def test_scrapy_py27_osx_no_binary():
     anchor_file = "lib/python2.7/site-packages/Scrapy-1.5.1-py2.7.egg-info/PKG-INFO"
-    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
@@ -285,9 +274,7 @@ def test_scrapy_py27_osx_no_binary():
 
 def test_twilio_py27_osx_no_binary():
     anchor_file = "lib/python2.7/site-packages/twilio-6.16.1-py2.7.egg-info/PKG-INFO"
-    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
     pprint(prefix_rec.depends)
     pprint(prefix_rec.constrains)
@@ -321,9 +308,7 @@ def test_twilio_py27_osx_no_binary():
 
 def test_pyjwt_py27_osx_no_binary():
     anchor_file = "lib/python2.7/site-packages/PyJWT-1.6.4-py2.7.egg-info/PKG-INFO"
-    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
@@ -355,9 +340,7 @@ def test_pyjwt_py27_osx_no_binary():
 
 def test_cherrypy_py27_osx_no_binary():
     anchor_file = "lib/python2.7/site-packages/CherryPy-17.2.0-py2.7.egg-info/PKG-INFO"
-    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
@@ -404,9 +387,7 @@ def test_cherrypy_py27_osx_no_binary():
 
 def test_six_py27_osx_no_binary_unmanageable():
     anchor_file = "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/PKG-INFO"
-    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
-    if not isdir(prefix_path):
-        pytest.skip(f"test files not found: {prefix_path}")
+    prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
     dumped_rec = json_load(json_dump(prefix_rec.dump()))
