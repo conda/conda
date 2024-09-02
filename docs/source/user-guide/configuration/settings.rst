@@ -97,7 +97,7 @@ handler called, "test-auth-handler" registered via the aforementioned plugin hoo
    schema must match exactly to the channel URL, so a pattern like ``*`` is not valid.
 
 
-``allowlist_channels``and ``denylist_channels``: Allow or deny specific channels
+``allowlist_channels`` and ``denylist_channels``: Allow or deny specific channels
 --------------------------------------------------------------------------------
 
 .. versionadded:: 24.9.0
@@ -109,10 +109,12 @@ With ``allowlist_channels`` and ``denylist_channels``, you can allow or deny spe
 from being used in conda operations. This is useful for restricting the channels that conda
 can access, especially in enterprise or multi-user environments.
 
+The denylist takes precedence over the allowlist. If a channel is in both lists, it is denied.
+
 **Examples:**
 
-An example for the alllowlist_channels configuration is (which would only allow the defaults
-and conda-forge channels):
+An example which allows the ``defaults`` and ``conda-forge`` channels with the ``alllowlist_channels``
+setting is:
 
 .. code-block:: yaml
 
@@ -120,15 +122,15 @@ and conda-forge channels):
     - defaults
     - conda-forge
 
-An example for the ``denylist_channels`` configuration is (which would deny the conda-forge channel):
+An example which denies the ``conda-forge`` channel with the ``denylist_channels`` setting is:
 
 .. code-block:: yaml
 
   denylist_channels:
     - conda-forge
 
-An example for both the ``allowlist_channels`` and ``denylist_channels`` configuration is
-(which would explicitely allow the defaults channel but deny the conda-forge channel):
+An example which explicitely allows the ``defaults`` channel but denies the ``conda-forge`` channel
+by using both the ``allowlist_channels`` and ``denylist_channels`` settings is:
 
 .. code-block:: yaml
 
@@ -137,9 +139,8 @@ An example for both the ``allowlist_channels`` and ``denylist_channels`` configu
   denylist_channels:
     - conda-forge
 
-The denylist takes precedence over the allowlist. If a channel is in both lists, it is denied.
-Channels are automatically normalized based on thei base URLs, so you can use either the full
-channel URL or just the base URL.
+An example to show that channels are automatically normalized based on their base URLs,
+so you can use either the full channel URL or just the base URL:
 
 .. code-block:: yaml
 
@@ -148,7 +149,7 @@ channel URL or just the base URL.
   denylist_channels:
     - https://conda.anaconda.org/conda-forge/linux-64
 
-In case you want to prevent using the defaults channel, you can use the following configuration:
+An example that denies using the ``defaults`` channel:
 
 .. code-block:: yaml
 
