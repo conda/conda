@@ -9,8 +9,6 @@ from __future__ import annotations
 from argparse import SUPPRESS, _HelpAction
 from typing import TYPE_CHECKING
 
-from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
-
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
@@ -180,7 +178,7 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
     )
     output_and_prompt_options.add_argument(
         "--console",
-        default=DEFAULT_CONSOLE_REPORTER_BACKEND,
+        default=NULL,
         help="Select the backend to use for normal output rendering.",
     )
     add_parser_verbose(output_and_prompt_options)

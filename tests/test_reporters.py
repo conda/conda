@@ -2,44 +2,22 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from types import SimpleNamespace
+from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.plugins import CondaReporterBackend
-from conda.plugins.types import ReporterRendererBase
-from conda.reporters import render
+from conda.plugins.reporter_backends.console import TQDMProgressBar
+from conda.reporters import get_progress_bar, get_progress_bar_context_manager, render
 
 if TYPE_CHECKING:
     from pytest import CaptureFixture
 
 
-class DummyReporterRenderer(ReporterRendererBase):
-    def envs_list(self, data, **kwargs) -> str:
-        return f"envs_list: {data}"
-
-    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
-        return f"detail_view: {data}"
-
-
-def test_reporter_manager(capsys: CaptureFixture, mocker):
+def test_render(capsys: CaptureFixture):
     """
-    Ensure basic coverage of the :class:`~conda.common.io.ReporterManager` class.
+    Ensure basic coverage of the :func:`~conda.reporters.render` function.
     """
-    # Setup
-    reporter_backend = CondaReporterBackend(
-        name="test-reporter-backend",
-        description="test",
-        renderer=DummyReporterRenderer,
-    )
-    plugin_manager = SimpleNamespace(get_reporter_backend=lambda _: reporter_backend)
-    reporters = {"backend": "test-reporter-backend"}
-
-    context = mocker.patch("conda.reporters.context")
-    context.plugin_manager = plugin_manager
-    context.reporters = reporters
-
     # Test simple rendering of object
     render("test-string")
 
@@ -48,10 +26,11 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
     assert not stderr
 
     # Test rendering of object with a style
-    render("test-string", style="envs_list")
+    render(["test-string"], style="envs_list")
 
     stdout, stderr = capsys.readouterr()
-    assert stdout == "envs_list: test-string"
+    assert "conda environments" in stdout
+    assert "test-string" in stdout
     assert not stderr
 
     # Test error when style cannot be found
@@ -60,3 +39,22 @@ def test_reporter_manager(capsys: CaptureFixture, mocker):
         match="'non_existent_view' is not a valid reporter backend style",
     ):
         render({"test": "data"}, style="non_existent_view")
+
+
+def test_get_progress_bar():
+    """
+    Ensure basic coverage of the :func:`~conda.reporters.get_progress_bar~` function
+    """
+    progress_bar_manager = get_progress_bar("test")
+
+    assert isinstance(progress_bar_manager, TQDMProgressBar)
+
+
+def test_get_progress_bar_context_managers():
+    """
+    Ensure basic coverage of the
+    :func:`~conda.reporters.get_progress_bar_context_manager~` function
+    """
+    progress_bar_context_manager = get_progress_bar_context_manager()
+
+    assert isinstance(progress_bar_context_manager, nullcontext)

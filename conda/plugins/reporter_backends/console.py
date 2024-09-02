@@ -8,13 +8,92 @@ This reporter backend provides the default output for conda.
 
 from __future__ import annotations
 
+import sys
+from errno import EPIPE, ESHUTDOWN
 from os.path import basename, dirname
 
 from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
 from ...base.context import context
+from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from .. import CondaReporterBackend, hookimpl
-from ..types import ReporterRendererBase
+from ..types import ProgressBarBase, ReporterRendererBase
+
+
+class QuietProgressBar(ProgressBarBase):
+    """
+    Progress bar class used when no output should be printed
+    """
+
+    def update_to(self, fraction) -> None:
+        pass
+
+    def refresh(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+class TQDMProgressBar(ProgressBarBase):
+    """
+    Progress bar class used for tqdm progress bars
+    """
+
+    def __init__(
+        self,
+        description: str,
+        position=None,
+        leave=True,
+        **kwargs,
+    ) -> None:
+        super().__init__(description)
+
+        self.enabled = True
+
+        bar_format = "{desc}{bar} | {percentage:3.0f}% "
+
+        try:
+            self.pbar = self._tqdm(
+                desc=description,
+                bar_format=bar_format,
+                ascii=True,
+                total=1,
+                file=sys.stdout,
+                position=position,
+                leave=leave,
+            )
+        except OSError as e:
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.enabled = False
+            else:
+                raise
+
+    def update_to(self, fraction) -> None:
+        try:
+            if self.enabled:
+                self.pbar.update(fraction - self.pbar.n)
+        except OSError as e:
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.enabled = False
+            else:
+                raise
+
+    @swallow_broken_pipe
+    def close(self) -> None:
+        if self.enabled:
+            self.pbar.close()
+
+    def refresh(self) -> None:
+        if self.enabled:
+            self.pbar.refresh()
+
+    @staticmethod
+    def _tqdm(*args, **kwargs):
+        """Deferred import so it doesn't hit the `conda activate` paths."""
+        from tqdm.auto import tqdm
+
+        return tqdm(*args, **kwargs)
 
 
 class ConsoleReporterRenderer(ReporterRendererBase):
@@ -33,7 +112,10 @@ class ConsoleReporterRenderer(ReporterRendererBase):
 
         return "\n".join(table_parts)
 
-    def envs_list(self, prefixes, **kwargs) -> str:
+    def envs_list(self, prefixes, output=True, **kwargs) -> str:
+        if not output:
+            return ""
+
         output = ["", "# conda environments:", "#"]
 
         def disp_env(prefix):
@@ -54,6 +136,19 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         output.append("\n")
 
         return "\n".join(output)
+
+    def progress_bar(
+        self,
+        description: str,
+        **kwargs,
+    ) -> ProgressBarBase:
+        """
+        Determines whether to return a TQDMProgressBar or QuietProgressBar
+        """
+        if context.quiet:
+            return QuietProgressBar(description, **kwargs)
+        else:
+            return TQDMProgressBar(description, **kwargs)
 
 
 @hookimpl(

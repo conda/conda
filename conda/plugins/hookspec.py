@@ -348,13 +348,39 @@ class CondaSpecs:
            from pprint import pformat
 
            from conda import plugins
-           from conda.plugins.types import CondaReporterBackend, ReporterRendererBase
+           from conda.plugins.types import (
+               CondaReporterBackend,
+               ReporterRendererBase,
+               ProgressBarBase,
+           )
 
 
-           class PprintReporter(ReporterRendererBase):
+           class PprintReporterRenderer(ReporterRendererBase):
+               "Implementation of the ReporterRendererBase"
 
                def detail_view(self, data):
                    return pformat(data)
+
+               def envs_list(self, data):
+                   formatted_data = pformat(data)
+                   return f"Environments: {formatted_data}"
+
+               def progress_bar(self, description, io_context_manager) -> ProgressBarBase:
+                   "Returns our custom progress bar implementation"
+                   return PprintProgressBar(description, io_context_manager)
+
+
+           class PprintProgressBar(ProgressBarBase):
+               "Blank implementation of ProgressBarBase which does nothing"
+
+               def update_to(self, fraction) -> None:
+                   pass
+
+               def refresh(self) -> None:
+                   pass
+
+               def close(self) -> None:
+                   pass
 
 
            @plugins.hookimpl
@@ -362,7 +388,7 @@ class CondaSpecs:
                yield CondaReporterBackend(
                    name="pprint",
                    description="Reporter backend based on the pprint module",
-                   renderer=PprintReporter,
+                   renderer=PprintReporterRenderer,
                )
 
         """

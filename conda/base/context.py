@@ -55,6 +55,7 @@ from .constants import (
     DEFAULT_CHANNELS_WIN,
     DEFAULT_CONSOLE_REPORTER_BACKEND,
     DEFAULT_CUSTOM_CHANNELS,
+    DEFAULT_JSON_REPORTER_BACKEND,
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
@@ -416,8 +417,9 @@ class Context(Configuration):
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
-    console = ParameterLoader(
-        PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str)
+    _console = ParameterLoader(
+        PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str),
+        aliases=["console"],
     )
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
@@ -1149,6 +1151,12 @@ class Context(Configuration):
         # None, None if not on Linux
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
+
+    @property
+    def console(self) -> str:
+        if self.json:
+            return DEFAULT_JSON_REPORTER_BACKEND
+        return self._console
 
     @property
     def category_map(self):
