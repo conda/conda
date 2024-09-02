@@ -127,7 +127,8 @@ An example for the ``denylist_channels`` configuration is (which would deny the 
   denylist_channels:
     - conda-forge
 
-An example for both the ``allowlist_channels`` and ``denylist_channels`` configuration is (which would explicitely allow the defaults channel but deny the conda-forge channel):
+An example for both the ``allowlist_channels`` and ``denylist_channels`` configuration is
+(which would explicitely allow the defaults channel but deny the conda-forge channel):
 
 .. code-block:: yaml
 
