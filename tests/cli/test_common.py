@@ -130,10 +130,12 @@ def test_print_envs_list(capsys):
 
     TODO: this function is deprecated and this test should be remove when this function is removed
     """
-    print_envs_list(["test"])
-    captured = capsys.readouterr()
+    with pytest.deprecated_call():
+        print_envs_list(["test"])
 
-    assert "test" in captured.out
+    capture = capsys.readouterr()
+
+    assert "test" in capture.out
 
 
 def test_print_envs_list_output_false(capsys):
@@ -142,7 +144,10 @@ def test_print_envs_list_output_false(capsys):
 
     TODO: this function is deprecated and this test should be remove when this function is removed
     """
-    print_envs_list(["test"], output=False)
-    captured = capsys.readouterr()
 
-    assert captured.out == ""
+    with pytest.deprecated_call():
+        print_envs_list(["test"], output=False)
+
+    capture = capsys.readouterr()
+
+    assert capture.out == ""

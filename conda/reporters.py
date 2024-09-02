@@ -61,15 +61,11 @@ def get_progress_bar(description: str, **kwargs) -> ProgressBarBase:
     """
     Retrieve the progress bar for the currently configured reporter backend
     """
-    reporter = context.plugin_manager.get_reporter_backend(context.console)
-
-    return reporter.renderer().progress_bar(description, **kwargs)
+    return _get_render_func("progress_bar")(description, **kwargs)
 
 
 def get_progress_bar_context_manager() -> ContextManager:
     """
     Retrieve progress bar context manager to use with registered reporter
     """
-    reporter = context.plugin_manager.get_reporter_backend(context.console)
-
-    return reporter.renderer().progress_bar_context_manager()
+    return _get_render_func("progress_bar_context_manager")()

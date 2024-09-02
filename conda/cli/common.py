@@ -213,7 +213,11 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.reporters.render` instead")
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.render(style='env_list')` instead.",
+)
 def print_envs_list(known_conda_prefixes, output=True):
     render(known_conda_prefixes, style="envs_list", output=output)
 
