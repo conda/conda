@@ -153,7 +153,7 @@ class QuietSpinner(SpinnerBase):
         sys.stdout.write(f"{self.message}: ")
         sys.stdout.flush()
 
-        sys.stdout.write("...working...")
+        sys.stdout.write("...working... ")
         sys.stdout.flush()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
