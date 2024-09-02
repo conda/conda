@@ -37,35 +37,25 @@ def check_allowlist(channel_urls: list[str]) -> None:
     :raises ChannelNotAllowed: If any URL is not in the allowlist.
     :raises ChannelDenied: If any URL is in the denylist.
     """
-    if context.allowlist_channels:
-        allowlist_channel_urls = tuple(
-            chain.from_iterable(
-                Channel(allowlist_channel).base_urls
-                for allowlist_channel in context.allowlist_channels
-            )
+    allowlist_channel_urls = tuple(
+        chain.from_iterable(
+            Channel(allowlist_channel).base_urls
+            for allowlist_channel in context.allowlist_channels
         )
-        for channel_url in channel_urls:
-            channel_base_urls = Channel(channel_url).base_urls
-            if not all(
-                channel_base_url in allowlist_channel_urls
-                for channel_base_url in channel_base_urls
-            ):
-                raise ChannelNotAllowed(Channel(channel_url))
-
-    if context.denylist_channels:
-        denylist_channel_urls = tuple(
-            chain.from_iterable(
-                Channel(denylist_channel).base_urls
-                for denylist_channel in context.denylist_channels
-            )
+    )
+    denylist_channel_urls = tuple(
+        chain.from_iterable(
+            Channel(denylist_channel).base_urls
+            for denylist_channel in context.denylist_channels
         )
-        for channel_url in channel_urls:
-            channel_base_urls = Channel(channel_url).base_urls
-            if any(
-                channel_base_url in denylist_channel_urls
-                for channel_base_url in channel_base_urls
-            ):
-                raise ChannelDenied(Channel(channel_url))
+    )
+    for channel_url in channel_urls:
+        channel = Channel(channel_url)
+        for channel_base_url in channel.base_urls:
+            if denylist_channel_urls and channel_base_url in denylist_channel_urls:
+                raise ChannelDenied(channel)
+            if context.allowlist_channels and channel_base_url not in allowlist_channel_urls:
+                raise ChannelNotAllowed(channel)
 
 
 LAST_CHANNEL_URLS = []
