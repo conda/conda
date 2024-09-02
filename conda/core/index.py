@@ -52,7 +52,7 @@ def check_allowlist(channel_urls: list[str]) -> None:
             ):
                 raise ChannelNotAllowed(Channel(channel_url))
 
-    elif context.denylist_channels:
+    if context.denylist_channels:
         denylist_channel_urls = tuple(
             chain.from_iterable(
                 Channel(denylist_channel).base_urls
