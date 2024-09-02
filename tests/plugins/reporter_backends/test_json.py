@@ -3,7 +3,11 @@
 import json
 
 from conda.common.serialize import json_dump
-from conda.plugins.reporter_backends.json import JSONProgressBar, JSONReporterRenderer
+from conda.plugins.reporter_backends.json import (
+    JSONProgressBar,
+    JSONReporterRenderer,
+    JSONSpinner,
+)
 
 
 def test_json_handler():
@@ -53,3 +57,15 @@ def test_json_progress_bar_not_enabled(mocker):
     progress_bar.close()
 
     assert mock_stdout.write.mock_calls == []
+
+
+def test_json_spinner(capsys):
+    """
+    Ensure that the JSONSpinner does not print anything to stdout
+    """
+    with JSONSpinner("Test"):
+        pass
+
+    capture = capsys.readouterr()
+
+    assert capture.out == ""

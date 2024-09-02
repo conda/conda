@@ -7,6 +7,8 @@ import pytest
 
 from conda.plugins.reporter_backends.console import (
     ConsoleReporterRenderer,
+    QuietSpinner,
+    Spinner,
     TQDMProgressBar,
 )
 
@@ -116,3 +118,78 @@ def test_tqdm_progress_bar_update_to_os_error_with_errno_epipe(mocker):
     progress_bar.close()
 
     assert not progress_bar.enabled
+
+
+def test_spinner(capsys):
+    """
+    Ensure that the ``Spinner`` works by producing the expected output.
+    """
+    with Spinner("Test message"):
+        pass
+
+    capture = capsys.readouterr()
+
+    assert "Test message" in capture.out
+    assert "done" in capture.out
+
+
+def test_spinner_with_error(capsys):
+    """
+    Ensure that the ``Spinner`` works by producing the expected output
+    when an exception is encountered.
+    """
+    try:
+        with Spinner("Test message"):
+            raise Exception("Test")
+    except Exception as exc:
+        assert str(exc) == "Test"
+
+    capture = capsys.readouterr()
+
+    assert "Test message" in capture.out
+    assert "failed" in capture.out
+
+
+def test_spinner_with_os_error_errno_epipe(mocker, capsys):
+    """
+    Ensure that the spinner stops when OSError of type EPIPE is encountered
+    """
+    os_error = OSError("test")
+    os_error.errno = EPIPE
+    tqdm_mock = mocker.patch("conda.plugins.reporter_backends.console.sleep")
+    tqdm_mock().side_effect = os_error
+
+    with Spinner("Test message"):
+        pass
+
+    capture = capsys.readouterr()
+
+    assert "Test message" in capture.out
+
+
+def test_quiet_spinner(capsys):
+    """
+    Ensure that the ``QuietSpinner`` works by producing the expected output.
+    """
+    with QuietSpinner("Test message"):
+        pass
+
+    capture = capsys.readouterr()
+
+    assert capture.out == "Test message: ...working... done\n"
+
+
+def test_quiet_spinner_with_error(capsys):
+    """
+    Ensure that the ``QuietSpinner`` works by producing the expected output
+    when an exception is encountered.
+    """
+    try:
+        with QuietSpinner("Test message"):
+            raise Exception("Test")
+    except Exception as exc:
+        assert str(exc) == "Test"
+
+    capture = capsys.readouterr()
+
+    assert capture.out == "Test message: ...working... failed\n"
