@@ -92,9 +92,7 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
         "https://beta.conda.anaconda.org/conda-test",
         "conda-forge",
     )
-    denylist = (
-        "conda-forge",
-    )
+    denylist = ("conda-forge",)
     monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
     monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
     monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
