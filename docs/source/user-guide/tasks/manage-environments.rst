@@ -953,11 +953,11 @@ Create explicit lockfiles without creating an environment
 =========================================================
 
 ``@EXPLICIT`` lockfiles allow you to (re)create environments without invoking the solver.
-They consist of a ``@EXPLICIT`` header plus a list of conda package URLs optionally followed
+They consist of an ``@EXPLICIT`` header plus a list of conda package URLs, optionally followed
 by their MD5 or SHA256 hash.
 
 They can be obtained from existing environments via ``conda list --explicit``, as seen in ...
-But what if you only need the lockfile? Would you need create a temporary environment first just
+But what if you only need the lockfile? Would you need create to a temporary environment first just
 to delete it later? There's a way of using the JSON outputs and ``jq`` to avoid this.
 
 You'll need ``jq`` in your system. You can install via ``conda`` (e.g. ``conda create -n jq jq``)
