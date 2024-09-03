@@ -17,10 +17,12 @@ The following commands are part of conda:
    :glob:
    :maxdepth: 2
 
+   activate
    clean
    compare
    config
    create
+   deactivate
    doctor
    env/index
    info
