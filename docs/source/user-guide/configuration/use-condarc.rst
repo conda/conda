@@ -67,13 +67,11 @@ Searching for .condarc
 
 For Windows users, conda can be installed into any directory that you can write into. The default installation directory for Miniconda could be either of the following depending on what type of user you are:
 
-- Single-user installations where the installer determines that the user is a domain user: %LOCALAPPDATA%\miniconda3
-- Single-user installations for non-domain users (should apply to many personal computers): %USERPROFILE%\miniconda3
-- All-users installations: %ALLUSERSPROFILE%\miniconda3.
+- Single-user installations where the installer determines that the user is a domain user: %LOCALAPPDATA%\<install_directory_name>
+- Single-user installations for non-domain users (should apply to many personal computers): %USERPROFILE%\<install_directory_name>
+- All-users installations: %ALLUSERSPROFILE%\<install_directory_name>
 
-.. note::
-
-   The above example is for Miniconda only. Windows users of Anaconda, miniforge, etc. are encouraged to contribute to this documentation.
+Where `<install_directory_name>` is the name of your conda install location.
 
 
 For UNIX like operating systems, conda searches the following locations for ``.condarc`` files in order:
