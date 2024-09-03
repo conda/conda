@@ -15,7 +15,7 @@ The following commands are part of conda:
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
 
    activate
    clean
@@ -31,6 +31,7 @@ The following commands are part of conda:
    list
    notices
    package
+   repoquery/index
    remove
    rename
    run
