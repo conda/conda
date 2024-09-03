@@ -966,7 +966,7 @@ process the output with ``jq``.
 
 .. tip::
 
-   You'll need ``jq`` in your system. If you don't have it yet, you can install it via 
+   You'll need ``jq`` in your system. If you don't have it yet, you can install it via
    ``conda`` (e.g. ``conda create -n jq jq``) or via your system package manager.
 
 The command looks like this for Linux and macOS (replace ``MATCHSPECS_GO_HERE`` with the relevant
