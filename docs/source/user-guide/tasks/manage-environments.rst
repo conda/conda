@@ -283,6 +283,7 @@ To verify that the copy was made:
 In the environments list that displays, you should see both the
 source environment and the new copy.
 
+.. _identical-conda-envs:
 
 Building identical conda environments
 =====================================
@@ -956,24 +957,29 @@ Create explicit lockfiles without creating an environment
 They consist of an ``@EXPLICIT`` header plus a list of conda package URLs, optionally followed
 by their MD5 or SHA256 hash.
 
-They can be obtained from existing environments via ``conda list --explicit``, as seen in ...
-But what if you only need the lockfile? Would you need create to a temporary environment first just
-to delete it later? There's a way of using the JSON outputs and ``jq`` to avoid this.
+They can be obtained from existing environments via ``conda list --explicit``, as seen in
+:ref:`identical-conda-envs`.
 
-You'll need ``jq`` in your system. You can install via ``conda`` (e.g. ``conda create -n jq jq``)
-or via your system package manager.
+But what if you only need the lockfile? Would you need create to a temporary environment first just
+to delete it later? Fortunately, there's a way: you can invoke ``conda`` in JSON mode and then
+process the output with ``jq``.
+
+.. tip::
+
+   You'll need ``jq`` in your system. If you don't have it yet, you can install it via 
+   ``conda`` (e.g. ``conda create -n jq jq``) or via your system package manager.
 
 The command looks like this for Linux and macOS (replace ``MATCHSPECS_GO_HERE`` with the relevant
 packages you want):
 
-.. code::
+.. code-block:: shell
 
    echo "@EXPLICIT" > explicit.txt
    CONDA_PKGS_DIRS=$(mktemp -d) conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
 
 The syntax in Windows only needs some small changes:
 
-.. code::
+.. code-block:: shell
 
    echo "@EXPLICIT" > explicit.txt
    set "CONDA_PKGS_DIRS=%TMP%\conda-%RANDOM%"
