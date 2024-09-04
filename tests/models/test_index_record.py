@@ -1,8 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import pytest
+
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_unmodified
 from conda.models.channel import Channel
+from conda.models.enums import PackageType
 from conda.models.records import PackageRecord, PrefixRecord
 
 blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
@@ -96,3 +99,33 @@ def test_package_record_feature():
     assert feature_record == reference_package
     assert feature_record.md5 == md5
     assert feature_record.track_features == (feature_name,)
+
+
+@pytest.mark.parametrize(
+    "version,build_string",
+    [
+        (None, None),
+        (None, "testbuild"),
+        ("123", "testbuild"),
+    ],
+)
+def test_package_virtual_package(version, build_string):
+    name = "test_vpkg_name"
+    effective_version = version or "0"
+    effective_build_string = build_string or "0"
+    vpkg_record = PackageRecord.virtual_package(name, version, build_string)
+    md5 = "12345678901234567890123456789012"
+    reference_package = PackageRecord(
+        package_type=PackageType.VIRTUAL_SYSTEM,
+        name=name,
+        version=effective_version,
+        build_string=effective_build_string,
+        channel="@",
+        subdir=context.subdir,
+        md5=md5,
+        build_number=0,
+        fn=name,
+    )
+    assert vpkg_record == reference_package
+    assert vpkg_record.package_type == PackageType.VIRTUAL_SYSTEM
+    assert vpkg_record.md5 == md5
