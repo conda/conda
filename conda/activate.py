@@ -226,7 +226,12 @@ class _Activator(metaclass=abc.ABCMeta):
     def execute(self):
         # return value meant to be written to stdout
         self._parse_and_set_args(self._raw_arguments)
-        return getattr(self, self.command)()
+
+        # invoke pre/post commands, see conda.cli.conda_argparse.do_call
+        context.plugin_manager.invoke_pre_commands(self.command)
+        response = getattr(self, self.command)()
+        context.plugin_manager.invoke_post_commands(self.command)
+        return response
 
     def commands(self):
         """
