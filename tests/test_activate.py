@@ -2259,23 +2259,55 @@ class PrePostCommandPlugin:
         )
 
 
-@pytest.mark.parametrize(
-    "command",
-    ["activate", "deactivate", "reactivate", "hook", "commands"],
-)
-def test_pre_post_command_invoked(
+@pytest.fixture
+def plugin(
     mocker: MockerFixture,
     plugin_manager: CondaPluginManager,
-    command: str,
-) -> None:
+) -> PrePostCommandPlugin:
     mocker.patch.object(PrePostCommandPlugin, "pre_command_action")
     mocker.patch.object(PrePostCommandPlugin, "post_command_action")
 
     plugin = PrePostCommandPlugin()
     plugin_manager.register(plugin)
 
+    return plugin
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["activate", "deactivate", "reactivate", "hook", "commands"],
+)
+def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
     activator = PosixActivator([command])
     activator.execute()
 
     assert len(plugin.pre_command_action.mock_calls) == 1
+    assert len(plugin.post_command_action.mock_calls) == 1
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["activate", "deactivate", "reactivate", "hook", "commands"],
+)
+def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> None:
+    exc_message = "💥"
+
+    # first test post-command exceptions (sine they happen last)
+    plugin.post_command_action.side_effect = Exception(exc_message)
+
+    activator = PosixActivator([command])
+    with pytest.raises(Exception, match=exc_message):
+        activator.execute()
+
+    assert len(plugin.pre_command_action.mock_calls) == 1
+    assert len(plugin.post_command_action.mock_calls) == 1
+
+    # now test pre-command exceptions
+    plugin.pre_command_action.side_effect = Exception(exc_message)
+
+    activator = PosixActivator([command])
+    with pytest.raises(Exception, match=exc_message):
+        activator.execute()
+
+    assert len(plugin.pre_command_action.mock_calls) == 2
     assert len(plugin.post_command_action.mock_calls) == 1
