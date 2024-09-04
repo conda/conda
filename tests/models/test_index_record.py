@@ -74,3 +74,25 @@ def test_index_record_timestamp():
     )
     assert rec.timestamp == ts_secs
     assert rec.dump()["timestamp"] == ts_millis
+
+
+def test_package_record_feature():
+    feature_name = "test_feature_name"
+    package_name = f"{feature_name}@"
+    feature_record = PackageRecord.feature(feature_name)
+    md5 = "12345678901234567890123456789012"
+    track_features = (feature_name,)
+    reference_package = PackageRecord(
+        name=package_name,
+        version="0",
+        build="0",
+        channel="@",
+        subdir=context.subdir,
+        md5=md5,
+        track_features=track_features,
+        build_number=0,
+        fn=package_name,
+    )
+    assert feature_record == reference_package
+    assert feature_record.md5 == md5
+    assert feature_record.track_features == (feature_name,)
