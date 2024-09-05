@@ -412,7 +412,7 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
 
@@ -451,7 +451,7 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
 
@@ -485,7 +485,7 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
 
@@ -537,7 +537,7 @@ def test_build_activate_shlvl_1(
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
     monkeypatch.setenv("PATH", new_path)
@@ -628,7 +628,7 @@ def test_build_stack_shlvl_1(
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
     monkeypatch.setenv("PATH", new_path)
@@ -692,11 +692,11 @@ def test_activate_same_environment(
 
     assert activator.build_activate(prefix) == {
         # "export_path": {},
-        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "deactivate_scripts": activator.path_conversion([deactivate_sh]),
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
 
@@ -768,11 +768,11 @@ def test_build_deactivate_shlvl_2_from_stack(
 
     assert activator.build_deactivate() == {
         "export_path": {"PATH": original_path},
-        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "deactivate_scripts": activator.path_conversion([deactivate_sh]),
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
 
@@ -835,11 +835,11 @@ def test_build_deactivate_shlvl_2_from_activate(
 
     assert activator.build_deactivate() == {
         "export_path": {"PATH": original_path},
-        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "deactivate_scripts": activator.path_conversion([deactivate_sh]),
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
 
@@ -874,9 +874,11 @@ def test_build_deactivate_shlvl_1(
 
     assert activator.build_deactivate() == {
         "export_path": {
-            "PATH": activator.pathsep_join(activator._get_starting_path_list())
+            "PATH": activator.pathsep_join(
+                activator.path_conversion(activator._get_starting_path_list())
+            )
         },
-        "deactivate_scripts": (activator.path_conversion(deactivate_sh),),
+        "deactivate_scripts": activator.path_conversion([deactivate_sh]),
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt()},
         "export_vars": export_vars,
@@ -959,7 +961,7 @@ def test_build_activate_restore_unset_env_vars(
         "unset_vars": unset_vars,
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
-        "activate_scripts": (activator.path_conversion(activate_sh),),
+        "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
     monkeypatch.setenv("PATH", new_path)
