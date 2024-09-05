@@ -198,6 +198,7 @@ def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--override-channels", "--channel=main", "rpy2")
 
+    reset_context()
     # assert conda search can now find rpy2
     stdout, stderr, _ = conda_cli(
         "search",
@@ -206,6 +207,7 @@ def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir
         "rpy2",
         "--json",
     )
+
     assert "rpy2" in json.loads(stdout)
 
 
@@ -280,6 +282,7 @@ def test_anaconda_token_with_private_package(
     capsys.readouterr()
 
     # Step 2. Now with the token make sure we can see the package
+    reset_context()
     channel_url = "https://conda-web.anaconda.org/t/co-de3376bc-5463-41fe-8d14-878c7e6a8253/conda-test"
     stdout, _, _ = conda_cli(
         "search",

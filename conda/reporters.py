@@ -19,7 +19,7 @@ from .base.context import context
 if TYPE_CHECKING:
     from typing import Callable
 
-    from .plugins.types import ProgressBarBase
+    from .plugins.types import ProgressBarBase, SpinnerBase
 
 logger = logging.getLogger(__name__)
 
@@ -69,3 +69,10 @@ def get_progress_bar_context_manager() -> ContextManager:
     Retrieve progress bar context manager to use with registered reporter
     """
     return _get_render_func("progress_bar_context_manager")()
+
+
+def get_spinner(message: str, fail_message: str = "failed\n") -> SpinnerBase:
+    """
+    Retrieve spinner to use with registered reporter
+    """
+    return _get_render_func("spinner")(message, fail_message)

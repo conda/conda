@@ -239,6 +239,18 @@ class ProgressBarBase(ABC):
         pass
 
 
+class SpinnerBase(ABC):
+    def __init__(self, message: str, fail_message: str = "failed\n"):
+        self.message = message
+        self.fail_message = fail_message
+
+    @abstractmethod
+    def __enter__(self): ...
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb): ...
+
+
 class ReporterRendererBase(ABC):
     """
     Base class for all reporter renderers.
@@ -275,6 +287,13 @@ class ReporterRendererBase(ABC):
         Returns a null context by default but allows plugins to define their own if necessary
         """
         return nullcontext()
+
+    @abstractmethod
+    def spinner(self, message, failed_message) -> SpinnerBase:
+        """
+        Return a :class:`~conda.plugins.types.SpinnerBase~` object to use as a spinner (i.e.
+        loading dialog)
+        """
 
 
 @dataclass

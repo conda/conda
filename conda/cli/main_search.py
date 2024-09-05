@@ -163,13 +163,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
     from ..base.context import context
     from ..cli.common import stdout_json
-    from ..common.io import Spinner
     from ..core.envs_manager import query_all_prefixes
     from ..core.index import calculate_channel_urls
     from ..core.subdir_data import SubdirData
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from ..models.version import VersionOrder
+    from ..reporters import get_spinner
 
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value("subdir"):
@@ -178,11 +178,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         subdirs = context.subdirs
 
     if args.envs:
-        with Spinner(
-            f"Searching environments for {spec}",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner(f"Searching environments for {spec}"):
             prefix_matches = query_all_prefixes(spec)
             ordered_result = tuple(
                 {
@@ -231,11 +227,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             print("\n".join(builder))
         return 0
 
-    with Spinner(
-        "Loading channels",
-        not context.verbose and not context.quiet,
-        context.json,
-    ):
+    spinner = get_spinner("Loading channels")
+
+    with spinner:
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
 

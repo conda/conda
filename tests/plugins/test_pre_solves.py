@@ -25,15 +25,15 @@ class PreSolvePlugin:
 @pytest.fixture
 def pre_solve_plugin(
     mocker: MockerFixture,
-    plugin_manager: CondaPluginManager,
+    plugin_manager_with_reporter_backends: CondaPluginManager,
 ) -> PreSolvePlugin:
     mocker.patch.object(PreSolvePlugin, "pre_solve_action")
 
     pre_solve_plugin = PreSolvePlugin()
-    plugin_manager.register(pre_solve_plugin)
+    plugin_manager_with_reporter_backends.register(pre_solve_plugin)
 
     # register solvers
-    plugin_manager.load_plugins(solvers)
+    plugin_manager_with_reporter_backends.load_plugins(solvers)
 
     return pre_solve_plugin
 

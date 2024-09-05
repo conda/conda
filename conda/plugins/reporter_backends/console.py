@@ -10,14 +10,17 @@ from __future__ import annotations
 
 import sys
 from errno import EPIPE, ESHUTDOWN
+from itertools import cycle
 from os.path import basename, dirname
+from threading import Event, Thread
+from time import sleep
 
 from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from .. import CondaReporterBackend, hookimpl
-from ..types import ProgressBarBase, ReporterRendererBase
+from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -96,6 +99,72 @@ class TQDMProgressBar(ProgressBarBase):
         return tqdm(*args, **kwargs)
 
 
+class Spinner(SpinnerBase):
+    spinner_cycle = cycle("/-\\|")
+
+    def __init__(self, message, fail_message="failed\n"):
+        super().__init__(message, fail_message)
+
+        self.show_spin: bool = True
+        self._stop_running = Event()
+        self._spinner_thread = Thread(target=self._start_spinning)
+        self._indicator_length = len(next(self.spinner_cycle)) + 1
+        self.fh = sys.stdout
+
+    def start(self):
+        self._spinner_thread.start()
+
+    def stop(self):
+        self._stop_running.set()
+        self._spinner_thread.join()
+        self.show_spin = False
+
+    def _start_spinning(self):
+        try:
+            while not self._stop_running.is_set():
+                self.fh.write(next(self.spinner_cycle) + " ")
+                self.fh.flush()
+                sleep(0.10)
+                self.fh.write("\b" * self._indicator_length)
+        except OSError as e:
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.stop()
+            else:
+                raise
+
+    @swallow_broken_pipe
+    def __enter__(self):
+        sys.stdout.write(f"{self.message}: ")
+        sys.stdout.flush()
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+        with swallow_broken_pipe:
+            if exc_type or exc_val:
+                sys.stdout.write(self.fail_message)
+            else:
+                sys.stdout.write("done\n")
+            sys.stdout.flush()
+
+
+class QuietSpinner(SpinnerBase):
+    def __enter__(self):
+        sys.stdout.write(f"{self.message}: ")
+        sys.stdout.flush()
+
+        sys.stdout.write("...working... ")
+        sys.stdout.flush()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        with swallow_broken_pipe:
+            if exc_type or exc_val:
+                sys.stdout.write(self.fail_message)
+            else:
+                sys.stdout.write("done\n")
+            sys.stdout.flush()
+
+
 class ConsoleReporterRenderer(ReporterRendererBase):
     """
     Default implementation for console reporting in conda
@@ -149,6 +218,15 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             return QuietProgressBar(description, **kwargs)
         else:
             return TQDMProgressBar(description, **kwargs)
+
+    def spinner(self, message: str, fail_message: str = "failed\n") -> SpinnerBase:
+        """
+        Determines whether to return a Spinner or QuietSpinner
+        """
+        if context.quiet:
+            return QuietSpinner(message, fail_message)
+        else:
+            return Spinner(message, fail_message)
 
 
 @hookimpl(

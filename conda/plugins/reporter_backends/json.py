@@ -17,7 +17,7 @@ from ...base.constants import DEFAULT_JSON_REPORTER_BACKEND
 from ...common.io import swallow_broken_pipe
 from ...common.serialize import json_dump
 from .. import CondaReporterBackend, hookimpl
-from ..types import ProgressBarBase, ReporterRendererBase
+from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
 
 if TYPE_CHECKING:
     from typing import Any
@@ -86,6 +86,21 @@ class JSONReporterRenderer(ReporterRendererBase):
         **kwargs,
     ) -> ProgressBarBase:
         return JSONProgressBar(description, **kwargs)
+
+    def spinner(self, message: str, fail_message: str = "failed\n") -> SpinnerBase:
+        return JSONSpinner(message, fail_message)
+
+
+class JSONSpinner(SpinnerBase):
+    """
+    This class for a JSONSpinner does nothing because we do not want to include this output.
+    """
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
 @hookimpl(
