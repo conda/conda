@@ -55,8 +55,8 @@ from .main_info import configure_parser as configure_parser_info
 from .main_init import configure_parser as configure_parser_init
 from .main_install import configure_parser as configure_parser_install
 from .main_list import configure_parser as configure_parser_list
-from .main_mock_activate import configure_parser as configure_parser_mock_activate
-from .main_mock_deactivate import configure_parser as configure_parser_mock_deactivate
+from .main_mock_activate import configure_parser as configure_parser_activate
+from .main_mock_deactivate import configure_parser as configure_parser_deactivate
 from .main_notices import configure_parser as configure_parser_notices
 from .main_package import configure_parser as configure_parser_package
 from .main_remove import configure_parser as configure_parser_remove
@@ -138,12 +138,12 @@ def generate_parser(**kwargs) -> ArgumentParser:
         required=True,
     )
 
-    configure_parser_mock_activate(sub_parsers)
-    configure_parser_mock_deactivate(sub_parsers)
+    configure_parser_activate(sub_parsers)
     configure_parser_clean(sub_parsers)
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
+    configure_parser_deactivate(sub_parsers)
     configure_parser_env(sub_parsers)
     configure_parser_export(sub_parsers)
     configure_parser_info(sub_parsers)
