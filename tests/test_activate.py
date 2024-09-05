@@ -1294,13 +1294,6 @@ def test_native_path_to_unix(
     ],
 )
 @pytest.mark.parametrize(
-    "unix",
-    [
-        pytest.param(True, id="Unix"),
-        pytest.param(False, id="Windows"),
-    ],
-)
-@pytest.mark.parametrize(
     "cygpath",
     [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
 )
@@ -1309,16 +1302,13 @@ def test_unix_path_to_native(
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
     expected: str | tuple[str, ...] | None,
-    unix: bool,
     cygpath: bool,
 ) -> None:
     windows_prefix = context.target_prefix
-    unix_prefix = native_path_to_unix(windows_prefix)
 
     def format(path: str) -> str:
-        return path.format(UNIX=unix_prefix, WINDOWS=windows_prefix)
+        return path.format(WINDOWS=windows_prefix)
 
-    prefix = unix_prefix if unix else windows_prefix
     if expected:
         expected = (
             tuple(map(format, expected))
@@ -1330,7 +1320,7 @@ def test_unix_path_to_native(
         # test without cygpath
         mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    assert unix_path_to_native(paths, prefix) == expected
+    assert unix_path_to_native(paths, windows_prefix) == expected
 
 
 def test_posix_basic(
