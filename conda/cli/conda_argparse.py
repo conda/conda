@@ -92,7 +92,9 @@ BUILTIN_COMMANDS = {
     "run",
     "search",
     "update",
-    "upgrade",
+    "upgrade",  # update alias
+    "uninstall",  # remove alias
+    "env",
 }
 
 

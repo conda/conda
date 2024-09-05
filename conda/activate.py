@@ -251,7 +251,10 @@ class _Activator(metaclass=abc.ABCMeta):
         # Hidden commands to provide metadata to shells.
         return "\n".join(
             sorted(
-                find_builtin_commands(generate_parser()) + tuple(find_commands(True))
+                {
+                    *find_builtin_commands(generate_parser()),
+                    *find_commands(True),
+                }
             )
         )
 

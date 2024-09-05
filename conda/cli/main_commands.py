@@ -33,10 +33,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     print(
         *sorted(
-            (
+            {
                 *find_builtin_commands(parser),
                 *find_commands(True),
-            )
+            }
         ),
         sep="\n",
         end="",
