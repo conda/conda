@@ -13,7 +13,7 @@ from uuid import uuid4
 
 import pytest
 
-from conda import CondaError, activate
+from conda import CondaError, activate, plugins
 from conda.activate import (
     CmdExeActivator,
     CshActivator,
@@ -36,6 +36,7 @@ from conda.cli.main import main_sourced
 from conda.common.compat import on_win
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.delete import rm_rf
+from conda.plugins.types import CondaPostCommand, CondaPreCommand
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from conda.activate import _Activator
+    from conda.plugins.manager import CondaPluginManager
     from conda.testing import PathFactoryFixture, TmpEnvFixture
 
 
@@ -1272,13 +1274,6 @@ def test_native_path_to_unix(
     ],
 )
 @pytest.mark.parametrize(
-    "unix",
-    [
-        pytest.param(True, id="Unix"),
-        pytest.param(False, id="Windows"),
-    ],
-)
-@pytest.mark.parametrize(
     "cygpath",
     [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
 )
@@ -1287,16 +1282,13 @@ def test_unix_path_to_native(
     mocker: MockerFixture,
     paths: str | Iterable[str] | None,
     expected: str | tuple[str, ...] | None,
-    unix: bool,
     cygpath: bool,
 ) -> None:
     windows_prefix = context.target_prefix
-    unix_prefix = native_path_to_unix(windows_prefix)
 
     def format(path: str) -> str:
-        return path.format(UNIX=unix_prefix, WINDOWS=windows_prefix)
+        return path.format(WINDOWS=windows_prefix)
 
-    prefix = unix_prefix if unix else windows_prefix
     if expected:
         expected = (
             tuple(map(format, expected))
@@ -1308,7 +1300,7 @@ def test_unix_path_to_native(
         # test without cygpath
         mocker.patch("subprocess.run", side_effect=FileNotFoundError)
 
-    assert unix_path_to_native(paths, prefix) == expected
+    assert unix_path_to_native(paths, windows_prefix) == expected
 
 
 def test_posix_basic(
@@ -2211,3 +2203,81 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(activate, function)()
+
+
+class PrePostCommandPlugin:
+    def pre_command_action(self, command: str) -> None:
+        pass
+
+    @plugins.hookimpl
+    def conda_pre_commands(self):
+        yield CondaPreCommand(
+            name="custom-pre-command",
+            action=self.pre_command_action,
+            run_for={"activate", "deactivate", "reactivate", "hook", "commands"},
+        )
+
+    def post_command_action(self, command: str) -> None:
+        pass
+
+    @plugins.hookimpl
+    def conda_post_commands(self):
+        yield CondaPostCommand(
+            name="custom-post-command",
+            action=self.post_command_action,
+            run_for={"activate", "deactivate", "reactivate", "hook", "commands"},
+        )
+
+
+@pytest.fixture
+def plugin(
+    mocker: MockerFixture,
+    plugin_manager: CondaPluginManager,
+) -> PrePostCommandPlugin:
+    mocker.patch.object(PrePostCommandPlugin, "pre_command_action")
+    mocker.patch.object(PrePostCommandPlugin, "post_command_action")
+
+    plugin = PrePostCommandPlugin()
+    plugin_manager.register(plugin)
+
+    return plugin
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["activate", "deactivate", "reactivate", "hook", "commands"],
+)
+def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
+    activator = PosixActivator([command])
+    activator.execute()
+
+    assert len(plugin.pre_command_action.mock_calls) == 1
+    assert len(plugin.post_command_action.mock_calls) == 1
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["activate", "deactivate", "reactivate", "hook", "commands"],
+)
+def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> None:
+    exc_message = "💥"
+
+    # first test post-command exceptions (sine they happen last)
+    plugin.post_command_action.side_effect = Exception(exc_message)
+
+    activator = PosixActivator([command])
+    with pytest.raises(Exception, match=exc_message):
+        activator.execute()
+
+    assert len(plugin.pre_command_action.mock_calls) == 1
+    assert len(plugin.post_command_action.mock_calls) == 1
+
+    # now test pre-command exceptions
+    plugin.pre_command_action.side_effect = Exception(exc_message)
+
+    activator = PosixActivator([command])
+    with pytest.raises(Exception, match=exc_message):
+        activator.execute()
+
+    assert len(plugin.pre_command_action.mock_calls) == 2
+    assert len(plugin.post_command_action.mock_calls) == 1
