@@ -551,8 +551,7 @@ class _Activator(metaclass=abc.ABCMeta):
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         for env_var in old_conda_environment_env_vars.keys():
-            save_var = f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"
-            if save_value := os.getenv(save_var):
+            if save_value := os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"):
                 export_vars[env_var] = save_value
             else:
                 unset_vars.append(env_var)
