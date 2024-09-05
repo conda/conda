@@ -40,6 +40,7 @@ from ..common.io import (
     env_var,
     stderr_log_level,
 )
+from ..common.path import BIN_DIRECTORY
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.prefix_data import PrefixData
@@ -61,7 +62,14 @@ if TYPE_CHECKING:
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
-BIN_DIRECTORY = "Scripts" if on_win else "bin"
+deprecated.constant(
+    "25.3",
+    "23.9",
+    "BIN_DIRECTORY",
+    BIN_DIRECTORY,
+    addendum="Use `conda.common.path.BIN_DIRECTORY` instead.",
+)
+del BIN_DIRECTORY
 UNICODE_CHARACTERS = "ōγђ家固한áêñßôç"
 # UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
 UNICODE_CHARACTERS_RESTRICTED = "abcdef"

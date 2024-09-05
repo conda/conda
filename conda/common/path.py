@@ -235,8 +235,12 @@ def get_major_minor_version(string, with_dot=True):
     return ".".join(maj_min) if with_dot else "".join(maj_min)
 
 
+BIN_DIRECTORY = "Scripts" if on_win else "bin"
+
+
+@deprecated("25.3", "25.9", addendum="Use `conda.common.path.BIN_DIRECTORY` instead.")
 def get_bin_directory_short_path():
-    return "Scripts" if on_win else "bin"
+    return BIN_DIRECTORY
 
 
 def win_path_ok(path):
@@ -319,8 +323,7 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         sp_dir = target_site_packages_short_path
         return source_short_path.replace("site-packages", sp_dir, 1)
     elif source_short_path.startswith("python-scripts/"):
-        bin_dir = get_bin_directory_short_path()
-        return source_short_path.replace("python-scripts", bin_dir, 1)
+        return source_short_path.replace("python-scripts", BIN_DIRECTORY, 1)
     else:
         return source_short_path
 
