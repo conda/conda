@@ -80,6 +80,7 @@ BUILTIN_COMMANDS = {
     "config",
     "create",
     "deactivate",  # Mock entry for shell command
+    "env",
     "export",
     "info",
     "init",
@@ -91,10 +92,9 @@ BUILTIN_COMMANDS = {
     "rename",
     "run",
     "search",
+    "uninstall",  # remove alias
     "update",
     "upgrade",  # update alias
-    "uninstall",  # remove alias
-    "env",
 }
 
 
