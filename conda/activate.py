@@ -229,6 +229,14 @@ class _Activator(metaclass=abc.ABCMeta):
         context.plugin_manager.invoke_post_commands(self.command)
         return response
 
+    @deprecated(
+        "25.3",
+        "25.9",
+        addendum="Use `conda commands` instead.",
+        # these commands are already pretty hidden in their implementation and access (`conda shell.posix commands`)
+        # so we opt to not warn end users that this is going away, we only need to notify tab-completion devs
+        # deprecation_type=FutureWarning,
+    )
     def commands(self):
         """
         Returns a list of possible subcommands that are valid
