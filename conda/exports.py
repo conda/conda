@@ -30,7 +30,7 @@ from .cli.helpers import (  # noqa: F401
 )
 from .common import compat  # noqa: F401
 from .common.compat import on_win  # noqa: F401
-from .common.path import win_path_to_unix  # noqa: F401
+from .common.path import win_path_to_unix
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
 from .core.index import get_index as _get_index
@@ -107,6 +107,24 @@ CondaFileNotFoundError = PathNotFoundError
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
 text_type = str  # noqa: F401
+
+
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "win_path_to_unix",
+    win_path_to_unix,
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+)
+del win_path_to_unix
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_path_to_win",
+    unix_path_to_win,
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
+del unix_path_to_win
 
 
 @deprecated(
