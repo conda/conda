@@ -522,10 +522,11 @@ class Context(Configuration):
             errors.append(error)
         if not self.channels:
             from conda.core.prefix_data import PrefixData
+            from conda.models.channel import Channel
 
             conda_meta_info = next(PrefixData(self.root_prefix).query("conda"), None)
             if conda_meta_info:
-                conda_channel = conda_meta_info.channel
+                conda_channel = Channel(conda_meta_info.channel).canonical_name
             else:
                 conda_channel = "[desired channel]"
             log.warning(
