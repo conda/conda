@@ -731,8 +731,6 @@ def execute_config(args, parser):
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
         for key, item in arg:
             key, subkey = key.split(".", 1) if "." in key else (key, None)
-            if key == "channels" and key not in rc_config:
-                rc_config[key] = ["defaults"]
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key in map_parameters:
