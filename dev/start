@@ -256,6 +256,21 @@ if updating; then
     touch "${_UPDATED}"
 fi
 
+# "install" conda
+# trick conda into importing from our source code and not from site-packages
+if [ -z "${PYTHONPATH+x}" ]; then
+    export PYTHONPATH="${_SRC}"
+else
+    export PYTHONPATH="${_SRC}:${PYTHONPATH}"
+fi
+
+# copy latest shell scripts
+echo "Update shell scripts..."
+if ! "${_ENVEXE}" init --install > /dev/null; then
+    echo "Error: failed to update shell scripts" 1>&2
+    return 1
+fi
+
 # initialize conda command
 echo "Initializing shell integration..."
 eval "$("${_ENVEXE}" shell.bash hook)" > /dev/null
@@ -270,9 +285,6 @@ if ! conda activate "${_ENV}" > /dev/null; then
     echo "Error: failed to activate ${_NAME}" 1>&2
     return 1
 fi
-
-# "install" conda
-export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
 cleanup
 unset -f cleanup
