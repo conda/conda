@@ -1,26 +1,31 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import copy
 import platform
 from logging import getLogger
 
 import pytest
 
+import conda
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_vars
 from conda.core.index import (
+    Index,
     _supplement_index_with_system,
     check_allowlist,
     get_index,
     get_reduced_index,
 )
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda.models.records import PackageRecord
+from conda.models.records import PackageCacheRecord, PackageRecord
 from tests.core.test_subdir_data import platform_in_record
+from tests.data.pkg_cache import load_cache_entries
 
 log = getLogger(__name__)
 
@@ -93,6 +98,21 @@ CONDAFORGE_SAMPLE_PACKAGES = {
         "build_number": 0,
     },
 }
+
+
+@pytest.fixture
+def pkg_cache_entries(mocker):
+    miniconda_pkg_cache = load_cache_entries("miniconda.json")
+    return miniconda_pkg_cache
+
+
+@pytest.fixture(autouse=True)
+def patch_pkg_cache(mocker, pkg_cache_entries):
+    mocker.patch(
+        "conda.core.package_cache_data.PackageCacheData.get_all_extracted_entries",
+        lambda: pkg_cache_entries,
+    )
+    mocker.patch("conda.base.context.context.track_features", ("test_feature",))
 
 
 def test_check_allowlist():
@@ -248,3 +268,106 @@ def test_get_index_lazy():
 
     assert main_prec == index[main_prec]
     assert conda_forge_prec == index[conda_forge_prec]
+
+
+class TestIndex:
+    @pytest.fixture(params=[False, True])
+    def index(self, request, tmp_path):
+        _index = Index(prepend=False, prefix=tmp_path, use_cache=True, use_system=True)
+        if request.param:
+            _index.data
+        return _index
+
+    @pytest.fixture
+    def valid_cache_entry(self):
+        return PackageRecord(
+            name="python",
+            subdir="linux-64",
+            version="3.12.4",
+            channel="defaults",
+            build_number=1,
+            build="h5148396_1",
+            fn="python-3.12.4-h5148396_1.conda",
+        )
+
+    @pytest.fixture
+    def valid_feature(self):
+        return PackageRecord.feature("test_feature")
+
+    @pytest.fixture
+    def invalid_feature(self):
+        return PackageRecord.feature("test_feature_non_existent")
+
+    @pytest.fixture
+    def valid_system_package(self):
+        return PackageRecord.virtual_package("__conda", conda.__version__)
+
+    @pytest.fixture
+    def invalid_system_package(self):
+        return PackageRecord.virtual_package("__conda_invalid", conda.__version__)
+
+    def test_init_use_local(self):
+        index = Index(use_local=True, prepend=False)
+        assert len(index.channels) == 1
+        assert "local" in index.channels.keys()
+
+    def test_init_conflicting_subdirs(self, mocker):
+        log = mocker.patch("conda.core.index.log")
+        platform = "linux-64"
+        subdirs = ("linux-64",)
+        _ = Index(platform=platform, subdirs=subdirs)
+        assert len(log.method_calls) == 1
+        log_call = log.method_calls[0]
+        assert log_call.args == (
+            "subdirs is %s, ignoring platform %s",
+            subdirs,
+            platform,
+        )
+
+    def test_init_prefix_path(self, tmp_path):
+        prefix_path = tmp_path.as_posix()
+        index = Index(prefix=prefix_path)
+        assert index.prefix_path == prefix_path
+
+    def test_init_prefix_data(self, tmp_path):
+        prefix_data = PrefixData(tmp_path)
+        index = Index(prefix=prefix_data)
+        assert index.prefix_path == tmp_path
+
+    def test_cache_entries(self, index, pkg_cache_entries):
+        cache_entries = index.cache_entries
+        assert cache_entries == pkg_cache_entries
+
+    def test_getitem_cache(self, index, valid_cache_entry):
+        cache_record = index[valid_cache_entry]
+        assert type(cache_record) is PackageCacheRecord
+        assert cache_record == valid_cache_entry
+
+    def test_getitem_feature(self, index, valid_feature):
+        feature_record = index[valid_feature]
+        assert type(feature_record) is PackageRecord
+        assert feature_record == valid_feature
+
+    def test_getitem_feature_non_existent(self, index, invalid_feature):
+        with pytest.raises(KeyError):
+            _ = index[invalid_feature]
+
+    def test_getitem_system_package_valid(self, index, valid_system_package):
+        system_record = index[valid_system_package]
+        assert system_record == valid_system_package
+        assert type(system_record) is PackageRecord
+        assert system_record.package_type == PackageType.VIRTUAL_SYSTEM
+
+    def test_getitem_system_package_invalid(self, index, invalid_system_package):
+        with pytest.raises(KeyError):
+            _ = index[invalid_system_package]
+
+    def test_contains_valid(self, index, valid_cache_entry):
+        assert valid_cache_entry in index
+
+    def test_contains_invalid(self, index, invalid_feature):
+        assert invalid_feature not in index
+
+    def test_copy(self, index):
+        index_copy = copy.copy(index)
+        assert index_copy == index
