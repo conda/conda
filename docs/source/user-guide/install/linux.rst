@@ -8,7 +8,7 @@ Installing on Linux
 
    * `Anaconda Distribution installer for Linux <https://www.anaconda.com/download/>`_.
 
-   * `Miniforge installer for Linux <https://github.com/conda-forge/miniforge/>`_.
+   * `Miniforge installer for Linux <https://conda-forge.org/download/>`_.
 
 #. :ref:`Verify your installer hashes <hash-verification>`.
 

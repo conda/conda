@@ -31,10 +31,9 @@ the amazing members of the conda community. Some of them can be found
 
 ## Installation
 
-Conda is a part of the [Anaconda Distribution](https://repo.anaconda.com).
-Use [Miniconda](https://docs.anaconda.com/free/miniconda/) to bootstrap a minimal installation
-that only includes conda and its dependencies.
+To bootstrap a minimal distribution, use a minimal installer such as [Miniconda](https://docs.anaconda.com/free/miniconda/) or [Miniforge](https://conda-forge.org/download/).
 
+Conda is also included  in the [Anaconda Distribution](https://repo.anaconda.com).
 
 ## Updating conda
 
