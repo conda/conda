@@ -355,7 +355,7 @@ class Index(UserDict):
 
     def _supplement_index_dict_with_cache(self) -> None:
         # supplement index with packages from the cache
-        for pcrec in self._cache_entries:
+        for pcrec in self.cache_entries:
             if pcrec in self._data:
                 # The downloaded repodata takes priority
                 current_record = self._data[pcrec]
