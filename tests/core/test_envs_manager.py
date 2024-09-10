@@ -9,7 +9,6 @@ from unittest.mock import patch
 
 import pytest
 
-from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import on_win
@@ -91,7 +90,7 @@ def test_prefix_cli_flag(tmp_path: Path):
         stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         # even if prefix doesn't exist, it can be a target prefix
-        reset_context((), argparse_args=AttrDict(prefix="./blarg", func="create"))
+        reset_context((), argparse_args=SimpleNamespace(prefix="./blarg"))
         target_prefix = join(os.getcwd(), "blarg")
         assert context.target_prefix == target_prefix
         assert not isdir(target_prefix)

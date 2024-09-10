@@ -1,6 +1,8 @@
 from logging import getLogger
 from textwrap import dedent
 
+from ..deprecations import deprecated
+
 log = getLogger(__name__)
 
 
@@ -9,6 +11,7 @@ def dals(string):
     return dedent(string).lstrip()
 
 
+@deprecated("25.3", "25.9")
 def _get_attr(obj, attr_name, aliases=()):
     try:
         return getattr(obj, attr_name)
@@ -22,6 +25,7 @@ def _get_attr(obj, attr_name, aliases=()):
             raise
 
 
+@deprecated("25.3", "25.9")
 def find_or_none(key, search_maps, aliases=(), _map_index=0):
     """Return the value of the first key found in the list of search_maps,
     otherwise return None.
@@ -53,6 +57,7 @@ def find_or_none(key, search_maps, aliases=(), _map_index=0):
         return None
 
 
+@deprecated("25.3", "25.9")
 def find_or_raise(key, search_maps, aliases=(), _map_index=0):
     try:
         attr = _get_attr(search_maps[_map_index], key, aliases)

@@ -32,6 +32,7 @@ def make_immutable(value):
 
 
 # http://stackoverflow.com/a/14620633/2127762
+@deprecated("25.3", "25.9", addendum="Use `types.SimpleNamespace` instead.")
 class AttrDict(dict):
     """Sub-classes dict, and further allows attribute-like access to dictionary items.
 

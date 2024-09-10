@@ -3,13 +3,13 @@
 import getpass
 import json
 import sys
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
-from conda.auxlib.collection import AttrDict
 from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
 from conda.common.io import captured
@@ -521,12 +521,12 @@ def test_print_unexpected_error_message_upload_1(
     post_mock = mocker.patch(
         "requests.post",
         side_effect=(
-            AttrDict(
-                headers=AttrDict(Location="somewhere.else"),
+            SimpleNamespace(
+                headers=SimpleNamespace(Location="somewhere.else"),
                 status_code=302,
                 raise_for_status=lambda: None,
             ),
-            AttrDict(raise_for_status=lambda: None),
+            SimpleNamespace(raise_for_status=lambda: None),
         ),
     )
 
@@ -559,17 +559,17 @@ def test_print_unexpected_error_message_upload_2(
     post_mock = mocker.patch(
         "requests.post",
         side_effect=(
-            AttrDict(
-                headers=AttrDict(Location="somewhere.else"),
+            SimpleNamespace(
+                headers=SimpleNamespace(Location="somewhere.else"),
                 status_code=302,
                 raise_for_status=lambda: None,
             ),
-            AttrDict(
-                headers=AttrDict(Location="somewhere.again"),
+            SimpleNamespace(
+                headers=SimpleNamespace(Location="somewhere.again"),
                 status_code=301,
                 raise_for_status=lambda: None,
             ),
-            AttrDict(raise_for_status=lambda: None),
+            SimpleNamespace(raise_for_status=lambda: None),
         ),
     )
 
@@ -602,12 +602,12 @@ def test_print_unexpected_error_message_upload_3(
     post_mock = mocker.patch(
         "requests.post",
         side_effect=(
-            AttrDict(
-                headers=AttrDict(Location="somewhere.else"),
+            SimpleNamespace(
+                headers=SimpleNamespace(Location="somewhere.else"),
                 status_code=302,
                 raise_for_status=lambda: None,
             ),
-            AttrDict(raise_for_status=lambda: None),
+            SimpleNamespace(raise_for_status=lambda: None),
         ),
     )
     input_mock = mocker.patch("builtins.input", return_value="y")
@@ -635,12 +635,12 @@ def test_print_unexpected_error_message_upload_3(
 @patch(
     "requests.post",
     side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
+        SimpleNamespace(
+            headers=SimpleNamespace(Location="somewhere.else"),
             status_code=302,
             raise_for_status=lambda: None,
         ),
-        AttrDict(raise_for_status=lambda: None),
+        SimpleNamespace(raise_for_status=lambda: None),
     ),
 )
 @patch("getpass.getuser", return_value="some name")
@@ -667,12 +667,12 @@ def test_print_unexpected_error_message_upload_username_with_spaces(
 @patch(
     "requests.post",
     side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
+        SimpleNamespace(
+            headers=SimpleNamespace(Location="somewhere.else"),
             status_code=302,
             raise_for_status=lambda: None,
         ),
-        AttrDict(raise_for_status=lambda: None),
+        SimpleNamespace(raise_for_status=lambda: None),
     ),
 )
 @patch("getpass.getuser", return_value="my√nameΩ")

@@ -6,11 +6,11 @@ import sys
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, lexists
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 
-from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.context import context
 from conda.common.compat import on_win
@@ -76,15 +76,17 @@ def pkgs_dir(path_factory: PathFactoryFixture) -> Path:
 
 
 def test_CompileMultiPycAction_generic(prefix: Path):
-    package_info = AttrDict(
-        package_metadata=AttrDict(noarch=AttrDict(type=NoarchType.generic))
+    package_info = SimpleNamespace(
+        package_metadata=SimpleNamespace(
+            noarch=SimpleNamespace(type=NoarchType.generic)
+        )
     )
     noarch = package_info.package_metadata and package_info.package_metadata.noarch
     assert noarch.type == NoarchType.generic
     axns = CompileMultiPycAction.create_actions({}, package_info, prefix, None, ())
     assert axns == ()
 
-    package_info = AttrDict(package_metadata=None)
+    package_info = SimpleNamespace(package_metadata=None)
     axns = CompileMultiPycAction.create_actions({}, package_info, prefix, None, ())
     assert axns == ()
 
@@ -99,29 +101,29 @@ def test_CompileMultiPycAction_noarch_python(prefix: Path):
         "target_python_version": target_python_version,
         "target_site_packages_short_path": sp_dir,
     }
-    package_info = AttrDict(
-        package_metadata=AttrDict(noarch=AttrDict(type=NoarchType.python))
+    package_info = SimpleNamespace(
+        package_metadata=SimpleNamespace(noarch=SimpleNamespace(type=NoarchType.python))
     )
 
     file_link_actions = [
-        AttrDict(
+        SimpleNamespace(
             source_short_path="site-packages/something.py",
             target_short_path=get_python_noarch_target_path(
                 "site-packages/something.py", sp_dir
             ),
         ),
-        AttrDict(
+        SimpleNamespace(
             source_short_path="site-packages/another.py",
             target_short_path=get_python_noarch_target_path(
                 "site-packages/another.py", sp_dir
             ),
         ),
-        AttrDict(
+        SimpleNamespace(
             # this one shouldn't get compiled
             source_short_path="something.py",
             target_short_path=get_python_noarch_target_path("something.py", sp_dir),
         ),
-        AttrDict(
+        SimpleNamespace(
             # this one shouldn't get compiled
             source_short_path="another.py",
             target_short_path=get_python_noarch_target_path("another.py", sp_dir),
@@ -204,7 +206,7 @@ def test_CompileMultiPycAction_noarch_python(prefix: Path):
 
 
 def test_CreatePythonEntryPointAction_generic(prefix: Path):
-    package_info = AttrDict(package_metadata=None)
+    package_info = SimpleNamespace(package_metadata=None)
     axns = CreatePythonEntryPointAction.create_actions({}, package_info, prefix, None)
     assert axns == ()
 
@@ -214,9 +216,9 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
     transaction_context = {
         "target_python_version": target_python_version,
     }
-    package_info = AttrDict(
-        package_metadata=AttrDict(
-            noarch=AttrDict(
+    package_info = SimpleNamespace(
+        package_metadata=SimpleNamespace(
+            noarch=SimpleNamespace(
                 type=NoarchType.python,
                 entry_points=(
                     "command1=some.module:main",

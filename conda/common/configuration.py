@@ -29,6 +29,7 @@ from os.path import expandvars
 from pathlib import Path
 from re import IGNORECASE, VERBOSE, compile
 from string import Template
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
@@ -37,7 +38,7 @@ from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from ..auxlib.collection import AttrDict, first, last
+from ..auxlib.collection import first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..common.iterators import unique
@@ -1451,8 +1452,8 @@ class Configuration(metaclass=ConfigurationType):
             #   already having been processed by this method before
             items = argparse_args.items()
 
-        self._argparse_args = argparse_args = AttrDict(
-            {k: v for k, v in items if v is not NULL}
+        self._argparse_args = argparse_args = SimpleNamespace(
+            **{k: v for k, v in items if v is not NULL}
         )
 
         # remove existing source so "insert" order is correct

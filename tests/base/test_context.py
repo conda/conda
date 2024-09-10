@@ -10,7 +10,6 @@ from unittest import mock
 
 import pytest
 
-from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import ChannelPriority, PathConflict
 from conda.base.context import (
@@ -363,20 +362,20 @@ def test_target_prefix(testdata: None):
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
             # with both dirs writable, choose first
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
+            reset_context((), argparse_args=SimpleNamespace(name="blarg"))
             assert context.target_prefix == join(envs_dirs[0], "blarg")
 
             # with first dir read-only, choose second
             PackageCacheData._cache_.clear()
             make_read_only(join(envs_dirs[0], ".conda_envs_dir_test"))
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
+            reset_context((), argparse_args=SimpleNamespace(name="blarg"))
             assert context.target_prefix == join(envs_dirs[1], "blarg")
 
             # if first dir is read-only but environment exists, choose first
             PackageCacheData._cache_.clear()
             mkdir_p(join(envs_dirs[0], "blarg"))
             touch(join(envs_dirs[0], "blarg", "history"))
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
+            reset_context((), argparse_args=SimpleNamespace(name="blarg"))
             assert context.target_prefix == join(envs_dirs[0], "blarg")
 
 
@@ -472,7 +471,7 @@ def test_specify_channels_cli_adding_defaults_no_condarc(testdata: None):
     When the channel haven't been specified in condarc, 'defaults'
     should be present when specifying channel in the cli
     """
-    reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
+    reset_context((), argparse_args=SimpleNamespace(channel=["conda-forge"]))
     assert context.channels == ("conda-forge", "defaults")
 
 
@@ -481,7 +480,7 @@ def test_specify_channels_cli_condarc(testdata: None):
     When the channel have been specified in condarc, these channels
     should be used along with the one specified
     """
-    reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
+    reset_context((), argparse_args=SimpleNamespace(channel=["conda-forge"]))
     string = dals(
         """
         channels: ['defaults', 'conda-forge']
@@ -503,7 +502,7 @@ def test_specify_different_channels_cli_condarc(testdata: None):
     In this test, the given channel in cli is different from condarc
     'defaults' should not be added
     """
-    reset_context((), argparse_args=AttrDict(channel=["other"]))
+    reset_context((), argparse_args=SimpleNamespace(channel=["other"]))
     string = dals(
         """
         channels: ['conda-forge']
@@ -527,7 +526,7 @@ def test_specify_same_channels_cli_as_in_condarc(testdata: None):
     'defaults' should not be added
     See https://github.com/conda/conda/issues/10732
     """
-    reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
+    reset_context((), argparse_args=SimpleNamespace(channel=["conda-forge"]))
     string = dals(
         """
         channels: ['conda-forge']

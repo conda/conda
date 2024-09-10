@@ -242,14 +242,13 @@ from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
 from pathlib import Path
+from types import SimpleNamespace
 
 from boltons.timeutils import isoparse
 
 from . import NULL
 from .compat import isiterable, odict
-from .collection import AttrDict
 from .exceptions import Raise, ValidationError
-from .ish import find_or_raise
 from .logz import DumpEncoder
 from .type_coercion import maybecall
 
@@ -794,13 +793,21 @@ class Entity(metaclass=EntityType):
     @classmethod
     def from_objects(cls, *objects, **override_fields):
         init_vars = {}
-        search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
-                            for o in ((override_fields,) + objects))
+        search_maps = [
+            SimpleNamespace(**obj) if isinstance(obj, dict) else obj
+            for obj in (override_fields, *objects)
+        ]
         for key, field in cls.__fields__.items():
-            try:
-                init_vars[key] = find_or_raise(key, search_maps, field._aliases)
-            except AttributeError:
-                pass
+            for search_map in search_maps:
+                for name in (key, field._aliases):
+                    try:
+                        if (value := getattr(search_map, name)) is None:
+                            # None means the field is not set, so continue searching
+                            raise AttributeError
+                    except AttributeError:
+                        pass
+                    else:
+                        init_vars[key] = value
 
         return cls(**init_vars)
 
