@@ -441,10 +441,11 @@ class Index(UserDict):
             return self._data[key]
         except AttributeError:
             pass
-        try:
-            return self.system_packages[key]
-        except KeyError:
-            pass
+        if key.name.startswith("__"):
+            try:
+                return self.system_packages[key]
+            except KeyError:
+                pass
         if self.track_features and key.name.endswith("@"):
             for track_feature in self.track_features:
                 if track_feature == key.name[:-1]:
