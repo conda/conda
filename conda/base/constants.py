@@ -174,7 +174,7 @@ NOTICES_CACHE_FN = "notices.cache"
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR = "notices"
 
-#: Determines the subdir for notices cache
+#: Determines how often notices are displayed while running commands
 NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
 
 DRY_RUN_PREFIX = "Dry run action:"
