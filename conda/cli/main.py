@@ -95,6 +95,7 @@ def main(*args, **kwargs):
 
     # cleanup argv
     args = args or sys.argv[1:]  # drop executable/script
+    args = [arg for arg in args if arg != ""]  # drop empty strings
     args = tuple(ensure_text_type(s) for s in args)
 
     if args and args[0].strip().startswith("shell."):
