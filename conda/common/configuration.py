@@ -288,7 +288,7 @@ class ArgParseRawParameter(RawParameter):
     @classmethod
     def make_raw_parameters(cls, args_from_argparse):
         return super().make_raw_parameters(
-            ArgParseRawParameter.source, args_from_argparse
+            ArgParseRawParameter.source, vars(args_from_argparse)
         )
 
 
