@@ -90,7 +90,8 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
 
 RECOGNIZED_URL_SCHEMES = ("http", "https", "ftp", "s3", "file")
 
-
+# TODO: Deprecate these hardcoded repo.anaconda.com URLs
+# Let distributions specify their 'defaults'
 DEFAULT_CHANNELS_UNIX = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",

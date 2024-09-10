@@ -354,7 +354,7 @@ class Context(Configuration):
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
         SequenceParameter(
-            PrimitiveParameter("", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)
+            PrimitiveParameter("", element_type=str), default=(),
         ),
         aliases=(
             "channels",
@@ -520,6 +520,19 @@ class Context(Configuration):
                 "Only one can be set to 'True'.",
             )
             errors.append(error)
+        if not self.channels:
+            from conda.core.prefix_data import PrefixData
+
+            conda_meta_info = next(PrefixData(self.root_prefix).query("conda"), None)
+            if conda_meta_info:
+                conda_channel = conda_meta_info.channel
+            else:
+                conda_channel = "[desired channel]"
+            log.warning(
+                "Channel list is empty. Please run 'conda config --add channels %s' to "
+                "remove this warning.",
+                conda_channel,
+            )
         return errors
 
     @property
@@ -935,23 +948,6 @@ class Context(Configuration):
                 )
             else:
                 return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
-
-        # add 'defaults' channel when necessary if --channel is given via the command line
-        if self._argparse_args and "channel" in self._argparse_args:
-            # TODO: it's args.channel right now, not channels
-            argparse_channels = tuple(self._argparse_args["channel"] or ())
-            # Add condition to make sure that sure that we add the 'defaults'
-            # channel only when no channels are defined in condarc
-            # We needs to get the config_files and then check that they
-            # don't define channels
-            channel_in_config_files = any(
-                "channels" in context.raw_data[rc_file].keys()
-                for rc_file in self.config_files
-            )
-            if argparse_channels and not channel_in_config_files:
-                return tuple(
-                    IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
-                )
 
         return tuple(IndexedSet((*local_add, *self._channels)))
 
