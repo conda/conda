@@ -132,8 +132,7 @@ def notices(func):
 
                 except Exception:
                     try:
-                        # remove the notices cache file if we encounter a CondaError
-                        # during command execution
+                        # Remove the notices cache file if we encounter an exception
                         cache.clear_cache()
                     except OSError:
                         pass
