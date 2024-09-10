@@ -353,9 +353,7 @@ class Context(Configuration):
     )
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        SequenceParameter(
-            PrimitiveParameter("", element_type=str), default=(),
-        ),
+        SequenceParameter(PrimitiveParameter("", element_type=str), default=()),
         aliases=(
             "channels",
             "channel",
