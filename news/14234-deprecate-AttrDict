@@ -1,0 +1,22 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.auxlib.collection.AttrDict` as pending deprecation. Use `types.SimpleNamespace` instead. (#14234)
+* Mark `conda.auxlib.ish._get_attr` as pending deprecation. (#14234)
+* Mark `conda.auxlib.ish.find_or_none` as pending deprecation. (#14234)
+* Mark `conda.auxlib.ish.find_or_raise` as pending deprecation. (#14234)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
