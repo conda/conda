@@ -841,9 +841,8 @@ class Context(Configuration):
 
     @property
     def prefix_specified(self):
-        return (
-            self._argparse_args.get("prefix") is not None
-            or self._argparse_args.get("name") is not None
+        return getattr(self._argparse_args, "prefix", None) or getattr(
+            self._argparse_args, "name", None
         )
 
     @memoizedproperty
@@ -913,20 +912,12 @@ class Context(Configuration):
     @property
     def channels(self):
         local_add = ("local",) if self.use_local else ()
-        if (
-            self._argparse_args
-            and "override_channels" in self._argparse_args
-            and self._argparse_args["override_channels"]
-        ):
+        if getattr(self._argparse_args, "override_channels", None):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
 
                 raise OperationNotAllowed("Overriding channels has been disabled.")
-            elif not (
-                self._argparse_args
-                and "channel" in self._argparse_args
-                and self._argparse_args["channel"]
-            ):
+            elif not getattr(self._argparse_args, "channel", None):
                 from ..exceptions import ArgumentError
 
                 raise ArgumentError(
@@ -934,12 +925,12 @@ class Context(Configuration):
                     "--override-channels."
                 )
             else:
-                return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
+                return tuple(IndexedSet((*local_add, *self._argparse_args.channel)))
 
         # add 'defaults' channel when necessary if --channel is given via the command line
-        if self._argparse_args and "channel" in self._argparse_args:
+        if hasattr(self._argparse_args, "channel"):
             # TODO: it's args.channel right now, not channels
-            argparse_channels = tuple(self._argparse_args["channel"] or ())
+            argparse_channels = tuple(self._argparse_args.channel or ())
             # Add condition to make sure that sure that we add the 'defaults'
             # channel only when no channels are defined in condarc
             # We needs to get the config_files and then check that they
@@ -969,18 +960,10 @@ class Context(Configuration):
         #    is only called when use_only_tar_bz2 is first called.
         import conda_package_handling.api
 
-        use_only_tar_bz2 = False
-        if self._use_only_tar_bz2 is None:
-            if self._argparse_args and "use_only_tar_bz2" in self._argparse_args:
-                use_only_tar_bz2 &= self._argparse_args["use_only_tar_bz2"]
         return (
-            (
-                hasattr(conda_package_handling.api, "libarchive_enabled")
-                and not conda_package_handling.api.libarchive_enabled
-            )
-            or self._use_only_tar_bz2
-            or use_only_tar_bz2
-        )
+            hasattr(conda_package_handling.api, "libarchive_enabled")
+            and not conda_package_handling.api.libarchive_enabled
+        ) or self._use_only_tar_bz2
 
     @property
     def binstar_upload(self):
