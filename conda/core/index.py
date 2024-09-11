@@ -409,7 +409,7 @@ class Index(UserDict):
         self, key: PackageRecord, prec: PackageRecord | None
     ) -> PackageRecord | None:
         prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
-        if prefix_prec:
+        if prefix_prec and prefix_prec == prec:
             if prec:
                 if prec.channel == prefix_prec.channel:
                     link = prefix_prec.get("link") or EMPTY_LINK
