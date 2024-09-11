@@ -3,6 +3,7 @@
 import copy
 import platform
 from logging import getLogger
+from pathlib import Path
 
 import pytest
 
@@ -23,7 +24,7 @@ from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda.models.records import PackageCacheRecord, PackageRecord
+from conda.models.records import PackageCacheRecord, PackageRecord, PrefixRecord
 from tests.core.test_subdir_data import platform_in_record
 from tests.data.pkg_cache import load_cache_entries
 
@@ -272,11 +273,58 @@ def test_get_index_lazy():
 
 class TestIndex:
     @pytest.fixture(params=[False, True])
-    def index(self, request, tmp_path):
-        _index = Index(prepend=False, prefix=tmp_path, use_cache=True, use_system=True)
-        if request.param:
-            _index.data
-        return _index
+    def index(self, request, test_recipes_channel, tmp_env):
+        channel = Channel(str(Path(__file__).parent.parent / "test-recipes"))
+        pkg_spec = f"{channel.url().rsplit("/", 1)[0]}::dependent"
+        pkg_spec = "dependent=2.0"
+        with tmp_env(pkg_spec) as prefix:
+            _index = Index(prefix=prefix, use_cache=True, use_system=True)
+            if request.param:
+                _index.data
+            yield _index
+
+    @pytest.fixture
+    def reduced_index(self, index):
+        return index.get_reduced_index((MatchSpec("dependent=2.0"),))
+
+    @pytest.fixture
+    def valid_channel_entry(self):
+        channel = Path(__file__).parent.parent / "test-recipes"
+        return PackageRecord(
+            channel=Channel(str(channel)),
+            name="dependent",
+            subdir="noarch",
+            version="1.0",
+            build_number=0,
+            build="0",
+            fn="dependent-1.0-0.tar.bz2",
+        )
+
+    @pytest.fixture
+    def invalid_channel_entry(self):
+        channel = Path(__file__).parent.parent / "test-recipes"
+        return PackageRecord(
+            channel=Channel(str(channel)),
+            name="dependent-non-existent",
+            subdir="noarch",
+            version="1.0",
+            build_number=0,
+            build="0",
+            fn="dependent-1.0-0.tar.bz2",
+        )
+
+    @pytest.fixture
+    def valid_prefix_entry(self):
+        channel = Path(__file__).parent.parent / "test-recipes"
+        return PackageRecord(
+            channel=Channel(str(channel)),
+            name="dependent",
+            subdir="noarch",
+            version="2.0",
+            build_number=0,
+            build="0",
+            fn="dependent-2.0-0.tar.bz2",
+        )
 
     @pytest.fixture
     def valid_cache_entry(self):
@@ -338,6 +386,20 @@ class TestIndex:
         cache_entries = index.cache_entries
         assert cache_entries == pkg_cache_entries
 
+    def test_getitem_channel(self, index, valid_channel_entry):
+        package_record = index[valid_channel_entry]
+        assert type(package_record) is PackageRecord
+        assert package_record == valid_channel_entry
+
+    def test_getitem_channel_invalid(self, index, invalid_channel_entry):
+        with pytest.raises(KeyError):
+            _ = index[invalid_channel_entry]
+
+    def test_getitem_prefix(self, index, valid_prefix_entry):
+        prefix_record = index[valid_prefix_entry]
+        assert type(prefix_record) is PrefixRecord
+        assert prefix_record == valid_prefix_entry
+
     def test_getitem_cache(self, index, valid_cache_entry):
         cache_record = index[valid_cache_entry]
         assert type(cache_record) is PackageCacheRecord
@@ -371,3 +433,6 @@ class TestIndex:
     def test_copy(self, index):
         index_copy = copy.copy(index)
         assert index_copy == index
+
+    def test_reduced_index(self, reduced_index):
+        assert len(reduced_index) == 11
