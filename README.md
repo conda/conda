@@ -33,7 +33,7 @@ the amazing members of the conda community. Some of them can be found
 
 To bootstrap a minimal distribution, use a minimal installer such as [Miniconda](https://docs.anaconda.com/free/miniconda/) or [Miniforge](https://conda-forge.org/download/).
 
-Conda is also included  in the [Anaconda Distribution](https://repo.anaconda.com).
+Conda is also included in the [Anaconda Distribution](https://repo.anaconda.com).
 
 ## Updating conda
 
