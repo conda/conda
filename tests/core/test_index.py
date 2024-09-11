@@ -275,7 +275,7 @@ class TestIndex:
     @pytest.fixture(params=[False, True])
     def index(self, request, test_recipes_channel, tmp_env):
         channel = Channel(str(Path(__file__).parent.parent / "test-recipes"))
-        pkg_spec = f"{channel.url().rsplit("/", 1)[0]}::dependent"
+        pkg_spec = f"{channel.url().rsplit('/', 1)[0]}::dependent"
         pkg_spec = "dependent=2.0"
         with tmp_env(pkg_spec) as prefix:
             _index = Index(prefix=prefix, use_cache=True, use_system=True)
