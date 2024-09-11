@@ -52,7 +52,7 @@ def test_prefix_record_no_channel():
         )
 
 
-def test_index_record_timestamp():
+def test_package_record_timestamp():
     # regression test for #6096
     ts_secs = 1507565728
     ts_millis = ts_secs * 1000
