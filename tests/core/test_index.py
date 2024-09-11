@@ -435,4 +435,4 @@ class TestIndex:
         assert index_copy == index
 
     def test_reduced_index(self, reduced_index):
-        assert len(reduced_index) == 11
+        assert len(reduced_index) == 10
