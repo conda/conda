@@ -442,14 +442,14 @@ def get_python_version_for_prefix(prefix):
     )
     record = next(py_record_iter, None)
     if record is None:
-        return None
+        return None, None
     next_record = next(py_record_iter, None)
     if next_record is not None:
         raise CondaDependencyError(f"multiple python records found in prefix {prefix}")
     elif record.version[3].isdigit():
-        return record.version[:4]
+        return record.version[:4], record.python_site_packages_path
     else:
-        return record.version[:3]
+        return record.version[:3], record.python_site_packages_path
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

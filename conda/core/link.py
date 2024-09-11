@@ -419,11 +419,12 @@ class UnlinkLinkTransaction:
 
         # make all the path actions
         # no side effects allowed when instantiating these action objects
-        python_version = cls._get_python_version(
+        python_version, sp = cls._get_python_version(
             target_prefix, prefix_recs_to_unlink, packages_info_to_link
         )
         transaction_context["target_python_version"] = python_version
-        sp = get_python_site_packages_short_path(python_version)
+        if sp is None:
+            sp = get_python_site_packages_short_path(python_version)
         transaction_context["target_site_packages_short_path"] = sp
 
         transaction_context["temp_dir"] = join(target_prefix, ".condatmp")
@@ -1100,10 +1101,11 @@ class UnlinkLinkTransaction:
             full_version = linking_new_python.repodata_record.version
             assert full_version
             log.debug("found in current transaction python version %s", full_version)
-            return get_major_minor_version(full_version)
+            sp_path = linking_new_python.repodata_record.python_site_packages_path
+            return get_major_minor_version(full_version), sp_path
 
         # is python already linked and not being unlinked? that's ok too
-        linked_python_version = get_python_version_for_prefix(target_prefix)
+        linked_python_version, sp_dir = get_python_version_for_prefix(target_prefix)
         if linked_python_version:
             find_python = (
                 lnkd_pkg_data
@@ -1116,7 +1118,7 @@ class UnlinkLinkTransaction:
                 log.debug(
                     "found in current prefix python version %s", linked_python_version
                 )
-                return linked_python_version
+                return linked_python_version, sp_dir
 
         # there won't be any python in the finished environment
         log.debug("no python version found in prefix")
