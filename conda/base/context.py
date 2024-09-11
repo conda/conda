@@ -970,8 +970,7 @@ class Context(Configuration):
         import conda_package_handling.api
 
         return (
-            hasattr(conda_package_handling.api, "libarchive_enabled")
-            and not conda_package_handling.api.libarchive_enabled
+            not conda_package_handling.api.libarchive_enabled
         ) or self._use_only_tar_bz2
 
     @property
