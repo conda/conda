@@ -259,6 +259,17 @@ test_yaml_raw = {
                 - b2
         """
     ),
+    # Used to make sure that missing values are handled
+    "objectFile3": dals(
+        """
+        test_object:
+            map_field:
+                key1: a1
+                key2: a2
+        """
+    ),
+    # Used to make sure when nothing is defined appropriate defaults are set
+    "objectFile4": "",
 }
 
 
@@ -746,6 +757,36 @@ def test_object():
     assert test_object.str_field == "override"
     assert test_object.map_field == {"key1": "a1", "key2": "b2", "key3": "c2"}
     assert test_object.seq_field == ("a2", "b2", "a1", "b1", "c1")
+
+
+def test_object_defaults_partially_empty():
+    """
+    Used to make sure that defaults are appropriately set for missing values when
+    only some values have been passed in.
+    """
+    config = SampleConfiguration()._set_raw_data(load_from_string_data("objectFile3"))
+
+    test_object = config.test_object
+
+    assert test_object.int_field == 0
+    assert test_object.str_field == ""
+    assert test_object.map_field == {"key1": "a1", "key2": "a2"}
+    assert test_object.seq_field == tuple()
+
+
+def test_object_defaults_completely_empty():
+    """
+    Used to make sure that defaults are appropriately set for missing values when
+    no values have been passed in.
+    """
+    config = SampleConfiguration()._set_raw_data(load_from_string_data("objectFile4"))
+
+    test_object = config.test_object
+
+    assert test_object.int_field == 0
+    assert test_object.str_field == ""
+    assert test_object.map_field == {}
+    assert test_object.seq_field == tuple()
 
 
 def test_pretty_list():

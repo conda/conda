@@ -15,7 +15,9 @@ This guide to getting started with conda goes over the basics of starting up and
 Before you start
 ================
 
-You should have already installed conda before beginning this getting started guide. Conda can be found in many distributions, like `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/install/>`_, `Miniconda <https://docs.anaconda.com/free/miniconda/>`_ or `Miniforge <https://github.com/conda-forge/miniforge>`_.
+To bootstrap a conda installation, use a minimal installer such as `Miniconda <https://docs.anaconda.com/free/miniconda/>`_ or `Miniforge <https://conda-forge.org/download>`_.
+
+Conda is also included in the `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/install/>`_.
 
 Starting conda
 ==============
@@ -113,9 +115,11 @@ To see your conda version, use the following command::
 
    conda --version
 
-No matter which environment you run this command in, conda displays its current version::
+No matter which environment you run this command in, conda displays its current version:
 
-   conda 23.10.0
+.. parsed-literal::
+
+   conda |version|
 
 .. note::
    If you get an error message ``command not found: conda``, close and reopen

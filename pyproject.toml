@@ -118,8 +118,6 @@ addopts = [
   "--store-durations",
   "--strict-markers",
   "--tb=native",
-  "--xdoctest-modules",
-  "--xdoctest-style=google",
   "-vv",
 ]
 doctest_optionflags = [

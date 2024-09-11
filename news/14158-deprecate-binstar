@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Deprecate `conda.env.specs.binstar` module. (#14158 via #14160)
+* Deprecate `conda env [create|update] REMOTE_DEFINITION`. Use `conda env [create|update] --file=URL` instead. (#14158 via #14160)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
