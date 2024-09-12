@@ -164,7 +164,6 @@ class Index(UserDict):
             self.prefix_path = prefix
         self._prefix_data = None
         self.use_cache = True if use_cache is None and context.offline else use_cache
-        self.track_features = context.track_features
         self.use_system = use_system
 
     @property
@@ -374,8 +373,7 @@ class Index(UserDict):
             self._supplement_index_dict_with_prefix()
         if self.use_cache:
             self._supplement_index_dict_with_cache()
-        if self.track_features:
-            self._data.update(self.features)
+        self._data.update(self.features)
         if self.use_system:
             self._data.update(self.system_packages)
 
