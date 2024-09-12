@@ -481,7 +481,7 @@ class SubdirData(metaclass=SubdirDataType):
         ):
             for fn, info in group:
                 if copy_legacy_md5:
-                    counterpart = f"{fn[:-len(".conda")]}.tar.bz2"
+                    counterpart = f"{fn[:-len('.conda')]}.tar.bz2"
                     if counterpart in legacy_packages:
                         info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
                         info["legacy_bz2_size"] = legacy_packages[counterpart].get(
