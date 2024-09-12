@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Convert environment variables with empty string as value to `$null`, to mitigate breaking chnage in .NET 9. (#14239)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
