@@ -168,7 +168,7 @@ class Index(UserDict):
         self.use_system = use_system
 
     @property
-    def cache_entries(self) -> tuple[PackageCacheRecord]:
+    def cache_entries(self) -> tuple[PackageCacheRecord, ...]:
         """Contents of the package cache if active.
 
         Returns:
@@ -399,10 +399,7 @@ class Index(UserDict):
             for subdir_data in subdir_datas:
                 if hasattr(key, "subdir") and key.subdir != subdir_data.channel.subdir:
                     continue
-                prec_candidates = list(subdir_data.query(key))
-                if not prec_candidates:
-                    continue
-                precs.extend(prec_candidates)
+                precs.extend(subdir_data.query(key))
         return precs
 
     def _update_from_prefix(
