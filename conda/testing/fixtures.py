@@ -190,6 +190,7 @@ def _solver_helper(
 
 @pytest.fixture(scope="session")
 def global_capsys(request) -> Iterator[MultiCapture]:
+    # https://github.com/pytest-dev/pytest/issues/2704#issuecomment-603387680
     capmanager = request.config.pluginmanager.getplugin("capturemanager")
     with capmanager.global_and_fixture_disabled():
         yield capmanager._global_capturing
