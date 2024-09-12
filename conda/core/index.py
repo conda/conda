@@ -17,6 +17,7 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..deprecations import deprecated
 from ..exceptions import (
     ChannelNotAllowed,
+    CondaKeyError,
     InvalidSpec,
     OperationNotAllowed,
     PackagesNotFoundError,
@@ -386,7 +387,10 @@ class Index(UserDict):
                 prec_candidates = list(subdir_data.query(key))
                 if not prec_candidates:
                     continue
-                assert len(prec_candidates) == 1
+                if len(prec_candidates) > 1:
+                    raise CondaKeyError(
+                        key, "More than one matching package found in channels."
+                    )
                 prec = prec_candidates[0]
                 if prec:
                     return prec
@@ -432,7 +436,10 @@ class Index(UserDict):
         return prec
 
     def __getitem__(self, key: PackageRecord) -> PackageRecord:
-        assert isinstance(key, PackageRecord)
+        if not isinstance(key, PackageRecord):
+            raise TypeError(
+                "Can only retrieve PackageRecord objects. Got {}.", type(key)
+            )
         try:
             return self._data[key]
         except AttributeError:
