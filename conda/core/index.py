@@ -523,7 +523,7 @@ class ReducedIndex(Index):
 
     def __repr__(self) -> str:
         channels = ", ".join(self.channels.keys())
-        return f"<ReducedIndex(spec={self.specs}, channels=[{channels}])>"
+        return f"<{self.__class__.__name__}(spec={self.specs}, channels=[{channels}])>"
 
     def _derive_reduced_index(self) -> None:
         records = IndexedSet()
