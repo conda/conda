@@ -532,49 +532,52 @@ class ReducedIndex(Index):
         pending_names = set()
         pending_track_features = set()
 
-        def push_spec(spec: MatchSpec) -> None:
+        def push_specs(*specs: MatchSpec | str) -> None:
             """
             Add a package name or track feature from a MatchSpec to the pending set.
 
             :param spec: The MatchSpec to process.
             """
-            name = spec.get_raw_value("name")
-            if name and name not in collected_names:
-                pending_names.add(name)
-            track_features = spec.get_raw_value("track_features")
-            if track_features:
-                for ftr_name in track_features:
-                    if ftr_name not in collected_track_features:
-                        pending_track_features.add(ftr_name)
+            for spec in map(MatchSpec, specs):
+                name = spec.get_raw_value("name")
+                if name and name not in collected_names:
+                    pending_names.add(name)
+                track_features = spec.get_raw_value("track_features")
+                if track_features:
+                    for ftr_name in track_features:
+                        if ftr_name not in collected_track_features:
+                            pending_track_features.add(ftr_name)
 
-        def push_record(record: PackageRecord) -> None:
+        def push_records(*records: PackageRecord) -> None:
             """
             Process a package record to collect its dependencies and features.
 
             :param record: The package record to process.
             """
-            try:
-                combined_depends = record.combined_depends
-            except InvalidSpec as e:
-                log.warning(
-                    "Skipping %s due to InvalidSpec: %s",
-                    record.record_id(),
-                    e._kwargs["invalid_spec"],
+            for record in records:
+                try:
+                    combined_depends = record.combined_depends
+                except InvalidSpec as e:
+                    log.warning(
+                        "Skipping %s due to InvalidSpec: %s",
+                        record.record_id(),
+                        e._kwargs["invalid_spec"],
+                    )
+                    return
+                push_specs(
+                    record.name,
+                    *combined_depends,
+                    *(
+                        MatchSpec(track_features=ftr_name)
+                        for ftr_name in record.track_features
+                    ),
                 )
-                return
-            push_spec(MatchSpec(record.name))
-            for _spec in combined_depends:
-                push_spec(_spec)
-            if record.track_features:
-                for ftr_name in record.track_features:
-                    push_spec(MatchSpec(track_features=ftr_name))
 
         # TODO: Should we really add the whole prefix?
         # if self.prefix:
         #     for prefix_rec in self.prefix.iter_records():
         #         push_record(prefix_rec)
-        for spec in self.specs:
-            push_spec(spec)
+        push_specs(*self.specs)
 
         while pending_names or pending_track_features:
             while pending_names:
@@ -585,8 +588,7 @@ class ReducedIndex(Index):
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
                 new_records = self._retrieve_all_from_channels(spec)
-                for record in new_records:
-                    push_record(record)
+                push_records(*new_records)
                 records.update(new_records)
 
             while pending_track_features:
@@ -597,8 +599,7 @@ class ReducedIndex(Index):
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
                 new_records = self._retrieve_all_from_channels(spec)
-                for record in new_records:
-                    push_record(record)
+                push_records(new_records)
                 records.update(new_records)
 
         self._data = {rec: rec for rec in records}
