@@ -22,7 +22,6 @@ from ..exceptions import (
     PackagesNotFoundError,
 )
 from ..models.channel import Channel, all_channel_urls
-from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
 from .package_cache_data import PackageCacheData
@@ -786,17 +785,7 @@ def _make_virtual_package(
     :param build_string: The build string of the virtual package, defaults to "0".
     :return: A PackageRecord representing the virtual package.
     """
-    return PackageRecord(
-        package_type=PackageType.VIRTUAL_SYSTEM,
-        name=name,
-        version=version or "0",
-        build_string=build_string or "0",
-        channel="@",
-        subdir=context.subdir,
-        md5="12345678901234567890123456789012",
-        build_number=0,
-        fn=name,
-    )
+    return PackageRecord.virtual_package(name, version, build_string)
 
 
 @deprecated(
