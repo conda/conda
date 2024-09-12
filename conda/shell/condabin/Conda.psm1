@@ -125,6 +125,11 @@ function Exit-CondaEnvironment {
         conda install toolz
 #>
 function Invoke-Conda() {
+    # To mitigate breaking change in .NET 9
+    # see github issue: https://github.com/PowerShell/PowerShell/issues/24268
+    if ($Env:_CE_M -eq "") { $Env:_CE_M = $null }
+    if ($Env:_CE_CONDA -eq "") { $Env:_CE_CONDA = $null }
+    
     # Don't use any explicit args here, we'll use $args and tab completion
     # so that we can capture everything, INCLUDING short options (e.g. -n).
     if ($Args.Count -eq 0) {
