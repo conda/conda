@@ -261,61 +261,64 @@ class PackageRecord(DictSafeMixin, Entity):
     The subclasses do not add further attributes to the :attr:`_pkey`.
     """
 
+    #: str: The name of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     name = StringField()
-    """str: The name of the package.
 
-    Part of the :attr:`_pkey`.
-    """
+    #: str: The version of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     version = StringField()
-    """str: The version of the package.
 
-    Part of the :attr:`_pkey`.
-    """
+    #: str: The build string of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     build = StringField(aliases=("build_string",))
-    """str: The build string of the package.
 
-    Part of the :attr:`_pkey`.
-    """
+    #: int: The build number of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     build_number = IntegerField()
-    """int: The build number of the package.
-
-    Part of the :attr:`_pkey`.
-    """
 
     # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
+    #: :class:`conda.models.channel.Channel`: The channel where the package can be found.
     channel = ChannelField(aliases=("schannel",))
-    """:class:`conda.models.channel.Channel`: The channel where the package can be found."""
+
+    #: str: The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
+    #:
+    #: Part of the :attr:`_pkey`.
     subdir = SubdirField()
-    """str: The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
 
-    Part of the :attr:`_pkey`.
-    """
+    #: str: The filename of the package.
+    #:
+    #: Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>` is ``true`` (default: ``false``).
     fn = FilenameField(aliases=("filename",))
-    """str: The filename of the package.
 
-    Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>` is ``true`` (default: ``false``).
-    """
-
+    #: str: The md5 checksum of the package.
     md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
-    """str: The md5 checksum of the package."""
+
+    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package.
     legacy_bz2_md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
-    """str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package."""
+
+    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package.
     legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
-    """str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package."""
+
+    #: str: The download url of the package.
     url = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
-    """str: The download url of the package."""
+
+    #: str: The sha256 checksum of the package.
     sha256 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
-    """str: The sha256 checksum of the package."""
 
     @property
     def schannel(self):
@@ -546,16 +549,16 @@ class PackageCacheRecord(PackageRecord):
     equal and will produce the same hash.
     """
 
+    #: str: Full path to the local package file.
     package_tarball_full_path = StringField()
-    """str: Full path to the local package file."""
+
+    #: str: Full path to the local extracted package.
     extracted_package_dir = StringField()
-    """str: Full path to the local extracted package."""
 
+    #: str: The md5 checksum of the package.
+    #:
+    #: If the package file exists locally, this class can calculate a missing checksum on-the-fly.
     md5 = Md5Field()
-    """str: The md5 checksum of the package.
-
-    If the package file exists locally, this class can calculate a missing checksum on-the-fly.
-    """
 
     @property
     def is_fetched(self):
@@ -606,28 +609,32 @@ class PrefixRecord(PackageRecord):
     Objects of this class are generally constructed from metadata in json files inside `$prefix/conda-meta`.
     """
 
+    #: str: The path to the originating package file, usually in the local cache.
     package_tarball_full_path = StringField(required=False)
-    """str: The path to the originating package file, usually in the local cache."""
-    extracted_package_dir = StringField(required=False)
-    """str: The path to the extracted package directory, usually in the local cache."""
 
+    #: str: The path to the extracted package directory, usually in the local cache.
+    extracted_package_dir = StringField(required=False)
+
+    #: list(str): The list of all files comprising the package as relative paths from the prefix root.
     files = ListField(str, default=(), required=False)
-    """list(str): The list of all files comprising the package as relative paths from the prefix root."""
+
+    #: list(str): List with additional information about the files, e.g. checksums and link type.
     paths_data = ComposableField(
         PathsData, required=False, nullable=True, default_in_dump=False
     )
-    """list(str): List with additional information about the files, e.g. checksums and link type."""
+
+    #: :class:`Link`: Information about how the package was linked into the prefix.
     link = ComposableField(Link, required=False)
-    """:class:`Link`: Information about how the package was linked into the prefix."""
+
     # app = ComposableField(App, required=False)
 
+    #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
     requested_spec = StringField(required=False)
-    """str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency."""
 
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.
+    #: str: Authentication information.
     auth = StringField(required=False, nullable=True)
-    """str: Authentication information."""
 
     # @classmethod
     # def load(cls, conda_meta_json_path):
