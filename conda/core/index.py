@@ -599,7 +599,7 @@ class ReducedIndex(Index):
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
                 new_records = self._retrieve_all_from_channels(spec)
-                push_records(new_records)
+                push_records(*new_records)
                 records.update(new_records)
 
         self._data = {rec: rec for rec in records}
