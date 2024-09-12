@@ -91,7 +91,7 @@ def confirm_yn(message: str = "Proceed", default="yes", dry_run=None) -> bool:
 
     try:
         choice = _get_render_func("prompt")(
-            message, choices=("yes", "no"), default=default, dry_run=dry_run
+            message, choices=("yes", "no"), default=default
         )
 
     except KeyboardInterrupt:  # pragma: no cover

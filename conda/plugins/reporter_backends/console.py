@@ -229,9 +229,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         else:
             return Spinner(message, fail_message)
 
-    def prompt(
-        self, message="Proceed", choices=("yes", "no"), default="yes", dry_run=None
-    ) -> bool:
+    def prompt(self, message="Proceed", choices=("yes", "no"), default="yes") -> bool:
         """
         Implementation of a prompt dialog
         """

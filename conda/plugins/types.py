@@ -301,7 +301,6 @@ class ReporterRendererBase(ABC):
         message: str = "Proceed",
         choices=("yes", "no"),
         default: str = "yes",
-        dry_run=None,
     ) -> bool:
         """
         Allows for defining an implementation of a "yes/no" confirmation function
