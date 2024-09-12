@@ -219,7 +219,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         default="no",
                         dry_run=False,
                     )
-                rm_rf(prefix, clean_empty_parents=True)
+                rm_rf(prefix)
                 unregister_env(prefix)
 
         return 0

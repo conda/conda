@@ -16,7 +16,7 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_python_noarch_target_path,
     get_python_short_path,
     get_python_site_packages_short_path,
@@ -240,9 +240,9 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
     command, module, func = parse_entry_point_def("command1=some.module:main")
     assert command == "command1"
     if on_win:
-        target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
+        target_short_path = f"{BIN_DIRECTORY}\\{command}-script.py"
     else:
-        target_short_path = f"{get_bin_directory_short_path()}/{command}"
+        target_short_path = f"{BIN_DIRECTORY}/{command}"
     assert py_ep_axn.target_full_path == join(prefix, target_short_path)
     assert py_ep_axn.module == module == "some.module"
     assert py_ep_axn.func == func == "main"
@@ -277,7 +277,7 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
 
     if on_win:
         windows_exe_axn = windows_exe_axns[0]
-        target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
+        target_short_path = f"{BIN_DIRECTORY}\\{command}.exe"
         assert windows_exe_axn.target_full_path == join(prefix, target_short_path)
 
         mkdir_p(dirname(windows_exe_axn.target_full_path))

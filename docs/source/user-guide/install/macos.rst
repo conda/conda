@@ -14,7 +14,7 @@ Installing on macOS
 
    * `Anaconda installer for macOS <https://www.anaconda.com/download/>`_.
 
-   * `Miniforge installer for macOS <https://github.com/conda-forge/miniforge/>`_.
+   * `Miniforge installer for macOS <https://conda-forge.org/download/>`_.
 
 #. :ref:`Verify your installer hashes <hash-verification>`.
 

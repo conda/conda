@@ -1,10 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import json
 from os.path import isdir
+from typing import TYPE_CHECKING
 
-from conda.common.io import env_var
-from conda.testing import CondaCLIFixture
+from conda.base.context import reset_context
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.testing import CondaCLIFixture
 
 
 # conda info --root [--json]
@@ -22,19 +30,25 @@ def test_info_root(reset_conda_context: None, conda_cli: CondaCLIFixture):
 
 
 # conda info --unsafe-channels [--json]
-def test_info_unsafe_channels(reset_conda_context: None, conda_cli: CondaCLIFixture):
+def test_info_unsafe_channels(
+    reset_conda_context: None,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
     url = "https://conda.anaconda.org/t/tk-123/a/b/c"
-    with env_var("CONDA_CHANNELS", url):
-        stdout, stderr, err = conda_cli("info", "--unsafe-channels")
-        assert "tk-123" in stdout
-        assert not stderr
-        assert not err
+    monkeypatch.setenv("CONDA_CHANNELS", url)
+    reset_context()
 
-        stdout, stderr, err = conda_cli("info", "--unsafe-channels", "--json")
-        parsed = json.loads(stdout.strip())
-        assert url in parsed["channels"]
-        assert not stderr
-        assert not err
+    stdout, stderr, err = conda_cli("info", "--unsafe-channels")
+    assert "tk-123" in stdout
+    assert not stderr
+    assert not err
+
+    stdout, stderr, err = conda_cli("info", "--unsafe-channels", "--json")
+    parsed = json.loads(stdout.strip())
+    assert url in parsed["channels"]
+    assert not stderr
+    assert not err
 
 
 # conda info --verbose | --envs | --system
