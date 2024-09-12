@@ -13,6 +13,7 @@ import os
 import platform
 import struct
 import sys
+import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from errno import ENOENT
@@ -518,20 +519,6 @@ class Context(Configuration):
                 "Only one can be set to 'True'.",
             )
             errors.append(error)
-        if not self.channels:
-            from conda.core.prefix_data import PrefixData
-            from conda.models.channel import Channel
-
-            conda_meta_info = next(PrefixData(self.root_prefix).query("conda"), None)
-            if conda_meta_info:
-                conda_channel = Channel(conda_meta_info.channel).canonical_name
-            else:
-                conda_channel = "[desired channel]"
-            log.warning(
-                "Channel list is empty. Please run 'conda config --add channels %s' to "
-                "remove this warning.",
-                conda_channel,
-            )
         return errors
 
     @property
@@ -948,7 +935,41 @@ class Context(Configuration):
             else:
                 return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
-        return tuple(IndexedSet((*local_add, *self._channels)))
+        # add 'defaults' channel when necessary if --channel is given via the command line
+        if self._argparse_args and "channel" in self._argparse_args:
+            # TODO: it's args.channel right now, not channels
+            argparse_channels = tuple(self._argparse_args["channel"] or ())
+            # Add condition to make sure that sure that we add the 'defaults'
+            # channel only when no channels are defined in condarc
+            # We needs to get the config_files and then check that they
+            # don't define channels
+            channel_in_config_files = any(
+                "channels" in context.raw_data[rc_file].keys()
+                for rc_file in self.config_files
+            )
+            if argparse_channels and not channel_in_config_files:
+                warnings.warn(
+                    f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly. "
+                    "To remove this warning, please choose a default channel explicitly via "
+                    "'conda config --add channels <name>'. In the future, the implicit default "
+                    "channel configuration will be removed.",
+                    FutureWarning,
+                )
+                return tuple(
+                    IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
+                )
+        if self._channels:
+            _channels = self._channels
+        else:
+            warnings.warn(
+                f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly. "
+                "To remove this warning, please choose a default channel explicitly via "
+                "'conda config --add channels <name>'. In the future, the implicit default "
+                "channel configuration will be removed.",
+                FutureWarning,
+            )
+            _channels = [DEFAULTS_CHANNEL_NAME]
+        return tuple(IndexedSet((*local_add, *_channels)))
 
     @property
     def config_files(self):
