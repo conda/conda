@@ -16,7 +16,7 @@ The following are the most popular installers currently available:
         of packages for data science, as well as Anaconda Navigator, a GUI application
         for working with conda environments.
 
-    `Miniforge <https://github.com/conda-forge/miniforge>`_
+    `Miniforge <https://conda-forge.org/download>`_
         Miniforge is an installer maintained by the conda-forge community that comes
         preconfigured for use with the conda-forge channel. To learn more about conda-forge,
         visit `their website <https://conda-forge.org>`_.
