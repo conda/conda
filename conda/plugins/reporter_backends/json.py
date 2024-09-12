@@ -90,7 +90,9 @@ class JSONReporterRenderer(ReporterRendererBase):
     def spinner(self, message: str, fail_message: str = "failed\n") -> SpinnerBase:
         return JSONSpinner(message, fail_message)
 
-    def confirm_yn(self, message: str = "Proceed", default: str = "yes") -> bool:
+    def prompt(
+        self, message: str = "Proceed", choices=("yes", "no"), default: str = "yes"
+    ) -> str:
         """
         For this class, we want this method to do nothing
         """
