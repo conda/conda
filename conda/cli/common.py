@@ -21,6 +21,11 @@ from ..models.match_spec import MatchSpec
 from ..reporters import render
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
     assert default in choices, default
     if (dry_run is NULL and context.dry_run) or dry_run:
@@ -53,6 +58,11 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
             return choices[user_choice]
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
     if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit

@@ -2,14 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from contextlib import nullcontext
 from errno import EPIPE
+from io import StringIO
 
 import pytest
+from pytest import MonkeyPatch
 
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.common.io import captured, env_vars
+from conda.exceptions import CondaSystemExit, DryRunExit
 from conda.plugins.reporter_backends.console import (
     ConsoleReporterRenderer,
     QuietSpinner,
     Spinner,
     TQDMProgressBar,
+    confirm,
 )
 
 
@@ -193,3 +199,75 @@ def test_quiet_spinner_with_error(capsys):
     capture = capsys.readouterr()
 
     assert capture.out == "Test message: ...working... failed\n"
+
+
+def test_confirm_dry_run_exit():
+    with env_vars(
+        {"CONDA_DRY_RUN": "true"},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ), pytest.raises(DryRunExit):
+        assert context.dry_run
+
+        confirm()
+
+
+def test_confirm_yn_dry_run_exit():
+    with env_vars(
+        {"CONDA_DRY_RUN": "true"},
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ), pytest.raises(DryRunExit):
+        assert context.dry_run
+
+        reporter = ConsoleReporterRenderer()
+        reporter.confirm_yn()
+
+
+def test_confirm_yn_always_yes():
+    with env_vars(
+        {
+            "CONDA_ALWAYS_YES": "true",
+            "CONDA_DRY_RUN": "false",
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ):
+        assert context.always_yes
+        assert not context.dry_run
+
+        reporter = ConsoleReporterRenderer()
+        assert reporter.confirm_yn()
+
+
+def test_confirm_yn_yes(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr("sys.stdin", StringIO("blah\ny\n"))
+
+    with env_vars(
+        {
+            "CONDA_ALWAYS_YES": "false",
+            "CONDA_DRY_RUN": "false",
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ), captured() as cap:
+        assert not context.always_yes
+        assert not context.dry_run
+
+        reporter = ConsoleReporterRenderer()
+        assert reporter.confirm_yn()
+
+    assert "Invalid choice" in cap.stdout
+
+
+def test_confirm_yn_no(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr("sys.stdin", StringIO("n\n"))
+
+    with env_vars(
+        {
+            "CONDA_ALWAYS_YES": "false",
+            "CONDA_DRY_RUN": "false",
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    ), pytest.raises(CondaSystemExit):
+        assert not context.always_yes
+        assert not context.dry_run
+
+        reporter = ConsoleReporterRenderer()
+        reporter.confirm_yn()

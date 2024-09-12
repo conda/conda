@@ -76,3 +76,10 @@ def get_spinner(message: str, fail_message: str = "failed\n") -> SpinnerBase:
     Retrieve spinner to use with registered reporter
     """
     return _get_render_func("spinner")(message, fail_message)
+
+
+def confirm_yn(message: str = "Proceed", default="yes", dry_run=None) -> bool:
+    """
+    Display a "yes/no" confirmation input
+    """
+    return _get_render_func("confirm_yn")(message, default=default, dry_run=dry_run)

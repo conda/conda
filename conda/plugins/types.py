@@ -295,6 +295,14 @@ class ReporterRendererBase(ABC):
         loading dialog)
         """
 
+    @abstractmethod
+    def confirm_yn(
+        self, message: str = "Proceed", default: str = "yes", dry_run=None
+    ) -> bool:
+        """
+        Allows for defining an implementation of a "yes/no" confirmation function
+        """
+
 
 @dataclass
 class CondaReporterBackend:

@@ -58,7 +58,7 @@ from ..history import History
 from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..reporters import get_spinner
+from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
@@ -538,7 +538,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if not context.json:
         unlink_link_transaction.print_transaction_summary()
-        common.confirm_yn()
+        confirm_yn()
 
     elif context.dry_run:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
