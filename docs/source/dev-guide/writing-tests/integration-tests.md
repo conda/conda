@@ -8,11 +8,11 @@ these should serve as a good starting point.
 
 ## `conda_cli` Fixture: Running CLI level tests
 
-```{note}
-The `conda_cli` fixture is a function scoped fixture meaning it can only be used
-within tests or other function scoped fixtures. For module, package, or session
-scoped fixtures use `global_conda_cli` instead.
-```
+:::{note}
+The `conda_cli` fixture is a `scope="function"` fixture meaning it can only be used
+within tests or other `scope="function"` fixtures. For `"module"`, `"package"`, or
+`"session"` scoped fixtures use `global_conda_cli` instead.
+:::
 
 CLI level tests are the highest level integration tests you can write. This means that the
 code in the test is executed as if you were running it from the command line. For example,
@@ -83,11 +83,11 @@ unexpected race conditions.
 
 ## `tmp_env` Fixture: Creating a temporary environment
 
-```{note}
-The `tmp_env` fixture is a function scoped fixture meaning it can only be used
-within tests or other function scoped fixtures. For module, package, or session
-scoped fixtures use `global_tmp_env` instead.
-```
+:::{note}
+The `tmp_env` fixture is a `scope="function"` fixture meaning it can only be used
+within tests or other `scope="function"` fixtures. For `"module"`, `"package"`, or
+`"session"` scoped fixtures use `global_tmp_env` instead.
+:::
 
 The `tmp_env` fixture is a convenient way to create a temporary environment for use in
 tests:
