@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from typing import ContextManager
 
 from .base.context import context
+from .exceptions import CondaSystemExit, DryRunExit
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -82,4 +83,21 @@ def confirm_yn(message: str = "Proceed", default="yes", dry_run=None) -> bool:
     """
     Display a "yes/no" confirmation input
     """
-    return _get_render_func("confirm_yn")(message, default=default, dry_run=dry_run)
+    if (dry_run is None and context.dry_run) or dry_run:
+        raise DryRunExit()
+
+    if context.always_yes:
+        return True
+
+    try:
+        choice = _get_render_func("prompt")(
+            message, choices=("yes", "no"), default=default, dry_run=dry_run
+        )
+
+    except KeyboardInterrupt:  # pragma: no cover
+        raise CondaSystemExit("\nOperation aborted.  Exiting.")
+
+    if choice == "no":
+        raise CondaSystemExit("Exiting.")
+
+    return True

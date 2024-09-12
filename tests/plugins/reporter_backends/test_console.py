@@ -5,17 +5,13 @@ from errno import EPIPE
 from io import StringIO
 
 import pytest
-from pytest import MonkeyPatch
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import captured, env_vars
-from conda.exceptions import CondaSystemExit, DryRunExit
+from conda.exceptions import CondaError
 from conda.plugins.reporter_backends.console import (
     ConsoleReporterRenderer,
     QuietSpinner,
     Spinner,
     TQDMProgressBar,
-    confirm,
 )
 
 
@@ -201,73 +197,46 @@ def test_quiet_spinner_with_error(capsys):
     assert capture.out == "Test message: ...working... failed\n"
 
 
-def test_confirm_dry_run_exit():
-    with env_vars(
-        {"CONDA_DRY_RUN": "true"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(DryRunExit):
-        assert context.dry_run
+def test_prompt(monkeypatch):
+    """
+    Ensure basic coverage of the ``prompt`` method
+    """
+    reporter = ConsoleReporterRenderer()
 
-        confirm()
+    # Test "yes" option
+    monkeypatch.setattr("sys.stdin", StringIO("y\n"))
+    assert reporter.prompt() == "yes"
 
-
-def test_confirm_yn_dry_run_exit():
-    with env_vars(
-        {"CONDA_DRY_RUN": "true"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(DryRunExit):
-        assert context.dry_run
-
-        reporter = ConsoleReporterRenderer()
-        reporter.confirm_yn()
-
-
-def test_confirm_yn_always_yes():
-    with env_vars(
-        {
-            "CONDA_ALWAYS_YES": "true",
-            "CONDA_DRY_RUN": "false",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.always_yes
-        assert not context.dry_run
-
-        reporter = ConsoleReporterRenderer()
-        assert reporter.confirm_yn()
-
-
-def test_confirm_yn_yes(monkeypatch: MonkeyPatch):
-    monkeypatch.setattr("sys.stdin", StringIO("blah\ny\n"))
-
-    with env_vars(
-        {
-            "CONDA_ALWAYS_YES": "false",
-            "CONDA_DRY_RUN": "false",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), captured() as cap:
-        assert not context.always_yes
-        assert not context.dry_run
-
-        reporter = ConsoleReporterRenderer()
-        assert reporter.confirm_yn()
-
-    assert "Invalid choice" in cap.stdout
-
-
-def test_confirm_yn_no(monkeypatch: MonkeyPatch):
+    # Test "no" option
     monkeypatch.setattr("sys.stdin", StringIO("n\n"))
+    assert reporter.prompt() == "no"
 
-    with env_vars(
-        {
-            "CONDA_ALWAYS_YES": "false",
-            "CONDA_DRY_RUN": "false",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(CondaSystemExit):
-        assert not context.always_yes
-        assert not context.dry_run
 
-        reporter = ConsoleReporterRenderer()
-        reporter.confirm_yn()
+def test_prompt_bad_option(monkeypatch, capsys):
+    """
+    Ensure message is printed when bad option is chosen
+    """
+    reporter = ConsoleReporterRenderer()
+
+    # Test "yes" option
+    monkeypatch.setattr("sys.stdin", StringIO("badoption\ny\n"))
+
+    assert reporter.prompt() == "yes"
+
+    capture = capsys.readouterr()
+
+    assert "Invalid choice" in capture.out
+
+
+def test_prompt_error_reading_stdin(mocker):
+    """
+    Ensure exception is raised when OSError is encountered
+    """
+    reporter = ConsoleReporterRenderer()
+    mock_readline = mocker.patch(
+        "conda.plugins.reporter_backends.console.sys.stdin.readline"
+    )
+    mock_readline.side_effect = OSError("Test")
+
+    with pytest.raises(CondaError):
+        reporter.prompt()

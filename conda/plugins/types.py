@@ -296,8 +296,12 @@ class ReporterRendererBase(ABC):
         """
 
     @abstractmethod
-    def confirm_yn(
-        self, message: str = "Proceed", default: str = "yes", dry_run=None
+    def prompt(
+        self,
+        message: str = "Proceed",
+        choices=("yes", "no"),
+        default: str = "yes",
+        dry_run=None,
     ) -> bool:
         """
         Allows for defining an implementation of a "yes/no" confirmation function
