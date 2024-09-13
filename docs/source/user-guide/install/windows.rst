@@ -10,7 +10,7 @@ Installing on Windows
    * `Anaconda Distribution installer for
      Windows <https://www.anaconda.com/download/>`_
 
-   * `Miniforge installer for Windows <https://github.com/conda-forge/miniforge>`_
+   * `Miniforge installer for Windows <https://conda-forge.org/download>`_
 
 #. :ref:`Verify your installer hashes <hash-verification>`.
 
