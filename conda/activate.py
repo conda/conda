@@ -229,6 +229,14 @@ class _Activator(metaclass=abc.ABCMeta):
         context.plugin_manager.invoke_post_commands(self.command)
         return response
 
+    @deprecated(
+        "25.3",
+        "25.9",
+        addendum="Use `conda commands` instead.",
+        # these commands are already pretty hidden in their implementation and access (`conda shell.posix commands`)
+        # so we opt to not warn end users that this is going away, we only need to notify tab-completion devs
+        # deprecation_type=FutureWarning,
+    )
     def commands(self):
         """
         Returns a list of possible subcommands that are valid
@@ -243,7 +251,10 @@ class _Activator(metaclass=abc.ABCMeta):
         # Hidden commands to provide metadata to shells.
         return "\n".join(
             sorted(
-                find_builtin_commands(generate_parser()) + tuple(find_commands(True))
+                {
+                    *find_builtin_commands(generate_parser()),
+                    *find_commands(True),
+                }
             )
         )
 
@@ -1138,7 +1149,7 @@ class PowerShellActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = '$Env:%s = ""'
+    unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'
     set_var_tmpl = '$Env:%s = "%s"'
     run_script_tmpl = '. "%s"'
@@ -1167,8 +1178,8 @@ class PowerShellActivator(_Activator):
             return dedent(
                 f"""
                 $Env:CONDA_EXE = "{context.conda_exe}"
-                $Env:_CE_M = ""
-                $Env:_CE_CONDA = ""
+                $Env:_CE_M = $null
+                $Env:_CE_CONDA = $null
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
