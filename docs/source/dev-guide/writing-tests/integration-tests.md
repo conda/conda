@@ -23,10 +23,17 @@ running `conda create`. A test like this would look like the following:
 :linenos:
 :name: test-conda-create-1
 :caption: Integration test for `conda create`
-import json
-from pathlib import Path
+from __future__ import annotations
 
-from conda.testing import CondaCLIFixture
+import json
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import CondaCLIFixture
+
+pytest_plugins = "conda.testing.fixtures"
 
 
 def test_conda_create(conda_cli: CondaCLIFixture, tmp_path: Path):
@@ -96,7 +103,14 @@ tests:
 :linenos:
 :name: test-conda-environment-with-numpy
 :caption: Integration test for creating an environment with `numpy`
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+
+pytest_plugins = "conda.testing.fixtures"
 
 
 def test_environment_with_numpy(
@@ -120,11 +134,20 @@ paths. This makes it easier to generate new paths in tests:
 :linenos:
 :name: test-conda-rename
 :caption: Integration test for renaming an environment
-from conda.testing import (
-    CondaCLIFixture,
-    PathFactoryFixture,
-    TmpEnvFixture,
-)
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
+
+pytest_plugins = "conda.testing.fixtures"
 
 
 def test_conda_rename(
@@ -162,10 +185,17 @@ fixture:
 :linenos:
 :name: test-conda-create-2
 :caption: Integration test for `conda create`
-import json
-from pathlib import Path
+from __future__ import annotations
 
-from conda.testing import CondaCLIFixture
+import json
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+
+pytest_plugins = "conda.testing.fixtures"
 
 
 @pytest.fixture

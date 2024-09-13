@@ -1,15 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
 import os
 import re
 import sys
 from contextlib import contextmanager, nullcontext
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 from ruamel.yaml.scanner import ScannerError
 
 from conda import CondaError, CondaMultiError
@@ -19,7 +20,12 @@ from conda.common.configuration import ConfigurationLoadError, CustomValidationE
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 # use condarc from source tree to run these tests against
 

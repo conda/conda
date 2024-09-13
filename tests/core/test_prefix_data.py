@@ -19,7 +19,7 @@ from conda.testing.helpers import record
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing import TmpEnvFixture
+    from conda.testing.fixtures import TmpEnvFixture
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"

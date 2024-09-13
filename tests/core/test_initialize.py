@@ -1,10 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import ntpath
 import os
 import sys
 from os.path import abspath, dirname, isfile, join, realpath, samefile
 from sysconfig import get_path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -40,8 +43,10 @@ from conda.core.initialize import (
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
-from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture
 
 CONDA_EXE = "conda.exe" if on_win else "conda"
 

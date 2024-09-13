@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-    from conda.testing import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def _get_pkgs(pkgs_dir: str | Path) -> list[Path]:
