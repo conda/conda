@@ -447,7 +447,8 @@ def test_threads(testdata: None):
 def test_channels_empty(testdata: None):
     """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())
-    assert context.channels == ()
+    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
+        assert context.channels == ("defaults",)
 
 
 def test_channels_defaults_condarc(testdata: None):
@@ -475,7 +476,8 @@ def test_specify_channels_cli_not_adding_defaults_no_condarc(testdata: None):
     See https://github.com/conda/conda/issues/14217 for context.
     """
     reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
-    assert context.channels == ("conda-forge",)
+    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
+        assert context.channels == ("conda-forge", "defaults")
 
 
 def test_specify_channels_cli_condarc(testdata: None):
