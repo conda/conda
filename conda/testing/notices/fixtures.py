@@ -36,7 +36,7 @@ def notices_mock_fetch_get_session():
 @pytest.fixture(scope="function")
 def conda_notices_args_n_parser():
     parser = generate_parser()
-    args = parser.parse_args(["notices", "-c", DEFAULTS_CHANNEL_NAME])
+    args = parser.parse_args(["notices", f"--channel={DEFAULTS_CHANNEL_NAME}"])
     reset_context((), args)
 
     return args, parser
