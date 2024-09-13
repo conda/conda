@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Replace extensions from end of filename only, not `str.replace()`, in two places.
+* Replace extensions from end of filename only, not `str.replace()`, in two places. (#14241)
 
 ### Deprecations
 
