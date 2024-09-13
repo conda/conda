@@ -156,9 +156,7 @@ def test_deprecated_binstar(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_create_valid_env(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
-):
+def test_create_valid_env(tmp_env: TmpEnvFixture):
     """
     Creates an environment.yml file and
     creates an environment with it
@@ -188,13 +186,29 @@ def test_create_dry_run_yaml(env1: str, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_create_dry_run_json(env1: str, conda_cli: CondaCLIFixture):
-    create_env(ENVIRONMENT_CA_CERTIFICATES)
-    stdout, _, _ = conda_cli("env", "create", "--dry-run", "--json")
-    assert not env_is_created(env1)
+def test_create_dry_run_json(
+    path_factory: PathFactoryFixture, tmp_path: Path, conda_cli: CondaCLIFixture
+):
+    prefix = path_factory()
+    assert not is_conda_environment(prefix)
+
+    env_file = tmp_path / "environment.yml"
+    create_env(ENVIRONMENT_CA_CERTIFICATES, filename=str(env_file))
+    assert env_file.is_file()
+
+    stdout, _, _ = conda_cli(
+        "env",
+        "create",
+        f"--file={env_file}",
+        f"--prefix={prefix}",
+        "--dry-run",
+        "--json",
+    )
+    assert not is_conda_environment(prefix)
 
     output = json.loads(stdout)
-    assert output.get("name") == env1
+    # assert that the name specified in the environment file matches output
+    assert output.get("name") == "env1"
     assert len(output["dependencies"])
 
 
@@ -278,14 +292,17 @@ def test_name(env1: str, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_create_valid_env_json_output(env1: str, conda_cli: CondaCLIFixture):
+def test_create_valid_env_json_output(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
     """
     Creates an environment from an environment.yml file with conda packages (no pip)
     Check the json output
     """
+    prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES)
     stdout, _, _ = conda_cli(
-        "env", "create", f"--name={env1}", "--quiet", "--json", "--yes"
+        "env", "create", f"--prefix={prefix}", "--quiet", "--json", "--yes"
     )
     output = json.loads(stdout)
     assert output["success"] is True
@@ -437,15 +454,18 @@ def test_set_unset_env_vars_env_no_exist(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_pip_error_is_propagated(env1: str, conda_cli: CondaCLIFixture):
+def test_pip_error_is_propagated(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
     """
     Creates an environment from an environment.yml file with conda and incorrect pip dependencies
     The output must clearly show pip error.
-    Check the json output
     """
+    prefix = path_factory()
+
     create_env(ENVIRONMENT_PIP_NONEXISTING)
     with pytest.raises(CondaEnvException, match="Pip failed"):
-        conda_cli("env", "create")
+        conda_cli("env", "create", f"--prefix={prefix}")
 
 
 def env_is_created(env_name):
