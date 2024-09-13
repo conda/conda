@@ -1138,7 +1138,7 @@ class PowerShellActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = '$Env:%s = ""'
+    unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'
     set_var_tmpl = '$Env:%s = "%s"'
     run_script_tmpl = '. "%s"'
@@ -1167,8 +1167,8 @@ class PowerShellActivator(_Activator):
             return dedent(
                 f"""
                 $Env:CONDA_EXE = "{context.conda_exe}"
-                $Env:_CE_M = ""
-                $Env:_CE_CONDA = ""
+                $Env:_CE_M = $null
+                $Env:_CE_CONDA = $null
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
