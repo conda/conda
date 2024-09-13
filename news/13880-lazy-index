@@ -19,6 +19,7 @@
 * Mark `conda.core.index._supplement_index_with_system` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
 * Mark `conda.core.index._make_virtual_package` as pending deprecation. Use `conda.models.records.PackageRecord.virtual_package` instead. (#13880)
 * Mark `conda.core.subdir_data.make_feature_record` as pending deprecation. Use `conda.models.records.PackageRecord.feature` instead. (#13880)
+* Mark `conda.plugins.manager.get_virtual_packages` as pending deprecation. Use `conda.plugins.manager.get_virtual_package_records` instead. (#13880)
 
 ### Docs
 
