@@ -375,7 +375,6 @@ Authors are sorted alphabetically.
 * Shannon Green
 * Shaun Thompson
 * Shaun Walbridge
-* Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
 * Simon McLaren
