@@ -254,12 +254,8 @@ class Index(UserDict):
                 self._data.update(self.features)
         if system:
             self._system_packages = {
-                (
-                    rec := PackageRecord.virtual_package(
-                        f"__{package.name}", package.version, package.build
-                    )
-                ): rec
-                for package in context.plugin_manager.get_virtual_packages()
+                package: package
+                for package in context.plugin_manager.get_virtual_package_records()
             }
             if has_data:
                 self._data.update(self.system_packages)
@@ -824,11 +820,8 @@ def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> 
     """
     if isinstance(index, Index):
         return
-    for package in context.plugin_manager.get_virtual_packages():
-        rec = PackageRecord.virtual_package(
-            f"__{package.name}", package.version, package.build
-        )
-        index[rec] = rec
+    for package in context.plugin_manager.get_virtual_package_records():
+        index[package] = package
 
 
 def get_archspec_name() -> str | None:
