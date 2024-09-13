@@ -5,11 +5,12 @@ from re import IGNORECASE, compile
 
 from enum import Enum
 
-from .compat import NoneType, isiterable
+from ..deprecations import deprecated
+from .compat import isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
-__all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
+__all__ = ["boolify", "typify", "maybecall", "numberify"]
 
 BOOLISH_TRUE = ("true", "yes", "on", "y")
 BOOLISH_FALSE = ("false", "off", "n", "no", "non", "none", "")
@@ -169,14 +170,6 @@ def boolify(value, nullable=False, return_string=False):
             raise TypeCoercionError(value, "The value %r cannot be boolified." % value)
 
 
-def boolify_truthy_string_ok(value):
-    try:
-        return boolify(value)
-    except ValueError:
-        assert isinstance(value, str), repr(value)
-        return True
-
-
 def typify_str_no_hint(value):
     candidate = _REGEX.convert(value)
     return candidate if candidate is not NO_MATCH else value
@@ -230,11 +223,11 @@ def typify(value, type_hint=None):
             return numberify(value)
         elif not (type_hint - STRING_TYPES_SET):
             return str(value)
-        elif not (type_hint - {bool, NoneType}):
+        elif not (type_hint - {bool, type(None)}):
             return boolify(value, nullable=True)
         elif not (type_hint - (STRING_TYPES_SET | {bool})):
             return boolify(value, return_string=True)
-        elif not (type_hint - (STRING_TYPES_SET | {NoneType})):
+        elif not (type_hint - (STRING_TYPES_SET | {type(None)})):
             value = str(value)
             return None if value.lower() == 'none' else value
         elif not (type_hint - {bool, int}):
@@ -270,24 +263,3 @@ def typify_data_structure(value, type_hint=None):
 
 def maybecall(value):
     return value() if callable(value) else value
-
-
-def listify(val, return_type=tuple):
-    """
-    Examples:
-        >>> listify('abc', return_type=list)
-        ['abc']
-        >>> listify(None)
-        ()
-        >>> listify(False)
-        (False,)
-        >>> listify(('a', 'b', 'c'), return_type=list)
-        ['a', 'b', 'c']
-    """
-    # TODO: flatlistify((1, 2, 3), 4, (5, 6, 7))
-    if val is None:
-        return return_type()
-    elif isiterable(val):
-        return return_type(val)
-    else:
-        return return_type((val, ))

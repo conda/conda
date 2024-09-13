@@ -1,11 +1,8 @@
 from collections import OrderedDict as odict  # noqa: F401
 import os
 from shlex import split
-from tempfile import NamedTemporaryFile
 
-
-NoneType = type(None)
-primitive_types = (str, int, float, complex, bool, NoneType)
+from ..deprecations import deprecated
 
 
 def isiterable(obj):
@@ -23,13 +20,11 @@ def shlex_split_unicode(to_split, posix=True):
     return split(e_to_split, posix=posix)
 
 
-def utf8_writer(fp):
-    return fp
-
-
 def Utf8NamedTemporaryFile(
     mode="w+b", buffering=-1, newline=None, suffix=None, prefix=None, dir=None, delete=True
 ):
+    from tempfile import NamedTemporaryFile
+
     if "CONDA_TEST_SAVE_TEMPS" in os.environ:
         delete = False
     encoding = None

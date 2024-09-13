@@ -3,6 +3,7 @@
 """
 Strongly related to subdir_data / test_subdir_data.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -11,7 +12,7 @@ import math
 import sys
 import time
 from pathlib import Path
-from socket import socket
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -39,9 +40,13 @@ from conda.gateways.repodata import (
     RepodataIsEmpty,
     RepodataState,
     conda_http_errors,
+    get_cache_control_max_age,
 )
 from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
+
+if TYPE_CHECKING:
+    from socket import socket
 
 
 def test_save(tmp_path):
@@ -373,3 +378,33 @@ def test_repodata_fetch_cached(
         for key in "mtime_ns", "size", "refresh_ns":
             state.pop(key)
         assert state == {}
+
+
+def test_repodata_fetch_jsondecodeerror(tmp_path):
+    """
+    Show that repodata's JSONDecodeError contains sample of bad data.
+    """
+
+    channel_url = "file:///path/does/not/exist"
+
+    class UndecodeableRepodataFetch(RepodataFetch):
+        def fetch_latest(self):
+            return "not json", {}
+
+    fetch = UndecodeableRepodataFetch(
+        tmp_path,
+        Channel(channel_url),
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+
+    with pytest.raises(json.JSONDecodeError, match="not json"):
+        fetch.fetch_latest_parsed()
+
+
+def test_get_cache_control_max_age():
+    """
+    Test that we are robust against None cache-control-max-age
+    """
+    assert get_cache_control_max_age('cache_control = "public, max-age=30"') == 30
+    assert get_cache_control_max_age(None) == 0

@@ -1,15 +1,20 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Defines S3 transport adapter for CondaSession (requests.Session)."""
+
 from __future__ import annotations
 
 import json
 from logging import LoggerAdapter, getLogger
 from tempfile import SpooledTemporaryFile
+from typing import TYPE_CHECKING
 
 from ....common.compat import ensure_binary
 from ....common.url import url_to_s3_info
-from .. import BaseAdapter, CaseInsensitiveDict, PreparedRequest, Response
+from .. import BaseAdapter, CaseInsensitiveDict, Response
+
+if TYPE_CHECKING:
+    from .. import PreparedRequest
 
 log = getLogger(__name__)
 stderrlog = LoggerAdapter(getLogger("conda.stderrlog"), extra=dict(terminator="\n"))

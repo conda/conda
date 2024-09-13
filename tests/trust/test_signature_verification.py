@@ -1,393 +1,268 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from shutil import copyfile
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, PropertyMock
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
+from conda.base.constants import REPODATA_FN
+from conda.base.context import context, reset_context
 from conda.gateways.connection import HTTPError
+from conda.models.channel import Channel
+from conda.models.records import PackageRecord
+from conda.trust.constants import KEY_MGR_FILE
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
-_TESTDATA = Path(__file__).parent / "testdata"
+if TYPE_CHECKING:
+    from typing import Callable
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing import PathFactoryFixture
+
+
+TESTDATA = Path(__file__).parent / "testdata"
+HTTP404 = HTTPError(response=SimpleNamespace(status_code=404))
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    _SignatureVerification.cache_clear()
+    yield
+    _SignatureVerification.cache_clear()
 
 
 @pytest.fixture
-def initial_trust_root():
-    return json.loads((_TESTDATA / "1.root.json").read_text())
+def av_data_dir(mocker: MockerFixture, path_factory: PathFactoryFixture) -> Path:
+    av_data_dir = path_factory()
+    av_data_dir.mkdir()
+    mocker.patch(
+        "conda.base.context.Context.av_data_dir",
+        new_callable=mocker.PropertyMock,
+        return_value=av_data_dir,
+    )
+    return av_data_dir
+
+
+@pytest.fixture
+def initial_trust_root(av_data_dir: Path, mocker: MockerFixture) -> dict:
+    mocker.patch(
+        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
+        new=(initial_trust_root := json.loads((TESTDATA / "1.root.json").read_text())),
+    )
+    return initial_trust_root
+
+
+@pytest.fixture
+def key_mgr(av_data_dir: Path, mocker: MockerFixture) -> dict:
+    copyfile(key_mgr := TESTDATA / "key_mgr.json", av_data_dir / KEY_MGR_FILE)
+    return json.loads(key_mgr.read_text())
+
+
+@pytest.fixture
+def mock_fetch_channel_signing_data(
+    mocker: MockerFixture,
+) -> Callable[..., None]:
+    def inner(*values) -> None:
+        mocker.patch(
+            "conda.trust.signature_verification._SignatureVerification._fetch_channel_signing_data",
+            side_effect=values,
+        )
+
+    return inner
 
 
 def test_trusted_root_no_new_metadata(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
-
+    # return HTTPError(404)
+    mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # Mock out HTTP request
-    err = HTTPError()
-    err.response = SimpleNamespace()
-    err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
-
-    # This thing is a property so this is effectively a call
-    check_trusted_root = sig_ver.trusted_root
-    sig_ver._fetch_channel_signing_data.assert_called()
-
-    # Compare sig_ver's view on INITIAL_TRUST_ROOT to the contents of testdata/1.root.json
-    assert check_trusted_root == initial_trust_root
+    # fetches 1.root.json (non-existant), fallback to initial_trust_root
+    assert sig_ver.trusted_root == initial_trust_root
+    assert sig_ver._fetch_channel_signing_data.call_count == 1
 
 
 def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
-    Tests a case where we cannot reach new root metadata online but have a newer version
-    locally (2.root.json).  As I understand it, we should use this new version if it is valid
+    Case where we cannot reach new root metadata online but have a newer version locally
+    (2.root.json). Use this new version if it is valid.
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
+    # copy 2.root.json to disk
+    copyfile(TESTDATA / "2.root.json", path := av_data_dir / "2.root.json")
 
+    # load 2.root.json
+    root2 = json.loads(path.read_text())
+
+    # return HTTPError(404)
+    mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # Find 2.root.json in our test data directory...
-    testdata_2_root = _TESTDATA / "2.root.json"
-
-    # ... and copy it into our tmp trust root dir
-    test_2_root_dest = tmp_path / "2.root.json"
-    copyfile(testdata_2_root, test_2_root_dest)
-
-    # Mock out HTTP Request
-    err = HTTPError()
-    err.response = SimpleNamespace()
-    err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
-
-    # This thing is a property so this is effectively a call
-    check_trusted_root = sig_ver.trusted_root
-    sig_ver._fetch_channel_signing_data.assert_called()
-
-    test_2_root_data = json.loads(test_2_root_dest.read_text())
-
-    assert check_trusted_root == test_2_root_data
+    # fetches 3.root.json (non-existent), fallback to disk
+    assert sig_ver.trusted_root == root2
+    assert sig_ver._fetch_channel_signing_data.call_count == 1
 
 
 def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
-    Unusual case:  We have an invalid 2.root.json on disk and no new metadata available online.  In this case,
-    our deliberate choice is to accept whatever on disk.
+    Unusual case:  We have an invalid 2.root.json on disk and no new metadata available
+    online. In this case, our deliberate choice is to accept whatever on disk.
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
+    # copy 2.root_invalid.json to disk
+    copyfile(TESTDATA / "2.root_invalid.json", path := av_data_dir / "2.root.json")
 
+    # load 2.root.json
+    root2 = json.loads(path.read_text())
+
+    # return HTTPError(404)
+    mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # Find 2.root_invalid.json in our test data directory...
-    testdata_2_root = _TESTDATA / "2.root_invalid.json"
-
-    # ... and copy it into our tmp trust root dir
-    test_2_root_dest = tmp_path / "2.root.json"
-    copyfile(testdata_2_root, test_2_root_dest)
-
-    test_2_root_data = json.loads(test_2_root_dest.read_text())
-
-    data_mock = Mock()
-    data_mock.side_effect = [test_2_root_data]
-    sig_ver = _SignatureVerification()
-    sig_ver._fetch_channel_signing_data = data_mock
-
-    # Mock out HTTP Request
-    # err = HTTPError()
-    # err.response=SimpleNamespace()
-    # err.response.status_code = 404
-    # sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
-
-    # This thing is a property so this is effectively a call
-    check_trusted_root = sig_ver.trusted_root
-
-    sig_ver._fetch_channel_signing_data.call_count == 1
-    assert check_trusted_root == test_2_root_data
+    # fetches 3.root.json (non-existent), fallback to disk
+    assert sig_ver.trusted_root == root2
+    assert sig_ver._fetch_channel_signing_data.call_count == 1
 
 
 def test_2nd_root_metadata_from_web(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
     Test happy case where we get a new valid root metadata from the web
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
+    # load 2.root.json
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
 
-    # Find 2.root.json in our test data directory...
-    testdata_2_root = _TESTDATA / "2.root.json"
-
-    # Load 2.root.json's data so we can use it in our mock
-    test_2_root_data = json.loads(testdata_2_root.read_text())
-
-    data_mock = Mock()
-    data_mock.side_effect = [test_2_root_data]
+    # return 2.root.json then HTTPError(404)
+    mock_fetch_channel_signing_data(root2, HTTP404)
     sig_ver = _SignatureVerification()
-    sig_ver._fetch_channel_signing_data = data_mock
 
-    # This thing is a property so this is effectively a call
-    check_trusted_root = sig_ver.trusted_root
-
-    # One call for 2.root.json and 3.root.json (non-existant)
-    assert data_mock.call_count == 2
-
-    assert check_trusted_root == test_2_root_data
+    # fetches 2.root.json (valid) and 3.root.json (non-existant)
+    assert sig_ver.trusted_root == root2
+    assert sig_ver._fetch_channel_signing_data.call_count == 2
 
 
 def test_3rd_root_metadata_from_web(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
-    Test happy case where we get a chaing of valid root metadata from the web
+    Test happy case where we get a chain of valid root metadata from the web
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
+    # load 2.root.json and 3.root.json
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
+    root3 = json.loads((TESTDATA / "3.root.json").read_text())
 
-    # Find 2.root.json in our test data directory...
-    testdata_2_root = _TESTDATA / "2.root.json"
-
-    # Load 2.root.json's data so we can use it in our mock
-    test_2_root_data = json.loads(testdata_2_root.read_text())
-
-    # Find 3.root.json in our test data directory...
-    testdata_3_root = _TESTDATA / "3.root.json"
-
-    # Load 3.root.json's data so we can use it in our mock
-    test_3_root_data = json.loads(testdata_3_root.read_text())
-
-    data_mock = Mock()
-    data_mock.side_effect = [test_2_root_data, test_3_root_data]
+    # return 2.root.json, 3.root.json, then HTTPError(404)
+    mock_fetch_channel_signing_data(root2, root3, HTTP404)
     sig_ver = _SignatureVerification()
-    sig_ver._fetch_channel_signing_data = data_mock
 
-    # This thing is a property so this is effectively a call
-    check_trusted_root = sig_ver.trusted_root
-
-    # One call for 2.root.json and 3.root.json and 4.root.json (non-existant)
-    assert data_mock.call_count == 3
-
-    assert check_trusted_root == test_3_root_data
+    # fetches 2.root.json (valid), 3.root.json (valid), and 4.root.json (non-existant)
+    assert sig_ver.trusted_root == root3
+    assert sig_ver._fetch_channel_signing_data.call_count == 3
 
 
 def test_single_invalid_signature_3rd_root_metadata_from_web(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
     Third root metadata retrieved from online has a bad signature. Test that we do not trust it.
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
+    # load 2.root.json and 3.root_invalid.json
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
+    root3 = json.loads((TESTDATA / "3.root_invalid.json").read_text())
 
-    # Find 2.root.json in our test data directory...
-    testdata_2_root = _TESTDATA / "2.root.json"
-
-    # Load 2.root.json's data so we can use it in our mock
-    test_2_root_data = json.loads(testdata_2_root.read_text())
-
-    # Find 3.root.json in our test data directory...
-    testdata_3_root = _TESTDATA / "3.root_invalid.json"
-
-    # Load 3.root.json's data so we can use it in our mock
-    test_3_root_data = json.loads(testdata_3_root.read_text())
-
-    data_mock = Mock()
-    data_mock.side_effect = [test_2_root_data, test_3_root_data]
+    # return 2.root.json then 3.root.json
+    mock_fetch_channel_signing_data(root2, root3)
     sig_ver = _SignatureVerification()
-    sig_ver._fetch_channel_signing_data = data_mock
 
-    # This thing is a property so this is effectively a call
-    check_trusted_root = sig_ver.trusted_root
-
-    # One call for 2.root.json and 3.root.json and 4.root.json (non-existant)
-    assert data_mock.call_count == 2
-
-    assert check_trusted_root == test_2_root_data
-
-
-######## Begin Keymgr Tests ########
+    # fetches 2.root.json (valid) and 3.root.json (invalid)
+    assert sig_ver.trusted_root == root2
+    assert sig_ver._fetch_channel_signing_data.call_count == 2
 
 
 def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    key_mgr: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
     If we don't have a new key_mgr online, we use the one from disk
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
-
+    # return HTTPError(404)
+    mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # Mock out HTTP request
-    err = HTTPError()
-    err.response = SimpleNamespace()
-    err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
-
-    # Find key_mgr.json in our test data directory...
-    test_key_mgr_path = _TESTDATA / "key_mgr.json"
-
-    # ... and copy it into our tmp trust root dir
-    test_key_mgr_dest = tmp_path / "key_mgr.json"
-    copyfile(test_key_mgr_path, test_key_mgr_dest)
-
-    test_key_mgr_data = json.loads(test_key_mgr_path.read_text())
-
-    # Compare sig_ver's view on key_mgr to
-    check_key_mgr = sig_ver.key_mgr
-    assert check_key_mgr == test_key_mgr_data
+    # fetches key_mgr.json (non-existent), fallback to disk (exists)
+    assert sig_ver.key_mgr == key_mgr
+    assert sig_ver._fetch_channel_signing_data.call_count == 1
 
 
 def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
     If we have no key_mgr online and no key_mgr on disk we don't have a key_mgr
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
-
+    # return HTTPError(404)
+    mock_fetch_channel_signing_data(HTTP404)
     sig_ver = _SignatureVerification()
 
-    # Mock out HTTP request
-    err = HTTPError()
-    err.response = SimpleNamespace()
-    err.response.status_code = 404
-    sig_ver._fetch_channel_signing_data = MagicMock(side_effect=err)
-
-    # We should have no key_mgr here
+    # fetches key_mgr.json (non-existent), fallback to disk (non-existent)
     assert sig_ver.key_mgr is None
+    assert sig_ver._fetch_channel_signing_data.call_count == 1
 
 
 def test_trusted_root_new_key_mgr_online(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
     We have a new key_mgr online that can be verified against our trusted root.
     We should accept the new key_mgr
     """
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
-    )
-    mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
-    )
+    # load key_mgr.json
+    key_mgr = json.loads((TESTDATA / "key_mgr.json").read_text())
 
-    # Find key_mgr.json in our test data directory...
-    test_key_mgr_path = _TESTDATA / "key_mgr.json"
-
-    # Load key_mgr's data so we can use it in our mock
-    test_key_mgr_data = json.loads(test_key_mgr_path.read_text())
-
-    # This HTTPError is for the first request.  Will make us use our local 1.root.json
-    err = HTTPError()
-    err.response = SimpleNamespace()
-    err.response.status_code = 404
-    data_mock = Mock()
-
-    # First time around we return an HTTPError(404) to signal we don't have new root metadata.
-    # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
-    data_mock.side_effect = [test_key_mgr_data, err]
+    # return key_mgr.json then HTTPError(404)
+    mock_fetch_channel_signing_data(key_mgr, HTTP404)
     sig_ver = _SignatureVerification()
-    if not sig_ver.enabled:
-        pytest.skip("Signature verification not enabled")
-    sig_ver._fetch_channel_signing_data = data_mock
-    check_key_mgr = sig_ver.key_mgr
 
-    assert check_key_mgr == test_key_mgr_data
+    # fetches key_mgr.json (valid) then 2.root.json (non-existant)
+    assert sig_ver.key_mgr == key_mgr
+    assert sig_ver._fetch_channel_signing_data.call_count == 2
 
 
 def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
-    initial_trust_root: str,
-    tmp_path: Path,
-    mocker: MockerFixture,
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    key_mgr: dict,
+    mock_fetch_channel_signing_data: Callable,
 ):
     """
     We have a new key_mgr online that can be verified against our trusted root.
@@ -396,47 +271,116 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     Note:  This one does not fail with a warning and no side effects like the others.
     Instead, we raise a SignatureError
     """
+    # load key_mgr_invalid.json
+    key_mgr = json.loads((TESTDATA / "key_mgr_invalid.json").read_text())
+
+    # return key_mgr_invalid.json then HTTPError(404)
+    mock_fetch_channel_signing_data(key_mgr, HTTP404)
+    sig_ver = _SignatureVerification()
+
+    # fetches key_mgr.json (invalid) then 2.root.json (non-existant)
+    with pytest.raises(SignatureError):
+        sig_ver.key_mgr
+    assert sig_ver._fetch_channel_signing_data.call_count == 2
+
+
+def test_signature_verification_not_enabled(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    key_mgr: dict,
+    monkeypatch: MonkeyPatch,
+):
+    sig_ver = _SignatureVerification()
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "false")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
+    reset_context()
+    assert not context.extra_safety_checks
+    assert not context.signing_metadata_url_base
+
+    _SignatureVerification.cache_clear()
+    assert not sig_ver.enabled
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
+    reset_context()
+    assert context.extra_safety_checks
+    assert not context.signing_metadata_url_base
+
+    _SignatureVerification.cache_clear()
+    assert not sig_ver.enabled
+
+
+@pytest.mark.parametrize(
+    "package,signed",
+    [
+        ("first.tar.bz2", True),
+        ("second.conda", True),
+        ("third.conda", True),
+        # bad signature
+        ("broken-0.0.1-broken.tar.bz2", False),
+        # no signature
+        ("broken-0.0.1-broken.conda", None),
+    ],
+)
+def test_signature_verification(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactoryFixture,
+    package: str,
+    signed: bool | None,
+):
+    # mock out the signature verification root path
     mocker.patch(
         "conda.base.context.Context.av_data_dir",
-        new_callable=PropertyMock,
-        return_value=tmp_path,
+        new_callable=mocker.PropertyMock,
+        return_value=TESTDATA,
     )
+
+    # mock out the cache path base
+    cache_path_base = path_factory()
+    cache_path_base.mkdir()
     mocker.patch(
-        "conda.trust.signature_verification.INITIAL_TRUST_ROOT",
-        new=initial_trust_root,
+        "conda.core.subdir_data.SubdirData.cache_path_base",
+        new_callable=mocker.PropertyMock,
+        return_value=cache_path_base,
     )
+
+    # enable signature verification
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
+    reset_context()
+    assert context.extra_safety_checks
+    assert context.signing_metadata_url_base == url
+
+    # load repodata.json with signatures
+    src = TESTDATA / "repodata.json"
+    repodata = json.loads(src.read_text())
+
+    # copy repodata.json to cache path
+    dst = cache_path_base / (subdir := repodata["info"]["subdir"]) / REPODATA_FN
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    copyfile(src, dst)
+
+    # create record to verify
+    pkg = "packages.conda" if package.endswith(".conda") else "packages"
+    record = PackageRecord.from_objects(
+        repodata[pkg][package],
+        channel=Channel.from_value(f"file:///{cache_path_base}/{subdir}"),
+        fn=package,
+    )
+
     sig_ver = _SignatureVerification()
-    if not sig_ver.enabled:
-        pytest.skip("Signature verification not enabled")
+    assert sig_ver.trusted_root
+    assert sig_ver.key_mgr
+    assert sig_ver.enabled
 
-    ## Find and load invalid key_mgr data
-    # Find key_mgr_invalid.json in our test data directory...
-    test_key_mgr_invalid_path = _TESTDATA / "key_mgr_invalid.json"
+    # ensure signature is valid
+    sig_ver.verify(REPODATA_FN, record)
 
-    # Load key_mgr_invalid's data so we can use it in our mock
-    test_key_mgr_invalid_data = json.loads(test_key_mgr_invalid_path.read_text())
-
-    ## Find and load valid key_mgr data
-    # Find key_mgr_invalid.json in our test data directory...
-    test_key_mgr_path = _TESTDATA / "key_mgr.json"
-
-    # Load key_mgr's data so we can use it in our checks later
-    json.loads(test_key_mgr_path.read_text())
-
-    # Copy valid key_mgr data into our trust data directory
-    test_key_mgr_dest = tmp_path / "key_mgr.json"
-    copyfile(test_key_mgr_path, test_key_mgr_dest)
-
-    # This HTTPError is for the first request.  Will make us use our local 1.root.json
-    err = HTTPError()
-    err.response = SimpleNamespace()
-    err.response.status_code = 404
-    data_mock = Mock()
-
-    # First time around we return an HTTPError(404) to signal we don't have new root metadata.
-    # Next, we return our new key_mgr data signaling we should update our key_mgr delegation
-    data_mock.side_effect = [test_key_mgr_invalid_data, err]
-    sig_ver._fetch_channel_signing_data = data_mock
-
-    with pytest.raises(SignatureError):
-        pass
+    if signed:
+        assert "(package metadata is TRUSTED)" in record.metadata
+    elif signed is False:
+        assert "(package metadata is UNTRUSTED)" in record.metadata
+    else:
+        assert f"(no signatures found for {package})" in record.metadata

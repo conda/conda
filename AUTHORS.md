@@ -25,6 +25,7 @@ Authors are sorted alphabetically.
 * Andrew M. Farrell
 * Andy R. Terrel
 * Angela Gloyna
+* Aniket Patil
 * Anthon van der Neut
 * Anthony Scopatz
 * Antoine Gallix
@@ -54,6 +55,7 @@ Authors are sorted alphabetically.
 * Blake Nicholson
 * Bocong Sui
 * Bojan Delic
+* Brad Erickson
 * Brad Nemanich
 * Brad S
 * Bradley Kreider
@@ -123,11 +125,13 @@ Authors are sorted alphabetically.
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
+* Erik Whiting
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
 * Faustin Carter
 * FelisNivalis
+* Filipe Laíns
 * Flavio Martins
 * Florenz A. P. Hollebrandse
 * Floris Bruynooghe
@@ -150,6 +154,7 @@ Authors are sorted alphabetically.
 * Hsin-Hsiang Peng
 * Hugo Buddelmeijer
 * Iain Gillis
+* Ian Fitchet
 * Ian Stokes-Rees
 * Igor Igamberdiev
 * Ikko Eltociear Ashimine
@@ -173,6 +178,7 @@ Authors are sorted alphabetically.
 * Jan-Benedikt Jagusch
 * Jan-Philipp Igla
 * Jannis Leidel
+* Jason Carpenter
 * Jason Grout
 * Jason Vestuto
 * Javier Rovegno
@@ -199,6 +205,7 @@ Authors are sorted alphabetically.
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
 * Julien Schueller
+* Justin Wood (Callek)
 * Justus Schwabedal
 * Justyn Harriman
 * Kahlil Hodgson
@@ -209,12 +216,15 @@ Authors are sorted alphabetically.
 * Kara de la Marck
 * Katherine Abrikian
 * Katherine Kinnaman
+* Kelvin Ou
 * Ken Odegard
+* Kenneth Laskoski
 * Kenneth Schackart
 * Kerry Watson
 * Kevin Deldycke
 * Kfir Zvi
 * Kian-Meng Ang
+* Klaus Zimmermann
 * Korijn van Golen
 * Kurt Wheeler
 * Kyle Gerard Felker
@@ -282,17 +292,20 @@ Authors are sorted alphabetically.
 * Mike Croucher
 * MinRK
 * Minh Phan
+* Monius
 * Morgan Parry
 * Morten Enemark Lund
 * Murray Read
 * NaincyKumariKnoldus
 * Nate Coraor
+* Nathan Nguyen
 * Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
 * Nicholas Pierotti
 * Nick Eubank
+* Nicky Sandhu
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
@@ -340,6 +353,7 @@ Authors are sorted alphabetically.
 * Saad Parwaiz
 * Sachin G Biradar
 * Sam Davis
+* Sam Haese
 * Sam Nicholls
 * Samson Yeung
 * Samuel Debionne
@@ -351,12 +365,15 @@ Authors are sorted alphabetically.
 * Saranya Mahalingam
 * Satyam Vyas
 * Sauco Cano Navarro
+* Schuyler Martin
 * Scott Evtuch
+* Scruel Tao
 * Sean Ross-Ross
 * Sebastien Awwad
+* Sergio Oller
+* Serhii Kupriienko
 * Shannon Green
 * Shaun Thompson
-* Shaun Walbridge
 * Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
@@ -378,11 +395,13 @@ Authors are sorted alphabetically.
 * Stijn Verstraeten
 * Stuart Berg
 * Tadeu Manoel
+* Tarcisio
 * Teake Nutma
 * Thomas Holder
 * Thomas Kluyver
 * Thomas Lam
 * Thomas Wiecki
+* Thorsten Beier
 * Théo Segonds
 * Tian Zhang
 * Tianchen Zhong
@@ -400,6 +419,8 @@ Authors are sorted alphabetically.
 * Troy Powell
 * Tyler Kim
 * Tyrone Grandison
+* Udo-Peter Steyer
+* Ujjwal Das
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
@@ -411,6 +432,7 @@ Authors are sorted alphabetically.
 * Will Warner
 * Willy Chen
 * Winston Sebastian Pais
+* Wolf Vollprecht
 * Wolfgang Ulmer
 * Xuehai Pan
 * Xylar Asay-Davis
@@ -429,6 +451,7 @@ Authors are sorted alphabetically.
 * mcopes73
 * oinizan
 * ovz
+* padeoe
 * peter1000
 * pre-commit CI
 * saraneem

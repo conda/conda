@@ -2,10 +2,6 @@
 Managing packages
 =================
 
-.. contents::
-   :local:
-   :depth: 1
-
 .. note::
    There are many options available for the commands described
    on this page. For details, see :doc:`commands <../../commands/index>`.
@@ -14,7 +10,7 @@ Managing packages
 Searching for packages
 ======================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 To see if a specific package, such as SciPy, is available for
 installation:
@@ -42,7 +38,7 @@ and is available for installation:
 Installing packages
 ===================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 To install a specific package such as SciPy into an existing
 environment "myenv":
@@ -125,8 +121,7 @@ To install a package from Anaconda.org:
    example it is the "pandas" channel.
 
 #. Now that you know the channel name, use the ``conda install``
-   command to install the package. In your terminal window or
-   an Anaconda Prompt, run:
+   command to install the package. In your terminal window, run:
 
    .. code::
 
@@ -135,8 +130,7 @@ To install a package from Anaconda.org:
    This command tells conda to install the bottleneck package
    from the pandas channel on Anaconda.org.
 
-#. To check that the package is installed, in your terminal window
-   or an Anaconda Prompt, run:
+#. To check that the package is installed, in your terminal window, run:
 
    .. code::
 
@@ -192,16 +186,13 @@ To install a non-conda package:
 
 #. Activate the environment where you want to put the program:
 
-   * On Windows, in your Anaconda Prompt, run ``activate myenv``.
-   * On macOS and Linux, in your terminal window, run ``conda activate myenv``.
+   * In your terminal window, run ``conda activate myenv``.
 
-#. To use pip to install a program such as See, in your terminal window or an Anaconda Prompt,
-   run::
+#. To use pip to install a program such as See, in your terminal window, run::
 
      pip install see
 
-#. To verify the package was installed, in your terminal window or an Anaconda Prompt,
-   run:
+#. To verify the package was installed, in your terminal window, run:
 
    .. code::
 
@@ -215,8 +206,7 @@ Installing commercial packages
 ==============================
 
 Installing a commercial package such as IOPro is the same as
-installing any other package. In your terminal window or an Anaconda Prompt,
-run:
+installing any other package. In your terminal window, run:
 
 .. code-block:: bash
 
@@ -232,7 +222,7 @@ expires after 30 days.
 Viewing a list of installed packages
 ====================================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 To list all of the packages in the active environment:
 
@@ -287,7 +277,7 @@ Use ``conda update`` command to check to see if a new update is
 available. If conda tells you an update is available, you can
 then choose whether or not to install it.
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 * To update a specific package:
 
@@ -354,7 +344,7 @@ With this ``pinned`` file, ``conda update numpy`` keeps NumPy at
 1.7.1, and ``conda install scipy=0.15.0`` causes an error.
 
 Use the ``--no-pin`` flag to override the update restriction on
-a package. In the terminal or an Anaconda Prompt, run:
+a package. In the terminal, run:
 
 .. code-block:: bash
 
@@ -370,7 +360,7 @@ Adding default packages to new environments automatically
 
 To automatically add default packages to each new environment that you create:
 
-#. Open Anaconda Prompt or terminal and run:
+#. Open a terminal window and run:
    ``conda config --add create_default_packages PACKAGENAME1 PACKAGENAME2``
 
 #. Now, you can create new environments and the default packages will be installed in all of them.
@@ -383,7 +373,7 @@ You can override this option at the command prompt with the ``--no-default-packa
 Removing packages
 =================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 * To remove a package such as SciPy in an environment such as
   myenv:

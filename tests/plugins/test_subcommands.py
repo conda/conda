@@ -3,19 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import CaptureFixture
-from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
 from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
-from conda.exceptions import PluginError
 from conda.plugins.types import CondaSubcommand
-from conda.testing import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from typing import Callable
+
+    from pytest import CaptureFixture
+    from pytest_mock import MockerFixture
+
+    from conda.testing import CondaCLIFixture
 
 
 @dataclass(frozen=True)
@@ -76,14 +80,12 @@ def test_duplicated(plugin_manager, conda_cli: CondaCLIFixture):
     plugin = SubcommandPlugin(name="custom", summary="Summary.")
     assert plugin_manager.load_plugins(plugin) == 1
 
-    # invalid, identical plugins
-    with pytest.raises(PluginError, match="Error while loading first-party"):
-        plugin_manager.load_plugins(plugin)
+    # invalid, identical plugins, error ignored
+    assert plugin_manager.load_plugins(plugin) == 0
 
-    # invalid, similar plugins
+    # invalid, similar plugins, error ignored
     plugin2 = SubcommandPlugin(name="custom", summary="Summary.")
-    with pytest.raises(PluginError, match="Error while loading first-party"):
-        plugin_manager.load_plugins(plugin2)
+    assert plugin_manager.load_plugins(plugin2) == 0
 
 
 @pytest.mark.parametrize("command", BUILTIN_COMMANDS)

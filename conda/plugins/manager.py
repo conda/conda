@@ -7,31 +7,45 @@ This module contains a subclass implementation of pluggy's
 Additionally, it contains a function we use to construct the ``PluginManager`` object and
 register all plugins during conda's startup process.
 """
+
 from __future__ import annotations
 
 import functools
 import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
-from typing import Literal, overload
+from typing import TYPE_CHECKING, overload
 
 import pluggy
-from requests.auth import AuthBase
 
 from ..auxlib.ish import dals
-from ..base.context import context
-from ..core.solve import Solver
+from ..base.context import add_plugin_setting, context
 from ..exceptions import CondaValueError, PluginError
-from . import solvers, subcommands, virtual_packages
+from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .types import (
-    CondaAuthHandler,
-    CondaPostCommand,
-    CondaPreCommand,
-    CondaSolver,
-    CondaSubcommand,
-    CondaVirtualPackage,
-)
+from .subcommands.doctor import health_checks
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from requests.auth import AuthBase
+
+    from ..common.configuration import ParameterLoader
+    from ..core.solve import Solver
+    from ..models.match_spec import MatchSpec
+    from ..models.records import PackageRecord
+    from .types import (
+        CondaAuthHandler,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaSetting,
+        CondaSolver,
+        CondaSubcommand,
+        CondaVirtualPackage,
+    )
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +88,24 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
 
+    def register(self, plugin, name: str | None = None) -> str | None:
+        """
+        Call :meth:`pluggy.PluginManager.register` and return the result or
+        ignore errors raised, except ``ValueError``, which means the plugin
+        had already been registered.
+        """
+        try:
+            # register plugin but ignore ValueError since that means
+            # the plugin has already been registered
+            return super().register(plugin, name=name)
+        except ValueError:
+            return None
+        except Exception as err:
+            raise PluginError(
+                f"Error while loading conda plugin: "
+                f"{name or self.get_canonical_name(plugin)} ({err})"
+            ) from err
+
     def load_plugins(self, *plugins) -> int:
         """
         Load the provided list of plugins and fail gracefully on error.
@@ -82,18 +114,8 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         count = 0
         for plugin in plugins:
-            try:
-                # register plugin
-                # extracts canonical name from plugin, checks for duplicates,
-                # and if blocked
-                if self.register(plugin):
-                    # successfully registered a plugin
-                    count += 1
-            except ValueError as err:
-                raise PluginError(
-                    f"Error while loading first-party conda plugin: "
-                    f"{self.get_canonical_name(plugin)} ({err})"
-                )
+            if self.register(plugin):
+                count += 1
         return count
 
     def load_entrypoints(self, group: str, name: str | None = None) -> int:
@@ -120,55 +142,61 @@ class CondaPluginManager(pluggy.PluginManager):
                     # not using exc_info=True here since the CLI loggers are
                     # set up after CLI initialization and argument parsing,
                     # meaning that it comes too late to properly render
-                    # a traceback
+                    # a traceback; instead we pass exc_info conditionally on
+                    # context.verbosity
                     log.warning(
-                        f"Error while loading conda entry point: {entry_point.name} ({err})"
+                        f"Error while loading conda entry point: {entry_point.name} ({err})",
+                        exc_info=err if context.info else None,
                     )
                     continue
 
-                try:
-                    # register plugin
-                    # extracts canonical name from plugin, checks for duplicates,
-                    # and if blocked
-                    if self.register(plugin):
-                        # successfully registered a plugin
-                        count += 1
-                except ValueError as err:
-                    raise PluginError(
-                        f"Error while loading third-party conda plugin: "
-                        f"{self.get_canonical_name(plugin)} ({err})"
-                    )
+                if self.register(plugin):
+                    count += 1
         return count
 
     @overload
-    def get_hook_results(self, name: Literal["subcommands"]) -> list[CondaSubcommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["subcommands"]
+    ) -> list[CondaSubcommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["virtual_packages"]
-    ) -> list[CondaVirtualPackage]:
-        ...
+    ) -> list[CondaVirtualPackage]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]:
-        ...
+    def get_hook_results(self, name: Literal["solvers"]) -> list[CondaSolver]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["pre_commands"]) -> list[CondaPreCommand]:
-        ...
+    def get_hook_results(
+        self, name: Literal["pre_commands"]
+    ) -> list[CondaPreCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["post_commands"]
-    ) -> list[CondaPostCommand]:
-        ...
+    ) -> list[CondaPostCommand]: ...
 
     @overload
     def get_hook_results(
         self, name: Literal["auth_handlers"]
-    ) -> list[CondaAuthHandler]:
-        ...
+    ) -> list[CondaAuthHandler]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["health_checks"]
+    ) -> list[CondaHealthCheck]: ...
+
+    @overload
+    def get_hook_results(self, name: Literal["pre_solves"]) -> list[CondaPreSolve]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["post_solves"]
+    ) -> list[CondaPostSolve]: ...
+
+    @overload
+    def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
     def get_hook_results(self, name):
         """
@@ -268,6 +296,17 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
+    def get_settings(self) -> dict[str, ParameterLoader]:
+        """
+        Return a mapping of plugin setting name to ParameterLoader class
+
+        This method intentionally overwrites any duplicates that may be present
+        """
+        return {
+            config_param.name.lower(): (config_param.parameter, config_param.aliases)
+            for config_param in self.get_hook_results("settings")
+        }
+
     def invoke_pre_commands(self, command: str) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
@@ -305,6 +344,52 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
+    def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
+        for hook in self.get_hook_results("health_checks"):
+            try:
+                hook.action(prefix, verbose)
+            except Exception as err:
+                log.warning(f"Error running health check: {hook.name} ({err})")
+                continue
+
+    def invoke_pre_solves(
+        self,
+        specs_to_add: frozenset[MatchSpec],
+        specs_to_remove: frozenset[MatchSpec],
+    ) -> None:
+        """
+        Invokes ``CondaPreSolve.action`` functions registered with ``conda_pre_solves``.
+
+        :param specs_to_add:
+        :param specs_to_remove:
+        """
+        for hook in self.get_hook_results("pre_solves"):
+            hook.action(specs_to_add, specs_to_remove)
+
+    def invoke_post_solves(
+        self,
+        repodata_fn: str,
+        unlink_precs: tuple[PackageRecord, ...],
+        link_precs: tuple[PackageRecord, ...],
+    ) -> None:
+        """
+        Invokes ``CondaPostSolve.action`` functions registered with ``conda_post_solves``.
+
+        :param repodata_fn:
+        :param unlink_precs:
+        :param link_precs:
+        """
+        for hook in self.get_hook_results("post_solves"):
+            hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def load_settings(self) -> None:
+        """
+        Iterates through all registered settings and adds them to the
+        :class:`conda.common.configuration.PluginConfig` class.
+        """
+        for name, (parameter, aliases) in self.get_settings().items():
+            add_plugin_setting(name, parameter, aliases)
+
 
 @functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -315,7 +400,11 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers, *virtual_packages.plugins, *subcommands.plugins
+        solvers,
+        *virtual_packages.plugins,
+        *subcommands.plugins,
+        health_checks,
+        *post_solves.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

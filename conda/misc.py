@@ -1,15 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Miscellaneous utility functions."""
+
 import os
 import re
 import shutil
 import sys
 from collections import defaultdict
+from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from typing import Iterable
 
 from .base.context import context
-from .common.compat import on_win, open
+from .common.compat import on_mac, on_win, open_utf8
+from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
@@ -25,9 +29,10 @@ from .exceptions import (
 )
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
-from .models.match_spec import MatchSpec
+from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
-from .plan import _get_best_prec_match
+
+log = getLogger(__name__)
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -46,17 +51,14 @@ def conda_installed_files(prefix, exclude_self_build=False):
 url_pat = re.compile(
     r"(?:(?P<url_p>.+)(?:[/\\]))?"
     r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
-    r"(:?#(?P<md5>[0-9a-f]{32}))?$"
+    r"(?:#("
+    r"(?P<md5>[0-9a-f]{32})"
+    r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+    r"))?$"
 )
 
 
-def explicit(
-    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
-):
-    actions = defaultdict(list)
-    actions["PREFIX"] = prefix
-
-    fetch_specs = []
+def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
     for spec in specs:
         if spec == "@EXPLICIT":
             continue
@@ -76,12 +78,25 @@ def explicit(
         # parse URL
         m = url_pat.match(spec)
         if m is None:
-            raise ParseError("Could not parse explicit URL: %s" % spec)
-        url_p, fn, md5sum = m.group("url_p"), m.group("fn"), m.group("md5")
+            raise ParseError(f"Could not parse explicit URL: {spec}")
+        url_p, fn = m.group("url_p"), m.group("fn")
         url = join_url(url_p, fn)
-        # url_p is everything but the tarball_basename and the md5sum
+        # url_p is everything but the tarball_basename and the checksum
+        checksums = {}
+        if md5 := m.group("md5"):
+            checksums["md5"] = md5
+        if sha256 := m.group("sha256"):
+            checksums["sha256"] = sha256
+        yield MatchSpec(url, **checksums)
 
-        fetch_specs.append(MatchSpec(url, md5=md5sum) if md5sum else MatchSpec(url))
+
+def explicit(
+    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
+):
+    actions = defaultdict(list)
+    actions["PREFIX"] = prefix
+
+    fetch_specs = list(_match_specs_from_explicit(specs))
 
     if context.dry_run:
         raise DryRunExit()
@@ -138,6 +153,8 @@ def explicit(
     )
 
     txn = UnlinkLinkTransaction(stp)
+    if not context.json and not context.quiet:
+        txn.print_transaction_summary()
     txn.execute()
 
 
@@ -167,7 +184,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
         ".nonadmin",
     }
     binignore = {"conda", "activate", "deactivate"}
-    if sys.platform == "darwin":
+    if on_mac:
         ignore.update({"python.app", "Launcher.app"})
     for fn in (entry.name for entry in os.scandir(prefix)):
         if ignore_predefined_files and fn in ignore:
@@ -200,7 +217,7 @@ def untracked(prefix, exclude_self_build=False):
         for path in walk_prefix(prefix) - conda_files
         if not (
             path.endswith("~")
-            or sys.platform == "darwin"
+            or on_mac
             and path.endswith(".DS_Store")
             or path.endswith(".pyc")
             and path[:-1] in conda_files
@@ -213,7 +230,7 @@ def touch_nonadmin(prefix):
     if on_win and exists(join(context.root_prefix, ".nonadmin")):
         if not isdir(prefix):
             os.makedirs(prefix)
-        with open(join(prefix, ".nonadmin"), "w") as fo:
+        with open_utf8(join(prefix, ".nonadmin"), "w") as fo:
             fo.write("")
 
 
@@ -315,7 +332,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             continue
 
         try:
-            with open(src, "rb") as fi:
+            with open_utf8(src, "rb") as fi:
                 data = fi.read()
         except OSError:
             continue
@@ -327,7 +344,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         except UnicodeDecodeError:  # data is binary
             pass
 
-        with open(dst, "wb") as fo:
+        with open_utf8(dst, "wb") as fo:
             fo.write(data)
         shutil.copystat(src, dst)
 
@@ -340,3 +357,18 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         index_args=index_args,
     )
     return actions, untracked_files
+
+
+def _get_best_prec_match(precs):
+    assert precs
+    for channel in context.channels:
+        channel_matcher = ChannelMatch(channel)
+        prec_matches = tuple(
+            prec for prec in precs if channel_matcher.match(prec.channel.name)
+        )
+        if prec_matches:
+            break
+    else:
+        prec_matches = precs
+    log.warning("Multiple packages found: %s", dashlist(prec_matches))
+    return prec_matches[0]

@@ -12,7 +12,7 @@ import struct
 from enum import Enum, EnumMeta
 from os.path import join
 
-from ..common.compat import on_win, six_with_metaclass
+from ..common.compat import on_win
 
 PREFIX_PLACEHOLDER = (
     "/opt/anaconda1anaconda2"
@@ -109,6 +109,7 @@ DEFAULT_CUSTOM_CHANNELS = {
 DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = "base"
+UNUSED_ENV_NAME = "unused-env-name"
 
 ROOT_NO_RM = (
     "python",
@@ -155,7 +156,8 @@ CONDA_PACKAGE_EXTENSIONS = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build; remove this line  # NOQA
+CONDA_PACKAGE_PARTS = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
+CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
 CONDA_TEMP_EXTENSION = ".c~"
 CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR = ".logs"
@@ -245,7 +247,7 @@ class ValueEnum(Enum):
         return f"{self.value}"
 
 
-class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
+class ChannelPriority(ValueEnum, metaclass=ChannelPriorityMeta):
     __name__ = "ChannelPriority"
 
     STRICT = "strict"
@@ -260,8 +262,9 @@ class SatSolverChoice(ValueEnum):
     PYSAT = "pysat"
 
 
-#: The name of the default solver, currently "classic"
-DEFAULT_SOLVER = CLASSIC_SOLVER = "classic"
+#: The name of the default solver, currently "libmamba"
+DEFAULT_SOLVER = "libmamba"
+CLASSIC_SOLVER = "classic"
 
 
 class NoticeLevel(ValueEnum):

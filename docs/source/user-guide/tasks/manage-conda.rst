@@ -2,15 +2,10 @@
 Managing conda
 ==============
 
-.. contents::
-   :local:
-   :depth: 1
-
-
 Verifying that conda is installed
 =================================
 
-To verify that conda is installed, in your terminal window or an Anaconda Prompt, run:
+To verify that conda is installed, in your terminal window, run:
 
 .. code::
 
@@ -35,7 +30,7 @@ Determining your conda version
 
 In addition to the ``conda --version`` command explained above,
 you can determine what conda version is installed by running
-one of the following commands in your terminal window or an Anaconda Prompt:
+one of the following commands in your terminal window:
 
 .. code-block:: bash
 
@@ -51,7 +46,7 @@ OR
 Updating conda to the current version
 =====================================
 
-To update conda, in your terminal window or an Anaconda Prompt, run:
+To update conda, in your terminal window, run:
 
 .. code::
 
@@ -81,7 +76,7 @@ to update conda to the latest version:
 
 Update conda by running: ``conda update -n base conda``
 
-Run the following command from your terminal or Anaconda Prompt:
+Run the following command from your terminal:
 ``conda config --set notify_outdated_conda false``
 
 Or add the following line in your ``.condarc`` file:

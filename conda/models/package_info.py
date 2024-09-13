@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """(Legacy) Low-level implementation of a PackageRecord."""
+
 from logging import getLogger
 
 from ..auxlib.entity import (
@@ -60,9 +61,7 @@ class PackageInfo(ImmutableEntity):
     paths_data = ComposableField(PathsData)
 
     def dist_str(self):
-        return "{}::{}-{}-{}".format(
-            self.channel.canonical_name, self.name, self.version, self.build
-        )
+        return f"{self.channel.canonical_name}::{self.name}-{self.version}-{self.build}"
 
     @property
     def name(self):

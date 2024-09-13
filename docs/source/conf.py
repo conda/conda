@@ -40,9 +40,13 @@ extensions = [
     "sphinx_reredirects",
     "sphinx_sitemap",
     "sphinxarg.ext",
+    "sphinxcontrib.mermaid",
     "sphinxcontrib.plantuml",
     "sphinxcontrib.programoutput",
+    "sphinx_design",
 ]
+
+templates_path = ["_templates"]
 
 # Leave double dashes as they are in the docs. Don't replace -- with -
 smartquotes = False
@@ -56,18 +60,12 @@ add_module_names = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "sphinx_rtd_theme"
+html_theme = "conda_sphinx_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_style = "css/custom.css"
-
-# The name of an image file (relative to this directory) to use as a favicon of
-# the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-html_favicon = "img/conda-logo.png"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -84,7 +82,10 @@ html_js_files = [
     "js/panzoom.js",
 ]
 
-html_css_files = ["https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css"]
+html_css_files = [
+    "https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel.css",
+    "css/custom.css",
+]
 
 # Setting the prod URL of the site here as the base URL.
 html_baseurl = f"https://docs.conda.io/projects/{project}/"
@@ -93,8 +94,28 @@ html_theme_options = {
     # The maximum depth of the table of contents tree. Set this to -1 to allow
     # unlimited depth.
     "navigation_depth": -1,
+    "show_prev_next": False,
+    # Navbar icon links
+    "navbar_start": ["navbar-logo"],
+    "use_edit_page_button": True,
+    "goatcounter_url": "https://docs-conda-io.goatcounter.com/count",
+    "show_version_warning_banner": True,
+    "switcher": {
+        # This should live in "latest" (=in-development version) since
+        # we can modify the supported versions in the version switcher
+        "json_url": "https://docs.conda.io/projects/conda/en/latest/_static/switcher.json",
+        # Use RTD's automatic version variable, and fallback to "stable"
+        "version_match": os.environ.get("READTHEDOCS_VERSION", "stable"),
+    },
 }
 
+html_context = {
+    "github_user": "conda",
+    "github_repo": "conda",
+    "github_version": "main",
+    "doc_path": "docs/source",
+    "goatcounter_dashboard_url": "https://docs-conda-io.goatcounter.com",
+}
 
 # -- sphinxcontrib.plantuml ------------------------------------------------
 
@@ -145,6 +166,11 @@ autoapi_add_toctree_entry = False
 autoapi_template_dir = "_templates/autoapi"
 
 
+suppress_warnings = [
+    "autosectionlabel.*",
+]
+
+
 def skip_log(app, what, name, obj, skip, options):
     if what == "data" and name.split(".")[-1] == "log":
         skip = True
@@ -155,15 +181,21 @@ def setup(sphinx):
     sphinx.connect("autoapi-skip-member", skip_log)
 
 
+# -----------------------------------------------------------------------------
+# Source code links
+# -----------------------------------------------------------------------------
+link_github = True
+
+
 # -- For sphinx_reredirects ------------------------------------------------
 
 redirects = {
     # internal redirects
     "admin": "user-guide/configuration/admin-multi-user-install.html",
-    "api/api": "../../dev-guide/api/conda/api.html",
-    "api/index": "../../dev-guide/api.html",
-    "api/python_api": "../../dev-guide/api/conda/cli/python_api.html",
-    "api/solver": "../../dev-guide/api/conda/api.html#conda.api.Solver",
+    "api/api": "../dev-guide/api/conda/index.html",
+    "api/index": "../dev-guide/api.html",
+    "api/python_api": "../dev-guide/api/conda/cli/python_api/index.html",
+    "api/solver": "../dev-guide/api/conda/api/index.html#conda.api.Solver",
     "changelog": "release-notes.html",
     "channels": "user-guide/tasks/manage-channels.html",
     "commands": "commands/index.html",
@@ -195,6 +227,9 @@ redirects = {
     "using/pkgs": "../user-guide/tasks/manage-pkgs.html",
     "using/test-drive": "../user-guide/getting-started.html",
     "using/using": "../user-guide/tasks/manage-conda.html",
+    "user-guide/install/download": "../install/index.html",
+    "user-guide/configuration/sample-condarc": "../configuration/use-condarc.html#sample-condarc",
+    "user-guide/configuration/enable-tab-completion": "../configuration/index.html",
     # external redirects
     "travis": "https://github.com/conda-incubator/setup-miniconda",
     "user-guide/tasks/use-conda-with-travis-ci": "https://github.com/conda-incubator/setup-miniconda",

@@ -3,7 +3,7 @@
 import ntpath
 import os
 import sys
-from os.path import abspath, dirname, isfile, join, realpath
+from os.path import abspath, dirname, isfile, join, realpath, samefile
 from sysconfig import get_path
 
 import pytest
@@ -12,9 +12,14 @@ from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.common import stdout_json
-from conda.common.compat import on_win, open
+from conda.common.compat import on_win, open_utf8
 from conda.common.io import captured, env_var, env_vars
-from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
+from conda.common.path import (
+    BIN_DIRECTORY,
+    get_python_short_path,
+    win_path_backout,
+    win_path_ok,
+)
 from conda.core.initialize import (
     Result,
     _get_python_info,
@@ -38,6 +43,8 @@ from conda.models.enums import LinkType
 from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
 
+CONDA_EXE = "conda.exe" if on_win else "conda"
+
 
 @pytest.fixture
 def verbose():
@@ -56,7 +63,7 @@ def verbose():
 def test_get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert realpath(python_exe) == realpath(sys.executable)
-    assert python_version == "%s.%s.%s" % sys.version_info[:3]
+    assert python_version == "{}.{}.{}".format(*sys.version_info[:3])
     assert site_packages_dir == get_path("platlib")
 
 
@@ -73,245 +80,251 @@ def test_make_install_plan(verbose, mocker):
     plan = make_install_plan("/darwin")
     stdout_json(plan)
     if on_win:
-        assert plan == [
-            {
-                "function": "make_entry_point_exe",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\conda.exe",
+        assert (
+            plan
+            == [
+                {
+                    "function": "make_entry_point_exe",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\conda.exe",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point_exe",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\conda-env.exe",
+                {
+                    "function": "make_entry_point_exe",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\conda-env.exe",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli",
-                    "target_path": "/darwin\\Scripts\\conda-script.py",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda.cli",
+                        "target_path": "/darwin\\Scripts\\conda-script.py",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda_env.cli.main",
-                    "target_path": "/darwin\\Scripts\\conda-env-script.py",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda_env.cli.main",  # TODO: Change to "conda.cli.main_env" upon full deprecation in 24.9
+                        "target_path": "/darwin\\Scripts\\conda-env-script.py",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_conda_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\conda.bat",
+                {
+                    "function": "install_condabin_conda_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\conda.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_library_bin_conda_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Library\\bin\\conda.bat",
+                {
+                    "function": "install_library_bin_conda_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Library\\bin\\conda.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_conda_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\_conda_activate.bat",
+                {
+                    "function": "install_condabin_conda_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\_conda_activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_rename_tmp_bat",
-                "kwargs": {
-                    "target_path": "/darwin\\condabin\\rename_tmp.bat",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_condabin_rename_tmp_bat",
+                    "kwargs": {
+                        "target_path": "/darwin\\condabin\\rename_tmp.bat",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_conda_auto_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\conda_auto_activate.bat",
+                {
+                    "function": "install_condabin_conda_auto_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\conda_auto_activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_condabin_hook_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\conda_hook.bat",
+                {
+                    "function": "install_condabin_hook_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\conda_hook.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_Scripts_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\activate.bat",
+                {
+                    "function": "install_Scripts_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_activate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\activate.bat",
+                {
+                    "function": "install_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\activate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_deactivate_bat",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\condabin\\deactivate.bat",
+                {
+                    "function": "install_deactivate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condabin\\deactivate.bat",
+                    },
                 },
-            },
-            {
-                "function": "install_activate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\activate",
+                {
+                    "function": "install_activate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\activate",
+                    },
                 },
-            },
-            {
-                "function": "install_deactivate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\Scripts\\deactivate",
+                {
+                    "function": "install_deactivate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\deactivate",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_sh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\etc\\profile.d\\conda.sh",
+                {
+                    "function": "install_conda_sh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\profile.d\\conda.sh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_fish",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish",
+                {
+                    "function": "install_conda_fish",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_psm1",
-                "kwargs": {
-                    "target_path": "/darwin\\shell\\condabin\\Conda.psm1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_psm1",
+                    "kwargs": {
+                        "target_path": "/darwin\\shell\\condabin\\Conda.psm1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_hook_ps1",
-                "kwargs": {
-                    "target_path": "/darwin\\shell\\condabin\\conda-hook.ps1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_hook_ps1",
+                    "kwargs": {
+                        "target_path": "/darwin\\shell\\condabin\\conda-hook.ps1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_xsh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/lib/python2.6/site-packages\\xontrib\\conda.xsh",
+                {
+                    "function": "install_conda_xsh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/lib/python2.6/site-packages\\xontrib\\conda.xsh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_csh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin\\etc\\profile.d\\conda.csh",
+                {
+                    "function": "install_conda_csh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\profile.d\\conda.csh",
+                    },
                 },
-            },
-        ]
+            ]
+        )
     else:
-        assert plan == [
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli",
-                    "target_path": "/darwin/condabin/conda",
+        assert (
+            plan
+            == [
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda.cli",
+                        "target_path": "/darwin/condabin/conda",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda.cli",
-                    "target_path": "/darwin/bin/conda",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda.cli",
+                        "target_path": "/darwin/bin/conda",
+                    },
                 },
-            },
-            {
-                "function": "make_entry_point",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "func": "main",
-                    "module": "conda_env.cli.main",
-                    "target_path": "/darwin/bin/conda-env",
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda_env.cli.main",  # TODO: Change to "conda.cli.main_env" upon full deprecation in 24.9
+                        "target_path": "/darwin/bin/conda-env",
+                    },
                 },
-            },
-            {
-                "function": "install_activate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/bin/activate",
+                {
+                    "function": "install_activate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/bin/activate",
+                    },
                 },
-            },
-            {
-                "function": "install_deactivate",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/bin/deactivate",
+                {
+                    "function": "install_deactivate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/bin/deactivate",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_sh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/etc/profile.d/conda.sh",
+                {
+                    "function": "install_conda_sh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/etc/profile.d/conda.sh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_fish",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/etc/fish/conf.d/conda.fish",
+                {
+                    "function": "install_conda_fish",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/etc/fish/conf.d/conda.fish",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_psm1",
-                "kwargs": {
-                    "target_path": "/darwin/shell/condabin/Conda.psm1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_psm1",
+                    "kwargs": {
+                        "target_path": "/darwin/shell/condabin/Conda.psm1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_hook_ps1",
-                "kwargs": {
-                    "target_path": "/darwin/shell/condabin/conda-hook.ps1",
-                    "conda_prefix": "/darwin",
+                {
+                    "function": "install_conda_hook_ps1",
+                    "kwargs": {
+                        "target_path": "/darwin/shell/condabin/conda-hook.ps1",
+                        "conda_prefix": "/darwin",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_xsh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/lib/python2.6/site-packages/xontrib/conda.xsh",
+                {
+                    "function": "install_conda_xsh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/lib/python2.6/site-packages/xontrib/conda.xsh",
+                    },
                 },
-            },
-            {
-                "function": "install_conda_csh",
-                "kwargs": {
-                    "conda_prefix": "/darwin",
-                    "target_path": "/darwin/etc/profile.d/conda.csh",
+                {
+                    "function": "install_conda_csh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/etc/profile.d/conda.csh",
+                    },
                 },
-            },
-        ]
+            ]
+        )
 
 
 def test_make_initialize_plan_bash_zsh(verbose):
@@ -353,16 +366,17 @@ def test_make_initialize_plan_cmd_exe(verbose):
 def test_make_entry_point(verbose):
     with tempdir() as conda_temp_prefix:
         conda_prefix = abspath(sys.prefix)
-        if on_win:
-            conda_exe_path = join(conda_temp_prefix, "Scripts", "conda-script.py")
-        else:
-            conda_exe_path = join(conda_temp_prefix, "bin", "conda")
+        conda_exe_path = join(
+            conda_temp_prefix,
+            BIN_DIRECTORY,
+            "conda-script.py" if on_win else "conda",
+        )
         result = make_entry_point(
             conda_exe_path, conda_prefix, "conda.entry.point", "run"
         )
         assert result == Result.MODIFIED
 
-        with open(conda_exe_path) as fh:
+        with open_utf8(conda_exe_path) as fh:
             ep_contents = fh.read()
 
         if on_win:
@@ -415,7 +429,7 @@ def test_install_conda_sh(verbose):
         result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         from conda.activate import PosixActivator
@@ -431,7 +445,7 @@ def test_install_conda_sh(verbose):
         assert line2 == "export _CE_CONDA=''"
         assert line3.startswith("export CONDA_PYTHON_EXE=")
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.sh")
         ) as fh:
             original_contents = fh.read()
@@ -443,12 +457,14 @@ def test_install_conda_sh(verbose):
 
 def test_install_conda_fish(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
+        conda_prefix = sys.prefix
+        python_exe = sys.executable
+        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "fish", "conf.d", "conda.fish")
         result = install_conda_fish(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         (
@@ -459,25 +475,17 @@ def test_install_conda_fish(verbose):
             remainder,
         ) = created_file_contents.split("\n", 4)
         if on_win:
-            win_conda_exe = join(conda_prefix, "Scripts", "conda.exe")
-            win_py_exe = join(conda_prefix, "python.exe")
-            assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
-            assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
-            assert third_line == 'set _CONDA_EXE (cygpath "%s")' % win_conda_exe
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % win_py_exe
+            assert first_line == f'set -gx CONDA_EXE (cygpath "{conda_exe}")'
+            assert second_line == f'set _CONDA_ROOT (cygpath "{conda_prefix}")'
+            assert third_line == f'set _CONDA_EXE (cygpath "{conda_exe}")'
+            assert fourth_line == f'set -gx CONDA_PYTHON_EXE (cygpath "{python_exe}")'
         else:
-            assert first_line == 'set -gx CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
-            assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'set _CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE "%s"' % join(
-                conda_prefix, "bin", "python"
-            )
+            assert first_line == f'set -gx CONDA_EXE "{conda_exe}"'
+            assert second_line == f'set _CONDA_ROOT "{conda_prefix}"'
+            assert third_line == f'set _CONDA_EXE "{conda_exe}"'
+            assert fourth_line == f'set -gx CONDA_PYTHON_EXE "{python_exe}"'
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")
         ) as fh:
             original_contents = fh.read()
@@ -491,25 +499,25 @@ def test_install_conda_xsh(verbose):
     from conda.activate import XonshActivator
 
     with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
+        conda_prefix = sys.prefix
+        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "Lib", "site-packages", "conda.xsh")
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         first_line, remainder = created_file_contents.split("\n", 1)
         if on_win:
-            assert first_line == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(
-                join(conda_prefix, "Scripts", "conda.exe")
+            assert (
+                first_line
+                == f'$CONDA_EXE = "{XonshActivator.path_conversion(conda_exe)}"'
             )
         else:
-            assert first_line == '$CONDA_EXE = "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
+            assert first_line == f'$CONDA_EXE = "{conda_exe}"'
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
+        with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -519,12 +527,14 @@ def test_install_conda_xsh(verbose):
 
 def test_install_conda_csh(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
+        conda_prefix = sys.prefix
+        python_exe = sys.executable
+        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "profile.d", "conda.csh")
         result = install_conda_csh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         (
@@ -535,29 +545,17 @@ def test_install_conda_csh(verbose):
             remainder,
         ) = created_file_contents.split("\n", 4)
         if on_win:
-            assert first_line == "setenv CONDA_EXE `cygpath %s`" % join(
-                conda_prefix, "Scripts", "conda.exe"
-            )
-            assert second_line == "setenv _CONDA_ROOT `cygpath %s`" % conda_prefix
-            assert third_line == "setenv _CONDA_EXE `cygpath %s`" % join(
-                conda_prefix, "Scripts", "conda.exe"
-            )
-            assert fourth_line == "setenv CONDA_PYTHON_EXE `cygpath %s`" % join(
-                conda_prefix, "python.exe"
-            )
+            assert first_line == f"setenv CONDA_EXE `cygpath {conda_exe}`"
+            assert second_line == f"setenv _CONDA_ROOT `cygpath {conda_prefix}`"
+            assert third_line == f"setenv _CONDA_EXE `cygpath {conda_exe}`"
+            assert fourth_line == f"setenv CONDA_PYTHON_EXE `cygpath {python_exe}`"
         else:
-            assert first_line == 'setenv CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
-            assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'setenv _CONDA_EXE "%s"' % join(
-                conda_prefix, "bin", "conda"
-            )
-            assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % join(
-                conda_prefix, "bin", "python"
-            )
+            assert first_line == f'setenv CONDA_EXE "{conda_exe}"'
+            assert second_line == f'setenv _CONDA_ROOT "{conda_prefix}"'
+            assert third_line == f'setenv _CONDA_EXE "{conda_exe}"'
+            assert fourth_line == f'setenv CONDA_PYTHON_EXE "{python_exe}"'
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")
         ) as fh:
             original_contents = fh.read()
@@ -574,12 +572,14 @@ def test_install_condabin_conda_bat(verbose):
         result = install_condabin_conda_bat(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         remainder = created_file_contents
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")) as fh:
+        with open_utf8(
+            join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+        ) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -589,7 +589,7 @@ def test_install_condabin_conda_bat(verbose):
 
 def test__get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
-    assert python_exe == sys.executable
+    assert samefile(python_exe, sys.executable)
     assert python_version == "%d.%d.%d" % sys.version_info[:3]
     assert site_packages_dir.endswith("site-packages")
 
@@ -839,12 +839,12 @@ def test_init_sh_user_unix(verbose):
             """
         )
 
-        with open(target_path, "w") as fh:
+        with open_utf8(target_path, "w") as fh:
             fh.write(initial_content)
 
         init_sh_user(target_path, conda_temp_prefix, "bash")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             new_content = fh.read()
 
         expected_new_content = dals(
@@ -895,7 +895,7 @@ def test_init_sh_user_unix(verbose):
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             reversed_content = fh.read()
         print(reversed_content)
         assert reversed_content == expected_reversed_content
@@ -907,10 +907,10 @@ def test_init_sh_user_tcsh_unix(verbose):
         target_path = join(conda_temp_prefix, ".tcshrc")
         init_sh_user(target_path, conda_temp_prefix, "tcsh")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             tcshrc_contet = fh.read()
 
-        conda_csh = "%s/etc/profile.d/conda.csh" % conda_temp_prefix
+        conda_csh = f"{conda_temp_prefix}/etc/profile.d/conda.csh"
         # tcsh/csh doesn't give users the ability to register a function.
         # Make sure that conda doesn't try to register a function
         conda_eval_string = 'eval "$__conda_setup"'
@@ -947,12 +947,12 @@ def test_init_sh_user_windows(verbose):
             """
         )
 
-        with open(target_path, "w") as fh:
+        with open_utf8(target_path, "w") as fh:
             fh.write(initial_content)
 
         init_sh_user(target_path, conda_prefix, "bash")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             new_content = fh.read()
 
         print(new_content)
@@ -995,7 +995,7 @@ def test_init_sh_user_windows(verbose):
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             reversed_content = fh.read()
         print(reversed_content)
         assert reversed_content == expected_reversed_content
@@ -1006,7 +1006,7 @@ def test_init_cmd_exe_registry(verbose):
     def _read_windows_registry_mock(target_path, value=None):
         if not value:
             value = "yada\\yada\\conda_hook.bat"
-        return 'echo hello & if exist "{v}" "{v}" & echo "world"'.format(v=value), None
+        return f'echo hello & if exist "{value}" "{value}" & echo "world"', None
 
     from conda.core import initialize
 
@@ -1089,7 +1089,7 @@ def test_init_sh_system(verbose):
         target_path = join(td, "conda.sh")
         conda_prefix = join(td, "b", "c")
         init_sh_system(target_path, conda_prefix)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             content = fh.read().strip().splitlines()
         assert content[0] == "# >>> conda initialize >>>"
         assert (

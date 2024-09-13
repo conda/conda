@@ -1,18 +1,26 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Core conda notices logic."""
+
 from __future__ import annotations
 
 import logging
 import time
 from functools import wraps
-from typing import Sequence
+from typing import TYPE_CHECKING
 
 from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL, NOTICES_FN
-from ..base.context import Context, context
-from ..models.channel import Channel, MultiChannel, get_channel_objs
+from ..base.context import context
+from ..models.channel import get_channel_objs
 from . import cache, fetch, views
-from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeResultSet
+from .types import ChannelNoticeResultSet
+
+if TYPE_CHECKING:
+    from typing import Sequence
+
+    from ..base.context import Context
+    from ..models.channel import Channel, MultiChannel
+    from .types import ChannelNotice, ChannelNoticeResponse
 
 # Used below in type hints
 ChannelName = str
