@@ -47,6 +47,9 @@ log = getLogger(__name__)
 # No, you are best off keeping --dev on the end of these. For sure, if conda bundled its own tests
 # module then we could remove --dev if we detect we are being run in that way.
 dev_arg = "--dev"
+activate = f" activate {dev_arg} "
+deactivate = f" deactivate {dev_arg} "
+install = f" install {dev_arg} "
 
 # hdf5 version to use in tests
 HDF5_VERSION = "1.12.1"
@@ -355,10 +358,6 @@ def basic_posix(shell, prefix, prefix2, prefix3):
 
     case = str.lower if on_win else str
 
-    activate = f" activate {dev_arg} "
-    deactivate = f" deactivate {dev_arg} "
-    install = f" install {dev_arg} "
-
     num_paths_added = len(tuple(shell.activator._get_path_dirs(prefix)))
     prefix_p = shell.path_conversion(prefix)
     prefix2_p = shell.path_conversion(prefix2)
@@ -385,7 +384,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.sendline("conda --version")
     shell.expect_exact("conda " + conda_version)
 
-    shell.sendline("conda" + activate + "base")
+    shell.sendline(f"conda {activate} base")
 
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
@@ -450,7 +449,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert _CE_M == _CE_M2
     assert _CE_CONDA == _CE_CONDA2
 
-    shell.sendline("conda" + install + f"-yq hdf5={HDF5_VERSION}")
+    shell.sendline(f"conda {install} -yq hdf5={HDF5_VERSION}")
     shell.expect(r"Executing transaction: ...working... done.*\n", timeout=180)
     shell.assert_env_var("?", "0", use_exact=True)
 
@@ -466,22 +465,22 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
     # regression test for #6840
-    shell.sendline("conda" + install + "--blah")
+    shell.sendline(f"conda {install} --blah")
     shell.assert_env_var("?", "2", use_exact=True)
     shell.sendline("conda list --blah")
     shell.assert_env_var("?", "2", use_exact=True)
 
-    shell.sendline("conda" + deactivate)
+    shell.sendline(f"conda {deactivate}")
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH.split(":"))
 
-    shell.sendline("conda" + deactivate)
+    shell.sendline(f"conda {deactivate}")
     shell.assert_env_var("CONDA_SHLVL", "1")
     PATH = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH.split(":"))
 
-    shell.sendline("conda" + deactivate)
+    shell.sendline(f"conda {deactivate}")
     shell.assert_env_var("CONDA_SHLVL", "0")
     PATH = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) == len(PATH.split(":"))
@@ -491,7 +490,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.clear()
     assert "CONDA_PROMPT_MODIFIER" not in str(shell.p.after)
 
-    shell.sendline("conda" + deactivate)
+    shell.sendline(f"conda {deactivate}")
     shell.assert_env_var("CONDA_SHLVL", "0")
 
     # When fully deactivated, CONDA_EXE, _CE_M and _CE_CONDA must be retained
@@ -517,14 +516,14 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline(f'conda activate "{prefix_p}"')
+    shell.sendline(f'conda {activate} "{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
     assert "venusaur" not in PATH3
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH3.split(":"))
 
-    shell.sendline("conda" + deactivate)
+    shell.sendline(f"conda {deactivate}")
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH4 = shell.get_env_var("PATH")
     assert "charizard" in PATH4
@@ -532,7 +531,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert len(PATH4.split(":")) == len(PATH2.split(":"))
     # assert PATH4 == PATH2  # cygpath may "resolve" paths
 
-    shell.sendline("conda" + deactivate)
+    shell.sendline(f"conda {deactivate}")
     shell.assert_env_var("CONDA_SHLVL", "1")
     PATH5 = shell.get_env_var("PATH")
     assert len(PATH1.split(":")) == len(PATH5.split(":"))
@@ -541,14 +540,14 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     # Test auto_stack
     shell.sendline(shell.activator.export_var_tmpl % ("CONDA_AUTO_STACK", "1"))
 
-    shell.sendline(f'conda activate "{prefix3}"')
+    shell.sendline(f'conda {activate} "{prefix3}"')
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH2 = shell.get_env_var("PATH")
     assert "charizard" in PATH2
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline(f'conda activate "{prefix_p}"')
+    shell.sendline(f'conda {activate} "{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
@@ -774,7 +773,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 
         PATH0 = shell.get_env_var("PATH", "").split(os.pathsep)
         log.debug(f"{PATH0=}")
-        shell.sendline(f'conda activate --dev "{charizard}"')
+        shell.sendline(f'conda {activate} "{charizard}"')
 
         shell.sendline("chcp")
         shell.clear()
@@ -795,7 +794,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         shell.sendline('powershell -NoProfile -c "(Get-Command conda -All).Source"')
         shell.expect_exact(conda_bat)
 
-        shell.sendline(f'conda activate --dev "{prefix}"')
+        shell.sendline(f'conda {activate} "{prefix}"')
         shell.assert_env_var("_CE_CONDA", "conda")
         shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("CONDA_EXE", escape(sys.executable))
@@ -821,11 +820,11 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         shell.sendline(f"conda run {dev_arg} h5stat --version")
         shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
-        shell.sendline("conda deactivate --dev")
+        shell.sendline(f"conda {deactivate}")
         shell.assert_env_var("CONDA_SHLVL", "1")
-        shell.sendline("conda deactivate --dev")
+        shell.sendline(f"conda {deactivate}")
         shell.assert_env_var("CONDA_SHLVL", "0")
-        shell.sendline("conda deactivate --dev")
+        shell.sendline(f"conda {deactivate}")
         shell.assert_env_var("CONDA_SHLVL", "0")
 
 
@@ -854,7 +853,7 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
     with InteractiveShell("cmd.exe") as shell:
         shell.sendline("set")
         shell.expect(".*")
-        shell.sendline("conda activate --dev environment-not-found-doesnt-exist")
+        shell.sendline(f"conda {activate} environment-not-found-doesnt-exist")
         shell.expect(
             "Could not find conda environment: environment-not-found-doesnt-exist"
         )
