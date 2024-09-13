@@ -9,10 +9,8 @@ from uuid import uuid4
 
 import pytest
 
-from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.common.serialize import yaml_safe_dump, yaml_safe_load
-from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import (
     CondaEnvException,
     DryRunExit,
@@ -24,10 +22,6 @@ from conda.exceptions import (
 from conda.gateways.disk.test import is_conda_environment
 
 if TYPE_CHECKING:
-    from typing import Iterator
-
-    from pytest import MonkeyPatch
-
     from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
@@ -92,23 +86,6 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
 
 def create_env(content, filename="environment.yml"):
     Path(filename).write_text(content)
-
-
-@pytest.fixture(autouse=True)
-def chdir(tmp_path: Path, monkeypatch: MonkeyPatch) -> Iterator[Path]:
-    """
-    Change directories to a temporary directory for `conda env` commands since they are
-    sensitive to the current working directory.
-    """
-    monkeypatch.chdir(tmp_path)
-    yield tmp_path
-
-
-@pytest.fixture
-def env1(conda_cli: CondaCLIFixture) -> Iterator[str]:
-    conda_cli("remove", f"--name={TEST_ENV1}", "--all", "--yes")
-    yield TEST_ENV1
-    conda_cli("remove", f"--name={TEST_ENV1}", "--all", "--yes")
 
 
 @pytest.mark.integration
@@ -482,24 +459,6 @@ def test_pip_error_is_propagated(
     create_env(ENVIRONMENT_PIP_NONEXISTING)
     with pytest.raises(CondaEnvException, match="Pip failed"):
         conda_cli("env", "create", f"--prefix={prefix}")
-
-
-def env_is_created(env_name):
-    """
-        Assert an environment is created
-    Args:
-        env_name: the environment name
-    Returns: True if created
-             False otherwise
-    """
-    from os.path import basename
-
-    for prefix in list_all_known_prefixes():
-        name = ROOT_ENV_NAME if prefix == context.root_prefix else basename(prefix)
-        if name == env_name:
-            return True
-
-    return False
 
 
 @pytest.mark.integration
