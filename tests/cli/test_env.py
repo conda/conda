@@ -167,10 +167,13 @@ def test_create_valid_env(tmp_env: TmpEnvFixture):
 
 
 @pytest.mark.integration
-def test_create_dry_run_yaml(env1: str, conda_cli: CondaCLIFixture):
+def test_create_dry_run_yaml(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
+    prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    stdout, _, _ = conda_cli("env", "create", "--dry-run")
-    assert not env_is_created(env1)
+    stdout, _, _ = conda_cli("env", "create", f"--prefix={prefix}", "--dry-run")
+    assert not is_conda_environment(prefix)
 
     # Find line where the YAML output starts (stdout might change if plugins involved)
     lines = stdout.splitlines()
@@ -181,7 +184,7 @@ def test_create_dry_run_yaml(env1: str, conda_cli: CondaCLIFixture):
         pytest.fail("Didn't find YAML data in output")
 
     output = yaml_safe_load("\n".join(lines[lineno:]))
-    assert output["name"] == env1
+    assert output["name"] == "env1"
     assert len(output["dependencies"]) > 0
 
 
@@ -213,18 +216,21 @@ def test_create_dry_run_json(
 
 
 @pytest.mark.integration
-def test_create_valid_env_with_variables(env1: str, conda_cli: CondaCLIFixture):
+def test_create_valid_env_with_variables(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
     """
     Creates an environment.yml file and
     creates and environment with it
     """
+    prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES)
-    conda_cli("env", "create")
-    assert env_is_created(env1)
+    conda_cli("env", "create", f"--prefix={prefix}")
+    assert is_conda_environment(prefix)
 
     stdout, _, _ = conda_cli(
         *("env", "config", "vars", "list"),
-        f"--name={env1}",
+        f"--prefix={prefix}",
         "--json",
     )
     output_env_vars = json.loads(stdout)
@@ -234,9 +240,7 @@ def test_create_valid_env_with_variables(env1: str, conda_cli: CondaCLIFixture):
         "API_KEY": "AaBbCcDd===EeFf",
     }
 
-    stdout, _, _ = conda_cli("info", "--json")
-    parsed = json.loads(stdout)
-    assert [env for env in parsed["envs"] if env.endswith(env1)]
+    assert is_conda_environment(prefix)
 
 
 @pytest.mark.integration
@@ -263,32 +267,33 @@ def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
 
 
 @pytest.mark.integration
-def test_update(env1: str, conda_cli: CondaCLIFixture):
+def test_update(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+    prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    conda_cli("env", "create")
+    conda_cli("env", "create", f"--prefix={prefix}")
 
     create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
-    conda_cli("env", "update", f"--name={env1}")
+    conda_cli("env", "update", f"--prefix={prefix}")
 
-    stdout, _, _ = conda_cli("list", f"--name={env1}", "zlib", "--json")
+    stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "zlib", "--json")
     parsed = json.loads(stdout)
     assert parsed
     assert json.loads(stdout)
 
 
 @pytest.mark.integration
-def test_name(env1: str, conda_cli: CondaCLIFixture):
+def test_name_override(conda_cli: CondaCLIFixture):
     """
     # smoke test for gh-254
     Test that --name can override the `name` key inside an environment.yml
     """
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    conda_cli("env", "create", "--file=environment.yml", f"--name={env1}", "--yes")
+    conda_cli("env", "create", "--file=environment.yml", "--name=test_env", "--yes")
 
     stdout, _, _ = conda_cli("info", "--json")
 
     parsed = json.loads(stdout)
-    assert [env for env in parsed["envs"] if env.endswith(env1)]
+    assert [env for env in parsed["envs"] if env.endswith("test_env")]
 
 
 @pytest.mark.integration
@@ -312,15 +317,16 @@ def test_create_valid_env_json_output(
 
 @pytest.mark.integration
 def test_create_valid_env_with_conda_and_pip_json_output(
-    env1: str, conda_cli: CondaCLIFixture
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
 ):
     """
     Creates an environment from an environment.yml file with conda and pip dependencies
     Check the json output
     """
+    prefix = path_factory()
     create_env(ENVIRONMENT_PIP_CLICK)
     stdout, _, _ = conda_cli(
-        "env", "create", f"--name={env1}", "--quiet", "--json", "--yes"
+        "env", "create", f"--prefix={prefix}", "--quiet", "--json", "--yes"
     )
     output = json.loads(stdout)
     assert len(output["actions"]["LINK"]) > 0
@@ -328,15 +334,18 @@ def test_create_valid_env_with_conda_and_pip_json_output(
 
 
 @pytest.mark.integration
-def test_update_env_json_output(env1: str, conda_cli: CondaCLIFixture):
+def test_update_env_json_output(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
     """
     Update an environment by adding a conda package
     Check the json output
     """
+    prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    conda_cli("env", "create", f"--name={env1}", "--json", "--yes")
+    conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
     create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
-    stdout, _, _ = conda_cli("env", "update", f"--name={env1}", "--quiet", "--json")
+    stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
     output = json.loads(stdout)
     assert output["success"] is True
     assert len(output["actions"]["LINK"]) > 0
@@ -345,7 +354,7 @@ def test_update_env_json_output(env1: str, conda_cli: CondaCLIFixture):
 
 @pytest.mark.integration
 def test_update_env_only_pip_json_output(
-    env1: str, conda_cli: CondaCLIFixture, request
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, request
 ):
     """
     Update an environment by adding only a pip package
@@ -357,10 +366,11 @@ def test_update_env_only_pip_json_output(
             reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
         )
     )
+    prefix = path_factory()
     create_env(ENVIRONMENT_PIP_CLICK)
-    conda_cli("env", "create", f"--name={env1}", "--json", "--yes")
+    conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
     create_env(ENVIRONMENT_PIP_CLICK_ATTRS)
-    stdout, _, _ = conda_cli("env", "update", f"--name={env1}", "--quiet", "--json")
+    stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
     output = json.loads(stdout)
     assert output["success"] is True
     # No conda actions (FETCH/LINK), only pip
@@ -372,12 +382,13 @@ def test_update_env_only_pip_json_output(
 
 @pytest.mark.integration
 def test_update_env_no_action_json_output(
-    env1: str, conda_cli: CondaCLIFixture, request
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, request
 ):
     """
     Update an already up-to-date environment
     Check the json output
     """
+    prefix = path_factory()
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -385,37 +396,42 @@ def test_update_env_no_action_json_output(
         )
     )
     create_env(ENVIRONMENT_PIP_CLICK)
-    conda_cli("env", "create", f"--name={env1}", "--json", "--yes")
-    stdout, _, _ = conda_cli("env", "update", f"--name={env1}", "--quiet", "--json")
+    conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
+    stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
     output = json.loads(stdout)
     assert output["message"] == "All requested packages already installed."
 
 
 @pytest.mark.integration
-def test_remove_dry_run(env1: str, conda_cli: CondaCLIFixture):
+def test_remove_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
     # Test for GH-10231
+    prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    conda_cli("env", "create")
-    assert env_is_created(env1)
+    conda_cli("env", "create", f"--prefix={prefix}")
+    assert is_conda_environment(prefix)
 
     with pytest.raises(DryRunExit):
-        conda_cli("env", "remove", f"--name={env1}", "--dry-run")
+        conda_cli("env", "remove", f"--prefix={prefix}", "--dry-run")
 
 
 @pytest.mark.integration
-def test_set_unset_env_vars(env1: str, conda_cli: CondaCLIFixture):
+def test_set_unset_env_vars(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    conda_cli("env", "create")
+    prefix = path_factory()
+
+    conda_cli("env", "create", f"--prefix={prefix}")
     conda_cli(
         *("env", "config", "vars", "set"),
-        f"--name={env1}",
+        f"--prefix={prefix}",
         "DUDE=woah",
         "SWEET=yaaa",
         "API_KEY=AaBbCcDd===EeFf",
     )
     stdout, _, _ = conda_cli(
         *("env", "config", "vars", "list"),
-        f"--name={env1}",
+        f"--prefix={prefix}",
         "--json",
     )
     output_env_vars = json.loads(stdout)
@@ -427,14 +443,14 @@ def test_set_unset_env_vars(env1: str, conda_cli: CondaCLIFixture):
 
     conda_cli(
         *("env", "config", "vars", "unset"),
-        f"--name={env1}",
+        f"--prefix={prefix}",
         "DUDE",
         "SWEET",
         "API_KEY",
     )
     stdout, _, _ = conda_cli(
         *("env", "config", "vars", "list"),
-        f"--name={env1}",
+        f"--prefix={prefix}",
         "--json",
     )
     output_env_vars = json.loads(stdout)
@@ -488,32 +504,34 @@ def env_is_created(env_name):
 
 @pytest.mark.integration
 def test_env_export(
-    env1: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
     """Test conda env export."""
-    conda_cli("create", f"--name={env1}", "zlib", "--yes")
-    assert env_is_created(env1)
+    with tmp_env("zlib") as prefix:
+        assert is_conda_environment(prefix)
 
-    stdout, _, _ = conda_cli("env", "export", f"--name={env1}")
+        stdout, _, _ = conda_cli("env", "export", f"--prefix={prefix}")
 
-    env_yml = path_factory(suffix=".yml")
-    env_yml.write_text(stdout)
+        env_yml = path_factory(suffix=".yml")
+        env_yml.write_text(stdout)
 
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
-    conda_cli("env", "create", f"--file={env_yml}", "--yes")
-    assert env_is_created(env1)
+        conda_cli("env", "remove", f"--prefix={prefix}", "--yes")
+        assert not is_conda_environment(prefix)
+        conda_cli("env", "create", f"--prefix={prefix}", f"--file={env_yml}", "--yes")
+        assert is_conda_environment(prefix)
 
-    # regression test for #6220
-    stdout, stderr, _ = conda_cli("env", "export", f"--name={env1}", "--no-builds")
-    assert not stderr
-    env_description = yaml_safe_load(stdout)
-    assert len(env_description["dependencies"])
-    for spec_str in env_description["dependencies"]:
-        assert spec_str.count("=") == 1
+        # regression test for #6220
+        stdout, stderr, _ = conda_cli(
+            "env", "export", f"--prefix={prefix}", "--no-builds"
+        )
+        assert not stderr
+        env_description = yaml_safe_load(stdout)
+        assert len(env_description["dependencies"])
+        for spec_str in env_description["dependencies"]:
+            assert spec_str.count("=") == 1
 
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
+        conda_cli("env", "remove", f"--prefix={prefix}", "--yes")
+        assert not is_conda_environment(prefix)
 
 
 @pytest.mark.integration
@@ -574,23 +592,26 @@ def test_env_export_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_list(env1: str, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture):
+def test_list(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+):
     """Test conda list -e and conda create from txt."""
-    conda_cli("create", f"--name={env1}", "--yes")
-    assert env_is_created(env1)
+    with tmp_env() as prefix:
+        conda_cli("create", f"--prefix={prefix}", "--yes")
+        assert is_conda_environment(prefix)
 
-    stdout, _, _ = conda_cli("list", f"--name={env1}", "--export")
+        stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--export")
 
-    env_txt = path_factory(suffix=".txt")
-    env_txt.write_text(stdout)
+        env_txt = path_factory(suffix=".txt")
+        env_txt.write_text(stdout)
 
-    conda_cli("env", "remove", f"--name={env1}", "--yes")
-    assert not env_is_created(env1)
-    conda_cli("create", f"--name={env1}", f"--file={env_txt}", "--yes")
-    assert env_is_created(env1)
+        conda_cli("env", "remove", f"--prefix={prefix}", "--yes")
+        assert not is_conda_environment(prefix)
+        conda_cli("create", f"--prefix={prefix}", f"--file={env_txt}", "--yes")
+        assert is_conda_environment(prefix)
 
-    stdout2, _, _ = conda_cli("list", f"--name={env1}", "--export")
-    assert stdout == stdout2
+        stdout2, _, _ = conda_cli("list", f"--prefix={prefix}", "--export")
+        assert stdout == stdout2
 
 
 @pytest.mark.integration
