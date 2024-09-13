@@ -13,7 +13,6 @@ import os
 import platform
 import struct
 import sys
-import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from errno import ENOENT
@@ -948,12 +947,14 @@ class Context(Configuration):
                 for rc_file in self.config_files
             )
             if argparse_channels and not channel_in_config_files:
-                warnings.warn(
-                    f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly. "
-                    "To remove this warning, please choose a default channel explicitly via "
-                    "'conda config --add channels <name>'. In the future, the implicit default "
-                    "channel configuration will be removed.",
-                    FutureWarning,
+                deprecated.topic(
+                    "24.9",
+                    "25.1",
+                    topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                    addendum="To remove this warning, please choose a default channel explicitly "
+                    "via 'conda config --add channels <name>'. In the future, the implicit "
+                    "default channel configuration will be removed.",
+                    deprecation_type=FutureWarning,
                 )
                 return tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
@@ -961,12 +962,14 @@ class Context(Configuration):
         if self._channels:
             _channels = self._channels
         else:
-            warnings.warn(
-                f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly. "
-                "To remove this warning, please choose a default channel explicitly via "
-                "'conda config --add channels <name>'. In the future, the implicit default "
-                "channel configuration will be removed.",
-                FutureWarning,
+            deprecated.topic(
+                "24.9",
+                "25.1",
+                topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                addendum="To remove this warning, please choose a default channel explicitly "
+                "via 'conda config --add channels <name>'. In the future, the implicit "
+                "default channel configuration will be removed.",
+                deprecation_type=FutureWarning,
             )
             _channels = [DEFAULTS_CHANNEL_NAME]
         return tuple(IndexedSet((*local_add, *_channels)))
