@@ -14,7 +14,10 @@ from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_vars
 from conda.core.index import (
     Index,
+    _make_virtual_package,
+    _supplement_index_with_prefix,
     _supplement_index_with_system,
+    calculate_channel_urls,
     check_allowlist,
     get_index,
     get_reduced_index,
@@ -259,6 +262,35 @@ def test_basic_get_reduced_index():
     )
 
 
+def test__supplement_index_with_prefix(test_recipes_channel, tmp_env):
+    channel = Path(__file__).parent.parent / "test-recipes"
+    pkg = PackageRecord(
+        channel=Channel(str(channel)),
+        name="dependent",
+        subdir="noarch",
+        version="2.0",
+        build_number=0,
+        build="0",
+        fn="dependent-2.0-0.tar.bz2",
+    )
+    pkg_spec = "dependent=2.0"
+    with tmp_env(pkg_spec) as prefix:
+        idx = _supplement_index_with_prefix({pkg: pkg}, prefix)
+    print(idx)
+
+
+def test__make_virtual_package():
+    virtual_package = _make_virtual_package("name", "1.0", "0")
+    ref = PackageRecord.virtual_package("name", "1.0", "0")
+    assert virtual_package == ref
+
+
+def test_calculate_channel_urls():
+    urls = calculate_channel_urls(use_local=False, prepend=True)
+    assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
+    assert len(urls) == 4
+
+
 @pytest.mark.memray
 @pytest.mark.integration
 def test_get_index_lazy():
@@ -274,8 +306,6 @@ def test_get_index_lazy():
 class TestIndex:
     @pytest.fixture(params=[False, True])
     def index(self, request, test_recipes_channel, tmp_env):
-        channel = Channel(str(Path(__file__).parent.parent / "test-recipes"))
-        pkg_spec = f"{channel.url().rsplit('/', 1)[0]}::dependent"
         pkg_spec = "dependent=2.0"
         with tmp_env(pkg_spec) as prefix:
             _index = Index(prefix=prefix, use_cache=True, use_system=True)
