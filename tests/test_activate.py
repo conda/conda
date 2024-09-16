@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
     from conda.activate import _Activator
     from conda.plugins.manager import CondaPluginManager
-    from conda.testing import PathFactoryFixture, TmpEnvFixture
+    from conda.testing.fixtures import PathFactoryFixture, TmpEnvFixture
 
 
 log = getLogger(__name__)

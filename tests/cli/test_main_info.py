@@ -12,7 +12,7 @@ from conda.base.context import reset_context
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
-    from conda.testing import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture
 
 
 # conda info --root [--json]
