@@ -288,7 +288,7 @@ def test__make_virtual_package():
 def test_calculate_channel_urls():
     urls = calculate_channel_urls(use_local=False, prepend=True)
     assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
-    assert len(urls) == 4
+    assert len(urls) == 6 if on_win else 4
 
 
 @pytest.mark.memray
