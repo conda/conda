@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 index, r = get_index_r_1()
 index = index.copy()  # create a shallow copy so this module can mutate state

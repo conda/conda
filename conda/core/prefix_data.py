@@ -105,7 +105,7 @@ class PrefixData(metaclass=PrefixDataType):
         # .dist-info is for things installed by pip
         for ext in CONDA_PACKAGE_EXTENSIONS + (".dist-info",):
             if fn.endswith(ext):
-                fn = fn.replace(ext, "")
+                fn = fn[: -len(ext)]
                 known_ext = True
         if not known_ext:
             raise ValueError(
