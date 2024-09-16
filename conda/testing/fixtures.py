@@ -189,7 +189,7 @@ def _solver_helper(
 
 
 @pytest.fixture(scope="session")
-def global_capsys(request) -> Iterator[MultiCapture]:
+def session_capsys(request) -> Iterator[MultiCapture]:
     # https://github.com/pytest-dev/pytest/issues/2704#issuecomment-603387680
     capmanager = request.config.pluginmanager.getplugin("capturemanager")
     with capmanager.global_and_fixture_disabled():
@@ -254,13 +254,13 @@ def conda_cli(capsys: CaptureFixture) -> Iterator[CondaCLIFixture]:
 
 
 @pytest.fixture(scope="session")
-def global_conda_cli(global_capsys: MultiCapture) -> Iterator[CondaCLIFixture]:
+def session_conda_cli(session_capsys: MultiCapture) -> Iterator[CondaCLIFixture]:
     """A session scoped fixture returning CondaCLIFixture instance.
 
     Use this for any commands that are global to the test session (e.g., creating a
     conda environment shared across tests, `conda info`, etc.).
     """
-    yield CondaCLIFixture(global_capsys)
+    yield CondaCLIFixture(session_capsys)
 
 
 @dataclass
@@ -345,15 +345,15 @@ def tmp_env(
 
 
 @pytest.fixture(scope="session")
-def global_tmp_env(
+def session_tmp_env(
     tmp_path_factory: TempPathFactory,
-    global_conda_cli: CondaCLIFixture,
+    session_conda_cli: CondaCLIFixture,
 ) -> Iterator[TmpEnvFixture]:
     """A session scoped fixture returning TmpEnvFixture instance.
 
     Use this when creating a conda environment that is shared across tests.
     """
-    yield TmpEnvFixture(tmp_path_factory, global_conda_cli)
+    yield TmpEnvFixture(tmp_path_factory, session_conda_cli)
 
 
 @dataclass

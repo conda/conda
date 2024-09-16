@@ -1,8 +1,8 @@
 ### Enhancements
 
-* Add `conda.testing.fixtures.global_capsys`. Use this to capture stdout and stderr within module, package, and session scoped fixtures. (#14243)
-* Add `conda.testing.fixtures.global_conda_cli`. Use this to invoke conda commands within module, package, and session scoped fixtures. (#14243)
-* Add `conda.testing.fixtures.global_tmp_env`. Use this to create a conda environment within module, package, and session scoped fixtures. (#14243)
+* Add `conda.testing.fixtures.session_capsys`. Use this to capture stdout and stderr within module, package, and session scoped fixtures. (#14243)
+* Add `conda.testing.fixtures.session_conda_cli`. Use this to invoke conda commands within module, package, and session scoped fixtures. (#14243)
+* Add `conda.testing.fixtures.session_tmp_env`. Use this to create a conda environment within module, package, and session scoped fixtures. (#14243)
 
 ### Bug fixes
 

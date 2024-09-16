@@ -24,10 +24,10 @@ if TYPE_CHECKING:
 pytest_plugins = ["conda.testing.fixtures", "pytester"]
 
 
-def test_global_capsys(global_capsys: MultiCapture) -> None:
+def test_session_capsys(session_capsys: MultiCapture) -> None:
     print("stdout")
     print("stderr", file=sys.stderr)
-    out, err = global_capsys.readouterr()
+    out, err = session_capsys.readouterr()
     assert out == "stdout\n"
     assert err == "stderr\n"
 
@@ -39,8 +39,8 @@ def test_conda_cli(conda_cli: CondaCLIFixture) -> None:
     assert not err
 
 
-def test_global_conda_cli(global_conda_cli: CondaCLIFixture) -> None:
-    stdout, stderr, err = global_conda_cli("info")
+def test_session_conda_cli(session_conda_cli: CondaCLIFixture) -> None:
+    stdout, stderr, err = session_conda_cli("info")
     assert stdout
     assert not stderr
     assert not err
@@ -57,8 +57,8 @@ def test_tmp_env(tmp_env: TmpEnvFixture) -> None:
         is_conda_environment(prefix)
 
 
-def test_global_tmp_env(global_tmp_env: TmpEnvFixture) -> None:
-    with global_tmp_env() as prefix:
+def test_session_tmp_env(session_tmp_env: TmpEnvFixture) -> None:
+    with session_tmp_env() as prefix:
         is_conda_environment(prefix)
 
 
@@ -76,13 +76,13 @@ def test_env(pytester: Pytester) -> None:
                 yield prefix
 
         @pytest.fixture(scope="session")
-        def env2(global_tmp_env):
-            with global_tmp_env() as prefix:
+        def env2(session_tmp_env):
+            with session_tmp_env() as prefix:
                 yield prefix
 
         @pytest.fixture(scope="session")
-        def env3(global_tmp_env):
-            with global_tmp_env() as prefix:
+        def env3(session_tmp_env):
+            with session_tmp_env() as prefix:
                 yield prefix
 
         NAME = None
