@@ -149,12 +149,28 @@ so you can use either the full channel URL or just the base URL:
   denylist_channels:
     - https://conda.anaconda.org/conda-forge/linux-64
 
-An example that denies using the ``defaults`` channel:
+An example that denies using ``defaults`` (which maps to the :ref:`default_channels <default-channels>`)
+configuration option:
 
 .. code-block:: yaml
 
   denylist_channels:
     - defaults
+
+.. note:
+
+  The :ref:`defaults channel <default-channels>` points to a list of channels at the
+  `repo.anaconda.com <https://repo.anaconda.com/>`_ repository by default.
+
+An example to explicitly deny the channels that are hosted on ``repo.anaconda.com``:
+
+.. code-block:: yaml
+
+  denylist_channels:
+    - https://repo.anaconda.com/pkgs/main
+    - https://repo.anaconda.com/pkgs/r
+    - https://repo.anaconda.com/pkgs/msys2
+
 
 ``auto_update_conda``: Update conda automatically
 -------------------------------------------------
