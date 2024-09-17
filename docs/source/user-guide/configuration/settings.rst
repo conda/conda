@@ -98,7 +98,7 @@ handler called, "test-auth-handler" registered via the aforementioned plugin hoo
 
 
 ``allowlist_channels`` and ``denylist_channels``: Allow or deny specific channels
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
 
 .. versionadded:: 24.9.0
 
@@ -113,7 +113,7 @@ The denylist takes precedence over the allowlist. If a channel is in both lists,
 
 **Examples:**
 
-An example which allows the ``defaults`` and ``conda-forge`` channels with the ``alllowlist_channels``
+An example which allows the ``defaults`` and ``conda-forge`` channels with the ``allowlist_channels``
 setting is:
 
 .. code-block:: yaml
@@ -129,7 +129,7 @@ An example which denies the ``conda-forge`` channel with the ``denylist_channels
   denylist_channels:
     - conda-forge
 
-An example which explicitely allows the ``defaults`` channel but denies the ``conda-forge`` channel
+An example which explicitly allows the ``defaults`` channel but denies the ``conda-forge`` channel
 by using both the ``allowlist_channels`` and ``denylist_channels`` settings is:
 
 .. code-block:: yaml
