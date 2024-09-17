@@ -949,7 +949,7 @@ class Context(Configuration):
             if argparse_channels and not channel_in_config_files:
                 deprecated.topic(
                     "24.9",
-                    "25.1",
+                    "25.3",
                     topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
                     addendum="To remove this warning, please choose a default channel explicitly "
                     "via 'conda config --add channels <name>'. In the future, the implicit "
