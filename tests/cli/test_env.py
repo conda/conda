@@ -22,7 +22,15 @@ from conda.exceptions import (
 from conda.gateways.disk.test import is_conda_environment
 
 if TYPE_CHECKING:
-    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+    from typing import Iterator
+
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 

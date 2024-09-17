@@ -1,13 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.exceptions import CondaValueError
-from conda.testing import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 TEST_ENV_NAME = "test_env"
 

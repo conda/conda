@@ -1,11 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import importlib.util
 import os
 import sys
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, lexists
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -39,7 +41,11 @@ from conda.models.channel import Channel
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathData, PathDataV1, PathsData
-from conda.testing import PathFactoryFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import PathFactoryFixture
 
 log = getLogger(__name__)
 
