@@ -713,7 +713,7 @@ def _supplement_index_with_prefix(
         prefix_path = Path(prefix)
         prefix_data = PrefixData(prefix)
     if isinstance(index, Index):
-        if not os.path.samefile(
+        if index.prefix_path is None or not os.path.samefile(
             str(prefix_path.resolve()), str(Path(index.prefix_path).resolve())
         ):
             raise OperationNotAllowed(
