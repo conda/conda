@@ -157,9 +157,7 @@ class Index(UserDict):
         # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
-        if prefix is None:
-            self.prefix_path = None
-        elif isinstance(prefix, PrefixData):
+        if isinstance(prefix, PrefixData):
             self.prefix_path = prefix.prefix_path
         else:
             self.prefix_path = prefix
