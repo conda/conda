@@ -15,15 +15,18 @@ from conda.common.io import env_vars
 from conda.core.index import (
     Index,
     _make_virtual_package,
+    _supplement_index_with_cache,
     _supplement_index_with_prefix,
     _supplement_index_with_system,
     calculate_channel_urls,
     check_allowlist,
+    dist_str_in_index,
+    fetch_index,
     get_index,
     get_reduced_index,
 )
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import ChannelNotAllowed
+from conda.exceptions import ChannelNotAllowed, OperationNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
@@ -262,9 +265,20 @@ def test_basic_get_reduced_index():
     )
 
 
+def test_fetch_index(test_recipes_channel):
+    idx = fetch_index(Channel(str(test_recipes_channel)).urls())
+    assert len(idx) == 20
+
+
+def test_dist_str_in_index(test_recipes_channel):
+    idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
+    assert not dist_str_in_index(idx.data, "test-1.4.0-0")
+    assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
+
+
 def test__supplement_index_with_prefix(test_recipes_channel, tmp_env):
     channel = Path(__file__).parent.parent / "test-recipes"
-    pkg = PackageRecord(
+    ref = PackageRecord(
         channel=Channel(str(channel)),
         name="dependent",
         subdir="noarch",
@@ -274,9 +288,53 @@ def test__supplement_index_with_prefix(test_recipes_channel, tmp_env):
         fn="dependent-2.0-0.tar.bz2",
     )
     pkg_spec = "dependent=2.0"
+    index = {ref: ref}
     with tmp_env(pkg_spec) as prefix:
-        idx = _supplement_index_with_prefix({pkg: pkg}, prefix)
-    print(idx)
+        _supplement_index_with_prefix(index, prefix)
+    with tmp_env(pkg_spec) as prefix:
+        _supplement_index_with_prefix(index, PrefixData(prefix))
+    pkg = index[ref]
+    assert type(ref) is PackageRecord
+    assert type(pkg) is PrefixRecord
+    assert ref == pkg
+
+
+def test__supplement_index_with_prefix_index_class(test_recipes_channel, tmp_env):
+    channel = Path(__file__).parent.parent / "test-recipes"
+    ref = PackageRecord(
+        channel=Channel(str(channel)),
+        name="dependent",
+        subdir="noarch",
+        version="2.0",
+        build_number=0,
+        build="0",
+        fn="dependent-2.0-0.tar.bz2",
+    )
+    index = Index()
+    pkg_spec = "dependent=2.0"
+    with tmp_env(pkg_spec) as prefix:
+        with pytest.raises(OperationNotAllowed):
+            _supplement_index_with_prefix(index, prefix)
+    with tmp_env(pkg_spec) as prefix:
+        index = Index(prefix=prefix)
+        _supplement_index_with_prefix(index, prefix)
+    pkg = index[ref]
+    assert type(ref) is PackageRecord
+    assert type(pkg) is PrefixRecord
+    assert ref == pkg
+
+
+def test__supplement_index_with_cache():
+    idx = {}
+    _supplement_index_with_cache(idx)
+    tzdata = [p for p in idx.values() if p.name == "tzdata"][0]
+    tzdata = PackageRecord.from_objects(tzdata)
+    idx = {tzdata: tzdata}
+    _supplement_index_with_cache(idx)
+    augmented_tzdata = idx[tzdata]
+    assert type(tzdata) is PackageRecord
+    assert type(augmented_tzdata) is PackageCacheRecord
+    assert tzdata == augmented_tzdata
 
 
 def test__make_virtual_package():
