@@ -157,7 +157,7 @@ configuration option:
   denylist_channels:
     - defaults
 
-.. note:
+.. note::
 
   The :ref:`defaults channel <default-channels>` points to a list of channels at the
   `repo.anaconda.com <https://repo.anaconda.com/>`_ repository by default.
