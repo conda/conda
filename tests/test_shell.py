@@ -29,7 +29,9 @@ from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
     from typing import Any, Callable, Iterable, Iterator
+
     from pytest import TempPathFactory
+
     from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
