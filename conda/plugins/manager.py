@@ -351,7 +351,10 @@ class CondaPluginManager(pluggy.PluginManager):
         return tuple(self.get_hook_results("virtual_packages"))
 
     def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
-        return tuple(cvp.to_virtual_package() for cvp in self.get_virtual_packages())
+        return tuple(
+            cvp.to_virtual_package()
+            for cvp in self.get_hook_results("virtual_packages")
+        )
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
