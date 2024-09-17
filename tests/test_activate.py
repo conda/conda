@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
     from conda.activate import _Activator
     from conda.plugins.manager import CondaPluginManager
-    from conda.testing import PathFactoryFixture, TmpEnvFixture
+    from conda.testing.fixtures import PathFactoryFixture, TmpEnvFixture
 
 
 log = getLogger(__name__)
@@ -1901,9 +1901,9 @@ def test_powershell_basic(
     assert deactivate_data == (
         f'$Env:PATH = "{new_path}"\n'
         f'. "{deactivate1}"\n'
-        f'$Env:CONDA_PREFIX = ""\n'
-        f'$Env:CONDA_DEFAULT_ENV = ""\n'
-        f'$Env:CONDA_PROMPT_MODIFIER = ""\n'
+        f"$Env:CONDA_PREFIX = $null\n"
+        f"$Env:CONDA_DEFAULT_ENV = $null\n"
+        f"$Env:CONDA_PROMPT_MODIFIER = $null\n"
         f'$Env:CONDA_SHLVL = "0"\n'
         f"{conda_exe_export}\n"
     )
