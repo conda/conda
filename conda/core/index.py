@@ -135,7 +135,7 @@ class Index(UserDict):
             channels = ["local"] + list(channels)
         if prepend:
             channels += context.channels
-        self._channels = channels
+        self._channels = IndexedSet(channels)
         if subdirs:
             if platform:
                 log.warning("subdirs is %s, ignoring platform %s", subdirs, platform)
@@ -144,8 +144,8 @@ class Index(UserDict):
         self._subdirs = subdirs
         self._repodata_fn = repodata_fn
         self.channels = {}
-        self.expanded_channels = []
-        for channel in channels:
+        self.expanded_channels = IndexedSet()
+        for channel in self._channels:
             urls = Channel(channel).urls(True, subdirs)
             check_allowlist(urls)
             expanded_channels = [Channel(url) for url in urls]
@@ -153,7 +153,7 @@ class Index(UserDict):
                 SubdirData(expanded_channel, repodata_fn=repodata_fn)
                 for expanded_channel in expanded_channels
             ]
-            self.expanded_channels.extend(expanded_channels)
+            self.expanded_channels.update(expanded_channels)
         # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
