@@ -1,8 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 
-from conda.testing import CondaCLIFixture
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture
 
 
 def test_main():

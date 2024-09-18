@@ -229,6 +229,14 @@ class _Activator(metaclass=abc.ABCMeta):
         context.plugin_manager.invoke_post_commands(self.command)
         return response
 
+    @deprecated(
+        "25.3",
+        "25.9",
+        addendum="Use `conda commands` instead.",
+        # these commands are already pretty hidden in their implementation and access (`conda shell.posix commands`)
+        # so we opt to not warn end users that this is going away, we only need to notify tab-completion devs
+        # deprecation_type=FutureWarning,
+    )
     def commands(self):
         """
         Returns a list of possible subcommands that are valid
@@ -243,7 +251,10 @@ class _Activator(metaclass=abc.ABCMeta):
         # Hidden commands to provide metadata to shells.
         return "\n".join(
             sorted(
-                find_builtin_commands(generate_parser()) + tuple(find_commands(True))
+                {
+                    *find_builtin_commands(generate_parser()),
+                    *find_commands(True),
+                }
             )
         )
 
@@ -514,9 +525,7 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             conda_prompt_modifier = ""
             activate_scripts = ()
-            export_path = {
-                "PATH": new_path,
-            }
+            export_path = {"PATH": new_path}
         else:
             assert old_conda_shlvl > 1
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
@@ -546,19 +555,17 @@ class _Activator(metaclass=abc.ABCMeta):
                 **new_conda_environment_env_vars,
             )
             unset_vars += unset_vars2
-            export_path = {
-                "PATH": new_path,
-            }
+            export_path = {"PATH": new_path}
             activate_scripts = self._get_activate_scripts(new_prefix)
 
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         for env_var in old_conda_environment_env_vars.keys():
-            unset_vars.append(env_var)
-            save_var = f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"
-            if save_value := os.getenv(save_var):
+            if save_value := os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"):
                 export_vars[env_var] = save_value
+            else:
+                unset_vars.append(env_var)
         return {
             "unset_vars": unset_vars,
             "set_vars": set_vars,
@@ -575,7 +582,7 @@ class _Activator(metaclass=abc.ABCMeta):
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
-                "unset_vars": (),
+                "unset_vars": [],
                 "set_vars": {},
                 "export_vars": {},
                 "deactivate_scripts": (),
@@ -592,25 +599,19 @@ class _Activator(metaclass=abc.ABCMeta):
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
-        env_vars_to_unset = ()
-        env_vars_to_export = {
-            "PATH": new_path,
-            "CONDA_SHLVL": conda_shlvl,
-            "CONDA_PROMPT_MODIFIER": self._prompt_modifier(
+        export_vars, unset_vars = self.get_export_unset_vars(
+            PATH=new_path,
+            CONDA_SHLVL=conda_shlvl,
+            CONDA_PROMPT_MODIFIER=self._prompt_modifier(
                 conda_prefix, conda_default_env
             ),
-        }
-        conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
-        for k, v in conda_environment_env_vars.items():
-            if v == CONDA_ENV_VARS_UNSET_VAR:
-                env_vars_to_unset = env_vars_to_unset + (k,)
-            else:
-                env_vars_to_export[k] = v
+        )
+
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
-            "unset_vars": env_vars_to_unset,
+            "unset_vars": unset_vars,
             "set_vars": set_vars,
-            "export_vars": env_vars_to_export,
+            "export_vars": export_vars,
             "deactivate_scripts": self._get_deactivate_scripts(conda_prefix),
             "activate_scripts": self._get_activate_scripts(conda_prefix),
         }
@@ -1138,7 +1139,7 @@ class PowerShellActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = '$Env:%s = ""'
+    unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'
     set_var_tmpl = '$Env:%s = "%s"'
     run_script_tmpl = '. "%s"'
@@ -1167,8 +1168,8 @@ class PowerShellActivator(_Activator):
             return dedent(
                 f"""
                 $Env:CONDA_EXE = "{context.conda_exe}"
-                $Env:_CE_M = ""
-                $Env:_CE_CONDA = ""
+                $Env:_CE_M = $null
+                $Env:_CE_CONDA = $null
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}

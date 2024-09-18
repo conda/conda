@@ -1,8 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
 from importlib.metadata import version
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -10,12 +13,14 @@ from conda.base.context import context
 from conda.common.io import stderr_log_level
 from conda.exceptions import DryRunExit, PackagesNotFoundError
 from conda.gateways.disk.delete import path_is_clean
-from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     package_is_installed,
 )
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")

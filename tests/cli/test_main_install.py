@@ -1,17 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from json import loads as json_loads
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import DirectoryNotACondaEnvironmentError, PackagesNotFoundError
 from conda.gateways.disk.delete import path_is_clean, rm_rf
-from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_install_freezes_env_by_default(
