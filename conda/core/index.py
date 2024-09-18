@@ -49,16 +49,17 @@ def check_allowlist(channel_urls: list[str]) -> None:
             for denylist_channel in context.denylist_channels
         )
     )
-    for channel_url in channel_urls:
-        channel = Channel(channel_url)
-        for channel_base_url in channel.base_urls:
-            if channel_base_url in denylist_channel_urls:
-                raise ChannelDenied(channel)
-            if (
-                context.allowlist_channels
-                and channel_base_url not in allowlist_channel_urls
-            ):
-                raise ChannelNotAllowed(channel)
+    if allowlist_channel_urls or denylist_channel_urls:
+        for channel_url in channel_urls:
+            channel = Channel(channel_url)
+            for channel_base_url in channel.base_urls:
+                if channel_base_url in denylist_channel_urls:
+                    raise ChannelDenied(channel)
+                if (
+                    allowlist_channel_urls
+                    and channel_base_url not in allowlist_channel_urls
+                ):
+                    raise ChannelNotAllowed(channel)
 
 
 LAST_CHANNEL_URLS = []
