@@ -934,6 +934,11 @@ class Context(Configuration):
             else:
                 return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
+        addendum = (
+            "To remove this warning, please choose a default channel explicitly "
+            "via 'conda config --add channels <name>'. In the future, the implicit "
+            "default channel configuration will be removed."
+        )
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and "channel" in self._argparse_args:
             # TODO: it's args.channel right now, not channels
@@ -949,11 +954,9 @@ class Context(Configuration):
             if argparse_channels and not channel_in_config_files:
                 deprecated.topic(
                     "24.9",
-                    "25.1",
+                    "25.3",
                     topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
-                    addendum="To remove this warning, please choose a default channel explicitly "
-                    "via 'conda config --add channels <name>'. In the future, the implicit "
-                    "default channel configuration will be removed.",
+                    addendum=addendum,
                     deprecation_type=FutureWarning,
                 )
                 return tuple(
@@ -964,11 +967,9 @@ class Context(Configuration):
         else:
             deprecated.topic(
                 "24.9",
-                "25.1",
+                "25.3",
                 topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
-                addendum="To remove this warning, please choose a default channel explicitly "
-                "via 'conda config --add channels <name>'. In the future, the implicit "
-                "default channel configuration will be removed.",
+                addendum=addendum,
                 deprecation_type=FutureWarning,
             )
             _channels = [DEFAULTS_CHANNEL_NAME]
