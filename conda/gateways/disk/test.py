@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions testing path properties (e.g., writable, hardlinks, softlinks, etc.)."""
 
+from __future__ import annotations
+
+import os
 from functools import lru_cache
 from logging import getLogger
-from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join
+from pathlib import Path
 from uuid import uuid4
 
 from ...base.constants import PREFIX_MAGIC_FILE
@@ -36,7 +39,7 @@ def file_path_is_writable(path):
             return True
     else:
         # TODO: probably won't work well on Windows
-        return access(path, W_OK)
+        return os.access(path, os.W_OK)
 
 
 @lru_cache(maxsize=None)
@@ -86,3 +89,13 @@ def softlink_supported(source_file, dest_dir):
 
 def is_conda_environment(prefix):
     return isfile(join(prefix, PREFIX_MAGIC_FILE))
+
+
+def has_hardlinks(prefix: str | os.PathLike[str] | Path) -> bool:
+    prefix = Path(prefix)
+    if prefix.is_file():
+        return prefix.stat().st_nlink > 1
+    elif prefix.is_dir():
+        return any(has_hardlinks(path) for path in prefix.iterdir())
+    else:
+        raise NotImplementedError
