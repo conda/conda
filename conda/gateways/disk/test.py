@@ -93,9 +93,7 @@ def is_conda_environment(prefix):
 
 def has_hardlinks(prefix: str | os.PathLike[str] | Path) -> bool:
     prefix = Path(prefix)
-    if prefix.is_file():
-        return prefix.stat().st_nlink > 1
-    elif prefix.is_dir():
+    if prefix.is_dir():
         return any(has_hardlinks(path) for path in prefix.iterdir())
     else:
-        raise NotImplementedError
+        return prefix.stat().st_nlink > 1

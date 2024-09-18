@@ -53,7 +53,7 @@ def _print_to_remove(name: str, to_remove: dict[Path | None, tuple[Path, ...]]) 
                     total_size += (size := get_size(path))
                 except OSError as e:
                     # OSError: get_size failed
-                    warnings.warn(f"{path}: {e}")
+                    warnings.warn(f"{path}: ({e.__class__.__name__}) {e}")
                     size = -1
                 relative = path.relative_to(directory) if directory else path
                 display.setdefault(directory, {})[relative] = size

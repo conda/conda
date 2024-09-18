@@ -136,7 +136,7 @@ def test_get_two_solvers(plugin_manager):
     plugin_manager.register(plugin2)
 
     solvers = plugin_manager.get_hook_results("solvers")
-    assert solvers == [classic_solver, verbose_classic_solver]
+    assert solvers == [verbose_classic_solver, classic_solver]
 
 
 def test_get_conflicting_solvers(plugin_manager):
