@@ -10,12 +10,15 @@
 
 * The `defaults` multichannel will stop being the (implicit) default value for `channels`. Users
   relying on this behaviour are encouraged to run `conda config --add channels defaults`.
-  This is now deprecated, and will become an error in 25.3. (#14178 via #14227)
-* `conda config --add/--append channels ...` will warn when `defaults` is being added implicitly.
-  By 25.3, this behaviour will be removed and users should run `conda config --add/--append channels defaults` explicitly if needed. (#12356 via #14227)
-* Without an explicit `channels` configuration (`condarc`, environment variables, CLI flags),
-  `context.channels` will warn about emitting `defaults` implicitly. In 25.3, an empty list will be
-  returned. If this behavior is desired, the `context.channels or [Channel("defaults")]` idiom is recommended. (#14227)
+  This is now pending deprecation, and will be fully deprecated in 25.3. (#14178 via #14227)
+* Running `conda config --add/--append channels ...` will warn when `defaults` is being
+  added implicitly. By 25.3, this behaviour will be removed and users should run
+  `conda config --add/--append channels defaults` explicitly if needed. Conda
+  distribution installers like miniforge or miniconda will pre-
+  configure conda channels during installation. (#12356 via #14227)
+* Without an explicit `channels` configuration (via `condarc` files, environment
+  variables, or CLI flags), conda will warn about using `defaults` implicitly.
+  In 25.3, an empty list will be used. (#14227)
 
 ### Docs
 
