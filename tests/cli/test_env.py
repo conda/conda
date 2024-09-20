@@ -23,6 +23,10 @@ from conda.gateways.disk.test import is_conda_environment
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
+    from typing import Iterator
+
+    from pytest import MonkeyPatch
+
     from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
@@ -91,6 +95,16 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
 
 def create_env(content, filename="environment.yml"):
     Path(filename).write_text(content)
+
+
+@pytest.fixture(autouse=True)
+def chdir(tmp_path: Path, monkeypatch: MonkeyPatch) -> Iterator[Path]:
+    """
+    Change directories to a temporary directory for `conda env` commands since they are
+    sensitive to the current working directory.
+    """
+    monkeypatch.chdir(tmp_path)
+    yield tmp_path
 
 
 @pytest.mark.integration
