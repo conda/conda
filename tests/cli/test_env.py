@@ -20,6 +20,7 @@ from conda.exceptions import (
     SpecNotFound,
 )
 from conda.gateways.disk.test import is_conda_environment
+from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import (
@@ -137,14 +138,21 @@ def test_deprecated_binstar(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.integration
-def test_create_valid_env(tmp_env: TmpEnvFixture):
+def test_create_valid_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
     """
     Creates an environment.yml file and
     creates an environment with it
     """
-    with tmp_env() as prefix:
-        create_env(ENVIRONMENT_CA_CERTIFICATES)
-        assert is_conda_environment(prefix)
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
+    prefix = path_factory()
+    conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        # "--file=environment.yml",  # this is the implied default
+    )
+    assert is_conda_environment(prefix)
+    assert package_is_installed(prefix, "ca-certificates")
 
 
 @pytest.mark.integration
