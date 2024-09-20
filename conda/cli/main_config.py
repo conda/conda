@@ -19,6 +19,9 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
+from ..base.constants import DEFAULTS_CHANNEL_NAME
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any
@@ -732,7 +735,16 @@ def execute_config(args, parser):
         for key, item in arg:
             key, subkey = key.split(".", 1) if "." in key else (key, None)
             if key == "channels" and key not in rc_config:
-                rc_config[key] = ["defaults"]
+                deprecated.topic(
+                    "24.9",
+                    "25.3",
+                    topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                    addendum=f"In the future, {DEFAULTS_CHANNEL_NAME} won't be added when "
+                    "'conda config --add/--append channels' is used. If you depend on that "
+                    "behavior, run 'conda config --append channels defaults'.",
+                    deprecation_type=FutureWarning,
+                )
+                rc_config[key] = [DEFAULTS_CHANNEL_NAME]
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key in map_parameters:

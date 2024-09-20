@@ -1,11 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, non_x86_machines
+from conda.base.context import context, non_x86_machines, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_vars
 from conda.core.index import (
@@ -14,36 +17,100 @@ from conda.core.index import (
     get_index,
     get_reduced_index,
 )
-from conda.exceptions import ChannelNotAllowed
+from conda.exceptions import ChannelDenied, ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from tests.core.test_subdir_data import platform_in_record
 
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
 log = getLogger(__name__)
 
 
-def test_check_allowlist():
+def test_check_allowlist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    check_allowlist(("conda-canary", "conda-forge"))
+
     allowlist = (
         "defaults",
         "conda-forge",
         "https://beta.conda.anaconda.org/conda-test",
     )
-    with env_vars(
-        {"CONDA_ALLOWLIST_CHANNELS": ",".join(allowlist)},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        with pytest.raises(ChannelNotAllowed):
-            get_index(("conda-canary",))
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
 
-        with pytest.raises(ChannelNotAllowed):
-            get_index(("https://repo.anaconda.com/pkgs/denied",))
+    with pytest.raises(ChannelNotAllowed):
+        check_allowlist(("conda-canary",))
 
+    with pytest.raises(ChannelNotAllowed):
+        check_allowlist(("https://repo.anaconda.com/pkgs/denied",))
+
+    check_allowlist(("defaults",))
+    check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+    check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+
+def test_check_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    check_allowlist(("conda-canary", "conda-forge"))
+
+    denylist = (
+        "defaults",
+        "conda-forge",
+        "https://beta.conda.anaconda.org/conda-test",
+    )
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    with pytest.raises(ChannelDenied):
         check_allowlist(("defaults",))
+
+    with pytest.raises(ChannelDenied):
         check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+    with pytest.raises(ChannelDenied):
+        check_allowlist(("conda-forge",))
+
+    with pytest.raises(ChannelDenied):
         check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
 
-    check_allowlist(("conda-canary",))
+    with pytest.raises(ChannelDenied):
+        check_allowlist(("https://beta.conda.anaconda.org/conda-test",))
+
+
+def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    check_allowlist(
+        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge")
+    )
+    allowlist = (
+        "defaults",
+        "https://beta.conda.anaconda.org/conda-test",
+        "conda-forge",
+    )
+    denylist = ("conda-forge",)
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    # neither in allowlist nor denylist
+    with pytest.raises(ChannelNotAllowed):
+        check_allowlist(("conda-canary",))
+
+    # conda-forge is on denylist, so it should raise ChannelDenied
+    # even though it is in the allowlist
+    with pytest.raises(ChannelDenied):
+        check_allowlist(("conda-forge",))
+    with pytest.raises(ChannelDenied):
+        check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+    check_allowlist(("defaults",))
+    check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
 def test_supplement_index_with_system():

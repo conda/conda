@@ -270,9 +270,10 @@ def install(args, parser, command="install"):
             if MatchSpec(default_package).name not in names:
                 args_packages.append(default_package)
 
+    context_channels = context.channels
     index_args = {
         "use_cache": args.use_index_cache,
-        "channel_urls": context.channels,
+        "channel_urls": context_channels,
         "unknown": args.unknown,
         "prepend": not args.override_channels,
         "use_local": args.use_local,
@@ -398,7 +399,7 @@ def install(args, parser, command="install"):
                 solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(
                     prefix,
-                    context.channels,
+                    context_channels,
                     context.subdirs,
                     specs_to_add=specs,
                     repodata_fn=repodata_fn,
