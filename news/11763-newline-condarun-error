@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixed newline error on conda run #11763
+* Fix newline error for `conda run`. (#11763)
 
 ### Deprecations
 
