@@ -166,12 +166,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = context.target_prefix
     check_non_admin()
 
+    if not is_conda_environment(prefix):
+        raise EnvironmentLocationNotFound(prefix)
+
     if args.all and prefix == context.default_prefix:
         msg = "Cannot remove current environment. Deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
-
-    if args.all and not is_conda_environment(prefix):
-        raise EnvironmentLocationNotFound(prefix)
 
     if args.all and path_is_clean(prefix):
         return 0
