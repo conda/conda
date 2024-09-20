@@ -114,6 +114,7 @@ class SubdirData(metaclass=SubdirDataType):
         create_cache_dir()
         if channels is None:
             channels = context.channels
+            # TODO: Raise if 'channels' is empty?
         if subdirs is None:
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
