@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds support for confirmation functions for reporter backends plugin hook (#14244)
+* Adds support for confirmation functions for reporter backends plugin hook. (#14244)
 
 ### Bug fixes
 
