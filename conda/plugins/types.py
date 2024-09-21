@@ -295,6 +295,17 @@ class ReporterRendererBase(ABC):
         loading dialog)
         """
 
+    @abstractmethod
+    def prompt(
+        self,
+        message: str = "Proceed",
+        choices=("yes", "no"),
+        default: str = "yes",
+    ) -> str:
+        """
+        Allows for defining an implementation of a "yes/no" confirmation function
+        """
+
 
 @dataclass
 class CondaReporterBackend:

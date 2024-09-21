@@ -22,7 +22,6 @@ from ..auxlib.collection import first
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
-from ..cli.common import confirm_yn
 from ..common.compat import ensure_text_type, on_win
 from ..common.io import (
     DummyExecutor,
@@ -60,7 +59,7 @@ from ..gateways.disk.test import (
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
-from ..reporters import get_spinner
+from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData

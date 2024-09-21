@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from contextlib import nullcontext
 from errno import EPIPE
+from io import StringIO
 
 import pytest
 
+from conda.exceptions import CondaError
 from conda.plugins.reporter_backends.console import (
     ConsoleReporterRenderer,
     QuietSpinner,
@@ -193,3 +195,48 @@ def test_quiet_spinner_with_error(capsys):
     capture = capsys.readouterr()
 
     assert capture.out == "Test message: ...working... failed\n"
+
+
+def test_prompt(monkeypatch):
+    """
+    Ensure basic coverage of the ``prompt`` method
+    """
+    reporter = ConsoleReporterRenderer()
+
+    # Test "yes" option
+    monkeypatch.setattr("sys.stdin", StringIO("y\n"))
+    assert reporter.prompt() == "yes"
+
+    # Test "no" option
+    monkeypatch.setattr("sys.stdin", StringIO("n\n"))
+    assert reporter.prompt() == "no"
+
+
+def test_prompt_bad_option(monkeypatch, capsys):
+    """
+    Ensure message is printed when bad option is chosen
+    """
+    reporter = ConsoleReporterRenderer()
+
+    # Test "yes" option
+    monkeypatch.setattr("sys.stdin", StringIO("badoption\ny\n"))
+
+    assert reporter.prompt() == "yes"
+
+    capture = capsys.readouterr()
+
+    assert "Invalid choice" in capture.out
+
+
+def test_prompt_error_reading_stdin(mocker):
+    """
+    Ensure exception is raised when OSError is encountered
+    """
+    reporter = ConsoleReporterRenderer()
+    mock_readline = mocker.patch(
+        "conda.plugins.reporter_backends.console.sys.stdin.readline"
+    )
+    mock_readline.side_effect = OSError("Test")
+
+    with pytest.raises(CondaError):
+        reporter.prompt()

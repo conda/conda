@@ -19,6 +19,7 @@ from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
+from ...exceptions import CondaError
 from .. import CondaReporterBackend, hookimpl
 from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
 
@@ -227,6 +228,37 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             return QuietSpinner(message, fail_message)
         else:
             return Spinner(message, fail_message)
+
+    def prompt(self, message="Proceed", choices=("yes", "no"), default="yes") -> str:
+        """
+        Implementation of a prompt dialog
+        """
+        assert default in choices, default
+        options = []
+
+        for option in choices:
+            if option == default:
+                options.append(f"[{option[0]}]")
+            else:
+                options.append(option[0])
+
+        message = "{} ({})? ".format(message, "/".join(options))
+        choices = {alt: choice for choice in choices for alt in [choice, choice[0]]}
+        choices[""] = default
+        while True:
+            # raw_input has a bug and prints to stderr, not desirable
+            sys.stdout.write(message)
+            sys.stdout.flush()
+            try:
+                user_choice = sys.stdin.readline().strip().lower()
+            except OSError as e:
+                raise CondaError(f"cannot read from stdin: {e}")
+            if user_choice not in choices:
+                print(f"Invalid choice: {user_choice}")
+            else:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                return choices[user_choice]
 
 
 @hookimpl(
