@@ -445,7 +445,7 @@ jobs:
           --file tests/requirements-s3.txt
           --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
-          pytest-memray
+          conda-forge::pytest-memray
 
       - name: Conda Info
         # view test env info (not base)
