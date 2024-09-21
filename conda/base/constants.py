@@ -12,7 +12,7 @@ import struct
 from enum import Enum, EnumMeta
 from os.path import join
 
-from ..common.compat import on_win, six_with_metaclass
+from ..common.compat import on_win
 
 PREFIX_PLACEHOLDER = (
     "/opt/anaconda1anaconda2"
@@ -89,7 +89,6 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
 )
 
 RECOGNIZED_URL_SCHEMES = ("http", "https", "ftp", "s3", "file")
-
 
 DEFAULT_CHANNELS_UNIX = (
     "https://repo.anaconda.com/pkgs/main",
@@ -178,26 +177,7 @@ NOTICES_CACHE_SUBDIR = "notices"
 NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
 
 DRY_RUN_PREFIX = "Dry run action:"
-PREFIX_NAME_DISALLOWED_CHARS = {
-    "/",
-    " ",
-    ":",
-    "#",
-}
-# Includes disallowed characters from constructor
-PREFIX_NAME_DISALLOWED_CHARS_WIN = {
-    "/",
-    " ",
-    ":",
-    "#",
-    "^",
-    "%",
-    "!",
-    "=",
-    "(",
-    ")",
-    "\\",
-}
+PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
 
 
 class SafetyChecks(Enum):
@@ -266,7 +246,7 @@ class ValueEnum(Enum):
         return f"{self.value}"
 
 
-class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
+class ChannelPriority(ValueEnum, metaclass=ChannelPriorityMeta):
     __name__ = "ChannelPriority"
 
     STRICT = "strict"

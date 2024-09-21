@@ -1,12 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
 from conda.exceptions import EnvironmentLocationNotFound
-from conda.testing import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 
 def test_compare(mocker: MockerFixture, tmp_path: Path, conda_cli: CondaCLIFixture):

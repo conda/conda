@@ -98,8 +98,8 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         local_channel = Channel(join(CHANNEL_DIR_V1, platform))
         sd = SubdirData(channel=local_channel)
         assert len(sd.query_all("zlib", channels=[local_channel])) > 0
-        assert len(sd.query_all("zlib")) == 0
-    assert len(sd.query_all("zlib")) > 1
+        assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) == 0
+    assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) > 1
 
     # test load from cache
     with env_vars(

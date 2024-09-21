@@ -118,8 +118,6 @@ addopts = [
   "--store-durations",
   "--strict-markers",
   "--tb=native",
-  "--xdoctest-modules",
-  "--xdoctest-style=google",
   "-vv",
 ]
 doctest_optionflags = [
@@ -132,6 +130,7 @@ markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",
   "benchmark: benchmark tests",
+  "memray: memory use tests",
 ]
 minversion = 3.0
 norecursedirs = [
@@ -195,23 +194,15 @@ protected-files = ["__init__.py", "vendor.txt", "README.md"]
 requirements = "conda/_vendor/vendor.txt"
 
 [tool.vendoring.license.fallback-urls]
-appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt"  # MIT
-cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE"  # MIT
-distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE"  # Apache
 frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
 
 [tool.vendoring.transformations]
 drop = [
   # contains unnecessary scripts
   "bin/",
-  # remove unwanted modules
-  "cpuinfo/__main__.py",
 ]
 substitute = []
 
 [tool.vendoring.typing-stubs]
 # prevent stubs from being generated
-appdirs = []
-cpuinfo = []
-distro = []
 frozendict = []

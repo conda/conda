@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.gateways.disk.delete.rm_rf(max_retries)` as pending deprecated. (#14094)
+* Mark `conda.gateways.disk.delete.rm_rf(trash)` as pending deprecated. (#14094)
+* Mark `conda.gateways.disk.delete.try_rmdir_all_empty` as pending deprecated. Use `conda.gateways.disk.delete.rm_rf` instead. (#14094)
+* Mark `conda.gateways.disk.delete.move_to_trash` as pending deprecated. Use `conda.gateways.disk.delete.rm_rf` instead. (#14094)
+* Mark `conda.gateways.disk.delete.move_path_to_trash` as pending deprecated. Use `conda.gateways.disk.delete.rm_rf` instead. (#14094)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

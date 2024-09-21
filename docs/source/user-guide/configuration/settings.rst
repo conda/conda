@@ -97,6 +97,81 @@ handler called, "test-auth-handler" registered via the aforementioned plugin hoo
    schema must match exactly to the channel URL, so a pattern like ``*`` is not valid.
 
 
+``allowlist_channels`` and ``denylist_channels``: Allow or deny specific channels
+---------------------------------------------------------------------------------
+
+.. versionadded:: 24.9.0
+
+  The ``denylist_channels`` setting was introduced in conda 24.9.0 complementing the
+  existing ``allowlist_channels`` setting.
+
+With ``allowlist_channels`` and ``denylist_channels``, you can allow or deny specific channels
+from being used in conda operations. This is useful for restricting the channels that conda
+can access, especially in enterprise or multi-user environments.
+
+The denylist takes precedence over the allowlist. If a channel is in both lists, it is denied.
+
+**Examples:**
+
+An example which allows the ``defaults`` and ``conda-forge`` channels with the ``allowlist_channels``
+setting is:
+
+.. code-block:: yaml
+
+  allowlist_channels:
+    - defaults
+    - conda-forge
+
+An example which denies the ``conda-forge`` channel with the ``denylist_channels`` setting is:
+
+.. code-block:: yaml
+
+  denylist_channels:
+    - conda-forge
+
+An example which explicitly allows the ``defaults`` channel but denies the ``conda-forge`` channel
+by using both the ``allowlist_channels`` and ``denylist_channels`` settings is:
+
+.. code-block:: yaml
+
+  allowlist_channels:
+    - defaults
+  denylist_channels:
+    - conda-forge
+
+An example to show that channels are automatically normalized based on their base URLs,
+so you can use either the full channel URL or just the base URL:
+
+.. code-block:: yaml
+
+  allowlist_channels:
+    - defaults
+  denylist_channels:
+    - https://conda.anaconda.org/conda-forge/linux-64
+
+An example that denies using ``defaults`` (which maps to the :ref:`default_channels <default-channels>`)
+configuration option:
+
+.. code-block:: yaml
+
+  denylist_channels:
+    - defaults
+
+.. note::
+
+  The :ref:`defaults channel <default-channels>` points to a list of channels at the
+  `repo.anaconda.com <https://repo.anaconda.com/>`_ repository by default.
+
+An example to explicitly deny the channels that are hosted on ``repo.anaconda.com``:
+
+.. code-block:: yaml
+
+  denylist_channels:
+    - https://repo.anaconda.com/pkgs/main
+    - https://repo.anaconda.com/pkgs/r
+    - https://repo.anaconda.com/pkgs/msys2
+
+
 ``auto_update_conda``: Update conda automatically
 -------------------------------------------------
 
@@ -197,7 +272,15 @@ here overrides that default:
 
   proxy_servers:
       http: http://user:pass@corp.com:8080
-      https: https://user:pass@corp.com:8080
+      https: http://user:pass@corp.com:8080
+
+.. admonition:: Mixing HTTPS and HTTP
+
+  The protocol in the URL (either ``http://`` or ``https://``) should match
+  the actual protocol of your proxy server. The keys ``http`` and ``https`` in
+  the above example merely indicate the type of traffic to route, not the
+  protocol of the proxy server itself. Ensure that both keys use the correct
+  protocol based on your proxy server's configuration.
 
 To give a proxy for a specific scheme and host, use the
 ``scheme://hostname`` form for the key. This matches for any request
@@ -795,6 +878,7 @@ These are:
 - ``proxy_servers``
 - ``verify_ssl``
 - ``allowlist_channels``
+- ``denylist_channels``
 
 This allows you to store the credentials of a private repository in an
 environment variable, like so:

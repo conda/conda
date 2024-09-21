@@ -44,7 +44,7 @@ from ..common.configuration import (
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
-from ..common.path import expand, paths_equal
+from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
 from .constants import (
@@ -62,7 +62,6 @@ from .constants import (
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
-    PREFIX_NAME_DISALLOWED_CHARS_WIN,
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
@@ -125,7 +124,7 @@ user_rc_path = abspath(expanduser("~/.condarc"))
 sys_rc_path = join(sys.prefix, ".condarc")
 
 
-def user_data_dir(
+def user_data_dir(  # noqa: F811
     appname: str | None = None,
     appauthor: str | None | Literal[False] = None,
     version: str | None = None,
@@ -133,10 +132,8 @@ def user_data_dir(
 ):
     # Defer platformdirs import to reduce import time for conda activate.
     global user_data_dir
-    try:
-        from platformdirs import user_data_dir
-    except ImportError:  # pragma: no cover
-        from .._vendor.appdirs import user_data_dir
+    from platformdirs import user_data_dir
+
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
@@ -356,9 +353,7 @@ class Context(Configuration):
     )
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        SequenceParameter(
-            PrimitiveParameter("", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)
-        ),
+        SequenceParameter(PrimitiveParameter("", element_type=str), default=()),
         aliases=(
             "channels",
             "channel",
@@ -398,6 +393,10 @@ class Context(Configuration):
     allowlist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=("whitelist_channels",),
+        expandvars=True,
+    )
+    denylist_channels = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True,
     )
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
@@ -676,17 +675,6 @@ class Context(Configuration):
             return 8 * struct.calcsize("P")
 
     @property
-    @deprecated(
-        "24.3",
-        "24.9",
-        addendum="Please use `conda.base.context.context.root_prefix` instead.",
-    )
-    def root_dir(self) -> os.PathLike:
-        # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
-        # because it is more consistent with other names
-        return self.root_prefix
-
-    @property
     def root_writable(self):
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
@@ -786,13 +774,12 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "24.9",
+        "25.3",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
-        bin_dir = "Scripts" if on_win else "bin"
         exe = "conda.exe" if on_win else "conda"
-        return join(self.conda_prefix, bin_dir, exe)
+        return join(self.conda_prefix, BIN_DIRECTORY, exe)
 
     @property
     def av_data_dir(self):
@@ -826,12 +813,11 @@ class Context(Configuration):
                 "CONDA_PYTHON_EXE": sys.executable,
             }
         else:
-            bin_dir = "Scripts" if on_win else "bin"
             exe = "conda.exe" if on_win else "conda"
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
             return {
-                "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
+                "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
                 "_CE_M": "",
                 "_CE_CONDA": "",
                 "CONDA_PYTHON_EXE": sys.executable,
@@ -952,6 +938,11 @@ class Context(Configuration):
             else:
                 return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
+        addendum = (
+            "To remove this warning, please choose a default channel explicitly "
+            "via 'conda config --add channels <name>'. In the future, the implicit "
+            "default channel configuration will be removed."
+        )
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and "channel" in self._argparse_args:
             # TODO: it's args.channel right now, not channels
@@ -965,11 +956,28 @@ class Context(Configuration):
                 for rc_file in self.config_files
             )
             if argparse_channels and not channel_in_config_files:
+                deprecated.topic(
+                    "24.9",
+                    "25.3",
+                    topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                    addendum=addendum,
+                    deprecation_type=FutureWarning,
+                )
                 return tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
-
-        return tuple(IndexedSet((*local_add, *self._channels)))
+        if self._channels:
+            _channels = self._channels
+        else:
+            deprecated.topic(
+                "24.9",
+                "25.3",
+                topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                addendum=addendum,
+                deprecation_type=FutureWarning,
+            )
+            _channels = [DEFAULTS_CHANNEL_NAME]
+        return tuple(IndexedSet((*local_add, *_channels)))
 
     @property
     def config_files(self):
@@ -985,18 +993,9 @@ class Context(Configuration):
         #    is only called when use_only_tar_bz2 is first called.
         import conda_package_handling.api
 
-        use_only_tar_bz2 = False
-        if self._use_only_tar_bz2 is None:
-            if self._argparse_args and "use_only_tar_bz2" in self._argparse_args:
-                use_only_tar_bz2 &= self._argparse_args["use_only_tar_bz2"]
         return (
-            (
-                hasattr(conda_package_handling.api, "libarchive_enabled")
-                and not conda_package_handling.api.libarchive_enabled
-            )
-            or self._use_only_tar_bz2
-            or use_only_tar_bz2
-        )
+            not conda_package_handling.api.libarchive_enabled
+        ) or self._use_only_tar_bz2
 
     @property
     def binstar_upload(self):
@@ -1144,10 +1143,7 @@ class Context(Configuration):
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
             try:
-                try:
-                    import distro
-                except ImportError:
-                    from .._vendor import distro
+                import distro
 
                 distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
@@ -1168,13 +1164,6 @@ class Context(Configuration):
         # None, None if not on Linux
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
-
-    @property
-    @deprecated("24.3", "24.9")
-    def cpu_flags(self):
-        # DANGER: This is rather slow
-        info = _get_cpu_info()
-        return info["flags"]
 
     @memoizedproperty
     @unique_sequence_map(unique_key="backend")
@@ -1205,6 +1194,7 @@ class Context(Configuration):
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
+                "denylist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1858,6 +1848,15 @@ class Context(Configuration):
                 channel exclusions will be enforced.
                 """
             ),
+            denylist_channels=dals(
+                """
+                The list of channels that are denied to be used on the system. Use of any
+                of these channels will result in an error. If conda-build channels are to be
+                allowed, along with the --use-local command line flag, be sure to not include
+                the 'local' channel in the list. If the list is empty or left undefined, no
+                channel exclusions will be enforced.
+                """
+            ),
             unsatisfiable_hints=dals(
                 """
                 A boolean to determine if conda should find conflicting packages in the case
@@ -2021,15 +2020,6 @@ def replace_context_default(pushing=None, argparse_args=None):
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
 
-@deprecated("24.3", "24.9")
-@lru_cache(maxsize=None)
-def _get_cpu_info():
-    # DANGER: This is rather slow
-    from .._vendor.cpuinfo import get_cpu_info
-
-    return frozendict(get_cpu_info())
-
-
 def env_name(prefix):
     # counter part to `locate_prefix_by_name()` below
     if not prefix:
@@ -2068,21 +2058,12 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
 
-    disallowed = (
-        PREFIX_NAME_DISALLOWED_CHARS_WIN if on_win else PREFIX_NAME_DISALLOWED_CHARS
-    )
-    if disallowed.intersection(prefix_name):
-        if "%" in disallowed:
-            # This symbol causes formatting errors in the message below when raised.
-            # It needs to be escaped as a double %% in order to be rendered correctly.
-            # Raw strings didn't help.
-            disallowed.remove("%")
-            disallowed.add("%%")
+    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
         raise CondaValueError(
             dals(
                 f"""
                 Invalid environment name: {prefix_name!r}
-                Characters not allowed: {disallowed}
+                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
                 If you are specifying a path to an environment, the `-p`
                 flag should be used instead.
                 """

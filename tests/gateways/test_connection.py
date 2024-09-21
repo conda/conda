@@ -6,15 +6,13 @@ import hashlib
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 from requests import HTTPError
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.context import reset_context
+from conda.base.context import context, reset_context
 from conda.common.compat import ensure_binary
-from conda.common.io import env_vars
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
@@ -31,7 +29,9 @@ from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 
 if TYPE_CHECKING:
-    from conda.testing import TmpEnvFixture
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import TmpEnvFixture
 
 log = getLogger(__name__)
 
@@ -85,18 +85,26 @@ def test_local_file_adapter_200():
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
 @pytest.mark.integration
-def test_s3_server(minio_s3_server, tmp_env: TmpEnvFixture):
+def test_s3_server(
+    minio_s3_server,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
     endpoint = minio_s3_server.endpoint
     bucket_name = minio_s3_server.name
     channel_dir = Path(__file__).parent.parent / "data" / "conda_format_repo"
 
     minio_s3_server.populate_bucket(endpoint, bucket_name, channel_dir)
 
-    inner_s3_test(tmp_env, endpoint, bucket_name)
+    inner_s3_test(tmp_env, monkeypatch, endpoint, bucket_name)
 
 
 @pytest.mark.integration
-def test_s3_server_with_mock(package_server, tmp_env: TmpEnvFixture):
+def test_s3_server_with_mock(
+    package_server,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
     """
     Use boto3 to fetch from a mock s3 server pointing at the test package
     repository. This works since conda only GET's against s3 and s3 is http.
@@ -105,10 +113,15 @@ def test_s3_server_with_mock(package_server, tmp_env: TmpEnvFixture):
     endpoint_url = f"http://{host}:{port}"
     bucket_name = "test"
 
-    inner_s3_test(tmp_env, endpoint_url, bucket_name)
+    inner_s3_test(tmp_env, monkeypatch, endpoint_url, bucket_name)
 
 
-def inner_s3_test(tmp_env: TmpEnvFixture, endpoint_url, bucket_name):
+def inner_s3_test(
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    endpoint_url: str,
+    bucket_name: str,
+) -> None:
     """
     Called by functions that build a populated s3 server.
 
@@ -120,35 +133,39 @@ def inner_s3_test(tmp_env: TmpEnvFixture, endpoint_url, bucket_name):
     # We patch the default kwargs values in boto3.session.Session.resource(...)
     # which is used in conda.gateways.connection.s3.S3Adapter to initialize the S3
     # connection; otherwise it would default to a real AWS instance
-    patched_defaults = (
-        "us-east-1",  # region_name
-        None,  # api_version
-        True,  # use_ssl
-        None,  # verify
-        endpoint_url,  # endpoint_url
-        "minioadmin",  # aws_access_key_id
-        "minioadmin",  # aws_secret_access_key
-        None,  # aws_session_token
-        Config(signature_version="s3v4"),  # config
+    monkeypatch.setattr(
+        boto3.session.Session.resource,
+        "__defaults__",
+        (
+            "us-east-1",  # region_name
+            None,  # api_version
+            True,  # use_ssl
+            None,  # verify
+            endpoint_url,  # endpoint_url
+            "minioadmin",  # aws_access_key_id
+            "minioadmin",  # aws_secret_access_key
+            None,  # aws_session_token
+            Config(signature_version="s3v4"),  # config
+        ),
     )
 
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "True")
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+    assert context.use_only_tar_bz2
+    assert context.subdir == "linux-64"
+
     with pytest.raises(CondaExitZero):
-        with patch.object(
-            boto3.session.Session.resource, "__defaults__", patched_defaults
+        # the .conda files in this repo are somehow corrupted
+        with tmp_env(
+            "--override-channels",
+            f"--channel=s3://{bucket_name}",
+            "--download-only",
+            "--no-deps",  # this fake repo only includes the zlib tarball
+            "zlib",
         ):
-            # the .conda files in this repo are somehow corrupted
-            with env_vars(
-                {"CONDA_USE_ONLY_TAR_BZ2": "True", "CONDA_SUBDIR": "linux-64"}
-            ):
-                with tmp_env(
-                    "--override-channels",
-                    f"--channel=s3://{bucket_name}",
-                    "--download-only",
-                    "--no-deps",  # this fake repo only includes the zlib tarball
-                    "zlib",
-                ):
-                    # we just want to run tmp_env and cleanup after
-                    pass
+            # we just want to run tmp_env and cleanup after
+            pass
 
 
 def test_get_session_returns_default():

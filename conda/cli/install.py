@@ -8,6 +8,8 @@ See conda.cli.main_create, conda.cli.main_install, conda.cli.main_update, and
 conda.cli.main_remove for the entry points into this module.
 """
 
+from __future__ import annotations
+
 import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
@@ -31,6 +33,7 @@ from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
 from ..exceptions import (
+    CondaEnvException,
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
@@ -64,7 +67,35 @@ log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
-def check_prefix(prefix, json=False):
+def validate_prefix_exists(prefix: str | Path) -> None:
+    """
+    Validate that we are receiving at least one valid value for --name or --prefix.
+    """
+    prefix = Path(prefix)
+    if not prefix.exists():
+        raise CondaEnvException("The environment you have specified does not exist.")
+
+
+def validate_new_prefix(dest: str, force: bool = False) -> str:
+    """Ensure that the new prefix does not exist."""
+    from ..base.context import context, validate_prefix_name
+    from ..common.path import expand
+
+    if os.sep in dest:
+        dest = expand(dest)
+    else:
+        dest = validate_prefix_name(dest, ctx=context, allow_base=False)
+
+    if not force and os.path.exists(dest):
+        env_name = os.path.basename(os.path.normpath(dest))
+        raise CondaEnvException(
+            f"The environment '{env_name}' already exists. Override with --yes."
+        )
+
+    return dest
+
+
+def check_prefix(prefix: str, json=False):
     if os.pathsep in prefix:
         raise CondaValueError(
             f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
@@ -239,9 +270,10 @@ def install(args, parser, command="install"):
             if MatchSpec(default_package).name not in names:
                 args_packages.append(default_package)
 
+    context_channels = context.channels
     index_args = {
         "use_cache": args.use_index_cache,
-        "channel_urls": context.channels,
+        "channel_urls": context_channels,
         "unknown": args.unknown,
         "prepend": not args.override_channels,
         "use_local": args.use_local,
@@ -367,7 +399,7 @@ def install(args, parser, command="install"):
                 solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(
                     prefix,
-                    context.channels,
+                    context_channels,
                     context.subdirs,
                     specs_to_add=specs,
                     repodata_fn=repodata_fn,
