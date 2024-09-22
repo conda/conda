@@ -162,6 +162,22 @@
 @ECHO > "%_UPDATED%"
 :UPTODATE
 
+:: "install" conda
+:: trick conda into importing from our source code and not from site-packages
+@IF "%PYTHONPATH%"=="" (
+    @SET "PYTHONPATH=%_SRC%"
+) ELSE (
+    @SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+)
+
+:: copy latest shell scripts
+@ECHO Upate shell scripts...
+@CALL :CONDA "%_ENVEXE%" init --install > NUL
+@IF NOT %ErrorLevel%==0 (
+    @ECHO Error: failed to update shell scripts 1>&2
+    @EXIT /B 1
+)
+
 :: initialize conda command
 @ECHO Initializing shell integration...
 @CALL "%_CONDAHOOK%"
@@ -179,9 +195,6 @@
 )
 @SET "CONDA_BAT=%_CONDABAT%"
 @DOSKEY conda="%CONDA_BAT%" $*
-
-:: "install" conda
-@SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
 
 :CLEANUP
 @SET _ARG=
@@ -205,7 +218,7 @@
 :CONDA *args
 :: include OpenSSL & git on %PATH%
 @SET "_PATH=%PATH%"
-@SET "PATH=%_DEVENV%\Library\bin;%PATH%"
+@SET "PATH=%1\..\..\Library\bin;%PATH%"
 
 @CALL %*
 @IF NOT %ErrorLevel%==0 @EXIT /B %ErrorLevel%

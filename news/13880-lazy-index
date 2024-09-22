@@ -1,0 +1,30 @@
+### Enhancements
+
+* Add `conda.core.index.Index` as a faster drop-in replacement of the realized dictionary index. (#13880)
+
+  Note: This removes the implicit initialization of the logging from `get_index`. If you relied on that, you should probably call `conda.gateways.logging.initialize_logging` explicitly.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.core.index.get_index` as pending deprecation. Use `conda.core.index.Index` instead. (#13880)
+* Mark `conda.core.index.get_reduced_index` as pending deprecation. Use `conda.core.index.ReducedIndex` instead. (#13880)
+* Mark `conda.core.index.fetch_index` as pending deprecation. Use `conda.core.index.Index` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_prefix` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_cache` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_features` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_system` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._make_virtual_package` as pending deprecation. Use `conda.models.records.PackageRecord.virtual_package` instead. (#13880)
+* Mark `conda.core.subdir_data.make_feature_record` as pending deprecation. Use `conda.models.records.PackageRecord.feature` instead. (#13880)
+* Mark `conda.plugins.manager.get_virtual_packages` as pending deprecation. Use `conda.plugins.manager.get_virtual_package_records` instead. (#13880)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -82,7 +82,7 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import (
+    from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
         TmpChannelFixture,

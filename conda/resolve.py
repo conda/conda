@@ -178,19 +178,16 @@ class Resolve:
         )
 
     def default_filter(self, features=None, filter=None):
-        # TODO: fix this import; this is bad
-        from .core.subdir_data import make_feature_record
-
         if filter is None:
             filter = {}
         else:
             filter.clear()
 
         filter.update(
-            {make_feature_record(fstr): False for fstr in self.trackers.keys()}
+            {PackageRecord.feature(name): False for name in self.trackers.keys()}
         )
         if features:
-            filter.update({make_feature_record(fstr): True for fstr in features})
+            filter.update({PackageRecord.feature(name): True for name in features})
         return filter
 
     def valid(self, spec_or_prec, filter, optional=True):
@@ -664,9 +661,6 @@ class Resolve:
     def get_reduced_index(
         self, explicit_specs, sort_by_exactness=True, exit_on_conflict=False
     ):
-        # TODO: fix this import; this is bad
-        from .core.subdir_data import make_feature_record
-
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
         cache_key = strict_channel_priority, tuple(explicit_specs)
@@ -810,7 +804,7 @@ class Resolve:
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {
-            prec: prec for prec in (make_feature_record(fstr) for fstr in features)
+            prec: prec for prec in (PackageRecord.feature(name) for name in features)
         }
         specs_by_name_seed = {}
         for s in explicit_specs:
