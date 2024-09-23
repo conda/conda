@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from conda.base.context import context
 from conda.cli.conda_argparse import BUILTIN_COMMANDS
+from conda.cli.find_commands import find_commands
 
 if TYPE_CHECKING:
     from conda.testing import CondaCLIFixture
@@ -19,6 +20,7 @@ def test_commands(conda_cli: CondaCLIFixture) -> None:
             {
                 *BUILTIN_COMMANDS,
                 *context.plugin_manager.get_subcommands(),
+                *find_commands(True),
             }
         )
     )
