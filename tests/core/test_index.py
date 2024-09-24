@@ -590,4 +590,13 @@ class TestIndex:
         assert index_copy == index
 
     def test_reduced_index(self, reduced_index):
-        assert len(reduced_index) < 15
+        assert len(reduced_index) == (
+            # tests/data/pkg_cache/miniconda.json has 75 packages, see patch_pkg_cache
+            75
+            # we have 1 feature, see patch_pkg_cache
+            + 1
+            # only 4 packages are loaded from tests/test-recipes/noarch/repodata.json
+            + 4
+            # each OS has different virtual packages
+            + len(context.plugin_manager.get_virtual_package_records())
+        )
