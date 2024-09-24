@@ -303,7 +303,7 @@ def install(args, parser, command="install"):
                     " packages \nconda create --help for details"
                 )
         if "@EXPLICIT" in specs:
-            explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
+            explicit(specs, prefix, verbose=not context.quiet)
             if newenv:
                 touch_nonadmin(prefix)
                 print_activate(args.name or prefix)
