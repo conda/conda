@@ -527,15 +527,15 @@ class TestIndex:
             platform,
         )
 
-    def test_init_prefix_path(self, tmp_path):
-        prefix_path = tmp_path.as_posix()
-        index = Index(prefix=prefix_path)
-        assert index.prefix_path == prefix_path
+    def test_init_prefix_path(self, tmp_path: Path):
+        index = Index(prefix=tmp_path)
+        assert index.prefix_data
+        assert index.prefix_data.prefix_path == tmp_path
 
-    def test_init_prefix_data(self, tmp_path):
-        prefix_data = PrefixData(tmp_path)
-        index = Index(prefix=prefix_data)
-        assert index.prefix_path == tmp_path
+    def test_init_prefix_data(self, tmp_path: Path):
+        index = Index(prefix=PrefixData(tmp_path))
+        assert index.prefix_data
+        assert index.prefix_data.prefix_path == tmp_path
 
     def test_cache_entries(self, index, pkg_cache_entries):
         cache_entries = index.cache_entries
