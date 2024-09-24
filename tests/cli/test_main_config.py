@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
-    from conda.testing import CondaCLIFixture, PathFactoryFixture
+    from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
 
 @pytest.mark.parametrize(

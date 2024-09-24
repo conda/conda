@@ -44,7 +44,7 @@ from ..common.configuration import (
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
-from ..common.path import expand, paths_equal
+from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
 from .constants import (
@@ -353,9 +353,7 @@ class Context(Configuration):
     )
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        SequenceParameter(
-            PrimitiveParameter("", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)
-        ),
+        SequenceParameter(PrimitiveParameter("", element_type=str), default=()),
         aliases=(
             "channels",
             "channel",
@@ -395,6 +393,10 @@ class Context(Configuration):
     allowlist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=("whitelist_channels",),
+        expandvars=True,
+    )
+    denylist_channels = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True,
     )
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
@@ -776,9 +778,8 @@ class Context(Configuration):
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
-        bin_dir = "Scripts" if on_win else "bin"
         exe = "conda.exe" if on_win else "conda"
-        return join(self.conda_prefix, bin_dir, exe)
+        return join(self.conda_prefix, BIN_DIRECTORY, exe)
 
     @property
     def av_data_dir(self):
@@ -812,12 +813,11 @@ class Context(Configuration):
                 "CONDA_PYTHON_EXE": sys.executable,
             }
         else:
-            bin_dir = "Scripts" if on_win else "bin"
             exe = "conda.exe" if on_win else "conda"
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
             return {
-                "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
+                "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
                 "_CE_M": "",
                 "_CE_CONDA": "",
                 "CONDA_PYTHON_EXE": sys.executable,
@@ -938,6 +938,11 @@ class Context(Configuration):
             else:
                 return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
+        addendum = (
+            "To remove this warning, please choose a default channel explicitly "
+            "via 'conda config --add channels <name>'. In the future, the implicit "
+            "default channel configuration will be removed."
+        )
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and "channel" in self._argparse_args:
             # TODO: it's args.channel right now, not channels
@@ -951,11 +956,28 @@ class Context(Configuration):
                 for rc_file in self.config_files
             )
             if argparse_channels and not channel_in_config_files:
+                deprecated.topic(
+                    "24.9",
+                    "25.3",
+                    topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                    addendum=addendum,
+                    deprecation_type=FutureWarning,
+                )
                 return tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
-
-        return tuple(IndexedSet((*local_add, *self._channels)))
+        if self._channels:
+            _channels = self._channels
+        else:
+            deprecated.topic(
+                "24.9",
+                "25.3",
+                topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                addendum=addendum,
+                deprecation_type=FutureWarning,
+            )
+            _channels = [DEFAULTS_CHANNEL_NAME]
+        return tuple(IndexedSet((*local_add, *_channels)))
 
     @property
     def config_files(self):
@@ -971,18 +993,9 @@ class Context(Configuration):
         #    is only called when use_only_tar_bz2 is first called.
         import conda_package_handling.api
 
-        use_only_tar_bz2 = False
-        if self._use_only_tar_bz2 is None:
-            if self._argparse_args and "use_only_tar_bz2" in self._argparse_args:
-                use_only_tar_bz2 &= self._argparse_args["use_only_tar_bz2"]
         return (
-            (
-                hasattr(conda_package_handling.api, "libarchive_enabled")
-                and not conda_package_handling.api.libarchive_enabled
-            )
-            or self._use_only_tar_bz2
-            or use_only_tar_bz2
-        )
+            not conda_package_handling.api.libarchive_enabled
+        ) or self._use_only_tar_bz2
 
     @property
     def binstar_upload(self):
@@ -1181,6 +1194,7 @@ class Context(Configuration):
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
+                "denylist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1831,6 +1845,15 @@ class Context(Configuration):
                 other channels will result in an error. If conda-build channels are to be
                 allowed, along with the --use-local command line flag, be sure to include the
                 'local' channel in the list. If the list is empty or left undefined, no
+                channel exclusions will be enforced.
+                """
+            ),
+            denylist_channels=dals(
+                """
+                The list of channels that are denied to be used on the system. Use of any
+                of these channels will result in an error. If conda-build channels are to be
+                allowed, along with the --use-local command line flag, be sure to not include
+                the 'local' channel in the list. If the list is empty or left undefined, no
                 channel exclusions will be enforced.
                 """
             ),

@@ -1,10 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import ntpath
 import os
 import sys
 from os.path import abspath, dirname, isfile, join, realpath, samefile
 from sysconfig import get_path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -14,7 +17,12 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_con
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open_utf8
 from conda.common.io import captured, env_var, env_vars
-from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
+from conda.common.path import (
+    BIN_DIRECTORY,
+    get_python_short_path,
+    win_path_backout,
+    win_path_ok,
+)
 from conda.core.initialize import (
     Result,
     _get_python_info,
@@ -35,9 +43,10 @@ from conda.core.initialize import (
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
-from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
-from conda.testing.integration import BIN_DIRECTORY
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture
 
 CONDA_EXE = "conda.exe" if on_win else "conda"
 
@@ -362,10 +371,11 @@ def test_make_initialize_plan_cmd_exe(verbose):
 def test_make_entry_point(verbose):
     with tempdir() as conda_temp_prefix:
         conda_prefix = abspath(sys.prefix)
-        if on_win:
-            conda_exe_path = join(conda_temp_prefix, "Scripts", "conda-script.py")
-        else:
-            conda_exe_path = join(conda_temp_prefix, "bin", "conda")
+        conda_exe_path = join(
+            conda_temp_prefix,
+            BIN_DIRECTORY,
+            "conda-script.py" if on_win else "conda",
+        )
         result = make_entry_point(
             conda_exe_path, conda_prefix, "conda.entry.point", "run"
         )

@@ -33,7 +33,7 @@ from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_python_site_packages_short_path,
     pyc_path,
 )
@@ -69,7 +69,6 @@ from conda.models.match_spec import MatchSpec
 from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2
 from conda.testing.integration import (
-    BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     get_shortcut_dir,
@@ -83,7 +82,7 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import (
+    from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
         TmpChannelFixture,
@@ -549,9 +548,7 @@ def test_noarch_python_package_with_entry_points(
         assert (prefix / py_file).is_file()
         assert (prefix / pyc_file).is_file()
         exe_path = (
-            prefix
-            / get_bin_directory_short_path()
-            / ("pygmentize.exe" if on_win else "pygmentize")
+            prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
         )
         assert exe_path.is_file()
         output = check_output([exe_path, "--help"], text=True)

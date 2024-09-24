@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture
     from pytest_mock import MockerFixture
 
-    from conda.testing import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture
 
 
 @dataclass(frozen=True)

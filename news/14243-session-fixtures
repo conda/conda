@@ -1,0 +1,31 @@
+### Enhancements
+
+* Add `conda.testing.fixtures.session_capsys`. Use this to capture stdout and stderr within module, package, and session scoped fixtures. (#14243)
+* Add `conda.testing.fixtures.session_conda_cli`. Use this to invoke conda commands within module, package, and session scoped fixtures. (#14243)
+* Add `conda.testing.fixtures.session_tmp_env`. Use this to create a conda environment within module, package, and session scoped fixtures. (#14243)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.testing.CondaCLIFixture` as pending deprecation. Use `conda.testing.fixtures.CondaCLIFixture` instead. (#14243)
+* Mark `conda.testing.conda_cli` as pending deprecation. Use `conda.testing.fixtures.conda_cli` instead. (#14243)
+* Mark `conda.testing.PathFactoryFixture` as pending deprecation. Use `conda.testing.fixtures.PathFactoryFixture` instead. (#14243)
+* Mark `conda.testing.path_factory` as pending deprecation. Use `conda.testing.fixtures.path_factory` instead. (#14243)
+* Mark `conda.testing.TmpEnvFixture` as pending deprecation. Use `conda.testing.fixtures.TmpEnvFixture` instead. (#14243)
+* Mark `conda.testing.tmp_env` as pending deprecation. Use `conda.testing.fixtures.tmp_env` instead. (#14243)
+* Mark `conda.testing.TmpChannelFixture` as pending deprecation. Use `conda.testing.fixtures.TmpChannelFixture` instead. (#14243)
+* Mark `conda.testing.tmp_channel` as pending deprecation. Use `conda.testing.fixtures.tmp_channel` instead. (#14243)
+* Mark `conda.testing.context_aware_monkeypatch` as pending deprecation. Use `conda.testing.fixtures.context_aware_monkeypatch` instead. (#14243)
+* Mark `conda.testing.tmp_pkgs_dir` as pending deprecation. Use `conda.testing.fixtures.tmp_pkgs_dir` instead. (#14243)
+* Mark `conda.testing.tmp_envs_dir` as pending deprecation. Use `conda.testing.fixtures.tmp_envs_dir` instead. (#14243)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

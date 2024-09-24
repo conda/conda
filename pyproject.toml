@@ -118,8 +118,6 @@ addopts = [
   "--store-durations",
   "--strict-markers",
   "--tb=native",
-  "--xdoctest-modules",
-  "--xdoctest-style=google",
   "-vv",
 ]
 doctest_optionflags = [
@@ -132,6 +130,7 @@ markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",
   "benchmark: benchmark tests",
+  "memray: memory use tests",
 ]
 minversion = 3.0
 norecursedirs = [
