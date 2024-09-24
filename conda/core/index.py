@@ -712,7 +712,7 @@ def _supplement_index_with_prefix(
     # supplement index with information from prefix/conda-meta
     prefix_data = prefix if isinstance(prefix, PrefixData) else PrefixData(prefix)
     if isinstance(index, Index):
-        if not index.prefix_data != prefix_data:
+        if index.prefix_data != prefix_data:
             raise OperationNotAllowed(
                 "An index can only be supplemented with its own prefix."
             )
