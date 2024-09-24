@@ -623,7 +623,7 @@ class ReducedIndex(Index):
 
 
 @time_recorder("get_index")
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index` instead.")
 def get_index(
     channel_urls: Iterable[str | Channel] = (),
     prepend: bool = True,
@@ -663,7 +663,7 @@ def get_index(
     )
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index` instead.")
 def fetch_index(
     channel_urls: list[str],
     use_cache: bool = False,
@@ -702,7 +702,7 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_prefix(
     index: Index | dict[Any, Any],
     prefix: str | os.PathLike[str] | Path | PrefixData,
@@ -756,7 +756,7 @@ def _supplement_index_with_prefix(
             index[prefix_record] = prefix_record
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
     """
     Supplement the given index with packages from the cache.
@@ -774,8 +774,8 @@ def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use `conda.core.models.records.PackageRecord.virtual_package` instead.",
 )
 def _make_virtual_package(
@@ -793,8 +793,8 @@ def _make_virtual_package(
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use :meth:`~conda.core.Index.reload(features=True)` instead.",
 )
 def _supplement_index_with_features(
@@ -811,7 +811,7 @@ def _supplement_index_with_features(
         index[rec] = rec
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
     """
     Loads and populates virtual package records from conda plugins
@@ -880,8 +880,8 @@ def calculate_channel_urls(
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use `conda.core.ReducedIndex` or `conda.core.Index.get_reduced_index` instead.",
 )
 def get_reduced_index(
