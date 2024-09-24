@@ -556,8 +556,8 @@ class SubdirData(metaclass=SubdirDataType):
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
 )
 def make_feature_record(feature_name):
