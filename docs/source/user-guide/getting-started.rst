@@ -10,29 +10,29 @@ This guide to getting started with conda goes over the basics of starting up and
 
    Anaconda Navigator is a graphical desktop application that enables you to use conda without having to run commands at the command line.
 
-   See `Getting started with Anaconda Navigator <https://docs.anaconda.com/navigator/getting-started/>`_ to learn more.
+   See `Getting started with Anaconda Navigator <https://docs.anaconda.com/navigator/getting-started/>`__ to learn more.
 
 Before you start
 ================
 
-To bootstrap a conda installation, use a minimal installer such as `Miniconda <https://docs.anaconda.com/miniconda/>`_ or `Miniforge <https://conda-forge.org/download>`_.
+To bootstrap a ``conda`` installation, use a minimal installer such as `Miniconda <https://docs.anaconda.com/miniconda/>`__ or `Miniforge <https://conda-forge.org/download>`__.
 
 Conda is also included in the `Anaconda Distribution <https://docs.anaconda.com/anaconda/install/>`_.
 
 .. note::
 
     Miniconda and Anaconda Distribution come preconfigured to use the `Anaconda
-    Repository <https://repo.anaconda.com/>`_ and installing/using packages
+    Repository <https://repo.anaconda.com/>`__ and installing/using packages
     from that repository is governed by the `Anaconda Terms of Service
-    <https://www.anaconda.com/terms-of-service>`_, which means that it *might*
+    <https://www.anaconda.com/terms-of-service>`__, which means that it *might*
     require a commercial fee license. There are exceptions for individuals,
     universities and companies with fewer than 200 employees (as of September
     2024).
 
-    Please review the `terms of service <https://www.anaconda.com/terms-of-service>`_, Anaconda's most recent `Update on Anaconda’s Terms of Service for Academia
-    and Research <https://www.anaconda.com/blog/update-on-anacondas-terms-of-service-for-academia-and-research>`_,
+    Please review the `terms of service <https://www.anaconda.com/terms-of-service>`__, Anaconda's most recent `Update on Anaconda’s Terms of Service for Academia
+    and Research <https://www.anaconda.com/blog/update-on-anacondas-terms-of-service-for-academia-and-research>`__,
     and the `Anaconda Terms of Service FAQ
-    <https://www.anaconda.com/pricing/terms-of-service-faqs>`_ to answer your questions.
+    <https://www.anaconda.com/pricing/terms-of-service-faqs>`__ to answer your questions.
 
 Starting conda
 ==============

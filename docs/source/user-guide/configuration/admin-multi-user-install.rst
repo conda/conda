@@ -51,7 +51,7 @@ System configuration file
 -------------------------
 
 #. The system configuration file must be in the top-level conda
-   installation directory. Check the path where conda is located, e.g.
+   installation directory. Check the path where ``conda`` is located, e.g.
    in a miniconda installation
 
    .. code-block:: bash

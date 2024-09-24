@@ -5,10 +5,10 @@ Installing on Windows
 #. Download the installer:
 
    * `Miniconda installer for
-     Windows <https://docs.anaconda.com/miniconda/>`_
+     Windows <https://docs.anaconda.com/miniconda/>`__
 
    * `Anaconda Distribution installer for
-     Windows <https://www.anaconda.com/download/>`_
+     Windows <https://www.anaconda.com/download/>`__
 
    * `Miniforge installer for Windows <https://conda-forge.org/download>`_
 

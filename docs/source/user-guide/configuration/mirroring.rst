@@ -10,8 +10,8 @@ The default setup
 By default, ``conda`` can serve packages from two main locations:
 
 - ``repo.anaconda.com``: this is where ``defaults`` points to by default.
-  The default has been marked for pending deprecation as of conda 24.9.0,
-  but it is still the default for older versions. In conda 25.3.0 this default
+  The default value has been marked for pending deprecation as of conda 24.9.0,
+  but it is still the default for older versions. In conda 25.3.0, this default
   will be removed.
 
   This base location is hardcoded in the default value of ``default_channels``:
