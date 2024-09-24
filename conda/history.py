@@ -22,7 +22,7 @@ from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
-from .common.compat import ensure_text_type, open
+from .common.compat import ensure_text_type, open_utf8
 from .common.iterators import groupby_to_dict as groupby
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
@@ -123,12 +123,15 @@ class History:
         """Parse the history file.
 
         Return a list of tuples(datetime strings, set of distributions/diffs, comments).
+
+        Comments appearing before the first section header (e.g. ``==> 2024-01-01 00:00:00 <==``)
+        in the history file will be ignored.
         """
         res = []
         if not isfile(self.path):
             return res
         sep_pat = re.compile(r"==>\s*(.+?)\s*<==")
-        with open(self.path) as f:
+        with open_utf8(self.path) as f:
             lines = f.read().splitlines()
         for line in lines:
             line = line.strip()
@@ -137,9 +140,9 @@ class History:
             m = sep_pat.match(line)
             if m:
                 res.append((m.group(1), set(), []))
-            elif line.startswith("#"):
+            elif line.startswith("#") and res:
                 res[-1][2].append(line)
-            elif len(res) > 0:
+            elif res:
                 res[-1][1].add(line)
         return res
 

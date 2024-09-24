@@ -56,7 +56,7 @@ class _SignatureVerification:
 
         # signing url must be defined
         if not context.signing_metadata_url_base:
-            log.warn(
+            log.warning(
                 "metadata signature verification requested, "
                 "but no metadata URL base has not been specified."
             )
@@ -66,7 +66,7 @@ class _SignatureVerification:
         try:
             import conda_content_trust  # noqa: F401
         except ImportError:
-            log.warn(
+            log.warning(
                 "metadata signature verification requested, "
                 "but `conda-content-trust` is not installed."
             )
@@ -77,14 +77,16 @@ class _SignatureVerification:
 
         # ensure the trusted_root exists
         if self.trusted_root is None:
-            log.warn(
+            log.warning(
                 "could not find trusted_root data for metadata signature verification"
             )
             return False
 
         # ensure the key_mgr exists
         if self.key_mgr is None:
-            log.warn("could not find key_mgr data for metadata signature verification")
+            log.warning(
+                "could not find key_mgr data for metadata signature verification"
+            )
             return False
 
         # signature verification is enabled
@@ -178,11 +180,11 @@ class _SignatureVerification:
 
             verify_delegation("key_mgr", untrusted, self.trusted_root)
         except ConnectionError as err:
-            log.warn(err)
+            log.warning(err)
         except HTTPError as err:
             # sometimes the HTTPError message is blank, when that occurs include the
             # HTTP status code
-            log.warn(
+            log.warning(
                 str(err) or f"{err.__class__.__name__} ({err.response.status_code})"
             )
         else:

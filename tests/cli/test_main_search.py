@@ -1,17 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import requests
-from pytest import CaptureFixture, MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.exceptions import PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
-from conda.testing import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import CaptureFixture, MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 # all tests in this file are integration tests
 pytestmark = [pytest.mark.integration]
@@ -280,7 +287,7 @@ def test_anaconda_token_with_private_package(
     capsys.readouterr()
 
     # Step 2. Now with the token make sure we can see the package
-    channel_url = "https://conda-web.anaconda.org/t/co-91473e2c-56c1-4e16-b23e-26ab5fa4aed1/conda-test"
+    channel_url = "https://conda-web.anaconda.org/t/co-de3376bc-5463-41fe-8d14-878c7e6a8253/conda-test"
     stdout, _, _ = conda_cli(
         "search",
         f"--channel={channel_url}",

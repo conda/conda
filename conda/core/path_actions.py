@@ -18,7 +18,7 @@ from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
 from ..common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_leaf_directories,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -765,7 +765,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = f"{get_bin_directory_short_path()}/{command}"
+                target_short_path = f"{BIN_DIRECTORY}/{command}"
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func
@@ -1047,7 +1047,7 @@ class RegisterEnvironmentLocationAction(PathAction):
             touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
             self._verified = True
         except NotWritableError:
-            log.warn(
+            log.warning(
                 "Unable to create environments file. Path not writable.\n"
                 "  environment location: %s\n",
                 user_environments_txt_file,

@@ -1,14 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import json
 from os.path import isdir
+from typing import TYPE_CHECKING
 
-import pytest
-from packaging.version import parse
+from conda.base.context import reset_context
 
-import conda
-from conda.common.io import env_var
-from conda.testing import CondaCLIFixture
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 
 # conda info --root [--json]
@@ -26,19 +30,25 @@ def test_info_root(reset_conda_context: None, conda_cli: CondaCLIFixture):
 
 
 # conda info --unsafe-channels [--json]
-def test_info_unsafe_channels(reset_conda_context: None, conda_cli: CondaCLIFixture):
+def test_info_unsafe_channels(
+    reset_conda_context: None,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
     url = "https://conda.anaconda.org/t/tk-123/a/b/c"
-    with env_var("CONDA_CHANNELS", url):
-        stdout, stderr, err = conda_cli("info", "--unsafe-channels")
-        assert "tk-123" in stdout
-        assert not stderr
-        assert not err
+    monkeypatch.setenv("CONDA_CHANNELS", url)
+    reset_context()
 
-        stdout, stderr, err = conda_cli("info", "--unsafe-channels", "--json")
-        parsed = json.loads(stdout.strip())
-        assert url in parsed["channels"]
-        assert not stderr
-        assert not err
+    stdout, stderr, err = conda_cli("info", "--unsafe-channels")
+    assert "tk-123" in stdout
+    assert not stderr
+    assert not err
+
+    stdout, stderr, err = conda_cli("info", "--unsafe-channels", "--json")
+    parsed = json.loads(stdout.strip())
+    assert url in parsed["channels"]
+    assert not stderr
+    assert not err
 
 
 # conda info --verbose | --envs | --system
@@ -70,22 +80,12 @@ def test_info(conda_cli: CondaCLIFixture):
     assert not stderr
     assert not err
 
-    stdout_verbose, stderr, err = conda_cli("info", "--verbose")
-    assert stdout_basic in stdout_verbose
-    assert stdout_envs in stdout_verbose
-    assert stdout_sys in stdout_verbose
+    stdout_all, stderr, err = conda_cli("info", "--all")
+    assert stdout_basic in stdout_all
+    assert stdout_envs in stdout_all
+    assert stdout_sys in stdout_all
     assert not stderr
     assert not err
-
-
-# conda info --all
-def test_info_all(conda_cli: CondaCLIFixture):
-    with pytest.warns(
-        PendingDeprecationWarning
-        if parse(conda.__version__) < parse("24.3")
-        else FutureWarning,
-    ):
-        conda_cli("info", "--all")
 
 
 # conda info --json

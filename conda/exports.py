@@ -5,7 +5,6 @@
 import errno
 import functools
 import os
-import sys
 from builtins import input  # noqa: F401, UP029
 from io import StringIO  # noqa: F401, for conda-build
 
@@ -31,12 +30,11 @@ from .cli.helpers import (  # noqa: F401
 )
 from .common import compat  # noqa: F401
 from .common.compat import on_win  # noqa: F401
-from .common.path import win_path_to_unix  # noqa: F401
+from .common.path import win_path_to_unix
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
-from .core.index import fetch_index as _fetch_index  # noqa: F401
 from .core.index import get_index as _get_index
-from .core.package_cache_data import ProgressiveFetchExtract, rm_fetched  # noqa: F401
+from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
 from .core.subdir_data import cache_fn_url  # noqa: F401
@@ -54,15 +52,14 @@ from .gateways.connection.download import TmpDownload  # noqa: F401
 from .gateways.connection.download import download as _download  # noqa: F401
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
-from .gateways.disk.delete import delete_trash, move_to_trash  # noqa: F401
-from .gateways.disk.delete import rm_rf as _rm_rf
+from .gateways.disk.delete import delete_trash  # noqa: F401
+from .gateways.disk.delete import rm_rf as move_to_trash
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
 from .models.enums import FileMode, PathType  # noqa: F401
-from .models.records import PackageRecord
 from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .plan import display_actions as _display_actions
 from .plan import (  # noqa: F401
@@ -106,23 +103,40 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
-deprecated.constant(
-    "24.3",
-    "24.9",
-    "IndexRecord",
-    PackageRecord,
-    addendum="Use `conda.models.records.PackageRecord` instead.",
-)
 # Replacements for six exports for compatibility
 PY3 = True  # noqa: F401
 string_types = str  # noqa: F401
 text_type = str  # noqa: F401
 
 
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "win_path_to_unix",
+    win_path_to_unix,
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+)
+del win_path_to_unix
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_path_to_win",
+    unix_path_to_win,
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
+del unix_path_to_win
+
+
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use builtin `dict.items()` instead.",
+)
 def iteritems(d, **kw):
     return iter(d.items(**kw))
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 class Completer:  # pragma: no cover
     def get_items(self):
         return self._get_items()
@@ -134,26 +148,38 @@ class Completer:  # pragma: no cover
         return iter(self.get_items())
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 class InstalledPackages:
     pass
 
 
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "move_to_trash",
+    move_to_trash,
+    addendum="Use `conda.gateways.disk.delete.rm_rf` instead.",
+)
+del move_to_trash
+
+
 def rm_rf(path, max_retries=5, trash=True):
-    _rm_rf(path, max_retries, trash)
+    from .gateways.disk.delete import rm_rf
+
+    rm_rf(path)
     delete_prefix_from_linked_data(path)
 
 
-# ######################
-# signature.py
-# ######################
-KEYS = None
-KEYS_DIR = None
+deprecated.constant("25.3", "25.9", "KEYS", None, addendum="Unused.")
+deprecated.constant("25.3", "25.9", "KEYS_DIR", None, addendum="Unused.")
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def hash_file(_):
     return None  # pragma: no cover
 
 
+@deprecated("25.3", "25.9", addendum="Unused.")
 def verify(_):
     return False  # pragma: no cover
 
@@ -188,12 +214,6 @@ def get_index(
     return {Dist(prec): prec for prec in index.values()}
 
 
-@deprecated("24.3", "24.9", addendum="Use `conda.core.index.fetch_index` instead.")
-def fetch_index(channel_urls, use_cache=False, index=None):
-    index = _fetch_index(channel_urls, use_cache, index)
-    return {Dist(prec): prec for prec in index.values()}
-
-
 def package_cache():
     from .core.package_cache_data import PackageCacheData
 
@@ -212,8 +232,8 @@ def package_cache():
     return package_cache()
 
 
+@deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
 def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
-    print("WARNING: symlink_conda() is deprecated.", file=sys.stderr)
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
     if os.path.normcase(os.path.normpath(prefix)) in os.path.normcase(
@@ -231,6 +251,7 @@ def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     _symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
 
 
+@deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
 def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
     scripts = ["conda", "activate", "deactivate"]
     prefix_where = os.path.join(prefix, where)
@@ -258,6 +279,7 @@ def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
 
 if on_win:  # pragma: no cover
 
+    @deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
@@ -267,7 +289,7 @@ if on_win:  # pragma: no cover
 
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
-        from .utils import shells
+        from .utils import _SHELLS
 
         try:
             os.makedirs(os.path.dirname(dst))
@@ -294,9 +316,9 @@ if on_win:  # pragma: no cover
             with open(dst, "w") as f:
                 f.write("#!/usr/bin/env bash \n")
                 if src.endswith("conda"):
-                    f.write('{} "$@"'.format(shells[shell]["path_to"](src + ".exe")))
+                    f.write('{} "$@"'.format(_SHELLS[shell]["path_to"](src + ".exe")))
                 else:
-                    f.write('source {} "$@"'.format(shells[shell]["path_to"](src)))
+                    f.write('source {} "$@"'.format(_SHELLS[shell]["path_to"](src)))
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
             mode = os.stat(dst).st_mode

@@ -26,7 +26,6 @@ from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
-from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
@@ -106,7 +105,7 @@ class PrefixData(metaclass=PrefixDataType):
         # .dist-info is for things installed by pip
         for ext in CONDA_PACKAGE_EXTENSIONS + (".dist-info",):
             if fn.endswith(ext):
-                fn = fn.replace(ext, "")
+                fn = fn[: -len(ext)]
                 known_ext = True
         if not known_ext:
             raise ValueError(
@@ -231,7 +230,7 @@ class PrefixData(metaclass=PrefixDataType):
                 ):
                     raise ValueError()
             except ValueError:
-                log.warn(
+                log.warning(
                     "Ignoring malformed prefix record at: %s", prefix_record_json_path
                 )
                 # TODO: consider just deleting here this record file in the future
@@ -249,10 +248,6 @@ class PrefixData(metaclass=PrefixDataType):
                 is_writable = file_path_is_writable(test_path)
             self.__is_writable = is_writable
         return self.__is_writable
-
-    @deprecated("24.3", "24.9")
-    def _has_python(self):
-        return "python" in self._prefix_records
 
     @property
     def _python_pkg_record(self):
@@ -353,7 +348,7 @@ class PrefixData(metaclass=PrefixDataType):
                 import traceback
 
                 tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                log.warn(
+                log.warning(
                     "Problem reading non-conda package record at %s. Please verify that you "
                     "still need this, and if so, that this is still installed correctly. "
                     "Reinstalling this package may help.",

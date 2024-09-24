@@ -32,6 +32,7 @@ from ..common.io import (
     time_recorder,
 )
 from ..common.path import (
+    BIN_DIRECTORY,
     explode_directories,
     get_all_directories,
     get_major_minor_version,
@@ -1470,7 +1471,7 @@ def run_script(
     """
     path = join(
         prefix,
-        "Scripts" if on_win else "bin",
+        BIN_DIRECTORY,
         ".{}-{}.{}".format(prec.name, action, "bat" if on_win else "sh"),
     )
     if not isfile(path):
@@ -1587,7 +1588,7 @@ def run_script(
                     )
                 raise LinkError(message)
             else:
-                log.warn(
+                log.warning(
                     "%s script failed for package %s\n"
                     "consider notifying the package maintainer",
                     action,

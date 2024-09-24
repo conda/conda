@@ -20,6 +20,7 @@ import pluggy
 
 from ..auxlib.ish import dals
 from ..base.context import add_plugin_setting, context
+from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
@@ -104,7 +105,7 @@ class CondaPluginManager(pluggy.PluginManager):
             raise PluginError(
                 f"Error while loading conda plugin: "
                 f"{name or self.get_canonical_name(plugin)} ({err})"
-            )
+            ) from err
 
     def load_plugins(self, *plugins) -> int:
         """
@@ -142,9 +143,11 @@ class CondaPluginManager(pluggy.PluginManager):
                     # not using exc_info=True here since the CLI loggers are
                     # set up after CLI initialization and argument parsing,
                     # meaning that it comes too late to properly render
-                    # a traceback
+                    # a traceback; instead we pass exc_info conditionally on
+                    # context.verbosity
                     log.warning(
-                        f"Error while loading conda entry point: {entry_point.name} ({err})"
+                        f"Error while loading conda entry point: {entry_point.name} ({err})",
+                        exc_info=err if context.info else None,
                     )
                     continue
 
@@ -339,8 +342,19 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    @deprecated(
+        "24.9",
+        "25.3",
+        addendum="Use `conda.plugins.manager.get_virtual_package_records` instead.",
+    )
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
+
+    def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
+        return tuple(
+            hook.to_virtual_package()
+            for hook in self.get_hook_results("virtual_packages")
+        )
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

@@ -17,7 +17,6 @@ from ..base.context import context
 from ..common.compat import ensure_text_type
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
-from ..deprecations import deprecated
 from .channel import Channel
 from .package_info import PackageInfo
 from .records import PackageRecord
@@ -32,15 +31,6 @@ class DistDetails(NamedTuple):
     build_number: str
     dist_name: str
     fmt: str
-
-
-deprecated.constant(
-    "24.3",
-    "24.9",
-    "IndexRecord",
-    PackageRecord,
-    addendum="Use `conda.models.records.PackageRecord` instead.",
-)
 
 
 class DistType(EntityType):

@@ -8,12 +8,11 @@ import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
-from os.path import join
+from os.path import exists, join
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
-from genericpath import exists
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
@@ -814,7 +813,7 @@ class Solver:
                     ssc.specs_map[s.name] = MatchSpec(s, optional=False)
                     pin_overrides.add(s.name)
                 else:
-                    log.warn(
+                    log.warning(
                         "pinned spec %s conflicts with explicit specs.  "
                         "Overriding pinned spec.",
                         s,

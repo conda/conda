@@ -2,28 +2,33 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing conda environments."""
 
+from __future__ import annotations
+
 import os
 from errno import EACCES, ENOENT, EROFS
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normpath
+from typing import TYPE_CHECKING
 
 from platformdirs import user_config_dir
 
 from ..base.constants import APP_NAME, ENVIRONMENTS_FN
 from ..base.context import context
 from ..common._os import is_admin
-from ..common.compat import ensure_text_type, on_win, open
+from ..common.compat import ensure_text_type, on_win, open_utf8
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
 from .prefix_data import PrefixData
 
-log = getLogger(__name__)
+if TYPE_CHECKING:
+    from typing import Iterator
 
+log = getLogger(__name__)
 
 # The idea is to mock this to return '/dev/null' (or some temp file) instead.
 def get_user_environments_txt_file():
-    """Returns the environments.txt file for writing."""
+    """Returns the path to the user's environments.txt file for writing."""
     search_path = (
         "$CONDA_ROOT",
         "$XDG_CONFIG_HOME/conda",
@@ -39,8 +44,14 @@ def get_user_environments_txt_file():
 
     return join(user_config_dir(APP_NAME, appauthor=APP_NAME), ENVIRONMENTS_FN)
 
+def register_env(location: str) -> None:
+    """
+    Registers an environment by adding it to environments.txt file.
 
-def register_env(location):
+    :param location: The file path of the environment to register.
+    :type location: str
+    :return: None
+    """
     if not context.register_envs:
         return
 
@@ -68,7 +79,7 @@ def register_env(location):
     try:
         os.makedirs(user_environments_txt_directory, exist_ok=True)
     except OSError as exc:
-        log.warn(
+        log.warning(
             "Unable to register environment. "
             f"Could not create {user_environments_txt_directory}. "
             f"Reason: {exc}"
@@ -76,12 +87,12 @@ def register_env(location):
         return
 
     try:
-        with open(user_environments_txt_file, "a") as fh:
+        with open_utf8(user_environments_txt_file, "a") as fh:
             fh.write(ensure_text_type(location))
             fh.write("\n")
     except OSError as e:
         if e.errno in (EACCES, EROFS, ENOENT):
-            log.warn(
+            log.warning(
                 "Unable to register environment. Path not writable or missing.\n"
                 "  environment location: %s\n"
                 "  registry file: %s",
@@ -92,7 +103,16 @@ def register_env(location):
             raise
 
 
-def unregister_env(location):
+def unregister_env(location: str) -> None:
+    """
+    Unregisters an environment by removing its entry from the environments.txt file if certain conditions are met.
+
+    The environment is only unregistered if its associated 'conda-meta' directory exists and contains no significant files other than 'history'. If these conditions are met, the environment's path is removed from environments.txt.
+
+    :param location: The file path of the environment to unregister.
+    :type location: str
+    :return: None
+    """
     if isdir(location):
         meta_dir = join(location, "conda-meta")
         if isdir(meta_dir):
@@ -106,6 +126,9 @@ def unregister_env(location):
 
 
 def list_all_known_prefixes():
+    """
+    Lists all known conda environment prefixes, including other users' if root. 
+    """
     search_dirs = {
         "$CONDA_ROOT",
         "$XDG_CONFIG_HOME/conda",
@@ -163,14 +186,35 @@ def list_all_known_prefixes():
     return sorted(all_env_paths)
 
 
-def query_all_prefixes(spec):
+def query_all_prefixes(spec: str) -> Iterator[tuple[str, tuple]]:
+    """
+    Queries all known prefixes for a given specification.
+
+    :param spec: The specification to query for.
+    :type spec: str
+    :return: An iterator of tuples containing the prefix and the query results.
+    :rtype: Iterator[Tuple[str, Tuple]]
+    """
     for prefix in list_all_known_prefixes():
         prefix_recs = tuple(PrefixData(prefix).query(spec))
         if prefix_recs:
             yield prefix, prefix_recs
 
 
-def _clean_environments_txt(environments_txt_file, remove_location=None):
+def _clean_environments_txt(
+    environments_txt_file: str,
+    remove_location: str | None = None,
+) -> tuple[str, ...]:
+    """
+    Cleans the environments.txt file by removing specified locations.
+
+    :param environments_txt_file: The file path of environments.txt.
+    :param remove_location: Optional location to remove from the file.
+    :type environments_txt_file: str
+    :type remove_location: Optional[str]
+    :return: A tuple of the cleaned lines.
+    :rtype: Tuple[str, ...]
+    """
     if not isfile(environments_txt_file):
         return ()
 
@@ -187,9 +231,18 @@ def _clean_environments_txt(environments_txt_file, remove_location=None):
     return environments_txt_lines_cleaned
 
 
-def _rewrite_environments_txt(environments_txt_file, prefixes):
+def _rewrite_environments_txt(environments_txt_file: str, prefixes: list[str]) -> None:
+    """
+    Rewrites the environments.txt file with the specified prefixes.
+
+    :param environments_txt_file: The file path of environments.txt.
+    :param prefixes: List of prefixes to write into the file.
+    :type environments_txt_file: str
+    :type prefixes: List[str]
+    :return: None
+    """
     try:
-        with open(environments_txt_file, "w") as fh:
+        with open_utf8(environments_txt_file, "w") as fh:
             fh.write("\n".join(prefixes))
             fh.write("\n")
     except OSError as e:
