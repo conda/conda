@@ -74,7 +74,7 @@ def check_allowlist(channel_urls: list[str]) -> None:
 LAST_CHANNEL_URLS = []
 
 
-class Index(UserDict):
+class Index(UserDict[PackageRecord, PackageRecord]):
     """The ``Index`` provides information about available packages from all relevant sources.
 
     There are four types of sources for package information, namely
@@ -115,7 +115,7 @@ class Index(UserDict):
 
     def __init__(
         self,
-        channels: tuple[str | Channel, ...] = (),
+        channels: Iterable[str | Channel] = (),
         prepend: bool = True,
         platform: str | None = None,
         subdirs: tuple[str, ...] | None = None,
@@ -146,8 +146,9 @@ class Index(UserDict):
             to make intrinsic information about the system, such as cpu architecture or operating system, available
             to the solver.
         """
+        channels = list(channels)
         if use_local:
-            channels = ["local"] + list(channels)
+            channels = ["local", *channels]
         if prepend:
             channels += context.channels
         self._channels = IndexedSet(channels)
@@ -621,7 +622,7 @@ class ReducedIndex(Index):
 @time_recorder("get_index")
 @deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
 def get_index(
-    channel_urls: tuple[str] = (),
+    channel_urls: Iterable[str | Channel] = (),
     prepend: bool = True,
     platform: str | None = None,
     use_local: bool = False,
@@ -629,7 +630,7 @@ def get_index(
     unknown: bool | None = None,
     prefix: str | None = None,
     repodata_fn: str = context.repodata_fns[-1],
-) -> dict:
+) -> Index:
     """
     Return the index of packages available on the channels
 
