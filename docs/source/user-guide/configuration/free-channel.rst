@@ -16,6 +16,11 @@ constraint information. Read more about `why we made this change
 If you still need the content from the ``free`` channel to reproduce
 old environments, you can re-add the channel following the directions below.
 
+.. versionchanged:: 24.9.0
+
+  The ``restore_free_channel`` option has been marked for pending deprecation
+  with removal in conda 25.3.0.
+
 .. _free-channel-default:
 
 Adding the free channel to defaults
