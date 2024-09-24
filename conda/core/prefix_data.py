@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import json
 import os
+import os.path
 import re
 from logging import getLogger
-from os.path import basename, lexists
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -31,7 +31,6 @@ from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
     CorruptedEnvironmentError,
-    DirectoryNotFoundError,
     maybe_raise,
 )
 from ..gateways.disk.create import write_as_json_to_file
@@ -77,8 +76,6 @@ class PrefixData(metaclass=PrefixDataType):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = Path(prefix_path)
-        if not self.prefix_path.is_dir():
-            raise DirectoryNotFoundError(self.prefix_path)
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -90,13 +87,24 @@ class PrefixData(metaclass=PrefixDataType):
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, PrefixData):
             return False
-        return self.prefix_path.samefile(other.prefix_path)
+        if self.prefix_path.exists():
+            if other.prefix_path.exists():
+                return self.prefix_path.samefile(other.prefix_path)
+            return False  # only one prefix exists, cannot be the same
+        elif other.prefix_path.exists():
+            return False  # only one prefix exists, cannot be the same
+        else:
+            # neither prefix exists, fallback to os.path.samefile
+            return os.path.samefile(
+                self.prefix_path.resolve(),
+                other.prefix_path.resolve(),
+            )
 
     @time_recorder(module_name=__name__)
     def load(self):
         self.__prefix_records = {}
         _conda_meta_dir = self.prefix_path / "conda-meta"
-        if lexists(_conda_meta_dir):
+        if os.path.lexists(_conda_meta_dir):
             conda_meta_json_paths = (
                 p
                 for p in (entry.path for entry in os.scandir(_conda_meta_dir))
@@ -135,7 +143,7 @@ class PrefixData(metaclass=PrefixDataType):
         prefix_record_json_path = (
             self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
         )
-        if lexists(prefix_record_json_path):
+        if os.path.lexists(prefix_record_json_path):
             maybe_raise(
                 BasicClobberError(
                     source_path=None,
@@ -234,7 +242,7 @@ class PrefixData(metaclass=PrefixDataType):
             # check that prefix record json filename conforms to name-version-build
             # apparently implemented as part of #2638 to resolve #2599
             try:
-                n, v, b = basename(prefix_record_json_path)[:-5].rsplit("-", 2)
+                n, v, b = os.path.basename(prefix_record_json_path)[:-5].rsplit("-", 2)
                 if (n, v, b) != (
                     prefix_record.name,
                     prefix_record.version,
@@ -324,7 +332,9 @@ class PrefixData(metaclass=PrefixDataType):
                 conda_python_packages[conda_anchor_file].name
             )
             try:
-                extracted_package_dir = basename(prefix_rec.extracted_package_dir)
+                extracted_package_dir = os.path.basename(
+                    prefix_rec.extracted_package_dir
+                )
             except AttributeError:
                 extracted_package_dir = "-".join(
                     (prefix_rec.name, prefix_rec.version, prefix_rec.build)
@@ -377,7 +387,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def _get_environment_state_file(self):
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
-        if lexists(env_vars_file):
+        if os.path.lexists(env_vars_file):
             with open(env_vars_file) as f:
                 prefix_state = json.loads(f.read())
         else:
