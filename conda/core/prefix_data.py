@@ -8,7 +8,7 @@ import json
 import os
 import re
 from logging import getLogger
-from os.path import basename, lexists, samefile
+from os.path import basename, lexists
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -94,11 +94,8 @@ class PrefixData(metaclass=PrefixDataType):
         elif other.prefix_path.exists():
             return False  # only one prefix exists, cannot be the same
         else:
-            # neither prefix exists, fallback to os.path.samefile
-            return samefile(
-                self.prefix_path.resolve(),
-                other.prefix_path.resolve(),
-            )
+            # neither prefix exists, raw comparison
+            return self.prefix_path.resolve() == other.prefix_path.resolve()
 
     @time_recorder(module_name=__name__)
     def load(self):
