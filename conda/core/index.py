@@ -74,7 +74,7 @@ def check_allowlist(channel_urls: list[str]) -> None:
 LAST_CHANNEL_URLS = []
 
 
-class Index(UserDict[PackageRecord, PackageRecord]):
+class Index(UserDict):
     """The ``Index`` provides information about available packages from all relevant sources.
 
     There are four types of sources for package information, namely
