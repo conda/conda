@@ -10,6 +10,7 @@ import re
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import (
@@ -30,6 +31,7 @@ from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
     CorruptedEnvironmentError,
+    DirectoryNotFoundError,
     maybe_raise,
 )
 from ..gateways.disk.create import write_as_json_to_file
@@ -39,6 +41,9 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
+
+if TYPE_CHECKING:
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -66,12 +71,14 @@ class PrefixData(metaclass=PrefixDataType):
 
     def __init__(
         self,
-        prefix_path: Path,
+        prefix_path: str | os.PathLike[str] | Path,
         pip_interop_enabled: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
-        self.prefix_path = prefix_path
+        self.prefix_path = Path(prefix_path)
+        if not self.prefix_path.is_dir():
+            raise DirectoryNotFoundError(self.prefix_path)
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -79,6 +86,11 @@ class PrefixData(metaclass=PrefixDataType):
             if pip_interop_enabled is not None
             else context.pip_interop_enabled
         )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, PrefixData):
+            return False
+        return self.prefix_path.samefile(other.prefix_path)
 
     @time_recorder(module_name=__name__)
     def load(self):
