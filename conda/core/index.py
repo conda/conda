@@ -607,6 +607,9 @@ class ReducedIndex(Index):
 
         self._supplement_index_dict_with_prefix()
 
+        if self.use_cache:
+            self._supplement_index_dict_with_cache()
+
         # add feature records for the solver
         known_features = set()
         for rec in self._data.values():
@@ -908,7 +911,7 @@ def get_reduced_index(
         prepend=False,
         subdirs=subdirs,
         use_local=False,
-        use_cache=False,
+        use_cache=None,
         prefix=prefix,
         repodata_fn=repodata_fn,
         use_system=True,
