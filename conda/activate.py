@@ -231,7 +231,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def execute(self):
         # return value meant to be written to stdout
-        self._parse_and_set_args(self._raw_arguments)
+        self._parse_and_set_args()
 
         # invoke pre/post commands, see conda.cli.conda_argparse.do_call
         context.plugin_manager.invoke_pre_commands(self.command)
@@ -276,8 +276,9 @@ class _Activator(metaclass=abc.ABCMeta):
     def _hook_postamble(self) -> str | None:
         return None
 
-    def _parse_and_set_args(self, arguments):
-        command, *arguments = arguments or [None]
+    @deprecated.argument("25.3", "25.9", "arguments")
+    def _parse_and_set_args(self) -> None:
+        command, *arguments = self._raw_arguments or [None]
         help_flags = ("-h", "--help", "/?")
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
