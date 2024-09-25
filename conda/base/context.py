@@ -869,6 +869,15 @@ class Context(Configuration):
             default_channels = list(self._default_channels)
 
         if self.restore_free_channel:
+            deprecated.topic(
+                "24.9",
+                "25.3",
+                topic="Adding the 'free' channel as it existed prior to conda 4.7.",
+                addendum="See "
+                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
+                "for more details.",
+                deprecation_type=FutureWarning,
+            )
             default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
 
         reserved_multichannel_urls = {
