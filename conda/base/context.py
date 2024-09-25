@@ -873,9 +873,9 @@ class Context(Configuration):
                 "24.9",
                 "25.3",
                 topic="Adding the 'free' channel as it existed prior to conda 4.7.",
-                addendum="Add 'https://repo.anaconda.com/pkgs/free' to your channels "
-                "list manually after 'defaults', if you still need content from "
-                "the 'free' channel.",
+                addendum="See "
+                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
+                "for more details.",
                 deprecation_type=FutureWarning,
             )
             default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
