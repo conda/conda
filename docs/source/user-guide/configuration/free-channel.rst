@@ -21,6 +21,31 @@ old environments, you can re-add the channel following the directions below.
   The ``restore_free_channel`` option has been marked for pending deprecation
   with removal in conda 25.3.0.
 
+  To achieve the same effect, you may add the ``free`` channel to your
+  the :ref:`defaults channel <default-channels>` using the regular ``condarc``
+  configuration.
+
+  On UNIX-style systems:
+
+  .. code-block:: yaml
+
+     default_channels:
+         - https://repo.anaconda.com/pkgs/main
+         - https://repo.anaconda.com/pkgs/free
+         - https://repo.anaconda.com/pkgs/r
+
+  On Windows:
+
+  .. code-block:: yaml
+
+     default_channels:
+         - https://repo.anaconda.com/pkgs/main
+         - https://repo.anaconda.com/pkgs/free
+         - https://repo.anaconda.com/pkgs/r
+         - https://repo.anaconda.com/pkgs/msys2
+
+  Note that the free channel is listed after the main channel.
+
 .. _free-channel-default:
 
 Adding the free channel to defaults
