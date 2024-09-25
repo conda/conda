@@ -45,11 +45,21 @@ from .common.compat import on_win
 from .common.path import _cygpath, paths_equal, unix_path_to_win, win_path_to_unix
 from .common.path import path_identity as _path_identity
 from .deprecations import deprecated
+from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
 log = getLogger(__name__)
+
+
+BUILTIN_COMMANDS = {
+    "activate": ActivateHelp(),
+    "deactivate": DeactivateHelp(),
+    "hook": GenericHelp("hook"),
+    "commands": GenericHelp("commands"),
+    "reactivate": GenericHelp("reactivate"),
+}
 
 
 class _Activator(metaclass=abc.ABCMeta):
@@ -267,47 +277,19 @@ class _Activator(metaclass=abc.ABCMeta):
         return None
 
     def _parse_and_set_args(self, arguments):
-        def raise_invalid_command_error(actual_command=None):
-            from .exceptions import ArgumentError
-
-            message = (
-                "'activate', 'deactivate', 'hook', 'commands', or 'reactivate' "
-                "command must be given"
-            )
-            if actual_command:
-                message += f". Instead got '{actual_command}'."
-            raise ArgumentError(message)
-
-        if arguments is None or len(arguments) < 1:
-            raise_invalid_command_error()
-
-        command, *arguments = arguments
+        command, *arguments = arguments or [None]
         help_flags = ("-h", "--help", "/?")
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
         remainder_args = list(arg for arg in non_help_args if arg and arg != command)
 
-        if not command:
-            raise_invalid_command_error()
+        if command not in BUILTIN_COMMANDS:
+            raise ArgumentError(
+                "'activate', 'deactivate', 'hook', 'commands', or 'reactivate' "
+                "command must be given." + (f", not '{command}'." if command else ".")
+            )
         elif help_requested:
-            from .exceptions import ActivateHelp, DeactivateHelp, GenericHelp
-
-            help_classes = {
-                "activate": ActivateHelp(),
-                "deactivate": DeactivateHelp(),
-                "hook": GenericHelp("hook"),
-                "commands": GenericHelp("commands"),
-                "reactivate": GenericHelp("reactivate"),
-            }
-            raise help_classes[command]
-        elif command not in (
-            "activate",
-            "deactivate",
-            "reactivate",
-            "hook",
-            "commands",
-        ):
-            raise_invalid_command_error(actual_command=command)
+            raise BUILTIN_COMMANDS[command]
 
         if command.endswith("activate") or command == "hook":
             try:
