@@ -31,7 +31,7 @@ from conda.testing.gateways.fixtures import MINIO_EXE
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
-    from conda.testing import TmpEnvFixture
+    from conda.testing.fixtures import TmpEnvFixture
 
 log = getLogger(__name__)
 

@@ -7,7 +7,7 @@ The following are the most popular installers currently available:
 
 .. glossary::
 
-    `Miniconda <https://docs.anaconda.com/free/miniconda/>`_
+    `Miniconda <https://docs.anaconda.com/miniconda/>`__
         Miniconda is a minimal installer provided by Anaconda. Use this installer
         if you want to install most packages yourself.
 
@@ -16,15 +16,27 @@ The following are the most popular installers currently available:
         of packages for data science, as well as Anaconda Navigator, a GUI application
         for working with conda environments.
 
-    `Miniforge <https://github.com/conda-forge/miniforge>`_
+    `Miniforge <https://conda-forge.org/download>`_
         Miniforge is an installer maintained by the conda-forge community that comes
         preconfigured for use with the conda-forge channel. To learn more about conda-forge,
         visit `their website <https://conda-forge.org>`_.
 
-.. admonition:: Tip
+.. _anaconda-tos_notes:
 
-    If you are just starting out, we recommend installing conda via the
-    `Miniconda installer <https://docs.anaconda.com/free/miniconda/>`_.
+.. note::
+
+    Miniconda and Anaconda Distribution come preconfigured to use the `Anaconda
+    Repository <https://repo.anaconda.com/>`__ and installing/using packages
+    from that repository is governed by the `Anaconda Terms of Service
+    <https://www.anaconda.com/terms-of-service>`__, which means that it *might*
+    require a commercial fee license. There are exceptions for individuals,
+    universities, and companies with fewer than 200 employees (as of September
+    2024).
+
+    Please review the `terms of service <https://www.anaconda.com/terms-of-service>`__, Anaconda's most recent `Update on Anaconda’s Terms of Service for Academia
+    and Research <https://www.anaconda.com/blog/update-on-anacondas-terms-of-service-for-academia-and-research>`__,
+    and the `Anaconda Terms of Service FAQ
+    <https://www.anaconda.com/pricing/terms-of-service-faqs>`__ to answer your questions.
 
 
 .. _system-reqs:
@@ -75,8 +87,8 @@ Cryptographic hash verification
 ===============================
 
 SHA-256 checksums are available for
-`Miniconda <https://docs.anaconda.com/free/miniconda/>`_ and
-`Anaconda Distribution <https://docs.anaconda.com/free/anaconda/reference/hashes/all/>`_.
+`Miniconda <https://docs.anaconda.com/miniconda/>`__ and
+`Anaconda Distribution <https://docs.anaconda.com/anaconda/hashes/>`__.
 We do not recommend using MD5 verification as SHA-256 is more secure.
 
 Download the installer file and, before installing, verify it as follows:

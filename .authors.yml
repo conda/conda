@@ -146,14 +146,11 @@
   github: mjuric
 - name: Shaun Walbridge
   email: shaun.walbridge@gmail.com
+  alternate_emails:
+  - 46331011+scdub@users.noreply.github.com
   num_commits: 6
   first_commit: 2016-05-24 19:17:21
-  github: scw
-- name: Shaun Walbridge
-  github: scdub
-  email: 46331011+scdub@users.noreply.github.com
-  num_commits: 1
-  first_commit: 2022-09-12 23:50:03
+  github: scw  # alternate: scdub
 - name: Brent Pedersen
   email: bpederse@gmail.com
   num_commits: 1

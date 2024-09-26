@@ -21,7 +21,8 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
-from ..exceptions import CondaError, CondaValueError, PluginError
+from ..deprecations import deprecated
+from ..exceptions import CondaValueError, PluginError
 from . import (
     post_solves,
     reporter_backends,
@@ -354,6 +355,11 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    @deprecated(
+        "25.3",
+        "25.9",
+        addendum="Use `conda.plugins.manager.get_virtual_package_records` instead.",
+    )
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
 
@@ -368,37 +374,24 @@ class CondaPluginManager(pluggy.PluginManager):
         This method must return a valid ``CondaReporterBackend`` object or else it will
         raise an exception.
         """
-        reporter_backends = {
+        reporter_backends_map = {
             reporter_backend.name: reporter_backend
             for reporter_backend in self.get_reporter_backends()
         }
-        reporter_backend = reporter_backends.get(name, None)
+        reporter_backend = reporter_backends_map.get(name, None)
         if reporter_backend is None:
             log.warning(
                 f'Unable to find reporter backend: "{name}"; '
                 f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
             )
-            return reporter_backends.get(DEFAULT_CONSOLE_REPORTER_BACKEND)
+            return reporter_backends_map.get(DEFAULT_CONSOLE_REPORTER_BACKEND)
         else:
             return reporter_backend
-        reporter_backend_objs = self.get_reporter_backends()
 
-        for reporter_backend in reporter_backend_objs:
-            if reporter_backend.name == name:
-                return reporter_backend
-
-        log.warning(
-            f'Unable to find reporter backend: "{name}"; '
-            f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
-        )
-
-        for reporter_backend in reporter_backend_objs:
-            if reporter_backend.name == DEFAULT_CONSOLE_REPORTER_BACKEND:
-                return reporter_backend
-
-        raise CondaError(
-            "There are no available reporter backends to render output. This conda installation"
-            " is most likely corrupt and requires a re-installation."
+    def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
+        return tuple(
+            hook.to_virtual_package()
+            for hook in self.get_hook_results("virtual_packages")
         )
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:

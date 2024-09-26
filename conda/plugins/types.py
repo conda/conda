@@ -16,6 +16,8 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from requests.auth import AuthBase
 
+from ..models.records import PackageRecord
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from typing import Any, Callable, ContextManager
@@ -23,7 +25,6 @@ if TYPE_CHECKING:
     from ..common.configuration import Parameter
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
-    from ..models.records import PackageRecord
 
 
 @dataclass
@@ -64,6 +65,9 @@ class CondaVirtualPackage(NamedTuple):
     name: str
     version: str | None
     build: str | None
+
+    def to_virtual_package(self) -> PackageRecord:
+        return PackageRecord.virtual_package(f"__{self.name}", self.version, self.build)
 
 
 class CondaSolver(NamedTuple):

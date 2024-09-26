@@ -20,6 +20,7 @@ from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
+from .deprecations import deprecated
 from .exceptions import (
     CondaExitZero,
     DisallowedPackageError,
@@ -90,9 +91,8 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
         yield MatchSpec(url, **checksums)
 
 
-def explicit(
-    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
-):
+@deprecated.argument("25.3", "25.9", "index_args")
+def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
     actions = defaultdict(list)
     actions["PREFIX"] = prefix
 
@@ -354,7 +354,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         verbose=not quiet,
         index=index,
         force_extract=False,
-        index_args=index_args,
     )
     return actions, untracked_files
 
