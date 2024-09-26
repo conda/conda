@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Enable `conda doctor` to check whether the environment exists or not before trying to generate a health report. (#14112)
+* Enable `conda doctor` to check whether the environment exists or not before trying to generate a health report. (#14042 via #14112)
 
 ### Deprecations
 

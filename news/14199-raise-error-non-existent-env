@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `conda.common.configuration.ObjectParameter`'s ability to appropriately handle defaults. (#14128 via #14149)
+* Raise error when attempting to remove non-existent environment (#14174 via #14199)
 
 ### Deprecations
 

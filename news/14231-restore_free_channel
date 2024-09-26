@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark the `restore_free_channel` configuration option as pending deprecation. Add `https://repo.anaconda.com/pkgs/free` to your channel list after `defaults` instead. (#14231)
+* Mark the `restore_free_channel` configuration option as pending deprecation. Add `https://repo.anaconda.com/pkgs/free` to your channel list after `defaults` instead. (#14231 via #14269)
 
 ### Docs
 
