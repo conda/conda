@@ -2505,9 +2505,11 @@
   - skupr-anaconda
 - name: Andy Kipp
   email: anki-code@users.noreply.github.com
+  github: anki-code
   num_commits: 1
   first_commit: 2024-07-19 10:32:42
 - name: Sylvain Corlay
   email: sylvain.corlay@gmail.com
+  github: SylvainCorlay
   num_commits: 1
   first_commit: 2024-09-11 18:18:48
