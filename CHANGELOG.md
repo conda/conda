@@ -162,7 +162,7 @@ Mark `conda.common.compat.FILESYSTEM_ENCODING` as pending deprecation. (#14144, 
 
 ### Contributors
 
-* @anki-code
+* @anki-code made their first contribution in https://github.com/conda/conda/pull/14047
 * @beeankha
 * @conda-bot
 * @dholth
@@ -172,7 +172,7 @@ Mark `conda.common.compat.FILESYSTEM_ENCODING` as pending deprecation. (#14144, 
 * @zklaus
 * @ForgottenProgramme
 * @scw
-* @SylvainCorlay
+* @SylvainCorlay made their first contribution in https://github.com/conda/conda/pull/14226
 * @travishathaway
 * @dependabot[bot]
 * @pre-commit-ci[bot]
