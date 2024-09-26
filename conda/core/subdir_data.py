@@ -24,6 +24,7 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
+from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
@@ -554,17 +555,11 @@ class SubdirData(metaclass=SubdirDataType):
         return self.url_w_subdir
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
+)
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = f"{feature_name}@"
-    return PackageRecord(
-        name=pkg_name,
-        version="0",
-        build="0",
-        channel="@",
-        subdir=context.subdir,
-        md5="12345678901234567890123456789012",
-        track_features=(feature_name,),
-        build_number=0,
-        fn=pkg_name,
-    )
+    return PackageRecord.feature(feature_name)

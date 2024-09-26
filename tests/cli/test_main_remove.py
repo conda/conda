@@ -11,7 +11,11 @@ import pytest
 
 from conda.base.context import context
 from conda.common.io import stderr_log_level
-from conda.exceptions import DryRunExit, PackagesNotFoundError
+from conda.exceptions import (
+    DryRunExit,
+    EnvironmentLocationNotFound,
+    PackagesNotFoundError,
+)
 from conda.gateways.disk.delete import path_is_clean
 from conda.testing.integration import (
     PYTHON_BINARY,
@@ -97,3 +101,8 @@ def test_remove_globbed_package_names(
                 assert any(
                     pkg["name"] == "ca-certificates" for pkg in data["actions"]["LINK"]
                 )
+
+
+def test_remove_nonexistent_env(conda_cli: CondaCLIFixture):
+    with pytest.raises(EnvironmentLocationNotFound):
+        conda_cli("remove", "--prefix=/non/existent/path", "--all")

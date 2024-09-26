@@ -2,31 +2,130 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import copy
+import platform
 from logging import getLogger
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
+import conda
 from conda.base.constants import DEFAULT_CHANNELS
 from conda.base.context import context, non_x86_machines, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_vars
 from conda.core.index import (
+    Index,
+    _make_virtual_package,
+    _supplement_index_with_cache,
+    _supplement_index_with_prefix,
     _supplement_index_with_system,
+    calculate_channel_urls,
     check_allowlist,
+    dist_str_in_index,
+    fetch_index,
     get_index,
     get_reduced_index,
 )
-from conda.exceptions import ChannelDenied, ChannelNotAllowed
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import ChannelDenied, ChannelNotAllowed, OperationNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageCacheRecord, PackageRecord, PrefixRecord
 from tests.core.test_subdir_data import platform_in_record
+from tests.data.pkg_cache import load_cache_entries
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
 log = getLogger(__name__)
+
+
+PLATFORMS = {
+    ("Linux", "x86_64"): "linux-64",
+    ("Darwin", "x86_64"): "osx-64",
+    ("Darwin", "arm64"): "osx-arm64",
+    ("Windows", "AMD64"): "win-64",
+}
+
+DEFAULTS_SAMPLE_PACKAGES = {
+    "linux-64": {
+        "channel": "pkgs/main/linux-64",
+        "name": "aiohttp",
+        "version": "2.3.9",
+        "build": "py35_0",
+        "build_number": 0,
+    },
+    "osx-64": {
+        "channel": "pkgs/main/osx-64",
+        "name": "aiohttp",
+        "version": "2.3.9",
+        "build": "py35_0",
+        "build_number": 0,
+    },
+    "osx-arm64": {
+        "channel": "pkgs/main/osx-arm64",
+        "name": "aiohttp",
+        "version": "3.9.3",
+        "build": "py310h80987f9_0",
+        "build_number": 0,
+    },
+    "win-64": {
+        "channel": "pkgs/main/win-64",
+        "name": "aiohttp",
+        "version": "2.3.9",
+        "build": "py35_0",
+        "build_number": 0,
+    },
+}
+
+CONDAFORGE_SAMPLE_PACKAGES = {
+    "linux-64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py310pl5321hfe26b83_0",
+        "build_number": 0,
+    },
+    "osx-64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py38pl5321h6d91244_0",
+        "build_number": 0,
+    },
+    "osx-arm64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py39pl5321h878be05_0",
+        "build_number": 0,
+    },
+    "win-64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py312h275cf98_0",
+        "build_number": 0,
+    },
+}
+
+
+@pytest.fixture
+def pkg_cache_entries(mocker):
+    miniconda_pkg_cache = load_cache_entries("miniconda.json")
+    return miniconda_pkg_cache
+
+
+@pytest.fixture(autouse=True)
+def patch_pkg_cache(mocker, pkg_cache_entries):
+    mocker.patch(
+        "conda.core.package_cache_data.PackageCacheData.get_all_extracted_entries",
+        lambda: pkg_cache_entries,
+    )
+    mocker.patch("conda.base.context.context.track_features", ("test_feature",))
 
 
 def test_check_allowlist(monkeypatch: MonkeyPatch):
@@ -231,3 +330,273 @@ def test_basic_get_reduced_index():
         (MatchSpec("flask"),),
         "repodata.json",
     )
+
+
+def test_fetch_index(test_recipes_channel):
+    idx = fetch_index(Channel(str(test_recipes_channel)).urls())
+    assert len(idx) == 20
+
+
+def test_dist_str_in_index(test_recipes_channel):
+    idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
+    assert not dist_str_in_index(idx.data, "test-1.4.0-0")
+    assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
+
+
+def test__supplement_index_with_prefix(test_recipes_channel, tmp_env):
+    channel = Path(__file__).parent.parent / "test-recipes"
+    ref = PackageRecord(
+        channel=Channel(str(channel)),
+        name="dependent",
+        subdir="noarch",
+        version="2.0",
+        build_number=0,
+        build="0",
+        fn="dependent-2.0-0.tar.bz2",
+    )
+    pkg_spec = "dependent=2.0"
+    index = {ref: ref}
+    with tmp_env(pkg_spec) as prefix:
+        _supplement_index_with_prefix(index, prefix)
+    with tmp_env(pkg_spec) as prefix:
+        _supplement_index_with_prefix(index, PrefixData(prefix))
+    pkg = index[ref]
+    assert type(ref) is PackageRecord
+    assert type(pkg) is PrefixRecord
+    assert ref == pkg
+
+
+def test__supplement_index_with_prefix_index_class(test_recipes_channel, tmp_env):
+    channel = Path(__file__).parent.parent / "test-recipes"
+    ref = PackageRecord(
+        channel=Channel(str(channel)),
+        name="dependent",
+        subdir="noarch",
+        version="2.0",
+        build_number=0,
+        build="0",
+        fn="dependent-2.0-0.tar.bz2",
+    )
+    index = Index()
+    pkg_spec = "dependent=2.0"
+    with tmp_env(pkg_spec) as prefix:
+        with pytest.raises(OperationNotAllowed):
+            _supplement_index_with_prefix(index, prefix)
+    with tmp_env(pkg_spec) as prefix:
+        index = Index(prefix=prefix)
+        _supplement_index_with_prefix(index, prefix)
+    pkg = index[ref]
+    assert type(ref) is PackageRecord
+    assert type(pkg) is PrefixRecord
+    assert ref == pkg
+
+
+def test__supplement_index_with_cache():
+    idx = {}
+    _supplement_index_with_cache(idx)
+    tzdata = [p for p in idx.values() if p.name == "tzdata"][0]
+    tzdata = PackageRecord.from_objects(tzdata)
+    idx = {tzdata: tzdata}
+    _supplement_index_with_cache(idx)
+    augmented_tzdata = idx[tzdata]
+    assert type(tzdata) is PackageRecord
+    assert type(augmented_tzdata) is PackageCacheRecord
+    assert tzdata == augmented_tzdata
+
+
+def test__make_virtual_package():
+    virtual_package = _make_virtual_package("name", "1.0", "0")
+    ref = PackageRecord.virtual_package("name", "1.0", "0")
+    assert virtual_package == ref
+
+
+def test_calculate_channel_urls():
+    urls = calculate_channel_urls(use_local=False, prepend=True)
+    assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
+    assert len(urls) == 6 if on_win else 4
+
+
+@pytest.mark.memray
+@pytest.mark.integration
+def test_get_index_lazy():
+    subdir = PLATFORMS[(platform.system(), platform.machine())]
+    index = get_index(channel_urls=["conda-forge"], platform=subdir)
+    main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
+    conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
+
+    assert main_prec == index[main_prec]
+    assert conda_forge_prec == index[conda_forge_prec]
+
+
+class TestIndex:
+    @pytest.fixture(params=[False, True])
+    def index(self, request, test_recipes_channel, tmp_env):
+        pkg_spec = "dependent=2.0"
+        with tmp_env(pkg_spec) as prefix:
+            _index = Index(prefix=prefix, use_cache=True, use_system=True)
+            if request.param:
+                _index.data
+            yield _index
+
+    @pytest.fixture
+    def reduced_index(self, index):
+        return index.get_reduced_index((MatchSpec("dependent=2.0"),))
+
+    @pytest.fixture
+    def valid_channel_entry(self):
+        channel = Path(__file__).parent.parent / "test-recipes"
+        return PackageRecord(
+            channel=Channel(str(channel)),
+            name="dependent",
+            subdir="noarch",
+            version="1.0",
+            build_number=0,
+            build="0",
+            fn="dependent-1.0-0.tar.bz2",
+        )
+
+    @pytest.fixture
+    def invalid_channel_entry(self):
+        channel = Path(__file__).parent.parent / "test-recipes"
+        return PackageRecord(
+            channel=Channel(str(channel)),
+            name="dependent-non-existent",
+            subdir="noarch",
+            version="1.0",
+            build_number=0,
+            build="0",
+            fn="dependent-1.0-0.tar.bz2",
+        )
+
+    @pytest.fixture
+    def valid_prefix_entry(self):
+        channel = Path(__file__).parent.parent / "test-recipes"
+        return PackageRecord(
+            channel=Channel(str(channel)),
+            name="dependent",
+            subdir="noarch",
+            version="2.0",
+            build_number=0,
+            build="0",
+            fn="dependent-2.0-0.tar.bz2",
+        )
+
+    @pytest.fixture
+    def valid_cache_entry(self):
+        return PackageRecord(
+            name="python",
+            subdir="linux-64",
+            version="3.12.4",
+            channel="defaults",
+            build_number=1,
+            build="h5148396_1",
+            fn="python-3.12.4-h5148396_1.conda",
+        )
+
+    @pytest.fixture
+    def valid_feature(self):
+        return PackageRecord.feature("test_feature")
+
+    @pytest.fixture
+    def invalid_feature(self):
+        return PackageRecord.feature("test_feature_non_existent")
+
+    @pytest.fixture
+    def valid_system_package(self):
+        return PackageRecord.virtual_package("__conda", conda.__version__)
+
+    @pytest.fixture
+    def invalid_system_package(self):
+        return PackageRecord.virtual_package("__conda_invalid", conda.__version__)
+
+    def test_init_use_local(self):
+        index = Index(use_local=True, prepend=False)
+        assert len(index.channels) == 1
+        assert "local" in index.channels.keys()
+
+    def test_init_conflicting_subdirs(self, mocker):
+        log = mocker.patch("conda.core.index.log")
+        platform = "linux-64"
+        subdirs = ("linux-64",)
+        _ = Index(platform=platform, subdirs=subdirs)
+        assert len(log.method_calls) == 1
+        log_call = log.method_calls[0]
+        assert log_call.args == (
+            "subdirs is %s, ignoring platform %s",
+            subdirs,
+            platform,
+        )
+
+    def test_init_prefix_path(self, tmp_path: Path):
+        index = Index(prefix=tmp_path)
+        assert index.prefix_data
+        assert index.prefix_data.prefix_path == tmp_path
+
+    def test_init_prefix_data(self, tmp_path: Path):
+        index = Index(prefix=PrefixData(tmp_path))
+        assert index.prefix_data
+        assert index.prefix_data.prefix_path == tmp_path
+
+    def test_cache_entries(self, index, pkg_cache_entries):
+        cache_entries = index.cache_entries
+        assert cache_entries == pkg_cache_entries
+
+    def test_getitem_channel(self, index, valid_channel_entry):
+        package_record = index[valid_channel_entry]
+        assert type(package_record) is PackageRecord
+        assert package_record == valid_channel_entry
+
+    def test_getitem_channel_invalid(self, index, invalid_channel_entry):
+        with pytest.raises(KeyError):
+            _ = index[invalid_channel_entry]
+
+    def test_getitem_prefix(self, index, valid_prefix_entry):
+        prefix_record = index[valid_prefix_entry]
+        assert type(prefix_record) is PrefixRecord
+        assert prefix_record == valid_prefix_entry
+
+    def test_getitem_cache(self, index, valid_cache_entry):
+        cache_record = index[valid_cache_entry]
+        assert type(cache_record) is PackageCacheRecord
+        assert cache_record == valid_cache_entry
+
+    def test_getitem_feature(self, index, valid_feature):
+        feature_record = index[valid_feature]
+        assert type(feature_record) is PackageRecord
+        assert feature_record == valid_feature
+
+    def test_getitem_feature_non_existent(self, index, invalid_feature):
+        with pytest.raises(KeyError):
+            _ = index[invalid_feature]
+
+    def test_getitem_system_package_valid(self, index, valid_system_package):
+        system_record = index[valid_system_package]
+        assert system_record == valid_system_package
+        assert type(system_record) is PackageRecord
+        assert system_record.package_type == PackageType.VIRTUAL_SYSTEM
+
+    def test_getitem_system_package_invalid(self, index, invalid_system_package):
+        with pytest.raises(KeyError):
+            _ = index[invalid_system_package]
+
+    def test_contains_valid(self, index, valid_cache_entry):
+        assert valid_cache_entry in index
+
+    def test_contains_invalid(self, index, invalid_feature):
+        assert invalid_feature not in index
+
+    def test_copy(self, index):
+        index_copy = copy.copy(index)
+        assert index_copy == index
+
+    def test_reduced_index(self, reduced_index):
+        assert len(reduced_index) == (
+            # tests/data/pkg_cache/miniconda.json has 75 packages, see patch_pkg_cache
+            75
+            # we have 1 feature, see patch_pkg_cache
+            + 1
+            # only 4 packages are loaded from tests/test-recipes/noarch/repodata.json
+            + 4
+            # each OS has different virtual packages
+            + len(context.plugin_manager.get_virtual_package_records())
+        )

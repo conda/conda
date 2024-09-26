@@ -17,16 +17,17 @@
 [![Anaconda Package][anaconda-badge]](https://anaconda.org/anaconda/conda)
 [![conda-forge Package][conda-forge-badge]](https://anaconda.org/conda-forge/conda)
 
-Conda is a cross-platform, language-agnostic binary package manager. It is the
-package manager used by [Anaconda](https://www.anaconda.com/distribution/) installations, but it may be
+Conda is a cross-platform, language-agnostic binary package manager. It is a
+package manager used in conda distributions like [Miniforge](https://github.com/conda-forge/miniforge)
+and the [Anaconda Distribution](https://www.anaconda.com/distribution/), but it may be
 used for other systems as well. Conda makes environments first-class
 citizens, making it easy to create independent environments even for C
-libraries. Conda is written entirely in Python, and is BSD licensed open
-source.
+libraries. The conda command line interface is written entirely in Python,
+and is BSD licensed open source.
 
 Conda is enhanced by organizations, tools, and repositories created and managed by
-the amazing members of the conda community. Some of them can be found
-[here](https://github.com/conda/conda/wiki/Conda-Community).
+the amazing members of the [conda community](https://conda.org/). Some of them
+can be found [here](https://github.com/conda/conda/wiki/Conda-Community).
 
 
 ## Installation
