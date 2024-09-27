@@ -126,9 +126,7 @@
 * Mark `conda.common.path.is_private_env_name` as pending deprecation. (#14189)
 * Mark `conda.common.path.is_private_env_path` as pending deprecation. (#14189)
 * Mark `conda shell.SHELL commands` as pending deprecation. Use `conda commands` instead. (#14215)
-* The `defaults` multichannel will stop being the (implicit) default value for `channels`. Users
-  relying on this behaviour are encouraged to run `conda config --add channels defaults`.
-  This is now pending deprecation, and will be fully deprecated in 25.3. (#14178 via #14227)
+* The `defaults` multichannel will stop being the (implicit) default value for `channels`. Users relying on this behavior are encouraged to run `conda config --add channels defaults`. This is pending deprecation, and will be fully deprecated in 25.3. (#14178 via #14227)
 * Running `conda config --add/--append channels ...` will warn when `defaults` is being
   added implicitly. By 25.3, this behaviour will be removed and users should run
   `conda config --add/--append channels defaults` explicitly if needed. Conda
