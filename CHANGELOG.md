@@ -19,7 +19,7 @@
 
 ### Bug fixes
 
-* Prevent directories which contain conda environments from being specified as an environment prefix when creating new envs; this provides guardrails against the accidental deletion of environments via commands such as `conda rename`. (#13955)
+* Prevent directories that contain conda environments from being specified as an environment prefix when creating new envs; this provides guardrails against the accidental deletion of environments via commands such as `conda rename`. (#13955)
 * Enable `conda doctor` to check whether the environment exists or not before trying to generate a health report. (#14042 via #14112)
 * Fix `conda.common.configuration.ObjectParameter`'s ability to appropriately handle defaults. (#14148 via #14149)
 * `conda remove [env] --all` command no longer deletes empty parent directories for environments that are removed. (#14173)
