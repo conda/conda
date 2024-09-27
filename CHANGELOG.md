@@ -86,7 +86,7 @@
 * Remove `conda.gateways.logging.set_verbosity`. Use `conda.gateways.logging.set_log_level` instead. (#14077)
 * Remove `conda.gateways.logging.VERBOSITY_LEVELS`. (#14077)
 * Remove `conda.models.dist.IndexRecord`. Use `conda.models.records.PackageRecord` instead. (#14077)
-* Remove `conda.models.enum.LeasedPathType`. (#14077)
+* Remove `conda.models.enums.LeasedPathType`. (#14077)
 * Remove `conda.models.leased_path_entry.LeasedPathEntry`. (#14077)
 * Remove `conda.plugins.subcommands.doctor.get_prefix`. Use `conda.base.context.context.target_prefix` instead. (#14077)
 * Remove `conda.plugins.subcommands.doctor.health_checks.display_health_checks`. (#14077)
