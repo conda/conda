@@ -23,7 +23,7 @@
 * Enable `conda doctor` to check whether the environment exists or not before trying to generate a health report. (#14042 via #14112)
 * Fix `conda.common.configuration.ObjectParameter`'s ability to appropriately handle defaults. (#14128 via #14149)
 * `conda remove [env] --all` command no longer deletes empty parent directories for environments that are removed. (#14173)
-* Raise error when attempting to remove non-existent environment (#14174 via #14199)
+* Raise an error when attempting to remove non-existent environment. (#14174 via #14199)
 * Add pre-/post-command hooks to activation subcommands (`activate`, `deactivate`, `reactivate`, `hooks`, and `commands`). (#14211 via #14212)
 * Replace extensions from end of filename only, not `str.replace()`, in two places. (#14241)
 * Fix PowerShell activation/deactivation to properly unset environment variables using `$Env:VARIABLE = $null` instead of `$Env:VARIABLE = ""`. (#14237 via #14246)
