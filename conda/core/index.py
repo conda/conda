@@ -4,11 +4,9 @@
 
 from __future__ import annotations
 
-import os
 from collections import UserDict
 from itertools import chain
 from logging import getLogger
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
@@ -32,6 +30,8 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
+    import os
+    from pathlib import Path
     from typing import Any, Iterable, Self
 
 
@@ -115,13 +115,13 @@ class Index(UserDict):
 
     def __init__(
         self,
-        channels: tuple[str | Channel, ...] = (),
+        channels: Iterable[str | Channel] = (),
         prepend: bool = True,
         platform: str | None = None,
         subdirs: tuple[str, ...] | None = None,
         use_local: bool = False,
         use_cache: bool | None = None,
-        prefix: str | None = None,
+        prefix: str | os.PathLike[str] | Path | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
     ) -> None:
@@ -146,8 +146,9 @@ class Index(UserDict):
             to make intrinsic information about the system, such as cpu architecture or operating system, available
             to the solver.
         """
+        channels = list(channels)
         if use_local:
-            channels = ["local"] + list(channels)
+            channels = ["local", *channels]
         if prepend:
             channels += context.channels
         self._channels = IndexedSet(channels)
@@ -172,11 +173,12 @@ class Index(UserDict):
         # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
-        if isinstance(prefix, PrefixData):
-            self.prefix_path = prefix.prefix_path
+        if prefix is None:
+            self.prefix_data = None
+        elif isinstance(prefix, PrefixData):
+            self.prefix_data = prefix
         else:
-            self.prefix_path = prefix
-        self._prefix_data = None
+            self.prefix_data = PrefixData(prefix)
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.use_system = use_system
 
@@ -218,17 +220,6 @@ class Index(UserDict):
         except AttributeError:
             self.reload(features=True)
         return self._features
-
-    @property
-    def prefix_data(self) -> PrefixData:
-        """Contents of the prefix.
-
-        Returns:
-          Object giving access to the prefix.
-        """
-        if self._prefix_data is None and self.prefix_path:
-            self._prefix_data = PrefixData(self.prefix_path)
-        return self._prefix_data
 
     def reload(
         self,
@@ -297,7 +288,7 @@ class Index(UserDict):
             subdirs=self._subdirs,
             use_local=False,
             use_cache=self.use_cache,
-            prefix=self.prefix_path,
+            prefix=self.prefix_data,
             repodata_fn=self._repodata_fn,
             use_system=self.use_system,
         )
@@ -329,6 +320,9 @@ class Index(UserDict):
         """
         Supplement the index with information from its prefix.
         """
+        if self.prefix_data is None:
+            return
+
         # supplement index with information from prefix/conda-meta
         for prefix_record in self.prefix_data.iter_records():
             if prefix_record in self._data:
@@ -379,8 +373,7 @@ class Index(UserDict):
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
                 self._data.update((prec, prec) for prec in subdir_data.iter_records())
-        if self.prefix_data:
-            self._supplement_index_dict_with_prefix()
+        self._supplement_index_dict_with_prefix()
         if self.use_cache:
             self._supplement_index_dict_with_cache()
         self._data.update(self.features)
@@ -507,7 +500,7 @@ class ReducedIndex(Index):
         subdirs: tuple[str, ...] | None = None,
         use_local: bool = False,
         use_cache: bool | None = None,
-        prefix: str | None = None,
+        prefix: str | os.PathLike[str] | Path | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
     ) -> None:
@@ -583,10 +576,8 @@ class ReducedIndex(Index):
                     ),
                 )
 
-        # TODO: Should we really add the whole prefix?
-        # if self.prefix:
-        #     for prefix_rec in self.prefix.iter_records():
-        #         push_record(prefix_rec)
+        if self.prefix_data:
+            push_records(*self.prefix_data.iter_records())
         push_specs(*self.specs)
 
         while pending_names or pending_track_features:
@@ -614,8 +605,10 @@ class ReducedIndex(Index):
 
         self._data = {rec: rec for rec in records}
 
-        if self.prefix_data:
-            self._supplement_index_dict_with_prefix()
+        self._supplement_index_dict_with_prefix()
+
+        if self.use_cache:
+            self._supplement_index_dict_with_cache()
 
         # add feature records for the solver
         known_features = set()
@@ -630,9 +623,9 @@ class ReducedIndex(Index):
 
 
 @time_recorder("get_index")
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index` instead.")
 def get_index(
-    channel_urls: tuple[str] = (),
+    channel_urls: Iterable[str | Channel] = (),
     prepend: bool = True,
     platform: str | None = None,
     use_local: bool = False,
@@ -640,7 +633,7 @@ def get_index(
     unknown: bool | None = None,
     prefix: str | None = None,
     repodata_fn: str = context.repodata_fns[-1],
-) -> dict:
+) -> Index:
     """
     Return the index of packages available on the channels
 
@@ -670,7 +663,7 @@ def get_index(
     )
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index` instead.")
 def fetch_index(
     channel_urls: list[str],
     use_cache: bool = False,
@@ -709,10 +702,10 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_prefix(
     index: Index | dict[Any, Any],
-    prefix: str | PrefixData,
+    prefix: str | os.PathLike[str] | Path | PrefixData,
 ) -> None:
     """
     Supplement the given index with information from the specified environment prefix.
@@ -721,16 +714,9 @@ def _supplement_index_with_prefix(
     :param prefix: The path to the environment prefix.
     """
     # supplement index with information from prefix/conda-meta
-    if isinstance(prefix, PrefixData):
-        prefix_data = prefix
-        prefix_path = prefix.prefix_path
-    else:
-        prefix_path = Path(prefix)
-        prefix_data = PrefixData(prefix)
+    prefix_data = prefix if isinstance(prefix, PrefixData) else PrefixData(prefix)
     if isinstance(index, Index):
-        if index.prefix_path is None or not os.path.samefile(
-            str(prefix_path.resolve()), str(Path(index.prefix_path).resolve())
-        ):
+        if index.prefix_data != prefix_data:
             raise OperationNotAllowed(
                 "An index can only be supplemented with its own prefix."
             )
@@ -770,7 +756,7 @@ def _supplement_index_with_prefix(
             index[prefix_record] = prefix_record
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
     """
     Supplement the given index with packages from the cache.
@@ -788,8 +774,8 @@ def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use `conda.core.models.records.PackageRecord.virtual_package` instead.",
 )
 def _make_virtual_package(
@@ -807,8 +793,8 @@ def _make_virtual_package(
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use :meth:`~conda.core.Index.reload(features=True)` instead.",
 )
 def _supplement_index_with_features(
@@ -825,7 +811,7 @@ def _supplement_index_with_features(
         index[rec] = rec
 
 
-@deprecated("24.9", "25.3", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
     """
     Loads and populates virtual package records from conda plugins
@@ -894,8 +880,8 @@ def calculate_channel_urls(
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use `conda.core.ReducedIndex` or `conda.core.Index.get_reduced_index` instead.",
 )
 def get_reduced_index(
@@ -925,7 +911,7 @@ def get_reduced_index(
         prepend=False,
         subdirs=subdirs,
         use_local=False,
-        use_cache=False,
+        use_cache=None,
         prefix=prefix,
         repodata_fn=repodata_fn,
         use_system=True,

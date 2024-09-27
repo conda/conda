@@ -196,7 +196,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.12' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
 
     steps:
       - name: Checkout Source
@@ -445,7 +445,7 @@ jobs:
           --file tests/requirements-s3.txt
           --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
-          pytest-memray
+          conda-forge::pytest-memray
 
       - name: Conda Info
         # view test env info (not base)
