@@ -264,10 +264,10 @@ def _get_index_r_base(
     else:
         raise ValueError("'json_filename_or_data' must be path-like or dict")
 
+    packages = {subdir: {}, "noarch": {}}
     if merge_noarch:
-        packages = {subdir: all_packages}
+        packages[subdir] = all_packages
     else:
-        packages = {subdir: {}, "noarch": {}}
         for key, pkg in all_packages.items():
             if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
                 packages["noarch"][key] = pkg
