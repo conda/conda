@@ -4,7 +4,7 @@
 
 ### Enhancements
 
-* Add `conda.core.index.Index` as a faster drop-in replacement of the realized dictionary index. Note: The loggers are no longer implicitly initialized when fetching the index, instead explicitly call `conda.gateways.logging.initialize_logging`. (#13880, #14267)
+* Add `conda.core.index.Index` as a faster drop-in replacement of the realized dictionary index. Note: The loggers are no longer implicitly initialized when fetching the index. Instead, you must explicitly call `conda.gateways.logging.initialize_logging`. (#13880, #14267)
 * Alias `conda env remove` command to `conda remove --all`. (#13977)
 * Add a new health check to `conda doctor` that detects if the `REQUESTS_CA_BUNDLE` env var points to a non-existent file. (#12905 via #14037)
 * Add `--sha256` flag to `conda list --explicit` so it lists URLs with a SHA256 hash instead of MD5 and make `conda install|create` compatible with these inputs. (#2903, #7882 via #14048)
