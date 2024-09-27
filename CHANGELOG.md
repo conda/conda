@@ -148,7 +148,7 @@
 
 ### Other
 
-* Update xonsh support to accomodate deprecated import path. (#14047)
+* Update `xonsh` support to accomodate deprecated import path. (#14047)
 
 ### Contributors
 
