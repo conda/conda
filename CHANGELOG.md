@@ -2,6 +2,17 @@
 
 ## 24.9.0 (2024-09-26)
 
+
+### ✨ Special announcement ✨
+
+This is an announcement about an important and positive **future** change in conda's functionality:
+
+Following feedback from conda users around concerns about the pre-configuration of the conda code base to favor channels from Anaconda Inc, we've [started the process to deprecate](https://github.com/conda/conda/issues/14178) hardcoding Anaconda's channels as the default set of channels in the conda source code, which is a remnant of conda's incubation at the company. The conda ecosystem is able to facilitate the configuration of the channels through different means.
+
+We will in the future rely on the fact that providers of conda distributions, such as like [miniforge](https://github.com/conda-forge/miniforge) or Anaconda (including miniconda) can pre-configure their used channels on their own, e.g. by running the neccary ``conda config --set channels`` command.
+
+We're also going to continue to [work on improving channel management](https://github.com/conda/conda/issues/14217) in the forseeable future and would love to get your feedback about it.
+
 ### Enhancements
 
 * Add `conda.core.index.Index` as a faster drop-in replacement of the realized dictionary index. Note: The loggers are no longer implicitly initialized when fetching the index. Instead, you must explicitly call `conda.gateways.logging.initialize_logging`. (#13880, #14267)
