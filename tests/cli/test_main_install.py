@@ -69,7 +69,6 @@ def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         rm_rf(prefix, clean_empty_parents=True)
         assert path_is_clean(dir)
 
-        # regression test for #4849
         conda_cli(
             "install",
             f"--prefix={dir}",
