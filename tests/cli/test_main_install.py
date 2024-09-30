@@ -62,9 +62,9 @@ def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         ):
             conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
 
-        conda_cli("create", f"--prefix={dir}", "--yes")
-        conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
-        assert package_is_installed(dir, "python")
+        conda_cli("create", f"--prefix={prefix}", "--yes")
+        conda_cli("install", f"--prefix={prefix}", "python", "--mkdir", "--yes")
+        assert package_is_installed(prefix, "python")
 
         rm_rf(prefix, clean_empty_parents=True)
         assert path_is_clean(dir)
