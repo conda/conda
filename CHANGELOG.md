@@ -1,5 +1,22 @@
 [//]: # (current developments)
 
+## 24.9.1 (2024-10-01)
+
+### Bug fixes
+
+* Tweak pending deprecation warning for the upcoming changes in channel defaults. (#14287 via #14288)
+
+### Deprecations
+
+* Remove deprecated testing entrypoint `shell/bin/conda`. Use `dev/start[.bat]` instead. (#14285)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+
+
+
 ## 24.9.0 (2024-09-26)
 
 
