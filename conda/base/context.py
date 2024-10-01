@@ -950,8 +950,8 @@ class Context(Configuration):
         addendum = (
             "\n\n"
             "To remove this warning, please choose a default channel explicitly "
-            "via 'conda config --add channels <name>', e.g. 'conda config --add channels defaults' "
-            "or 'conda config --add channels conda-forge'."
+            "via 'conda config --add channels <name>', "
+            f"e.g. 'conda config --add channels {DEFAULTS_CHANNEL_NAME}'."
         )
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and "channel" in self._argparse_args:
