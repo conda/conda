@@ -1517,7 +1517,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 140
+  num_commits: 141
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1955,7 +1955,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 437
+  num_commits: 438
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2197,7 +2197,7 @@
   github: pkmooreanaconda
 - name: Mahe Iram Khan
   email: 65779580+ForgottenProgramme@users.noreply.github.com
-  num_commits: 25
+  num_commits: 22
   first_commit: 2022-10-07 23:21:54
   github: ForgottenProgramme
   alternate_emails:
