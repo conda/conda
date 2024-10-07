@@ -103,6 +103,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
+    from ..cli.main_rename import check_protected_dirs
     from ..common.path import paths_equal
     from ..exceptions import ArgumentError, CondaValueError
     from ..gateways.disk.delete import rm_rf
@@ -118,6 +119,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise ArgumentError(
                 "one of the arguments -n/--name -p/--prefix is required"
             )
+
+    check_protected_dirs(context.target_prefix)
 
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
