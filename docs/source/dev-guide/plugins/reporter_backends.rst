@@ -2,52 +2,32 @@
 Reporter Backends
 =================
 
-A reporter backend is a plugin hook that allows you to change the output displayed
-for existing conda commands. Internally, conda uses this to differentiate between
-displaying normal, "console" output or displaying "json" output. An example of each
-of these reporter backend types is shown below:
+Reporter backends is a plugin hook that allows you to customize the display of certain
+elements at the command line. Below is a list of all the elements that can currently
+be customized:
 
-To configure a reporter backend, you must use the ``reporter_backends`` setting. This setting
-allows you to configure different backends for console and json output. Console output is
-the normal output you see when using conda, and json output is rendered when the
-``--json`` option is provided or ``json`` is set to ``true`` in the ``.condarc`` file.
+- Progress bar (displayed during package downloads)
+- Spinner (displayed while conda is waiting for a long running task to finish)
+- Confirmation input (yes/no dialogs)
+- ``conda info`` layout
 
-.. code-block:: shell
+This can be configured using the ``console`` setting either as a command line option
+or by defining it in the ``.condarc`` file.
 
-   # "console" output
-   conda info --envs
+For more information on configuring and using reporter backends in conda itself see:
 
-   # conda environments:
-   #
-   base                     * /home/user/conda/
-   env-1                      /home/user/.conda/envs/env-1
-
-   # "json" output (output has been truncated)
-   conda info --envs --json
-   {
-   ...
-     "envs": [
-       "/home/user/conda/",
-       "/home/user/.conda/envs/env-1"
-     ]
-   ...
-   }
-
-Via its plugins system, conda allows you to define new reporter backends. This gives
-you an extreme amount of flexibility when it comes to modifying how conda looks
-and feels. The first step to doing this is by creating your own subclass of
-:class:`~conda.plugins.types.ReporterRendererBase`. You then register it by using the
-``conda_reporter_backends`` hook.
-
-For information on configuring and using these reporter backends in conda itself see:
-
-- :ref:`Settings: reporters <reporters>`
+- :ref:`Settings: console <console>`
 
 Example plugin
 ==============
 
 The following example defines a simple plugin which uses the :func:`~pprint.pformat` function for rendering
 parts of conda's output:
+
+.. hint::
+
+   This is just a partial example. To see a fully functioning example of a reporter backend,
+   checkout the :mod:`~conda.plugins.reporter_backends.console` module.
 
 .. code-block:: python
 
@@ -62,7 +42,7 @@ parts of conda's output:
 
 
     class PprintReporterRenderer(ReporterRendererBase):
-        """ "
+        """
         Implementation of the ReporterRendererBase abstract base class
         """
 
