@@ -86,7 +86,7 @@ def translate_stream(stream, translator):
     return "\n".join(translator(line) for line in stream.split("\n"))
 
 
-def human_bytes(n):
+def human_bytes(n: int) -> str:
     """
     Return the number of bytes n in more human readable form.
 
@@ -100,6 +100,8 @@ def human_bytes(n):
         >>> human_bytes(100000004242)
         '93.13 GB'
     """
+    if n < 0:
+        return "? B"
     if n < 1024:
         return "%d B" % n
     k = n / 1024

@@ -13,6 +13,8 @@ from logging import getLogger
 from os.path import isdir, join
 from typing import TYPE_CHECKING
 
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any, Iterable
@@ -20,6 +22,18 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+deprecated.module(
+    "25.3",
+    "25.9",
+    addendum="Define cleanup tasks instead via the `conda_cleanup_tasks` plugin.",
+)
+
+
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Define cleanup tasks instead via the `conda_cleanup_tasks` plugin.",
+)
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .actions import ExtendConstAction
@@ -103,6 +117,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.gateways.disk.read.get_size` instead.",
+)
 def _get_size(*parts: str, warnings: list[str] | None) -> int:
     path = join(*parts)
     try:
@@ -123,14 +142,17 @@ def _get_size(*parts: str, warnings: list[str] | None) -> int:
         return stat.st_size
 
 
+@deprecated("25.3", "25.9")
 def _get_pkgs_dirs(pkg_sizes: dict[str, dict[str, int]]) -> dict[str, tuple[str, ...]]:
     return {pkgs_dir: tuple(pkgs) for pkgs_dir, pkgs in pkg_sizes.items()}
 
 
+@deprecated("25.3", "25.9")
 def _get_total_size(pkg_sizes: dict[str, dict[str, int]]) -> int:
     return sum(sum(pkgs.values()) for pkgs in pkg_sizes.values())
 
 
+@deprecated("25.3", "25.9")
 def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
     from ..gateways.disk.delete import rm_rf
 
@@ -148,6 +170,11 @@ def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
             log.info("%r", e)
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.subcommands.clean.cleanup_tasks.get_tarballs` instead.",
+)
 def find_tarballs() -> dict[str, Any]:
     from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_PARTS
 
@@ -177,6 +204,11 @@ def find_tarballs() -> dict[str, Any]:
     }
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.subcommands.clean.cleanup_tasks.get_unused_packages` instead.",
+)
 def find_pkgs() -> dict[str, Any]:
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
@@ -208,6 +240,11 @@ def find_pkgs() -> dict[str, Any]:
     }
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Define cleanup tasks instead via the `conda_cleanup_tasks` plugin.",
+)
 def rm_pkgs(
     pkgs_dirs: dict[str, tuple[str]],
     warnings: list[str],
@@ -258,6 +295,11 @@ def rm_pkgs(
             _rm_rf(pkgs_dir, pkg, quiet=quiet, verbose=verbose)
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.subcommands.clean.cleanup_tasks.get_index_cache` instead.",
+)
 def find_index_cache() -> list[str]:
     files = []
     for pkgs_dir in find_pkgs_dirs():
@@ -268,6 +310,11 @@ def find_index_cache() -> list[str]:
     return files
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.subcommands.clean.cleanup_tasks.get_pkgs_dirs` instead.",
+)
 def find_pkgs_dirs() -> list[str]:
     from ..core.package_cache_data import PackageCacheData
 
@@ -276,6 +323,11 @@ def find_pkgs_dirs() -> list[str]:
     ]
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.subcommands.clean.cleanup_tasks.get_tempfiles` instead.",
+)
 def find_tempfiles(paths: Iterable[str]) -> list[str]:
     from ..base.constants import CONDA_TEMP_EXTENSIONS
 
@@ -293,6 +345,11 @@ def find_tempfiles(paths: Iterable[str]) -> list[str]:
     return tempfiles
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.subcommands.clean.cleanup_tasks.get_logfiles` instead.",
+)
 def find_logfiles() -> list[str]:
     from ..base.constants import CONDA_LOGS_DIR
 
@@ -314,6 +371,11 @@ def find_logfiles() -> list[str]:
     return files
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Define cleanup tasks instead via the `conda_cleanup_tasks` plugin.",
+)
 def rm_items(
     items: list[str],
     *,
@@ -348,6 +410,7 @@ def rm_items(
         _rm_rf(item, quiet=quiet, verbose=verbose)
 
 
+@deprecated("25.3", "25.9")
 def _execute(args, parser):
     from ..base.context import context
 
@@ -404,6 +467,11 @@ def _execute(args, parser):
     return json_result
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Define cleanup tasks instead via the `conda_cleanup_tasks` plugin.",
+)
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from .common import stdout_json

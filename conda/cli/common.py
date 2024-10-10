@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
 
+from __future__ import annotations
+
 import re
 import sys
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, normcase
+from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -20,6 +23,9 @@ from ..exceptions import (
     EnvironmentLocationNotFound,
 )
 from ..models.match_spec import MatchSpec
+
+if TYPE_CHECKING:
+    from ..auxlib import _Null as NullType
 
 
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
@@ -54,7 +60,40 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
             return choices[user_choice]
 
 
-def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
+def confirm_yn(
+    message: str = "Proceed", default: str = "yes", dry_run: bool | NullType = NULL
+) -> bool:
+    return _confirm(
+        message=message,
+        default=default,
+        yes="yes",
+        quit="no",
+        choices=("yes", "no"),
+        dry_run=dry_run,
+    )
+
+
+def confirm_ynq(
+    message: str = "Proceed", default: str = "yes", dry_run: bool | NullType = NULL
+) -> bool:
+    return _confirm(
+        message=message,
+        default=default,
+        yes="yes",
+        quit="quit",
+        choices=("yes", "no", "quit"),
+        dry_run=dry_run,
+    )
+
+
+def _confirm(
+    message: str,
+    default: str,
+    yes: str,
+    quit: str,
+    choices: tuple[str, ...],
+    dry_run: bool | NullType,
+) -> bool:
     if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
 
@@ -63,17 +102,20 @@ def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
         return True
     try:
         choice = confirm(
-            message=message, choices=("yes", "no"), default=default, dry_run=dry_run
+            message=message,
+            choices=choices,
+            default=default,
+            dry_run=dry_run,
         )
     except KeyboardInterrupt:  # pragma: no cover
         from ..exceptions import CondaSystemExit
 
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
-    if choice == "no":
+    if choice == quit:
         from ..exceptions import CondaSystemExit
 
         raise CondaSystemExit("Exiting.")
-    return True
+    return choice == yes
 
 
 def is_active_prefix(prefix: str) -> bool:

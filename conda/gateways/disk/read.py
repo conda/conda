@@ -10,7 +10,7 @@ import os
 from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
-from functools import partial
+from functools import lru_cache, partial
 from itertools import chain
 from logging import getLogger
 from os.path import isdir, isfile, join  # noqa
@@ -319,3 +319,19 @@ def read_python_record(prefix_path, anchor_file, python_version):
         depends=depends,
         constrains=constrains,
     )
+
+
+def get_size(*parts: str | os.PathLike[str] | Path, error: bool = True) -> int:
+    try:
+        return _get_size(Path(*parts))
+    except OSError:
+        if error:
+            raise
+        return 0
+
+
+@lru_cache(maxsize=None)
+def _get_size(path: Path) -> int:
+    if path.is_dir():
+        return sum(_get_size(file) for file in path.iterdir())
+    return path.lstat().st_size
