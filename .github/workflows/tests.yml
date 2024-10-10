@@ -133,6 +133,9 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
+      - name: Inspect Shells
+        run: Get-Command bash -All  | Format-Table CommandType, Name, Source
+
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
@@ -239,6 +242,10 @@ jobs:
 
       - name: Conda List
         run: conda list --show-channel-urls
+
+      - name: Install Shells
+        # for conda activate tests
+        run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
 
       - name: Run Tests
         run: >
@@ -545,6 +552,10 @@ jobs:
 
       - name: Conda List
         run: conda list --show-channel-urls
+
+      - name: Install Shells
+        # for conda activate tests
+        run: brew update && brew install fish xonsh
 
       - name: Run Tests
         run: >
