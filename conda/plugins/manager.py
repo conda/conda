@@ -343,8 +343,8 @@ class CondaPluginManager(pluggy.PluginManager):
         }
 
     @deprecated(
-        "24.9",
         "25.3",
+        "25.9",
         addendum="Use `conda.plugins.manager.get_virtual_package_records` instead.",
     )
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:

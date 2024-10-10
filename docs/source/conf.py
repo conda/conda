@@ -165,7 +165,7 @@ autoapi_root = "dev-guide/api"
 autoapi_add_toctree_entry = False
 autoapi_template_dir = "_templates/autoapi"
 autoapi_python_class_content = "both"
-
+autoapi_keep_files = True
 
 suppress_warnings = [
     "autosectionlabel.*",

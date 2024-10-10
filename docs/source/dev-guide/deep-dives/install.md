@@ -458,7 +458,6 @@ PathAction
       LinkPathAction
         PrefixReplaceLinkAction
       MakeMenuAction
-      CreateNonadminAction
       CreatePythonEntryPointAction
       CreatePrefixRecordAction
       UpdateHistoryAction

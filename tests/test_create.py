@@ -47,6 +47,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
+    EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
@@ -57,7 +58,6 @@ from conda.exceptions import (
     UnsatisfiableError,
 )
 from conda.gateways.disk.create import compile_multiple_pyc
-from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
@@ -2303,12 +2303,6 @@ def test_force_remove(
         conda_cli("remove", f"--prefix={prefix}", "libarchive", "--yes")
         assert not package_is_installed(prefix, "libarchive")
 
-    # regression test for #3489
-    # don't raise for remove --all if environment doesn't exist
-    # split this into a new test
-    rm_rf(prefix, clean_empty_parents=True)
-    conda_cli("remove", f"--prefix={prefix}", "--all")
-
 
 def test_download_only_flag(
     tmp_env: TmpEnvFixture, mocker: MockerFixture, conda_cli: CondaCLIFixture
@@ -2605,7 +2599,7 @@ def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
     filename = tmp_path / "file.dat"
     filename.touch()
 
-    with pytest.raises(DirectoryNotACondaEnvironmentError):
+    with pytest.raises(EnvironmentLocationNotFound):
         conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
     assert filename.exists()
@@ -2663,3 +2657,20 @@ def test_create_dry_run_without_prefix(
 
 def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
+
+
+def test_nonadmin_file_untouched(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    channel = Path(__file__).parent / "test-recipes" / "noarch"
+    with tmp_env() as prefix:
+        nonadmin_file = prefix / ".nonadmin"
+        nonadmin_file.touch()
+        assert nonadmin_file.is_file()
+        conda_cli(
+            "install", "--yes", "--prefix", prefix, "--channel", channel, "dependency"
+        )
+        assert nonadmin_file.is_file(), ".nonadmin file removed after installation"
+        conda_cli("remove", "--yes", "--prefix", prefix, "dependency")
+        assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"

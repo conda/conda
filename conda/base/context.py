@@ -869,6 +869,15 @@ class Context(Configuration):
             default_channels = list(self._default_channels)
 
         if self.restore_free_channel:
+            deprecated.topic(
+                "24.9",
+                "25.3",
+                topic="Adding the 'free' channel as it existed prior to conda 4.7.",
+                addendum="See "
+                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
+                "for more details.",
+                deprecation_type=FutureWarning,
+            )
             default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
 
         reserved_multichannel_urls = {
@@ -939,9 +948,10 @@ class Context(Configuration):
                 return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
         addendum = (
+            "\n\n"
             "To remove this warning, please choose a default channel explicitly "
-            "via 'conda config --add channels <name>'. In the future, the implicit "
-            "default channel configuration will be removed."
+            "via 'conda config --add channels <name>', "
+            f"e.g. 'conda config --add channels {DEFAULTS_CHANNEL_NAME}'."
         )
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and "channel" in self._argparse_args:
@@ -972,7 +982,7 @@ class Context(Configuration):
             deprecated.topic(
                 "24.9",
                 "25.3",
-                topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
+                topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to the channel list implicitly",
                 addendum=addendum,
                 deprecation_type=FutureWarning,
             )
