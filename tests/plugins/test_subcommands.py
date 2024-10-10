@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -68,7 +69,7 @@ def test_help(plugin_manager, conda_cli: CondaCLIFixture, capsys: CaptureFixture
     stdout, stderr = capsys.readouterr()
 
     # assertions; make sure our command appears with the help blurb
-    assert "custom            Summary." in stdout
+    assert re.search(r"custom\s+Summary.", stdout) is not None
     assert not stderr
 
 

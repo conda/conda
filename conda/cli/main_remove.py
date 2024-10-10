@@ -9,7 +9,7 @@ import logging
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isfile, join
 
-from .common import confirm_yn
+from ..reporters import confirm_yn
 
 log = logging.getLogger(__name__)
 

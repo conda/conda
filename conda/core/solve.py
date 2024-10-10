@@ -21,7 +21,7 @@ from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, UNKNOWN_CHANNEL, DepsModifier, UpdateModifier
 from ..base.context import context
 from ..common.constants import NULL, TRACE
-from ..common.io import Spinner, dashlist, time_recorder
+from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
@@ -35,6 +35,7 @@ from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
+from ..reporters import get_spinner
 from ..resolve import Resolve
 from .index import _supplement_index_with_system, get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -357,11 +358,7 @@ class Solver:
                 return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
 
         if not ssc.r:
-            with Spinner(
-                f"Collecting package metadata ({self._repodata_fn})",
-                not context.verbose and not context.quiet and not retrying,
-                context.json,
-            ):
+            with get_spinner(f"Collecting package metadata ({self._repodata_fn})"):
                 ssc = self._collect_all_metadata(ssc)
 
         if should_retry_solve and update_modifier == UpdateModifier.FREEZE_INSTALLED:
@@ -377,12 +374,7 @@ class Solver:
         else:
             fail_message = "failed\n"
 
-        with Spinner(
-            "Solving environment",
-            not context.verbose and not context.quiet,
-            context.json,
-            fail_message=fail_message,
-        ):
+        with get_spinner("Solving environment", fail_message=fail_message):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)
