@@ -194,6 +194,24 @@ def ssl_verify_validation(value):
     return True
 
 
+def _warn_defaults_deprecation():
+    deprecated.topic(
+        "24.9",
+        "25.3",
+        topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
+        addendum=(
+            "\n\n"
+            "To remove this warning, please choose a default channel explicitly "
+            "with conda's regular configuration system, "
+            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels, e.g.:\n\n"
+            f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
+            "\n\n"
+            "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
+        ),
+        deprecation_type=FutureWarning,
+    )
+
+
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -947,12 +965,6 @@ class Context(Configuration):
             else:
                 return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
-        addendum = (
-            "\n\n"
-            "To remove this warning, please choose a default channel explicitly "
-            "via 'conda config --add channels <name>', "
-            f"e.g. 'conda config --add channels {DEFAULTS_CHANNEL_NAME}'."
-        )
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and "channel" in self._argparse_args:
             # TODO: it's args.channel right now, not channels
@@ -966,26 +978,14 @@ class Context(Configuration):
                 for rc_file in self.config_files
             )
             if argparse_channels and not channel_in_config_files:
-                deprecated.topic(
-                    "24.9",
-                    "25.3",
-                    topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
-                    addendum=addendum,
-                    deprecation_type=FutureWarning,
-                )
+                _warn_defaults_deprecation()
                 return tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
         if self._channels:
             _channels = self._channels
         else:
-            deprecated.topic(
-                "24.9",
-                "25.3",
-                topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to the channel list implicitly",
-                addendum=addendum,
-                deprecation_type=FutureWarning,
-            )
+            _warn_defaults_deprecation()
             _channels = [DEFAULTS_CHANNEL_NAME]
         return tuple(IndexedSet((*local_add, *_channels)))
 
