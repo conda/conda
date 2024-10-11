@@ -1,11 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.exceptions import EnvironmentLocationNotFound
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_conda_doctor_happy_path(conda_cli: CondaCLIFixture):

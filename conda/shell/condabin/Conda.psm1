@@ -191,13 +191,8 @@ function Expand-CondaSubcommands() {
         $Filter
     );
 
-    $ValidCommands = Invoke-Conda shell.powershell commands;
-
-    # Add in the commands defined within this wrapper, filter, sort, and return.
-    $ValidCommands + @('activate', 'deactivate') `
-        | Where-Object { $_ -like "$Filter*" } `
-        | Sort-Object `
-        | Write-Output;
+    # Filter and output applicable subcommands
+    Invoke-Conda commands | Where-Object { $_ -like "$Filter*" } | Write-Output;
 
 }
 

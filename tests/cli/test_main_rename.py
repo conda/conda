@@ -17,6 +17,7 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentNameNotFound,
 )
+from conda.gateways.disk.test import is_conda_environment
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -24,7 +25,11 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 @pytest.fixture
@@ -35,7 +40,8 @@ def env_rename(conda_cli: CondaCLIFixture) -> Iterable[str]:
     yield name
 
     # Teardown
-    conda_cli("remove", "--all", "--yes", "--name", name)
+    if is_conda_environment(name):
+        conda_cli("remove", "--all", "--yes", "--name", name)
 
 
 @pytest.fixture
@@ -47,7 +53,8 @@ def env_one(conda_cli: CondaCLIFixture) -> Iterable[str]:
     yield name
 
     # Teardown
-    conda_cli("remove", "--all", "--yes", "--name", name)
+    if is_conda_environment(name):
+        conda_cli("remove", "--all", "--yes", "--name", name)
 
 
 @pytest.fixture
@@ -59,7 +66,8 @@ def env_two(conda_cli: CondaCLIFixture) -> Iterable[str]:
     yield name
 
     # Teardown
-    conda_cli("remove", "--all", "--yes", "--name", name)
+    if is_conda_environment(name):
+        conda_cli("remove", "--all", "--yes", "--name", name)
 
 
 def test_rename_by_name_success(

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* `conda remove [env] --all` command no longer deletes empty parent directories for environments that are removed. (#14173)
+* Remove CreateNonAdminAction to prevent conda remove from deleting .nonadmin files. (#14271)
 
 ### Deprecations
 

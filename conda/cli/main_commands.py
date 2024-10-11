@@ -7,10 +7,7 @@ A mock implementation of the activate shell command for better UX.
 
 from __future__ import annotations
 
-from argparse import SUPPRESS
 from typing import TYPE_CHECKING
-
-from .. import CondaError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -18,15 +15,30 @@ if TYPE_CHECKING:
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     p = sub_parsers.add_parser(
-        "activate",
-        help="Activate a conda environment.",
+        "commands",
+        help=(
+            "List all available conda subcommands (including those from plugins). "
+            "Generally only used by tab-completion."
+        ),
         **kwargs,
     )
-    p.set_defaults(func="conda.cli.main_mock_activate.execute")
-    p.add_argument("args", action="store", nargs="*", help=SUPPRESS)
+    p.set_defaults(func="conda.cli.main_commands.execute")
 
     return p
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    raise CondaError("Run 'conda init' before 'conda activate'")
+    from .conda_argparse import find_builtin_commands
+    from .find_commands import find_commands
+
+    print(
+        *sorted(
+            {
+                *find_builtin_commands(parser),
+                *find_commands(True),
+            }
+        ),
+        sep="\n",
+        end="",
+    )
+    return 0
