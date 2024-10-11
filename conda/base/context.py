@@ -202,8 +202,8 @@ def _warn_defaults_deprecation():
         addendum=(
             "\n\n"
             "To remove this warning, please choose a default channel explicitly "
-            "with conda's regular configuration system, "
-            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels, e.g.:\n\n"
+            "with conda's regular configuration system, e.g. "
+            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n\n"
             f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
             "\n\n"
             "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
