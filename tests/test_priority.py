@@ -66,6 +66,6 @@ def test_reorder_channel_priority(
             # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
             # the request, so it stays in pkgs/main. Other transient deps do change, though.
             if on_linux:  # lazy, only check on linux
-                assert PrefixData(prefix).get("libgcc-ng").channel.name == "conda-forge"
+                assert PrefixData(prefix).get("zlib").channel.name == "conda-forge"
         else:
             assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
