@@ -2594,9 +2594,9 @@ def test_install_bound_virtual_package(tmp_env: TmpEnvFixture):
     "spec,dry_run",
     [
         ("__glibc", on_linux),
-        ("__unix", on_linux or on_osx),
+        ("__unix", on_linux or on_mac),
         ("__linux", on_linux),
-        ("__osx", on_osx),
+        ("__osx", on_mac),
         ("__win", on_win),
     ],
 )
