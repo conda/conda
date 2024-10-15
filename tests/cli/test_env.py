@@ -180,7 +180,9 @@ def test_create_valid_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIF
 
 
 @pytest.mark.integration
-def test_create_unsolvable_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+def test_create_unsolvable_env(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+):
     """
     Creates an environment.yml file and
     fails to solve the environment

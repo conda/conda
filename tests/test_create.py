@@ -2606,7 +2606,13 @@ def test_install_virtual_packages(conda_cli: CondaCLIFixture, spec: str, dry_run
     This means succeeding only if the virtual package is available.
     https://github.com/conda/conda-libmamba-solver/issues/480
     """
-    conda_cli("create", "--dry-run", "--offline", spec, raises=DryRunExit if dry_run else (UnsatisfiableError, PackagesNotFoundError))
+    conda_cli(
+        "create",
+        "--dry-run",
+        "--offline",
+        spec,
+        raises=DryRunExit if dry_run else (UnsatisfiableError, PackagesNotFoundError),
+    )
 
 
 @pytest.mark.integration
@@ -2632,7 +2638,9 @@ def test_repodata_v2_base_url(
     monkeypatch: MonkeyPatch,
     request: FixtureRequest,
 ):
-    if context.solver == "libmamba" and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0"):
+    if context.solver == "libmamba" and VersionOrder(
+        version("libmambapy")
+    ) < VersionOrder("2.0a0"):
         request.applymarker(
             pytest.mark.xfail(
                 context.solver == "libmamba",
