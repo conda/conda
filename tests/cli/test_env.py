@@ -17,6 +17,7 @@ from conda.exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
+    PackagesNotFoundError,
     SpecNotFound,
 )
 from conda.gateways.disk.test import is_conda_environment
@@ -88,6 +89,14 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["nonexisting_"]}],
+        "channels": context.channels,
+    }
+)
+
+ENVIRONMENT_UNSOLVABLE = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "dependencies": ["does-not-exist"],
         "channels": context.channels,
     }
 )
@@ -167,6 +176,24 @@ def test_create_valid_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIF
     )
     assert is_conda_environment(prefix)
     assert package_is_installed(prefix, "ca-certificates")
+
+
+@pytest.mark.integration
+def test_create_unsolvable_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+    """
+    Creates an environment.yml file and
+    fails to solve the environment
+    """
+    create_env(ENVIRONMENT_UNSOLVABLE)
+    prefix = path_factory()
+    conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        # "--file=environment.yml",  # this is the implied default
+        raises=PackagesNotFoundError,
+    )
+    assert not is_conda_environment(prefix)
 
 
 @pytest.mark.integration
