@@ -1054,7 +1054,7 @@ class CmdExeActivator(_Activator):
     sep = "\\"
     path_conversion = staticmethod(_path_identity)
     script_extension = ".bat"
-    tempfile_extension = ".bat"
+    tempfile_extension = None  # output to stdout
     command_join = "\n"
 
     unset_var_tmpl = "@SET %s="
