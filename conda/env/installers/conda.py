@@ -56,7 +56,7 @@ def install(prefix, specs, args, env, *_, **kwargs):
         # See this comment for 'allow_retry' details
         # https://github.com/conda/conda/blob/b4592e9eb0/conda/cli/install.py#L417-L429
         if not getattr(exc, "allow_retry", True):
-            raise exc
+            raise
         unlink_link_transaction = solver.solve_for_transaction(
             prune=getattr(args, "prune", False), update_modifier=NULL
         )

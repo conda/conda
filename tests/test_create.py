@@ -2600,7 +2600,7 @@ def test_install_bound_virtual_package(tmp_env: TmpEnvFixture):
         ("__win", on_win),
     ],
 )
-def test_install_virtual_packages(conda_cli: CondaCLIFixture, spec: str):
+def test_install_virtual_packages(conda_cli: CondaCLIFixture, spec: str, dry_run: bool):
     """
     Ensures a solver knows how to deal with virtual specs in the CLI.
     This means succeeding only if the virtual package is available.
@@ -2632,7 +2632,7 @@ def test_repodata_v2_base_url(
     monkeypatch: MonkeyPatch,
     request: FixtureRequest,
 ):
-    if context.solver == "libmamba" and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
+    if context.solver == "libmamba" and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0"):
         request.applymarker(
             pytest.mark.xfail(
                 context.solver == "libmamba",
