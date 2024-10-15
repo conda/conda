@@ -18,6 +18,7 @@ from conda.exceptions import (
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
     PackagesNotFoundError,
+    ResolvePackageNotFound,
     SpecNotFound,
 )
 from conda.gateways.disk.test import is_conda_environment
@@ -191,7 +192,7 @@ def test_create_unsolvable_env(path_factory: PathFactoryFixture, conda_cli: Cond
         "create",
         f"--prefix={prefix}",
         # "--file=environment.yml",  # this is the implied default
-        raises=PackagesNotFoundError,
+        raises=(PackagesNotFoundError, ResolvePackageNotFound),
     )
     assert not is_conda_environment(prefix)
 
