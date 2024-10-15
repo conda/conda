@@ -2630,7 +2630,17 @@ def test_repodata_v2_base_url(
     tmp_path: Path,
     conda_cli: CondaCLIFixture,
     monkeypatch: MonkeyPatch,
+    request: FixtureRequest,
 ):
+    if context.solver == "libmamba" and version("libmambapy").startswith(("0.", "1.")):
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "libmamba",
+                reason="Libmamba v1 does not support CEP-15.",
+                strict=True,
+                run=True,
+            )
+        )
     monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
     reset_context()
     prefix = tmp_path / "env"
