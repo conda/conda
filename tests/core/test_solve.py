@@ -3099,7 +3099,7 @@ def test_freeze_deps_1(tmpdir):
                     ()
                     if (
                         context.solver == "libmamba"
-                        and version("libmambapy").startswith(("0.", "1."))
+                        and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
                     )
                     else ("channel-2::xz-5.2.3-0",)
                 ),

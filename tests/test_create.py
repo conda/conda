@@ -66,6 +66,7 @@ from conda.gateways.subprocess import (
 )
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
+from conda.models.version import VersionOrder
 from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2
 from conda.testing.integration import (
@@ -2632,7 +2633,7 @@ def test_repodata_v2_base_url(
     monkeypatch: MonkeyPatch,
     request: FixtureRequest,
 ):
-    if context.solver == "libmamba" and version("libmambapy").startswith(("0.", "1.")):
+    if context.solver == "libmamba" and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
         request.applymarker(
             pytest.mark.xfail(
                 context.solver == "libmamba",
