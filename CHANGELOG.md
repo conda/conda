@@ -1,5 +1,20 @@
 [//]: # (current developments)
 
+## 24.9.2 (2024-10-16)
+
+### Bug fixes
+
+* Refine the deprecation warning to the prepopulation of the channel list with "defaults". (#14305)
+* Add protected directories guardrail to `conda create` command. (#14282 via 14315)
+
+### Contributors
+
+* @jezdez
+* @ForgottenProgramme
+* @travishathaway
+
+
+
 ## 24.9.1 (2024-10-01)
 
 ### Bug fixes
