@@ -67,7 +67,6 @@ from .package_cache_data import PackageCacheData
 from .path_actions import (
     AggregateCompileMultiPycAction,
     CompileMultiPycAction,
-    CreateNonadminAction,
     CreatePrefixRecordAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
@@ -636,8 +635,6 @@ class UnlinkLinkTransaction:
             for link_path_action in axn.all_link_path_actions:
                 if isinstance(link_path_action, CompileMultiPycAction):
                     target_short_paths = link_path_action.target_short_paths
-                elif isinstance(link_path_action, CreateNonadminAction):
-                    continue
                 else:
                     target_short_paths = (
                         (link_path_action.target_short_path,)
@@ -1138,13 +1135,11 @@ class UnlinkLinkTransaction:
         create_directory_actions = LinkPathAction.create_directory_actions(
             *required_quad, file_link_actions=file_link_actions
         )
-        create_nonadmin_actions = CreateNonadminAction.create_actions(*required_quad)
 
         # the ordering here is significant
         return (
             *create_directory_actions,
             *file_link_actions,
-            *create_nonadmin_actions,
         )
 
     @staticmethod

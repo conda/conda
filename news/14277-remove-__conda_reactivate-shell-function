@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.exports.move_to_trash` as pending deprecation. Use `conda.gateways.disk.delete.rm_rf` instead. (#14118)
+* Remove `__conda_reactivate` shell function in favor of `__conda_activate reactivate`. (#14277)
 
 ### Docs
 

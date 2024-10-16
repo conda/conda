@@ -270,12 +270,15 @@ def install(args, parser, command="install"):
             if MatchSpec(default_package).name not in names:
                 args_packages.append(default_package)
 
+    context_channels = context.channels
     index_args = {
-        "use_cache": args.use_index_cache,
-        "channel_urls": context.channels,
-        "unknown": args.unknown,
-        "prepend": not args.override_channels,
-        "use_local": args.use_local,
+        # TODO: deprecate --use-index-cache
+        # "use_cache": args.use_index_cache,  # --use-index-cache
+        "channel_urls": context_channels,
+        # TODO: deprecate --unknown
+        # "unknown": args.unknown,  # --unknown
+        "prepend": not args.override_channels,  # --override-channels
+        "use_local": args.use_local,  # --use-local
     }
 
     num_cp = sum(is_package_file(s) for s in args_packages)
@@ -302,7 +305,7 @@ def install(args, parser, command="install"):
                     " packages \nconda create --help for details"
                 )
         if "@EXPLICIT" in specs:
-            explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
+            explicit(specs, prefix, verbose=not context.quiet)
             if newenv:
                 touch_nonadmin(prefix)
                 print_activate(args.name or prefix)
@@ -377,11 +380,11 @@ def install(args, parser, command="install"):
                 ):
                     index = get_index(
                         channel_urls=index_args["channel_urls"],
-                        prepend=index_args["prepend"],
+                        prepend=index_args["prepend"],  # --override-channels
                         platform=None,
-                        use_local=index_args["use_local"],
-                        use_cache=index_args["use_cache"],
-                        unknown=index_args["unknown"],
+                        use_local=index_args["use_local"],  # --use-local
+                        # use_cache=index_args["use_cache"],  # --use-index-cache
+                        # unknown=index_args["unknown"],  # --unknown
                         prefix=prefix,
                         repodata_fn=repodata_fn,
                     )
@@ -398,7 +401,7 @@ def install(args, parser, command="install"):
                 solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(
                     prefix,
-                    context.channels,
+                    context_channels,
                     context.subdirs,
                     specs_to_add=specs,
                     repodata_fn=repodata_fn,

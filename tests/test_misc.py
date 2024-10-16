@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-    from conda.testing import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture
 
 
 def test_Utf8NamedTemporaryFile():

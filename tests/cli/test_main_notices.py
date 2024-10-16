@@ -1,14 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import datetime
 import glob
 import hashlib
 import json
 import os
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.base.context import context, reset_context
@@ -16,7 +17,6 @@ from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.exceptions import CondaError, PackagesNotFoundError
 from conda.notices import fetch
-from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -24,6 +24,12 @@ from conda.testing.notices.helpers import (
     get_test_notices,
     offset_cache_file_mtime,
 )
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
 
 @pytest.fixture

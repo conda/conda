@@ -20,6 +20,7 @@ import pluggy
 
 from ..auxlib.ish import dals
 from ..base.context import add_plugin_setting, context
+from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
@@ -341,8 +342,19 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    @deprecated(
+        "25.3",
+        "25.9",
+        addendum="Use `conda.plugins.manager.get_virtual_package_records` instead.",
+    )
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
+
+    def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
+        return tuple(
+            hook.to_virtual_package()
+            for hook in self.get_hook_results("virtual_packages")
+        )
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

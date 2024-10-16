@@ -1,13 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
 import random
 from io import StringIO
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
@@ -19,10 +20,16 @@ from conda.env.env import (
 )
 from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
-from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.integration import package_is_installed
 
 from . import support_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
 
 class FakeStream:

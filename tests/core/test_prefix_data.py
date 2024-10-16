@@ -19,7 +19,7 @@ from conda.testing.helpers import record
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing import TmpEnvFixture
+    from conda.testing.fixtures import TmpEnvFixture
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
@@ -385,3 +385,25 @@ def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
         assert "/t/<TOKEN>/" in json_content
     else:
         assert "/t/some-fake-token/" in json_content
+
+
+@pytest.mark.parametrize(
+    "prefix1,prefix2,equals",
+    [
+        ("missing", None, False),
+        ("missing", "missing", True),
+        ("missing", "{path}", False),
+        ("{path}", None, False),
+        ("{path}", "missing", False),
+        ("{path}", "{path}", True),
+    ],
+)
+def test_prefix_data_equality(
+    tmp_path: Path,
+    prefix1: str,
+    prefix2: str | None,
+    equals: bool,
+) -> None:
+    prefix_data1 = PrefixData(prefix1.format(path=tmp_path))
+    prefix_data2 = PrefixData(prefix2.format(path=tmp_path)) if prefix2 else prefix2
+    assert (prefix_data1 == prefix_data2) is equals
