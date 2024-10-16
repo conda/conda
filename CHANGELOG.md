@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Refine the deprecation warning to the prepopulation of the channel list with "defaults". (#14305)
-* Add protected directories guardrail to `conda create` command. (#14282 via 14315)
+* Add protected directories guardrail to `conda create` command. (#14282 via #14315)
 
 ### Contributors
 
