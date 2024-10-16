@@ -624,7 +624,7 @@ jobs:
         if: always() && github.event_name != 'pull_request' && steps.alls-green.outputs.result == 'failure'
         uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5 # v2.9.2
         env:
-          GITHUB_TOKEN: ${{ secrets.CONDA_ISSUES }}
+          GITHUB_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
           RUN_ID: ${{ github.run_id }}
           TITLE: Tests failed
         with:
