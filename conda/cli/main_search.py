@@ -227,9 +227,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             print("\n".join(builder))
         return 0
 
-    spinner = get_spinner("Loading channels")
-
-    with spinner:
+    with get_spinner("Loading channels"):
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
 

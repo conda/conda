@@ -855,7 +855,7 @@ class ProgressiveFetchExtract:
                             actions=(cache_action,),
                             exceptions=exceptions,
                             progress_bar=progress_bar,
-                            finish=False,
+                            finish=True,
                         )
                     )
                     futures.append(future)
