@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds support for defining spinners for the reporter backends plugin hook (#14206)
+* Adds support for defining spinners for the reporter backends plugin hook. (#14206)
 
 ### Bug fixes
 

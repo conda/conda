@@ -907,7 +907,9 @@ class ProgressiveFetchExtract:
             if exceptions:
                 # avoid printing one CancelledError() per pending download
                 not_cancelled = [
-                    e for e in exceptions if not isinstance(e, CancelledError)
+                    exception
+                    for exception in exceptions
+                    if not isinstance(exception, CancelledError)
                 ]
                 raise CondaMultiError(not_cancelled)
 
