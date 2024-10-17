@@ -108,7 +108,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import ArgumentError, CondaValueError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
-    from .common import confirm_yn
+    from ..reporters import confirm_yn
     from .install import check_prefix, install
 
     if not args.name and not args.prefix:
