@@ -14,7 +14,7 @@ from logging import getLogger
 from os.path import basename, isdir
 from pathlib import Path
 from shutil import rmtree
-from subprocess import check_call, check_output
+from subprocess import CalledProcessError, check_call, check_output, run
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -2288,6 +2288,50 @@ def test_dont_remove_conda_2(
         assert any(isinstance(e, RemoveError) for e in exc.value.errors)
         assert package_is_installed(prefix, "conda")
         assert package_is_installed(prefix, "pycosat")
+
+
+def test_dont_remove_conda_3(
+    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch
+):
+    """
+    If conda thinks its core dependency is uninstalled (happens when pip
+    upgrades a dependency) it could produce spurious RemoveError, blocking
+    further use of conda.
+    """
+    with tmp_env("conda") as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
+        monkeypatch.setenv("CONDA_PREFIX", str(prefix))
+        reset_context()
+        assert context.root_prefix == str(prefix)
+
+        # conda-package-handling may be a more durable dependency than pycosat
+        conda_dependency = "conda-package-handling"
+        assert package_is_installed(prefix, conda_dependency)
+        next((prefix / "conda-meta").glob(f"{conda_dependency}-*.json")).unlink()
+
+        # this list is cached
+        PrefixData(str(prefix)).reload()
+        assert not package_is_installed(prefix, conda_dependency)
+
+        lightweight_dependency = "setuptools-scm"
+        assert not package_is_installed(prefix, lightweight_dependency)
+
+        with pytest.raises(CalledProcessError):
+            try:
+                run(
+                    [
+                        prefix / "bin" / "conda",
+                        "install",
+                        "--yes",
+                        lightweight_dependency,
+                    ],
+                    capture_output=True,
+                    check=True,
+                    encoding="utf-8",
+                )
+            except CalledProcessError as e:
+                assert "RemoveError" in e.stderr
+                raise
 
 
 def test_force_remove(
