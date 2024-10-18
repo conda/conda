@@ -2316,11 +2316,13 @@ def test_dont_remove_conda_3(
         lightweight_dependency = "setuptools-scm"
         assert not package_is_installed(prefix, lightweight_dependency)
 
+        exe = "conda.exe" if on_win else "conda"
+
         with pytest.raises(CalledProcessError):
             try:
                 run(
                     [
-                        prefix / "bin" / "conda",
+                        prefix / "bin" / exe,
                         "install",
                         "--yes",
                         lightweight_dependency,
