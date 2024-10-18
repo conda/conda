@@ -106,6 +106,9 @@ If a patch release is necessary, reopen the original release issue and append th
 > [!NOTE]
 > The [epic template][epic template] is perfect for this; remember to remove the **`epic`** label.
 
+> [!NOTE]
+A patch release is like a regular i.e. you follow all the steps in the process as you would for the main release. The `rever` activities required to be run during a patch release process might be less than for a regular release, as patch release usually includes small number of changes mostly made by `conda` maintainers themselves.
+
 ## 2. Alert various parties of the upcoming release. (do this ~1 week prior to release)
 
 Let various interested parties know about the upcoming release; at minimum, conda-forge maintainers should be informed. For major features, a blog post describing the new features should be prepared and posted once the release is completed (see the announcements section of the release issue).
@@ -159,6 +162,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 2. Run `rever --activities authors <VERSION>`:
 
     > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
+    > `<VERSION>` means `YY.M.[$patch_number]` through out this document (e.g. 24.9.1).</br>
     > Include `--force` when re-running any rever commands for the same `<VERSION>`, otherwise, rever will skip the activity and no changes will be made (i.e., rever remembers if an activity has been run for a given version).
 
     ```bash
