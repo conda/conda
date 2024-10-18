@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
+        CondaHttpHeader,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
@@ -331,4 +332,10 @@ class CondaSpecs:
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
+        """
+
+    @_hookspec
+    def conda_http_headers(self) -> Iterable[[CondaHttpHeader]]:
+        """
+        Register new HTTP request headers
         """

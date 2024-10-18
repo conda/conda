@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
+        CondaHttpHeader,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
@@ -195,6 +196,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["post_solves"]
     ) -> list[CondaPostSolve]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["http_headers"]
+    ) -> list[CondaHttpHeader]: ...
 
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
@@ -355,6 +361,9 @@ class CondaPluginManager(pluggy.PluginManager):
             hook.to_virtual_package()
             for hook in self.get_hook_results("virtual_packages")
         )
+
+    def get_http_headers(self) -> tuple[CondaHttpHeader, ...]:
+        return tuple(hook for hook in self.get_hook_results("http_headers"))
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

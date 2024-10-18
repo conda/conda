@@ -73,6 +73,16 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
+def get_plugin_headers():
+    """
+    Retrieves all HTTP headers set by plugins
+    """
+    return {
+        hook.header_name: hook.header_value
+        for hook in context.plugin_manager.get_http_headers()
+    }
+
+
 @lru_cache(maxsize=None)
 def get_session(url: str):
     """
@@ -80,11 +90,12 @@ def get_session(url: str):
     based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
+    plugin_headers = get_plugin_headers()
 
     # If for whatever reason a channel name can't be determined, (should be unlikely)
     # we just return the default session object.
     if channel_name is None:
-        return CondaSession()
+        return CondaSession(plugin_headers=plugin_headers)
 
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
@@ -113,12 +124,12 @@ def get_session(url: str):
 
     # Return default session object
     if auth_handler is None:
-        return CondaSession()
+        return CondaSession(plugin_headers=plugin_headers)
 
     auth_handler_cls = context.plugin_manager.get_auth_handler(auth_handler)
 
     if not auth_handler_cls:
-        return CondaSession()
+        return CondaSession(plugin_headers=plugin_headers)
 
     return CondaSession(auth=auth_handler_cls(channel_name))
 
@@ -165,7 +176,11 @@ class CondaSessionType(type):
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
-    def __init__(self, auth: AuthBase | tuple[str, str] | None = None):
+    def __init__(
+        self,
+        auth: AuthBase | tuple[str, str] | None = None,
+        plugin_headers: dict[str, str] | None = None,
+    ):
         """
         :param auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
@@ -217,6 +232,10 @@ class CondaSession(Session, metaclass=CondaSessionType):
         self.mount("file://", LocalFSAdapter())
 
         self.headers["User-Agent"] = context.user_agent
+
+        if plugin_headers is not None:
+            for header_name, header_value in plugin_headers.items():
+                self.headers[header_name] = header_value
 
         if context.client_ssl_cert_key:
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)

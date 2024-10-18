@@ -214,3 +214,15 @@ class CondaSetting:
     description: str
     parameter: Parameter
     aliases: tuple[str, ...] = tuple()
+
+
+@dataclass
+class CondaHttpHeader:
+    """
+    Define vendor specific headers to include HTTP requests
+    """
+
+    name: str
+    description: str
+    header_name: str
+    header_value: str
