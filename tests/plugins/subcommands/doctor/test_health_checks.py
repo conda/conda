@@ -245,7 +245,7 @@ def test_not_env_txt_check_action(
     assert X_MARK in captured.out
 
 
-def test_requests_ca_bundle_check_action_passes(
+def test_requests_ca_bundle_check_action_existent_path(
     env_ok: tuple[Path, str, str, str, str],
     capsys: CaptureFixture,
     monkeypatch: MonkeyPatch,
@@ -254,11 +254,6 @@ def test_requests_ca_bundle_check_action_passes(
 ):
     prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
-    response = Response()
-    response.status_code = 200
-    mocker.patch(
-        "conda.gateways.connection.session.CondaSession.get", return_value=response
-    )
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
@@ -279,6 +274,25 @@ def test_requests_ca_bundle_check_action_non_existent_path(
     )
 
 
+def test_requests_ca_bundle_check_action_passes(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+    mocker: MockerFixture,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "https://example.org/")
+    response = Response()
+    response.status_code = 200
+    mocker.patch(
+        "conda.gateways.connection.session.CondaSession.get", return_value=response
+    )
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
+
+
 def test_requests_ca_bundle_check_action_fails(
     env_ok: tuple[Path, str, str, str, str],
     capsys: CaptureFixture,
@@ -286,7 +300,7 @@ def test_requests_ca_bundle_check_action_fails(
     tmp_path: Path,
 ):
     prefix, _, _, _, _ = env_ok
-    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "https://example.org/file")
     requests_ca_bundle_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert (

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from logging import getLogger
 from pathlib import Path
 
@@ -159,7 +160,9 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
     requests_ca_bundle = os.getenv("REQUESTS_CA_BUNDLE")
     if not requests_ca_bundle:
         return
-    elif not Path(requests_ca_bundle).exists():
+    elif Path(requests_ca_bundle).exists():
+        print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
+    elif re.match("^https://", requests_ca_bundle) is None:
         print(
             f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
         )
