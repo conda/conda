@@ -11,7 +11,7 @@ from conda.base.context import context, reset_context
 from conda.exceptions import CondaValueError
 
 if TYPE_CHECKING:
-    from pytest import MonkeyPatch
+    from pytest import CaptureFixture, MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture
 
@@ -80,11 +80,17 @@ def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture):
     assert not os.path.exists("env_name" + ".yml")
 
 
-def test_export_with_json(conda_cli: CondaCLIFixture):
-    conda_cli(
+def test_export_with_json(conda_cli: CondaCLIFixture, capsys: CaptureFixture):
+    output = conda_cli(
         "export",
         f"--name={TEST_ENV_NAME}",
         "--json",
         f"--file={TEST_ENV_NAME}.yml",
     )
+
+    assert f'"name": "{TEST_ENV_NAME}"' in output[0]
+
+    # Ensure the command executed successfully without any errors
+    assert output[2] == 0
+
     assert os.path.exists(TEST_ENV_NAME + ".yml")
