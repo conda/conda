@@ -220,8 +220,8 @@ def rm_pkgs(
     name: str,
 ) -> None:
     from ..base.context import context
+    from ..reporters import confirm_yn
     from ..utils import human_bytes
-    from .common import confirm_yn
 
     if not quiet and warnings:
         for warning in warnings:
@@ -323,7 +323,7 @@ def rm_items(
     name: str,
 ) -> None:
     from ..base.context import context
-    from .common import confirm_yn
+    from ..reporters import confirm_yn
 
     if not items:
         if not quiet:
