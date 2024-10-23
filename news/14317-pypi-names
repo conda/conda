@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* `conda remove [env] --all` command no longer deletes empty parent directories for environments that are removed. (#14173)
+* Do not map Python distribution names to conda names in `PrefixData(pip_interop_enabled=True)`. (#14310 via #14317)
 
 ### Deprecations
 

@@ -1,13 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
-from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.exceptions import DryRunExit
 from conda.plugins import solvers
-from conda.plugins.manager import CondaPluginManager
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from conda.plugins.manager import CondaPluginManager
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 class PostSolvePlugin:

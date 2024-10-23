@@ -47,6 +47,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
+    EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
@@ -57,7 +58,6 @@ from conda.exceptions import (
     UnsatisfiableError,
 )
 from conda.gateways.disk.create import compile_multiple_pyc
-from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
@@ -66,6 +66,7 @@ from conda.gateways.subprocess import (
 )
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
+from conda.models.version import VersionOrder
 from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2
 from conda.testing.integration import (
@@ -82,7 +83,7 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import (
+    from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
         TmpChannelFixture,
@@ -2303,12 +2304,6 @@ def test_force_remove(
         conda_cli("remove", f"--prefix={prefix}", "libarchive", "--yes")
         assert not package_is_installed(prefix, "libarchive")
 
-    # regression test for #3489
-    # don't raise for remove --all if environment doesn't exist
-    # split this into a new test
-    rm_rf(prefix, clean_empty_parents=True)
-    conda_cli("remove", f"--prefix={prefix}", "--all")
-
 
 def test_download_only_flag(
     tmp_env: TmpEnvFixture, mocker: MockerFixture, conda_cli: CondaCLIFixture
@@ -2595,6 +2590,31 @@ def test_install_bound_virtual_package(tmp_env: TmpEnvFixture):
         pass
 
 
+@pytest.mark.parametrize(
+    "spec,dry_run",
+    [
+        ("__glibc", on_linux),
+        ("__unix", on_linux or on_mac),
+        ("__linux", on_linux),
+        ("__osx", on_mac),
+        ("__win", on_win),
+    ],
+)
+def test_install_virtual_packages(conda_cli: CondaCLIFixture, spec: str, dry_run: bool):
+    """
+    Ensures a solver knows how to deal with virtual specs in the CLI.
+    This means succeeding only if the virtual package is available.
+    https://github.com/conda/conda-libmamba-solver/issues/480
+    """
+    conda_cli(
+        "create",
+        "--dry-run",
+        "--offline",
+        spec,
+        raises=DryRunExit if dry_run else (UnsatisfiableError, PackagesNotFoundError),
+    )
+
+
 @pytest.mark.integration
 def test_remove_empty_env(tmp_path: Path, conda_cli: CondaCLIFixture):
     conda_cli("create", f"--prefix={tmp_path}", "--yes")
@@ -2605,7 +2625,7 @@ def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
     filename = tmp_path / "file.dat"
     filename.touch()
 
-    with pytest.raises(DirectoryNotACondaEnvironmentError):
+    with pytest.raises(EnvironmentLocationNotFound):
         conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
     assert filename.exists()
@@ -2618,11 +2638,13 @@ def test_repodata_v2_base_url(
     monkeypatch: MonkeyPatch,
     request: FixtureRequest,
 ):
-    if context.solver == "libmamba":
+    if context.solver == "libmamba" and VersionOrder(
+        version("libmambapy")
+    ) < VersionOrder("2.0a0"):
         request.applymarker(
             pytest.mark.xfail(
                 context.solver == "libmamba",
-                reason="Libmamba does not support CEP-15 yet.",
+                reason="Libmamba v1 does not support CEP-15.",
                 strict=True,
                 run=True,
             )
@@ -2663,3 +2685,20 @@ def test_create_dry_run_without_prefix(
 
 def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
+
+
+def test_nonadmin_file_untouched(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    channel = Path(__file__).parent / "test-recipes" / "noarch"
+    with tmp_env() as prefix:
+        nonadmin_file = prefix / ".nonadmin"
+        nonadmin_file.touch()
+        assert nonadmin_file.is_file()
+        conda_cli(
+            "install", "--yes", "--prefix", prefix, "--channel", channel, "dependency"
+        )
+        assert nonadmin_file.is_file(), ".nonadmin file removed after installation"
+        conda_cli("remove", "--yes", "--prefix", prefix, "dependency")
+        assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"

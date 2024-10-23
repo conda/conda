@@ -482,18 +482,28 @@ class ChannelError(CondaError):
 
 
 class ChannelNotAllowed(ChannelError):
+    warning = "Channel not included in allowlist"
+
     def __init__(self, channel):
-        channel = Channel(channel)
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
         message = dals(
             """
-        Channel not included in allowlist:
+        %(warning)s:
           channel name: %(channel_name)s
           channel url: %(channel_url)s
         """
         )
-        super().__init__(message, channel_url=channel_url, channel_name=channel_name)
+        super().__init__(
+            message,
+            channel_url=channel_url,
+            channel_name=channel_name,
+            warning=self.warning,
+        )
+
+
+class ChannelDenied(ChannelNotAllowed):
+    warning = "Channel included in denylist"
 
 
 class UnavailableInvalidChannel(ChannelError):

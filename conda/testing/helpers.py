@@ -14,11 +14,12 @@ from uuid import uuid4
 
 import pytest
 
+from ..base.constants import REPODATA_FN
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
 from ..common.io import env_var
 from ..core.prefix_data import PrefixData
-from ..core.subdir_data import SubdirData, make_feature_record
+from ..core.subdir_data import SubdirData
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..history import History
@@ -147,7 +148,7 @@ def add_feature_records_legacy(index):
             all_features.update(rec.track_features)
 
     for feature_name in all_features:
-        rec = make_feature_record(feature_name)
+        rec = PackageRecord.feature(feature_name)
         index[rec] = rec
 
 
@@ -263,10 +264,10 @@ def _get_index_r_base(
     else:
         raise ValueError("'json_filename_or_data' must be path-like or dict")
 
+    packages = {subdir: {}, "noarch": {}}
     if merge_noarch:
-        packages = {subdir: all_packages}
+        packages[subdir] = all_packages
     else:
-        packages = {subdir: {}, "noarch": {}}
         for key, pkg in all_packages.items():
             if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
                 packages["noarch"][key] = pkg
@@ -296,7 +297,7 @@ def _get_index_r_base(
         ):
             sd._process_raw_repodata_str(json.dumps(repodata))
         sd._loaded = True
-        SubdirData._cache_[channel.url(with_credentials=True)] = sd
+        SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
         _patch_for_local_exports(channel_name, sd)
 
     # this is for the classic solver only, which is fine with a single collapsed index

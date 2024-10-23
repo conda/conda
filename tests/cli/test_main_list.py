@@ -16,7 +16,11 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 @pytest.fixture

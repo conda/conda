@@ -10,6 +10,7 @@ import re
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import (
@@ -40,6 +41,9 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
 
+if TYPE_CHECKING:
+    from typing import Any
+
 log = getLogger(__name__)
 
 
@@ -66,12 +70,12 @@ class PrefixData(metaclass=PrefixDataType):
 
     def __init__(
         self,
-        prefix_path: Path,
+        prefix_path: str | os.PathLike[str] | Path,
         pip_interop_enabled: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
-        self.prefix_path = prefix_path
+        self.prefix_path = Path(prefix_path)
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -79,6 +83,19 @@ class PrefixData(metaclass=PrefixDataType):
             if pip_interop_enabled is not None
             else context.pip_interop_enabled
         )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, PrefixData):
+            return False
+        if self.prefix_path.exists():
+            if other.prefix_path.exists():
+                return self.prefix_path.samefile(other.prefix_path)
+            return False  # only one prefix exists, cannot be the same
+        elif other.prefix_path.exists():
+            return False  # only one prefix exists, cannot be the same
+        else:
+            # neither prefix exists, raw comparison
+            return self.prefix_path.resolve() == other.prefix_path.resolve()
 
     @time_recorder(module_name=__name__)
     def load(self):
@@ -105,7 +122,7 @@ class PrefixData(metaclass=PrefixDataType):
         # .dist-info is for things installed by pip
         for ext in CONDA_PACKAGE_EXTENSIONS + (".dist-info",):
             if fn.endswith(ext):
-                fn = fn.replace(ext, "")
+                fn = fn[: -len(ext)]
                 known_ext = True
         if not known_ext:
             raise ValueError(

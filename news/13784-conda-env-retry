@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Do not retry solves twice in failed `conda env` runs. (#13784)
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Document `--platform` flag for `conda [env] create`. (#14100 via #14181)
+* <news item>
 
 ### Other
 

@@ -97,9 +97,9 @@ class MatchSpec(metaclass=MatchSpecType):
     :class:`MatchSpec` can also be composed using a single positional argument, with optional
     keyword arguments.  Keyword arguments also override any conflicting information provided in
     the positional argument.  The positional argument can be either an existing :class:`MatchSpec`
-    instance or a string.  Conda has historically had several string representations for equivalent
-    :class:`MatchSpec`s.  This :class:`MatchSpec` should accept any existing valid spec string, and
-    correctly compose a :class:`MatchSpec` instance.
+    instance or a string.  Conda has historically supported more than one string representation
+    for equivalent :class:`MatchSpec` queries.  This :class:`MatchSpec` should accept any existing
+    valid spec string, and correctly compose a :class:`MatchSpec` instance.
 
     A series of rules are now followed for creating the canonical string representation of a
     :class:`MatchSpec` instance.  The canonical string representation can generically be

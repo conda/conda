@@ -194,6 +194,24 @@ def ssl_verify_validation(value):
     return True
 
 
+def _warn_defaults_deprecation():
+    deprecated.topic(
+        "24.9",
+        "25.3",
+        topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
+        addendum=(
+            "\n\n"
+            "To remove this warning, please choose a default channel explicitly "
+            "with conda's regular configuration system, e.g. "
+            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n\n"
+            f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
+            "\n\n"
+            "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
+        ),
+        deprecation_type=FutureWarning,
+    )
+
+
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -353,9 +371,7 @@ class Context(Configuration):
     )
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        SequenceParameter(
-            PrimitiveParameter("", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)
-        ),
+        SequenceParameter(PrimitiveParameter("", element_type=str), default=()),
         aliases=(
             "channels",
             "channel",
@@ -395,6 +411,10 @@ class Context(Configuration):
     allowlist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         aliases=("whitelist_channels",),
+        expandvars=True,
+    )
+    denylist_channels = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True,
     )
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
@@ -867,6 +887,15 @@ class Context(Configuration):
             default_channels = list(self._default_channels)
 
         if self.restore_free_channel:
+            deprecated.topic(
+                "24.9",
+                "25.3",
+                topic="Adding the 'free' channel as it existed prior to conda 4.7.",
+                addendum="See "
+                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
+                "for more details.",
+                deprecation_type=FutureWarning,
+            )
             default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
 
         reserved_multichannel_urls = {
@@ -949,11 +978,16 @@ class Context(Configuration):
                 for rc_file in self.config_files
             )
             if argparse_channels and not channel_in_config_files:
+                _warn_defaults_deprecation()
                 return tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
-
-        return tuple(IndexedSet((*local_add, *self._channels)))
+        if self._channels:
+            _channels = self._channels
+        else:
+            _warn_defaults_deprecation()
+            _channels = [DEFAULTS_CHANNEL_NAME]
+        return tuple(IndexedSet((*local_add, *_channels)))
 
     @property
     def config_files(self):
@@ -1170,6 +1204,7 @@ class Context(Configuration):
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
+                "denylist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1820,6 +1855,15 @@ class Context(Configuration):
                 other channels will result in an error. If conda-build channels are to be
                 allowed, along with the --use-local command line flag, be sure to include the
                 'local' channel in the list. If the list is empty or left undefined, no
+                channel exclusions will be enforced.
+                """
+            ),
+            denylist_channels=dals(
+                """
+                The list of channels that are denied to be used on the system. Use of any
+                of these channels will result in an error. If conda-build channels are to be
+                allowed, along with the --use-local command line flag, be sure to not include
+                the 'local' channel in the list. If the list is empty or left undefined, no
                 channel exclusions will be enforced.
                 """
             ),

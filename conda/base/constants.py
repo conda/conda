@@ -90,7 +90,6 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
 
 RECOGNIZED_URL_SCHEMES = ("http", "https", "ftp", "s3", "file")
 
-
 DEFAULT_CHANNELS_UNIX = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",

@@ -119,10 +119,10 @@ specifications simpler.
 
 
 An example of a metapackage is "anaconda," which
-collects together all the packages in the Anaconda installer.
-The command ``conda create -n envname anaconda`` creates an
+collects together all the packages in the Anaconda Distribution
+installer. The command ``conda create -n envname anaconda`` creates an
 environment that exactly matches what would be created from the
-Anaconda installer. You can create metapackages with the
+Anaconda Distribution installer. You can create metapackages with the
 ``conda metapackage`` command. Include the name and version
 in the command.
 
@@ -130,7 +130,7 @@ Anaconda metapackage
 --------------------
 
 The Anaconda metapackage is used in the creation of the
-`Anaconda Distribution <https://docs.anaconda.com/free/anaconda/>`_
+`Anaconda Distribution <https://docs.anaconda.com/anaconda/>`_
 installers so that they have a set of packages associated with them.
 Each installer release has a version number, which corresponds
 to a particular collection of packages at specific versions.
