@@ -72,3 +72,13 @@ def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture):
     env_name = "no-file-test"
     conda_cli("export", f"--name={env_name}")
     assert not os.path.exists("env_name" + ".yml")
+
+
+def test_export_with_json(conda_cli: CondaCLIFixture):
+    conda_cli(
+        "export",
+        f"--name={TEST_ENV_NAME}",
+        "--json",
+        f"--file={TEST_ENV_NAME}.yml",
+    )
+    assert os.path.exists(TEST_ENV_NAME + ".yml")
