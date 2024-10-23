@@ -158,6 +158,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
     txn.execute()
 
 
+@deprecated("25.3", "25.9")
 def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1 :]
     if on_win and windows_forward_slashes:
