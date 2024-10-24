@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
+        CondaCleanupTask,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -79,6 +80,7 @@ class CondaSpecs:
 
         :return: An iterable of solver entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_subcommands(self) -> Iterable[CondaSubcommand]:
@@ -106,6 +108,7 @@ class CondaSpecs:
 
         :return: An iterable of subcommand entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_virtual_packages(self) -> Iterable[CondaVirtualPackage]:
@@ -129,6 +132,7 @@ class CondaSpecs:
 
         :return: An iterable of virtual package entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
@@ -154,6 +158,7 @@ class CondaSpecs:
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
@@ -179,6 +184,7 @@ class CondaSpecs:
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_auth_handlers(self) -> Iterable[CondaAuthHandler]:
@@ -216,6 +222,7 @@ class CondaSpecs:
                     auth_handler=EnvironmentHeaderAuth,
                 )
         """
+        yield from ()
 
     @_hookspec
     def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
@@ -244,6 +251,7 @@ class CondaSpecs:
                     action=example_health_check,
                 )
         """
+        yield from ()
 
     @_hookspec
     def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
@@ -275,6 +283,7 @@ class CondaSpecs:
                    action=example_pre_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_solves(self) -> Iterable[CondaPostSolve]:
@@ -307,6 +316,7 @@ class CondaSpecs:
                    action=example_post_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_settings(self) -> Iterable[CondaSetting]:
@@ -332,3 +342,37 @@ class CondaSpecs:
                    aliases=("example_option_alias",),
                )
         """
+        yield from ()
+
+    @_hookspec
+    def conda_cleanup_tasks(self) -> Iterable[CondaCleanupTask]:
+        """
+        Register cleanup tasks in conda.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.base.context import context
+           from conda.gateways.disk.test import is_conda_environment
+
+
+           def get_root_envs(envs: bool = True) -> Iterable[Path]:
+               return [
+                   path
+                   for path in (context.root_prefix / "envs").iterdir()
+                   if is_conda_environment(path)
+               ]
+
+
+           @plugins.hookimpl
+           def conda_cleanup_tasks():
+               yield plugins.CondaCleanupTask(
+                   name="envs",
+                   flags=["-e", "--envs"],
+                   help="Remove all conda environments from `base` environment.",
+                   action=get_root_envs,
+               )
+        """
+        yield from ()

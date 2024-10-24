@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import nullcontext
 from datetime import datetime
 from logging import WARN
 from pathlib import Path
@@ -337,7 +338,7 @@ def test_clean_all(
 
 # conda clean --all --verbose
 @pytest.mark.parametrize("as_json", [True, False])
-def test_clean_all_mock_lstat(
+def test_clean_all_mock_rm_rf(
     clear_cache,
     mocker: MockerFixture,
     as_json: bool,
@@ -347,10 +348,6 @@ def test_clean_all_mock_lstat(
     tmp_pkgs_dir: Path,
 ):
     pkg = "small-executable"
-    args = ("--yes", "--verbose")
-    if as_json:
-        args = (*args, "--json")
-
     with tmp_env(pkg) as prefix:
         # pkg, tarball, & index cache exists
         pkgs, tars, cache = _get_all(tmp_pkgs_dir)
@@ -358,13 +355,23 @@ def test_clean_all_mock_lstat(
         assert has_pkg(pkg, tars)
         assert cache
 
-        mocker.patch("os.lstat", side_effect=OSError)
+        mocker.patch("conda.gateways.disk.delete.rm_rf", side_effect=OSError)
 
-        conda_cli("remove", "--prefix", prefix, pkg, *args)
-        stdout, _, _ = conda_cli("clean", "--packages", *args)
-        assert "WARNING:" in stdout
+        conda_cli("remove", f"--prefix={prefix}", "--yes", pkg)
+        with pytest.warns(
+            UserWarning,
+            match="cannot remove, file permissions",
+        ) if not as_json else nullcontext():
+            stdout, _, _ = conda_cli(
+                "clean",
+                "--packages",
+                "--yes",
+                "--verbose",
+                *(["--json"] if as_json else []),
+            )
         if as_json:
-            json.loads(stdout)  # assert valid json
+            parsed = json.loads(stdout)  # assert valid json
+            assert parsed.get("warnings")  # assert warnings were raised and captured
 
         # pkg, tarball, & index cache still exists
         pkgs, tars, index_cache = _get_all(tmp_pkgs_dir)

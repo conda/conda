@@ -17,6 +17,7 @@ from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from frozendict import frozendict
 
 from ..auxlib.ish import dals
 from ..base.context import add_plugin_setting, context
@@ -24,10 +25,11 @@ from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import post_solves, solvers, subcommands, virtual_packages
 from .hookspec import CondaSpecs, spec_name
-from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
-    from typing import Literal
+    from argparse import Namespace
+    from pathlib import Path
+    from typing import Iterable, Literal, TypeVar
 
     from requests.auth import AuthBase
 
@@ -37,6 +39,36 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaCleanupTask,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaSetting,
+        CondaSolver,
+        CondaSubcommand,
+        CondaVirtualPackage,
+    )
+
+    CondaPluginName = Literal[
+        "auth_handlers",
+        "cleanup_tasks",
+        "health_checks",
+        "post_commands",
+        "post_solves",
+        "pre_commands",
+        "pre_solves",
+        "settings",
+        "solvers",
+        "subcommands",
+        "virtual_packages",
+    ]
+
+    CondaPlugin = TypeVar(
+        "CondaPlugin",
+        CondaAuthHandler,
+        CondaCleanupTask,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -199,7 +231,12 @@ class CondaPluginManager(pluggy.PluginManager):
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
-    def get_hook_results(self, name):
+    @overload
+    def get_hook_results(
+        self, name: Literal["cleanup_tasks"]
+    ) -> list[CondaCleanupTask]: ...
+
+    def get_hook_results(self, name: CondaPluginName) -> list[CondaPlugin]:
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -225,13 +262,17 @@ class CondaPluginManager(pluggy.PluginManager):
                     """
                 )
             )
-        plugins = sorted(plugins, key=lambda plugin: plugin.name)
 
         # Check for conflicts
         seen = set()
-        conflicts = [
-            plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
-        ]
+        conflicts = sorted(
+            (
+                plugin
+                for plugin in plugins
+                if plugin.name in seen or seen.add(plugin.name)
+            ),
+            key=lambda plugin: plugin.name,
+        )
         if conflicts:
             raise PluginError(
                 dals(
@@ -251,7 +292,10 @@ class CondaPluginManager(pluggy.PluginManager):
         """Return a mapping from solver name to solver class."""
         return {
             solver_plugin.name.lower(): solver_plugin
-            for solver_plugin in self.get_hook_results("solvers")
+            for solver_plugin in sorted(
+                self.get_hook_results("solvers"),
+                key=lambda plugin: plugin.name,
+            )
         }
 
     def get_solver_backend(self, name: str | None = None) -> type[Solver]:
@@ -339,7 +383,10 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
         return {
             subcommand.name.lower(): subcommand
-            for subcommand in self.get_hook_results("subcommands")
+            for subcommand in sorted(
+                self.get_hook_results("subcommands"),
+                key=lambda plugin: plugin.name,
+            )
         }
 
     @deprecated(
@@ -348,7 +395,12 @@ class CondaPluginManager(pluggy.PluginManager):
         addendum="Use `conda.plugins.manager.get_virtual_package_records` instead.",
     )
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
-        return tuple(self.get_hook_results("virtual_packages"))
+        return tuple(
+            sorted(
+                self.get_hook_results("virtual_packages"),
+                key=lambda plugin: plugin.name,
+            )
+        )
 
     def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
         return tuple(
@@ -394,6 +446,36 @@ class CondaPluginManager(pluggy.PluginManager):
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
 
+    def invoke_cleanup_tasks(
+        self, args: Namespace, all: bool
+    ) -> Iterable[tuple[str, dict[Path | None, tuple[Path, ...]]]]:
+        for hook in self.get_hook_results("cleanup_tasks"):
+            if not (arg := getattr(args, hook.name)) and not (all and hook.all):
+                # 1. skip this hook if the argument is not set
+                # 2. skip this hook if --all but this hook doesn't support it
+                continue
+
+            try:
+                to_remove = hook.action(arg)
+                if isinstance(to_remove, dict):
+                    yield (
+                        hook.name,
+                        frozendict(
+                            {
+                                prefix: expanded_paths
+                                for prefix, paths in to_remove.items()
+                                if (expanded_paths := tuple(sorted(paths)))
+                            }
+                        ),
+                    )
+                else:
+                    yield hook.name, frozendict({None: tuple(sorted(to_remove))})
+            except Exception as err:
+                if context.debug:
+                    raise
+                log.warning(f"Error running clean: {hook.name} ({err})")
+                continue
+
     def load_settings(self) -> None:
         """
         Iterates through all registered settings and adds them to the
@@ -415,7 +497,6 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
-        health_checks,
         *post_solves.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)

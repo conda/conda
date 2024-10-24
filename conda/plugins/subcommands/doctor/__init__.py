@@ -18,9 +18,13 @@ from ....cli.helpers import (
 from ....exceptions import EnvironmentLocationNotFound
 from ....gateways.disk.test import is_conda_environment
 from ... import CondaSubcommand, hookimpl
+from .health_checks import conda_health_checks
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+
+
+__all__ = ["conda_health_checks", "conda_subcommands"]
 
 
 def configure_parser(parser: ArgumentParser):

@@ -45,7 +45,6 @@ from .helpers import (  # noqa: F401
     add_parser_update_modifiers,
     add_parser_verbose,
 )
-from .main_clean import configure_parser as configure_parser_clean
 from .main_commands import configure_parser as configure_parser_commands
 from .main_compare import configure_parser as configure_parser_compare
 from .main_config import configure_parser as configure_parser_config
@@ -68,13 +67,24 @@ from .main_update import configure_parser as configure_parser_update
 
 log = getLogger(__name__)
 
+
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="See `conda.plugins.subcommands.clean` implementation instead.",
+)
+def configure_parser_clean(*args, **kwargs):
+    from .main_clean import configure_parser
+
+    return configure_parser(*args, **kwargs)
+
+
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 
 #: List of built-in commands; these cannot be overridden by plugin subcommands
 BUILTIN_COMMANDS = {
     "activate",  # Mock entry for shell command
-    "clean",
     "commands",
     "compare",
     "config",
@@ -143,7 +153,6 @@ def generate_parser(**kwargs) -> ArgumentParser:
     )
 
     configure_parser_activate(sub_parsers)
-    configure_parser_clean(sub_parsers)
     configure_parser_commands(sub_parsers)
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
