@@ -162,7 +162,7 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
         return
     elif Path(requests_ca_bundle).exists():
         print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
-    elif re.match("^https://", requests_ca_bundle) is None:
+    elif re.match("^https?://", requests_ca_bundle) is None:
         print(
             f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
         )

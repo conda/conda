@@ -309,6 +309,25 @@ def test_requests_ca_bundle_check_action_fails(
     )
 
 
+def test_requests_ca_bundle_check_action_passes_http(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+    mocker: MockerFixture,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "http://example.org/")
+    response = Response()
+    response.status_code = 200
+    mocker.patch(
+        "conda.gateways.connection.session.CondaSession.get", return_value=response
+    )
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
+
+
 def test_json_keys_missing(env_ok: tuple[Path, str, str, str, str], capsys):
     """Test that runs for the case with empty json"""
     prefix, _, _, _, package = env_ok
