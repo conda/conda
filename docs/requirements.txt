@@ -1,5 +1,5 @@
 Pillow==10.1.0
-Sphinx<9, !=8.1.3
+Sphinx<9, !=8.1.2, !=8.1.3
 boltons==23.1.1
 conda-sphinx-theme==0.2.1
 linkify-it-py==2.0.2
