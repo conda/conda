@@ -6,13 +6,13 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from logging import getLogger
 from pathlib import Path
 
 from requests.exceptions import RequestException
 
 from ....base.context import context
+from ....common.url import is_url
 from ....core.envs_manager import get_user_environments_txt_file
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
@@ -160,13 +160,7 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
     requests_ca_bundle = os.getenv("REQUESTS_CA_BUNDLE")
     if not requests_ca_bundle:
         return
-    elif Path(requests_ca_bundle).exists():
-        print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
-    elif re.match("^https?://", requests_ca_bundle) is None:
-        print(
-            f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
-        )
-    else:
+    if is_url(requests_ca_bundle):
         session = get_session(ca_bundle_test_url)
         try:
             response = session.get(ca_bundle_test_url)
@@ -176,6 +170,12 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
             print(
                 f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
             )
+    elif Path(requests_ca_bundle).exists():
+        print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
+    else:
+        print(
+            f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
+        )
 
 
 @hookimpl
