@@ -21,10 +21,12 @@ from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
     get_channel_name_from_url,
+    get_plugin_headers,
     get_session,
     get_session_storage_key,
 )
 from conda.gateways.disk.delete import rm_rf
+from conda.plugins import CondaHttpHeader
 from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 
@@ -437,3 +439,73 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
+
+
+@pytest.mark.parametrize(
+    "url, headers, expected",
+    (
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaHttpHeader(
+                    name="test",
+                    description="test",
+                    header_name="Test",
+                    header_value="test",
+                    header_hosts={"repo.anaconda.com"},
+                ),
+            ),
+            {"Test": "test"},
+        ),
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaHttpHeader(
+                    name="test",
+                    description="test",
+                    header_name="Test",
+                    header_value="test",
+                ),
+            ),
+            {"Test": "test"},
+        ),
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaHttpHeader(
+                    name="test",
+                    description="test",
+                    header_name="Test",
+                    header_value="test",
+                    header_hosts={"example.com"},
+                ),
+            ),
+            {},
+        ),
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaHttpHeader(
+                    name="test",
+                    description="test",
+                    header_name="Test",
+                    header_value="test",
+                    header_hosts={"repo.anaconda.com", "conda.anaconda.org"},
+                ),
+                CondaHttpHeader(
+                    name="test_two",
+                    description="test_two",
+                    header_name="Test-Two",
+                    header_value="test",
+                    header_hosts={"repo.anaconda.com", "conda.anaconda.org"},
+                ),
+            ),
+            {"Test": "test", "Test-Two": "test"},
+        ),
+    ),
+)
+def test_get_plugin_headers(url, headers, expected):
+    """
+    Ensure the ``conda.gateways.connection.session.get_plugin_headers`` function works as expected
+    """
+    assert get_plugin_headers(url, headers) == expected

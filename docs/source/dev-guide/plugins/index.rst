@@ -99,6 +99,7 @@ For examples of how to use other plugin hooks, please read their respective docu
 
    auth_handlers
    health_checks
+   http_headers
    post_commands
    pre_commands
    settings

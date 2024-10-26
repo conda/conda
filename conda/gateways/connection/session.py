@@ -8,6 +8,7 @@ from fnmatch import fnmatch
 from functools import lru_cache
 from logging import getLogger
 from threading import local
+from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -36,6 +37,9 @@ from .adapters.ftp import FTPAdapter
 from .adapters.http import HTTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
+
+if TYPE_CHECKING:
+    from ...plugins import CondaHttpHeader
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -73,14 +77,22 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-def get_plugin_headers():
+def get_plugin_headers(
+    url: str, http_headers_hooks: tuple[CondaHttpHeader, ...]
+) -> dict[str, str]:
     """
     Retrieves all HTTP headers set by plugins
     """
-    return {
-        hook.header_name: hook.header_value
-        for hook in context.plugin_manager.get_http_headers()
-    }
+    url_parts = urlparse(url)
+
+    if url_parts.scheme == "https" or url_parts.scheme == "http":
+        return {
+            hook.header_name: hook.header_value
+            for hook in http_headers_hooks
+            if hook.header_hosts is None or url_parts.netloc in hook.header_hosts
+        }
+
+    return {}
 
 
 @lru_cache(maxsize=None)
@@ -90,7 +102,7 @@ def get_session(url: str):
     based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
-    plugin_headers = get_plugin_headers()
+    plugin_headers = get_plugin_headers(url, context.plugin_manager.get_http_headers())
 
     # If for whatever reason a channel name can't be determined, (should be unlikely)
     # we just return the default session object.

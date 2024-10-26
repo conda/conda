@@ -338,4 +338,24 @@ class CondaSpecs:
     def conda_http_headers(self) -> Iterable[[CondaHttpHeader]]:
         """
         Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com``
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           @plugins.hookimpl
+           def conda_http_headers():
+               yield plugins.CondaHttpHeader(
+                   name="example_header",
+                   description="This is an example HTTP header",
+                   header_name="Example-Header",
+                   header_value="example",
+                   header_hosts={"example.com", "sub.example.com"},
+               )
         """
