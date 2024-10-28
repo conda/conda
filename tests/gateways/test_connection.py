@@ -22,9 +22,9 @@ from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
     get_channel_name_from_url,
-    validate_request_headers,
     get_session,
     get_session_storage_key,
+    validate_request_headers,
 )
 from conda.gateways.disk.delete import rm_rf
 from conda.plugins import CondaRequestHeader
