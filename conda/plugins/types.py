@@ -217,23 +217,21 @@ class CondaSetting:
 
 
 @dataclass
-class CondaHttpHeader:
+class CondaRequestHeader::
     """
     Define vendor specific headers to include HTTP requests
 
     For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_http_headers`.
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_request_headers`.
 
-    :param name: name of the header (internal reference only)
+    :param name: name of the header used in the HTTP request
     :param description: description of the HTTP header and its purpose
-    :param header_name: name of the header used in the HTTP request
-    :param header_value: value of the header used in the HTTP request
-    :param header_hosts: host(s) for which this header should be used with; when not set the header
+    :param value: value of the header used in the HTTP request
+    :param hosts: host(s) for which this header should be used with; when not set the header
                         will be included in all HTTP requests.
     """
 
     name: str
     description: str
-    header_name: str
-    header_value: str
-    header_hosts: set[str] | None = None
+    value: str
+    hosts: set[str] | None = None

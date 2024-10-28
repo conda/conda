@@ -21,12 +21,12 @@ from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
     get_channel_name_from_url,
-    get_plugin_headers,
+    get_request_headers,
     get_session,
     get_session_storage_key,
 )
 from conda.gateways.disk.delete import rm_rf
-from conda.plugins import CondaHttpHeader
+from conda.plugins import CondaRequestHeader
 from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 
@@ -447,12 +447,11 @@ def test_accept_range_none(package_server, tmp_path):
         (
             "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
             (
-                CondaHttpHeader(
-                    name="test",
+                CondaRequestHeader(
+                    name="Test",
                     description="test",
-                    header_name="Test",
-                    header_value="test",
-                    header_hosts={"repo.anaconda.com"},
+                    value="test",
+                    hosts={"repo.anaconda.com"},
                 ),
             ),
             {"Test": "test"},
@@ -460,11 +459,10 @@ def test_accept_range_none(package_server, tmp_path):
         (
             "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
             (
-                CondaHttpHeader(
-                    name="test",
+                CondaRequestHeader(
+                    name="Test",
                     description="test",
-                    header_name="Test",
-                    header_value="test",
+                    value="test",
                 ),
             ),
             {"Test": "test"},
@@ -472,12 +470,11 @@ def test_accept_range_none(package_server, tmp_path):
         (
             "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
             (
-                CondaHttpHeader(
-                    name="test",
+                CondaRequestHeader((
+                    name="Test",
                     description="test",
-                    header_name="Test",
-                    header_value="test",
-                    header_hosts={"example.com"},
+                    value="test",
+                    hosts={"example.com"},
                 ),
             ),
             {},
@@ -485,19 +482,17 @@ def test_accept_range_none(package_server, tmp_path):
         (
             "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
             (
-                CondaHttpHeader(
-                    name="test",
+                CondaRequestHeader((
+                    name="Test",
                     description="test",
-                    header_name="Test",
-                    header_value="test",
-                    header_hosts={"repo.anaconda.com", "conda.anaconda.org"},
+                    value="test",
+                    hosts={"repo.anaconda.com", "conda.anaconda.org"},
                 ),
-                CondaHttpHeader(
-                    name="test_two",
+                CondaRequestHeader((
+                    name="Test-Two",
                     description="test_two",
-                    header_name="Test-Two",
-                    header_value="test",
-                    header_hosts={"repo.anaconda.com", "conda.anaconda.org"},
+                    value="test",
+                    hosts={"repo.anaconda.com", "conda.anaconda.org"},
                 ),
             ),
             {"Test": "test", "Test-Two": "test"},
@@ -506,6 +501,6 @@ def test_accept_range_none(package_server, tmp_path):
 )
 def test_get_plugin_headers(url, headers, expected):
     """
-    Ensure the ``conda.gateways.connection.session.get_plugin_headers`` function works as expected
+    Ensure the ``conda.gateways.connection.session.get_request_headers`` function works as expected
     """
-    assert get_plugin_headers(url, headers) == expected
+    assert get_request_headers(url, headers) == expected

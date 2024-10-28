@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
-        CondaHttpHeader,
+        CondaRequestHeader,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
@@ -335,7 +335,7 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_http_headers(self) -> Iterable[[CondaHttpHeader]]:
+    def conda_request_headers(self) -> Iterable[[CondaRequestHeader]]:
         """
         Register new HTTP request headers
 
@@ -350,12 +350,11 @@ class CondaSpecs:
 
 
            @plugins.hookimpl
-           def conda_http_headers():
-               yield plugins.CondaHttpHeader(
-                   name="example_header",
+           def conda_request_headers():
+               yield plugins.CondaRequestHeader(
+                   name="Example-Header",
                    description="This is an example HTTP header",
-                   header_name="Example-Header",
-                   header_value="example",
-                   header_hosts={"example.com", "sub.example.com"},
+                   value="example",
+                   hosts={"example.com", "sub.example.com"},
                )
         """

@@ -39,7 +39,7 @@ from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 
 if TYPE_CHECKING:
-    from ...plugins import CondaHttpHeader
+    from ...plugins import CondaRequestHeader
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -77,19 +77,19 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-def get_plugin_headers(
-    url: str, http_headers_hooks: tuple[CondaHttpHeader, ...]
+def get_request_headers(
+    url: str, request_headers: tuple[CondaRequestHeader, ...]
 ) -> dict[str, str]:
     """
-    Retrieves all HTTP headers set by plugins
+    Retrieves all HTTP headers set by plugins for the given URL
     """
     url_parts = urlparse(url)
 
-    if url_parts.scheme == "https" or url_parts.scheme == "http":
+    if url_parts.scheme in ("https", "http"):
         return {
-            hook.header_name: hook.header_value
-            for hook in http_headers_hooks
-            if hook.header_hosts is None or url_parts.netloc in hook.header_hosts
+            request_header.name: request_header.value
+            for request_header in request_headers
+            if request_header.hosts is None or url_parts.netloc in request_header.hosts
         }
 
     return {}
@@ -102,12 +102,12 @@ def get_session(url: str):
     based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
-    plugin_headers = get_plugin_headers(url, context.plugin_manager.get_http_headers())
+    request_headers = get_plugin_headers(url, context.plugin_manager.get_request_headers())
 
     # If for whatever reason a channel name can't be determined, (should be unlikely)
     # we just return the default session object.
     if channel_name is None:
-        return CondaSession(plugin_headers=plugin_headers)
+        return CondaSession(request_headers=request_headers)
 
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
@@ -136,12 +136,12 @@ def get_session(url: str):
 
     # Return default session object
     if auth_handler is None:
-        return CondaSession(plugin_headers=plugin_headers)
+        return CondaSession(request_headers=request_headers)
 
     auth_handler_cls = context.plugin_manager.get_auth_handler(auth_handler)
 
     if not auth_handler_cls:
-        return CondaSession(plugin_headers=plugin_headers)
+        return CondaSession(request_headers=request_headers)
 
     return CondaSession(auth=auth_handler_cls(channel_name))
 
@@ -191,7 +191,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
     def __init__(
         self,
         auth: AuthBase | tuple[str, str] | None = None,
-        plugin_headers: dict[str, str] | None = None,
+        request_headers: dict[str, str] | None = None,
     ):
         """
         :param auth: Optionally provide ``requests.AuthBase`` compliant objects
@@ -245,9 +245,8 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
         self.headers["User-Agent"] = context.user_agent
 
-        if plugin_headers is not None:
-            for header_name, header_value in plugin_headers.items():
-                self.headers[header_name] = header_value
+        if request_headers is not None:
+            self.headers.update(request_headers)
 
         if context.client_ssl_cert_key:
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
