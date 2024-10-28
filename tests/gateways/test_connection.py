@@ -499,7 +499,7 @@ def test_accept_range_none(package_server, tmp_path):
         ),
     ),
 )
-def test_get_plugin_headers(url, headers, expected):
+def test_get_request_headers(url, headers, expected):
     """
     Ensure the ``conda.gateways.connection.session.get_request_headers`` function works as expected
     """
