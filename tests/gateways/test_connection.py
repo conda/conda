@@ -470,7 +470,7 @@ def test_accept_range_none(package_server, tmp_path):
         (
             "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
             (
-                CondaRequestHeader((
+                CondaRequestHeader(
                     name="Test",
                     description="test",
                     value="test",
@@ -482,13 +482,13 @@ def test_accept_range_none(package_server, tmp_path):
         (
             "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
             (
-                CondaRequestHeader((
+                CondaRequestHeader(
                     name="Test",
                     description="test",
                     value="test",
                     hosts={"repo.anaconda.com", "conda.anaconda.org"},
                 ),
-                CondaRequestHeader((
+                CondaRequestHeader(
                     name="Test-Two",
                     description="test_two",
                     value="test",
