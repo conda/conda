@@ -38,11 +38,11 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
-        CondaRequestHeader,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaRequestHeader,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
