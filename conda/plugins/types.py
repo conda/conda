@@ -217,7 +217,7 @@ class CondaSetting:
 
 
 @dataclass
-class CondaRequestHeader::
+class CondaRequestHeader:
     """
     Define vendor specific headers to include HTTP requests
 

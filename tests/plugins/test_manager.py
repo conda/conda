@@ -215,3 +215,11 @@ def test_get_solvers(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
     assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
+
+
+def test_get_request_headers(plugin_manager: CondaPluginManager):
+    """
+    Ensure that an empty tuple is returned when no ``conda_request_headers`` plugin
+    hooks have been defined.
+    """
+    assert plugin_manager.get_request_headers() == tuple()

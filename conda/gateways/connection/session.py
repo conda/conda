@@ -102,7 +102,9 @@ def get_session(url: str):
     based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
-    request_headers = get_plugin_headers(url, context.plugin_manager.get_request_headers())
+    request_headers = get_request_headers(
+        url, context.plugin_manager.get_request_headers()
+    )
 
     # If for whatever reason a channel name can't be determined, (should be unlikely)
     # we just return the default session object.
@@ -143,7 +145,9 @@ def get_session(url: str):
     if not auth_handler_cls:
         return CondaSession(request_headers=request_headers)
 
-    return CondaSession(auth=auth_handler_cls(channel_name))
+    return CondaSession(
+        auth=auth_handler_cls(channel_name), request_headers=request_headers
+    )
 
 
 def get_session_storage_key(auth) -> str:
