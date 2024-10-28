@@ -17,12 +17,25 @@ from requests.auth import AuthBase
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from argparse import ArgumentParser, Namespace
-    from typing import Callable
+    from argparse import Action, ArgumentParser, Namespace
+    from pathlib import Path
+    from typing import Any, Callable, Iterable, Literal, TypedDict
+
+    from typing_extensions import NotRequired
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
+
+    class AddArgumentDict(TypedDict):
+        action: NotRequired[str | type[Action]]
+        nargs: NotRequired[int | Literal["?", "*", "+"]]
+        const: NotRequired[Any]
+        default: NotRequired[Any]
+        type: NotRequired[Callable[[str], Any]]
+        choices: NotRequired[Iterable[Any]]
+        required: NotRequired[bool]
+        metavar: NotRequired[str | tuple[str, ...]]
 
 
 @dataclass
@@ -214,3 +227,27 @@ class CondaSetting:
     description: str
     parameter: Parameter
     aliases: tuple[str, ...] = tuple()
+
+
+@dataclass
+class CondaCleanupTask:
+    """
+    Return type to use when defining a conda clean plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_cleanup_tasks`.
+
+    :param name: the name of the clean command used as the destination in argparse.ArgumentParser.add_argument
+    :param flags: list of flags to be used in argparse.ArgumentParser.add_argument
+    :param help: help message used in argparse.ArgumentParser.add_argument
+    :param action: callable to determine which files to remove
+    :param add_argument_kwargs: additional options used in argparse.ArgumentParser.add_argument
+    :param all: whether to include in --all
+    """
+
+    name: str
+    flags: list[str]
+    help: str
+    action: Callable[[Any], Iterable[Path] | dict[Path, Iterable[Path]]]
+    add_argument_kwargs: AddArgumentDict | None = None
+    all: bool = True

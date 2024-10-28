@@ -242,6 +242,7 @@ from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
 from pathlib import Path
+import warnings
 
 from boltons.timeutils import isoparse
 
@@ -992,4 +993,6 @@ class EntityEncoder(JSONEncoder):
             return obj.value
         elif isinstance(obj, Path):
             return str(obj)
+        elif isinstance(obj, warnings.WarningMessage):
+            return warnings._formatwarnmsg_impl(obj)
         return JSONEncoder.default(self, obj)
