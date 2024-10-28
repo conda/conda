@@ -77,11 +77,12 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-def get_request_headers(
+def validate_request_headers(
     url: str, request_headers: tuple[CondaRequestHeader, ...]
 ) -> dict[str, str]:
     """
-    Retrieves all HTTP headers set by plugins for the given URL
+    Validates and returns all HTTP request headers set by plugins
+    for the given URL.
     """
     url_parts = urlparse(url)
 
@@ -102,7 +103,7 @@ def get_session(url: str):
     based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
-    request_headers = get_request_headers(
+    request_headers = validate_request_headers(
         url, context.plugin_manager.get_request_headers()
     )
 

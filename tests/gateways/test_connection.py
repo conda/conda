@@ -22,7 +22,7 @@ from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
     get_channel_name_from_url,
-    get_request_headers,
+    validate_request_headers,
     get_session,
     get_session_storage_key,
 )
@@ -532,8 +532,8 @@ def test_accept_range_none(package_server, tmp_path):
         ),
     ),
 )
-def test_get_request_headers(url, headers, expected):
+def test_validate_request_headers(url, headers, expected):
     """
-    Ensure the ``conda.gateways.connection.session.get_request_headers`` function works as expected
+    Ensure the ``conda.gateways.connection.session.validate_request_headers`` function works as expected
     """
-    assert get_request_headers(url, headers) == expected
+    assert validate_request_headers(url, headers) == expected

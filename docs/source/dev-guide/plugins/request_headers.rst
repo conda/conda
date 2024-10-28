@@ -1,6 +1,6 @@
-============
+===============
 Request Headers
-============
+===============
 
 The request headers plugin hook allows plugin authors to add custom HTTP
 headers to HTTP requests within conda. This works by attaching these headers to
