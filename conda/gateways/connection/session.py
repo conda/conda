@@ -102,7 +102,9 @@ def get_session(url: str):
     based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
-    request_headers = get_request_headers(url, context.plugin_manager.get_request_headers())
+    request_headers = get_request_headers(
+        url, context.plugin_manager.get_request_headers()
+    )
 
     # If for whatever reason a channel name can't be determined, (should be unlikely)
     # we just return the default session object.
