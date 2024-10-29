@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaRequestHeader,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -330,5 +331,30 @@ class CondaSpecs:
                    description="This is an example option",
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
+               )
+        """
+
+    @_hookspec
+    def conda_request_headers(self) -> Iterable[[CondaRequestHeader]]:
+        """
+        Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com``
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           @plugins.hookimpl
+           def conda_request_headers():
+               yield plugins.CondaRequestHeader(
+                   name="Example-Header",
+                   description="This is an example HTTP header",
+                   value="example",
+                   hosts={"example.com", "sub.example.com"},
                )
         """
