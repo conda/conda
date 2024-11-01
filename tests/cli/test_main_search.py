@@ -10,8 +10,10 @@ import pytest
 import requests
 
 from conda.base.context import context, reset_context
+from conda.cli.main_search import pretty_record
 from conda.exceptions import PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
+from conda.models.records import PackageRecord
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -327,3 +329,32 @@ def test_bad_anaconda_token(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
     json_obj = json.loads(stdout)
     assert "anaconda-mosaic" in json_obj
     assert len(json_obj["anaconda-mosaic"]) > 0
+
+
+def test_pretty_record():
+    """
+    Coverage for missing/None fields in PackageRecord
+    """
+    args = []
+
+    def print(arg):
+        args.append(arg)
+
+    pretty_record(
+        PackageRecord.from_objects(
+            {
+                "name": "p",
+                "version": "1",
+                "build": "1",
+                "build_number": 1,
+                "timestamp": 0,
+                "license": None,
+            }
+        ),
+        print=print,
+    )
+
+    assert (
+        "\n".join(args)
+        == "p 1 1\n-----\nfile name   : p-1-1\nname        : p\nversion     : 1\nbuild       : 1\nbuild number: 1\nsubdir      : osx-arm64\ndependencies: []\n\n"
+    )
