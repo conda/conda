@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import re
 import sys
@@ -2332,6 +2333,9 @@ def test_dont_remove_conda_3(
                     encoding="utf-8",
                 )
             except CalledProcessError as e:
+                print(os.listdir(prefix), file=sys.stderr)
+                print(os.listdir(prefix / "bin"), file=sys.stderr)
+                print("sys.executable=", sys.executable, file=sys.stderr)
                 assert "RemoveError" in e.stderr
                 raise
 
