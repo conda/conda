@@ -354,7 +354,7 @@ def test_pretty_record():
         print=print,
     )
 
-    assert (
-        "\n".join(args)
-        == "p 1 1\n-----\nfile name   : p-1-1\nname        : p\nversion     : 1\nbuild       : 1\nbuild number: 1\nsubdir      : osx-arm64\ndependencies: []\n\n"
+    # subdir will change, check everything up to that point
+    assert "\n".join(args).startswith(
+        "p 1 1\n-----\nfile name   : p-1-1\nname        : p\nversion     : 1\nbuild       : 1\nbuild number: 1\nsubdir      :"
     )
