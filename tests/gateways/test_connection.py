@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from importlib.util import find_spec
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -23,17 +24,35 @@ from conda.gateways.connection.session import (
     get_channel_name_from_url,
     get_session,
     get_session_storage_key,
+    validate_request_headers,
 )
 from conda.gateways.disk.delete import rm_rf
+from conda.plugins import CondaRequestHeader
 from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
+    from conda.base.context import Context
     from conda.testing.fixtures import TmpEnvFixture
 
+BOTO3_AVAILABLE = bool(find_spec("boto3"))
 log = getLogger(__name__)
+
+
+@pytest.fixture(autouse=True)
+def clean_up_object_cache():
+    """
+    We use this to clean up the class/function cache on various things in the
+    ``conda.gateways.connection.session`` module.
+    """
+    try:
+        del CondaSession._thread_local.sessions
+    except AttributeError:
+        pass
+
+    get_session.cache_clear()
 
 
 def test_add_binstar_token():
@@ -99,6 +118,7 @@ def test_s3_server(
     inner_s3_test(tmp_env, monkeypatch, endpoint, bucket_name)
 
 
+@pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
 @pytest.mark.integration
 def test_s3_server_with_mock(
     package_server,
@@ -175,7 +195,6 @@ def test_get_session_returns_default():
     """
     url = "https://localhost/test"
     session_obj = get_session(url)
-    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -195,7 +214,6 @@ def test_get_session_with_channel_settings(mocker):
     url = "https://localhost/test1"
 
     session_obj = get_session(url)
-    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -255,13 +273,12 @@ def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match
         "conda.gateways.connection.session.get_channel_name_from_url",
         return_value=channel_url,
     )
-    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context: Context = mocker.patch("conda.gateways.connection.session.context")
     mock_context.channel_settings = (
         {"channel": channel_settings_url, "auth": "dummy_one"},
     )
 
     session_obj = get_session(channel_url)
-    get_session.cache_clear()  # ensuring cleanup
 
     # In all cases, the returned type is CondaSession
     assert type(session_obj) is CondaSession
@@ -296,7 +313,7 @@ def test_get_session_with_channel_settings_multiple(mocker):
         "conda.gateways.connection.session.get_channel_name_from_url",
         side_effect=["channel_one", "channel_two"],
     )
-    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context: Context = mocker.patch("conda.gateways.connection.session.context")
     mock_context.channel_settings = (
         {"channel": "channel_one", "auth": "dummy_one"},
         {"channel": "channel_two", "auth": "dummy_one"},
@@ -308,8 +325,6 @@ def test_get_session_with_channel_settings_multiple(mocker):
 
     session_obj_one = get_session(url_one)
     session_obj_two = get_session(url_two)
-
-    get_session.cache_clear()  # ensuring cleanup
 
     assert session_obj_one is not session_obj_two
 
@@ -356,7 +371,6 @@ def test_get_session_with_channel_settings_no_handler(mocker):
     url = "https://localhost/test2"
 
     session_obj = get_session(url)
-    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -365,6 +379,27 @@ def test_get_session_with_channel_settings_no_handler(mocker):
 
     # Make sure we tried to retrieve our auth handler in this function
     assert mocker.call("dummy_two") in mock.mock_calls
+
+
+def test_get_session_with_request_headers(mocker):
+    """
+    Tests the code path for when custom request headers have been set by a plugin
+    """
+    header_name = "Test-Header"
+    header_value = "test"
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_request_headers",
+        return_value=(
+            CondaRequestHeader(
+                name=header_name, description="test header", value=header_value
+            ),
+        ),
+    )
+
+    url = "https://localhost/test"
+    session_obj = get_session(url)
+
+    assert session_obj.headers[header_name] == header_value
 
 
 @pytest.mark.parametrize(
@@ -437,3 +472,68 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
+
+
+@pytest.mark.parametrize(
+    "url, headers, expected",
+    (
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaRequestHeader(
+                    name="Test",
+                    description="test",
+                    value="test",
+                    hosts={"repo.anaconda.com"},
+                ),
+            ),
+            {"Test": "test"},
+        ),
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaRequestHeader(
+                    name="Test",
+                    description="test",
+                    value="test",
+                ),
+            ),
+            {"Test": "test"},
+        ),
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaRequestHeader(
+                    name="Test",
+                    description="test",
+                    value="test",
+                    hosts={"example.com"},
+                ),
+            ),
+            {},
+        ),
+        (
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            (
+                CondaRequestHeader(
+                    name="Test",
+                    description="test",
+                    value="test",
+                    hosts={"repo.anaconda.com", "conda.anaconda.org"},
+                ),
+                CondaRequestHeader(
+                    name="Test-Two",
+                    description="test_two",
+                    value="test",
+                    hosts={"repo.anaconda.com", "conda.anaconda.org"},
+                ),
+            ),
+            {"Test": "test", "Test-Two": "test"},
+        ),
+    ),
+)
+def test_validate_request_headers(url, headers, expected):
+    """
+    Ensure the ``conda.gateways.connection.session.validate_request_headers`` function works as expected
+    """
+    assert validate_request_headers(url, headers) == expected
