@@ -412,7 +412,7 @@ class CondaPluginManager(pluggy.PluginManager):
             add_plugin_setting(name, parameter, aliases)
 
 
-@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
+@functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
     Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,

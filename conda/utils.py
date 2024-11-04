@@ -343,15 +343,7 @@ if on_win:
         return " ".join(quote(arg) for arg in args)
 
 else:
-    try:
-        from shlex import join as _args_join
-    except ImportError:
-        # [backport] Python <3.8
-        def _args_join(args):
-            """Return a shell-escaped string from *args*."""
-            from shlex import quote
-
-            return " ".join(quote(arg) for arg in args)
+    from shlex import join as _args_join
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
