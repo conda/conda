@@ -74,13 +74,13 @@ jobs:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.8', '3.12']
+        python-version: ['3.9', '3.12']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - default-channel: conda-forge
-            python-version: '3.8'
+            python-version: '3.9'
           - test-type: unit
             test-group: 3
     env:
@@ -177,12 +177,12 @@ jobs:
       fail-fast: false
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.9', '3.10', '3.11', '3.12']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.8'
+          - python-version: '3.9'
             default-channel: conda-forge
           - python-version: '3.9'
             default-channel: conda-forge
@@ -476,7 +476,7 @@ jobs:
       matrix:
         # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & conda-forge & integration tests)
         arch: [osx-64, osx-arm64]
-        python-version: ['3.8', '3.12']
+        python-version: ['3.9', '3.12']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -488,7 +488,7 @@ jobs:
           - arch: osx-64
             test-type: integration
           - arch: osx-arm64
-            python-version: '3.8'
+            python-version: '3.9'
           - arch: osx-arm64
             default-channel: defaults
           - arch: osx-arm64

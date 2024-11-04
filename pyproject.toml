@@ -48,7 +48,7 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 name = "conda"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.scripts]
 conda = "conda.cli.main_pip:main"
