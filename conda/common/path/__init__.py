@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import os
 import re
-from functools import cache, lru_cache
+from functools import cache
 from logging import getLogger
 from os.path import (
     abspath,

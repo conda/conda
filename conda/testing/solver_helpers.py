@@ -26,7 +26,7 @@ from ..models.records import PackageRecord
 from . import helpers
 
 
-@functools.lru_cache
+@functools.cache
 def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
