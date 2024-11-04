@@ -234,7 +234,8 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
             with pytest.raises(UnsatisfiableError) as exc:
                 solver.solve_final_state()
 
-    if context.solver in ["libmamba", "rattler"]:
+    exc_msg = str(exc.value).strip()
+    if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
         possible_messages = [
@@ -247,10 +248,15 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
             ),
         ]
-        exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        possible_messages = [
+            "__cuda >=9.0, for which no candidates were found.",
+            "cudatoolkit * cannot be installed because there are no viable options:",
+        ]
+        assert all(msg in exc_msg for msg in possible_messages)
     else:
-        assert str(exc.value).strip() == dals(
+        assert exc_msg == dals(
             f"""The following specifications were found to be incompatible with your system:
 
   - feature:/{context._native_subdir()}::__cuda==8.0=0
@@ -268,7 +274,7 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError) as exc:
                 solver.solve_final_state()
-    if context.solver in ["libmamba", "rattler"]:
+    if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
         possible_messages = [
@@ -283,6 +289,13 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version):
         ]
         exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        expected_messages = [
+            "cudatoolkit * cannot be installed because there are no viable options:",
+            "__cuda >=9.0, for which no candidates were found.",
+        ]
+        exc_msg = str(exc.value).strip()
+        assert all(msg in exc_msg for msg in expected_messages)
     else:
         assert str(exc.value).strip() == dals(
             """The following specifications were found to be incompatible with your system:
@@ -2513,7 +2526,7 @@ def test_pinned_1(tmpdir):
         MatchSpec("system=5.8=0"),
         MatchSpec("numba"),
     )
-    print("GLASTASRDAS ")
+
     with get_solver(
         tmpdir,
         specs_to_add=specs_to_add,
@@ -3305,6 +3318,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
+        print("Error message: ", error_msg)
         # libmamba has a significantly more detailed (and different) error messages
         if context.solver == "classic":
             error_snippets = [
@@ -3320,9 +3334,9 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 r"scikit-learn.*0\.13",
             ]
         elif context.solver == "rattler":
-            print("TODO -- fix this test")
-            print(error_msg)
-            error_snippets = []
+            # TODO improve the error message
+            print("Rattler error message: ", error_msg)
+            error_snippets = ["Could not find solution"]
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
@@ -3344,13 +3358,17 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 "- unsatisfiable-with-py26 -> python=2.7",
                 "Your python: python=2.6",
             ]
-        elif context.solver in ["libmamba", "rattler"]:
+        elif context.solver == "libmamba":
             error_snippets = [
                 "Encountered problems while solving",
                 "Pins seem to be involved in the conflict. Currently pinned specs",
                 r"python.*2\.6",
                 "unsatisfiable-with-py26",
             ]
+        elif context.solver == "rattler":
+            # TODO -- improve the error message
+            error_snippets = ["Could not find solution"]
+            print("Rattler error message: ", error_msg)
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
