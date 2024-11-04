@@ -1084,7 +1084,9 @@ class UnlinkLinkTransaction:
         return exceptions
 
     @staticmethod
-    def _get_python_info(target_prefix, prefix_recs_to_unlink, packages_info_to_link) -> tuple[str | None, str | None]:
+    def _get_python_info(
+        target_prefix, prefix_recs_to_unlink, packages_info_to_link
+    ) -> tuple[str | None, str | None]:
         """
         Return the python version and location of the site-packages directory at the end of the transaction
         """
