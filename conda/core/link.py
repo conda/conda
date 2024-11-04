@@ -84,10 +84,7 @@ from .prefix_data import (
 )
 
 if TYPE_CHECKING:
-    from typing import (
-        Iterable,
-        Tuple,
-    )
+    from typing import Iterable
 
     from ..models.package_info import PackageInfo
     from ..models.records import PackageRecord
@@ -1087,7 +1084,7 @@ class UnlinkLinkTransaction:
         return exceptions
 
     @staticmethod
-    def _get_python_info(target_prefix, prefix_recs_to_unlink, packages_info_to_link) -> Tuple[str | None, str | None]:
+    def _get_python_info(target_prefix, prefix_recs_to_unlink, packages_info_to_link) -> tuple[str | None, str | None]:
         """
         Return the python version and location of the site-packages directory at the end of the transaction
         """
