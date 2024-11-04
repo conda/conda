@@ -1095,31 +1095,26 @@ class UnlinkLinkTransaction:
         )
         if linking_new_python:
             python_record = linking_new_python.repodata_record
-            log.debug("found in current transaction python version %s", python_record.version)
+            log.debug(f"found in current transaction python: {python_record}")
         else:
-            # is python already linked and not being unlinked? that's ok too
             python_record = python_record_for_prefix(target_prefix)
-            if python_record:
-                unlinking_this_python = next(
-                    (
-                        prefix_rec_to_unlink
-                        for prefix_rec_to_unlink in prefix_recs_to_unlink
-                        if prefix_rec_to_unlink.name == "python"
-                    ),
-                    None,
-                )
-                if unlinking_this_python is not None:
-                    # there won't be any python in the finished environment
-                    log.debug("no python version found in prefix")
-                    return None, None
-                else:
-                    log.debug(
-                        "found in current prefix python version %s",
-                        python_record.version,
-                    )
-        full_version = python_record.version
-        assert full_version
-        python_version = get_major_minor_version(full_version)
+            unlinking_python = next(
+                (
+                    prefix_rec_to_unlink
+                    for prefix_rec_to_unlink in prefix_recs_to_unlink
+                    if prefix_rec_to_unlink.name == "python"
+                ),
+                None,
+            )
+            if python_record and unlinking_python is None:
+                # python is already linked and not being unlinked
+                log.debug(f"found in current prefix, python: {python_record}")
+            else:
+                # no python in the finished environment
+                log.debug("no python version found in prefix")
+                return None, None
+        assert python_record.version
+        python_version = get_major_minor_version(python_record.version)
         python_site_packages = python_record.python_site_packages_path
         if python_site_packages is None:
             python_site_packages = get_python_site_packages_short_path(python_version)
