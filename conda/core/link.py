@@ -422,7 +422,9 @@ class UnlinkLinkTransaction:
         # make all the path actions
         # no side effects allowed when instantiating these action objects
         python_version, python_site_packages = cls._get_python_info(
-            target_prefix, prefix_recs_to_unlink, packages_info_to_link,
+            target_prefix,
+            prefix_recs_to_unlink,
+            packages_info_to_link,
         )
         transaction_context["target_python_version"] = python_version
         transaction_context["target_site_packages_short_path"] = python_site_packages
