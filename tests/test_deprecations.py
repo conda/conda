@@ -147,7 +147,10 @@ def test_action(
         )
 
         with pytest.warns(warning, match=message):
-            parser.parse_args(["--foo", "bar"])
+            parser.parse_args(["--foo", "some_value"])
+
+        with pytest.warns(warning, match=message):
+            parser.parse_args(["bar"])
 
 
 @parametrize_dev
