@@ -453,9 +453,7 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
     return conda_python_packages
 
 
-@functools.lru_cache(maxsize=None)
-def _python_record_for_prefix(prefix) -> PrefixRecord | None:
-    # returns a string e.g. "2.7", "3.4", "3.5" or None
+def python_record_for_prefix(prefix) -> PrefixRecord | None:
     python_record_iterator = (
         record
         for record in PrefixData(prefix).iter_records()
@@ -476,22 +474,13 @@ def get_python_version_for_prefix(prefix) -> str | None:
     For the given conda prefix, return the version of the Python installation
     in that prefix.
     """
-    record = _python_record_for_prefix(prefix)
+    # returns a string e.g. "2.7", "3.4", "3.5" or None
+    record = python_record_for_prefix(prefix)
     if record is not None:
         if record.version[3].isdigit():
             return record.version[:4]
         else:
             return record.version[:3]
-
-
-def get_python_site_packages_for_prefix(prefix) -> str | None:
-    """
-    For the given conda prefix, return the site-packages directory of the
-    Python installation in that prefix.
-    """
-    record = _python_record_for_prefix(prefix)
-    if record is not None:
-        return record.python_site_packages_path
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:
