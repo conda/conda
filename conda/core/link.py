@@ -1083,7 +1083,6 @@ class UnlinkLinkTransaction:
 
     @staticmethod
     def _get_python_info(target_prefix, prefix_recs_to_unlink, packages_info_to_link):
-        python_version = python_site_packages = None
         # this method determines the python version and site-packages directory that will be present at the
         # end of the transaction
         linking_new_python = next(
@@ -1095,44 +1094,36 @@ class UnlinkLinkTransaction:
             None,
         )
         if linking_new_python:
-            # is python being linked? we're done
-            full_version = linking_new_python.repodata_record.version
-            assert full_version
-            log.debug("found in current transaction python version %s", full_version)
-            python_version = get_major_minor_version(full_version)
-            python_site_packages = (
-                linking_new_python.repodata_record.python_site_packages_path
-            )
+            python_record = linking_new_python.repodata_record
+            log.debug("found in current transaction python version %s", python_record.version)
         else:
             # is python already linked and not being unlinked? that's ok too
-            linked_python_record = python_record_for_prefix(target_prefix)
-            if linked_python_record:
-                find_python = (
-                    prefix_rec_to_unlink
-                    for prefix_rec_to_unlink in prefix_recs_to_unlink
-                    if prefix_rec_to_unlink.name == "python"
+            python_record = python_record_for_prefix(target_prefix)
+            if python_record:
+                unlinking_this_python = next(
+                    (
+                        prefix_rec_to_unlink
+                        for prefix_rec_to_unlink in prefix_recs_to_unlink
+                        if prefix_rec_to_unlink.name == "python"
+                    ),
+                    None,
                 )
-                unlinking_this_python = next(find_python, None)
-                if unlinking_this_python is None:
-                    # python is not being unlinked
+                if unlinking_this_python is not None:
+                    # there won't be any python in the finished environment
+                    log.debug("no python version found in prefix")
+                    return None, None
+                else:
                     log.debug(
                         "found in current prefix python version %s",
-                        linked_python_version,
+                        python_record.version,
                     )
-                    full_version = linked_python_record.version
-                    assert full_version
-                    python_version = get_major_minor_version(full_version)
-                    python_site_packages = linked_python_record.python_site_packages_path
-
-        if python_version is None:
-            # there won't be any python in the finished environment
-            log.debug("no python version found in prefix")
-
+        full_version = python_record.version
+        assert full_version
+        python_version = get_major_minor_version(full_version)
+        python_site_packages = python_record.python_site_packages_path
         if python_site_packages is None:
             python_site_packages = get_python_site_packages_short_path(python_version)
-
         return python_version, python_site_packages
-
 
     @staticmethod
     def _make_link_actions(
