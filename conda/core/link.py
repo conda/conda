@@ -78,7 +78,7 @@ from .path_actions import (
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
 )
-from .prefix_data import PrefixData, get_python_version_for_prefix
+from .prefix_data import PrefixData, get_python_site_packages_for_prefix, get_python_version_for_prefix
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -418,14 +418,53 @@ class UnlinkLinkTransaction:
 
         # make all the path actions
         # no side effects allowed when instantiating these action objects
-        python_version, sp = cls._get_python_version(
-            target_prefix, prefix_recs_to_unlink, packages_info_to_link
-        )
-        transaction_context["target_python_version"] = python_version
-        if sp is None:
-            sp = get_python_site_packages_short_path(python_version)
-        transaction_context["target_site_packages_short_path"] = sp
 
+        python_version = python_site_packages = None
+
+        # this method determines the python version that will be present at the
+        # end of the transaction
+        linking_new_python = next(
+            (
+                package_info
+                for package_info in packages_info_to_link
+                if package_info.repodata_record.name == "python"
+            ),
+            None,
+        )
+        if linking_new_python:
+            # is python being linked? we're done
+            full_version = linking_new_python.repodata_record.version
+            assert full_version
+            log.debug("found in current transaction python version %s", full_version)
+            python_version = get_major_minor_version(full_version)
+            python_site_packages = linking_new_python.repodata_record.python_site_packages_path
+        else:
+            # is python already linked and not being unlinked? that's ok too
+            linked_python_version = get_python_version_for_prefix(target_prefix)
+            if linked_python_version:
+                python_site_packages = get_python_site_packages_for_prefix(target_prefix)
+                find_python = (
+                    prefix_rec_to_unlink
+                    for prefix_rec_to_unlink in prefix_recs_to_unlink
+                    if prefix_rec_to_unlink.name == "python"
+                )
+                unlinking_this_python = next(find_python, None)
+                if unlinking_this_python is None:
+                    # python is not being unlinked
+                    log.debug(
+                        "found in current prefix python version %s", linked_python_version
+                    )
+                    python_version = linked_python_version
+
+        if python_version is None:
+            # there won't be any python in the finished environment
+            log.debug("no python version found in prefix")
+
+        if python_site_packages is None:
+            python_site_packages = get_python_site_packages_short_path(python_version)
+
+        transaction_context["target_python_version"] = python_version
+        transaction_context["target_site_packages_short_path"] = python_site_packages
         transaction_context["temp_dir"] = join(target_prefix, ".condatmp")
 
         remove_menu_action_groups = []
@@ -1080,46 +1119,6 @@ class UnlinkLinkTransaction:
                 log.debug("action.reverse() error in action %r", action, exc_info=True)
                 exceptions.append(e)
         return exceptions
-
-    @staticmethod
-    def _get_python_version(target_prefix, pcrecs_to_unlink, packages_info_to_link):
-        # this method determines the python version that will be present at the
-        # end of the transaction
-        linking_new_python = next(
-            (
-                package_info
-                for package_info in packages_info_to_link
-                if package_info.repodata_record.name == "python"
-            ),
-            None,
-        )
-        if linking_new_python:
-            # is python being linked? we're done
-            full_version = linking_new_python.repodata_record.version
-            assert full_version
-            log.debug("found in current transaction python version %s", full_version)
-            sp_path = linking_new_python.repodata_record.python_site_packages_path
-            return get_major_minor_version(full_version), sp_path
-
-        # is python already linked and not being unlinked? that's ok too
-        linked_python_version, sp_dir = get_python_version_for_prefix(target_prefix)
-        if linked_python_version:
-            find_python = (
-                lnkd_pkg_data
-                for lnkd_pkg_data in pcrecs_to_unlink
-                if lnkd_pkg_data.name == "python"
-            )
-            unlinking_this_python = next(find_python, None)
-            if unlinking_this_python is None:
-                # python is not being unlinked
-                log.debug(
-                    "found in current prefix python version %s", linked_python_version
-                )
-                return linked_python_version, sp_dir
-
-        # there won't be any python in the finished environment
-        log.debug("no python version found in prefix")
-        return None
 
     @staticmethod
     def _make_link_actions(
