@@ -491,7 +491,7 @@ def get_python_site_packages_for_prefix(prefix) -> str | None:
     """
     record = _python_record_for_prefix(prefix)
     if record is not None:
-        return record.site_packages_short_path
+        return record.python_site_packages_path
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:
