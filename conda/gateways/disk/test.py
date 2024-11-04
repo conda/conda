@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions testing path properties (e.g., writable, hardlinks, softlinks, etc.)."""
 
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join
@@ -39,7 +39,7 @@ def file_path_is_writable(path):
         return access(path, W_OK)
 
 
-@lru_cache(maxsize=None)
+@cache
 def hardlink_supported(source_file, dest_dir):
     test_file = join(dest_dir, f".tmp.{basename(source_file)}.{str(uuid4())[:8]}")
     assert isfile(source_file), source_file
@@ -66,7 +66,7 @@ def hardlink_supported(source_file, dest_dir):
         rm_rf(test_file)
 
 
-@lru_cache(maxsize=None)
+@cache
 def softlink_supported(source_file, dest_dir):
     # On Windows, softlink creation is restricted to Administrative users by default. It can
     # optionally be enabled for non-admin users through explicit registry modification.

@@ -20,7 +20,7 @@ from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_log_level
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from pytest_mock import MockerFixture
 

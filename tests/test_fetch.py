@@ -117,8 +117,9 @@ def test_resume_download(tmp_path):
         raise ConnectionAbortedError("Aborted")
 
     # Download gets interrupted by an exception
-    with pytest.raises(ConnectionAbortedError), patch(
-        "requests.Response.iter_content", side_effect=iter_content_interrupted
+    with (
+        pytest.raises(ConnectionAbortedError),
+        patch("requests.Response.iter_content", side_effect=iter_content_interrupted),
     ):
         download(url, output_path, size=size, sha256=sha256)
 
@@ -158,8 +159,9 @@ def test_resume_download(tmp_path):
 
     # Download gets interrupted by HTTP 4xx exception; assert `.partial` deleted
     assert not os.path.exists(str(output_path) + ".partial")
-    with pytest.raises(CondaHTTPError), patch(
-        "requests.Response.iter_content", side_effect=iter_content_interrupted_2
+    with (
+        pytest.raises(CondaHTTPError),
+        patch("requests.Response.iter_content", side_effect=iter_content_interrupted_2),
     ):
         download(url, output_path, size=size, sha256=sha256)
     assert not os.path.exists(str(output_path) + ".partial")
@@ -189,8 +191,9 @@ def test_download_when_ranges_not_supported(tmp_path):
         yield test_file[1]
         raise ConnectionAbortedError("aborted")
 
-    with pytest.raises(ConnectionAbortedError), patch(
-        "requests.Response.iter_content", side_effect=iter_content_interrupted
+    with (
+        pytest.raises(ConnectionAbortedError),
+        patch("requests.Response.iter_content", side_effect=iter_content_interrupted),
     ):
         download(url, output_path, size=size, sha256=sha256)
 
@@ -302,16 +305,18 @@ def test_download_http_errors():
         def __init__(self, status_code):
             self.status_code = status_code
 
-    with pytest.raises(ConnectionResetError), download_http_errors(
-        "https://example.org/file"
+    with (
+        pytest.raises(ConnectionResetError),
+        download_http_errors("https://example.org/file"),
     ):
         raise ConnectionResetError()
 
     with pytest.raises(ProxyError), download_http_errors("https://example.org/file"):
         raise RequestsProxyError()
 
-    with pytest.raises(CondaDependencyError), download_http_errors(
-        "https://example.org/file"
+    with (
+        pytest.raises(CondaDependencyError),
+        download_http_errors("https://example.org/file"),
     ):
         raise InvalidSchema("SOCKS")
 
@@ -322,8 +327,9 @@ def test_download_http_errors():
         raise SSLError()
 
     # A variety of helpful error messages should follow
-    with pytest.raises(CondaHTTPError, match=str(401)), download_http_errors(
-        "https://example.org/file"
+    with (
+        pytest.raises(CondaHTTPError, match=str(401)),
+        download_http_errors("https://example.org/file"),
     ):
         raise HTTPError(response=Response(401))
 

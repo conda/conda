@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from fnmatch import fnmatch
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from threading import local
 from typing import TYPE_CHECKING
@@ -96,7 +96,7 @@ def validate_request_headers(
     return {}
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_session(url: str):
     """
     Function that determines the correct Session object to be returned

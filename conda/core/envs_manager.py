@@ -19,7 +19,7 @@ from ..gateways.disk.test import is_conda_environment
 from .prefix_data import PrefixData
 
 if TYPE_CHECKING:
-    from typing import Iterator
+    from collections.abc import Iterator
 
 log = getLogger(__name__)
 

@@ -14,13 +14,14 @@ import platform
 import struct
 import sys
 from collections import defaultdict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from errno import ENOENT
-from functools import cached_property, lru_cache
+from functools import cache, cached_property
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -667,7 +668,7 @@ class Context(Configuration):
             return self._subdir
         return self._native_subdir()
 
-    @lru_cache(maxsize=None)
+    @cache
     def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
