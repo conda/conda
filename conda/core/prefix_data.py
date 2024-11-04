@@ -453,6 +453,10 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
 
 
 def python_record_for_prefix(prefix) -> PrefixRecord | None:
+    """
+    For the given conda prefix, return the PrefixRecord of the Python installed
+    in that prefix.
+    """
     python_record_iterator = (
         record
         for record in PrefixData(prefix).iter_records()
