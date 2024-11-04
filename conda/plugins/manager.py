@@ -50,6 +50,7 @@ if TYPE_CHECKING:
         CondaPreCommand,
         CondaPreSolve,
         CondaReporterBackend,
+        CondaRequestHeader,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -203,6 +204,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["post_solves"]
     ) -> list[CondaPostSolve]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["request_headers"]
+    ) -> list[CondaRequestHeader]: ...
 
     @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
@@ -393,6 +399,9 @@ class CondaPluginManager(pluggy.PluginManager):
             hook.to_virtual_package()
             for hook in self.get_hook_results("virtual_packages")
         )
+
+    def get_request_headers(self) -> tuple[CondaRequestHeader, ...]:
+        return tuple(hook for hook in self.get_hook_results("request_headers"))
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

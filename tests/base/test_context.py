@@ -21,7 +21,9 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
+    channel_alias_validation,
     context,
+    default_python_validation,
     get_plugin_config_data,
     reset_context,
     validate_prefix_name,
@@ -751,3 +753,39 @@ def test_get_plugin_config_data_skip_bad_values():
     plugin_config_data = get_plugin_config_data(raw_data)
 
     assert plugin_config_data == {}
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("https://example.com/", True),
+        ("bad_value", "channel_alias value 'bad_value' must have scheme/protocol."),
+    ),
+)
+def test_channel_alias_validation(value, expected):
+    """
+    Ensure that ``conda.base.context.channel_alias_validation`` works as expected
+    """
+    assert channel_alias_validation(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("3.12", True),
+        (
+            "4.12",
+            "default_python value '4.12' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+        ("", True),
+        (
+            "not a number",
+            "default_python value 'not a number' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+    ),
+)
+def test_default_python_validation(value, expected):
+    """
+    Ensure that ``conda.base.context.default_python_validation`` works as expected
+    """
+    assert default_python_validation(value) == expected
