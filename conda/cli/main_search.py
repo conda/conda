@@ -299,12 +299,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     return 0
 
 
-def pretty_record(record: PackageRecord) -> None:
+def _pretty_record_format(record: PackageRecord) -> str:
     """
-    Pretty prints a `PackageRecord`.
+    Format a `PackageRecord` for `pretty_record()`
+    """
 
-    :param record:  The `PackageRecord` object to print.
-    """
     from ..common.io import dashlist
     from ..utils import human_bytes
 
@@ -314,7 +313,7 @@ def pretty_record(record: PackageRecord) -> None:
             builder.append("%-12s: %s" % (display_name, value))
 
     builder = []
-    builder.append(record.name + " " + record.version + " " + record.build)
+    builder.append(f"{record.name} {record.version} {record.build}")
     builder.append("-" * len(builder[0]))
 
     push_line("file name", "fn")
@@ -329,7 +328,7 @@ def pretty_record(record: PackageRecord) -> None:
     push_line("subdir", "subdir")
     push_line("url", "url")
     push_line("md5", "md5")
-    if record.timestamp:
+    if record.timestamp and isinstance(record.timestamp, (int, float)):
         date_str = datetime.fromtimestamp(record.timestamp, timezone.utc).strftime(
             "%Y-%m-%d %H:%M:%S %Z"
         )
@@ -345,4 +344,13 @@ def pretty_record(record: PackageRecord) -> None:
         % ("dependencies", dashlist(record.depends) if record.depends else "[]")
     )
     builder.append("\n")
-    print("\n".join(builder))
+    return "\n".join(builder)
+
+
+def pretty_record(record: PackageRecord, print=print) -> None:
+    """
+    Pretty prints a `PackageRecord`.
+
+    :param record:  The `PackageRecord` object to print.
+    """
+    print(_pretty_record_format(record))
