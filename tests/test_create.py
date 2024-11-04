@@ -2328,16 +2328,17 @@ def test_dont_remove_conda_3(
                         "--yes",
                         lightweight_dependency,
                     ],
-                    capture_output=True,
+                    capture_output=False,
                     check=True,
                     encoding="utf-8",
                 )
             except CalledProcessError as e:
-                print(os.listdir(prefix), file=sys.stderr)
-                print(os.listdir(prefix / "bin"), file=sys.stderr)
-                print("sys.executable=", sys.executable, file=sys.stderr)
-                assert "RemoveError" in e.stderr
-                raise
+                listdir = []
+                listdir += os.listdir(prefix)
+                listdir += os.listdir(prefix / "bin")
+                listdir.append(f"sys.executable={sys.executable}")
+                # assert "RemoveError" in e.stderr
+                raise Exception(repr(listdir)) from e
 
 
 def test_force_remove(
