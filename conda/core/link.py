@@ -78,7 +78,11 @@ from .path_actions import (
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
 )
-from .prefix_data import PrefixData, get_python_site_packages_for_prefix, get_python_version_for_prefix
+from .prefix_data import (
+    PrefixData,
+    get_python_site_packages_for_prefix,
+    get_python_version_for_prefix,
+)
 
 if TYPE_CHECKING:
     from typing import Iterable
@@ -437,12 +441,16 @@ class UnlinkLinkTransaction:
             assert full_version
             log.debug("found in current transaction python version %s", full_version)
             python_version = get_major_minor_version(full_version)
-            python_site_packages = linking_new_python.repodata_record.python_site_packages_path
+            python_site_packages = (
+                linking_new_python.repodata_record.python_site_packages_path
+            )
         else:
             # is python already linked and not being unlinked? that's ok too
             linked_python_version = get_python_version_for_prefix(target_prefix)
             if linked_python_version:
-                python_site_packages = get_python_site_packages_for_prefix(target_prefix)
+                python_site_packages = get_python_site_packages_for_prefix(
+                    target_prefix
+                )
                 find_python = (
                     prefix_rec_to_unlink
                     for prefix_rec_to_unlink in prefix_recs_to_unlink
@@ -452,7 +460,8 @@ class UnlinkLinkTransaction:
                 if unlinking_this_python is None:
                     # python is not being unlinked
                     log.debug(
-                        "found in current prefix python version %s", linked_python_version
+                        "found in current prefix python version %s",
+                        linked_python_version,
                     )
                     python_version = linked_python_version
 
