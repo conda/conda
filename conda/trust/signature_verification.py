@@ -8,7 +8,7 @@ import json
 import os
 import re
 import warnings
-from functools import cached_property
+from functools import cache
 from logging import getLogger
 from pathlib import Path
 
@@ -46,7 +46,8 @@ RE_ROOT_METADATA = re.compile(r"(?P<number>\d+)\.root\.json")
 
 
 class _SignatureVerification:
-    @cached_property
+    @property
+    @cache
     def enabled(self) -> bool:
         # safety checks must be enabled
         if not context.extra_safety_checks:
@@ -90,7 +91,8 @@ class _SignatureVerification:
         # signature verification is enabled
         return True
 
-    @cached_property
+    @property
+    @cache
     def trusted_root(self) -> dict:
         # TODO: formalize paths for `*.root.json` and `key_mgr.json` on server-side
         trusted: dict | None = None
@@ -158,7 +160,8 @@ class _SignatureVerification:
 
         return trusted
 
-    @cached_property
+    @property
+    @cache
     def key_mgr(self) -> dict | None:
         trusted: dict | None = None
 
