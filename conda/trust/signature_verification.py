@@ -46,7 +46,6 @@ RE_ROOT_METADATA = re.compile(r"(?P<number>\d+)\.root\.json")
 
 
 class _SignatureVerification:
-
     @cached_property
     def enabled(self) -> bool:
         # safety checks must be enabled

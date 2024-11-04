@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from functools import lru_cache, wraps
+from functools import cache, wraps
 from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
@@ -278,7 +278,7 @@ deprecated.constant(
 urlpath = url_path = path_to_url
 
 
-@lru_cache(maxsize=None)
+@cache
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to

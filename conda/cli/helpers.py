@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
 
-
 def add_parser_create_install_update(p, prefix_required=False):
     from ..common.constants import NULL
 

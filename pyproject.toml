@@ -154,7 +154,7 @@ exclude = [
   "tests/data/env_metadata",
   "tools/vendoring",
 ]
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.lint]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
