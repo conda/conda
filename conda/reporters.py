@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import logging
 import sys
-from functools import lru_cache
+from functools import cache
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import ContextManager
+    from contextlib import AbstractContextManager
 
 from .base.context import context
 from .exceptions import CondaSystemExit, DryRunExit
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=None)
+@cache
 def _get_render_func(style: str | None = None) -> Callable:
     """
     Retrieves the render function to use
@@ -65,7 +65,7 @@ def get_progress_bar(description: str, **kwargs) -> ProgressBarBase:
     return _get_render_func("progress_bar")(description, **kwargs)
 
 
-def get_progress_bar_context_manager() -> ContextManager:
+def get_progress_bar_context_manager() -> AbstractContextManager:
     """
     Retrieve progress bar context manager to use with registered reporter
     """
