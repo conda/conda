@@ -1090,6 +1090,14 @@ class UnlinkLinkTransaction:
         """
         Return the python version and location of the site-packages directory at the end of the transaction
         """
+        def version_and_sp(python_record) -> tuple[str | None, str | None]:
+            assert python_record.version
+            python_version = get_major_minor_version(python_record.version)
+            python_site_packages = python_record.python_site_packages_path
+            if python_site_packages is None:
+                python_site_packages = get_python_site_packages_short_path(python_version)
+            return python_version, python_site_packages
+
         linking_new_python = next(
             (
                 package_info
@@ -1101,8 +1109,9 @@ class UnlinkLinkTransaction:
         if linking_new_python:
             python_record = linking_new_python.repodata_record
             log.debug(f"found in current transaction python: {python_record}")
-        else:
-            python_record = python_record_for_prefix(target_prefix)
+            return version_and_sp(python_record)
+        python_record = python_record_for_prefix(target_prefix)
+        if python_record:
             unlinking_python = next(
                 (
                     prefix_rec_to_unlink
@@ -1111,19 +1120,13 @@ class UnlinkLinkTransaction:
                 ),
                 None,
             )
-            if python_record and unlinking_python is None:
+            if unlinking_python is None:
                 # python is already linked and not being unlinked
                 log.debug(f"found in current prefix, python: {python_record}")
-            else:
-                # no python in the finished environment
-                log.debug("no python version found in prefix")
-                return None, None
-        assert python_record.version
-        python_version = get_major_minor_version(python_record.version)
-        python_site_packages = python_record.python_site_packages_path
-        if python_site_packages is None:
-            python_site_packages = get_python_site_packages_short_path(python_version)
-        return python_version, python_site_packages
+                return version_and_sp(python_record)
+        # no python in the finished environment
+        log.debug("no python version found in prefix")
+        return None, None
 
     @staticmethod
     def _make_link_actions(
