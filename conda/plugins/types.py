@@ -20,7 +20,8 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Any, Callable, ContextManager
+    from contextlib import AbstractContextManager
+    from typing import Any, Callable
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
@@ -286,7 +287,7 @@ class ReporterRendererBase(ABC):
         """
 
     @classmethod
-    def progress_bar_context_manager(cls) -> ContextManager:
+    def progress_bar_context_manager(cls) -> AbstractContextManager:
         """
         Returns a null context by default but allows plugins to define their own if necessary
         """
