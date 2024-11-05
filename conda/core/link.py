@@ -1090,12 +1090,15 @@ class UnlinkLinkTransaction:
         """
         Return the python version and location of the site-packages directory at the end of the transaction
         """
+
         def version_and_sp(python_record) -> tuple[str | None, str | None]:
             assert python_record.version
             python_version = get_major_minor_version(python_record.version)
             python_site_packages = python_record.python_site_packages_path
             if python_site_packages is None:
-                python_site_packages = get_python_site_packages_short_path(python_version)
+                python_site_packages = get_python_site_packages_short_path(
+                    python_version
+                )
             return python_version, python_site_packages
 
         linking_new_python = next(
