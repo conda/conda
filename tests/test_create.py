@@ -2706,7 +2706,11 @@ def test_nonadmin_file_untouched(
 
 
 @pytest.mark.skipif(on_win, reason="sample packages used unix style paths")
-def test_python_site_packages_path(request: FixtureRequest, tmp_env: TmpEnvFixture):
+def test_python_site_packages_path(
+    test_recipes_channel: Path,
+    request: FixtureRequest,
+    tmp_env: TmpEnvFixture,
+):
     """
     When a python package that includes the optional python_site_packages_path repodata record is installed
     noarch: python packages should be installed into that path.
@@ -2720,13 +2724,6 @@ def test_python_site_packages_path(request: FixtureRequest, tmp_env: TmpEnvFixtu
             reason="conda-libmamba-solver does not support python_site_packages_path",
         )
     )
-    # TODO update to test using packages that are not in a user channel
-    args = (
-        "--channel=jjhelmus/label/sp_path",
-        "--channel=conda-forge",
-        "python=3.99.99",  # python_site_packages_path set to lib/python3.99t/site-packages
-        "imagesize=1.4.1=pyhd8ed1ab_0",  # noarch package
-    )
-    with tmp_env(*args) as prefix:
+    with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
         sp_dir = "lib/python3.99t/site-packages"
-        assert (prefix / sp_dir / "imagesize" / "imagesize.py").is_file()
+        assert (prefix / sp_dir / "sample.py").is_file()
