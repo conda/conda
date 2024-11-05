@@ -2702,3 +2702,29 @@ def test_nonadmin_file_untouched(
         assert nonadmin_file.is_file(), ".nonadmin file removed after installation"
         conda_cli("remove", "--yes", "--prefix", prefix, "dependency")
         assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"
+
+
+def test_python_site_packages_path(request: FixtureRequest, tmp_env: TmpEnvFixture):
+    """
+    When a python package that includes the optional python_site_packages_path repodata record is installed
+    noarch: python packages should be installed into that path.
+
+    Reference: https://github.com/conda/conda/issues/14053
+    """
+    # TODO update this to a version check once conda-libmamba-solver supports python_site_packages_path
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="conda-libmamba-solver does not support python_site_packages_path",
+        )
+    )
+    # TODO update to test using packages that are not in a users channel
+    args = (
+        "--channel=jjhelmus/label/sp_path",
+        "--channel=conda-forge",
+        "python=3.99.99",  # python_site_packages_path set to lib/python3.99t/site-packages
+        "imagesize=1.4.1=pyhd8ed1ab_0",  # noarch package
+    )
+    with tmp_env(*args) as prefix:
+        sp_dir = "lib/python3.99t/site-packages"
+        assert (prefix / sp_dir / "imagesize" / "imagesize.py").is_file()
