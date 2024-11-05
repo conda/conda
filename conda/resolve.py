@@ -10,7 +10,7 @@ from __future__ import annotations
 import copy
 import itertools
 from collections import defaultdict, deque
-from functools import lru_cache
+from functools import cache
 from logging import DEBUG, getLogger
 
 from tqdm import tqdm
@@ -61,7 +61,7 @@ _sat_solvers = {
 }
 
 
-@lru_cache(maxsize=None)
+@cache
 def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     def try_out_solver(sat_solver):
         c = Clauses(sat_solver=sat_solver)

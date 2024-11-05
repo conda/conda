@@ -6,7 +6,7 @@ import codecs
 import re
 import socket
 from collections import namedtuple
-from functools import lru_cache
+from functools import cache
 from getpass import getpass
 from os.path import abspath, expanduser
 from urllib.parse import (  # noqa: F401
@@ -39,7 +39,7 @@ def hex_octal_to_int(ho):
     return res
 
 
-@lru_cache(maxsize=None)
+@cache
 def percent_decode(path):
     # This is not fast so avoid when we can.
     if "%" not in path:
@@ -91,7 +91,7 @@ def url_to_path(url):
 """
 
 
-@lru_cache(maxsize=None)
+@cache
 def path_to_url(path):
     if not path:
         raise ValueError(f"Not allowed: {path!r}")
@@ -228,7 +228,7 @@ class Url(namedtuple("Url", url_attrs)):
         return cls(**values)
 
 
-@lru_cache(maxsize=None)
+@cache
 def urlparse(url: str) -> Url:
     if on_win and url.startswith("file:"):
         url.replace("\\", "/")
@@ -375,7 +375,7 @@ def split_platform(known_subdirs, url):
     return cleaned_url.rstrip("/"), platform
 
 
-@lru_cache(maxsize=None)
+@cache
 def _split_platform_re(known_subdirs):
     _platform_match_regex = r"/({})(?:/|$)".format(
         r"|".join(rf"{d}" for d in known_subdirs)
@@ -440,7 +440,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_proxy_username_and_pass(scheme):
     username = input(f"\n{scheme} proxy username: ")
     passwd = getpass("Password: ")

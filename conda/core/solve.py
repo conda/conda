@@ -47,7 +47,7 @@ except ImportError:
     from ..auxlib.collection import frozendict
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from ..models.records import PackageRecord
 

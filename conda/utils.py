@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from functools import lru_cache, wraps
+from functools import cache, wraps
 from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
@@ -278,7 +278,7 @@ deprecated.constant(
 urlpath = url_path = path_to_url
 
 
-@lru_cache(maxsize=None)
+@cache
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to
@@ -343,15 +343,7 @@ if on_win:
         return " ".join(quote(arg) for arg in args)
 
 else:
-    try:
-        from shlex import join as _args_join
-    except ImportError:
-        # [backport] Python <3.8
-        def _args_join(args):
-            """Return a shell-escaped string from *args*."""
-            from shlex import quote
-
-            return " ".join(quote(arg) for arg in args)
+    from shlex import join as _args_join
 
 
 # Ensures arguments are a tuple or a list. Strings are converted

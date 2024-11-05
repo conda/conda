@@ -14,7 +14,6 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -48,7 +47,7 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 name = "conda"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.scripts]
 conda = "conda.cli.main_pip:main"
@@ -154,7 +153,7 @@ exclude = [
   "tests/data/env_metadata",
   "tools/vendoring",
 ]
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.lint]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}

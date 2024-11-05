@@ -84,7 +84,7 @@ from .prefix_data import (
 )
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from ..models.package_info import PackageInfo
     from ..models.records import PackageRecord

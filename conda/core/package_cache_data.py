@@ -814,11 +814,12 @@ class ProgressiveFetchExtract:
             nonlocal cancelled_flag
             return cancelled_flag
 
-        with signal_handler(conda_signal_handler), time_recorder(
-            "fetch_extract_execute"
-        ), ThreadPoolExecutor(
-            context.fetch_threads
-        ) as fetch_executor, ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor:
+        with (
+            signal_handler(conda_signal_handler),
+            time_recorder("fetch_extract_execute"),
+            ThreadPoolExecutor(context.fetch_threads) as fetch_executor,
+            ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor,
+        ):
             for prec_or_spec, (
                 cache_action,
                 extract_action,
