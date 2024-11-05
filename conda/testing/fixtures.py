@@ -34,7 +34,7 @@ from ..gateways.disk.create import TemporaryDirectory
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from typing import Iterable, Iterator
+    from collections.abc import Iterable, Iterator
 
     from _pytest.capture import MultiCapture
     from pytest import (

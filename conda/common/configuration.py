@@ -62,8 +62,9 @@ except ImportError:
     from ..auxlib.collection import make_immutable as deepfreeze
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable, Iterable, Sequence
     from re import Match
-    from typing import Any, Hashable, Iterable, Sequence
+    from typing import Any
 
 log = getLogger(__name__)
 
