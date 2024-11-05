@@ -652,7 +652,7 @@ jobs:
             subdir: linux-64
           - runner: macos-13
             subdir: osx-64
-          - runner: macos-14  # FUTURE: Use -latest
+          - runner: macos-latest
             subdir: osx-arm64
           - runner: windows-latest
             subdir: win-64
