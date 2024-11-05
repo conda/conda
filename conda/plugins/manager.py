@@ -76,9 +76,7 @@ class CondaPluginManager(pluggy.PluginManager):
         super().__init__(project_name, *args, **kwargs)
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
-        self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(
-            self.get_solver_backend
-        )
+        self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
 
     def get_canonical_name(self, plugin: object) -> str:
         # detect the fully qualified module name
@@ -450,7 +448,7 @@ class CondaPluginManager(pluggy.PluginManager):
             add_plugin_setting(name, parameter, aliases)
 
 
-@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
+@functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
     Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,

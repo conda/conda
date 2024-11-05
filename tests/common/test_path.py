@@ -24,8 +24,8 @@ from conda.common.path import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
-    from typing import Iterable
 
     from pytest_mock import MockerFixture
 

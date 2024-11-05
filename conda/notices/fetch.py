@@ -16,7 +16,7 @@ from .cache import cached_response
 from .types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 

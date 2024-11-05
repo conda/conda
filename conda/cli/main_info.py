@@ -20,7 +20,8 @@ from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
-    from typing import Any, Iterable
+    from collections.abc import Iterable
+    from typing import Any
 
     from ..base.context import Context
     from ..models.records import PackageRecord

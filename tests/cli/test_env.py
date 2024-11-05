@@ -25,7 +25,7 @@ from conda.gateways.disk.test import is_conda_environment
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
-    from typing import Iterator
+    from collections.abc import Iterator
 
     from pytest import MonkeyPatch
 
