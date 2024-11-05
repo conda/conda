@@ -2705,6 +2705,7 @@ def test_nonadmin_file_untouched(
         assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"
 
 
+@pytest.mark.skipif(on_win, reason="sample packages used unix style paths")
 def test_python_site_packages_path(request: FixtureRequest, tmp_env: TmpEnvFixture):
     """
     When a python package that includes the optional python_site_packages_path repodata record is installed
@@ -2719,7 +2720,7 @@ def test_python_site_packages_path(request: FixtureRequest, tmp_env: TmpEnvFixtu
             reason="conda-libmamba-solver does not support python_site_packages_path",
         )
     )
-    # TODO update to test using packages that are not in a users channel
+    # TODO update to test using packages that are not in a user channel
     args = (
         "--channel=jjhelmus/label/sp_path",
         "--channel=conda-forge",
