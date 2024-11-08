@@ -156,6 +156,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: test-results-${{ env.HASH }}
+          include-hidden-files: true
           path: |
             .coverage
             durations\${{ runner.os }}.json
@@ -247,9 +248,6 @@ jobs:
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
 
-      - name: Debug coverage
-        uses: fawazahmed0/action-debug-vscode@main
-
       - name: Upload Coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
@@ -261,6 +259,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: test-results-${{ env.HASH }}
+          include-hidden-files: true
           path: |
             .coverage
             durations/${{ runner.os }}.json
@@ -567,6 +566,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: test-results-${{ env.HASH }}
+          include-hidden-files: true
           path: |
             .coverage
             durations/${{ runner.os }}.json
