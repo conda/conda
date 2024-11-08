@@ -409,7 +409,9 @@ class PackageRecord(DictSafeMixin, Entity):
     preferred_env = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
-
+    python_site_packages_path = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
     license = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )

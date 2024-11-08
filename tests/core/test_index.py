@@ -334,7 +334,7 @@ def test_basic_get_reduced_index():
 
 def test_fetch_index(test_recipes_channel):
     idx = fetch_index(Channel(str(test_recipes_channel)).urls())
-    assert len(idx) == 20
+    assert len(idx) == 23
 
 
 def test_dist_str_in_index(test_recipes_channel):
