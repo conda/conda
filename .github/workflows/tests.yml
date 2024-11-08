@@ -156,6 +156,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: test-results-${{ env.HASH }}
+          include-hidden-files: true
           path: |
             .coverage
             durations\${{ runner.os }}.json
@@ -258,6 +259,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: test-results-${{ env.HASH }}
+          include-hidden-files: true
           path: |
             .coverage
             durations/${{ runner.os }}.json
@@ -564,6 +566,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: test-results-${{ env.HASH }}
+          include-hidden-files: true
           path: |
             .coverage
             durations/${{ runner.os }}.json
@@ -591,6 +594,7 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: test-results-${{ github.sha }}-all
+          include-hidden-files: true
           path: test-results-*
           retention-days: 7  # for durations.yml workflow
 
