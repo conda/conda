@@ -5,7 +5,7 @@
 import json
 import os
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
@@ -320,7 +320,7 @@ def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index2.json",
@@ -331,7 +331,7 @@ def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index4.json",
@@ -342,7 +342,7 @@ def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     return _get_index_r_base(
         "index5.json",
@@ -353,7 +353,7 @@ def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
     repodata = {
         "foobar-1.0-0.tar.bz2": {
@@ -532,12 +532,13 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with patch.object(
-        History, "get_requested_specs_map", return_value=spec_map
-    ), env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        str(add_pip).lower(),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    with (
+        patch.object(History, "get_requested_specs_map", return_value=spec_map),
+        env_var(
+            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+            str(add_pip).lower(),
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
     ):
         # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
         # get_index_r_*) to cover solver logics that need to load from disk instead of

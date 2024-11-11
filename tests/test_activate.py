@@ -39,7 +39,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.plugins.types import CondaPostCommand, CondaPreCommand
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture

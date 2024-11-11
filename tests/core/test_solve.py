@@ -340,8 +340,9 @@ Your installed version is: 8.0"""
 def test_cuda_glibc_sat(tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"), env_var(
-        "CONDA_OVERRIDE_GLIBC", "2.23"
+    with (
+        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
+        env_var("CONDA_OVERRIDE_GLIBC", "2.23"),
     ):
         with get_solver_cuda(tmpdir, specs) as solver:
             final_state = solver.solve_final_state()
@@ -375,8 +376,9 @@ Your installed version is: 8.0"""
 def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"), env_var(
-        "CONDA_OVERRIDE_GLIBC", "2.12"
+    with (
+        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
+        env_var("CONDA_OVERRIDE_GLIBC", "2.12"),
     ):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError):

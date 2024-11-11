@@ -21,7 +21,9 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
+    channel_alias_validation,
     context,
+    default_python_validation,
     get_plugin_config_data,
     reset_context,
     validate_prefix_name,
@@ -666,9 +668,10 @@ VALIDATE_PREFIX_TEST_CASES = (
 def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
     ctx = mock.MagicMock()
 
-    with mock.patch(
-        "conda.base.context._first_writable_envs_dir"
-    ) as mock_one, mock.patch("conda.base.context.locate_prefix_by_name") as mock_two:
+    with (
+        mock.patch("conda.base.context._first_writable_envs_dir") as mock_one,
+        mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
+    ):
         mock_one.side_effect = [mock_return_values[0]]
         mock_two.side_effect = [mock_return_values[1]]
 
@@ -821,3 +824,39 @@ def test_reporters_default_value():
             "verbosity": context.verbosity,
         },
     )
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("https://example.com/", True),
+        ("bad_value", "channel_alias value 'bad_value' must have scheme/protocol."),
+    ),
+)
+def test_channel_alias_validation(value, expected):
+    """
+    Ensure that ``conda.base.context.channel_alias_validation`` works as expected
+    """
+    assert channel_alias_validation(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("3.12", True),
+        (
+            "4.12",
+            "default_python value '4.12' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+        ("", True),
+        (
+            "not a number",
+            "default_python value 'not a number' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+    ),
+)
+def test_default_python_validation(value, expected):
+    """
+    Ensure that ``conda.base.context.default_python_validation`` works as expected
+    """
+    assert default_python_validation(value) == expected

@@ -46,13 +46,16 @@ def test_check_non_admin_enabled_true():
 def test_confirm_yn_yes(monkeypatch: MonkeyPatch):
     monkeypatch.setattr("sys.stdin", StringIO("blah\ny\n"))
 
-    with env_vars(
-        {
-            "CONDA_ALWAYS_YES": "false",
-            "CONDA_DRY_RUN": "false",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), captured() as cap:
+    with (
+        env_vars(
+            {
+                "CONDA_ALWAYS_YES": "false",
+                "CONDA_DRY_RUN": "false",
+            },
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
+        captured() as cap,
+    ):
         assert not context.always_yes
         assert not context.dry_run
 
@@ -64,13 +67,16 @@ def test_confirm_yn_yes(monkeypatch: MonkeyPatch):
 def test_confirm_yn_no(monkeypatch: MonkeyPatch):
     monkeypatch.setattr("sys.stdin", StringIO("n\n"))
 
-    with env_vars(
-        {
-            "CONDA_ALWAYS_YES": "false",
-            "CONDA_DRY_RUN": "false",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(CondaSystemExit):
+    with (
+        env_vars(
+            {
+                "CONDA_ALWAYS_YES": "false",
+                "CONDA_DRY_RUN": "false",
+            },
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
+        pytest.raises(CondaSystemExit),
+    ):
         assert not context.always_yes
         assert not context.dry_run
 
@@ -78,20 +84,26 @@ def test_confirm_yn_no(monkeypatch: MonkeyPatch):
 
 
 def test_confirm_yn_dry_run_exit():
-    with env_vars(
-        {"CONDA_DRY_RUN": "true"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(DryRunExit):
+    with (
+        env_vars(
+            {"CONDA_DRY_RUN": "true"},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
+        pytest.raises(DryRunExit),
+    ):
         assert context.dry_run
 
         confirm_yn()
 
 
 def test_confirm_dry_run_exit():
-    with env_vars(
-        {"CONDA_DRY_RUN": "true"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ), pytest.raises(DryRunExit):
+    with (
+        env_vars(
+            {"CONDA_DRY_RUN": "true"},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
+        pytest.raises(DryRunExit),
+    ):
         assert context.dry_run
 
         confirm()

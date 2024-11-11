@@ -16,7 +16,7 @@ from . import cache, fetch, views
 from .types import ChannelNoticeResultSet
 
 if TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
     from ..base.context import Context
     from ..models.channel import Channel, MultiChannel
