@@ -130,6 +130,11 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
     )
+    output_and_prompt_options.add_argument(
+        "--console",
+        default=NULL,
+        help="Select the backend to use for normal output rendering.",
+    )
     add_parser_verbose(output_and_prompt_options)
     output_and_prompt_options.add_argument(
         "-q",

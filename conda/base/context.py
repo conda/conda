@@ -41,7 +41,6 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
-    unique_sequence_map,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -55,7 +54,9 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,
+    DEFAULT_CONSOLE_REPORTER_BACKEND,
     DEFAULT_CUSTOM_CHANNELS,
+    DEFAULT_JSON_REPORTER_BACKEND,
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
@@ -356,11 +357,6 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    _reporters = ParameterLoader(
-        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
-        aliases=("reporters",),
-    )
-
     ####################################################
     #               Channel Configuration              #
     ####################################################
@@ -442,6 +438,10 @@ class Context(Configuration):
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
+    _console = ParameterLoader(
+        PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str),
+        aliases=["console"],
+    )
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
@@ -1176,24 +1176,11 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
-    @unique_sequence_map(unique_key="backend")
-    def reporters(self) -> tuple[Mapping[str, str]]:
-        """
-        Determine the value of reporters based on other settings and the ``self._reporters``
-        value itself.
-        """
-        if not self._reporters:
-            return (
-                {
-                    "backend": "json" if self.json else "console",
-                    "output": "stdout",
-                    "verbosity": self.verbosity,
-                    "quiet": self.quiet,
-                },
-            )
-
-        return self._reporters
+    @property
+    def console(self) -> str:
+        if self.json:
+            return DEFAULT_JSON_REPORTER_BACKEND
+        return self._console
 
     @property
     def category_map(self):
@@ -1279,6 +1266,7 @@ class Context(Configuration):
                 "changeps1",
                 "env_prompt",
                 "json",
+                "console",
                 "notify_outdated_conda",
                 "quiet",
                 "report_errors",
@@ -1323,7 +1311,6 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
-                "reporters",
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1703,12 +1690,6 @@ class Context(Configuration):
                 Disable progress bar display and other output.
                 """
             ),
-            reporters=dals(
-                """
-                A list of mappings that allow the configuration of one or more output streams
-                (e.g. stdout or file).
-                """
-            ),
             remote_connect_timeout_secs=dals(
                 """
                 The number seconds conda will wait for your client to establish a connection
@@ -1917,6 +1898,12 @@ class Context(Configuration):
                 Force uppercase for new environment variable names. Defaults to True.
                 """
             ),
+            console=dals(
+                f"""
+                Configure different backends to be used while rendering normal console output.
+                Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
+                """
+            ),
         )
 
 
@@ -1931,7 +1918,14 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     from ..models.channel import Channel
 
     Channel._reset_state()
+
     # need to import here to avoid circular dependency
+
+    # clear function cache
+    from ..reporters import _get_render_func
+
+    _get_render_func.cache_clear()
+
     return context
 
 

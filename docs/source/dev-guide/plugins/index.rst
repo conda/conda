@@ -102,6 +102,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    request_headers
    post_commands
    pre_commands
+   reporter_backends
    settings
    solvers
    subcommands

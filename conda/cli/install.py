@@ -22,7 +22,6 @@ from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
-from ..common.io import Spinner
 from ..common.path import is_package_file, paths_equal
 from ..core.index import (
     _supplement_index_with_prefix,
@@ -59,6 +58,7 @@ from ..history import History
 from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
+from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
@@ -373,11 +373,7 @@ def install(args, parser, command="install"):
     for repodata_fn in repodata_fns:
         try:
             if isinstall and args.revision:
-                with Spinner(
-                    f"Collecting package metadata ({repodata_fn})",
-                    not context.verbose and not context.quiet,
-                    context.json,
-                ):
+                with get_spinner(f"Collecting package metadata ({repodata_fn})"):
                     index = get_index(
                         channel_urls=index_args["channel_urls"],
                         prepend=index_args["prepend"],  # --override-channels
@@ -389,11 +385,7 @@ def install(args, parser, command="install"):
                         repodata_fn=repodata_fn,
                     )
                 revision_idx = get_revision(args.revision)
-                with Spinner(
-                    f"Reverting to revision {revision_idx}",
-                    not context.verbose and not context.quiet,
-                    context.json,
-                ):
+                with get_spinner(f"Reverting to revision {revision_idx}"):
                     unlink_link_transaction = revert_actions(
                         prefix, revision_idx, index
                     )
@@ -549,7 +541,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if not context.json:
         unlink_link_transaction.print_transaction_summary()
-        common.confirm_yn()
+        confirm_yn()
 
     elif context.dry_run:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]

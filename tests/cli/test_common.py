@@ -1,16 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import os
-from io import StringIO
 
 import pytest
-from pytest import MonkeyPatch, raises
+from pytest import raises
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.cli.common import check_non_admin, confirm, confirm_yn, is_active_prefix
+from conda.cli.common import (
+    check_non_admin,
+    is_active_prefix,
+    print_envs_list,
+)
 from conda.common.compat import on_win
-from conda.common.io import captured, env_vars
-from conda.exceptions import CondaSystemExit, DryRunExit, OperationNotAllowed
+from conda.common.io import env_vars
+from conda.exceptions import OperationNotAllowed
 
 
 def test_check_non_admin_enabled_false():
@@ -43,88 +46,37 @@ def test_check_non_admin_enabled_true():
         assert True
 
 
-def test_confirm_yn_yes(monkeypatch: MonkeyPatch):
-    monkeypatch.setattr("sys.stdin", StringIO("blah\ny\n"))
-
-    with (
-        env_vars(
-            {
-                "CONDA_ALWAYS_YES": "false",
-                "CONDA_DRY_RUN": "false",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        captured() as cap,
-    ):
-        assert not context.always_yes
-        assert not context.dry_run
-
-        assert confirm_yn()
-
-    assert "Invalid choice" in cap.stdout
-
-
-def test_confirm_yn_no(monkeypatch: MonkeyPatch):
-    monkeypatch.setattr("sys.stdin", StringIO("n\n"))
-
-    with (
-        env_vars(
-            {
-                "CONDA_ALWAYS_YES": "false",
-                "CONDA_DRY_RUN": "false",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        pytest.raises(CondaSystemExit),
-    ):
-        assert not context.always_yes
-        assert not context.dry_run
-
-        confirm_yn()
-
-
-def test_confirm_yn_dry_run_exit():
-    with (
-        env_vars(
-            {"CONDA_DRY_RUN": "true"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        pytest.raises(DryRunExit),
-    ):
-        assert context.dry_run
-
-        confirm_yn()
-
-
-def test_confirm_dry_run_exit():
-    with (
-        env_vars(
-            {"CONDA_DRY_RUN": "true"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        pytest.raises(DryRunExit),
-    ):
-        assert context.dry_run
-
-        confirm()
-
-
-def test_confirm_yn_always_yes():
-    with env_vars(
-        {
-            "CONDA_ALWAYS_YES": "true",
-            "CONDA_DRY_RUN": "false",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.always_yes
-        assert not context.dry_run
-
-        assert confirm_yn()
-
-
 @pytest.mark.parametrize("prefix,active", [("", False), ("active_prefix", True)])
 def test_is_active_prefix(prefix, active):
     if prefix == "active_prefix":
         prefix = context.active_prefix
     assert is_active_prefix(prefix) is active
+
+
+def test_print_envs_list(capsys):
+    """
+    Test the case for print_envs_list when output=True
+
+    TODO: this function is deprecated and this test should be remove when this function is removed
+    """
+    with pytest.deprecated_call():
+        print_envs_list(["test"])
+
+    capture = capsys.readouterr()
+
+    assert "test" in capture.out
+
+
+def test_print_envs_list_output_false(capsys):
+    """
+    Test the case for print_envs_list when output=False
+
+    TODO: this function is deprecated and this test should be remove when this function is removed
+    """
+
+    with pytest.deprecated_call():
+        print_envs_list(["test"], output=False)
+
+    capture = capsys.readouterr()
+
+    assert capture.out == ""

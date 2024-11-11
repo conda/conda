@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
         CondaSolver,
@@ -332,6 +333,65 @@ class CondaSpecs:
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
+        """
+
+    @_hookspec
+    def conda_reporter_backends(self) -> Iterable[CondaReporterBackend]:
+        """
+        Register new reporter backend
+
+        The example below defines a reporter backend that uses the ``pprint`` module in Python.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from pprint import pformat
+
+           from conda import plugins
+           from conda.plugins.types import (
+               CondaReporterBackend,
+               ReporterRendererBase,
+               ProgressBarBase,
+           )
+
+
+           class PprintReporterRenderer(ReporterRendererBase):
+               "Implementation of the ReporterRendererBase"
+
+               def detail_view(self, data):
+                   return pformat(data)
+
+               def envs_list(self, data):
+                   formatted_data = pformat(data)
+                   return f"Environments: {formatted_data}"
+
+               def progress_bar(self, description, io_context_manager) -> ProgressBarBase:
+                   "Returns our custom progress bar implementation"
+                   return PprintProgressBar(description, io_context_manager)
+
+
+           class PprintProgressBar(ProgressBarBase):
+               "Blank implementation of ProgressBarBase which does nothing"
+
+               def update_to(self, fraction) -> None:
+                   pass
+
+               def refresh(self) -> None:
+                   pass
+
+               def close(self) -> None:
+                   pass
+
+
+           @plugins.hookimpl
+           def conda_reporter_backends():
+               yield CondaReporterBackend(
+                   name="pprint",
+                   description="Reporter backend based on the pprint module",
+                   renderer=PprintReporterRenderer,
+               )
+
         """
 
     @_hookspec

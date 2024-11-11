@@ -22,11 +22,9 @@ from ..auxlib.collection import first
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
-from ..cli.common import confirm_yn
 from ..common.compat import ensure_text_type, on_win
 from ..common.io import (
     DummyExecutor,
-    Spinner,
     ThreadLimitedThreadPoolExecutor,
     dashlist,
     time_recorder,
@@ -61,6 +59,7 @@ from ..gateways.disk.test import (
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
+from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
@@ -269,11 +268,7 @@ class UnlinkLinkTransaction:
 
         self.transaction_context = {}
 
-        with Spinner(
-            "Preparing transaction",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner("Preparing transaction"):
             for stp in self.prefix_setups.values():
                 grps = self._prepare(
                     self.transaction_context,
@@ -299,11 +294,7 @@ class UnlinkLinkTransaction:
             self._verified = True
             return
 
-        with Spinner(
-            "Verifying transaction",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner("Verifying transaction"):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
@@ -848,11 +839,7 @@ class UnlinkLinkTransaction:
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
-            with Spinner(
-                "Executing transaction",
-                not context.verbose and not context.quiet,
-                context.json,
-            ):
+            with get_spinner("Executing transaction"):
                 # Execute unlink actions
                 for group, register_group, install_side in (
                     (unlink_actions, "unregister", False),
@@ -958,11 +945,7 @@ class UnlinkLinkTransaction:
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    with Spinner(
-                        "Rolling back transaction",
-                        not context.verbose and not context.quiet,
-                        context.json,
-                    ):
+                    with get_spinner("Rolling back transaction"):
                         reverse_actions = reversed(tuple(all_action_groups))
                         for axngroup in reverse_actions:
                             excs = UnlinkLinkTransaction._reverse_actions(axngroup)
