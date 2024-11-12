@@ -237,7 +237,8 @@ class CondaSession(Session, metaclass=CondaSessionType):
         request.headers = merge_setting(
             request.headers,
             context.plugin_manager.get_request_headers(
-                request.method, urlparse(request.url)
+                request.method.upper(),
+                urlparse(request.url),
             ),
             dict_class=CaseInsensitiveDict,
         )

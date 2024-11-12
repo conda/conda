@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from requests import HTTPError
+from requests import HTTPError, Request
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context
@@ -24,15 +24,14 @@ from conda.gateways.connection.session import (
     get_channel_name_from_url,
     get_session,
     get_session_storage_key,
-    validate_request_headers,
 )
 from conda.gateways.disk.delete import rm_rf
-from conda.plugins import CondaRequestHeader
 from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.base.context import Context
     from conda.testing.fixtures import TmpEnvFixture
@@ -381,7 +380,7 @@ def test_get_session_with_channel_settings_no_handler(mocker):
     assert mocker.call("dummy_two") in mock.mock_calls
 
 
-def test_get_session_with_request_headers(mocker):
+def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
     """
     Tests the code path for when custom request headers have been set by a plugin
     """
@@ -389,17 +388,15 @@ def test_get_session_with_request_headers(mocker):
     header_value = "test"
     mocker.patch(
         "conda.gateways.connection.session.context.plugin_manager.get_request_headers",
-        return_value=(
-            CondaRequestHeader(
-                name=header_name, description="test header", value=header_value
-            ),
-        ),
+        return_value={header_name: header_value},
     )
 
     url = "https://localhost/test"
     session_obj = get_session(url)
 
-    assert session_obj.headers[header_name] == header_value
+    request = Request(method="GET", url=url, headers={})
+    prepared = session_obj.prepare_request(request)
+    assert prepared.headers[header_name] == header_value
 
 
 @pytest.mark.parametrize(
@@ -472,68 +469,3 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
-
-
-@pytest.mark.parametrize(
-    "url, headers, expected",
-    (
-        (
-            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
-            (
-                CondaRequestHeader(
-                    name="Test",
-                    description="test",
-                    value="test",
-                    hosts={"repo.anaconda.com"},
-                ),
-            ),
-            {"Test": "test"},
-        ),
-        (
-            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
-            (
-                CondaRequestHeader(
-                    name="Test",
-                    description="test",
-                    value="test",
-                ),
-            ),
-            {"Test": "test"},
-        ),
-        (
-            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
-            (
-                CondaRequestHeader(
-                    name="Test",
-                    description="test",
-                    value="test",
-                    hosts={"example.com"},
-                ),
-            ),
-            {},
-        ),
-        (
-            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
-            (
-                CondaRequestHeader(
-                    name="Test",
-                    description="test",
-                    value="test",
-                    hosts={"repo.anaconda.com", "conda.anaconda.org"},
-                ),
-                CondaRequestHeader(
-                    name="Test-Two",
-                    description="test_two",
-                    value="test",
-                    hosts={"repo.anaconda.com", "conda.anaconda.org"},
-                ),
-            ),
-            {"Test": "test", "Test-Two": "test"},
-        ),
-    ),
-)
-def test_validate_request_headers(url, headers, expected):
-    """
-    Ensure the ``conda.gateways.connection.session.validate_request_headers`` function works as expected
-    """
-    assert validate_request_headers(url, headers) == expected
