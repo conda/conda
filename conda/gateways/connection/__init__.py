@@ -14,6 +14,6 @@ from requests.hooks import dispatch_hook  # noqa: F401
 from requests.models import PreparedRequest, Request, Response  # noqa: F401
 from requests.packages.urllib3.exceptions import InsecureRequestWarning  # noqa: F401
 from requests.packages.urllib3.util.retry import Retry  # noqa: F401
-from requests.session import Session, merge_setting  # noqa: F401
+from requests.sessions import Session, merge_setting  # noqa: F401
 from requests.structures import CaseInsensitiveDict  # noqa: F401
 from requests.utils import get_auth_from_url, get_netrc_auth  # noqa: F401
