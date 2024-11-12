@@ -7,23 +7,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda import plugins
+from conda.plugins import CondaRequestHeader, hookimpl
 
 if TYPE_CHECKING:
     from conda.common.url import Url
 
-STATIC_HEADER = plugins.CondaRequestHeader(
-    name="Static-Header",
-    value="static-value",
-)
-DYNAMIC_HOST_HEADER = plugins.CondaRequestHeader(
-    name="Dynamic-Host-Header",
-    value="dynamic-host-value",
-)
-DYNAMIC_ENDPOINT_HEADER = plugins.CondaRequestHeader(
-    name="Dynamic-Endpoint-Header",
-    value="dynamic-endpoint-value",
-)
+STATIC_HEADER = CondaRequestHeader(name="Static-Header", value="static-value")
+HOST_HEADER = CondaRequestHeader(name="Host-Header", value="host-value")
+ENDPOINT_HEADER = CondaRequestHeader(name="Endpoint-Header", value="endpoint-value")
 
 EXAMPLE_HOST = "example.com"
 EXAMPLE_BASE_URL = f"https://{EXAMPLE_HOST}"
@@ -31,18 +22,18 @@ EXAMPLE_ENDPOINT = "endpoint.json"
 
 
 class CustomHeadersPlugin:
-    @plugins.hookimpl
+    @hookimpl
     def conda_request_headers(self, method: str, url: Url):
         # always include header
         yield STATIC_HEADER
 
         # only include header for specific domain/host/netloc
         if url.scheme in ("https", "http") and url.netloc in {EXAMPLE_HOST}:
-            yield DYNAMIC_HOST_HEADER
+            yield HOST_HEADER
 
             # only include header for specific path/endpoint
             if url.path.endswith(f"/{EXAMPLE_ENDPOINT}"):
-                yield DYNAMIC_ENDPOINT_HEADER
+                yield ENDPOINT_HEADER
 
 
 @pytest.mark.parametrize(
@@ -86,10 +77,7 @@ def test_get_auth_handler(
     assert request_headers[STATIC_HEADER.name] == STATIC_HEADER.value
 
     if dynamic_host:
-        assert request_headers[DYNAMIC_HOST_HEADER.name] == DYNAMIC_HOST_HEADER.value
+        assert request_headers[HOST_HEADER.name] == HOST_HEADER.value
 
     if dynamic_endpoint:
-        assert (
-            request_headers[DYNAMIC_ENDPOINT_HEADER.name]
-            == DYNAMIC_ENDPOINT_HEADER.value
-        )
+        assert request_headers[ENDPOINT_HEADER.name] == ENDPOINT_HEADER.value
