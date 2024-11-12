@@ -10,6 +10,8 @@ import pytest
 from conda.plugins import CondaRequestHeader, hookimpl
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from conda.common.url import Url
 
 STATIC_HEADER = CondaRequestHeader(name="Static-Header", value="static-value")
@@ -23,7 +25,9 @@ EXAMPLE_ENDPOINT = "endpoint.json"
 
 class CustomHeadersPlugin:
     @hookimpl
-    def conda_request_headers(self, method: str, url: Url):
+    def conda_request_headers(
+        self, method: str, url: Url
+    ) -> Iterator[CondaRequestHeader]:
         # always include header
         yield STATIC_HEADER
 
