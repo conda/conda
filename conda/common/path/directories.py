@@ -11,7 +11,7 @@ from os.path import join
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable, Sequence
+    from collections.abc import Iterable, Sequence
 
 log = getLogger(__name__)
 

@@ -14,13 +14,14 @@ import platform
 import struct
 import sys
 from collections import defaultdict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from errno import ENOENT
-from functools import cached_property, lru_cache
+from functools import cache, cached_property
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -40,7 +41,6 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
-    unique_sequence_map,
 )
 from ..common.constants import TRACE
 from ..common.iterators import unique
@@ -54,7 +54,9 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,
+    DEFAULT_CONSOLE_REPORTER_BACKEND,
     DEFAULT_CUSTOM_CHANNELS,
+    DEFAULT_JSON_REPORTER_BACKEND,
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
@@ -192,6 +194,24 @@ def ssl_verify_validation(value):
                 "operating system certificate store."
             )
     return True
+
+
+def _warn_defaults_deprecation():
+    deprecated.topic(
+        "24.9",
+        "25.3",
+        topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
+        addendum=(
+            "\n\n"
+            "To remove this warning, please choose a default channel explicitly "
+            "with conda's regular configuration system, e.g. "
+            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n\n"
+            f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
+            "\n\n"
+            "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
+        ),
+        deprecation_type=FutureWarning,
+    )
 
 
 class Context(Configuration):
@@ -337,11 +357,6 @@ class Context(Configuration):
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
 
-    _reporters = ParameterLoader(
-        SequenceParameter(MapParameter(PrimitiveParameter("", element_type=str))),
-        aliases=("reporters",),
-    )
-
     ####################################################
     #               Channel Configuration              #
     ####################################################
@@ -353,9 +368,7 @@ class Context(Configuration):
     )
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        SequenceParameter(
-            PrimitiveParameter("", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)
-        ),
+        SequenceParameter(PrimitiveParameter("", element_type=str), default=()),
         aliases=(
             "channels",
             "channel",
@@ -397,6 +410,10 @@ class Context(Configuration):
         aliases=("whitelist_channels",),
         expandvars=True,
     )
+    denylist_channels = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        expandvars=True,
+    )
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
         SequenceParameter(
@@ -421,6 +438,10 @@ class Context(Configuration):
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
+    _console = ParameterLoader(
+        PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str),
+        aliases=["console"],
+    )
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
@@ -647,7 +668,7 @@ class Context(Configuration):
             return self._subdir
         return self._native_subdir()
 
-    @lru_cache(maxsize=None)
+    @cache
     def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
@@ -867,6 +888,15 @@ class Context(Configuration):
             default_channels = list(self._default_channels)
 
         if self.restore_free_channel:
+            deprecated.topic(
+                "24.9",
+                "25.3",
+                topic="Adding the 'free' channel as it existed prior to conda 4.7.",
+                addendum="See "
+                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
+                "for more details.",
+                deprecation_type=FutureWarning,
+            )
             default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
 
         reserved_multichannel_urls = {
@@ -949,11 +979,16 @@ class Context(Configuration):
                 for rc_file in self.config_files
             )
             if argparse_channels and not channel_in_config_files:
+                _warn_defaults_deprecation()
                 return tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
-
-        return tuple(IndexedSet((*local_add, *self._channels)))
+        if self._channels:
+            _channels = self._channels
+        else:
+            _warn_defaults_deprecation()
+            _channels = [DEFAULTS_CHANNEL_NAME]
+        return tuple(IndexedSet((*local_add, *_channels)))
 
     @property
     def config_files(self):
@@ -1141,24 +1176,11 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
-    @unique_sequence_map(unique_key="backend")
-    def reporters(self) -> tuple[Mapping[str, str]]:
-        """
-        Determine the value of reporters based on other settings and the ``self._reporters``
-        value itself.
-        """
-        if not self._reporters:
-            return (
-                {
-                    "backend": "json" if self.json else "console",
-                    "output": "stdout",
-                    "verbosity": self.verbosity,
-                    "quiet": self.quiet,
-                },
-            )
-
-        return self._reporters
+    @property
+    def console(self) -> str:
+        if self.json:
+            return DEFAULT_JSON_REPORTER_BACKEND
+        return self._console
 
     @property
     def category_map(self):
@@ -1170,6 +1192,7 @@ class Context(Configuration):
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
+                "denylist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1243,6 +1266,7 @@ class Context(Configuration):
                 "changeps1",
                 "env_prompt",
                 "json",
+                "console",
                 "notify_outdated_conda",
                 "quiet",
                 "report_errors",
@@ -1287,7 +1311,6 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
-                "reporters",
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1667,12 +1690,6 @@ class Context(Configuration):
                 Disable progress bar display and other output.
                 """
             ),
-            reporters=dals(
-                """
-                A list of mappings that allow the configuration of one or more output streams
-                (e.g. stdout or file).
-                """
-            ),
             remote_connect_timeout_secs=dals(
                 """
                 The number seconds conda will wait for your client to establish a connection
@@ -1823,6 +1840,15 @@ class Context(Configuration):
                 channel exclusions will be enforced.
                 """
             ),
+            denylist_channels=dals(
+                """
+                The list of channels that are denied to be used on the system. Use of any
+                of these channels will result in an error. If conda-build channels are to be
+                allowed, along with the --use-local command line flag, be sure to not include
+                the 'local' channel in the list. If the list is empty or left undefined, no
+                channel exclusions will be enforced.
+                """
+            ),
             unsatisfiable_hints=dals(
                 """
                 A boolean to determine if conda should find conflicting packages in the case
@@ -1872,6 +1898,12 @@ class Context(Configuration):
                 Force uppercase for new environment variable names. Defaults to True.
                 """
             ),
+            console=dals(
+                f"""
+                Configure different backends to be used while rendering normal console output.
+                Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
+                """
+            ),
         )
 
 
@@ -1886,7 +1918,14 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     from ..models.channel import Channel
 
     Channel._reset_state()
+
     # need to import here to avoid circular dependency
+
+    # clear function cache
+    from ..reporters import _get_render_func
+
+    _get_render_func.cache_clear()
+
     return context
 
 

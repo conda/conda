@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `__conda_reactivate` shell function in favor of `__conda_activate reactivate`. (#14277)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

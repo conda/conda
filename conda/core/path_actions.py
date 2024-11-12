@@ -593,32 +593,6 @@ class MakeMenuAction(CreateInPrefixPathAction):
             make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
-class CreateNonadminAction(CreateInPrefixPathAction):
-    @classmethod
-    def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
-    ):
-        if on_win and lexists(join(context.root_prefix, ".nonadmin")):
-            return (cls(transaction_context, package_info, target_prefix),)
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, target_prefix):
-        super().__init__(
-            transaction_context, package_info, None, None, target_prefix, ".nonadmin"
-        )
-        self._file_created = False
-
-    def execute(self):
-        log.log(TRACE, "touching nonadmin %s", self.target_full_path)
-        self._file_created = touch(self.target_full_path)
-
-    def reverse(self):
-        if self._file_created:
-            log.log(TRACE, "removing nonadmin file %s", self.target_full_path)
-            rm_rf(self.target_full_path)
-
-
 class CompileMultiPycAction(MultiPathAction):
     @classmethod
     def create_actions(

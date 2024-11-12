@@ -1,10 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import sys
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
 
-from conda.common.io import CaptureTarget, attach_stderr_handler, captured
+from conda.common.io import (
+    CaptureTarget,
+    attach_stderr_handler,
+    captured,
+)
 
 
 def test_captured():

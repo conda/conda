@@ -1,12 +1,19 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import context
 from conda.common.compat import on_linux
 from conda.core.prefix_data import PrefixData
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -59,6 +66,6 @@ def test_reorder_channel_priority(
             # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
             # the request, so it stays in pkgs/main. Other transient deps do change, though.
             if on_linux:  # lazy, only check on linux
-                assert PrefixData(prefix).get("libgcc-ng").channel.name == "conda-forge"
+                assert PrefixData(prefix).get("libgcc").channel.name == "conda-forge"
         else:
             assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
