@@ -414,7 +414,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_request_headers(method: str, url: conda.common.url.Url):
-               if url.scheme in ("https", "http") and url_parts.netloc in {
+               if url.scheme in ("https", "http") and url.netloc in {
                    "example.com",
                    "sub.example.com",
                }:
