@@ -114,6 +114,7 @@ jobs:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
           pkgs-dirs: D:\conda_pkgs_dir
+          installation-dir: D:\conda
 
       - name: Conda Install
         run: >
