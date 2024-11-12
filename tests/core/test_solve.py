@@ -14,7 +14,7 @@ from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
-from conda.core.solve import DepsModifier, UpdateModifier, _get_solver_class
+from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import (
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
