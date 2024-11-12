@@ -26,12 +26,14 @@ from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
     BaseAdapter,
+    CaseInsensitiveDict,
     Retry,
     Session,
     _basic_auth_str,
     extract_cookies_to_jar,
     get_auth_from_url,
     get_netrc_auth,
+    merge_setting,
 )
 from .adapters.ftp import FTPAdapter
 from .adapters.http import HTTPAdapter
@@ -39,7 +41,7 @@ from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 
 if TYPE_CHECKING:
-    from ...plugins import CondaRequestHeader
+    from . import PreparedRequest, Request
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -77,25 +79,6 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-def validate_request_headers(
-    url: str, request_headers: tuple[CondaRequestHeader, ...]
-) -> dict[str, str]:
-    """
-    Validates and returns all HTTP request headers set by plugins
-    for the given URL.
-    """
-    url_parts = urlparse(url)
-
-    if url_parts.scheme in ("https", "http"):
-        return {
-            request_header.name: request_header.value
-            for request_header in request_headers
-            if request_header.hosts is None or url_parts.netloc in request_header.hosts
-        }
-
-    return {}
-
-
 @cache
 def get_session(url: str):
     """
@@ -103,14 +86,11 @@ def get_session(url: str):
     based on the URL that is passed in.
     """
     channel_name = get_channel_name_from_url(url)
-    request_headers = validate_request_headers(
-        url, context.plugin_manager.get_request_headers()
-    )
 
     # If for whatever reason a channel name can't be determined, (should be unlikely)
     # we just return the default session object.
     if channel_name is None:
-        return CondaSession(request_headers=request_headers)
+        return CondaSession()
 
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
@@ -139,16 +119,14 @@ def get_session(url: str):
 
     # Return default session object
     if auth_handler is None:
-        return CondaSession(request_headers=request_headers)
+        return CondaSession()
 
     auth_handler_cls = context.plugin_manager.get_auth_handler(auth_handler)
 
     if not auth_handler_cls:
-        return CondaSession(request_headers=request_headers)
+        return CondaSession()
 
-    return CondaSession(
-        auth=auth_handler_cls(channel_name), request_headers=request_headers
-    )
+    return CondaSession(auth=auth_handler_cls(channel_name))
 
 
 def get_session_storage_key(auth) -> str:
@@ -196,7 +174,6 @@ class CondaSession(Session, metaclass=CondaSessionType):
     def __init__(
         self,
         auth: AuthBase | tuple[str, str] | None = None,
-        request_headers: dict[str, str] | None = None,
     ):
         """
         :param auth: Optionally provide ``requests.AuthBase`` compliant objects
@@ -250,13 +227,21 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
         self.headers["User-Agent"] = context.user_agent
 
-        if request_headers is not None:
-            self.headers.update(request_headers)
-
         if context.client_ssl_cert_key:
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+    def prepare_request(self, request: Request) -> PreparedRequest:
+        # inject dynamic headers (session headers are injected in super().prepare_request)
+        request.headers = merge_setting(
+            request.headers,
+            context.plugin_manager.get_request_headers(
+                request.method, urlparse(request.url)
+            ),
+            dict_class=CaseInsensitiveDict,
+        )
+        return super().prepare_request(request)
 
     @classmethod
     def cache_clear(cls):

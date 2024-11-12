@@ -17,6 +17,7 @@ from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from frozendict import frozendict
 
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from requests.auth import AuthBase
 
     from ..common.configuration import ParameterLoader
+    from ..common.url import Url
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -205,7 +207,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["request_headers"]
+        self, name: Literal["request_headers"], method: str, url: Url
     ) -> list[CondaRequestHeader]: ...
 
     @overload
@@ -216,7 +218,7 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
 
-    def get_hook_results(self, name):
+    def get_hook_results(self, name, *args, **kwargs):
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -226,7 +228,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = [item for items in hook() for item in items]
+        plugins = [item for items in hook(*args, **kwargs) for item in items]
 
         # Check for invalid names
         invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
@@ -398,8 +400,13 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("virtual_packages")
         )
 
-    def get_request_headers(self) -> tuple[CondaRequestHeader, ...]:
-        return tuple(hook for hook in self.get_hook_results("request_headers"))
+    def get_request_headers(self, method: str, url: Url) -> dict[str, str]:
+        return frozendict(
+            {
+                hook.name: hook.value
+                for hook in self.get_hook_results("request_headers", method, url)
+            }
+        )
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

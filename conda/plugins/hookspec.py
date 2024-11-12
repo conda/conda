@@ -17,6 +17,7 @@ import pluggy
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from ..common.url import Url
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
@@ -395,7 +396,9 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_request_headers(self) -> Iterable[[CondaRequestHeader]]:
+    def conda_request_headers(
+        self, method: str, url: Url
+    ) -> Iterable[CondaRequestHeader]:
         """
         Register new HTTP request headers
 
@@ -410,11 +413,14 @@ class CondaSpecs:
 
 
            @plugins.hookimpl
-           def conda_request_headers():
-               yield plugins.CondaRequestHeader(
-                   name="Example-Header",
-                   description="This is an example HTTP header",
-                   value="example",
-                   hosts={"example.com", "sub.example.com"},
-               )
+           def conda_request_headers(method: str, url: conda.common.url.Url):
+               if url.scheme in ("https", "http") and url_parts.netloc in {
+                   "example.com",
+                   "sub.example.com",
+               }:
+                   yield plugins.CondaRequestHeader(
+                       name="Example-Header",
+                       value="example",
+                   )
         """
+        yield from ()
