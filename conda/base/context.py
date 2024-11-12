@@ -5,6 +5,7 @@
 The context aggregates all configuration files, environment variables, and command line arguments
 into one global stateful object to be used across all of conda.
 """
+
 from __future__ import annotations
 
 import logging
@@ -12,22 +13,20 @@ import os
 import platform
 import struct
 import sys
+from collections import defaultdict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from errno import ENOENT
-from functools import lru_cache
+from functools import cache, cached_property
 from itertools import chain
-from os.path import abspath, expanduser, isdir, isfile, join
+from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from typing import TYPE_CHECKING
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
-from .._vendor.appdirs import user_data_dir
-from .._vendor.frozendict import frozendict
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..common._os.linux import linux_get_libc_version
@@ -35,17 +34,19 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
+    ConfigurationType,
+    EnvRawParameter,
     MapParameter,
     ParameterLoader,
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
 )
+from ..common.constants import TRACE
 from ..common.iterators import unique
-from ..common.path import expand, paths_equal
+from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
-from ..gateways.logging import TRACE
 from .constants import (
     APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -53,7 +54,9 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,
+    DEFAULT_CONSOLE_REPORTER_BACKEND,
     DEFAULT_CUSTOM_CHANNELS,
+    DEFAULT_JSON_REPORTER_BACKEND,
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
     ERROR_UPLOAD_URL,
@@ -71,6 +74,18 @@ from .constants import (
     SatSolverChoice,
     UpdateModifier,
 )
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Literal
+
+    from ..common.configuration import Parameter, RawParameter
+    from ..plugins.manager import CondaPluginManager
 
 try:
     os.getcwd()
@@ -111,6 +126,19 @@ user_rc_path = abspath(expanduser("~/.condarc"))
 sys_rc_path = join(sys.prefix, ".condarc")
 
 
+def user_data_dir(  # noqa: F811
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
+    roaming: bool = False,
+):
+    # Defer platformdirs import to reduce import time for conda activate.
+    global user_data_dir
+    from platformdirs import user_data_dir
+
+    return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
+
+
 def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
     if root_writable:
         fixed_dirs = [
@@ -129,7 +157,7 @@ def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):
-        return "channel_alias value '%s' must have scheme/protocol." % value
+        return f"channel_alias value '{value}' must have scheme/protocol."
     return True
 
 
@@ -151,19 +179,39 @@ def default_python_validation(value):
         # Set to None or '' meaning no python pinning
         return True
 
-    return "default_python value '%s' not of the form '[23].[0-9][0-9]?' or ''" % value
+    return f"default_python value '{value}' not of the form '[23].[0-9][0-9]?' or ''"
 
 
 def ssl_verify_validation(value):
     if isinstance(value, str):
-        if not value == "truststore" and not isfile(value) and not isdir(value):
+        if sys.version_info < (3, 10) and value == "truststore":
+            return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
+        elif value != "truststore" and not exists(value):
             return (
-                "ssl_verify value '%s' must be a boolean, a path to a "
+                f"ssl_verify value '{value}' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "
                 "certificates of trusted CAs, or 'truststore' to use the "
-                "operating system certificate store." % value
+                "operating system certificate store."
             )
     return True
+
+
+def _warn_defaults_deprecation():
+    deprecated.topic(
+        "24.9",
+        "25.3",
+        topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
+        addendum=(
+            "\n\n"
+            "To remove this warning, please choose a default channel explicitly "
+            "with conda's regular configuration system, e.g. "
+            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n\n"
+            f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
+            "\n\n"
+            "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
+        ),
+        deprecation_type=FutureWarning,
+    )
 
 
 class Context(Configuration):
@@ -206,9 +254,9 @@ class Context(Configuration):
     _repodata_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("repodata_threads",)
     )
-    # download packages; determined experimentally
+    # download packages
     _fetch_threads = ParameterLoader(
-        PrimitiveParameter(5, element_type=int), aliases=("fetch_threads",)
+        PrimitiveParameter(0, element_type=int), aliases=("fetch_threads",)
     )
     _verify_threads = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verify_threads",)
@@ -320,9 +368,7 @@ class Context(Configuration):
     )
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
     _channels = ParameterLoader(
-        SequenceParameter(
-            PrimitiveParameter("", element_type=str), default=(DEFAULTS_CHANNEL_NAME,)
-        ),
+        SequenceParameter(PrimitiveParameter("", element_type=str), default=()),
         aliases=(
             "channels",
             "channel",
@@ -364,6 +410,10 @@ class Context(Configuration):
         aliases=("whitelist_channels",),
         expandvars=True,
     )
+    denylist_channels = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        expandvars=True,
+    )
     restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
         SequenceParameter(
@@ -388,6 +438,10 @@ class Context(Configuration):
     error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
+    _console = ParameterLoader(
+        PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str),
+        aliases=["console"],
+    )
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
@@ -396,11 +450,17 @@ class Context(Configuration):
     )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
+    shortcuts = ParameterLoader(PrimitiveParameter(True))
+    shortcuts_only = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)), expandvars=True
+    )
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
+    repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
     #               Solver Configuration               #
@@ -484,7 +544,7 @@ class Context(Configuration):
         return errors
 
     @property
-    def plugin_manager(self):
+    def plugin_manager(self) -> CondaPluginManager:
         """
         This is the preferred way of accessing the ``PluginManager`` object for this application
         and is located here to avoid problems with cyclical imports elsewhere in the code.
@@ -492,6 +552,14 @@ class Context(Configuration):
         from ..plugins.manager import get_plugin_manager
 
         return get_plugin_manager()
+
+    @cached_property
+    def plugins(self) -> PluginConfig:
+        """
+        Preferred way of accessing settings introduced by the settings plugin hook
+        """
+        self.plugin_manager.load_settings()
+        return PluginConfig(self.raw_data)
 
     @property
     def conda_build_local_paths(self):
@@ -567,6 +635,11 @@ class Context(Configuration):
 
     @property
     def fetch_threads(self) -> int | None:
+        """
+        If both are not overriden (0), return experimentally-determined value of 5
+        """
+        if self._fetch_threads == 0 and self._default_threads == 0:
+            return 5
         return self._fetch_threads or self.default_threads
 
     @property
@@ -595,7 +668,7 @@ class Context(Configuration):
             return self._subdir
         return self._native_subdir()
 
-    @lru_cache(maxsize=None)
+    @cache
     def _native_subdir(self):
         m = platform.machine()
         if m in non_x86_machines:
@@ -619,17 +692,6 @@ class Context(Configuration):
             return 32
         else:
             return 8 * struct.calcsize("P")
-
-    @property
-    @deprecated(
-        "24.3",
-        "24.9",
-        addendum="Please use `conda.base.context.context.root_prefix` instead.",
-    )
-    def root_dir(self) -> os.PathLike:
-        # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
-        # because it is more consistent with other names
-        return self.root_prefix
 
     @property
     def root_writable(self):
@@ -731,13 +793,12 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "24.3",
+        "25.3",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
-        bin_dir = "Scripts" if on_win else "bin"
         exe = "conda.exe" if on_win else "conda"
-        return join(self.conda_prefix, bin_dir, exe)
+        return join(self.conda_prefix, BIN_DIRECTORY, exe)
 
     @property
     def av_data_dir(self):
@@ -771,12 +832,11 @@ class Context(Configuration):
                 "CONDA_PYTHON_EXE": sys.executable,
             }
         else:
-            bin_dir = "Scripts" if on_win else "bin"
             exe = "conda.exe" if on_win else "conda"
             # I was going to use None to indicate a variable to unset, but that gets tricky with
             # error-on-undefined.
             return {
-                "CONDA_EXE": os.path.join(sys.prefix, bin_dir, exe),
+                "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
                 "_CE_M": "",
                 "_CE_CONDA": "",
                 "CONDA_PYTHON_EXE": sys.executable,
@@ -828,6 +888,15 @@ class Context(Configuration):
             default_channels = list(self._default_channels)
 
         if self.restore_free_channel:
+            deprecated.topic(
+                "24.9",
+                "25.3",
+                topic="Adding the 'free' channel as it existed prior to conda 4.7.",
+                addendum="See "
+                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
+                "for more details.",
+                deprecation_type=FutureWarning,
+            )
             default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
 
         reserved_multichannel_urls = {
@@ -910,11 +979,16 @@ class Context(Configuration):
                 for rc_file in self.config_files
             )
             if argparse_channels and not channel_in_config_files:
+                _warn_defaults_deprecation()
                 return tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
-
-        return tuple(IndexedSet((*local_add, *self._channels)))
+        if self._channels:
+            _channels = self._channels
+        else:
+            _warn_defaults_deprecation()
+            _channels = [DEFAULTS_CHANNEL_NAME]
+        return tuple(IndexedSet((*local_add, *_channels)))
 
     @property
     def config_files(self):
@@ -930,18 +1004,9 @@ class Context(Configuration):
         #    is only called when use_only_tar_bz2 is first called.
         import conda_package_handling.api
 
-        use_only_tar_bz2 = False
-        if self._use_only_tar_bz2 is None:
-            if self._argparse_args and "use_only_tar_bz2" in self._argparse_args:
-                use_only_tar_bz2 &= self._argparse_args["use_only_tar_bz2"]
         return (
-            (
-                hasattr(conda_package_handling.api, "libarchive_enabled")
-                and not conda_package_handling.api.libarchive_enabled
-            )
-            or self._use_only_tar_bz2
-            or use_only_tar_bz2
-        )
+            not conda_package_handling.api.libarchive_enabled
+        ) or self._use_only_tar_bz2
 
     @property
     def binstar_upload(self):
@@ -1005,27 +1070,30 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    def solver_user_agent(self):
+        user_agent = f"solver/{self.solver}"
+        try:
+            solver_backend = self.plugin_manager.get_cached_solver_backend()
+            # Solver.user_agent has to be a static or class method
+            user_agent += f" {solver_backend.user_agent()}"
+        except Exception as exc:
+            log.debug(
+                "User agent could not be fetched from solver class '%s'.",
+                self.solver,
+                exc_info=exc,
+            )
+        return user_agent
+
     @memoizedproperty
     def user_agent(self):
         builder = [f"conda/{CONDA_VERSION} requests/{self.requests_version}"]
-        builder.append("%s/%s" % self.python_implementation_name_version)
-        builder.append("%s/%s" % self.platform_system_release)
-        builder.append("%s/%s" % self.os_distribution_name_version)
+        builder.append("{}/{}".format(*self.python_implementation_name_version))
+        builder.append("{}/{}".format(*self.platform_system_release))
+        builder.append("{}/{}".format(*self.os_distribution_name_version))
         if self.libc_family_version[0]:
-            builder.append("%s/%s" % self.libc_family_version)
+            builder.append("{}/{}".format(*self.libc_family_version))
         if self.solver != "classic":
-            user_agent_str = "solver/%s" % self.solver
-            try:
-                solver_backend = self.plugin_manager.get_cached_solver_backend()
-                # Solver.user_agent has to be a static or class method
-                user_agent_str += f" {solver_backend.user_agent()}"
-            except Exception as exc:
-                log.debug(
-                    "User agent could not be fetched from solver class '%s'.",
-                    self.solver,
-                    exc_info=exc,
-                )
-            builder.append(user_agent_str)
+            builder.append(self.solver_user_agent())
         return " ".join(builder)
 
     @contextmanager
@@ -1085,10 +1153,10 @@ class Context(Configuration):
         #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == "Linux":
-            from conda._vendor.distro import id, version
-
             try:
-                distinfo = id(), version(best=True)
+                import distro
+
+                distinfo = distro.id(), distro.version(best=True)
             except Exception as e:
                 log.debug("%r", e, exc_info=True)
                 distinfo = ("Linux", "unknown")
@@ -1108,11 +1176,11 @@ class Context(Configuration):
         libc_family, libc_version = linux_get_libc_version()
         return libc_family, libc_version
 
-    @memoizedproperty
-    def cpu_flags(self):
-        # DANGER: This is rather slow
-        info = _get_cpu_info()
-        return info["flags"]
+    @property
+    def console(self) -> str:
+        if self.json:
+            return DEFAULT_JSON_REPORTER_BACKEND
+        return self._console
 
     @property
     def category_map(self):
@@ -1120,9 +1188,11 @@ class Context(Configuration):
             "Channel Configuration": (
                 "channels",
                 "channel_alias",
+                "channel_settings",
                 "default_channels",
                 "override_channels_enabled",
                 "allowlist_channels",
+                "denylist_channels",
                 "custom_channels",
                 "custom_multichannels",
                 "migrated_channel_aliases",
@@ -1136,6 +1206,7 @@ class Context(Configuration):
                 "fetch_threads",
                 "experimental",
                 "no_lock",
+                "repodata_use_zst",
             ),
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
@@ -1176,6 +1247,7 @@ class Context(Configuration):
                 "extra_safety_checks",
                 "signing_metadata_url_base",
                 "shortcuts",
+                "shortcuts_only",
                 "non_admin_enabled",
                 "separate_format_cache",
                 "verify_threads",
@@ -1194,6 +1266,7 @@ class Context(Configuration):
                 "changeps1",
                 "env_prompt",
                 "json",
+                "console",
                 "notify_outdated_conda",
                 "quiet",
                 "report_errors",
@@ -1202,6 +1275,7 @@ class Context(Configuration):
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
+                "envvars_force_uppercase",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1219,7 +1293,6 @@ class Context(Configuration):
                 "allow_cycles",  # allow cyclical dependencies, or raise
                 "allow_conda_downgrades",
                 "add_pip_as_python_dependency",
-                "channel_settings",
                 "debug",
                 "trace",
                 "dev",
@@ -1573,7 +1646,7 @@ class Context(Configuration):
             ),
             override_channels_enabled=dals(
                 """
-                Permit use of the --overide-channels command-line flag.
+                Permit use of the --override-channels command-line flag.
                 """
             ),
             path_conflict=dals(
@@ -1699,6 +1772,11 @@ class Context(Configuration):
                 Menu) at install time.
                 """
             ),
+            shortcuts_only=dals(
+                """
+                Create shortcuts only for the specified package names.
+                """
+            ),
             show_channel_urls=dals(
                 """
                 Show channel URLs when displaying what is going to be downloaded.
@@ -1762,6 +1840,15 @@ class Context(Configuration):
                 channel exclusions will be enforced.
                 """
             ),
+            denylist_channels=dals(
+                """
+                The list of channels that are denied to be used on the system. Use of any
+                of these channels will result in an error. If conda-build channels are to be
+                allowed, along with the --use-local command line flag, be sure to not include
+                the 'local' channel in the list. If the list is empty or left undefined, no
+                channel exclusions will be enforced.
+                """
+            ),
             unsatisfiable_hints=dals(
                 """
                 A boolean to determine if conda should find conflicting packages in the case
@@ -1801,17 +1888,44 @@ class Context(Configuration):
                 Disable index cache lock (defaults to enabled).
                 """
             ),
+            repodata_use_zst=dals(
+                """
+                Disable check for `repodata.json.zst`; use `repodata.json` only.
+                """
+            ),
+            envvars_force_uppercase=dals(
+                """
+                Force uppercase for new environment variable names. Defaults to True.
+                """
+            ),
+            console=dals(
+                f"""
+                Configure different backends to be used while rendering normal console output.
+                Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
+                """
+            ),
         )
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
+
+    # reset plugin config params
+    remove_all_plugin_settings()
+
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
     from ..models.channel import Channel
 
     Channel._reset_state()
+
     # need to import here to avoid circular dependency
+
+    # clear function cache
+    from ..reporters import _get_render_func
+
+    _get_render_func.cache_clear()
+
     return context
 
 
@@ -1909,14 +2023,6 @@ def replace_context_default(pushing=None, argparse_args=None):
 # be a stated goal to set conda_tests_ctxt_mgmt_def_pol to replace_context_default
 # and not to stack_context_default.
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
-
-
-@lru_cache(maxsize=None)
-def _get_cpu_info():
-    # DANGER: This is rather slow
-    from .._vendor.cpuinfo import get_cpu_info
-
-    return frozendict(get_cpu_info())
 
 
 def env_name(prefix):
@@ -2041,7 +2147,7 @@ def _first_writable_envs_dir():
                 open(envs_dir_magic_file, "a").close()
                 return envs_dir
             except OSError:
-                log.trace("Tried envs_dir but not writable: %s", envs_dir)
+                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
         else:
             from ..gateways.disk.create import create_envs_directory
 
@@ -2052,6 +2158,79 @@ def _first_writable_envs_dir():
     from ..exceptions import NoWritableEnvsDirError
 
     raise NoWritableEnvsDirError(context.envs_dirs)
+
+
+def get_plugin_config_data(
+    data: dict[Path, dict[str, RawParameter]],
+) -> dict[Path, dict[str, RawParameter]]:
+    """
+    This is used to move everything under the key "plugins" from the provided dictionary
+    to the top level of the returned dictionary. The returned dictionary is then passed
+    to :class:`PluginConfig`.
+    """
+    new_data = defaultdict(dict)
+
+    for source, config in data.items():
+        if plugin_data := config.get("plugins"):
+            plugin_data_value = plugin_data.value(None)
+
+            if not isinstance(plugin_data_value, Mapping):
+                continue
+
+            for param_name, raw_param in plugin_data_value.items():
+                new_data[source][param_name] = raw_param
+
+        elif source == EnvRawParameter.source:
+            for env_var, raw_param in config.items():
+                if env_var.startswith("plugins_"):
+                    _, param_name = env_var.split("plugins_")
+                    new_data[source][param_name] = raw_param
+
+    return new_data
+
+
+class PluginConfig(metaclass=ConfigurationType):
+    """
+    Class used to hold settings for conda plugins.
+
+    The object created by this class should only be accessed via
+    :class:`conda.base.context.Context.plugins`.
+
+    When this class is updated via the :func:`add_plugin_setting` function it adds new setting
+    properties which can be accessed later via the context object.
+
+    We currently call that function in
+    :meth:`conda.plugins.manager.CondaPluginManager.load_settings`.
+    because ``CondaPluginManager`` has access to all registered plugin settings via the settings
+    plugin hook.
+    """
+
+    def __init__(self, data):
+        self._cache_ = {}
+        self.raw_data = get_plugin_config_data(data)
+
+
+def add_plugin_setting(name: str, parameter: Parameter, aliases: tuple[str, ...] = ()):
+    """
+    Adds a setting to the :class:`PluginConfig` class
+    """
+    PluginConfig.parameter_names = PluginConfig.parameter_names + (name,)
+    loader = ParameterLoader(parameter, aliases=aliases)
+    name = loader._set_name(name)
+    setattr(PluginConfig, name, loader)
+
+
+def remove_all_plugin_settings() -> None:
+    """
+    Removes all attached settings from the :class:`PluginConfig` class
+    """
+    for name in PluginConfig.parameter_names:
+        try:
+            delattr(PluginConfig, name)
+        except AttributeError:
+            continue
+
+    PluginConfig.parameter_names = tuple()
 
 
 try:

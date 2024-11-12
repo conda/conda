@@ -1,26 +1,31 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
+
 import re
 import sys
-from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, normcase
+from os.path import isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
-from ..common.serialize import json_dump
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
 from ..models.match_spec import MatchSpec
+from ..reporters import render
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
     assert default in choices, default
     if (dry_run is NULL and context.dry_run) or dry_run:
@@ -31,7 +36,7 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
     options = []
     for option in choices:
         if option == default:
-            options.append("[%s]" % option[0])
+            options.append(f"[{option[0]}]")
         else:
             options.append(option[0])
     message = "{} ({})? ".format(message, "/".join(options))
@@ -46,13 +51,18 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
         except OSError as e:
             raise CondaError(f"cannot read from stdin: {e}")
         if user_choice not in choices:
-            print("Invalid choice: %s" % user_choice)
+            print(f"Invalid choice: {user_choice}")
         else:
             sys.stdout.write("\n")
             sys.stdout.flush()
             return choices[user_choice]
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
     if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
@@ -96,18 +106,16 @@ def arg2spec(arg, json=False, update=False):
     except:
         from ..exceptions import CondaValueError
 
-        raise CondaValueError("invalid package specification: %s" % arg)
+        raise CondaValueError(f"invalid package specification: {arg}")
 
     name = spec.name
     if not spec._is_simple() and update:
         from ..exceptions import CondaValueError
 
         raise CondaValueError(
-            """version specifications not allowed with 'update'; use
-    conda update  {}{}  or
-    conda install {}""".format(
-                name, " " * (len(arg) - len(name)), arg
-            )
+            "version specifications not allowed with 'update'; use\n"
+            f"    conda update  {name:<{len(arg)}}  or\n"
+            f"    conda install {arg:<{len(name)}}"
         )
 
     return str(spec)
@@ -192,14 +200,14 @@ def names_in_specs(names, specs):
 
 def disp_features(features):
     if features:
-        return "[%s]" % " ".join(features)
+        return "[{}]".format(" ".join(features))
     else:
         return ""
 
 
 @swallow_broken_pipe
 def stdout_json(d):
-    getLogger("conda.stdout").info(json_dump(d))
+    render(d)
 
 
 def stdout_json_success(success=True, **kwargs):
@@ -215,30 +223,13 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.render(style='env_list')` instead.",
+)
 def print_envs_list(known_conda_prefixes, output=True):
-    if output:
-        print("# conda environments:")
-        print("#")
-
-    def disp_env(prefix):
-        fmt = "%-20s  %s  %s"
-        active = "*" if prefix == context.active_prefix else " "
-        if prefix == context.root_prefix:
-            name = ROOT_ENV_NAME
-        elif any(
-            paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs
-        ):
-            name = basename(prefix)
-        else:
-            name = ""
-        if output:
-            print(fmt % (name, active, prefix))
-
-    for prefix in known_conda_prefixes:
-        disp_env(prefix)
-
-    if output:
-        print()
+    render(known_conda_prefixes, style="envs_list", output=output)
 
 
 def check_non_admin():

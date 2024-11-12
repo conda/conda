@@ -1,18 +1,14 @@
-==============
-Conda packages
-==============
-
-.. contents::
-   :local:
-   :depth: 2
+========
+Packages
+========
 
 .. _concept-conda-package:
 
-What is a conda package?
-========================
+What is a package?
+==================
 
-A conda package is a compressed tarball file (.tar.bz2) or
-.conda file that contains:
+A package is a compressed tarball file (``.tar.bz2``) or
+``.conda`` file that contains:
 
 * system-level libraries.
 * Python or other modules.
@@ -123,10 +119,10 @@ specifications simpler.
 
 
 An example of a metapackage is "anaconda," which
-collects together all the packages in the Anaconda installer.
-The command ``conda create -n envname anaconda`` creates an
+collects together all the packages in the Anaconda Distribution
+installer. The command ``conda create -n envname anaconda`` creates an
 environment that exactly matches what would be created from the
-Anaconda installer. You can create metapackages with the
+Anaconda Distribution installer. You can create metapackages with the
 ``conda metapackage`` command. Include the name and version
 in the command.
 
@@ -338,6 +334,6 @@ and unlink steps. For more information, see `Adding pre-link, post-link, and pre
 More information
 ================
 
-Go deeper on how to :ref:`manage packages <managing-pkgs>`.
+For more information, go for a deeper dive in our :doc:`managing packages guide <../tasks/manage-pkgs>`.
 Learn more about package metadata, repository structure and index,
 and package match specifications at :doc:`Package specifications <../concepts/pkg-specs>`.

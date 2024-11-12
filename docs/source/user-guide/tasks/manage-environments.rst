@@ -2,46 +2,28 @@
 Managing environments
 =====================
 
-.. contents::
-   :local:
-   :depth: 1
-
 With conda, you can create, export, list, remove, and update
 environments that have different versions of Python and/or
 packages installed in them. Switching or moving between
 environments is called activating the environment. You can also
 share an environment file.
 
-.. note::
-   There are many options available for the commands described
-   on this page. For details, see :doc:`commands <../../commands/index>`.
-
-.. note::
-   ``conda activate`` and ``conda deactivate`` only work on conda 4.6 and later versions.
-   For conda versions prior to 4.6, run:
-
-      * Windows: ``activate`` or ``deactivate``
-      * Linux and macOS: ``source activate`` or ``source deactivate``
+There are many options available for the commands described
+on this page. For a detailed reference on all available commands,
+see :doc:`commands <../../commands/index>`.
 
 Creating an environment with commands
 =====================================
 
-.. tip::
-   By default, environments are installed into the ``envs``
-   directory in your conda directory. See :ref:`specifying-location`
-   or run ``conda create --help`` for information on specifying
-   a different path.
-
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 #. To create an environment:
 
    .. code::
 
-      conda create --name myenv
+      conda create --name <my-env>
 
-   .. note::
-      Replace ``myenv`` with the environment name.
+   Replace ``<my-env>`` with the name of your environment.
 
 #. When conda asks you to proceed, type ``y``:
 
@@ -49,52 +31,52 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
       proceed ([y]/n)?
 
-  This creates the myenv environment in ``/envs/``. No
-  packages will be installed in this environment.
+   This creates the myenv environment in ``/envs/``. No
+   packages will be installed in this environment.
 
-3. To create an environment with a specific version of Python:
+#. To create an environment with a specific version of Python:
 
    .. code-block:: bash
 
       conda create -n myenv python=3.9
 
-4. To create an environment with a specific package:
+#. To create an environment with a specific package:
 
    .. code-block:: bash
 
       conda create -n myenv scipy
 
-   OR:
+   or:
 
    .. code-block:: bash
 
       conda create -n myenv python
       conda install -n myenv scipy
 
-5. To create an environment with a specific version of a package:
+#. To create an environment with a specific version of a package:
 
    .. code-block:: bash
 
       conda create -n myenv scipy=0.17.3
 
-   OR:
+   or:
 
    .. code-block:: bash
 
       conda create -n myenv python
       conda install -n myenv scipy=0.17.3
 
-6. To create an environment with a specific version of Python and
+#. To create an environment with a specific version of Python and
    multiple packages:
 
-  .. code-block:: bash
+   .. code-block:: bash
 
-     conda create -n myenv python=3.9 scipy=0.17.3 astroid babel
+      conda create -n myenv python=3.9 scipy=0.17.3 astroid babel
 
-  .. tip::
-     Install all the programs that you want in this environment
-     at the same time. Installing 1 program at a time can lead to
-     dependency conflicts.
+   .. tip::
+      Install all the programs that you want in this environment
+      at the same time. Installing one program at a time can lead to
+      dependency conflicts.
 
 To automatically install pip or another program every time a new
 environment is created, add the default programs to the
@@ -118,7 +100,7 @@ use the ``--no-default-packages`` flag:
 Creating an environment from an environment.yml file
 ====================================================
 
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 #. Create the environment from the ``environment.yml`` file:
 
@@ -139,8 +121,50 @@ Use the terminal or an Anaconda Prompt for the following steps:
 
       conda env list
 
-  You can also use ``conda info --envs``.
+   You can also use ``conda info --envs``.
 
+.. _specifying-environment-platform:
+
+Specifying a different target platform for an environment
+=========================================================
+
+By default, ``conda`` will create environments targeting the platform it's
+currently running on. You can check which platform you are currently on by running
+``conda info`` and checking the ``platform`` entry.
+
+However, in some cases you might want to create an environment for a
+different target platform or architecture. To do so, use the
+``--platform`` flag available in the ``conda create`` and
+``conda env create`` commands. See ``--subdir, --platform``
+in :doc:`/commands/create` for more information about allowed values.
+
+For example, a user running macOS on the Apple Silicon platform
+might want to create a ``python`` environment for Intel processors
+and emulate the executables with Rosetta. The command would be:
+
+.. code::
+
+   conda create --platform osx-64 --name python-x64 python
+
+.. note::
+   You can't specify the ``--platform`` flag for existing environments.
+   When created, the environment will be annotated with the custom configuration and
+   subsequent operations on it will remember the target platform.
+
+This flag also allows specifying a different OS (e.g. creating a Linux
+environment on macOS), but we don't recommend its usage outside of
+``--dry-run`` operations. Common problems with mismatched OSes include:
+
+- The environment cannot be solved because virtual packages are missing.
+  You can workaround this issue by exporting the necessary
+  ``CONDA_OVERRIDE_****`` environment variables. For example, solving
+  for Linux from macOS, you will probably need ``CONDA_OVERRIDE_LINUX=1``
+  and ``CONDA_OVERRIDE_GLIBC=2.17``.
+- The environment can be solved, but extraction and linking fails due
+  filesystem limitations (case insensitive systems, incompatible paths,
+  etc). The only workaround here is to use ``--dry-run --json`` to obtain
+  the solution and process the payload into a lockfile that can be shared
+  with the target machine. See :ref:`dry-run-explicit` for more details.
 
 .. _specifying-location:
 
@@ -162,10 +186,10 @@ command used to activate environments created by name::
 Specifying a path to a subdirectory of your project directory when
 creating an environment has the following benefits:
 
-  * It makes it easy to tell if your project uses an isolated environment
-    by including the environment as a subdirectory.
-  * It makes your project more self-contained as everything, including
-    the required software, is contained in a single project directory.
+* It makes it easy to tell if your project uses an isolated environment
+  by including the environment as a subdirectory.
+* It makes your project more self-contained as everything, including
+  the required software, is contained in a single project directory.
 
 An additional benefit of creating your project’s environment inside a
 subdirectory is that you can then use the same name for all your
@@ -194,7 +218,7 @@ This can result in long prefixes::
 To remove this long prefix in your shell prompt, modify the env_prompt
 setting in your ``.condarc`` file::
 
-$ conda config --set env_prompt '({name})'
+conda config --set env_prompt '({name})'
 
 This will edit your ``.condarc`` file if you already have one
 or create a ``.condarc`` file if you do not.
@@ -226,7 +250,7 @@ If any of these occur, all you need to do is update the contents of
 your ``environment.yml`` file accordingly and then run the following
 command::
 
-$ conda env update --prefix ./env --file environment.yml  --prune
+conda env update --file environment.yml  --prune
 
 .. note::
    The ``--prune`` option causes conda to remove any dependencies
@@ -236,7 +260,7 @@ $ conda env update --prefix ./env --file environment.yml  --prune
 Cloning an environment
 ======================
 
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 You can make an exact copy of an environment by creating a clone
 of it:
@@ -259,6 +283,7 @@ To verify that the copy was made:
 In the environments list that displays, you should see both the
 source environment and the new copy.
 
+.. _identical-conda-envs:
 
 Building identical conda environments
 =====================================
@@ -267,7 +292,7 @@ You can use explicit specification files to build an identical
 conda environment on the same operating system platform, either
 on the same machine or on a different machine.
 
-Use the terminal or an Anaconda Prompt for the following steps:
+Use the terminal for the following steps:
 
 #. Run ``conda list --explicit`` to produce a spec list such as:
 
@@ -354,7 +379,7 @@ not global.
    for "All Users", we add it to the *system* PATH. In the former case,
    you can end up with system PATH values taking precedence over
    your entries. In the latter case, you do not. *We do not recommend*
-   `multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`_.
+   `multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`__.
 
 To activate an environment: ``conda activate myenv``
 
@@ -373,8 +398,7 @@ You may receive a warning message if you have not activated your environment:
    please see https://conda.io/activation.
 
 If you receive this warning, you need to activate your environment. To do
-so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in
-Anaconda Prompt.
+so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in a terminal window.
 
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
@@ -478,7 +502,7 @@ your system command.
 Determining your current environment
 ====================================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 By default, the active environment---the one you are currently
 using---is shown in parentheses () or brackets [] at the
@@ -508,8 +532,7 @@ To re-enable this option::
 Viewing a list of your environments
 ===================================
 
-To see a list of all of your environments, in your terminal window or an
-Anaconda Prompt, run:
+To see a list of all of your environments, in your terminal window, run:
 
 .. code::
 
@@ -538,22 +561,20 @@ Viewing a list of the packages in an environment
 
 To see a list of all packages installed in a specific environment:
 
-* If the environment is not activated, in your terminal window or an
-  Anaconda Prompt, run:
+* If the environment is not activated, in your terminal window, run:
 
   .. code-block:: bash
 
      conda list -n myenv
 
-* If the environment is activated, in your terminal window or an
-  Anaconda Prompt, run:
+* If the environment is activated, in your terminal window, run:
 
   .. code-block:: bash
 
      conda list
 
 * To see if a specific package is installed in an environment, in your
-  terminal window or an Anaconda Prompt, run:
+  terminal window, run:
 
   .. code-block:: bash
 
@@ -565,8 +586,7 @@ To see a list of all packages installed in a specific environment:
 Using pip in an environment
 ===========================
 
-To use pip in your environment, in your terminal window or an
-Anaconda Prompt, run:
+To use pip in your environment, in your terminal window, run:
 
 .. code-block:: bash
 
@@ -685,7 +705,7 @@ Windows
 -------
 
 #. Locate the directory for the conda environment in your
-   Anaconda Prompt by running in the command shell ``%CONDA_PREFIX%``.
+   terminal window by running in the command shell ``%CONDA_PREFIX%``.
 
 #. Enter that directory and create these subdirectories and
    files::
@@ -911,8 +931,7 @@ If you want to restore your environment to revision 8, run ``conda install --rev
 Removing an environment
 =======================
 
-To remove an environment, in your terminal window or an
-Anaconda Prompt, run:
+To remove an environment, in your terminal window, run:
 
 .. code::
 
@@ -920,8 +939,7 @@ Anaconda Prompt, run:
 
 You may instead use ``conda env remove --name myenv``.
 
-To verify that the environment was removed, in your terminal window or an
-Anaconda Prompt, run:
+To verify that the environment was removed, in your terminal window, run:
 
 .. code::
 
@@ -929,3 +947,47 @@ Anaconda Prompt, run:
 
 The environments list that displays should not show the removed
 environment.
+
+.. _dry-run-explicit:
+
+Create explicit lockfiles without creating an environment
+=========================================================
+
+``@EXPLICIT`` lockfiles allow you to (re)create environments without invoking the solver.
+They consist of an ``@EXPLICIT`` header plus a list of conda package URLs, optionally followed
+by their MD5 or SHA256 hash.
+
+They can be obtained from existing environments via ``conda list --explicit``, as seen in
+:ref:`identical-conda-envs`.
+
+But what if you only need the lockfile? Would you need create to a temporary environment first just
+to delete it later? Fortunately, there's a way: you can invoke ``conda`` in JSON mode and then
+process the output with ``jq``.
+
+.. tip::
+
+   You'll need ``jq`` in your system. If you don't have it yet, you can install it via
+   ``conda`` (e.g. ``conda create -n jq jq``) or via your system package manager.
+
+The command looks like this for Linux and macOS (replace ``MATCHSPECS_GO_HERE`` with the relevant
+packages you want):
+
+.. code-block:: shell
+
+   echo "@EXPLICIT" > explicit.txt
+   CONDA_PKGS_DIRS=$(mktemp -d) conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+
+The syntax in Windows only needs some small changes:
+
+.. code-block:: shell
+
+   echo "@EXPLICIT" > explicit.txt
+   set "CONDA_PKGS_DIRS=%TMP%\conda-%RANDOM%"
+   conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+   set "CONDA_PKGS_DIRS="
+
+The resulting ``explicit.txt`` can be used to create a new environment with:
+
+.. code::
+
+   conda create -n new-environment --file explicit.txt

@@ -1,12 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""CLI implementation for `conda-env config`.
+"""DEPRECATED: Use `conda.cli.main_env_config` instead.
+
+CLI implementation for `conda-env config`.
 
 Allows for programmatically interacting with conda-env's configuration files (e.g., `~/.condarc`).
 """
-from argparse import RawDescriptionHelpFormatter
 
-from .main_vars import configure_parser as configure_vars_parser
+# Import from conda.cli.main_env_config since this module is deprecated.
+from conda.cli.main_env_config import configure_parser, execute  # noqa
+from conda.deprecations import deprecated
+
+deprecated.module("24.9", "25.3", addendum="Use `conda.cli.main_env_config` instead.")
 
 config_description = """
 Configure a conda environment
@@ -17,20 +22,3 @@ examples:
     conda env config vars list
     conda env config --append channels conda-forge
 """
-
-
-def configure_parser(sub_parsers):
-    config_parser = sub_parsers.add_parser(
-        "config",
-        formatter_class=RawDescriptionHelpFormatter,
-        description=config_description,
-        help=config_description,
-        epilog=config_example,
-    )
-    config_parser.set_defaults(func=".main_config.execute")
-    config_subparser = config_parser.add_subparsers()
-    configure_vars_parser(config_subparser)
-
-
-def execute(args, parser):
-    parser.parse_args(["config", "--help"])

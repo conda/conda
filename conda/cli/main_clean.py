@@ -4,14 +4,19 @@
 
 Removes cached package tarballs, index files, package metadata, temporary files, and log files.
 """
+
 from __future__ import annotations
 
 import os
 import sys
-from argparse import ArgumentParser, Namespace, _SubParsersAction
 from logging import getLogger
 from os.path import isdir, join
-from typing import Any, Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from collections.abc import Iterable
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -216,8 +221,8 @@ def rm_pkgs(
     name: str,
 ) -> None:
     from ..base.context import context
+    from ..reporters import confirm_yn
     from ..utils import human_bytes
-    from .common import confirm_yn
 
     if not quiet and warnings:
         for warning in warnings:
@@ -319,7 +324,7 @@ def rm_items(
     name: str,
 ) -> None:
     from ..base.context import context
-    from .common import confirm_yn
+    from ..reporters import confirm_yn
 
     if not items:
         if not quiet:

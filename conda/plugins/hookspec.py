@@ -7,20 +7,30 @@ Each hookspec defined in :class:`~conda.plugins.hookspec.CondaSpecs` contains
 an example of how to use it.
 
 """
+
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import pluggy
 
-from .types import (
-    CondaAuthHandler,
-    CondaPostCommand,
-    CondaPreCommand,
-    CondaSolver,
-    CondaSubcommand,
-    CondaVirtualPackage,
-)
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .types import (
+        CondaAuthHandler,
+        CondaHealthCheck,
+        CondaPostCommand,
+        CondaPostSolve,
+        CondaPreCommand,
+        CondaPreSolve,
+        CondaReporterBackend,
+        CondaRequestHeader,
+        CondaSetting,
+        CondaSolver,
+        CondaSubcommand,
+        CondaVirtualPackage,
+    )
 
 spec_name = "conda"
 """Name used for organizing conda hook specifications"""
@@ -140,7 +150,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_commands():
-               yield CondaPreCommand(
+               yield plugins.CondaPreCommand(
                    name="example-pre-command",
                    action=example_pre_command,
                    run_for={"install", "create"},
@@ -165,7 +175,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_commands():
-               yield CondaPostCommand(
+               yield plugins.CondaPostCommand(
                    name="example-post-command",
                    action=example_post_command,
                    run_for={"install", "create"},
@@ -207,4 +217,204 @@ class CondaSpecs:
                     name="environment-header-auth",
                     auth_handler=EnvironmentHeaderAuth,
                 )
+        """
+
+    @_hookspec
+    def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
+        """
+        Register health checks for conda doctor.
+
+        This plugin hook allows you to add more "health checks" to conda doctor
+        that you can write to diagnose problems in your conda environment.
+        Check out the health checks already shipped with conda for inspiration.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def example_health_check(prefix: str, verbose: bool):
+                print("This is an example health check!")
+
+
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="example-health-check",
+                    action=example_health_check,
+                )
+        """
+
+    @_hookspec
+    def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
+        """
+        Register pre-solve functions in conda that are used in the
+        general solver API, before the solver processes the package specs in
+        search of a solution.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.models.match_spec import MatchSpec
+
+
+           def example_pre_solve(
+               specs_to_add: frozenset[MatchSpec],
+               specs_to_remove: frozenset[MatchSpec],
+           ):
+               print(f"Adding {len(specs_to_add)} packages")
+               print(f"Removing {len(specs_to_remove)} packages")
+
+
+           @plugins.hookimpl
+           def conda_pre_solves():
+               yield plugins.CondaPreSolve(
+                   name="example-pre-solve",
+                   action=example_pre_solve,
+               )
+        """
+
+    @_hookspec
+    def conda_post_solves(self) -> Iterable[CondaPostSolve]:
+        """
+        Register post-solve functions in conda that are used in the
+        general solver API, after the solver has provided the package
+        records to add or remove from the conda environment.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.models.records import PackageRecord
+
+
+           def example_post_solve(
+               repodata_fn: str,
+               unlink_precs: tuple[PackageRecord, ...],
+               link_precs: tuple[PackageRecord, ...],
+           ):
+               print(f"Uninstalling {len(unlink_precs)} packages")
+               print(f"Installing {len(link_precs)} packages")
+
+
+           @plugins.hookimpl
+           def conda_post_solves():
+               yield plugins.CondaPostSolve(
+                   name="example-post-solve",
+                   action=example_post_solve,
+               )
+        """
+
+    @_hookspec
+    def conda_settings(self) -> Iterable[CondaSetting]:
+        """
+        Register new setting
+
+        The example below defines a simple string type parameter
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.common.configuration import PrimitiveParameter, SequenceParameter
+
+
+           @plugins.hookimpl
+           def conda_settings():
+               yield plugins.CondaSetting(
+                   name="example_option",
+                   description="This is an example option",
+                   parameter=PrimitiveParameter("default_value", element_type=str),
+                   aliases=("example_option_alias",),
+               )
+        """
+
+    @_hookspec
+    def conda_reporter_backends(self) -> Iterable[CondaReporterBackend]:
+        """
+        Register new reporter backend
+
+        The example below defines a reporter backend that uses the ``pprint`` module in Python.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from pprint import pformat
+
+           from conda import plugins
+           from conda.plugins.types import (
+               CondaReporterBackend,
+               ReporterRendererBase,
+               ProgressBarBase,
+           )
+
+
+           class PprintReporterRenderer(ReporterRendererBase):
+               "Implementation of the ReporterRendererBase"
+
+               def detail_view(self, data):
+                   return pformat(data)
+
+               def envs_list(self, data):
+                   formatted_data = pformat(data)
+                   return f"Environments: {formatted_data}"
+
+               def progress_bar(self, description, io_context_manager) -> ProgressBarBase:
+                   "Returns our custom progress bar implementation"
+                   return PprintProgressBar(description, io_context_manager)
+
+
+           class PprintProgressBar(ProgressBarBase):
+               "Blank implementation of ProgressBarBase which does nothing"
+
+               def update_to(self, fraction) -> None:
+                   pass
+
+               def refresh(self) -> None:
+                   pass
+
+               def close(self) -> None:
+                   pass
+
+
+           @plugins.hookimpl
+           def conda_reporter_backends():
+               yield CondaReporterBackend(
+                   name="pprint",
+                   description="Reporter backend based on the pprint module",
+                   renderer=PprintReporterRenderer,
+               )
+
+        """
+
+    @_hookspec
+    def conda_request_headers(self) -> Iterable[[CondaRequestHeader]]:
+        """
+        Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com``
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           @plugins.hookimpl
+           def conda_request_headers():
+               yield plugins.CondaRequestHeader(
+                   name="Example-Header",
+                   description="This is an example HTTP header",
+                   value="example",
+                   hosts={"example.com", "sub.example.com"},
+               )
         """

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for modifying existing files or directories."""
+
 from __future__ import annotations
 
 import os
@@ -16,6 +17,7 @@ from subprocess import PIPE, Popen
 from ...base.constants import DRY_RUN_PREFIX
 from ...base.context import context
 from ...common.compat import on_win
+from ...common.constants import TRACE
 from ...common.path import expand
 from ...exceptions import NotWritableError
 from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
@@ -38,7 +40,7 @@ def update_file_in_place_as_binary(file_full_path, callback):
     fh = None
     try:
         fh = exp_backoff_fn(open, file_full_path, "rb+")
-        log.trace("in-place update path locked for %s", file_full_path)
+        log.log(TRACE, "in-place update path locked for %s", file_full_path)
         data = fh.read()
         fh.seek(0)
         try:
@@ -57,7 +59,7 @@ def rename(source_path, destination_path, force=False):
     if lexists(destination_path) and force:
         rm_rf(destination_path)
     if lexists(source_path):
-        log.trace("renaming %s => %s", source_path, destination_path)
+        log.log(TRACE, "renaming %s => %s", source_path, destination_path)
         try:
             os.rename(source_path, destination_path)
         except OSError as e:
@@ -79,15 +81,14 @@ def rename(source_path, destination_path, force=False):
                     stdout, stderr = p.communicate()
                 else:
                     log.debug(
-                        "{} is missing.  Conda was not installed correctly or has been "
-                        "corrupted.  Please file an issue on the conda github repo.".format(
-                            rename_script
-                        )
+                        f"{rename_script} is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo."
                     )
             elif e.errno in (EINVAL, EXDEV, EPERM):
                 # https://github.com/conda/conda/issues/6811
                 # https://github.com/conda/conda/issues/6711
-                log.trace(
+                log.log(
+                    TRACE,
                     "Could not rename %s => %s due to errno [%s]. Falling back"
                     " to copy/unlink",
                     source_path,
@@ -100,7 +101,7 @@ def rename(source_path, destination_path, force=False):
             else:
                 raise
     else:
-        log.trace("cannot rename; source path does not exist '%s'", source_path)
+        log.log(TRACE, "cannot rename; source path does not exist '%s'", source_path)
 
 
 @contextmanager
@@ -142,7 +143,7 @@ def touch(path, mkdir=False, sudo_safe=False):
     # raises: NotWritableError, which is also an OSError having attached errno
     try:
         path = expand(path)
-        log.trace("touching path %s", path)
+        log.log(TRACE, "touching path %s", path)
         if lexists(path):
             os.utime(path, None)
             return True
@@ -164,7 +165,7 @@ def touch(path, mkdir=False, sudo_safe=False):
             # if sudo_safe and not on_win and os.environ.get('SUDO_UID') is not None:
             #     uid = int(os.environ['SUDO_UID'])
             #     gid = int(os.environ.get('SUDO_GID', -1))
-            #     log.trace("chowning %s:%s %s", uid, gid, path)
+            #     log.log(TRACE, "chowning %s:%s %s", uid, gid, path)
             #     os.chown(path, uid, gid)
             return False
     except OSError as e:

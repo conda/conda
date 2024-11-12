@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Download logic for conda indices and packages."""
+
 from __future__ import annotations
 
 import hashlib
@@ -11,8 +12,6 @@ from contextlib import contextmanager
 from logging import DEBUG, getLogger
 from os.path import basename, exists, join
 from pathlib import Path
-
-from conda.gateways.disk.lock import lock
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -25,10 +24,12 @@ from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
+    CondaValueError,
     ProxyError,
     maybe_raise,
 )
 from ..disk.delete import rm_rf
+from ..disk.lock import lock
 from . import (
     ConnectionError,
     HTTPError,
@@ -131,7 +132,7 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
                 raise CondaError(message, target_path=target.name, errno=e.errno)
             size_builder += len(chunk)
 
-            if content_length and 0 <= streamed_bytes <= content_length:
+            if total_content_length and 0 <= streamed_bytes <= content_length:
                 if progress_update_callback:
                     progress_update_callback(
                         (stat_result.st_size + streamed_bytes) / total_content_length
@@ -177,14 +178,17 @@ def download_partial_file(
         if md5 or sha256:
             checksum_type = "sha256" if sha256 else "md5"
             checksum = sha256 if sha256 else md5
+            try:
+                checksum_bytes = bytes.fromhex(checksum)
+            except (ValueError, TypeError) as exc:
+                raise CondaValueError(exc) from exc
             hasher = hashlib.new(checksum_type)
             target.seek(0)
             while read := target.read(CHUNK_SIZE):
                 hasher.update(read)
 
-            actual_checksum = hasher.hexdigest()
-
-            if actual_checksum != checksum:
+            if hasher.digest() != checksum_bytes:
+                actual_checksum = hasher.hexdigest()
                 log.debug(
                     "%s mismatch for download: %s (%s != %s)",
                     checksum_type,
@@ -243,7 +247,7 @@ def download_http_errors(url: str):
         yield
 
     except ConnectionResetError as e:
-        log.debug("%s, trying again" % e)
+        log.debug(f"{e}, trying again")
         # where does retry happen?
         raise
 

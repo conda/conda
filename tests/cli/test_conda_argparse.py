@@ -1,16 +1,22 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import importlib
 import re
 from inspect import isclass, isfunction
 from logging import getLogger
-from typing import Any, Callable
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.cli.conda_argparse import generate_parser
 from conda.exceptions import EnvironmentLocationNotFound
-from conda.testing import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from typing import Any, Callable
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 log = getLogger(__name__)
 

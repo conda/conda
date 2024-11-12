@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Detect CUDA version."""
+
 import ctypes
 import functools
 import itertools
@@ -54,7 +55,7 @@ def cuda_version():
     return result
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def cached_cuda_version():
     """A cached version of the cuda detection system."""
     return cuda_version()
