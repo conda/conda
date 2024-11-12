@@ -188,7 +188,7 @@ class Channel(metaclass=ChannelType):
                 name=name.strip("/"),
             )
         if scheme:
-            if ca.location and test_url.startswith(ca.location):
+            if ca.location and (test_url + "/").startswith(ca.location + "/"):
                 location, name = ca.location, test_url.replace(ca.location, "", 1)
             else:
                 url_parts = urlparse(test_url)
