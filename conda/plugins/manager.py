@@ -17,7 +17,6 @@ from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
 
 import pluggy
-from frozendict import frozendict
 
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
@@ -401,12 +400,10 @@ class CondaPluginManager(pluggy.PluginManager):
         )
 
     def get_request_headers(self, method: str, url: Url) -> dict[str, str]:
-        return frozendict(
-            {
-                hook.name: hook.value
-                for hook in self.get_hook_results("request_headers", method, url)
-            }
-        )
+        return {
+            hook.name: hook.value
+            for hook in self.get_hook_results("request_headers", method, url)
+        }
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
