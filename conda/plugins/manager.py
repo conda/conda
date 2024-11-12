@@ -21,6 +21,7 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
+from ..common.url import urlparse
 from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import (
@@ -206,7 +207,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["request_headers"], method: str, url: Url
+        self, name: Literal["request_headers"], *, method: str, url: Url
     ) -> list[CondaRequestHeader]: ...
 
     @overload
@@ -217,7 +218,7 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
 
-    def get_hook_results(self, name, *args, **kwargs):
+    def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -227,7 +228,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = [item for items in hook(*args, **kwargs) for item in items]
+        plugins = [item for items in hook(**kwargs) for item in items]
 
         # Check for invalid names
         invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
@@ -399,10 +400,13 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("virtual_packages")
         )
 
-    def get_request_headers(self, method: str, url: Url) -> dict[str, str]:
+    def get_request_headers(self, method: str, url: Url | str) -> dict[str, str]:
+        method = method.upper()
+        if isinstance(url, str):
+            url = urlparse(url)
         return {
             hook.name: hook.value
-            for hook in self.get_hook_results("request_headers", method, url)
+            for hook in self.get_hook_results("request_headers", method=method, url=url)
         }
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:

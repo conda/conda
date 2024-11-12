@@ -236,10 +236,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
         # inject dynamic headers (session headers are injected in super().prepare_request)
         request.headers = merge_setting(
             request.headers,
-            context.plugin_manager.get_request_headers(
-                request.method.upper(),
-                urlparse(request.url),
-            ),
+            context.plugin_manager.get_request_headers(request.method, request.url),
             dict_class=CaseInsensitiveDict,
         )
         return super().prepare_request(request)
