@@ -1317,6 +1317,7 @@ def test_build_glob_merge():
     with pytest.raises(ValueError):
         MatchSpec.merge([build_tail_2, hash_build_tail_3])
 
+
 def test_build_glob_merge_channel():
     no_channel = {
         "name": "my_pkg",
@@ -1351,7 +1352,7 @@ def test_hash_merge_with_name(hash_type):
     merged = MatchSpec.merge(specs)
     assert len(merged) == 1
     assert str(merged[0]) == f"conda-forge::python=1.2.3[{hash_type}=deadbeef]"
-    
+
     specs = (
         MatchSpec(f"python[{hash_type}=FFBADD11]"),
         MatchSpec("python=1.2.3"),
