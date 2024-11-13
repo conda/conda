@@ -77,6 +77,8 @@ class CondaPluginManager(pluggy.PluginManager):
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
+        self.get_cached_session_headers = functools.cache(self.get_session_headers)
+        self.get_cached_request_headers = functools.cache(self.get_request_headers)
 
     def get_canonical_name(self, plugin: object) -> str:
         # detect the fully qualified module name
@@ -205,7 +207,12 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["request_headers"]
+        self, name: Literal["session_headers"], *, host: str
+    ) -> list[CondaRequestHeader]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["request_headers"], *, host: str, path: str
     ) -> list[CondaRequestHeader]: ...
 
     @overload
@@ -216,7 +223,7 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
 
-    def get_hook_results(self, name):
+    def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -226,7 +233,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = [item for items in hook() for item in items]
+        plugins = [item for items in hook(**kwargs) for item in items]
 
         # Check for invalid names
         invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
@@ -398,8 +405,17 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("virtual_packages")
         )
 
-    def get_request_headers(self) -> tuple[CondaRequestHeader, ...]:
-        return tuple(hook for hook in self.get_hook_results("request_headers"))
+    def get_session_headers(self, host: str) -> dict[str, str]:
+        return {
+            hook.name: hook.value
+            for hook in self.get_hook_results("session_headers", host=host)
+        }
+
+    def get_request_headers(self, host: str, path: str) -> dict[str, str]:
+        return {
+            hook.name: hook.value
+            for hook in self.get_hook_results("request_headers", host=host, path=path)
+        }
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
