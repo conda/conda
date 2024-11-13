@@ -412,7 +412,7 @@ class CondaSpecs:
 
 
            @plugins.hookimpl
-           def conda_request_headers(host: str):
+           def conda_session_headers(host: str):
                if host in HOSTS:
                    yield plugins.CondaRequestHeader(
                        name="Example-Header",
