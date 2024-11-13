@@ -65,7 +65,7 @@ jobs:
               - '.github/workflows/tests.yml'
       - name: Coverage contexts
         id: covctx
-        if: contains( github.event.pull_request.labels.*.name, 'coverage contexts')
+        if: contains( github.event.pull_request.labels.*.name, 'cla-signed')
         run: echo "covctx='--cov-context=test'" >> "$GITHUB_OUTPUT"
 
 
