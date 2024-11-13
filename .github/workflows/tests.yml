@@ -317,11 +317,9 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
+          --file tests/requirements-benchmarks.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-
-      - name: Install CodSpeed
-        run: pip install git+https://github.com/kenodegard/pytest-codspeed.git@fix-outerr-redirects#egg=pytest-codspeed
 
       - name: Conda Info
         # view test env info (not base)
