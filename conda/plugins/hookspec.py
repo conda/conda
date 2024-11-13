@@ -17,7 +17,6 @@ import pluggy
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from ..common.url import Url
     from .types import (
         CondaAuthHandler,
         CondaHealthCheck,
@@ -396,14 +395,12 @@ class CondaSpecs:
         """
 
     @_hookspec
-    def conda_request_headers(
-        self, method: str, url: Url
-    ) -> Iterable[CondaRequestHeader]:
+    def conda_session_headers(self, host: str) -> Iterable[CondaRequestHeader]:
         """
         Register new HTTP request headers
 
         The example below defines how to add HTTP headers for all requests
-        with the hostname of ``example.com``
+        with the hostname of ``example.com``.
 
         **Example:**
 
@@ -411,13 +408,42 @@ class CondaSpecs:
 
            from conda import plugins
 
+           HOSTS = {"example.com", "sub.example.com"}
+
 
            @plugins.hookimpl
-           def conda_request_headers(method: str, url: conda.common.url.Url):
-               if url.scheme in ("https", "http") and url.netloc in {
-                   "example.com",
-                   "sub.example.com",
-               }:
+           def conda_request_headers(host: str):
+               if host in HOSTS:
+                   yield plugins.CondaRequestHeader(
+                       name="Example-Header",
+                       value="example",
+                   )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_request_headers(
+        self, host: str, path: str
+    ) -> Iterable[CondaRequestHeader]:
+        """
+        Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com`` and a ``path/to/endpoint.json`` path.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+           HOSTS = {"example.com", "sub.example.com"}
+           ENDPOINT = "/path/to/endpoint.json"
+
+
+           @plugins.hookimpl
+           def conda_request_headers(host: str, path: str):
+               if host in HOSTS and path == ENDPOINT:
                    yield plugins.CondaRequestHeader(
                        name="Example-Header",
                        value="example",

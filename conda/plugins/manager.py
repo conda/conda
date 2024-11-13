@@ -21,7 +21,6 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
-from ..common.url import urlparse
 from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import (
@@ -40,7 +39,6 @@ if TYPE_CHECKING:
     from requests.auth import AuthBase
 
     from ..common.configuration import ParameterLoader
-    from ..common.url import Url
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -79,6 +77,8 @@ class CondaPluginManager(pluggy.PluginManager):
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
+        self.get_cached_session_headers = functools.cache(self.get_session_headers)
+        self.get_cached_request_headers = functools.cache(self.get_request_headers)
 
     def get_canonical_name(self, plugin: object) -> str:
         # detect the fully qualified module name
@@ -207,7 +207,12 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["request_headers"], *, method: str, url: Url
+        self, name: Literal["session_headers"], *, host: str
+    ) -> list[CondaRequestHeader]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["request_headers"], *, host: str, path: str
     ) -> list[CondaRequestHeader]: ...
 
     @overload
@@ -400,13 +405,16 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("virtual_packages")
         )
 
-    def get_request_headers(self, method: str, url: Url | str) -> dict[str, str]:
-        method = method.upper()
-        if isinstance(url, str):
-            url = urlparse(url)
+    def get_session_headers(self, host: str) -> dict[str, str]:
         return {
             hook.name: hook.value
-            for hook in self.get_hook_results("request_headers", method=method, url=url)
+            for hook in self.get_hook_results("session_headers", host=host)
+        }
+
+    def get_request_headers(self, host: str, path: str) -> dict[str, str]:
+        return {
+            hook.name: hook.value
+            for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:

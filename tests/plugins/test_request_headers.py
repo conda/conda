@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.common.url import urlparse
 from conda.plugins import CondaRequestHeader, hookimpl
 
 if TYPE_CHECKING:
@@ -17,71 +18,81 @@ if TYPE_CHECKING:
 STATIC_HEADER = CondaRequestHeader(name="Static-Header", value="static-value")
 HOST_HEADER = CondaRequestHeader(name="Host-Header", value="host-value")
 ENDPOINT_HEADER = CondaRequestHeader(name="Endpoint-Header", value="endpoint-value")
+NOT_ENDPOINT_HEADER = CondaRequestHeader(
+    name="Not-Endpoint-Header", value="not-endpoint-value"
+)
 
 EXAMPLE_HOST = "example.com"
-EXAMPLE_BASE_URL = f"https://{EXAMPLE_HOST}"
-EXAMPLE_ENDPOINT = "endpoint.json"
+EXAMPLE_ENDPOINT = "/endpoint.json"
 
 
 class CustomHeadersPlugin:
     @hookimpl
-    def conda_request_headers(
-        self, method: str, url: Url
-    ) -> Iterator[CondaRequestHeader]:
+    def conda_session_headers(self, host: str) -> Iterator[CondaRequestHeader]:
         # always include header
         yield STATIC_HEADER
 
         # only include header for specific domain/host/netloc
-        if url.scheme in ("https", "http") and url.netloc in {EXAMPLE_HOST}:
+        if host in {EXAMPLE_HOST}:
             yield HOST_HEADER
 
-            # only include header for specific path/endpoint
-            if url.path.endswith(f"/{EXAMPLE_ENDPOINT}"):
-                yield ENDPOINT_HEADER
+    @hookimpl
+    def conda_request_headers(self, path: str) -> Iterator[CondaRequestHeader]:
+        # only include header for specific path/endpoint
+        if path == EXAMPLE_ENDPOINT:
+            yield ENDPOINT_HEADER
+        else:
+            yield NOT_ENDPOINT_HEADER
 
 
 @pytest.mark.parametrize(
-    "url,dynamic_host,dynamic_endpoint",
+    "url,host_header",
     [
-        pytest.param(url := "random.com", False, False, id=f"static header ({url})"),
-        pytest.param(
-            url := "https://random.com", False, False, id=f"static header ({url})"
-        ),
-        pytest.param(url := EXAMPLE_HOST, False, False, id=f"static header ({url})"),
-        pytest.param(url := EXAMPLE_BASE_URL, True, False, id=f"host header ({url})"),
-        pytest.param(
-            url := f"{EXAMPLE_BASE_URL}/path/somewhere.txt",
-            True,
-            False,
-            id=f"host header ({url})",
-        ),
-        pytest.param(
-            url := f"{EXAMPLE_BASE_URL}/path/{EXAMPLE_ENDPOINT}",
-            True,
-            True,
-            id=f"endpoint header ({url})",
-        ),
+        pytest.param(url := "random.com", False, id=url),
+        pytest.param(url := EXAMPLE_HOST, True, id=url),
+        pytest.param(url := f"{EXAMPLE_HOST}/path/somewhere.txt", True, id=url),
+        pytest.param(url := f"{EXAMPLE_HOST}{EXAMPLE_ENDPOINT}", True, id=url),
+        pytest.param(url := f"random.com{EXAMPLE_ENDPOINT}", False, id=url),
     ],
 )
-def test_get_auth_handler(
-    plugin_manager,
-    url: str,
-    dynamic_host: bool,
-    dynamic_endpoint: bool,
-) -> None:
+def test_get_session_headers(plugin_manager, url: str | Url, host_header: bool) -> None:
     """
-    Return correct the headers that were defined by the plugin hook
+    Return the session headers that were defined by the plugin hook
     """
-    plugin = CustomHeadersPlugin()
-    plugin_manager.register(plugin)
+    plugin_manager.register(CustomHeadersPlugin())
 
-    request_headers = plugin_manager.get_request_headers("GET", url)
-    assert len(request_headers) == (1 + dynamic_host + dynamic_endpoint)
+    url = urlparse(url)
+    request_headers = plugin_manager.get_session_headers(host=url.netloc)
+    assert len(request_headers) == (1 + host_header)
 
     assert request_headers[STATIC_HEADER.name] == STATIC_HEADER.value
-
-    if dynamic_host:
+    if host_header:
         assert request_headers[HOST_HEADER.name] == HOST_HEADER.value
 
-    if dynamic_endpoint:
+
+@pytest.mark.parametrize(
+    "url,endpoint_header",
+    [
+        pytest.param(url := "random.com", False, id=url),
+        pytest.param(url := EXAMPLE_HOST, False, id=url),
+        pytest.param(url := f"{EXAMPLE_HOST}/path/somewhere.txt", False, id=url),
+        pytest.param(url := f"{EXAMPLE_HOST}{EXAMPLE_ENDPOINT}", True, id=url),
+        pytest.param(url := f"random.com{EXAMPLE_ENDPOINT}", True, id=url),
+    ],
+)
+def test_get_request_headers(
+    plugin_manager, url: str | Url, endpoint_header: bool
+) -> None:
+    """
+    Return the request headers that were defined by the plugin hook
+    """
+    plugin_manager.register(CustomHeadersPlugin())
+
+    url = urlparse(url)
+    request_headers = plugin_manager.get_request_headers(host=url.netloc, path=url.path)
+    assert len(request_headers) == 1
+
+    if endpoint_header:
         assert request_headers[ENDPOINT_HEADER.name] == ENDPOINT_HEADER.value
+    else:
+        assert request_headers[NOT_ENDPOINT_HEADER.name] == NOT_ENDPOINT_HEADER.value

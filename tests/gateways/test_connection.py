@@ -384,19 +384,30 @@ def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
     """
     Tests the code path for when custom request headers have been set by a plugin
     """
-    header_name = "Test-Header"
-    header_value = "test"
+    session_header = "Session-Header"
+    session_value = "session-value"
     mocker.patch(
-        "conda.gateways.connection.session.context.plugin_manager.get_request_headers",
-        return_value={header_name: header_value},
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
+        return_value={session_header: session_value},
+    )
+    request_header = "Request-Header"
+    request_value = "request-value"
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
+        return_value={request_header: request_value},
     )
 
     url = "https://localhost/test"
     session_obj = get_session(url)
 
-    request = Request(method="GET", url=url, headers={})
+    override_header = "Override-Header"
+    override_value = "override-value"
+    request = Request(method="GET", url=url, headers={override_header: override_value})
     prepared = session_obj.prepare_request(request)
-    assert prepared.headers[header_name] == header_value
+
+    assert prepared.headers[session_header] == session_value
+    assert prepared.headers[request_header] == request_value
+    assert prepared.headers[override_header] == override_value
 
 
 @pytest.mark.parametrize(

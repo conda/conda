@@ -33,7 +33,6 @@ from . import (
     extract_cookies_to_jar,
     get_auth_from_url,
     get_netrc_auth,
-    merge_setting,
 )
 from .adapters.ftp import FTPAdapter
 from .adapters.http import HTTPAdapter
@@ -233,12 +232,21 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = context.client_ssl_cert
 
     def prepare_request(self, request: Request) -> PreparedRequest:
-        # inject dynamic headers (session headers are injected in super().prepare_request)
-        request.headers = merge_setting(
-            request.headers,
-            context.plugin_manager.get_request_headers(request.method, request.url),
-            dict_class=CaseInsensitiveDict,
-        )
+        # inject headers from plugins if this is a https/http request
+        url = urlparse(request.url)
+        if url.scheme in ("https", "http"):
+            request.headers = CaseInsensitiveDict(
+                {
+                    # hardcoded session headers (self.headers) are injected in super().prepare_request
+                    **context.plugin_manager.get_cached_session_headers(
+                        host=url.netloc
+                    ),
+                    **context.plugin_manager.get_cached_request_headers(
+                        host=url.netloc, path=url.path
+                    ),
+                    **(request.headers or {}),
+                }
+            )
         return super().prepare_request(request)
 
     @classmethod
