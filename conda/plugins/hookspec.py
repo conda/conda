@@ -81,6 +81,7 @@ class CondaSpecs:
 
         :return: An iterable of solver entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_subcommands(self) -> Iterable[CondaSubcommand]:
@@ -108,6 +109,7 @@ class CondaSpecs:
 
         :return: An iterable of subcommand entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_virtual_packages(self) -> Iterable[CondaVirtualPackage]:
@@ -131,6 +133,7 @@ class CondaSpecs:
 
         :return: An iterable of virtual package entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
@@ -156,6 +159,7 @@ class CondaSpecs:
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
@@ -181,6 +185,7 @@ class CondaSpecs:
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_auth_handlers(self) -> Iterable[CondaAuthHandler]:
@@ -218,6 +223,7 @@ class CondaSpecs:
                     auth_handler=EnvironmentHeaderAuth,
                 )
         """
+        yield from ()
 
     @_hookspec
     def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
@@ -246,6 +252,7 @@ class CondaSpecs:
                     action=example_health_check,
                 )
         """
+        yield from ()
 
     @_hookspec
     def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
@@ -277,6 +284,7 @@ class CondaSpecs:
                    action=example_pre_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_solves(self) -> Iterable[CondaPostSolve]:
@@ -309,6 +317,7 @@ class CondaSpecs:
                    action=example_post_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_settings(self) -> Iterable[CondaSetting]:
@@ -334,6 +343,7 @@ class CondaSpecs:
                    aliases=("example_option_alias",),
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_reporter_backends(self) -> Iterable[CondaReporterBackend]:
@@ -393,6 +403,7 @@ class CondaSpecs:
                )
 
         """
+        yield from ()
 
     @_hookspec
     def conda_session_headers(self, host: str) -> Iterable[CondaRequestHeader]:
