@@ -16,6 +16,7 @@ from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
 from conda.core.solve import DepsModifier, UpdateModifier
 from conda.exceptions import (
+    PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -3785,11 +3786,11 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # context manager is now in the inner block!
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises(ResolvePackageNotFound):
+        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
             solver.solve_final_state()
 
     # Same here; the index has no accelerate pkg with BOTH np15 and py33
     specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises(ResolvePackageNotFound):
+        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
             solver.solve_final_state()
