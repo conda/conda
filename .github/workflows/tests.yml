@@ -149,6 +149,7 @@ jobs:
         run: >
           pytest
           --cov=conda
+          --cov=$env:CONDA_PREFIX\lib\python${{ matrix.python-version }}\site-packages\conda_libmamba_solver
           ${{ needs.changes.outputs.covctx }}
           --basetemp=${{ runner.temp }}
           --durations-path=durations\${{ runner.os }}.json
@@ -254,6 +255,7 @@ jobs:
         run: >
           pytest
           --cov=conda
+          --cov=$CONDA_PREFIX/lib/python${{ matrix.python-version }}/site-packages/conda_libmamba_solver
           ${{ needs.changes.outputs.covctx }}
           --durations-path=durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -560,6 +562,7 @@ jobs:
         run: >
           pytest
           --cov=conda
+          --cov=$CONDA_PREFIX/lib/python${{ matrix.python-version }}/site-packages/conda_libmamba_solver
           ${{ needs.changes.outputs.covctx }}
           --durations-path=durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
