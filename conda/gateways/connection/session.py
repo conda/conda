@@ -40,7 +40,7 @@ from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 
 if TYPE_CHECKING:
-    from . import PreparedRequest, Request
+    from requests.models import PreparedRequest, Request
 
 log = getLogger(__name__)
 RETRIES = 3
