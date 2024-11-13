@@ -682,23 +682,31 @@ jobs:
       - name: Detect Label
         shell: python
         run: |
+          import re
           from pathlib import Path
-          from re import match
           from os import environ
-
-          if "${{ github.ref_name }}" == "main":
-              # main branch commits are uploaded to the dev label
-              label = "dev"
-          elif "${{ github.ref_name }}".startswith("feature/"):
+          from subprocess import check_output
+          # unless otherwise specified, commits are uploaded to the dev label
+          # e.g., `main` branch commits
+          envs = {"ANACONDA_ORG_LABEL": "dev"}
+          if "${{ github.ref_name }}".startswith("feature/"):
               # feature branch commits are uploaded to a custom label
-              label = "${{ github.ref_name }}"
-          else:
+              envs["ANACONDA_ORG_LABEL"] = "${{ github.ref_name }}"
+          elif re.match(r"\d+(\.\d+)+\.x", "${{ github.ref_name }}"):
               # release branch commits are added to the rc label
               # see https://github.com/conda/infrastructure/issues/760
               _, name = "${{ github.repository }}".split("/")
-              label = f"rc-{name}-${{ github.ref_name }}"
-
-          Path(environ["GITHUB_ENV"]).write_text(f"ANACONDA_ORG_LABEL={label}")
+              envs["ANACONDA_ORG_LABEL"] = f"rc-{name}-${{ github.ref_name }}"
+              # if no releases have occurred on this branch yet then `git describe --tag`
+              # will misleadingly produce a version number relative to the last release
+              # and not relative to the current release branch, if this is the case we need
+              # to override the version with a derivative of the branch name
+              # override the version if `git describe --tag` does not start with the branch version
+              last_release = check_output(["git", "describe", "--tag"])
+              prefix = "${{ github.ref_name }}"[:-1]  # without x suffix
+              if not last_release.startswith(prefix):
+                  envs["VERSION_OVERRIDE"] = "${{ github.ref_name }}"
+          Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
         uses: conda/actions/canary-release@15f883f14f4232f83658e3609c3316d58905138f # v24.8.0
