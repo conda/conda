@@ -26,7 +26,7 @@ from .core import JLAP
 
 if TYPE_CHECKING:
     import pathlib
-    from typing import Iterator
+    from collections.abc import Iterator
 
     from ...connection import Response, Session
     from .. import RepodataCache

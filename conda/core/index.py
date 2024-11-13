@@ -31,8 +31,9 @@ from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
     import os
+    from collections.abc import Iterable
     from pathlib import Path
-    from typing import Any, Iterable, Self
+    from typing import Any, Self
 
 
 log = getLogger(__name__)

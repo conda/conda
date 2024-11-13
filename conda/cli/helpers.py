@@ -6,57 +6,11 @@ Collection of helper functions to standardize reused CLI arguments.
 
 from __future__ import annotations
 
-from argparse import SUPPRESS, _HelpAction
+from argparse import SUPPRESS, BooleanOptionalAction, _HelpAction
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
-
-try:
-    from argparse import BooleanOptionalAction
-except ImportError:
-    # Python < 3.9
-    from argparse import Action
-
-    class BooleanOptionalAction(Action):
-        # from Python 3.9+ argparse.py
-        def __init__(
-            self,
-            option_strings,
-            dest,
-            default=None,
-            type=None,
-            choices=None,
-            required=False,
-            help=None,
-            metavar=None,
-        ):
-            _option_strings = []
-            for option_string in option_strings:
-                _option_strings.append(option_string)
-
-                if option_string.startswith("--"):
-                    option_string = "--no-" + option_string[2:]
-                    _option_strings.append(option_string)
-
-            super().__init__(
-                option_strings=_option_strings,
-                dest=dest,
-                nargs=0,
-                default=default,
-                type=type,
-                choices=choices,
-                required=required,
-                help=help,
-                metavar=metavar,
-            )
-
-        def __call__(self, parser, namespace, values, option_string=None):
-            if option_string in self.option_strings:
-                setattr(namespace, self.dest, not option_string.startswith("--no-"))
-
-        def format_usage(self):
-            return " | ".join(self.option_strings)
 
 
 def add_parser_create_install_update(p, prefix_required=False):
@@ -175,6 +129,11 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
         action="store_true",
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
+    )
+    output_and_prompt_options.add_argument(
+        "--console",
+        default=NULL,
+        help="Select the backend to use for normal output rendering.",
     )
     add_parser_verbose(output_and_prompt_options)
     output_and_prompt_options.add_argument(

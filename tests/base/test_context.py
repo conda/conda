@@ -21,7 +21,9 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
+    channel_alias_validation,
     context,
+    default_python_validation,
     get_plugin_config_data,
     reset_context,
     validate_prefix_name,
@@ -76,11 +78,6 @@ TEST_CONDARC = dals(
       rsync: 'false'
     aggressive_update_packages: []
     channel_priority: false
-    reporters:
-      - backend: json
-        output: stdout
-      - backend: console
-        output: stdout
     """
 )
 
@@ -666,9 +663,10 @@ VALIDATE_PREFIX_TEST_CASES = (
 def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
     ctx = mock.MagicMock()
 
-    with mock.patch(
-        "conda.base.context._first_writable_envs_dir"
-    ) as mock_one, mock.patch("conda.base.context.locate_prefix_by_name") as mock_two:
+    with (
+        mock.patch("conda.base.context._first_writable_envs_dir") as mock_one,
+        mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
+    ):
         mock_one.side_effect = [mock_return_values[0]]
         mock_two.side_effect = [mock_return_values[1]]
 
@@ -758,66 +756,37 @@ def test_get_plugin_config_data_skip_bad_values():
     assert plugin_config_data == {}
 
 
-def test_reporters_from_config_file(testdata):
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("https://example.com/", True),
+        ("bad_value", "channel_alias value 'bad_value' must have scheme/protocol."),
+    ),
+)
+def test_channel_alias_validation(value, expected):
     """
-    Ensure that the ``reporters`` property returns the correct values
+    Ensure that ``conda.base.context.channel_alias_validation`` works as expected
     """
-    assert context.reporters == (
-        {"backend": "json", "output": "stdout"},
-        {"backend": "console", "output": "stdout"},
-    )
+    assert channel_alias_validation(value) == expected
 
 
-def test_reporters_json_is_true(testdata):
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("3.12", True),
+        (
+            "4.12",
+            "default_python value '4.12' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+        ("", True),
+        (
+            "not a number",
+            "default_python value 'not a number' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+    ),
+)
+def test_default_python_validation(value, expected):
     """
-    Ensure that the ``reporters`` property returns the correct values when ``context.json``
-    is true.
+    Ensure that ``conda.base.context.default_python_validation`` works as expected
     """
-    args = SimpleNamespace(json=True)
-    reset_context((), args)
-
-    assert context.reporters == (
-        {
-            "backend": "json",
-            "output": "stdout",
-            "quiet": False,
-            "verbosity": context.verbosity,
-        },
-    )
-
-    reset_context()
-
-
-def test_reporters_quiet_is_true(testdata):
-    """
-    Ensure that the ``reporters`` property returns the correct values when ``context.quiet``
-    is true.
-    """
-    args = SimpleNamespace(quiet=True)
-    reset_context((), args)
-
-    assert context.reporters == (
-        {
-            "backend": "console",
-            "output": "stdout",
-            "verbosity": context.verbosity,
-            "quiet": True,
-        },
-    )
-
-    reset_context()
-
-
-def test_reporters_default_value():
-    """
-    Ensure that the ``reporters`` property returns the correct values when nothing is set including
-    values from configuration files.
-    """
-    assert context.reporters == (
-        {
-            "backend": "console",
-            "output": "stdout",
-            "quiet": False,
-            "verbosity": context.verbosity,
-        },
-    )
+    assert default_python_validation(value) == expected

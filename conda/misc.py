@@ -7,9 +7,9 @@ import re
 import shutil
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
-from typing import Iterable
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
@@ -158,6 +158,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
     txn.execute()
 
 
+@deprecated("25.3", "25.9")
 def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1 :]
     if on_win and windows_forward_slashes:

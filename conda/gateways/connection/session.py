@@ -5,9 +5,10 @@
 from __future__ import annotations
 
 from fnmatch import fnmatch
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from threading import local
+from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -25,6 +26,7 @@ from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
     BaseAdapter,
+    CaseInsensitiveDict,
     Retry,
     Session,
     _basic_auth_str,
@@ -36,6 +38,9 @@ from .adapters.ftp import FTPAdapter
 from .adapters.http import HTTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
+
+if TYPE_CHECKING:
+    from requests.models import PreparedRequest, Request
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -73,7 +78,7 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_session(url: str):
     """
     Function that determines the correct Session object to be returned
@@ -165,7 +170,10 @@ class CondaSessionType(type):
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
-    def __init__(self, auth: AuthBase | tuple[str, str] | None = None):
+    def __init__(
+        self,
+        auth: AuthBase | tuple[str, str] | None = None,
+    ):
         """
         :param auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
@@ -222,6 +230,24 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+    def prepare_request(self, request: Request) -> PreparedRequest:
+        # inject headers from plugins if this is a https/http request
+        url = urlparse(request.url)
+        if url.scheme in ("https", "http"):
+            request.headers = CaseInsensitiveDict(
+                {
+                    # hardcoded session headers (self.headers) are injected in super().prepare_request
+                    **context.plugin_manager.get_cached_session_headers(
+                        host=url.netloc
+                    ),
+                    **context.plugin_manager.get_cached_request_headers(
+                        host=url.netloc, path=url.path
+                    ),
+                    **(request.headers or {}),
+                }
+            )
+        return super().prepare_request(request)
 
     @classmethod
     def cache_clear(cls):
