@@ -939,7 +939,7 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
                 return super().merge(other)
 
         # Both are patterns!
-        # We distinguish three types of glob patterns
+        # We distinguish four types of glob patterns
         # - 'needle*' as "prefix glob"
         # - '*needle*' as "infix glob"
         # - '*needle' as "suffix glob"
