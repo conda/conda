@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Update `deprecated.action()` function to account for positional arguments that have no value specified. (#14359)
+* Update `deprecated.action()` function to account for positional arguments that have no value specified. (#14355 via
+#14359)
 
 ### Deprecations
 

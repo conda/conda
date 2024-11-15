@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix output writing for `conda export --json --file`. (#14323)
+* Fix output writing for `conda export --json --file`. (#14316 via #14323)
 
 ### Deprecations
 
