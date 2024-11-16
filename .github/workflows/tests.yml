@@ -331,6 +331,11 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
+      - name: Patch conda-libmamba-solver (TEMP)
+        run: |
+          conda remove --force conda-libmamba-solver
+          SETUPTOOLS_SCM_PRETEND_VERSION=24.11.0rc1 python -m pip install https://github.com/conda/conda-libmamba-solver/archive/solv-slowdowns.tar.gz --no-deps
+
       - name: Run Benchmarks
         uses: CodSpeedHQ/action@b587655f756aab640e742fec141261bc6f0a569d # v3.0.1
         with:
