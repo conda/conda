@@ -2199,7 +2199,7 @@
   github: pkmooreanaconda
 - name: Mahe Iram Khan
   email: 65779580+ForgottenProgramme@users.noreply.github.com
-  num_commits: 26
+  num_commits: 29
   first_commit: 2022-10-07 23:21:54
   github: ForgottenProgramme
   alternate_emails:
@@ -2517,9 +2517,11 @@
   first_commit: 2024-09-11 18:18:48
 - name: Nils Koch
   email: mail@nilskch.dev
+  github: nilskch
   num_commits: 1
   first_commit: 2024-11-11 14:43:59
 - name: Matthieu Muffato
   email: cortexspam-github@yahoo.fr
+  github: muffato
   num_commits: 1
   first_commit: 2024-10-29 20:28:00
