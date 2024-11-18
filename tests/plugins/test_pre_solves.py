@@ -1,13 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
-from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.exceptions import DryRunExit
 from conda.plugins import solvers
-from conda.plugins.manager import CondaPluginManager
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from conda.plugins.manager import CondaPluginManager
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 class PreSolvePlugin:
@@ -25,15 +36,15 @@ class PreSolvePlugin:
 @pytest.fixture
 def pre_solve_plugin(
     mocker: MockerFixture,
-    plugin_manager: CondaPluginManager,
+    plugin_manager_with_reporter_backends: CondaPluginManager,
 ) -> PreSolvePlugin:
     mocker.patch.object(PreSolvePlugin, "pre_solve_action")
 
     pre_solve_plugin = PreSolvePlugin()
-    plugin_manager.register(pre_solve_plugin)
+    plugin_manager_with_reporter_backends.register(pre_solve_plugin)
 
     # register solvers
-    plugin_manager.load_plugins(solvers)
+    plugin_manager_with_reporter_backends.load_plugins(solvers)
 
     return pre_solve_plugin
 

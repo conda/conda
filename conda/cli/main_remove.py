@@ -9,7 +9,7 @@ import logging
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isfile, join
 
-from .common import confirm_yn
+from ..reporters import confirm_yn
 
 log = logging.getLogger(__name__)
 
@@ -148,9 +148,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         CondaEnvironmentError,
         CondaValueError,
         DirectoryNotACondaEnvironmentError,
+        EnvironmentLocationNotFound,
         PackagesNotFoundError,
     )
     from ..gateways.disk.delete import path_is_clean, rm_rf
+    from ..gateways.disk.test import is_conda_environment
     from ..models.match_spec import MatchSpec
     from .common import check_non_admin, specs_from_args
     from .install import handle_txn
@@ -164,24 +166,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = context.target_prefix
     check_non_admin()
 
+    if not is_conda_environment(prefix):
+        raise EnvironmentLocationNotFound(prefix)
+
     if args.all and prefix == context.default_prefix:
-        msg = "cannot remove current environment. deactivate and run conda remove again"
+        msg = "Cannot remove current environment. Deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
 
     if args.all and path_is_clean(prefix):
-        # full environment removal was requested, but environment doesn't exist anyway
-
-        # .. but you know what? If you call `conda remove --all` you'd expect the dir
-        # not to exist afterwards, would you not? If not (fine, I can see the argument
-        # about deleting people's work in envs being a very bad thing indeed), but if
-        # being careful is the goal it would still be nice if after `conda remove --all`
-        # to be able to do `conda create` on the same environment name.
-        #
-        # try:
-        #     rm_rf(prefix, clean_empty_parents=True)
-        # except:
-        #     log.warning("Failed rm_rf() of partially existent env {}".format(prefix))
-
         return 0
 
     if args.all:

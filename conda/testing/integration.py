@@ -12,7 +12,7 @@ import json
 import os
 import sys
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from os.path import dirname, isdir, join, lexists
 from pathlib import Path
@@ -56,7 +56,7 @@ from ..models.records import PackageRecord
 from ..utils import massage_arguments
 
 if TYPE_CHECKING:
-    from typing import Iterator
+    from collections.abc import Iterator
 
     from ..models.records import PrefixRecord
 
@@ -64,7 +64,7 @@ TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
 deprecated.constant(
     "25.3",
-    "23.9",
+    "25.9",
     "BIN_DIRECTORY",
     BIN_DIRECTORY,
     addendum="Use `conda.common.path.BIN_DIRECTORY` instead.",
@@ -91,7 +91,7 @@ def escape_for_winpath(p):
     return p.replace("\\", "\\\\")
 
 
-@lru_cache(maxsize=None)
+@cache
 @deprecated("24.9", "25.3")
 def running_a_python_capable_of_unicode_subprocessing():
     name = None
@@ -300,8 +300,9 @@ def run_command(command, prefix, *arguments, **kwargs) -> tuple[str, str, int]:
         "\n\nEXECUTING COMMAND >>> $ conda {}\n\n".format(" ".join(arguments)),
         file=sys.stderr,
     )
-    with stderr_log_level(TEST_LOG_LEVEL, "conda"), stderr_log_level(
-        TEST_LOG_LEVEL, "requests"
+    with (
+        stderr_log_level(TEST_LOG_LEVEL, "conda"),
+        stderr_log_level(TEST_LOG_LEVEL, "requests"),
     ):
         with argv(["python_api", *arguments]), captured(*cap_args) as c:
             if use_exception_handler:

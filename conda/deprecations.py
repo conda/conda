@@ -226,11 +226,12 @@ class DeprecationHandler:
                 option_string: str | None = None,
             ) -> None:
                 # alert user that it's time to remove something
-                warnings.warn(
-                    inner_self.help,
-                    inner_self.category,
-                    stacklevel=7 + stack,
-                )
+                if values:
+                    warnings.warn(
+                        inner_self.help,
+                        inner_self.category,
+                        stacklevel=7 + stack,
+                    )
 
                 super().__call__(parser, namespace, values, option_string)
 

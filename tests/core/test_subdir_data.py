@@ -98,8 +98,8 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         local_channel = Channel(join(CHANNEL_DIR_V1, platform))
         sd = SubdirData(channel=local_channel)
         assert len(sd.query_all("zlib", channels=[local_channel])) > 0
-        assert len(sd.query_all("zlib")) == 0
-    assert len(sd.query_all("zlib")) > 1
+        assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) == 0
+    assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) > 1
 
     # test load from cache
     with env_vars(
@@ -181,9 +181,12 @@ def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
             Channel._cache_.clear()
 
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    with ChannelCacheClear(), env_vars(
-        {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    with (
+        ChannelCacheClear(),
+        env_vars(
+            {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
     ):
         channel = Channel(url_path(join(CHANNEL_DIR_V1, platform)))
 

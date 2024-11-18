@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add support for CEP-17 that allows specifying the path to the site-packages directory of the the Python package via the repodata.json. (#14053 via #14256)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -3,6 +3,7 @@
 import pytest
 
 from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
+from conda.base.context import reset_context
 from conda.notices import core as notices
 from conda.testing.notices.helpers import (
     DummyArgs,
@@ -15,12 +16,18 @@ from conda.testing.notices.helpers import (
 
 @pytest.mark.parametrize("status_code", (200, 404, 500))
 def test_display_notices_happy_path(
-    status_code, capsys, notices_cache_dir, notices_mock_fetch_get_session
+    status_code,
+    capsys,
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    monkeypatch,
 ):
     """
     Happy path for displaying notices. We test two error codes to make sure we get
     display that we assume
     """
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_fetch_get_session, status_code, messages_json)
@@ -48,11 +55,15 @@ def test_display_notices_happy_path(
         assert message not in captured.out
 
 
-def test_notices_decorator(capsys, notices_cache_dir, notices_mock_fetch_get_session):
+def test_notices_decorator(
+    capsys, notices_cache_dir, notices_mock_fetch_get_session, monkeypatch
+):
     """
     Create a dummy function to wrap with our notices decorator and test it with
     two test messages.
     """
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
     messages = ("Test One", "Test Two")
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
@@ -77,12 +88,17 @@ def test_notices_decorator(capsys, notices_cache_dir, notices_mock_fetch_get_ses
 
 
 def test__conda_user_story__only_see_once(
-    capsys, notices_cache_dir, notices_mock_fetch_get_session
+    capsys,
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    monkeypatch,
 ):
     """
     As a conda user, I only want to see a channel notice once while running
     commands like, 'install', 'update', or 'create'.
     """
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
     messages = ("Test One",)
     dummy_mesg = "Dummy Mesg"
     messages_json = get_test_notices(messages)
@@ -114,12 +130,15 @@ def test__conda_user_story__disable_notices(
     notices_cache_dir,
     notices_mock_fetch_get_session,
     disable_channel_notices,
+    monkeypatch,
 ):
     """
     As a conda user, if I disable channel notifications in my .condarc file,
     I do not want to see notifications while running commands like,  "install",
     "update" or "create".
     """
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
     messages = ("Test One", "Test Two")
     dummy_mesg = "Dummy Mesg"
     messages_json = get_test_notices(messages)
@@ -139,12 +158,17 @@ def test__conda_user_story__disable_notices(
 
 
 def test__conda_user_story__more_notices_message(
-    capsys, notices_cache_dir, notices_mock_fetch_get_session
+    capsys,
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    monkeypatch,
 ):
     """
     As a conda user, I want to see a message telling me there are more notices
     if there are more to display.
     """
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
     messages = tuple(f"Test {idx}" for idx in range(1, 11, 1))
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)

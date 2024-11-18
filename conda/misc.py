@@ -7,9 +7,9 @@ import re
 import shutil
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
-from typing import Iterable
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
@@ -20,6 +20,7 @@ from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
+from .deprecations import deprecated
 from .exceptions import (
     CondaExitZero,
     DisallowedPackageError,
@@ -90,9 +91,8 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
         yield MatchSpec(url, **checksums)
 
 
-def explicit(
-    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
-):
+@deprecated.argument("25.3", "25.9", "index_args")
+def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
     actions = defaultdict(list)
     actions["PREFIX"] = prefix
 
@@ -158,6 +158,7 @@ def explicit(
     txn.execute()
 
 
+@deprecated("25.3", "25.9")
 def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1 :]
     if on_win and windows_forward_slashes:
@@ -354,7 +355,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         verbose=not quiet,
         index=index,
         force_extract=False,
-        index_args=index_args,
     )
     return actions, untracked_files
 
