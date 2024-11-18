@@ -19,7 +19,7 @@
 * Fix output writing for `conda export --json --file`. (#14316 via #14323)
 * Update `deprecated.action()` function to account for positional arguments that have no value specified. (#14355 via
 #14359)
-* Fix CI upload of coverage files for tests (#14375)
+* Fix continuous integration upload of coverage files. (#14375)
 
 ### Deprecations
 
