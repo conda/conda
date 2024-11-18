@@ -14,7 +14,7 @@
 ### Bug fixes
 
 * Do not retry solves twice in failed `conda env` runs. (#13784)
-* Remove CreateNonAdminAction to prevent conda remove from deleting .nonadmin files. (#14271)
+* Remove CreateNonAdminAction to prevent conda remove from deleting `.nonadmin` files. (#14271)
 * Do not map Python distribution names to conda names in `PrefixData(pip_interop_enabled=True)`. (#14310 via #14317)
 * Fix output writing for `conda export --json --file`. (#14316 via #14323)
 * Update `deprecated.action()` function to account for positional arguments that have no value specified. (#14355 via
