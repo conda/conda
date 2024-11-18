@@ -5,7 +5,7 @@
 ### Enhancements
 
 * Adds a new plugin hook for reporter backends. (#13868)
-* Add support for CEP-17 that allows specifying the path to the site-packages directory of the the Python package via the repodata.json. (#14053 via #14256)
+* Add support for CEP-17 that allows specifying the path to the site-packages directory of the the Python package via the `repodata.json`. (#14053 via #14256)
 * Adds progress bar support for reporter backends plugin hook. (#14083)
 * Adds support for defining spinners for the reporter backends plugin hook. (#14206)
 * Adds support for confirmation functions for reporter backends plugin hook. (#14244)
