@@ -5,7 +5,7 @@
 import json
 import os
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
@@ -14,12 +14,12 @@ from uuid import uuid4
 
 import pytest
 
+from ..base.constants import REPODATA_FN
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
 from ..common.io import env_var
 from ..core.prefix_data import PrefixData
-from ..core.subdir_data import SubdirData, make_feature_record
-from ..deprecations import deprecated
+from ..core.subdir_data import SubdirData
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..history import History
@@ -66,22 +66,6 @@ def captured(disallow_stderr=True):
         c.stderr = strip_expected(c.stderr)
         if disallow_stderr and c.stderr:
             raise Exception(f"Got stderr output: {c.stderr}")
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
-)
-@contextmanager
-def set_active_prefix(prefix: str) -> None:
-    old_prefix = os.environ["CONDA_PREFIX"]
-
-    try:
-        os.environ["CONDA_PREFIX"] = prefix
-        yield
-    finally:
-        os.environ["CONDA_PREFIX"] = old_prefix
 
 
 def assert_equals(a, b, output=""):
@@ -164,7 +148,7 @@ def add_feature_records_legacy(index):
             all_features.update(rec.track_features)
 
     for feature_name in all_features:
-        rec = make_feature_record(feature_name)
+        rec = PackageRecord.feature(feature_name)
         index[rec] = rec
 
 
@@ -280,10 +264,10 @@ def _get_index_r_base(
     else:
         raise ValueError("'json_filename_or_data' must be path-like or dict")
 
+    packages = {subdir: {}, "noarch": {}}
     if merge_noarch:
-        packages = {subdir: all_packages}
+        packages[subdir] = all_packages
     else:
-        packages = {subdir: {}, "noarch": {}}
         for key, pkg in all_packages.items():
             if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
                 packages["noarch"][key] = pkg
@@ -313,7 +297,7 @@ def _get_index_r_base(
         ):
             sd._process_raw_repodata_str(json.dumps(repodata))
         sd._loaded = True
-        SubdirData._cache_[channel.url(with_credentials=True)] = sd
+        SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
         _patch_for_local_exports(channel_name, sd)
 
     # this is for the classic solver only, which is fine with a single collapsed index
@@ -336,7 +320,7 @@ def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index2.json",
@@ -347,7 +331,7 @@ def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index4.json",
@@ -358,7 +342,7 @@ def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     return _get_index_r_base(
         "index5.json",
@@ -369,7 +353,7 @@ def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
     repodata = {
         "foobar-1.0-0.tar.bz2": {
@@ -548,12 +532,13 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with patch.object(
-        History, "get_requested_specs_map", return_value=spec_map
-    ), env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        str(add_pip).lower(),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    with (
+        patch.object(History, "get_requested_specs_map", return_value=spec_map),
+        env_var(
+            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+            str(add_pip).lower(),
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
     ):
         # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
         # get_index_r_*) to cover solver logics that need to load from disk instead of

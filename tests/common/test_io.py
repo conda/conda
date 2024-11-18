@@ -1,10 +1,16 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import sys
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
 
-from conda.common.io import CaptureTarget, attach_stderr_handler, captured
+from conda.common.io import (
+    CaptureTarget,
+    attach_stderr_handler,
+    captured,
+)
 
 
 def test_captured():
@@ -62,6 +68,7 @@ def test_attach_stderr_handler():
     assert logr.handlers[0].name == "stderr"
     assert logr.handlers[0].level is WARN
     assert logr.level is NOTSET
+    assert logr.getEffectiveLevel() is WARN
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message not in c.stderr
@@ -76,7 +83,7 @@ def test_attach_stderr_handler():
     assert len(logr.handlers) == 1
     assert logr.handlers[0].name == "stderr"
     assert logr.handlers[0].level is DEBUG
-    assert logr.level is NOTSET
+    assert logr.level is DEBUG
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message in c.stderr

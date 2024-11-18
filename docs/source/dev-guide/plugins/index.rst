@@ -57,7 +57,7 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    name = "conda-example-plugin"
    version = "1.0.0"
    description = "Example conda plugin"
-   requires-python = ">=3.8"
+   requires-python = ">=3.9"
    dependencies = ["conda"]
 
    [project.entry-points."conda"]
@@ -99,8 +99,10 @@ For examples of how to use other plugin hooks, please read their respective docu
 
    auth_handlers
    health_checks
+   request_headers
    post_commands
    pre_commands
+   reporter_backends
    settings
    solvers
    subcommands
@@ -133,7 +135,7 @@ found. These automatic reports can be really verbose and can get in the way of c
 *expected* errors. See `this issue in conda-build`_ as an example.
 
 To mark exceptions as *expected*, plugins should raise :class:`conda.CondaError` or a subclass
-thereof. See [`conda_auth.exceptions`](https://github.com/conda-incubator/conda-auth/blob/0.2.1/conda_auth/exceptions.py) for an example.
+thereof. See `conda_auth.exceptions`_ for an example.
 
 A note on licensing
 -------------------
@@ -153,3 +155,4 @@ which one to use, we advise communicating with a qualified legal professional.
 .. _`"Choose an Open Source License"`: https://choosealicense.com/
 .. _`conda-plugins-template`: https://github.com/conda/conda-plugin-template
 .. _`this issue in conda-build`: https://github.com/conda/conda-build/issues/5263
+.. _conda_auth.exceptions: https://github.com/conda-incubator/conda-auth/blob/main/conda_auth/exceptions.py

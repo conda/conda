@@ -871,8 +871,8 @@ class RepodataFetch:
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
                     raw_repodata = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata)  # type: ignore
                     stat = self.cache_path_json.stat()
+                    cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()
@@ -926,16 +926,8 @@ so they can be downloaded again."""
             raise CondaError(message)
 
 
-try:
-    hashlib.md5(b"", usedforsecurity=False)
-
-    def _md5_not_for_security(data):
-        return hashlib.md5(data, usedforsecurity=False)
-
-except TypeError:  # pragma: no cover
-    # Python < 3.9
-    def _md5_not_for_security(data):
-        return hashlib.md5(data)
+def _md5_not_for_security(data):
+    return hashlib.md5(data, usedforsecurity=False)
 
 
 def cache_fn_url(url, repodata_fn=REPODATA_FN):

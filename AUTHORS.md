@@ -23,6 +23,7 @@ Authors are sorted alphabetically.
 * Andrew Achkar
 * Andrew Arendt
 * Andrew M. Farrell
+* Andy Kipp
 * Andy R. Terrel
 * Angela Gloyna
 * Aniket Patil
@@ -125,6 +126,7 @@ Authors are sorted alphabetically.
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
+* Erik Whiting
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
@@ -215,6 +217,7 @@ Authors are sorted alphabetically.
 * Kara de la Marck
 * Katherine Abrikian
 * Katherine Kinnaman
+* Kelvin Ou
 * Ken Odegard
 * Kenneth Laskoski
 * Kenneth Schackart
@@ -369,9 +372,9 @@ Authors are sorted alphabetically.
 * Sean Ross-Ross
 * Sebastien Awwad
 * Sergio Oller
+* Serhii Kupriienko
 * Shannon Green
 * Shaun Thompson
-* Shaun Walbridge
 * Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
@@ -392,6 +395,7 @@ Authors are sorted alphabetically.
 * Steven Engler
 * Stijn Verstraeten
 * Stuart Berg
+* Sylvain Corlay
 * Tadeu Manoel
 * Tarcisio
 * Teake Nutma
@@ -399,6 +403,7 @@ Authors are sorted alphabetically.
 * Thomas Kluyver
 * Thomas Lam
 * Thomas Wiecki
+* Thorsten Beier
 * Théo Segonds
 * Tian Zhang
 * Tianchen Zhong
@@ -448,6 +453,7 @@ Authors are sorted alphabetically.
 * mcopes73
 * oinizan
 * ovz
+* padeoe
 * peter1000
 * pre-commit CI
 * saraneem

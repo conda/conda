@@ -7,11 +7,12 @@ import re
 import shutil
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 
 from .base.context import context
-from .common.compat import on_mac, on_win, open
+from .common.compat import on_mac, on_win, open_utf8
 from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
@@ -19,6 +20,7 @@ from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
+from .deprecations import deprecated
 from .exceptions import (
     CondaExitZero,
     DisallowedPackageError,
@@ -50,17 +52,14 @@ def conda_installed_files(prefix, exclude_self_build=False):
 url_pat = re.compile(
     r"(?:(?P<url_p>.+)(?:[/\\]))?"
     r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
-    r"(:?#(?P<md5>[0-9a-f]{32}))?$"
+    r"(?:#("
+    r"(?P<md5>[0-9a-f]{32})"
+    r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+    r"))?$"
 )
 
 
-def explicit(
-    specs, prefix, verbose=False, force_extract=True, index_args=None, index=None
-):
-    actions = defaultdict(list)
-    actions["PREFIX"] = prefix
-
-    fetch_specs = []
+def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
     for spec in specs:
         if spec == "@EXPLICIT":
             continue
@@ -81,11 +80,23 @@ def explicit(
         m = url_pat.match(spec)
         if m is None:
             raise ParseError(f"Could not parse explicit URL: {spec}")
-        url_p, fn, md5sum = m.group("url_p"), m.group("fn"), m.group("md5")
+        url_p, fn = m.group("url_p"), m.group("fn")
         url = join_url(url_p, fn)
-        # url_p is everything but the tarball_basename and the md5sum
+        # url_p is everything but the tarball_basename and the checksum
+        checksums = {}
+        if md5 := m.group("md5"):
+            checksums["md5"] = md5
+        if sha256 := m.group("sha256"):
+            checksums["sha256"] = sha256
+        yield MatchSpec(url, **checksums)
 
-        fetch_specs.append(MatchSpec(url, md5=md5sum) if md5sum else MatchSpec(url))
+
+@deprecated.argument("25.3", "25.9", "index_args")
+def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
+    actions = defaultdict(list)
+    actions["PREFIX"] = prefix
+
+    fetch_specs = list(_match_specs_from_explicit(specs))
 
     if context.dry_run:
         raise DryRunExit()
@@ -147,6 +158,7 @@ def explicit(
     txn.execute()
 
 
+@deprecated("25.3", "25.9")
 def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1 :]
     if on_win and windows_forward_slashes:
@@ -219,7 +231,7 @@ def touch_nonadmin(prefix):
     if on_win and exists(join(context.root_prefix, ".nonadmin")):
         if not isdir(prefix):
             os.makedirs(prefix)
-        with open(join(prefix, ".nonadmin"), "w") as fo:
+        with open_utf8(join(prefix, ".nonadmin"), "w") as fo:
             fo.write("")
 
 
@@ -321,7 +333,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             continue
 
         try:
-            with open(src, "rb") as fi:
+            with open_utf8(src, "rb") as fi:
                 data = fi.read()
         except OSError:
             continue
@@ -333,7 +345,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         except UnicodeDecodeError:  # data is binary
             pass
 
-        with open(dst, "wb") as fo:
+        with open_utf8(dst, "wb") as fo:
             fo.write(data)
         shutil.copystat(src, dst)
 
@@ -343,7 +355,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         verbose=not quiet,
         index=index,
         force_extract=False,
-        index_args=index_args,
     )
     return actions, untracked_files
 

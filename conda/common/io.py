@@ -16,7 +16,7 @@ from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
 from itertools import cycle
-from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
+from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Event, Lock, RLock, Thread
 from time import sleep, time
@@ -24,6 +24,7 @@ from time import sleep, time
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
+from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
@@ -148,9 +149,6 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
 
 @contextmanager
 def env_var(name, value, callback=None, stack_callback=None):
-    # Maybe, but in env_vars, not here:
-    #    from .compat import ensure_fs_path_encoding
-    #    d = dict({name: ensure_fs_path_encoding(value)})
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
         yield es
@@ -327,6 +325,20 @@ def attach_stderr_handler(
     formatter=None,
     filters=None,
 ):
+    """Attach a new `stderr` handler to the given logger and configure both.
+
+    This function creates a new StreamHandler that writes to `stderr` and attaches it
+    to the logger given by `logger_name` (which maybe `None`, in which case the root
+    logger is used). If the logger already has a handler by the name of `stderr`, it is
+    removed first.
+
+    The given `level` is set **for the handler**, not for the logger; however, this
+    function also sets the level of the given logger to the minimum of its current
+    effective level and the new handler level, ensuring that the handler will receive the
+    required log records, while minimizing the number of unnecessary log events. It also
+    sets the loggers `propagate` property according to the `propagate` argument.
+    The `formatter` argument can be used to set the formatter of the handler.
+    """
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next(
@@ -346,7 +358,8 @@ def attach_stderr_handler(
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(NOTSET)
+        if level < logr.getEffectiveLevel():
+            logr.setLevel(level)
         logr.propagate = propagate
 
 
@@ -380,6 +393,11 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             return default_return
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.get_spinner` instead.",
+)
 class Spinner:
     """
     Args:
@@ -451,6 +469,11 @@ class Spinner:
                 sys.stdout.flush()
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.get_progress_bar` instead.",
+)
 class ProgressBar:
     @classmethod
     def get_lock(cls):
