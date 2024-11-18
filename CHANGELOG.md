@@ -41,8 +41,8 @@
 * @zklaus
 * @ForgottenProgramme
 * @marcoesters
-* @muffato
-* @nilskch
+* @muffato made their first contribution in https://github.com/conda/conda/pull/14342
+* @nilskch made their first contribution in https://github.com/conda/conda/pull/14214
 * @travishathaway
 * @dependabot[bot]
 * @pre-commit-ci[bot]
