@@ -9,9 +9,11 @@ import os
 import sys
 from argparse import (
     SUPPRESS,
+    ArgumentError,
     RawDescriptionHelpFormatter,
 )
 from argparse import ArgumentParser as ArgumentParserBase
+from contextlib import contextmanager
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
@@ -221,13 +223,27 @@ class ArgumentParser(ArgumentParserBase):
         if add_help:
             add_parser_help(self)
 
+    @contextmanager
+    def _reraise_argument_error_sorted(self, action, value):
+        try:
+            yield
+        except ArgumentError:
+            # reraise with sorted choices
+            choices = ", ".join(sorted(map(repr, action.choices)))
+            raise ArgumentError(
+                action, f"invalid choice: {value!r} (choose from {choices})"
+            )
+
     def _check_value(self, action, value):
         # extend to properly handle when we accept multiple choices and the default is a list
         if action.choices is not None and isiterable(value):
+            action.choices = sorted(action.choices)
             for element in value:
-                super()._check_value(action, element)
+                with self._reraise_argument_error_sorted(action, element):
+                    super()._check_value(action, element)
         else:
-            super()._check_value(action, value)
+            with self._reraise_argument_error_sorted(action, value):
+                super()._check_value(action, value)
 
     def parse_args(self, *args, override_args=None, **kwargs):
         parsed_args = super().parse_args(*args, **kwargs)
