@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define pyproject.toml spec."""
 
-import os
+from __future__ import annotations
+
 import sys
 from pathlib import Path
-from __future__ import annotations
 
 if sys.version_info >= (3, 11):
     from tomllib import TOMLDecodeError
@@ -36,7 +36,7 @@ class PyProjectSpec:
 
     extensions = {".toml"}
 
-    def __init__(self, filename: os.PathLike, name: str | None = None, **kwargs):
+    def __init__(self, filename: str, name: str | None = None, **kwargs):
         self.filename: Path = Path(filename)
         self.name: str = name
         self._environment = None
