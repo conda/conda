@@ -20,12 +20,15 @@ def test_only_simple_environment_table():
     else:
         assert isinstance(spec.environment, env.Environment)
         assert spec.environment.name == "demo"
-        assert spec.environment.dependencies == {'conda': ['pytorch', 'pytorch-cuda', 'torchaudio', 'torchvision', 'pip'], 'pip': ['requests']}
+        assert spec.environment.dependencies == {
+            "conda": ["pytorch", "pytorch-cuda", "torchaudio", "torchvision", "pip"],
+            "pip": ["requests"],
+        }
 
 
 def convert_environment_examples():
     """Automatically convert all the YAML examples to TOML for the test below.
-    
+
     Shouldn't be necessary to ever run this unless extra examples are added or the
     current ones are changed, but it's left here just in case."""
     from ruamel.yaml import YAML

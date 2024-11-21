@@ -18,7 +18,7 @@ from ...common.serialize import yaml_safe_dump
 class PyProjectSpec:
     """Reads dependencies from a ``pyproject.toml`` file
     and returns an :class:`Environment` object from it.
-    
+
     Initially only specification of dependencies in a
     ``[tool.conda.environment]`` table is supported until
     PEP-735 (https://peps.python.org/pep-0735/) or a
@@ -65,13 +65,12 @@ class PyProjectSpec:
             print(self.msg)
             return False
         environment_table = (
-            toml
-            .get("tool", {})
-            .get("conda", {})
-            .get("environment", None)
+            toml.get("tool", {}).get("conda", {}).get("environment", None)
         )
         if environment_table is None:
-            self.msg = f"{self.filename} does not contain a [tool.conda.environment] table."
+            self.msg = (
+                f"{self.filename} does not contain a [tool.conda.environment] table."
+            )
             print(self.msg)
             return False
         # Check the [project] table for a name if one wasn't passed as an argument
@@ -86,26 +85,20 @@ class PyProjectSpec:
                 # must have entries for a name and a version to be valid
                 self.name = toml["project"]["name"]
             except KeyError:
-                self.msg = (
-                    f"{self.filename} is not a valid pyproject.toml file, as a [project] table is invalid without name and version fields."
-                )
+                self.msg = f"{self.filename} is not a valid pyproject.toml file, as a [project] table is invalid without name and version fields."
                 print(self.msg)
                 return False
         try:
             environment_yaml = yaml_safe_dump(environment_table)
         except Exception as e:
-            self.msg = (
-                f"The [tool.conda.environment] table could not be converted to valid YAML: {e}"
-            )
+            self.msg = f"The [tool.conda.environment] table could not be converted to valid YAML: {e}"
             print(self.msg)
             return False
         try:
             self._environment = env.from_yaml(environment_yaml)
             return True
         except Exception as e:
-            self.msg = (
-                f"The [tool.conda.environment] table could not be processed as an environment.yml file: {e}"
-            )
+            self.msg = f"The [tool.conda.environment] table could not be processed as an environment.yml file: {e}"
             print(self.msg)
             return False
 

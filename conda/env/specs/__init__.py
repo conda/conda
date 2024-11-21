@@ -29,9 +29,9 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
     # Check extensions
     all_valid_exts = {
-         *YamlFileSpec.extensions,
-         *RequirementsSpec.extensions,
-         *PyProjectSpec.extensions,
+        *YamlFileSpec.extensions,
+        *RequirementsSpec.extensions,
+        *PyProjectSpec.extensions,
     }
 
     _, ext = os.path.splitext(filename)
