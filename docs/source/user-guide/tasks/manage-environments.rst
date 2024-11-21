@@ -123,6 +123,49 @@ Use the terminal for the following steps:
 
    You can also use ``conda info --envs``.
 
+
+.. _create-env-from-pyproject:
+
+Creating an environment from a pyproject.toml file
+====================================================
+
+There is also limited support for creating a conda environment from the
+``pyproject.toml`` files that are used in the PyPI ecosystem.
+For this, also use:
+
+.. code::
+
+      conda env create -f pyproject.toml
+
+For this, the ``pyproject.toml`` file should have a ``[tool.conda.environment]``
+table containing the environment specification in TOML syntax.
+The table can contain any of the same information that ``environment.yml`` can.
+
+For example, the following:
+
+.. code-block:: toml
+
+   [tool.conda.environment]
+   name = "my-project"
+   channels = ["defaults"]
+   dependencies = ["python", "pandas"]
+
+is installed by conda in exactly the same way as the YAML equivalent:
+
+.. code-block:: yaml
+
+    name: my-project
+    channels:
+      - defaults
+    dependencies:
+      - python
+      - pandas
+
+The rest of the ``pyproject.toml`` file is ignored, with the one exception that
+if ``tool.conda.environment.name`` is missing, a present ``project.name`` will
+be used in its place.
+
+
 .. _specifying-environment-platform:
 
 Specifying a different target platform for an environment
