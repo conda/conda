@@ -1,5 +1,5 @@
 [tool.conda.environment]
-name = "test"
 dependencies = [
-    "https://104.17.92.24:443::flask=1.0.2",
+  "https://104.17.92.24:443::flask=1.0.2",
 ]
+name = "test"

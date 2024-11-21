@@ -12,8 +12,8 @@ from ...exceptions import (
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from .requirements import RequirementsSpec
 from .pyproject import PyProjectSpec
+from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
 if TYPE_CHECKING:

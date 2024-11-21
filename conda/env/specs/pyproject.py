@@ -3,16 +3,16 @@
 """Define pyproject.toml spec."""
 
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Union
 
 if sys.version_info >= (3, 11):
     from tomllib import TOMLDecodeError
     from tomllib import load as toml_load
 
-from .. import env
 from ...common.serialize import yaml_safe_dump
+from .. import env
 
 
 class PyProjectSpec:

@@ -1,9 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from pathlib import Path
 import sys
+from pathlib import Path
 
-from .. import support_file
 from conda.env import env
 from conda.env.specs.pyproject import PyProjectSpec
 
@@ -31,8 +30,8 @@ def convert_environment_examples():
 
     Shouldn't be necessary to ever run this unless extra examples are added or the
     current ones are changed, but it's left here just in case."""
-    from ruamel.yaml import YAML
     import tomli_w
+    from ruamel.yaml import YAML
 
     yaml = YAML(typ="safe")
 

@@ -1,10 +1,10 @@
 [tool.conda.environment]
-name = "test"
 dependencies = [
-    "flask==2.0.3",
+  "flask==2.0.3",
 ]
+name = "test"
 
 [tool.conda.environment.variables]
-FIXED = "fixed"
 CHANGES = "updated_value"
+FIXED = "fixed"
 NEW_VAR = "new_var"
