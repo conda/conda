@@ -68,3 +68,10 @@ def test_environment_examples_equivalence():
             assert yaml_env.name == toml_env.name
             assert yaml_env.channels == toml_env.channels
             assert yaml_env.dependencies == toml_env.dependencies
+            if example == "environment_with_pip.yml":
+                toml_file2 = toml_dir / "environment_with_dep_group.toml"
+                spec2 = PyProjectSpec(filename=toml_file2)
+                toml_env2 = spec2.environment
+                assert yaml_env.name == toml_env2.name
+                assert yaml_env.channels == toml_env2.channels
+                assert yaml_env.dependencies == toml_env2.dependencies

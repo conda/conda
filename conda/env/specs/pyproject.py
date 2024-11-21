@@ -26,12 +26,19 @@ class PyProjectSpec:
     arbitrary lists of dependencies may be included in a
     ``pyproject.toml`` file.
 
-    The structure of a ``[tool.conda.environment]`` table
+    The environment specification is read from ``[tool.conda.environment]``.
+    The structure of the ``[tool.conda.environment]`` table
     and the syntax of the dependency specifications should
     be identical to that used for a standard ``environment.yml``
     file, with YAML syntax simply translated to TOML.
     For maximum compatibility, the parsed TOML table is simply
     converted to YAML and passed to the normal YAML parser.
+
+    Additionally, if ``[[dependency-groups]]`` contains a dependency group
+    (https://peps.python.org/pep-0735/) called ``conda-pip``, it will also be
+    installed as if it were in the normal environment table under the pip
+    dependencies, with the addition that `pip` will also be automatically
+    added to the dependencies list if not already listed.
     """
 
     extensions = {".toml"}
@@ -73,9 +80,17 @@ class PyProjectSpec:
             )
             print(self.msg)
             return False
+        # Look for pip dependencies that conda should read
+        pip_deps = toml.get("dependency-groups", {}).get("conda-pip", None)
+        if pip_deps:
+            if "dependencies" not in environment_table:
+                environment_table["dependencies"] = []
+            if "pip" not in [dep[:3] for dep in environment_table["dependencies"]]:
+                environment_table.dependencies.append("pip")
+            environment_table.dependencies.append({"pip": pip_deps})
         # Check the [project] table for a name if one wasn't passed as an argument
         # A name given in the environment table will still be used preferentially though
-        if self.name and "project" in toml:
+        if self.name is None and "project" in toml:
             try:
                 # Supporting this is kind of abuse of what the [project] table is for,
                 # but if we don't have any other name to go with then using one from
