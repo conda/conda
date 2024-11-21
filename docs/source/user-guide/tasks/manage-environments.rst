@@ -129,41 +129,15 @@ Use the terminal for the following steps:
 Creating an environment from a pyproject.toml file
 ====================================================
 
-There is also limited support for creating a conda environment from the
-``pyproject.toml`` files that are used in the PyPI ecosystem.
-For this, also use:
+Conda can also create environments from specifications in ``pyproject.toml``
+files.
+To create a new environment from these, also use:
 
 .. code::
 
       conda env create -f pyproject.toml
 
-For this, the ``pyproject.toml`` file should have a ``[tool.conda.environment]``
-table containing the environment specification in TOML syntax.
-The table can contain any of the same information that ``environment.yml`` can.
-
-For example, the following:
-
-.. code-block:: toml
-
-   [tool.conda.environment]
-   name = "my-project"
-   channels = ["defaults"]
-   dependencies = ["python", "pandas"]
-
-is installed by conda in exactly the same way as the YAML equivalent:
-
-.. code-block:: yaml
-
-    name: my-project
-    channels:
-      - defaults
-    dependencies:
-      - python
-      - pandas
-
-The rest of the ``pyproject.toml`` file is ignored, with the one exception that
-if ``tool.conda.environment.name`` is missing, a present ``project.name`` will
-be used in its place.
+For details see :ref:`<pyproject-env-file>`.
 
 
 .. _specifying-environment-platform:
@@ -954,6 +928,86 @@ environments while changing ``.condarc`` affects them all.
 
 For details on creating an environment from this
 ``environment.yml`` file, see :ref:`create-env-from-file`.
+
+
+.. _pyproject-env-file:
+
+Specifying a conda environment in pyproject.toml
+------------------------------------------------
+
+It is also possible to specify conda environments in the ``pyproject.toml``
+files that are widely used in the PyPI ecosystem.
+
+For this, the ``pyproject.toml`` file should have a ``[tool.conda.environment]``
+table containing the environment specification with the usual structure but in
+TOML syntax.
+The table can contain any of the same information that ``environment.yml`` can.
+
+For example, the following:
+
+.. code-block:: toml
+
+   [tool.conda.environment]
+   name = "my-project"
+   channels = ["defaults"]
+   dependencies = ["python", "pandas"]
+
+is installed by conda in exactly the same way as the YAML equivalent:
+
+.. code-block:: yaml
+
+    name: my-project
+    channels:
+      - defaults
+    dependencies:
+      - python
+      - pandas
+
+Dependencies from the PyPI ecosystem that conda should install using `pip` can
+be specified in the normal place:
+
+.. code-block:: toml
+
+   [tool.conda.environment]
+   dependencies = [
+     "pip",
+     "python",
+     {pip = ["httpx"]},
+   ]
+
+Alternatively, they can be listed as a `dependency group <https://peps.python.org/pep-0735/>`_
+with the key ``conda-pip``:
+
+.. code-block:: toml
+
+   [dependency-groups]
+   conda-pip = ["httpx"]
+
+   [tool.conda.environment]
+   dependencies = [
+     "python",
+   ]
+
+In this case there is no need to list `pip` as a dependency unless a specific
+version is required.
+
+This latter approach is useful if you wish to support both Python packaging
+ecosystems with one file:
+- packages common to both ecosystems can be listed in the ``conda-pip``
+  dependency group to be installed by everyone (as they are also picked up by
+  `pip`, `poetry`, `uv` etc.)
+- conda-only packages can be listed in ``tool.conda.environment.dependencies``
+- PyPI-only packages (or PyPI equivalents of conda packages) can be listed in
+  any other dependency group or in ``project.dependencies`` as desired - conda
+  will ignore these.
+
+The rest of the ``pyproject.toml`` file is ignored, with the one exception that
+if ``tool.conda.environment.name`` is missing, ``project.name`` will
+be used in its place if present.
+
+At this time, ``pyproject.toml`` support is "read-only" i.e. conda can install
+from them but not export to them.
+
 
 Restoring an environment
 ========================
