@@ -945,6 +945,15 @@ class Context(Configuration):
         from ..core.index import check_allowlist
         from ..models.channel import Channel
 
+        def _validate_denylist_channels(channel_strings: tuple[str, ...]) -> None:
+            """Validate to see if any channels appear in denylist_channels"""
+            channel_urls = tuple(
+                chain.from_iterable(
+                    Channel(channel).base_urls for channel in channel_strings
+                )
+            )
+            check_allowlist(channel_urls)
+
         local_add = ("local",) if self.use_local else ()
         if (
             self._argparse_args
@@ -967,7 +976,12 @@ class Context(Configuration):
                     "--override-channels."
                 )
             else:
-                return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
+                channels = tuple(
+                    IndexedSet((*local_add, *self._argparse_args["channel"]))
+                )
+                _validate_denylist_channels(channels)
+
+                return channels
 
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and "channel" in self._argparse_args:
@@ -983,9 +997,13 @@ class Context(Configuration):
             )
             if argparse_channels and not channel_in_config_files:
                 _warn_defaults_deprecation()
-                return tuple(
+                channels = tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
+                _validate_denylist_channels(channels)
+
+                return channels
+
         if self._channels:
             _channels = self._channels
         else:
@@ -993,12 +1011,7 @@ class Context(Configuration):
             _channels = [DEFAULTS_CHANNEL_NAME]
 
         channels = tuple(IndexedSet((*local_add, *_channels)))
-
-        # Validate to see if any channels appear in denylist_channels
-        channel_urls = tuple(
-            chain.from_iterable(Channel(channel).base_urls for channel in channels)
-        )
-        check_allowlist(channel_urls)
+        _validate_denylist_channels(channels)
 
         return channels
 
