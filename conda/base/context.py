@@ -942,6 +942,9 @@ class Context(Configuration):
 
     @property
     def channels(self):
+        from ..core.index import check_allowlist
+        from ..models.channel import Channel
+
         local_add = ("local",) if self.use_local else ()
         if (
             self._argparse_args
@@ -988,7 +991,16 @@ class Context(Configuration):
         else:
             _warn_defaults_deprecation()
             _channels = [DEFAULTS_CHANNEL_NAME]
-        return tuple(IndexedSet((*local_add, *_channels)))
+
+        channels = tuple(IndexedSet((*local_add, *_channels)))
+
+        # Validate to see if any channels appear in denylist_channels
+        channel_urls = tuple(
+            chain.from_iterable(Channel(channel).base_urls for channel in channels)
+        )
+        check_allowlist(channel_urls)
+
+        return channels
 
     @property
     def config_files(self):

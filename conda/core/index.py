@@ -164,7 +164,6 @@ class Index(UserDict):
         self.expanded_channels = IndexedSet()
         for channel in self._channels:
             urls = Channel(channel).urls(True, subdirs)
-            check_allowlist(urls)
             expanded_channels = [Channel(url) for url in urls]
             self.channels[channel] = [
                 SubdirData(expanded_channel, repodata_fn=repodata_fn)

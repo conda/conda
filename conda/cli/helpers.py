@@ -6,11 +6,48 @@ Collection of helper functions to standardize reused CLI arguments.
 
 from __future__ import annotations
 
-from argparse import SUPPRESS, BooleanOptionalAction, _HelpAction
+from argparse import (
+    SUPPRESS,
+    BooleanOptionalAction,
+    _HelpAction,
+    _StoreAction,
+)
+from itertools import chain
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+
+class _ValidatePackages(_StoreAction):
+    """
+    Used to validate match specs of packages
+    """
+
+    @staticmethod
+    def _validate_no_denylist_channels(packages_specs):
+        """
+        Ensure the packages do not contain denylist_channels
+        """
+        from ..core.index import check_allowlist
+        from ..models.match_spec import MatchSpec
+
+        if not isinstance(packages_specs, list):
+            packages_specs = [packages_specs]
+
+        match_specs = [MatchSpec(spec) for spec in packages_specs]
+        channels = filter(
+            None, (spec.get_exact_value("channel") for spec in match_specs)
+        )
+        channel_urls = tuple(
+            chain.from_iterable(channel.base_urls for channel in channels)
+        )
+
+        check_allowlist(channel_urls)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        self._validate_no_denylist_channels(values)
+        super().__call__(parser, namespace, values, option_string)
 
 
 def add_parser_create_install_update(p, prefix_required=False):
@@ -47,7 +84,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     p.add_argument(
         "packages",
         metavar="package_spec",
-        action="store",
+        action=_ValidatePackages,
         nargs="*",
         help="List of packages to install or update in the conda environment.",
     )
