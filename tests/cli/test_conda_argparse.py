@@ -117,10 +117,12 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
 
 def test_sorted_commands_in_error(capsys):
     p = ArgumentParser()
-    p.add_argument("subcommand", choices=["a", "c", "b"])
+    p.add_argument("subcommand", choices=["a", "c", "b"])  # note this is not sorted...
     try:
         p.parse_args(["d"])
     except SystemExit:
-        assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in capsys.readouterr().err
+        stderr = capsys.readouterr().err
+        # ...but the suggestions here are sorted
+        assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in stderr
     else:
         pytest.fail("Did not raise")
