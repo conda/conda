@@ -312,8 +312,6 @@ class _Activator(metaclass=abc.ABCMeta):
             except ValueError:
                 no_stack_idx = -1
             if stack_idx >= 0 and no_stack_idx >= 0:
-                from .exceptions import ArgumentError
-
                 raise ArgumentError(
                     "cannot specify both --stack and --no-stack to " + command
                 )
@@ -324,8 +322,6 @@ class _Activator(metaclass=abc.ABCMeta):
                 self.stack = False
                 del remainder_args[no_stack_idx]
             if len(remainder_args) > 1:
-                from .exceptions import ArgumentError
-
                 raise ArgumentError(
                     command
                     + " does not accept more than one argument:\n"
@@ -336,8 +332,6 @@ class _Activator(metaclass=abc.ABCMeta):
 
         else:
             if remainder_args:
-                from .exceptions import ArgumentError
-
                 raise ArgumentError(
                     f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
                 )
