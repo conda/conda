@@ -237,7 +237,6 @@ class ArgumentParser(ArgumentParserBase):
     def _check_value(self, action, value):
         # extend to properly handle when we accept multiple choices and the default is a list
         if action.choices is not None and isiterable(value):
-            action.choices = sorted(action.choices)
             for element in value:
                 with self._reraise_argument_error_sorted(action, element):
                     super()._check_value(action, element)

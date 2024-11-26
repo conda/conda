@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.cli.conda_argparse import generate_parser
+from conda.cli.conda_argparse import ArgumentParser, generate_parser
 from conda.exceptions import EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
@@ -113,3 +113,14 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
     module = importlib.import_module(path)
     assert hasattr(module, attr)
     assert validate(getattr(module, attr))
+
+
+def test_sorted_commands_in_error(capsys):
+    p = ArgumentParser()
+    p.add_argument("subcommand", choices=["a", "c", "b"])
+    try:
+        p.parse_args(["d"])
+    except SystemExit:
+        assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in capsys.readouterr().err
+    else:
+        pytest.fail("Did not raise")
