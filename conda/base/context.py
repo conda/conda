@@ -943,16 +943,6 @@ class Context(Configuration):
     @property
     def channels(self):
         from ..core.index import check_allowlist
-        from ..models.channel import Channel
-
-        def _validate_denylist_channels(channel_strings: tuple[str, ...]) -> None:
-            """Validate to see if any channels appear in denylist_channels"""
-            channel_urls = tuple(
-                chain.from_iterable(
-                    Channel(channel).base_urls for channel in channel_strings
-                )
-            )
-            check_allowlist(channel_urls)
 
         local_add = ("local",) if self.use_local else ()
         if (
@@ -979,7 +969,7 @@ class Context(Configuration):
                 channels = tuple(
                     IndexedSet((*local_add, *self._argparse_args["channel"]))
                 )
-                _validate_denylist_channels(channels)
+                check_allowlist(channels)
 
                 return channels
 
@@ -987,9 +977,9 @@ class Context(Configuration):
         if self._argparse_args and "channel" in self._argparse_args:
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args["channel"] or ())
-            # Add condition to make sure that sure that we add the 'defaults'
+            # Add condition to make sure that we add the 'defaults'
             # channel only when no channels are defined in condarc
-            # We needs to get the config_files and then check that they
+            # We need to get the config_files and then check that they
             # don't define channels
             channel_in_config_files = any(
                 "channels" in context.raw_data[rc_file].keys()
@@ -1000,7 +990,7 @@ class Context(Configuration):
                 channels = tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
-                _validate_denylist_channels(channels)
+                check_allowlist(channels)
 
                 return channels
 
@@ -1011,7 +1001,7 @@ class Context(Configuration):
             _channels = [DEFAULTS_CHANNEL_NAME]
 
         channels = tuple(IndexedSet((*local_add, *_channels)))
-        _validate_denylist_channels(channels)
+        check_allowlist(channels)
 
         return channels
 

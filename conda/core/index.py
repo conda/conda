@@ -31,7 +31,7 @@ from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
     import os
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
     from pathlib import Path
     from typing import Any, Self
 
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-def check_allowlist(channel_urls: list[str]) -> None:
+def check_allowlist(channel_urls: Sequence[str]) -> None:
     """
     Check if the given channel URLs are allowed by the context's allowlist.
 
