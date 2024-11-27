@@ -81,6 +81,7 @@ except ImportError:
     from .._vendor.frozendict import frozendict
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
     from typing import Literal
 
@@ -942,8 +943,6 @@ class Context(Configuration):
 
     @property
     def channels(self):
-        from ..core.index import check_allowlist
-
         local_add = ("local",) if self.use_local else ()
         if (
             self._argparse_args
@@ -2254,3 +2253,39 @@ except ConfigurationLoadError as e:  # pragma: no cover
     print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
     sys.exit(1)
+
+
+def check_allowlist(channel_urls: Sequence[str]) -> None:
+    """
+    Check if the given channel URLs are allowed by the context's allowlist.
+
+    :param channel_urls: A list of channel URLs to check against the allowlist.
+    :raises ChannelNotAllowed: If any URL is not in the allowlist.
+    :raises ChannelDenied: If any URL is in the denylist.
+    """
+    from ..exceptions import ChannelDenied, ChannelNotAllowed
+    from ..models.channel import Channel
+
+    allowlist_channel_urls = tuple(
+        chain.from_iterable(
+            Channel(allowlist_channel).base_urls
+            for allowlist_channel in context.allowlist_channels
+        )
+    )
+    denylist_channel_urls = tuple(
+        chain.from_iterable(
+            Channel(denylist_channel).base_urls
+            for denylist_channel in context.denylist_channels
+        )
+    )
+    if allowlist_channel_urls or denylist_channel_urls:
+        for channel_url in channel_urls:
+            channel = Channel(channel_url)
+            for channel_base_url in channel.base_urls:
+                if channel_base_url in denylist_channel_urls:
+                    raise ChannelDenied(channel)
+                if (
+                    allowlist_channel_urls
+                    and channel_base_url not in allowlist_channel_urls
+                ):
+                    raise ChannelNotAllowed(channel)

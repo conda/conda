@@ -29,21 +29,20 @@ class _ValidatePackages(_StoreAction):
         """
         Ensure the packages do not contain denylist_channels
         """
-        from ..core.index import check_allowlist
+        from conda.base.context import check_allowlist
+
         from ..models.match_spec import MatchSpec
 
         if not isinstance(packages_specs, list):
             packages_specs = [packages_specs]
 
-        match_specs = [MatchSpec(spec) for spec in packages_specs]
+        match_specs = (MatchSpec(spec) for spec in packages_specs)
         channels = filter(
             None, (spec.get_exact_value("channel") for spec in match_specs)
         )
-        channel_urls = tuple(
-            chain.from_iterable(channel.base_urls for channel in channels)
+        check_allowlist(
+            tuple(chain.from_iterable(channel.base_urls for channel in channels))
         )
-
-        check_allowlist(channel_urls)
 
     def __call__(self, parser, namespace, values, option_string=None):
         self._validate_no_denylist_channels(values)
