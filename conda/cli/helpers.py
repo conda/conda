@@ -33,7 +33,7 @@ class _ValidatePackages(_StoreAction):
 
         from ..models.match_spec import MatchSpec
 
-        if not isinstance(packages_specs, list):
+        if not isinstance(packages_specs, (list, tuple)):
             packages_specs = [packages_specs]
 
         match_specs = (MatchSpec(spec) for spec in packages_specs)
