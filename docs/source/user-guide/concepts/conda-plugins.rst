@@ -1,10 +1,6 @@
-=============
-Conda plugins
-=============
-
-.. contents::
-   :local:
-   :depth: 2
+=======
+Plugins
+=======
 
 .. _concept-plugins:
 
@@ -34,8 +30,7 @@ Below is an example of a very basic plugin "hook":
 
 
    @conda.plugins.hookimpl
-   def conda_subcommands():
-       ...
+   def conda_subcommands(): ...
 
 
 Packaging using a pyproject.toml file

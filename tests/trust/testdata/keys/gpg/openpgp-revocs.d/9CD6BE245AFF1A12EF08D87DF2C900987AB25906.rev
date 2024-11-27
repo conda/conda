@@ -1,0 +1,28 @@
+This is a revocation certificate for the OpenPGP key:
+
+pub   ed25519 2023-11-16 [S]
+      9CD6BE245AFF1A12EF08D87DF2C900987AB25906
+uid          Conda Bot (root_2) <ursa-core@anaconda.com>
+
+A revocation certificate is a kind of "kill switch" to publicly
+declare that a key shall not anymore be used.  It is not possible
+to retract such a revocation certificate once it has been published.
+
+Use it to revoke this key in case of a compromise or loss of
+the secret key.  However, if the secret key is still accessible,
+it is better to generate a new revocation certificate and give
+a reason for the revocation.  For details see the description of
+of the gpg command "--generate-revocation" in the GnuPG manual.
+
+To avoid an accidental use of this file, a colon has been inserted
+before the 5 dashes below.  Remove this colon with a text editor
+before importing and publishing this revocation certificate.
+
+:-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: This is a revocation certificate
+
+iHgEIBYKACAWIQSc1r4kWv8aEu8I2H3yyQCYerJZBgUCZVahXAIdAAAKCRDyyQCY
+erJZBmHMAP9A883+5ygfzerY0c/FEIx7Y1mLJa+igPDsiYJpK3l78gEA67CP21qk
+0UP2JlAA0hoqZxwiyeRjn3Qm/Xsja/Q/8A8=
+=ZLjS
+-----END PGP PUBLIC KEY BLOCK-----

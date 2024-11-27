@@ -1,6 +1,6 @@
-==============
-Conda commands
-==============
+========
+Commands
+========
 
 The ``conda`` command is the primary interface for managing
 installations of various packages. It can:

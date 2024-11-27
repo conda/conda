@@ -5,7 +5,8 @@
 import os
 import tempfile
 from errno import ENOENT
-from os.path import basename, lexists
+from os.path import basename
+from pathlib import Path
 from pprint import pprint
 
 import pytest
@@ -29,7 +30,8 @@ from conda.common.pkg_formats.python import (
     split_spec,
 )
 from conda.common.url import join_url
-from tests.data.env_metadata import METADATA_VERSION_PATHS
+
+ENV_METADATA_DIR = Path(__file__).parent.parent.parent / "data" / "env_metadata"
 
 
 # Helpers
@@ -393,30 +395,43 @@ def test_metadata_read_metadata():
     assert output == expected_output
 
 
-def test_metadata():
+def test_metadata_none():
     # Check warnings are raised for None path
     with pytest.warns(MetadataWarning):
         path = PythonDistributionMetadata._process_path(None, [])
     assert path is None
 
+
+@pytest.mark.parametrize(
+    "path,requirements,python,external,extra",
+    [
+        (ENV_METADATA_DIR / "pep241", False, False, False, False),
+        (ENV_METADATA_DIR / "pep314", True, False, False, False),
+        (ENV_METADATA_DIR / "pep345", True, True, True, False),
+        (ENV_METADATA_DIR / "pep566", True, True, True, True),
+    ],
+)
+def test_metadata(
+    path: Path,
+    requirements: bool,
+    python: bool,
+    external: bool,
+    extra: bool,
+):
+    pkg_info = str(path / "PKG-INFO")
+
     # Check versions
-    for fpath in METADATA_VERSION_PATHS:
-        if not lexists(fpath):
-            pytest.skip("test files not found: %s" % fpath)
-        meta = PythonDistributionMetadata(fpath)
-        a = meta.get_dist_requirements()
-        b = meta.get_python_requirements()
-        meta.get_external_requirements()
-        c = meta.get_extra_provides()
-        d = meta.get_dist_provides()
-        e = meta.get_dist_obsolete()
-        f = meta.get_classifiers()
-        name = meta.name
-        version = meta.version
-        _print_output(fpath, meta._data, a, b, c, d, e, f, name, version)
-        assert len(meta._data)
-        assert name == "BeagleVote"
-        assert version == "1.0a2"
+    meta = PythonDistributionMetadata(pkg_info)
+    assert meta.name == "BeagleVote"
+    assert meta.version == "1.0a2"
+    assert bool(meta.get_dist_requirements()) is requirements
+    assert bool(meta.get_python_requirements()) is python
+    assert bool(meta.get_external_requirements()) is external
+    assert bool(meta.get_extra_provides()) is extra
+    assert not meta.get_dist_provides()
+    assert not meta.get_dist_obsolete()
+    assert not meta.get_classifiers()
+    assert meta._data
 
 
 # Python Distributions
@@ -556,11 +571,7 @@ def test_pydist_check_files():
 
 def test_python_dist_info():
     test_files = (
-        (
-            "",
-            "METADATA",
-            ("Name: zoom\n" "Requires-Python: ==2.7\n" "Requires-External: C\n"),
-        ),
+        ("", "METADATA", "Name: zoom\nRequires-Python: ==2.7\nRequires-External: C\n"),
         ("", "RECORD", 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'),
         ("", "INSTALLER", ""),
     )

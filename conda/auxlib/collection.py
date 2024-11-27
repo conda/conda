@@ -3,9 +3,15 @@ from functools import reduce
 from collections.abc import Mapping, Set
 
 from .compat import isiterable
-from .._vendor.frozendict import frozendict
+from ..deprecations import deprecated
+
+try:
+    from frozendict import frozendict
+except ImportError:
+    from .._vendor.frozendict import frozendict
 
 
+@deprecated("24.9", "25.3", addendum="Use `frozendict.deepfreeze` instead.")
 def make_immutable(value):
     # this function is recursive, and if nested data structures fold back on themselves,
     #   there will likely be recursion errors
@@ -75,25 +81,5 @@ def first(seq, key=bool, default=None, apply=lambda x: x):
     return next((apply(x) for x in seq if key(x)), default() if callable(default) else default)
 
 
-def firstitem(map, key=lambda k, v: bool(k), default=None, apply=lambda k, v: (k, v)):
-    return next((apply(k, v) for k, v in map if key(k, v)), default)
-
-
 def last(seq, key=bool, default=None, apply=lambda x: x):
     return next((apply(x) for x in reversed(seq) if key(x)), default)
-
-
-def call_each(seq):
-    """Calls each element of sequence to invoke the side effect.
-
-    Args:
-        seq:
-
-    Returns: None
-
-    """
-    try:
-        reduce(lambda _, y: y(), seq)
-    except TypeError as e:
-        if str(e) != "reduce() of empty sequence with no initial value":
-            raise

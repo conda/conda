@@ -3,8 +3,7 @@
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from shutil import rmtree
-from tempfile import mkdtemp
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -27,9 +26,9 @@ from conda.common.configuration import (
     ValidationError,
     YamlRawParameter,
     custom_expandvars,
-    load_file_configs,
     pretty_list,
     raise_errors,
+    unique_sequence_map,
 )
 from conda.common.io import env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
@@ -260,6 +259,17 @@ test_yaml_raw = {
                 - b2
         """
     ),
+    # Used to make sure that missing values are handled
+    "objectFile3": dals(
+        """
+        test_object:
+            map_field:
+                key1: a1
+                key2: a2
+        """
+    ),
+    # Used to make sure when nothing is defined appropriate defaults are set
+    "objectFile4": "",
 }
 
 
@@ -442,50 +452,42 @@ def test_env_var_config_empty_sequence():
         [environ.pop(key) for key in test_dict]
 
 
-def test_load_raw_configs():
-    try:
-        tempdir = Path(mkdtemp()).resolve()
-        condarc = tempdir / ".condarc"
-        condarcd = tempdir / "condarc.d"
-        f1 = condarcd / "file1.yml"
-        f2 = condarcd / "file2.yml"
-        not_a_file = tempdir / "not_a_file"
+def test_load_raw_configs(tmp_path: Path) -> None:
+    condarc = tmp_path / ".condarc"
+    condarcd = tmp_path / "condarc.d"
+    f1 = condarcd / "file1.yml"
+    f2 = condarcd / "file2.yml"
+    not_a_file = tmp_path / "not_a_file"
 
-        condarcd.mkdir(exist_ok=True, parents=True)
+    condarcd.mkdir(exist_ok=True, parents=True)
 
-        f1.write_text(test_yaml_raw["file1"])
-        f2.write_text(test_yaml_raw["file2"])
-        condarc.write_text(test_yaml_raw["file3"])
+    f1.write_text(test_yaml_raw["file1"])
+    f2.write_text(test_yaml_raw["file2"])
+    condarc.write_text(test_yaml_raw["file3"])
 
-        search_path = [condarc, not_a_file, condarcd]
+    search_path = [condarc, not_a_file, condarcd]
 
-        raw_data = load_file_configs(search_path)
-        assert condarc in raw_data
-        assert not_a_file not in raw_data
-        assert f1 in raw_data
-        assert f2 in raw_data
-        assert raw_data[condarc]["channels"].value(None)[0].value(None) == "wile"
-        assert raw_data[f1]["always_yes"].value(None) == "no"
-        assert raw_data[f2]["proxy_servers"].value(None)["http"].value(None) == "marv"
+    config = Configuration(search_path)
+    assert condarc in config.raw_data
+    assert not_a_file not in config.raw_data
+    assert f1 in config.raw_data
+    assert f2 in config.raw_data
+    assert config.raw_data[condarc]["channels"].value(None)[0].value(None) == "wile"
+    assert config.raw_data[f1]["always_yes"].value(None) == "no"
+    assert (
+        config.raw_data[f2]["proxy_servers"].value(None)["http"].value(None) == "marv"
+    )
 
-        config = SampleConfiguration(search_path)
-
-        from pprint import pprint
-
-        for key, val in config.collect_all().items():
-            print(key)
-            pprint(val)
-        assert config.channels == (
-            "wile",
-            "porky",
-            "bugs",
-            "elmer",
-            "daffy",
-            "tweety",
-            "foghorn",
-        )
-    finally:
-        rmtree(tempdir, ignore_errors=True)
+    config = SampleConfiguration(search_path)
+    assert config.channels == (
+        "wile",
+        "porky",
+        "bugs",
+        "elmer",
+        "daffy",
+        "tweety",
+        "foghorn",
+    )
 
 
 def test_important_primitive_map_merges():
@@ -757,6 +759,36 @@ def test_object():
     assert test_object.seq_field == ("a2", "b2", "a1", "b1", "c1")
 
 
+def test_object_defaults_partially_empty():
+    """
+    Used to make sure that defaults are appropriately set for missing values when
+    only some values have been passed in.
+    """
+    config = SampleConfiguration()._set_raw_data(load_from_string_data("objectFile3"))
+
+    test_object = config.test_object
+
+    assert test_object.int_field == 0
+    assert test_object.str_field == ""
+    assert test_object.map_field == {"key1": "a1", "key2": "a2"}
+    assert test_object.seq_field == tuple()
+
+
+def test_object_defaults_completely_empty():
+    """
+    Used to make sure that defaults are appropriately set for missing values when
+    no values have been passed in.
+    """
+    config = SampleConfiguration()._set_raw_data(load_from_string_data("objectFile4"))
+
+    test_object = config.test_object
+
+    assert test_object.int_field == 0
+    assert test_object.str_field == ""
+    assert test_object.map_field == {}
+    assert test_object.seq_field == tuple()
+
+
 def test_pretty_list():
     # cover TypeError in pretty_list
 
@@ -823,3 +855,77 @@ def test_parameter_flag():
 def test_custom_expandvars(path: str, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("VARIABLE", value := uuid4().hex)
     assert custom_expandvars(path, VARIABLE=value) == expandvars(path)
+
+
+@pytest.mark.skipif(on_win, reason="Test requires symlinks.")
+def test_expand_search_path(tmp_path):
+    """
+    _expand_search_path was testing the symlink target against valid condarc
+    filenames, instead of the symlink itself.
+
+    It may or may not be necessary to limit valid condarc filenames, but it is
+    even more confusing to reject based on the symlink target.
+    """
+    target = tmp_path / "condarc-symlink-target"
+    target.touch()
+    symlink = tmp_path / "condarc"
+    symlink.symlink_to(target)
+
+    expanded = list(Configuration._expand_search_path([target, symlink]))
+    assert expanded == [symlink], expanded
+
+
+@pytest.fixture
+def unique_sequence_map_test_class():
+    """
+    Creates a class that is used for ``unique_sequence_map`` tests
+    """
+
+    class UniqueSequenceMapTestObject(SimpleNamespace):
+        @unique_sequence_map(unique_key="backend")
+        def test_prop(self):
+            return self._test_prop
+
+    return UniqueSequenceMapTestObject
+
+
+def test_unique_sequence_map_error_with_duplicates(
+    unique_sequence_map_test_class, mocker
+):
+    """
+    Ensure the correct errors are logged when duplicates are present
+    """
+    log_mock = mocker.patch("conda.common.configuration.log")
+
+    test_obj = unique_sequence_map_test_class(
+        _test_prop=({"backend": "json"}, {"backend": "json"})
+    )
+
+    assert test_obj.test_prop() == ({"backend": "json"},)
+    assert log_mock.error.mock_calls == [
+        mocker.call(
+            "Configuration: skipping {'backend': 'json'} for \"test_prop\"; "
+            'value "json" already present'
+        )
+    ]
+
+
+def test_unique_sequence_map_error_with_unique_key(
+    unique_sequence_map_test_class, mocker
+):
+    """
+    Ensure the correct errors are logged when no unique key is present
+    """
+    log_mock = mocker.patch("conda.common.configuration.log")
+
+    test_obj = unique_sequence_map_test_class(
+        _test_prop=({"value": "test"}, {"backend": "json"})
+    )
+
+    assert test_obj.test_prop() == ({"backend": "json"},)
+    assert log_mock.error.mock_calls == [
+        mocker.call(
+            "Configuration: skipping {'value': 'test'} for \"test_prop\"; "
+            'unique key "backend" not present on mapping'
+        )
+    ]

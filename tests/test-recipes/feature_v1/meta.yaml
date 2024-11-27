@@ -1,0 +1,12 @@
+package:
+  name: feature
+  version: "1.0"
+
+build:
+  noarch: generic
+  features:
+    - track_feature1
+
+requirements:
+  run:
+    - track_feature

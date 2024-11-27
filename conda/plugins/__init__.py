@@ -24,12 +24,17 @@ as well as conda's internal implementations of plugins.
 
 """  # noqa: E501
 
-
 from .hookspec import hookimpl  # noqa: F401
 from .types import (  # noqa: F401
     CondaAuthHandler,
+    CondaHealthCheck,
     CondaPostCommand,
+    CondaPostSolve,
     CondaPreCommand,
+    CondaPreSolve,
+    CondaReporterBackend,
+    CondaRequestHeader,
+    CondaSetting,
     CondaSolver,
     CondaSubcommand,
     CondaVirtualPackage,

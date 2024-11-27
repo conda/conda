@@ -10,6 +10,7 @@ from packaging.version import Version
 from pytest_mock import MockerFixture
 
 from conda import plugins
+from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
@@ -18,8 +19,9 @@ from conda.plugins.manager import CondaPluginManager
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
 
-# detect if this is an older pluggy
+# detect if this is an older/newer pluggy
 pluggy_v100 = Version(pluggy.__version__) <= Version("1.0.0")
+pluggy_v150 = Version(pluggy.__version__) >= Version("1.5.0")
 
 
 class VerboseSolver(solve.Solver):
@@ -57,18 +59,15 @@ class NoNameVirtualPackagePlugin:
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
-    plugin_names = plugin_manager.load_plugins()
-    assert plugin_names == 0
+    assert plugin_manager.load_plugins() == 0
 
 
 def test_load_two_plugins_one_impls(plugin_manager: CondaPluginManager):
-    plugin_names = plugin_manager.load_plugins(this_module)
-    assert plugin_names == 1
+    assert plugin_manager.load_plugins(this_module) == 1
     assert plugin_manager.get_plugins() == {this_module}
     assert plugin_manager.hook.conda_solvers.get_hookimpls() == []
 
-    plugin_names = plugin_manager.load_plugins(VerboseSolverPlugin)
-    assert plugin_names == 1
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {this_module, VerboseSolverPlugin}
 
     hooks_impls = plugin_manager.hook.conda_solvers.get_hookimpls()
@@ -81,7 +80,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     assert plugin_manager.get_hook_results(name) == []
 
     # loading the archspec plugin module and make sure it was loaded correctly
-    plugin_manager.load_plugins(virtual_packages.archspec)
+    assert plugin_manager.load_plugins(virtual_packages.archspec) == 1
     hook_result = plugin_manager.get_hook_results(name)
     assert len(hook_result) == 1
     assert hook_result[0].name == "archspec"
@@ -104,14 +103,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
 
 
 def test_load_plugins_error(plugin_manager: CondaPluginManager):
-    # first load the plugin once
-    plugin_manager.load_plugins(VerboseSolverPlugin)
-    # then try again to trigger a PluginError via the `ValueError` that
-    # pluggy.PluginManager.register throws on duplicate plugins
-    with pytest.raises(
-        PluginError, match="Error while loading first-party conda plugin"
-    ):
-        plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
 
 
@@ -141,7 +133,7 @@ def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
@@ -150,15 +142,11 @@ def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):
 
 def test_load_entrypoints_register_valueerror(plugin_manager: CondaPluginManager):
     """
-    Cover check when self.register() raises ValueError.
+    Cover check when self.register() raises ValueError because the plugin
+    was loaded already.
     """
-
-    def raises_value_error(*args):
-        raise ValueError("bad plugin?")
-
-    plugin_manager.register = raises_value_error
-    with pytest.raises(PluginError):
-        plugin_manager.load_entrypoints("test_plugin", "success")
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 0
 
 
 def test_unknown_solver(plugin_manager: CondaPluginManager):
@@ -173,7 +161,7 @@ def test_known_solver(plugin_manager: CondaPluginManager):
     """
     Cover getting a solver that exists.
     """
-    plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_solver_backend("verbose-classic") == VerboseSolver
 
 
@@ -207,24 +195,42 @@ def test_disable_external_plugins(plugin_manager: CondaPluginManager, plugin: ob
     assert plugin_manager.load_plugins(plugin) == 1
     assert plugin_manager.get_plugins() == {plugin}
     plugin_manager.disable_external_plugins()
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
 
 
 def test_get_virtual_packages(plugin_manager: CondaPluginManager):
-    plugin_manager.load_plugins(DummyVirtualPackagePlugin)
+    assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
     assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
 
 
 def test_get_virtual_packages_no_name(plugin_manager: CondaPluginManager):
-    plugin_manager.load_plugins(NoNameVirtualPackagePlugin)
+    assert plugin_manager.load_plugins(NoNameVirtualPackagePlugin) == 1
     with pytest.raises(PluginError, match="Invalid plugin names"):
         plugin_manager.get_virtual_packages()
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):
-    plugin_manager.load_plugins(VerboseSolverPlugin)
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
     assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
+
+
+def test_get_session_headers(plugin_manager: CondaPluginManager):
+    """
+    Ensure that an empty dict is returned when no ``conda_request_headers`` plugin
+    hooks have been defined.
+    """
+    url = urlparse("https://example.com")
+    assert plugin_manager.get_session_headers(host=url.netloc) == {}
+
+
+def test_get_request_headers(plugin_manager: CondaPluginManager):
+    """
+    Ensure that an empty dict is returned when no ``conda_request_headers`` plugin
+    hooks have been defined.
+    """
+    url = urlparse("https://example.com")
+    assert plugin_manager.get_request_headers(host=url.netloc, path=url.path) == {}

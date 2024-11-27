@@ -8,21 +8,22 @@ Object inheritance:
    :top-classes: conda.models.channel.Channel
    :parts: 1
 """
+
+from __future__ import annotations
+
 from copy import copy
 from itertools import chain
 from logging import getLogger
+from typing import TYPE_CHECKING
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ..base.constants import (
     DEFAULTS_CHANNEL_NAME,
     MAX_CHANNEL_PRIORITY,
     UNKNOWN_CHANNEL,
 )
-from ..base.context import Context, context
+from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable
 from ..common.path import is_package_file, is_path, win_path_backout
 from ..common.url import (
@@ -36,6 +37,12 @@ from ..common.url import (
     split_scheme_auth_token,
     urlparse,
 )
+
+if TYPE_CHECKING:
+    from typing import Self
+
+    from ..base.context import Context
+
 
 log = getLogger(__name__)
 
@@ -119,7 +126,31 @@ class Channel(metaclass=ChannelType):
         return _get_channel_for_name(channel_name)
 
     @staticmethod
-    def from_value(value):
+    def from_value(value: str | None) -> Self:
+        """Construct a new :class:`Channel` from a single value.
+
+        Args:
+          value: Anyone of the following forms:
+
+            `None`, or one of the special strings "<unknown>", "None:///<unknown>", or "None":
+                represents the unknown channel, used for packages with unknown origin.
+
+            A URL including a scheme like ``file://`` or ``https://``:
+                represents a channel URL.
+
+            A local directory path:
+                represents a local channel; relative paths must start with ``./``.
+
+            A package file (i.e. the path to a file ending in ``.conda`` or ``.tar.bz2``):
+                represents a channel for a single package
+
+            A known channel name:
+                represents a known channel, e.g. from the users ``.condarc`` file or
+                the global configuration.
+
+        Returns:
+          A channel object.
+        """
         if value in (None, "<unknown>", "None:///<unknown>", "None"):
             return Channel(name=UNKNOWN_CHANNEL)
         value = ensure_text_type(value)
@@ -212,8 +243,8 @@ class Channel(metaclass=ChannelType):
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            cn = self.__canonical_name = "{}://{}".format(
-                self.scheme, join_url(self.location, self.name)
+            cn = self.__canonical_name = (
+                f"{self.scheme}://{join_url(self.location, self.name)}"
             )
             return cn
         else:
@@ -587,8 +618,9 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
-            result[url] = channel.canonical_name, min(
-                priority_counter, MAX_CHANNEL_PRIORITY - 1
+            result[url] = (
+                channel.canonical_name,
+                min(priority_counter, MAX_CHANNEL_PRIORITY - 1),
             )
     return result
 

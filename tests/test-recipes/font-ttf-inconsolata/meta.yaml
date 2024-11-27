@@ -1,0 +1,28 @@
+{% set url = "https://raw.githubusercontent.com/google/fonts/main" %}
+
+package:
+  name: font-ttf-inconsolata
+  version: 23.12.6
+
+build:
+  noarch: True
+  script:
+    - mkdir -p ${PREFIX}/fonts
+    - curl -LO --output-dir ${PREFIX}/fonts {{ url }}/ofl/inconsolata/static/Inconsolata-Bold.ttf
+    - curl -LO --output-dir ${PREFIX}/fonts {{ url }}/ofl/inconsolata/static/Inconsolata-Regular.ttf
+    - ls -lah ${PREFIX}/fonts
+
+requirements:
+  build:
+    - curl
+
+test:
+  commands:
+    - test -e ${PREFIX}/fonts/Inconsolata-Bold.ttf
+    - test -e ${PREFIX}/fonts/Inconsolata-Regular.ttf
+
+about:
+  home: http://levien.com/type/myfonts/inconsolata.html
+  summary: Monospace font for pretty code listings
+  license: OFL
+  license_family: Other

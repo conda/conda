@@ -5,12 +5,18 @@ from __future__ import annotations
 import multiprocessing
 import sys
 import traceback
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import env_vars
+from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.gateways.repodata import RepodataCache, lock
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
 
 
 def locker(cache: RepodataCache, qout, qin):
@@ -37,8 +43,8 @@ def locker(cache: RepodataCache, qout, qin):
     print("exit child")
 
 
-@pytest.mark.parametrize("use_lock", [True, False])
-def test_lock_can_lock(tmp_path, use_lock: bool):
+@pytest.mark.parametrize("no_lock", [True, False])
+def test_lock_no_lock(tmp_path: Path, monkeypatch: MonkeyPatch, no_lock: bool) -> None:
     """
     Open lockfile, then open it again in a spawned subprocess. Assert subprocess
     times out (should take 10 seconds).
@@ -46,55 +52,48 @@ def test_lock_can_lock(tmp_path, use_lock: bool):
     # forked workers might share file handle and lock
     multiprocessing.set_start_method("spawn", force=True)
 
-    vars = {"CONDA_PLATFORM": "osx-64"}
-    if not use_lock:
-        vars["CONDA_NO_LOCK"] = "1"  # sets option even if empty string
-    with env_vars(
-        vars,
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.no_lock == (not use_lock)
+    monkeypatch.setenv("CONDA_NO_LOCK", str(no_lock))
+    reset_context()
+    assert context.no_lock is no_lock
 
-        cache = RepodataCache(tmp_path / "lockme", "repodata.json")
+    cache = RepodataCache(tmp_path / "lockme", "repodata.json")
 
-        qout = multiprocessing.Queue()  # put here, get in subprocess
-        qin = multiprocessing.Queue()  # get here, put in subprocess
+    qout = multiprocessing.Queue()  # put here, get in subprocess
+    qin = multiprocessing.Queue()  # get here, put in subprocess
 
-        p = multiprocessing.Process(target=locker, args=(cache, qin, qout))
-        p.start()
+    p = multiprocessing.Process(target=locker, args=(cache, qin, qout))
+    p.start()
 
-        assert qin.get(timeout=6) == "ready"
-        print("subprocess ready")
+    assert qin.get(timeout=6) == "ready"
+    print("subprocess ready")
 
-        with cache.cache_path_state.open("a+") as lock_file, lock(lock_file):
-            print("lock acquired in parent process")
-            qout.put("locked")
-            if use_lock:
-                assert isinstance(qin.get(timeout=13), OSError)
-            else:
-                assert qin.get(timeout=5) == "not locked"
-            p.join(1)
-            assert p.exitcode == 0
+    with cache.cache_path_state.open("a+") as lock_file, lock(lock_file):
+        print("lock acquired in parent process")
+        qout.put("locked")
+        if no_lock:
+            assert qin.get(timeout=5) == "not locked"
+        else:
+            assert isinstance(qin.get(timeout=13), OSError)
+        p.join(1)
+        assert p.exitcode == 0
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="emulate windows behavior for code coverage"
-)
-def test_lock_rename(tmp_path):
+@pytest.mark.skipif(on_win, reason="emulate windows behavior for code coverage")
+def test_lock_rename(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     class PunyPath(type(tmp_path)):
         def rename(self, path):
             if path.exists():
                 raise FileExistsError()
             return super().rename(path)
 
-    with env_vars(
-        {"CONDA_EXPERIMENTAL": "lock"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        cache = RepodataCache(tmp_path / "lockme", "puny.json")
-        cache.save("{}")
-        # RepodataCache first argument is the name of the cache file without an
-        # extension, doesn't create tmp_path/lockme as a directory.
-        puny = PunyPath(tmp_path, "puny.json.tmp")
-        puny.write_text('{"info":{}}')
-        cache.replace(puny)
+    monkeypatch.setenv("CONDA_EXPERIMENTAL", "lock")
+    reset_context()
+    assert context.experimental == ("lock",)
+
+    cache = RepodataCache(tmp_path / "lockme", "puny.json")
+    cache.save("{}")
+    # RepodataCache first argument is the name of the cache file without an
+    # extension, doesn't create tmp_path/lockme as a directory.
+    puny = PunyPath(tmp_path, "puny.json.tmp")
+    puny.write_text('{"info":{}}')
+    cache.replace(puny)

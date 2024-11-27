@@ -53,3 +53,15 @@ Using this option will cause ``requests`` to emit warnings to STDERR about
 insecure settings. If you know that what you're doing is safe, or have been
 advised by your IT department that what you're doing is safe, you may ignore
 these warnings.
+
+=============================================
+Disabling SSL verification via conda settings
+=============================================
+
+In addition to disabling SSL via environment variables, you can disable it by setting `ssl_verify` to `false` in your config files. To do so, run the following commands to disable and enable it:
+
+.. code-block:: bash
+
+   conda config --set ssl_verify False
+   # Run conda commands with SSL disabled
+   conda config --set ssl_verify True

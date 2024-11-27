@@ -7,25 +7,20 @@ corruption.
 
 from __future__ import annotations
 
-import argparse
+from typing import TYPE_CHECKING
 
 from ....base.context import context
-from ....cli.conda_argparse import (
-    ArgumentParser,
+from ....cli.helpers import (
     add_parser_help,
     add_parser_prefix,
     add_parser_verbose,
 )
-from ....deprecations import deprecated
+from ....exceptions import EnvironmentLocationNotFound
+from ....gateways.disk.test import is_conda_environment
 from ... import CondaSubcommand, hookimpl
 
-
-@deprecated(
-    "24.3", "24.9", addendum="Use `conda.base.context.context.target_prefix` instead."
-)
-def get_prefix(args: argparse.Namespace) -> str:
-    context.__init__(argparse_args=args)
-    return context.target_prefix
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace
 
 
 def configure_parser(parser: ArgumentParser):
@@ -34,11 +29,14 @@ def configure_parser(parser: ArgumentParser):
     add_parser_prefix(parser)
 
 
-def execute(args: argparse.Namespace) -> None:
-    """Run conda doctor subcommand."""
-    from .health_checks import display_health_checks
-
-    display_health_checks(context.target_prefix, verbose=context.verbose)
+def execute(args: Namespace) -> None:
+    """Run registered health_check plugins."""
+    prefix = context.target_prefix
+    if not is_conda_environment(prefix):
+        raise EnvironmentLocationNotFound(prefix)
+    else:
+        print(f"Environment Health Report for: {prefix}\n")
+        context.plugin_manager.invoke_health_checks(prefix, context.verbose)
 
 
 @hookimpl

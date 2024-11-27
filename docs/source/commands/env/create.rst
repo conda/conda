@@ -1,5 +1,5 @@
 ``conda env create``
-*****************
+********************
 
 .. argparse::
    :module: conda_env.cli.main

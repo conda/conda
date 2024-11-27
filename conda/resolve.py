@@ -4,24 +4,23 @@
 
 See conda.core.solver.Solver for the high-level API.
 """
+
 from __future__ import annotations
 
 import copy
 import itertools
 from collections import defaultdict, deque
-from functools import lru_cache
+from functools import cache
 from logging import DEBUG, getLogger
 
 from tqdm import tqdm
 
-from conda.common.iterators import groupby_to_dict as groupby
-
-from ._vendor.frozendict import FrozenOrderedDict as frozendict
 from .auxlib.decorators import memoizemethod
 from .base.constants import MAX_CHANNEL_PRIORITY, ChannelPriority, SatSolverChoice
 from .base.context import context
 from .common.compat import on_win
 from .common.io import dashlist, time_recorder
+from .common.iterators import groupby_to_dict as groupby
 from .common.logic import (
     TRUE,
     Clauses,
@@ -43,6 +42,11 @@ from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
 
+try:
+    from frozendict import frozendict
+except ImportError:
+    from ._vendor.frozendict import FrozenOrderedDict as frozendict
+
 log = getLogger(__name__)
 stdoutlog = getLogger("conda.stdoutlog")
 
@@ -57,7 +61,7 @@ _sat_solvers = {
 }
 
 
-@lru_cache(maxsize=None)
+@cache
 def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     def try_out_solver(sat_solver):
         c = Clauses(sat_solver=sat_solver)
@@ -174,19 +178,16 @@ class Resolve:
         )
 
     def default_filter(self, features=None, filter=None):
-        # TODO: fix this import; this is bad
-        from .core.subdir_data import make_feature_record
-
         if filter is None:
             filter = {}
         else:
             filter.clear()
 
         filter.update(
-            {make_feature_record(fstr): False for fstr in self.trackers.keys()}
+            {PackageRecord.feature(name): False for name in self.trackers.keys()}
         )
         if features:
-            filter.update({make_feature_record(fstr): True for fstr in features})
+            filter.update({PackageRecord.feature(name): True for name in features})
         return filter
 
     def valid(self, spec_or_prec, filter, optional=True):
@@ -660,9 +661,6 @@ class Resolve:
     def get_reduced_index(
         self, explicit_specs, sort_by_exactness=True, exit_on_conflict=False
     ):
-        # TODO: fix this import; this is bad
-        from .core.subdir_data import make_feature_record
-
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
         cache_key = strict_channel_priority, tuple(explicit_specs)
@@ -724,7 +722,7 @@ class Resolve:
                         and prec not in explicit_spec_package_pool[name]
                     ):
                         filter_out[prec] = (
-                            "incompatible with required spec %s" % top_level_spec
+                            f"incompatible with required spec {top_level_spec}"
                         )
                         continue
                     unsatisfiable_dep_specs = set()
@@ -736,8 +734,8 @@ class Resolve:
                         ):
                             unsatisfiable_dep_specs.add(ms)
                     if unsatisfiable_dep_specs:
-                        filter_out[prec] = "unsatisfiable dependencies %s" % " ".join(
-                            str(s) for s in unsatisfiable_dep_specs
+                        filter_out[prec] = "unsatisfiable dependencies {}".format(
+                            " ".join(str(s) for s in unsatisfiable_dep_specs)
                         )
                         continue
                     filter_out[prec] = False
@@ -806,7 +804,7 @@ class Resolve:
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {
-            prec: prec for prec in (make_feature_record(fstr) for fstr in features)
+            prec: prec for prec in (PackageRecord.feature(name) for name in features)
         }
         specs_by_name_seed = {}
         for s in explicit_specs:
@@ -876,12 +874,9 @@ class Resolve:
                                 # behavior, but keeping these packags out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
-                                if (
-                                    "track_features" not in new_ms
-                                    and not self._broader(
-                                        new_ms,
-                                        tuple(specs_by_name.get(new_ms.name, ())),
-                                    )
+                                if "track_features" not in new_ms and not self._broader(
+                                    new_ms,
+                                    tuple(specs_by_name.get(new_ms.name, ())),
                                 ):
                                     dep_specs.add(new_ms)
                                     # if new_ms not in dep_specs:
@@ -1642,9 +1637,8 @@ class Resolve:
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
                 stdoutlog.info(
-                    "\nWarning: %s possible package resolutions "
-                    "(only showing differing packages):%s%s"
-                    % (
+                    "\nWarning: {} possible package resolutions "
+                    "(only showing differing packages):{}{}".format(
                         ">10" if nsol > 10 else nsol,
                         dashlist(", ".join(diff) for diff in diffs),
                         "\n  ... and others" if nsol > 10 else "",

@@ -1,20 +1,28 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
+from contextlib import nullcontext
 from errno import ENOENT
 from os.path import isdir, isfile, join, lexists
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.common.compat import on_win
+from conda.gateways.disk import delete
 from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
-from conda.gateways.disk.delete import move_to_trash, rm_rf
+from conda.gateways.disk.delete import backoff_rmdir, rm_rf
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
 
 from .test_permissions import _make_read_only, _try_open, tempdir
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 def _write_file(path, content):
@@ -130,32 +138,28 @@ def test_rm_rf_does_not_follow_symlinks():
         assert os.path.isfile(real_file)
 
 
-def test_move_to_trash():
+def test_rm_rf():
     with tempdir() as td:
         test_path = join(td, "test_path")
         touch(test_path)
         _try_open(test_path)
         assert isdir(td)
         assert isfile(test_path)
-        move_to_trash(td, test_path)
+        rm_rf(td, test_path)
         assert not isfile(test_path)
 
 
-def test_move_path_to_trash_couldnt():
-    from conda.gateways.disk.delete import move_path_to_trash
-
+def test_rm_rf_couldnt():
     with tempdir() as td:
         test_path = join(td, "test_path")
         touch(test_path)
         _try_open(test_path)
         assert isdir(td)
         assert isfile(test_path)
-        assert move_path_to_trash(test_path)
+        assert rm_rf(test_path)
 
 
 def test_backoff_unlink():
-    from conda.gateways.disk.delete import backoff_rmdir
-
     with tempdir() as td:
         test_path = join(td, "test_path")
         touch(test_path)
@@ -166,8 +170,6 @@ def test_backoff_unlink():
 
 
 def test_backoff_unlink_doesnt_exist():
-    from conda.gateways.disk.delete import backoff_rmdir
-
     with tempdir() as td:
         test_path = join(td, "test_path")
         touch(test_path)
@@ -178,9 +180,27 @@ def test_backoff_unlink_doesnt_exist():
 
 
 def test_try_rmdir_all_empty_doesnt_exist():
-    from conda.gateways.disk.delete import try_rmdir_all_empty
-
     with tempdir() as td:
         assert isdir(td)
-        try_rmdir_all_empty(td)
+        rm_rf(td)
         assert not isdir(td)
+
+
+@pytest.mark.parametrize(
+    "function,raises,kwargs",
+    [
+        ("rm_rf", TypeError, {"max_retries": 5}),
+        ("rm_rf", TypeError, {"trash": True}),
+        ("try_rmdir_all_empty", TypeError, None),
+        ("move_to_trash", TypeError, None),
+        ("move_path_to_trash", TypeError, None),
+    ],
+)
+def test_deprecations(
+    function: str,
+    raises: type[Exception] | None,
+    kwargs: dict[str, Any] | None,
+) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(delete, function)(**(kwargs or {}))

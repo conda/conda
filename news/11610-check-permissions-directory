@@ -1,3 +1,0 @@
-### Bug fixes
-
-* When using pip dependencies with `conda env create`, check the directory permissions before writing to disk. (#11610)

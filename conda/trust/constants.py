@@ -13,6 +13,7 @@ The discrepancy can be detected when loading the root data, and we can
 decline to cache incorrect trust metadata that would make further root
 updates impossible.
 """
+
 INITIAL_TRUST_ROOT = {
     "signatures": {
         "6d4d5888398ad77465e9fd53996309187723e16509144aa6733015c960378e7a": {

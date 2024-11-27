@@ -237,7 +237,7 @@ the solution space. A smaller index means a faster search, after all! The defaul
 plus their dependencies. If that fails, then the full `repodata.json` is used. This happens _before_
 the `Solver` is even invoked.
 
-The second trick is done within the solver logic: an informed index reduction. In essence, the
+The second trick is done within the classic solver logic (pycosat): an informed index reduction. In essence, the
 index (whether it's `current_repodata.json` or full `repodata.json`) is pruned by the solver,
 trying to keep only the parts that it anticipates will be needed. More details can be found on
 [the `get_reduced_index` function][conda.core.index:get_reduced_index]. Interestingly, this
@@ -322,7 +322,7 @@ can be changed through the following `context` settings:
 
 There's only one class of transaction in `conda`:
 [`LinkUnlinkTransaction`][conda.core.link:UnlinkLinkTransaction]. It only accepts one input parameter:
-a list of `PrefixSetup` objects, which are just `namedtuple` objects with the followiing fields.
+a list of `PrefixSetup` objects, which are just `namedtuple` objects with the following fields.
 These are populated by `Solver.solve_for_transaction` after running `Solver.solve_for_diff`:
 
 * `target_prefix`: the environment path the command is running on.
@@ -458,7 +458,6 @@ PathAction
       LinkPathAction
         PrefixReplaceLinkAction
       MakeMenuAction
-      CreateNonadminAction
       CreatePythonEntryPointAction
       CreatePrefixRecordAction
       UpdateHistoryAction
