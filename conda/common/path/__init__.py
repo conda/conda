@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import os
 import re
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from os.path import (
     abspath,
@@ -48,7 +48,8 @@ from .windows import (
 )
 
 if TYPE_CHECKING:
-    from typing import Iterable, Union
+    from collections.abc import Iterable
+    from typing import Union
 
     PathType = Union[str, os.PathLike[str]]
     PathsType = Iterable[PathType]
@@ -121,7 +122,7 @@ def paths_equal(path1, path2):
         return abspath(path1) == abspath(path2)
 
 
-@lru_cache(maxsize=None)
+@cache
 def url_to_path(url):
     """Convert a file:// URL to a path.
 

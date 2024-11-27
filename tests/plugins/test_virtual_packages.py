@@ -17,7 +17,7 @@ from conda.plugins.virtual_packages import cuda
 from conda.testing.solver_helpers import package_dict
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from pytest import MonkeyPatch
 

@@ -20,7 +20,7 @@ from conda.exceptions import (
 from conda.gateways.disk.test import is_conda_environment
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture

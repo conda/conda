@@ -452,21 +452,38 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
     return conda_python_packages
 
 
-def get_python_version_for_prefix(prefix):
-    # returns a string e.g. "2.7", "3.4", "3.5" or None
-    py_record_iter = (
-        rcrd for rcrd in PrefixData(prefix).iter_records() if rcrd.name == "python"
+def python_record_for_prefix(prefix) -> PrefixRecord | None:
+    """
+    For the given conda prefix, return the PrefixRecord of the Python installed
+    in that prefix.
+    """
+    python_record_iterator = (
+        record
+        for record in PrefixData(prefix).iter_records()
+        if record.name == "python"
     )
-    record = next(py_record_iter, None)
-    if record is None:
-        return None
-    next_record = next(py_record_iter, None)
-    if next_record is not None:
-        raise CondaDependencyError(f"multiple python records found in prefix {prefix}")
-    elif record.version[3].isdigit():
-        return record.version[:4]
-    else:
-        return record.version[:3]
+    record = next(python_record_iterator, None)
+    if record is not None:
+        next_record = next(python_record_iterator, None)
+        if next_record is not None:
+            raise CondaDependencyError(
+                f"multiple python records found in prefix {prefix}"
+            )
+    return record
+
+
+def get_python_version_for_prefix(prefix) -> str | None:
+    """
+    For the given conda prefix, return the version of the Python installation
+    in that prefix.
+    """
+    # returns a string e.g. "2.7", "3.4", "3.5" or None
+    record = python_record_for_prefix(prefix)
+    if record is not None:
+        if record.version[3].isdigit():
+            return record.version[:4]
+        else:
+            return record.version[:3]
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

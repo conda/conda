@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import platform
 import sys
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from os.path import dirname, join
 from pathlib import Path
@@ -28,7 +28,8 @@ from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Iterator
+    from collections.abc import Iterable, Iterator
+    from typing import Any, Callable
 
     from pytest import TempPathFactory
 
@@ -60,7 +61,7 @@ install = f" install {dev_arg} "
 HDF5_VERSION = "1.12.1"
 
 
-@lru_cache(maxsize=None)
+@cache
 def bash_unsupported() -> str | None:
     if not (bash := which("bash")):
         return "bash: was not found on PATH"

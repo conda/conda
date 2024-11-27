@@ -21,7 +21,8 @@ from conda.cli.main_config import (
 from conda.exceptions import CondaKeyError
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable
+    from collections.abc import Iterable
+    from typing import Any
 
     from pytest import MonkeyPatch
 
