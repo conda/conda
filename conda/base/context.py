@@ -968,7 +968,7 @@ class Context(Configuration):
                 channels = tuple(
                     IndexedSet((*local_add, *self._argparse_args["channel"]))
                 )
-                check_allowlist(channels)
+                check_channel_allowlist(channels)
 
                 return channels
 
@@ -989,7 +989,7 @@ class Context(Configuration):
                 channels = tuple(
                     IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
                 )
-                check_allowlist(channels)
+                check_channel_allowlist(channels)
 
                 return channels
 
@@ -1000,7 +1000,7 @@ class Context(Configuration):
             _channels = [DEFAULTS_CHANNEL_NAME]
 
         channels = tuple(IndexedSet((*local_add, *_channels)))
-        check_allowlist(channels)
+        check_channel_allowlist(channels)
 
         return channels
 
@@ -2073,6 +2073,42 @@ def locate_prefix_by_name(name, envs_dirs=None):
     raise EnvironmentNameNotFound(name)
 
 
+def check_channel_allowlist(channels: Sequence[str]) -> None:
+    """
+    Check if the given channel URLs are allowed by the context's allowlist.
+
+    :param channels: A list of channels (either URLs or names) to check against the allowlist.
+    :raises ChannelNotAllowed: If any URL is not in the allowlist.
+    :raises ChannelDenied: If any URL is in the denylist.
+    """
+    from ..exceptions import ChannelDenied, ChannelNotAllowed
+    from ..models.channel import Channel
+
+    allowlist_channel_urls = tuple(
+        chain.from_iterable(
+            Channel(allowlist_channel).base_urls
+            for allowlist_channel in context.allowlist_channels
+        )
+    )
+    denylist_channel_urls = tuple(
+        chain.from_iterable(
+            Channel(denylist_channel).base_urls
+            for denylist_channel in context.denylist_channels
+        )
+    )
+    if allowlist_channel_urls or denylist_channel_urls:
+        for channel_str in channels:
+            channel = Channel(channel_str)
+            for channel_base_url in channel.base_urls:
+                if channel_base_url in denylist_channel_urls:
+                    raise ChannelDenied(channel)
+                if (
+                    allowlist_channel_urls
+                    and channel_base_url not in allowlist_channel_urls
+                ):
+                    raise ChannelNotAllowed(channel)
+
+
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
@@ -2253,39 +2289,3 @@ except ConfigurationLoadError as e:  # pragma: no cover
     print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
     sys.exit(1)
-
-
-def check_allowlist(channel_urls: Sequence[str]) -> None:
-    """
-    Check if the given channel URLs are allowed by the context's allowlist.
-
-    :param channel_urls: A list of channel URLs to check against the allowlist.
-    :raises ChannelNotAllowed: If any URL is not in the allowlist.
-    :raises ChannelDenied: If any URL is in the denylist.
-    """
-    from ..exceptions import ChannelDenied, ChannelNotAllowed
-    from ..models.channel import Channel
-
-    allowlist_channel_urls = tuple(
-        chain.from_iterable(
-            Channel(allowlist_channel).base_urls
-            for allowlist_channel in context.allowlist_channels
-        )
-    )
-    denylist_channel_urls = tuple(
-        chain.from_iterable(
-            Channel(denylist_channel).base_urls
-            for denylist_channel in context.denylist_channels
-        )
-    )
-    if allowlist_channel_urls or denylist_channel_urls:
-        for channel_url in channel_urls:
-            channel = Channel(channel_url)
-            for channel_base_url in channel.base_urls:
-                if channel_base_url in denylist_channel_urls:
-                    raise ChannelDenied(channel)
-                if (
-                    allowlist_channel_urls
-                    and channel_base_url not in allowlist_channel_urls
-                ):
-                    raise ChannelNotAllowed(channel)

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
-from ..base.context import context
+from ..base.context import check_channel_allowlist, context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -37,6 +37,21 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 LAST_CHANNEL_URLS = []
+
+
+@deprecated(
+    "25.1",
+    "25.7",
+    addendum="Use `conda.base.context.check_channel_alllowlist` instead.",
+)
+def check_allowlist(channel_urls: list[str]) -> None:
+    """
+    Check if the given channel URLs are allowed by the context's allowlist.
+    :param channel_urls: A list of channel URLs to check against the allowlist.
+    :raises ChannelNotAllowed: If any URL is not in the allowlist.
+    :raises ChannelDenied: If any URL is in the denylist.
+    """
+    check_channel_allowlist(channel_urls)
 
 
 class Index(UserDict):

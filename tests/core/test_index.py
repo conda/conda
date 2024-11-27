@@ -20,6 +20,7 @@ from conda.core.index import (
     _supplement_index_with_prefix,
     _supplement_index_with_system,
     calculate_channel_urls,
+    check_allowlist,
     dist_str_in_index,
     fetch_index,
     get_index,
@@ -510,3 +511,13 @@ class TestIndex:
             # each OS has different virtual packages
             + len(context.plugin_manager.get_virtual_package_records())
         )
+
+
+def test_check_allowlist_deprecation_warning():
+    """
+    Ensure a deprecation warning is raised for ``check_allowlist``.
+
+    Also used to ensure coverage on this code path
+    """
+    with pytest.deprecated_call():
+        check_allowlist(("defaults",))
