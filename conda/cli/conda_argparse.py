@@ -9,11 +9,9 @@ import os
 import sys
 from argparse import (
     SUPPRESS,
-    ArgumentError,
     RawDescriptionHelpFormatter,
 )
 from argparse import ArgumentParser as ArgumentParserBase
-from contextlib import contextmanager
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
