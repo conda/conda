@@ -40,8 +40,8 @@ LAST_CHANNEL_URLS = []
 
 
 @deprecated(
-    "25.1",
-    "25.7",
+    "25.9",
+    "26.3",
     addendum="Use `conda.base.context.check_channel_alllowlist` instead.",
 )
 def check_allowlist(channel_urls: list[str]) -> None:
