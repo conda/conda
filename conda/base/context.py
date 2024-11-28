@@ -944,12 +944,11 @@ class Context(Configuration):
     @property
     def channels(self):
         local_channels = ("local",) if self.use_local else ()
+        argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
         # TODO: it's args.channel right now, not channels
-        cli_channels = (getattr(self, "_argparse_args", None) or {}).get(
-            "channel"
-        ) or ()
+        cli_channels = argparse_args.get("channel") or ()
 
-        if getattr(self, "_argparse_args", {}).get("override_channels"):
+        if argparse_args.get("override_channels"):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
 
