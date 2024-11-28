@@ -945,7 +945,9 @@ class Context(Configuration):
     def channels(self):
         local_channels = ("local",) if self.use_local else ()
         # TODO: it's args.channel right now, not channels
-        cli_channels = getattr(self, "_argparse_args", {}).get("channel") or ()
+        cli_channels = (getattr(self, "_argparse_args", None) or {}).get(
+            "channel"
+        ) or ()
 
         if getattr(self, "_argparse_args", {}).get("override_channels"):
             if not self.override_channels_enabled:
