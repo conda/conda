@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
-from ..base.context import validate_channels, context
+from ..base.context import context, validate_channels
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..deprecations import deprecated
 from ..exceptions import (
