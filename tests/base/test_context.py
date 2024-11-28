@@ -23,11 +23,11 @@ from conda.base.constants import (
 )
 from conda.base.context import (
     channel_alias_validation,
-    check_channel_allowlist,
     context,
     default_python_validation,
     get_plugin_config_data,
     reset_context,
+    validate_channels,
     validate_prefix_name,
 )
 from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
@@ -801,7 +801,7 @@ def test_default_python_validation(value, expected):
 
 def test_check_allowlist(monkeypatch: MonkeyPatch):
     # any channel is allowed
-    check_channel_allowlist(("conda-canary", "conda-forge"))
+    validate_channels(("conda-canary", "conda-forge"))
 
     allowlist = (
         "defaults",
@@ -813,19 +813,19 @@ def test_check_allowlist(monkeypatch: MonkeyPatch):
     reset_context()
 
     with pytest.raises(ChannelNotAllowed):
-        check_channel_allowlist(("conda-canary",))
+        validate_channels(("conda-canary",))
 
     with pytest.raises(ChannelNotAllowed):
-        check_channel_allowlist(("https://repo.anaconda.com/pkgs/denied",))
+        validate_channels(("https://repo.anaconda.com/pkgs/denied",))
 
-    check_channel_allowlist(("defaults",))
-    check_channel_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
-    check_channel_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+    validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
 
 
 def test_check_denylist(monkeypatch: MonkeyPatch):
     # any channel is allowed
-    check_channel_allowlist(("conda-canary", "conda-forge"))
+    validate_channels(("conda-canary", "conda-forge"))
 
     denylist = (
         "defaults",
@@ -837,24 +837,24 @@ def test_check_denylist(monkeypatch: MonkeyPatch):
     reset_context()
 
     with pytest.raises(ChannelDenied):
-        check_channel_allowlist(("defaults",))
+        validate_channels(("defaults",))
 
     with pytest.raises(ChannelDenied):
-        check_channel_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+        validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
     with pytest.raises(ChannelDenied):
-        check_channel_allowlist(("conda-forge",))
+        validate_channels(("conda-forge",))
 
     with pytest.raises(ChannelDenied):
-        check_channel_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
 
     with pytest.raises(ChannelDenied):
-        check_channel_allowlist(("https://beta.conda.anaconda.org/conda-test",))
+        validate_channels(("https://beta.conda.anaconda.org/conda-test",))
 
 
 def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     # any channel is allowed
-    check_channel_allowlist(
+    validate_channels(
         ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge")
     )
     allowlist = (
@@ -870,14 +870,14 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     # neither in allowlist nor denylist
     with pytest.raises(ChannelNotAllowed):
-        check_channel_allowlist(("conda-canary",))
+        validate_channels(("conda-canary",))
 
     # conda-forge is on denylist, so it should raise ChannelDenied
     # even though it is in the allowlist
     with pytest.raises(ChannelDenied):
-        check_channel_allowlist(("conda-forge",))
+        validate_channels(("conda-forge",))
     with pytest.raises(ChannelDenied):
-        check_channel_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
 
-    check_channel_allowlist(("defaults",))
-    check_channel_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
