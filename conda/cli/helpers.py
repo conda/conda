@@ -41,7 +41,7 @@ class _ValidatePackages(_StoreAction):
             None, (spec.get_exact_value("channel") for spec in match_specs)
         )
         check_channel_allowlist(
-            tuple(chain.from_iterable(channel.base_urls for channel in channels))
+            chain.from_iterable(channel.base_urls for channel in channels)
         )
 
     def __call__(self, parser, namespace, values, option_string=None):

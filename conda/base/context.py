@@ -81,7 +81,7 @@ except ImportError:
     from .._vendor.frozendict import frozendict
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterator
     from pathlib import Path
     from typing import Literal
 
@@ -943,66 +943,50 @@ class Context(Configuration):
 
     @property
     def channels(self):
-        local_add = ("local",) if self.use_local else ()
-        if (
-            self._argparse_args
-            and "override_channels" in self._argparse_args
-            and self._argparse_args["override_channels"]
-        ):
+        local_channels = ("local",) if self.use_local else ()
+        # TODO: it's args.channel right now, not channels
+        cli_channels = getattr(self, "_argparse_args", {}).get("channel") or ()
+
+        if getattr(self, "_argparse_args", {}).get("override_channels"):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
 
                 raise OperationNotAllowed("Overriding channels has been disabled.")
-            elif not (
-                self._argparse_args
-                and "channel" in self._argparse_args
-                and self._argparse_args["channel"]
-            ):
+
+            if cli_channels:
+                return check_channel_allowlist(
+                    IndexedSet((*local_channels, *cli_channels))
+                )
+            else:
                 from ..exceptions import ArgumentError
 
                 raise ArgumentError(
                     "At least one -c / --channel flag must be supplied when using "
                     "--override-channels."
                 )
-            else:
-                channels = tuple(
-                    IndexedSet((*local_add, *self._argparse_args["channel"]))
-                )
-                check_channel_allowlist(channels)
-
-                return channels
 
         # add 'defaults' channel when necessary if --channel is given via the command line
-        if self._argparse_args and "channel" in self._argparse_args:
-            # TODO: it's args.channel right now, not channels
-            argparse_channels = tuple(self._argparse_args["channel"] or ())
+        if cli_channels:
             # Add condition to make sure that we add the 'defaults'
             # channel only when no channels are defined in condarc
             # We need to get the config_files and then check that they
             # don't define channels
             channel_in_config_files = any(
-                "channels" in context.raw_data[rc_file].keys()
-                for rc_file in self.config_files
+                "channels" in context.raw_data[rc_file] for rc_file in self.config_files
             )
-            if argparse_channels and not channel_in_config_files:
+            if cli_channels and not channel_in_config_files:
                 _warn_defaults_deprecation()
-                channels = tuple(
-                    IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
+                return check_channel_allowlist(
+                    IndexedSet((*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME))
                 )
-                check_channel_allowlist(channels)
-
-                return channels
 
         if self._channels:
-            _channels = self._channels
+            channels = self._channels
         else:
             _warn_defaults_deprecation()
-            _channels = [DEFAULTS_CHANNEL_NAME]
+            channels = [DEFAULTS_CHANNEL_NAME]
 
-        channels = tuple(IndexedSet((*local_add, *_channels)))
-        check_channel_allowlist(channels)
-
-        return channels
+        return check_channel_allowlist(IndexedSet((*local_channels, *channels)))
 
     @property
     def config_files(self):
@@ -2073,9 +2057,10 @@ def locate_prefix_by_name(name, envs_dirs=None):
     raise EnvironmentNameNotFound(name)
 
 
-def check_channel_allowlist(channels: Sequence[str]) -> None:
+def check_channel_allowlist(channels: Iterator[str]) -> None:
     """
-    Check if the given channel URLs are allowed by the context's allowlist.
+    Check if the given channel URLs are allowed by the context's allowlist
+    and denylist.
 
     :param channels: A list of channels (either URLs or names) to check against the allowlist.
     :raises ChannelNotAllowed: If any URL is not in the allowlist.
