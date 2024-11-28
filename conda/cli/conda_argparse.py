@@ -223,26 +223,18 @@ class ArgumentParser(ArgumentParserBase):
         if add_help:
             add_parser_help(self)
 
-    @contextmanager
-    def _reraise_argument_error_sorted(self, action, value):
-        try:
-            yield
-        except ArgumentError:
-            # reraise with sorted choices
-            choices = ", ".join(sorted(map(repr, action.choices)))
-            raise ArgumentError(
-                action, f"invalid choice: {value!r} (choose from {choices})"
-            )
-
     def _check_value(self, action, value):
+        # For our greedy subparsers, sort the choices by their repr for stable output
+        if isinstance(action, _GreedySubParsersAction) and isinstance(
+            action.choices, dict
+        ):
+            action.choices = dict(sorted(action.choices.items()))
         # extend to properly handle when we accept multiple choices and the default is a list
         if action.choices is not None and isiterable(value):
             for element in value:
-                with self._reraise_argument_error_sorted(action, element):
-                    super()._check_value(action, element)
+                super()._check_value(action, element)
         else:
-            with self._reraise_argument_error_sorted(action, value):
-                super()._check_value(action, value)
+            super()._check_value(action, value)
 
     def parse_args(self, *args, override_args=None, **kwargs):
         parsed_args = super().parse_args(*args, **kwargs)
