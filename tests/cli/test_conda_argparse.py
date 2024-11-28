@@ -127,6 +127,7 @@ def test_sorted_commands_in_error(capsys):
         action=_GreedySubParsersAction,
         required=True,
     )
+    # These are added in a non-alphabetical order...
     sp.add_parser("c")
     sp.add_parser("a")
     sp.add_parser("b")
