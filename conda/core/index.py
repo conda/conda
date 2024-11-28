@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
-from ..base.context import check_channel_allowlist, context
+from ..base.context import validate_channels, context
 from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -42,7 +42,7 @@ LAST_CHANNEL_URLS = []
 @deprecated(
     "25.9",
     "26.3",
-    addendum="Use `conda.base.context.check_channel_alllowlist` instead.",
+    addendum="Use `conda.base.context.validate_channels` instead.",
 )
 def check_allowlist(channel_urls: list[str]) -> None:
     """
@@ -51,7 +51,7 @@ def check_allowlist(channel_urls: list[str]) -> None:
     :raises ChannelNotAllowed: If any URL is not in the allowlist.
     :raises ChannelDenied: If any URL is in the denylist.
     """
-    check_channel_allowlist(channel_urls)
+    validate_channels(channel_urls)
 
 
 class Index(UserDict):

@@ -954,9 +954,7 @@ class Context(Configuration):
                 raise OperationNotAllowed("Overriding channels has been disabled.")
 
             if cli_channels:
-                return check_channel_allowlist(
-                    IndexedSet((*local_channels, *cli_channels))
-                )
+                return validate_channels(IndexedSet((*local_channels, *cli_channels)))
             else:
                 from ..exceptions import ArgumentError
 
@@ -976,7 +974,7 @@ class Context(Configuration):
             )
             if cli_channels and not channel_in_config_files:
                 _warn_defaults_deprecation()
-                return check_channel_allowlist(
+                return validate_channels(
                     IndexedSet((*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME))
                 )
 
@@ -986,7 +984,7 @@ class Context(Configuration):
             _warn_defaults_deprecation()
             channels = [DEFAULTS_CHANNEL_NAME]
 
-        return check_channel_allowlist(IndexedSet((*local_channels, *channels)))
+        return validate_channels(IndexedSet((*local_channels, *channels)))
 
     @property
     def config_files(self):
@@ -2057,12 +2055,12 @@ def locate_prefix_by_name(name, envs_dirs=None):
     raise EnvironmentNameNotFound(name)
 
 
-def check_channel_allowlist(channels: Iterator[str]) -> None:
+def validate_channels(channels: Iterator[str]) -> None:
     """
-    Check if the given channel URLs are allowed by the context's allowlist
-    and denylist.
+    Validate if the given channel URLs are allowed based on the context's allowlist
+    and denylist configurations.
 
-    :param channels: A list of channels (either URLs or names) to check against the allowlist.
+    :param channels: A list of channels (either URLs or names) to validate.
     :raises ChannelNotAllowed: If any URL is not in the allowlist.
     :raises ChannelDenied: If any URL is in the denylist.
     """
@@ -2092,6 +2090,8 @@ def check_channel_allowlist(channels: Iterator[str]) -> None:
                     and channel_base_url not in allowlist_channel_urls
                 ):
                     raise ChannelNotAllowed(channel)
+
+    return tuple(channels)
 
 
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:

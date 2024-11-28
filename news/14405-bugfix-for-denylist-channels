@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes a bug where the setting `denylist_channels` was not being recognized in certain cases (#14405)
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
 
 ### Deprecations
 
