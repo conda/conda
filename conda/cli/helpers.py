@@ -12,7 +12,6 @@ from argparse import (
     _HelpAction,
     _StoreAction,
 )
-from itertools import chain
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
