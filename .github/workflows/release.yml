@@ -64,7 +64,7 @@ jobs:
           git config --global user.email '18747875+conda-bot@users.noreply.github.com'
 
       - name: Run Townscrier
-        run: townscrier
+        run: townscrier build --version ${{ version }}
 
       - name: Commit changes
         run: |
