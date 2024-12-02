@@ -2068,28 +2068,22 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     from ..exceptions import ChannelDenied, ChannelNotAllowed
     from ..models.channel import Channel
 
-    allowlist_channel_urls = tuple(
-        chain.from_iterable(
-            Channel(allowlist_channel).base_urls
-            for allowlist_channel in context.allowlist_channels
-        )
-    )
-    denylist_channel_urls = tuple(
-        chain.from_iterable(
-            Channel(denylist_channel).base_urls
-            for denylist_channel in context.denylist_channels
-        )
-    )
-    if allowlist_channel_urls or denylist_channel_urls:
-        for channel_str in channels:
-            channel = Channel(channel_str)
-            for channel_base_url in channel.base_urls:
-                if channel_base_url in denylist_channel_urls:
+    allowlist = [
+        url
+        for channel in context.allowlist_channels
+        for url in Channel(channel).base_urls
+    ]
+    denylist = [
+        url
+        for channel in context.denylist_channels
+        for url in Channel(channel).base_urls
+    ]
+    if allowlist or denylist:
+        for channel in map(Channel, channels):
+            for url in channel.base_urls:
+                if url in denylist:
                     raise ChannelDenied(channel)
-                if (
-                    allowlist_channel_urls
-                    and channel_base_url not in allowlist_channel_urls
-                ):
+                if allowlist and url not in allowlist:
                     raise ChannelNotAllowed(channel)
 
     return tuple(IndexedSet(channels))
