@@ -2092,7 +2092,7 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
                 ):
                     raise ChannelNotAllowed(channel)
 
-    return tuple(IndexSet(channels))
+    return tuple(IndexedSet(channels))
 
 
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
