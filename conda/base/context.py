@@ -955,7 +955,7 @@ class Context(Configuration):
                 raise OperationNotAllowed("Overriding channels has been disabled.")
 
             if cli_channels:
-                return validate_channels(IndexedSet((*local_channels, *cli_channels)))
+                return validate_channels((*local_channels, *cli_channels))
             else:
                 from ..exceptions import ArgumentError
 
@@ -976,7 +976,7 @@ class Context(Configuration):
             if cli_channels and not channel_in_config_files:
                 _warn_defaults_deprecation()
                 return validate_channels(
-                    IndexedSet((*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME))
+                    (*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME)
                 )
 
         if self._channels:
@@ -985,7 +985,7 @@ class Context(Configuration):
             _warn_defaults_deprecation()
             channels = [DEFAULTS_CHANNEL_NAME]
 
-        return validate_channels(IndexedSet((*local_channels, *channels)))
+        return validate_channels((*local_channels, *channels))
 
     @property
     def config_files(self):
