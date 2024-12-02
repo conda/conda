@@ -28,8 +28,7 @@ class _ValidatePackages(_StoreAction):
         """
         Ensure the packages do not contain denylist_channels
         """
-        from conda.base.context import validate_channels
-
+        from ..base.context import validate_channels
         from ..models.match_spec import MatchSpec
 
         if not isinstance(packages_specs, (list, tuple)):
