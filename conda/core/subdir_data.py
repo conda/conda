@@ -108,8 +108,6 @@ class SubdirData(metaclass=SubdirDataType):
     def query_all(
         package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN
     ):
-        from .index import check_allowlist  # TODO: fix in-line import
-
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
@@ -127,8 +125,6 @@ class SubdirData(metaclass=SubdirDataType):
                     dashlist(ignored_urls),
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-
-        check_allowlist(channel_urls)
 
         def subdir_query(url):
             return tuple(
