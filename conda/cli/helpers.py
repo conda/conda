@@ -40,9 +40,7 @@ class _ValidatePackages(_StoreAction):
         channels = filter(
             None, (spec.get_exact_value("channel") for spec in match_specs)
         )
-        validate_channels(
-            chain.from_iterable(channel.base_urls for channel in channels)
-        )
+        validate_channels(url for channel in channels for url in channel.base_urls)
 
     def __call__(self, parser, namespace, values, option_string=None):
         self._validate_no_denylist_channels(values)

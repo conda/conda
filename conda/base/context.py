@@ -2056,7 +2056,7 @@ def locate_prefix_by_name(name, envs_dirs=None):
     raise EnvironmentNameNotFound(name)
 
 
-def validate_channels(channels: Iterator[str]) -> None:
+def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     """
     Validate if the given channel URLs are allowed based on the context's allowlist
     and denylist configurations.
@@ -2092,7 +2092,7 @@ def validate_channels(channels: Iterator[str]) -> None:
                 ):
                     raise ChannelNotAllowed(channel)
 
-    return tuple(channels)
+    return tuple(IndexSet(channels))
 
 
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
