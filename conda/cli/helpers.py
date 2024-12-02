@@ -35,11 +35,11 @@ class _ValidatePackages(_StoreAction):
         if not isinstance(packages_specs, (list, tuple)):
             packages_specs = [packages_specs]
 
-        match_specs = (MatchSpec(spec) for spec in packages_specs)
-        channels = filter(
-            None, (spec.get_exact_value("channel") for spec in match_specs)
+        validate_channels(
+            channel
+            for spec in map(MatchSpec, packages_specs)
+            if (channel := spec.get_exact_value("channel"))
         )
-        validate_channels(url for channel in channels for url in channel.base_urls)
 
     def __call__(self, parser, namespace, values, option_string=None):
         self._validate_no_denylist_channels(values)
