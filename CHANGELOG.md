@@ -1,4 +1,4 @@
-[//]: # (current developments)
+<!-- towncrier release notes start -->
 
 ## 24.11.0 (2024-11-18)
 
