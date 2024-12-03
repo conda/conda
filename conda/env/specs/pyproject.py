@@ -86,8 +86,8 @@ class PyProjectSpec:
             if "dependencies" not in environment_table:
                 environment_table["dependencies"] = []
             if "pip" not in [dep[:3] for dep in environment_table["dependencies"]]:
-                environment_table.dependencies.append("pip")
-            environment_table.dependencies.append({"pip": pip_deps})
+                environment_table["dependencies"].append("pip")
+            environment_table["dependencies"].append({"pip": pip_deps})
         # Check the [project] table for a name if one wasn't passed as an argument
         # A name given in the environment table will still be used preferentially though
         if self.name is None and "project" in toml:
