@@ -180,11 +180,11 @@ select = [
   "FA",  # flake8-future-annotations
   "I",  # isort
   "ISC",  # flake8-implicit-str-concat
+  "RUF100",  # Unused noqa directive
   "T10",  # flake8-debugger
   "TCH",  # flake8-type-checking
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
-  "RUF100",  # Unused noqa directive
 ]
 
 [tool.vendoring]
