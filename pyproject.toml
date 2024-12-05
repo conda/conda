@@ -184,6 +184,7 @@ select = [
   "TCH",  # flake8-type-checking
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
+  "RUF100",  # Unused noqa directive
 ]
 
 [tool.vendoring]
