@@ -78,7 +78,7 @@ class ContextDecorator:
     makes it a decorator.
     """
 
-    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated  # NOQA
+    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated
 
     def __call__(self, f):
         @wraps(f)

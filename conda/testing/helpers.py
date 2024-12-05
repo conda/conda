@@ -41,7 +41,7 @@ expected_error_prefix = "Using Anaconda Cloud api site https://api.anaconda.org"
 
 def strip_expected(stderr):
     if expected_error_prefix and stderr.startswith(expected_error_prefix):
-        stderr = stderr[len(expected_error_prefix) :].lstrip()  # noqa
+        stderr = stderr[len(expected_error_prefix) :].lstrip()
     return stderr
 
 

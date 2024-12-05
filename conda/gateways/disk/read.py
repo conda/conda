@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
+listdir = lambda d: list(entry.name for entry in os.scandir(d))
 
 
 def yield_lines(path):

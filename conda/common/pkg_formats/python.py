@@ -978,7 +978,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     return egg_info_full_path
 
 
-# See: https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default  # NOQA
+# See: https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default
 # ------------------------------------------------------------------------------------------------
 def parse_marker(marker_string):
     """
@@ -1071,8 +1071,8 @@ def parse_marker(marker_string):
 
 
 # See:
-#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default  # NOQA
-#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/markers.py?at=default&fileviewer=file-view-default  # NOQA
+#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default
+#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/markers.py?at=default&fileviewer=file-view-default
 # ------------------------------------------------------------------------------------------------
 #
 # Requirement parsing code as per PEP 508

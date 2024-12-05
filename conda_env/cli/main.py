@@ -11,7 +11,7 @@ from importlib import import_module
 
 from conda.base.context import context
 from conda.cli.main import init_loggers
-from conda.cli.main_env import configure_parser  # noqa
+from conda.cli.main_env import configure_parser
 from conda.deprecations import deprecated
 from conda.exceptions import conda_exception_handler
 from conda.gateways.logging import initialize_logging

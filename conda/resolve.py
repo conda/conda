@@ -930,7 +930,7 @@ class Resolve:
         channel = prec.channel
         channel_priority = self._channel_priorities_map.get(
             channel.name, 1
-        )  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
+        )  # TODO: ask @mcg1969 why the default value is 1 here
         valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
         version_comparator = VersionOrder(prec.get("version", ""))
         build_number = prec.get("build_number", 0)
