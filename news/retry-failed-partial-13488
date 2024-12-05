@@ -4,8 +4,8 @@
 
 ### Bug fixes
 
-* Retry failed dowloads one time on `ChecksumMismatchError` as caused by bad
-  partial dowloads. (#13488)
+* Retry failed downloads one time on `ChecksumMismatchError` as caused by bad
+  partial downloads. (#13488)
 
 ### Deprecations
 
