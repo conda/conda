@@ -19,28 +19,23 @@ if (-not $CondaModuleArgs.ContainsKey('ChangePs1')) {
 #>
 function Get-CondaEnvironment {
     [CmdletBinding()]
-    param();
-
-    begin {}
+    param()
 
     process {
-        # NB: the JSON output of conda env list does not include the names
-        #     of each env, so we need to parse the fragile output instead.
-        & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA env list | `
-            Where-Object { -not $_.StartsWith("#") } | `
-            Where-Object { -not $_.Trim().Length -eq 0 } | `
+        $condaArgs = @($Env:CONDA_EXE, $Env:_CE_M, $Env:_CE_CONDA, "env", "list") | Where-Object { $_ -ne $null -and $_ -ne '' }
+        & $condaArgs[0] $condaArgs[1..($condaArgs.Length-1)] | 
+            Where-Object { -not $_.StartsWith("#") } | 
+            Where-Object { -not $_.Trim().Length -eq 0 } | 
             ForEach-Object {
-                $envLine = $_ -split "\s+";
-                $Active = $envLine[1] -eq "*";
+                $envLine = $_ -split "\s+"
+                $Active = $envLine[1] -eq "*"
                 [PSCustomObject] @{
-                    Name = $envLine[0];
-                    Active = $Active;
-                    Path = if ($Active) {$envLine[2]} else {$envLine[1]};
-                } | Write-Output;
+                    Name = $envLine[0]
+                    Active = $Active
+                    Path = if ($Active) {$envLine[2]} else {$envLine[1]}
+                } | Write-Output
             }
     }
-
-    end {}
 }
 
 <#
@@ -82,10 +77,6 @@ function Enter-CondaEnvironment {
             Write-Host "Failed to activate environment. The activate command returned empty."
         }
     }
-
-    process {}
-
-    end {}
 }
 
 <#
@@ -100,21 +91,18 @@ function Enter-CondaEnvironment {
 #>
 function Exit-CondaEnvironment {
     [CmdletBinding()]
-    param();
+    param()
 
     begin {
-        $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
+        $condaArgs = @($Env:CONDA_EXE, $Env:_CE_M, $Env:_CE_CONDA, "shell.powershell", "deactivate") | Where-Object { $_ -ne $null -and $_ -ne '' }
+        $deactivateCommand = (& $condaArgs[0] $condaArgs[1..($condaArgs.Length-1)] | Out-String)
 
-        # If deactivate returns an empty string, we have nothing more to do,
-        # so return early.
         if ($deactivateCommand.Trim().Length -eq 0) {
-            return;
+            return
         }
-        Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
-        Invoke-Expression -Command $deactivateCommand;
+        Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand"
+        Invoke-Expression -Command $deactivateCommand
     }
-    process {}
-    end {}
 }
 
 ## CONDA WRAPPER ###############################################################
@@ -131,32 +119,23 @@ function Exit-CondaEnvironment {
         conda install toolz
 #>
 function Invoke-Conda() {
-    # Don't use any explicit args here, we'll use $args and tab completion
-    # so that we can capture everything, INCLUDING short options (e.g. -n).
     if ($Args.Count -eq 0) {
-        # No args, just call the underlying conda executable.
-        & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA;
+        $condaArgs = @($Env:CONDA_EXE, $Env:_CE_M, $Env:_CE_CONDA) | Where-Object { $_ -ne $null -and $_ -ne '' }
+        & $condaArgs[0] $condaArgs[1..($condaArgs.Length-1)]
     }
     else {
-        $Command = $Args[0];
-        if ($Args.Count -ge 2) {
-            $OtherArgs = $Args[1..($Args.Count - 1)];
-        } else {
-            $OtherArgs = @();
-        }
+        $Command = $Args[0]
+        $OtherArgs = $Args[1..($Args.Count - 1)]
         switch ($Command) {
             "activate" {
-                Enter-CondaEnvironment @OtherArgs;
+                Enter-CondaEnvironment @OtherArgs
             }
             "deactivate" {
-                Exit-CondaEnvironment;
+                Exit-CondaEnvironment
             }
-
             default {
-                # There may be a command we don't know want to handle
-                # differently in the shell wrapper, pass it through
-                # verbatim.
-                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
+                $condaArgs = @($Env:CONDA_EXE, $Env:_CE_M, $Env:_CE_CONDA, $Command) + $OtherArgs | Where-Object { $_ -ne $null -and $_ -ne '' }
+                & $condaArgs[0] $condaArgs[1..($condaArgs.Length-1)]
             }
         }
     }
@@ -177,29 +156,27 @@ function Expand-CondaEnv() {
     param(
         [string]
         $Filter
-    );
+    )
 
-    $ValidEnvs = Get-CondaEnvironment;
-    $ValidEnvs `
-        | Where-Object { $_.Name -like "$filter*" } `
-        | ForEach-Object { $_.Name } `
-        | Write-Output;
-    $ValidEnvs `
-        | Where-Object { $_.Path -like "$filter*" } `
-        | ForEach-Object { $_.Path } `
-        | Write-Output;
-
+    $ValidEnvs = Get-CondaEnvironment
+    $ValidEnvs |
+        Where-Object { $_.Name -like "$filter*" } |
+        ForEach-Object { $_.Name } |
+        Write-Output
+    $ValidEnvs |
+        Where-Object { $_.Path -like "$filter*" } |
+        ForEach-Object { $_.Path } |
+        Write-Output
 }
 
 function Expand-CondaSubcommands() {
     param(
         [string]
         $Filter
-    );
+    )
 
-    # Filter and output applicable subcommands
-    Invoke-Conda commands | Where-Object { $_ -like "$Filter*" } | Write-Output;
-
+    $condaArgs = @($Env:CONDA_EXE, $Env:_CE_M, $Env:_CE_CONDA, "shell.powershell", "commands") | Where-Object { $_ -ne $null -and $_ -ne '' }
+    & $condaArgs[0] $condaArgs[1..($condaArgs.Length-1)] | Where-Object { $_ -like "$Filter*" } | Write-Output
 }
 
 function TabExpansion($line, $lastWord) {
@@ -208,11 +185,11 @@ function TabExpansion($line, $lastWord) {
     switch -regex ($lastBlock) {
         # Pull out conda commands we recognize first before falling through
         # to the general patterns for conda itself.
-        "^conda activate (.*)" { Expand-CondaEnv $lastWord; break; }
-        "^etenv (.*)" { Expand-CondaEnv $lastWord; break; }
+        "^conda activate (.*)" { Expand-CondaEnv $lastWord; break }
+        "^etenv (.*)" { Expand-CondaEnv $lastWord; break }
 
         # If we got down to here, check arguments to conda itself.
-        "^conda (.*)" { Expand-CondaSubcommands $lastWord; break; }
+        "^conda (.*)" { Expand-CondaSubcommands $lastWord; break }
 
         # Finally, fall back on existing tab expansion.
         default {
@@ -242,7 +219,7 @@ if ($CondaModuleArgs.ChangePs1) {
     } else {
         function CondaPromptBackup() {
             # Restore a basic prompt if the definition is missing.
-            "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
+            "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
         }
     }
 
@@ -250,7 +227,7 @@ if ($CondaModuleArgs.ChangePs1) {
         if ($Env:CONDA_PROMPT_MODIFIER) {
             $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
         }
-        CondaPromptBackup;
+        CondaPromptBackup
     }
 }
 
