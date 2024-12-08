@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixed broken `PowerShell 7.5.0-rc.1` hook. (#14430)
+* Fixed broken `PowerShell 7.5.0-rc.1` hook commands. (#14430)
 
 ### Deprecations
 
