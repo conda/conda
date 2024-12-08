@@ -63,23 +63,29 @@ function Enter-CondaEnvironment {
     param(
         [Parameter(Mandatory=$false)][switch]$Stack,
         [Parameter(Position=0)][string]$Name
-    );
+    )
 
     begin {
-        If ($Stack) {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
-        } Else {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
+        $condaArgs = @($Env:CONDA_EXE, $Env:_CE_M, $Env:_CE_CONDA, "shell.powershell", "activate") | Where-Object { $_ -ne $null -and $_ -ne '' }
+        
+        if ($Stack) {
+            $condaArgs += "--stack"
         }
+        
+        $condaArgs += $Name
+        $activateCommand = & $condaArgs[0] $condaArgs[1..($condaArgs.Length-1)] | Out-String
 
-        Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
-        Invoke-Expression -Command $activateCommand;
+        Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand"
+        if (-not [string]::IsNullOrWhiteSpace($activateCommand)) {
+            Invoke-Expression -Command $activateCommand
+        } else {
+            Write-Host "Failed to activate environment. The activate command returned empty."
+        }
     }
 
     process {}
 
     end {}
-
 }
 
 <#
