@@ -186,6 +186,39 @@ select = [
   "W",  # pycodestyle warnings
 ]
 
+[tool.towncrier]
+directory = "news"
+filename = "CHANGELOG.md"
+issue_format = "[#{issue}](https://github.com/conda/conda/issues/{issue})"
+start_string = "<!-- towncrier release notes start -->\n"
+title_format = "## [{version}](https://github.com/conda/conda/tree/{version}) ({project_date})"
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "enhancements"
+name = "Enhancements"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugs"
+name = "Bug fixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecations"
+name = "Deprecations"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "docs"
+name = "Docs"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other"
+showcontent = true
+
 [tool.vendoring]
 destination = "conda/_vendor/"
 namespace = "conda._vendor"
