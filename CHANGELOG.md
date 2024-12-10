@@ -8,8 +8,7 @@
 
 ### Contributors
 
-* @jezdez
-* @ForgottenProgramme
+* @travishathaway
 
 
 
