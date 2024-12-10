@@ -2296,10 +2296,10 @@ def test_force_remove(
 ):
     with tmp_env("libarchive") as prefix:
         assert package_is_installed(prefix, "libarchive")
-        assert package_is_installed(prefix, "xz")
+        assert package_is_installed(prefix, "bzip2")
 
-        conda_cli("remove", f"--prefix={prefix}", "xz", "--force", "--yes")
-        assert not package_is_installed(prefix, "xz")
+        conda_cli("remove", f"--prefix={prefix}", "bzip2", "--force", "--yes")
+        assert not package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, "libarchive")
 
         conda_cli("remove", f"--prefix={prefix}", "libarchive", "--yes")

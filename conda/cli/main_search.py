@@ -12,6 +12,8 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from .helpers import _ValidatePackages
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
 
@@ -107,6 +109,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "match_spec",
         default="*",
         nargs="?",
+        action=_ValidatePackages,
         help=SUPPRESS,
     )
     p.add_argument(

@@ -17,6 +17,7 @@ from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+    DEFAULT_CHANNELS,
     ChannelPriority,
     PathConflict,
 )
@@ -26,13 +27,19 @@ from conda.base.context import (
     default_python_validation,
     get_plugin_config_data,
     reset_context,
+    validate_channels,
     validate_prefix_name,
 )
 from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
-from conda.exceptions import CondaValueError, EnvironmentNameNotFound
+from conda.exceptions import (
+    ChannelDenied,
+    ChannelNotAllowed,
+    CondaValueError,
+    EnvironmentNameNotFound,
+)
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -790,3 +797,87 @@ def test_default_python_validation(value, expected):
     Ensure that ``conda.base.context.default_python_validation`` works as expected
     """
     assert default_python_validation(value) == expected
+
+
+def test_check_allowlist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(("conda-canary", "conda-forge"))
+
+    allowlist = (
+        "defaults",
+        "conda-forge",
+        "https://beta.conda.anaconda.org/conda-test",
+    )
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("conda-canary",))
+
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("https://repo.anaconda.com/pkgs/denied",))
+
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+    validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+
+def test_check_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(("conda-canary", "conda-forge"))
+
+    denylist = (
+        "defaults",
+        "conda-forge",
+        "https://beta.conda.anaconda.org/conda-test",
+    )
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("defaults",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("conda-forge",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://beta.conda.anaconda.org/conda-test",))
+
+
+def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(
+        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge")
+    )
+    allowlist = (
+        "defaults",
+        "https://beta.conda.anaconda.org/conda-test",
+        "conda-forge",
+    )
+    denylist = ("conda-forge",)
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    # neither in allowlist nor denylist
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("conda-canary",))
+
+    # conda-forge is on denylist, so it should raise ChannelDenied
+    # even though it is in the allowlist
+    with pytest.raises(ChannelDenied):
+        validate_channels(("conda-forge",))
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
