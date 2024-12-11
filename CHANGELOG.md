@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 24.11.1 (2024-12-10)
+
+### Bug fixes
+
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
+
+### Contributors
+
+* @travishathaway
+
+
+
 ## 24.11.0 (2024-11-18)
 
 ### Enhancements
