@@ -1819,7 +1819,8 @@ class Context(Configuration):
             ),
             verbosity=dals(
                 """
-                Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.
+                Sets output log level. Defaults to 0 (terse warnings). Use 1 for more detailed
+                warnings, 2 for info, 3 for debug, and 4 for trace.
                 """
             ),
             verify_threads=dals(
