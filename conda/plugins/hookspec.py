@@ -220,7 +220,7 @@ class CondaSpecs:
             def conda_auth_handlers():
                 yield plugins.CondaAuthHandler(
                     name="environment-header-auth",
-                    auth_handler=EnvironmentHeaderAuth,
+                    handler=EnvironmentHeaderAuth,
                 )
         """
         yield from ()
