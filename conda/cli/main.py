@@ -28,6 +28,11 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     from ..base.context import context
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
+    def trivial_function():
+        return 1
+
+    trivial_function()
+
     args = args or ["--help"]
 
     pre_parser = generate_pre_parser(add_help=False)
