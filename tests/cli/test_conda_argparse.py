@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 import re
-from argparse import ArgumentError
+import sys
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -134,15 +134,13 @@ def test_sorted_commands_in_error(capsys):
     sp.add_parser("b")
     try:
         p.parse_args(["d"])
-    # Python < 3.12
     except SystemExit:
         stderr = capsys.readouterr().err
         # ...but the suggestions here are sorted
-        assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in stderr
-    # Python >= 3.12
-    except ArgumentError:
-        stderr = capsys.readouterr().err
-        # ...but the suggestions here are sorted
-        assert "invalid choice: 'd' (choose from a, b, c)" in stderr
+        if sys.version_info < (3, 12):
+            # FUTURE: Python 3.12+: remove this test case
+            assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in stderr
+        else:
+            assert "invalid choice: 'd' (choose from a, b, c)" in stderr
     else:
         pytest.fail("Did not raise")
