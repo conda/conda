@@ -222,6 +222,10 @@ jobs:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
 
+      - name: Conda Update All
+        run: >
+          conda update --all --yes
+
       - name: Conda Install
         run: >
           conda install
