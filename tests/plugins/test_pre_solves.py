@@ -43,7 +43,9 @@ def pre_solve_plugin(
     plugin_manager_with_reporter_backends.register(pre_solve_plugin)
 
     # register solvers
-    plugin_manager_with_reporter_backends.load_entrypoints("conda", "conda-classic-solver")
+    plugin_manager_with_reporter_backends.load_entrypoints(
+        "conda", "conda-classic-solver"
+    )
 
     return pre_solve_plugin
 

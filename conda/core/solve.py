@@ -301,7 +301,7 @@ class Solver(BaseSolver):
                 addendum="The classic solver logic at `conda.core.solve.Solver` is now "
                 "distributed as `conda_classic_solver.solver.ClassicSolver`. Solver plugin "
                 "subclasses should subclass `conda.core.solver.BaseSolver` instead and "
-                "implement `solve_final_state()`."
+                "implement `solve_final_state()`.",
             )
 
     def solve_final_state(

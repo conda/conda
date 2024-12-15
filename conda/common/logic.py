@@ -51,6 +51,7 @@ deprecated.module(
     addendum="Use `conda_libmamba_solver.logic`.",
 )
 
+
 class Clauses:
     def __init__(self, m=0, sat_solver=PycoSatSolver):
         self.names = {}

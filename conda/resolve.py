@@ -67,6 +67,7 @@ deprecated.module(
     addendum="Use `conda_libmamba_solver.resolve`.",
 )
 
+
 @cache
 def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     def try_out_solver(sat_solver):

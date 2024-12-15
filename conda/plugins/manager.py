@@ -26,7 +26,6 @@ from ..exceptions import CondaValueError, PluginError
 from . import (
     post_solves,
     reporter_backends,
-    solvers,
     subcommands,
     virtual_packages,
 )

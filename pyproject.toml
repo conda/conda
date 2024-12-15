@@ -57,6 +57,9 @@ changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
 documentation = "https://docs.conda.io/projects/conda/en/stable/"
 repository = "https://github.com/conda/conda"
 
+[tool.coverage.html]
+show_contexts = true
+
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",
@@ -90,9 +93,6 @@ sort = "Miss"
 [tool.coverage.run]
 # store relative paths in coverage information
 relative_files = true
-
-[tool.coverage.html]
-show_contexts = true
 
 [tool.hatch.build]
 include = ["conda", "conda_env"]
