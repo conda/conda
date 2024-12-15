@@ -7,7 +7,7 @@ from ..deprecations import deprecated
 deprecated.module(
     "25.1.0",
     "25.7.0",
-    "Use `conda_classic_solver.plugin`.",
+    addendum="Use `conda_classic_solver.plugin`.",
 )
 
 
