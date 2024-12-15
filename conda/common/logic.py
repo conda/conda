@@ -48,7 +48,7 @@ PySatSolver = "pysat"
 deprecated.module(
     "25.1.0",
     "25.7.0",
-    "Use `conda_libmamba_solver.logic`.",
+    addendum="Use `conda_libmamba_solver.logic`.",
 )
 
 class Clauses:

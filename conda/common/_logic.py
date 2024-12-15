@@ -13,7 +13,7 @@ log = getLogger(__name__)
 deprecated.module(
     "25.1.0",
     "25.7.0",
-    "Use `conda_libmamba_solver._logic`.",
+    addendum="Use `conda_libmamba_solver._logic`.",
 )
 
 TRUE = sys.maxsize
