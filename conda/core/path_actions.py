@@ -18,7 +18,7 @@ from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
 from ..common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_leaf_directories,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -593,32 +593,6 @@ class MakeMenuAction(CreateInPrefixPathAction):
             make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
-class CreateNonadminAction(CreateInPrefixPathAction):
-    @classmethod
-    def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
-    ):
-        if on_win and lexists(join(context.root_prefix, ".nonadmin")):
-            return (cls(transaction_context, package_info, target_prefix),)
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, target_prefix):
-        super().__init__(
-            transaction_context, package_info, None, None, target_prefix, ".nonadmin"
-        )
-        self._file_created = False
-
-    def execute(self):
-        log.log(TRACE, "touching nonadmin %s", self.target_full_path)
-        self._file_created = touch(self.target_full_path)
-
-    def reverse(self):
-        if self._file_created:
-            log.log(TRACE, "removing nonadmin file %s", self.target_full_path)
-            rm_rf(self.target_full_path)
-
-
 class CompileMultiPycAction(MultiPathAction):
     @classmethod
     def create_actions(
@@ -765,7 +739,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = f"{get_bin_directory_short_path()}/{command}"
+                target_short_path = f"{BIN_DIRECTORY}/{command}"
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func

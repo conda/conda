@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import copy
 import os
+import re
 import sys
+from importlib.metadata import version
 from pprint import pprint
 from unittest.mock import Mock, patch
 
@@ -338,8 +340,9 @@ Your installed version is: 8.0"""
 def test_cuda_glibc_sat(tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"), env_var(
-        "CONDA_OVERRIDE_GLIBC", "2.23"
+    with (
+        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
+        env_var("CONDA_OVERRIDE_GLIBC", "2.23"),
     ):
         with get_solver_cuda(tmpdir, specs) as solver:
             final_state = solver.solve_final_state()
@@ -373,8 +376,9 @@ Your installed version is: 8.0"""
 def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"), env_var(
-        "CONDA_OVERRIDE_GLIBC", "2.12"
+    with (
+        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
+        env_var("CONDA_OVERRIDE_GLIBC", "2.12"),
     ):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError):
@@ -2692,6 +2696,14 @@ def test_timestamps_1(tmpdir):
 
 
 def test_channel_priority_churn_minimized(tmpdir):
+    """
+    get_solver_aggregate_2 has [channel-4, channel-2].
+    When the channels are reverted in the second operation, we put
+    channel-2 first. Under these circumstances, reinstalling
+    'itsdangerous' should pick the noarch version from channel-2
+    instead of the non-noarch variant in channel-4. Everything
+    else should stay the same due to FREEZE_INSTALLED.
+    """
     specs = (
         MatchSpec("conda-build"),
         MatchSpec("itsdangerous"),
@@ -2701,6 +2713,12 @@ def test_channel_priority_churn_minimized(tmpdir):
 
     pprint(convert_to_dist_str(final_state))
 
+    if context.solver == "libmamba":
+        # With libmamba v2, we need this extra flag to make this test pass
+        # Otherwise, the solver considers the current state as satisfying.
+        solver_kwargs = {"force_reinstall": True}
+    else:
+        solver_kwargs = {}
     with get_solver_aggregate_2(
         tmpdir,
         [MatchSpec("itsdangerous")],
@@ -2709,7 +2727,8 @@ def test_channel_priority_churn_minimized(tmpdir):
     ) as solver:
         solver.channels.reverse()
         unlink_dists, link_dists = solver.solve_for_diff(
-            update_modifier=UpdateModifier.FREEZE_INSTALLED
+            update_modifier=UpdateModifier.FREEZE_INSTALLED,
+            **solver_kwargs,
         )
         pprint(convert_to_dist_str(unlink_dists))
         pprint(convert_to_dist_str(link_dists))
@@ -3077,8 +3096,15 @@ def test_freeze_deps_1(tmpdir):
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
                 # LIBMAMBA ADJUSTMENT
-                # libmamba doesn't remove xz in this solve
-                *(() if context.solver == "libmamba" else ("channel-2::xz-5.2.3-0",)),
+                # libmamba v1 doesn't remove xz in this solve
+                *(
+                    ()
+                    if (
+                        context.solver == "libmamba"
+                        and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
+                    )
+                    else ("channel-2::xz-5.2.3-0",)
+                ),
             )
         )
         link_order = add_subdir_to_iter(
@@ -3282,12 +3308,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             error_snippets = [
                 "Encountered problems while solving",
                 "Pins seem to be involved in the conflict. Currently pinned specs",
-                "python 2.6.*",
-                "scikit-learn 0.13",
+                r"python.*2\.6",
+                r"scikit-learn.*0\.13",
             ]
 
         for snippet in error_snippets:
-            assert snippet in error_msg
+            assert re.search(snippet, error_msg)
 
     specs_to_add = (MatchSpec("unsatisfiable-with-py26"),)
     with get_solver(
@@ -3310,12 +3336,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             error_snippets = [
                 "Encountered problems while solving",
                 "Pins seem to be involved in the conflict. Currently pinned specs",
-                "python 2.6.*",
+                r"python.*2\.6",
                 "unsatisfiable-with-py26",
             ]
 
         for snippet in error_snippets:
-            assert snippet in error_msg
+            assert re.search(snippet, error_msg)
 
 
 fake_index = [

@@ -62,8 +62,9 @@ except ImportError:
     from ..auxlib.collection import make_immutable as deepfreeze
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable, Iterable, Sequence
     from re import Match
-    from typing import Any, Hashable, Iterable, Sequence
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -908,6 +909,17 @@ class ObjectLoadedParameter(LoadedParameter):
 class ConfigurationObject:
     """Dummy class to mark whether a Python object has config parameters within."""
 
+    def to_json(self):
+        """
+        Return a serializable object with defaults filled in
+        """
+        serializable = {}
+
+        for attr, value in vars(self).items():
+            serializable[attr] = value
+
+        return serializable
+
 
 class Parameter(metaclass=ABCMeta):
     # (type) describes the type of parameter
@@ -1574,7 +1586,9 @@ class Configuration(metaclass=ConfigurationType):
         if not isiterable(et):
             et = [et]
 
-        if isinstance(parameter._element_type, Parameter):
+        if isinstance(parameter._element_type, Parameter) or isinstance(
+            parameter._element_type, ConfigurationObject
+        ):
             element_types = tuple(
                 _et.__class__.__name__.lower().replace("parameter", "") for _et in et
             )

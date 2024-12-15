@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `conda.common.configuration.ObjectParameter`'s ability to appropriately handle defaults. (#14149)
+* Fixes a bug when invalid values are being passed to `conda shell.posix` command (#14398)
 
 ### Deprecations
 
