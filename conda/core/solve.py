@@ -294,15 +294,14 @@ class BaseSolver:
 class Solver(BaseSolver):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if context.solver != "libmamba":
-            deprecated.topic(
-                "25.1.0",
-                "25.7.0",
-                addendum="The classic solver logic at `conda.core.solve.Solver` is now "
-                "distributed as `conda_classic_solver.solver.ClassicSolver`. Solver plugin "
-                "subclasses should subclass `conda.core.solver.BaseSolver` instead and "
-                "implement `solve_final_state()`.",
-            )
+        deprecated.topic(
+            "25.1.0",
+            "25.7.0",
+            addendum="The classic solver logic at `conda.core.solve.Solver` is now "
+            "distributed as `conda_classic_solver.solver.ClassicSolver`. Solver plugin "
+            "subclasses should subclass `conda.core.solver.BaseSolver` instead and "
+            "implement `solve_final_state()`.",
+        )
 
     def solve_final_state(
         self,
