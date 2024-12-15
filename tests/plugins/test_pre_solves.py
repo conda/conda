@@ -8,7 +8,6 @@ import pytest
 
 from conda import plugins
 from conda.exceptions import DryRunExit
-from conda.plugins import solvers
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
