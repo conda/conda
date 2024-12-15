@@ -24,6 +24,7 @@ from ..common.constants import NULL, TRACE
 from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
+from ..deprecations import deprecated
 from ..exceptions import (
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
@@ -55,14 +56,14 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-class Solver:
+class BaseSolver:
     """
     A high-level API to conda's solving logic. Three public methods are provided to access a
     solution in various forms.
 
       * :meth:`solve_final_state`
       * :meth:`solve_for_diff`
-      * :meth:`solve_for_transaction`
+      * :meth:`solve_for_transaction`: must be implemented by a subclass
     """
 
     def __init__(
@@ -241,6 +242,67 @@ class Solver:
             )
 
         return unlink_precs, link_precs
+
+    def solve_final_state(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        should_retry_solve=False,
+    ):
+        """Gives the final, solved state of the environment.
+
+        Args:
+            update_modifier (UpdateModifier):
+                An optional flag directing how updates are handled regarding packages already
+                existing in the environment.
+
+            deps_modifier (DepsModifier):
+                An optional flag indicating special solver handling for dependencies. The
+                default solver behavior is to be as conservative as possible with dependency
+                updates (in the case the dependency already exists in the environment), while
+                still ensuring all dependencies are satisfied.  Options include
+                * NO_DEPS
+                * ONLY_DEPS
+                * UPDATE_DEPS
+                * UPDATE_DEPS_ONLY_DEPS
+                * FREEZE_INSTALLED
+            prune (bool):
+                If ``True``, the solution will not contain packages that were
+                previously brought into the environment as dependencies but are no longer
+                required as dependencies and are not user-requested.
+            ignore_pinned (bool):
+                If ``True``, the solution will ignore pinned package configuration
+                for the prefix.
+            force_remove (bool):
+                Forces removal of a package without removing packages that depend on it.
+            should_retry_solve (bool):
+                Indicates whether this solve will be retried. This allows us to control
+                whether to call find_conflicts (slow) in ssc.r.solve
+
+        Returns:
+            tuple[PackageRef]:
+                In sorted dependency order from roots to leaves, the package references for
+                the solved state of the environment.
+
+        """
+        raise NotImplementedError
+
+
+class Solver(BaseSolver):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if context.solver != "libmamba":
+            deprecated.topic(
+                "25.1.0",
+                "25.7.0",
+                "The classic solver logic at `conda.core.solve.Solver` is now distributed as "
+                "`conda_classic_solver.solver.ClassicSolver`. Solver plugin subclasses should "
+                "subclass `conda.core.solver.BaseSolver` instead and implement "
+                "`solve_final_state()`."
+            )
 
     def solve_final_state(
         self,

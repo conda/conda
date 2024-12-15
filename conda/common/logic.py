@@ -29,6 +29,7 @@ through the Require and Prevent functions.
 
 from itertools import chain
 
+from ..deprecations import deprecated
 from ._logic import FALSE, TRUE
 from ._logic import Clauses as _Clauses
 
@@ -44,6 +45,11 @@ PycoSatSolver = "pycosat"
 PyCryptoSatSolver = "pycryptosat"
 PySatSolver = "pysat"
 
+deprecated.module(
+    "25.1.0",
+    "25.7.0",
+    "Use `conda_libmamba_solver.logic`.",
+)
 
 class Clauses:
     def __init__(self, m=0, sat_solver=PycoSatSolver):

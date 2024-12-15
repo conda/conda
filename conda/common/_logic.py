@@ -5,10 +5,16 @@ from array import array
 from itertools import combinations
 from logging import DEBUG, getLogger
 
+from ..deprecations import deprecated
 from .constants import TRACE
 
 log = getLogger(__name__)
 
+deprecated.module(
+    "25.1.0",
+    "25.7.0",
+    "Use `conda_libmamba_solver._logic`.",
+)
 
 TRUE = sys.maxsize
 FALSE = -TRUE
