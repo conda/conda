@@ -4,7 +4,8 @@
 
 Conda abides by the Deprecation Schedule defined in [CEP-9][cep9]. To help make deprecations as much of a no-brainer as possible we provide several helper decorators and functions to facilitate the correct deprecation process.
 
-:::{info}
+:::{tip}
+
 The `conda` pending/deprecation versions abide by the following formula:
 
 ```{code-block}
