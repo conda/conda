@@ -70,6 +70,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
+        # "-f",  # FUTURE: 25.7: Enable this after deprecating alias in --force
         "--file",
         default=[],
         action="append",
@@ -449,7 +450,7 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         "Package Linking and Install-time Options"
     )
     package_install_options.add_argument(
-        "-f",
+        "-f",  # FUTURE: 25.7: Remove here and add as alias to --file
         "--force",
         action="store_true",
         default=NULL,
