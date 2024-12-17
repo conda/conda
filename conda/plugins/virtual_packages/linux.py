@@ -24,12 +24,13 @@ def conda_virtual_packages():
     # numeric component; note that this breaks version ordering for
     # development (`-rcN`) kernels, but that can be a TODO for later.
     dist_version = os.environ.get("CONDA_OVERRIDE_LINUX")
-    if not dist_version:
+    if dist_version is None:
         dist_name, dist_version = context.platform_system_release
         if dist_name != "Linux":
-            dist_version = ""
-    m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
-    yield CondaVirtualPackage("linux", m.group() if m else "0", None)
+            dist_version = "0"
+    if dist_version:
+        m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
+        yield CondaVirtualPackage("linux", m.group() if m else "0", None)
 
     libc_family, libc_version = linux_get_libc_version()
     if not (libc_family and libc_version):
