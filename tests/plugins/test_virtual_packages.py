@@ -218,7 +218,7 @@ def test_win_override(monkeypatch: MonkeyPatch, version: str | None, expected: b
     assert any(prec.name == "__win" for prec in get_virtual_precs()) is expected
 
 
-def test_subdir_win_override_value(monkeypatch: MonkeyPatch):
+def test_win_value(monkeypatch: MonkeyPatch):
     """
     In non Windows systems, conda cannot know which __win version to offer if subdir==win-64;
     should be 0. In Windows systems, it should be set to whatever platform.version() reports.
@@ -228,7 +228,7 @@ def test_subdir_win_override_value(monkeypatch: MonkeyPatch):
     assert context.subdir == "win-64"
     for prec in get_virtual_precs():
         if prec.name == "__win":
-            assert prec.version == (platform.version if on_win else "0")
+            assert prec.version == (platform.version() if on_win else "0")
             break
     else:
         raise AssertionError("Should have found __win")
