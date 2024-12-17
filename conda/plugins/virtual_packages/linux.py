@@ -23,8 +23,11 @@ def conda_virtual_packages():
     # discard everything after the last digit of the third or fourth
     # numeric component; note that this breaks version ordering for
     # development (`-rcN`) kernels, but that can be a TODO for later.
-    _, dist_version = context.platform_system_release
-    dist_version = os.environ.get("CONDA_OVERRIDE_LINUX", dist_version)
+    dist_version = os.environ.get("CONDA_OVERRIDE_LINUX")
+    if not dist_version:
+        dist_name, dist_version = context.platform_system_release
+        if dist_name != "Linux":
+            dist_version = ""
     m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
     yield CondaVirtualPackage("linux", m.group() if m else "0", None)
 

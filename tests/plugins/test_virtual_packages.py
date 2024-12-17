@@ -11,7 +11,7 @@ import pytest
 import conda.core.index
 from conda import __version__, plugins
 from conda.base.context import context, reset_context
-from conda.common.compat import on_mac
+from conda.common.compat import on_linux, on_mac
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
@@ -186,6 +186,26 @@ def test_linux_override(monkeypatch: MonkeyPatch, version: str | None, expected:
     reset_context()
     assert context.subdir == "linux-64"
     assert any(prec.name == "__linux" for prec in get_virtual_precs()) is expected
+
+
+def test_linux_value(monkeypatch: MonkeyPatch):
+    """
+    In non Linux systems, conda cannot know which __linux version to offer if subdir==linux-64;
+    should be 0. In Linux systems, it should match the beginning of the value reported by
+    platform.release().
+    """
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+    assert context.subdir == "linux-64"
+    for prec in get_virtual_precs():
+        if prec.name == "__linux":
+            if on_linux:
+                assert platform.release().startswith(prec.version)
+            else:
+                assert prec.version == "0"
+            break
+    else:
+        raise AssertionError("Should have found __linux")
 
 
 @pytest.mark.parametrize("version,expected", [(None, False), ("1.0", True)])
