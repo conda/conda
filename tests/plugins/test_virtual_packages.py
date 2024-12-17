@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import platform
 import re
 from typing import TYPE_CHECKING
 
@@ -207,18 +208,17 @@ def test_osx_override(monkeypatch: MonkeyPatch, version: str | None, expected: b
     assert any(prec.name == "__osx" for prec in get_virtual_precs()) == expected
 
 
-@pytest.mark.skipif(on_mac, reason="Non macOS systems only")
-def test_subdir_osx_override_value(monkeypatch: MonkeyPatch):
+def test_osx_value(monkeypatch: MonkeyPatch):
     """
-    In non macOS systes, conda cannot know which __osx version to offer if subdir==osx-64;
-    should be 0.
+    In non macOS systems, conda cannot know which __osx version to offer if subdir==osx-64;
+    should be 0. In macOS systems, it should be the value reported by platform.mac_ver()[0].
     """
     monkeypatch.setenv("CONDA_SUBDIR", "osx-64")
     reset_context()
     assert context.subdir == "osx-64"
     for prec in get_virtual_precs():
         if prec.name == "__osx":
-            assert prec.version == "0"
+            assert prec.version == (platform.mac_ver()[0] if on_mac else "0")
             break
     else:
         raise AssertionError("Should have found __osx")
