@@ -9,9 +9,12 @@ from .. import CondaVirtualPackage, hookimpl
 
 @hookimpl
 def conda_virtual_packages():
-    from ...core.index import get_archspec_name
-
-    archspec_name = get_archspec_name()
-    archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC", archspec_name)
+    archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC")
     if archspec_name:
         yield CondaVirtualPackage("archspec", "1", archspec_name)
+    else:
+        from ...core.index import get_archspec_name
+
+        archspec_name = get_archspec_name()
+        if archspec_name:
+            yield CondaVirtualPackage("archspec", "1", archspec_name)
