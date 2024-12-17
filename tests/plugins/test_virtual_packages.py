@@ -10,6 +10,7 @@ import pytest
 import conda.core.index
 from conda import __version__, plugins
 from conda.base.context import context, reset_context
+from conda.common.compat import on_mac
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
@@ -204,6 +205,23 @@ def test_osx_override(monkeypatch: MonkeyPatch, version: str | None, expected: b
     reset_context()
     assert context.subdir == "osx-64"
     assert any(prec.name == "__osx" for prec in get_virtual_precs()) == expected
+
+
+@pytest.mark.skipif(on_mac, reason="Non macOS systems only")
+def test_subdir_osx_override_value(monkeypatch: MonkeyPatch):
+    """
+    In non macOS systes, conda cannot know which __osx version to offer if subdir==osx-64;
+    should be 0.
+    """
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-64")
+    reset_context()
+    assert context.subdir == "osx-64"
+    for prec in get_virtual_precs():
+        if prec.name == "__osx":
+            assert prec.version == "0"
+            break
+    else:
+        raise AssertionError("Should have found __osx")
 
 
 def test_conda_virtual_package():
