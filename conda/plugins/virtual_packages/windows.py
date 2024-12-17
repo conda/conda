@@ -13,10 +13,11 @@ def conda_virtual_packages():
         return
 
     dist_version = os.environ.get("CONDA_OVERRIDE_WIN")
-    if not dist_version:
+    if dist_version is None:
         dist_name, dist_version = context.os_distribution_name_version
         if dist_name != "Windows":
             # avoid reporting platform.version() of other OS
             # this happens with CONDA_SUBDIR=win-* in a non Windows machine
-            dist_version = None
-    yield CondaVirtualPackage("win", dist_version, None)
+            dist_version = "0"
+    if dist_version:
+        yield CondaVirtualPackage("win", dist_version, None)
