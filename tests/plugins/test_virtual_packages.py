@@ -211,7 +211,7 @@ def test_osx_override(monkeypatch: MonkeyPatch, version: str | None, expected: b
 @pytest.mark.parametrize("version,expected", [(None, False), ("1.0", True)])
 def test_win_override(monkeypatch: MonkeyPatch, version: str | None, expected: bool):
     """Conda should not produce a win virtual package when CONDA_OVERRIDE_WIN=""."""
-    monkeypatch.setenv("CONDA_SUBDIR", "osx-64")
+    monkeypatch.setenv("CONDA_SUBDIR", "win-64")
     monkeypatch.setenv("CONDA_OVERRIDE_WIN", version or "")
     reset_context()
     assert context.subdir == "win-64"
