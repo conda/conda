@@ -28,9 +28,8 @@ def conda_virtual_packages():
         dist_name, dist_version = context.platform_system_release
         if dist_name != "Linux":
             dist_version = "0"
-    if dist_version:
-        m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
-        yield CondaVirtualPackage("linux", m.group() if m else "0", None)
+    m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
+    yield CondaVirtualPackage("linux", m.group() if m else "0", None)
 
     libc_family, libc_version = linux_get_libc_version()
     if not (libc_family and libc_version):
