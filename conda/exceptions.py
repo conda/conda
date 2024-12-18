@@ -53,7 +53,7 @@ class ResolvePackageNotFound(CondaError):
         super().__init__(message)
 
 
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 
 class LockError(CondaError):
