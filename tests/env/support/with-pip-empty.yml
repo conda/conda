@@ -1,0 +1,4 @@
+name: pip
+dependencies:
+  - pip
+  - pip: []
