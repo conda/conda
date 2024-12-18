@@ -1519,7 +1519,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 143
+  num_commits: 144
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -2199,7 +2199,7 @@
   github: pkmooreanaconda
 - name: Mahe Iram Khan
   email: 65779580+ForgottenProgramme@users.noreply.github.com
-  num_commits: 29
+  num_commits: 28
   first_commit: 2022-10-07 23:21:54
   github: ForgottenProgramme
   alternate_emails:
