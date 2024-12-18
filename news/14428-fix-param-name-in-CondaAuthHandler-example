@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds progress bar support for reporter backends plugin hook. (#14083)
+* <news item>
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Use the correct parameter name, `handler`, in the CondaAuthHandler example (#14428).
 
 ### Other
 

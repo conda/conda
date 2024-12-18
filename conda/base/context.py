@@ -81,6 +81,7 @@ except ImportError:
     from .._vendor.frozendict import frozendict
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
     from typing import Literal
 
@@ -285,7 +286,7 @@ class Context(Configuration):
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
         )
-    )  # TODO: consider a different string delimiter  # NOQA
+    )  # TODO: consider a different string delimiter
     disallowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
@@ -942,53 +943,49 @@ class Context(Configuration):
 
     @property
     def channels(self):
-        local_add = ("local",) if self.use_local else ()
-        if (
-            self._argparse_args
-            and "override_channels" in self._argparse_args
-            and self._argparse_args["override_channels"]
-        ):
+        local_channels = ("local",) if self.use_local else ()
+        argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
+        # TODO: it's args.channel right now, not channels
+        cli_channels = argparse_args.get("channel") or ()
+
+        if argparse_args.get("override_channels"):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
 
                 raise OperationNotAllowed("Overriding channels has been disabled.")
-            elif not (
-                self._argparse_args
-                and "channel" in self._argparse_args
-                and self._argparse_args["channel"]
-            ):
+
+            if cli_channels:
+                return validate_channels((*local_channels, *cli_channels))
+            else:
                 from ..exceptions import ArgumentError
 
                 raise ArgumentError(
                     "At least one -c / --channel flag must be supplied when using "
                     "--override-channels."
                 )
-            else:
-                return tuple(IndexedSet((*local_add, *self._argparse_args["channel"])))
 
         # add 'defaults' channel when necessary if --channel is given via the command line
-        if self._argparse_args and "channel" in self._argparse_args:
-            # TODO: it's args.channel right now, not channels
-            argparse_channels = tuple(self._argparse_args["channel"] or ())
-            # Add condition to make sure that sure that we add the 'defaults'
+        if cli_channels:
+            # Add condition to make sure that we add the 'defaults'
             # channel only when no channels are defined in condarc
-            # We needs to get the config_files and then check that they
+            # We need to get the config_files and then check that they
             # don't define channels
             channel_in_config_files = any(
-                "channels" in context.raw_data[rc_file].keys()
-                for rc_file in self.config_files
+                "channels" in context.raw_data[rc_file] for rc_file in self.config_files
             )
-            if argparse_channels and not channel_in_config_files:
+            if cli_channels and not channel_in_config_files:
                 _warn_defaults_deprecation()
-                return tuple(
-                    IndexedSet((*local_add, *argparse_channels, DEFAULTS_CHANNEL_NAME))
+                return validate_channels(
+                    (*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME)
                 )
+
         if self._channels:
-            _channels = self._channels
+            channels = self._channels
         else:
             _warn_defaults_deprecation()
-            _channels = [DEFAULTS_CHANNEL_NAME]
-        return tuple(IndexedSet((*local_add, *_channels)))
+            channels = [DEFAULTS_CHANNEL_NAME]
+
+        return validate_channels((*local_channels, *channels))
 
     @property
     def config_files(self):
@@ -1305,10 +1302,10 @@ class Context(Configuration):
                 "solver_ignore_timestamps",
                 "subdir",
                 "subdirs",
-                # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
-                # I don't think this documentation is correct any longer. # NOQA
+                # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies
+                # I don't think this documentation is correct any longer.
                 "target_prefix_override",
-                # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+                # used to override prefix rewriting, for e.g. building docker containers or RPMs
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
             ),
@@ -1464,7 +1461,7 @@ class Context(Configuration):
             #     set to 'warn' or 'prevent'.
             #     """
             # ),
-            # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
+            # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration
             conda_build=dals(
                 """
                 General configuration parameters for conda-build.
@@ -2057,6 +2054,39 @@ def locate_prefix_by_name(name, envs_dirs=None):
     from ..exceptions import EnvironmentNameNotFound
 
     raise EnvironmentNameNotFound(name)
+
+
+def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
+    """
+    Validate if the given channel URLs are allowed based on the context's allowlist
+    and denylist configurations.
+
+    :param channels: A list of channels (either URLs or names) to validate.
+    :raises ChannelNotAllowed: If any URL is not in the allowlist.
+    :raises ChannelDenied: If any URL is in the denylist.
+    """
+    from ..exceptions import ChannelDenied, ChannelNotAllowed
+    from ..models.channel import Channel
+
+    allowlist = [
+        url
+        for channel in context.allowlist_channels
+        for url in Channel(channel).base_urls
+    ]
+    denylist = [
+        url
+        for channel in context.denylist_channels
+        for url in Channel(channel).base_urls
+    ]
+    if allowlist or denylist:
+        for channel in map(Channel, channels):
+            for url in channel.base_urls:
+                if url in denylist:
+                    raise ChannelDenied(channel)
+                if allowlist and url not in allowlist:
+                    raise ChannelNotAllowed(channel)
+
+    return tuple(IndexedSet(channels))
 
 
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix CI upload of coverage files for tests (#14375)
+* Fixes a bug when invalid values are being passed to `conda shell.posix` command (#14398)
 
 ### Deprecations
 

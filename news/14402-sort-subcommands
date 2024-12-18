@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Do not map Python distribution names to conda names in `PrefixData(pip_interop_enabled=True)`. (#14310 via #14317)
+* Sort suggested subcommands when an incorrect subcommand is provided in the CLI. (#13332 via 14402)
 
 ### Deprecations
 

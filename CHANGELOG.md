@@ -1,5 +1,54 @@
 [//]: # (current developments)
 
+## 24.11.0 (2024-11-18)
+
+### Enhancements
+
+* Adds a new plugin hook for reporter backends. (#13868)
+* Add support for CEP-17 that allows specifying the path to the site-packages directory of the the Python package via the `repodata.json`. (#14053 via #14256)
+* Adds progress bar support for reporter backends plugin hook. (#14083)
+* Adds support for defining spinners for the reporter backends plugin hook. (#14206)
+* Adds support for confirmation functions for reporter backends plugin hook. (#14244)
+* Add new plugin hooks (`conda_session_headers` and `conda_request_headers`) to add headers to outgoing HTTP requests. (#14325, #14382)
+
+### Bug fixes
+
+* Do not retry solves twice in failed `conda env` runs. (#13784)
+* Remove CreateNonAdminAction to prevent conda remove from deleting `.nonadmin` files. (#14271)
+* Do not map Python distribution names to conda names in `PrefixData(pip_interop_enabled=True)`. (#14310 via #14317)
+* Fix output writing for `conda export --json --file`. (#14316 via #14323)
+* Update `deprecated.action()` function to account for positional arguments that have no value specified. (#14355 via
+#14359)
+* Fix continuous integration upload of coverage files. (#14375)
+
+### Deprecations
+
+* Remove `__conda_reactivate` shell function in favor of `__conda_activate reactivate`. (#14277)
+* Mark `conda.misc.rel_path` as pending deprecation. (#14338)
+* Require Python 3.9 or greater. (#14201 via #14368)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dholth
+* @duncanmmacleod
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kathatherine
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @marcoesters
+* @muffato made their first contribution in https://github.com/conda/conda/pull/14342
+* @nilskch made their first contribution in https://github.com/conda/conda/pull/14214
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
 ## 24.9.2 (2024-10-16)
 
 ### Bug fixes
