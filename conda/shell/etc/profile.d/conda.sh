@@ -27,6 +27,13 @@ __conda_activate() {
     __conda_hashr
 }
 
+__conda_reactivate() {
+    \local ask_conda
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
+    \eval "$ask_conda"
+    __conda_hashr
+}
+
 conda() {
     \local cmd="${1-__missing__}"
     case "$cmd" in
