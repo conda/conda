@@ -42,7 +42,7 @@ conda() {
             ;;
         install|update|upgrade|remove|uninstall)
             __conda_exe "$@" || \return
-            __conda_reactivate
+            __conda_activate reactivate
             ;;
         *)
             __conda_exe "$@"
