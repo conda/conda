@@ -1,5 +1,21 @@
 [//]: # (current developments)
 
+## 24.11.2 (2024-12-19)
+
+### Bug fixes
+
+* Restore `__conda_reactivate` shell command removed in 24.11.0. (#14455)
+
+### Deprecations
+
+* Mark `__conda_reactivate` as deprecated. Use `__conda_activate reactivate` instead. (#14455)
+
+### Contributors
+
+* @kenodegard
+
+
+
 ## 24.11.1 (2024-12-10)
 
 ### Bug fixes
