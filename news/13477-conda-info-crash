@@ -1,0 +1,20 @@
+### Enhancements
+
+* Allow more token characters in `split_anaconda_token`.
+  This fixes a crash in `conda info` when a channel URL contains a port number and a token with an unsubstituted environment variable.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
