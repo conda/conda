@@ -11,6 +11,7 @@ conda.cli.main_remove for the entry points into this module.
 from __future__ import annotations
 
 import os
+import sys
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
@@ -31,6 +32,7 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaEnvException,
     CondaExitZero,
@@ -191,6 +193,14 @@ def install(args, parser, command="install"):
     prefix = context.target_prefix
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+    if getattr(args, "force", None) and "-f" in sys.argv:
+        deprecated.topic(
+            "25.1.0",
+            "25.7.0",
+            topic="Deprecated -f flag will be repurposed as a --file alias.",
+            addendum="The -f alias for --force has not been used for long. In the future, "
+            "it will be repurposed as an alias for --file.",
+        )
     if isupdate and not (
         args.file
         or args.packages
