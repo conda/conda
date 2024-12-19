@@ -28,6 +28,7 @@ __conda_activate() {
 }
 
 __conda_reactivate() {
+    echo `__conda_reactivate` is pending deprecation and will be removed in 25.9. Use `__conda_activate reactivate` instead. 1>&2
     \local ask_conda
     ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
     \eval "$ask_conda"
