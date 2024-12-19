@@ -65,9 +65,15 @@ def download(
         disable_ssl_verify_warning()
 
     with download_http_errors(url):
-        download_inner(
-            url, target_full_path, md5, sha256, size, progress_update_callback
-        )
+        try:
+            download_inner(
+                url, target_full_path, md5, sha256, size, progress_update_callback
+            )
+        except ChecksumMismatchError:
+            log.warning("Retry failed partial download %s", target_full_path)
+            download_inner(
+                url, target_full_path, md5, sha256, size, progress_update_callback
+            )
 
 
 def download_inner(url, target_full_path, md5, sha256, size, progress_update_callback):
