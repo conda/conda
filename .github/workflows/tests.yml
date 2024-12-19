@@ -127,6 +127,11 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
+      - name: Install conda-classic-solver  # TEMP
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: 25.1.0
+        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+
       - name: Conda Info
         # view test env info (not base)
         run: python -m conda info --verbose
@@ -165,6 +170,7 @@ jobs:
             .coverage
             durations\${{ runner.os }}.json
             test-report.xml
+            test-report.html
           retention-days: 1  # temporary, combined in aggregate below
 
   # linux test suite
@@ -233,6 +239,11 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
+      - name: Install conda-classic-solver  # TEMP
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: 25.1.0
+        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+
       - name: Conda Info
         # view test env info (not base)
         run: python -m conda info --verbose
@@ -268,6 +279,7 @@ jobs:
             .coverage
             durations/${{ runner.os }}.json
             test-report.xml
+            test-report.html
           retention-days: 1  # temporary, combined in aggregate below
 
   # linux benchmarks
@@ -320,6 +332,11 @@ jobs:
           --file tests/requirements-benchmarks.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
+
+      - name: Install conda-classic-solver  # TEMP
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: 25.1.0
+        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -449,6 +466,11 @@ jobs:
           python=${{ matrix.python-version }}
           conda-forge::pytest-memray
 
+      - name: Install conda-classic-solver  # TEMP
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: 25.1.0
+        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+
       - name: Conda Info
         # view test env info (not base)
         run: python -m conda info --verbose
@@ -538,6 +560,11 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
+      - name: Install conda-classic-solver  # TEMP
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: 25.1.0
+        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+
       - name: Conda Info
         # view test env info (not base)
         run: python -m conda info --verbose
@@ -573,6 +600,7 @@ jobs:
             .coverage
             durations/${{ runner.os }}.json
             test-report.xml
+            test-report.html
           retention-days: 1  # temporary, combined in aggregate below
 
   # aggregate and upload
