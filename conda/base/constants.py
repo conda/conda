@@ -217,7 +217,7 @@ class UpdateModifier(Enum):
     UPDATE_DEPS = "update_deps"
     UPDATE_SPECS = "update_specs"  # default
     UPDATE_ALL = "update_all"
-    # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149  # NOQA
+    # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149
 
     def __str__(self):
         return self.value

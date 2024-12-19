@@ -47,7 +47,7 @@ log = getLogger(__name__)
 
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 2
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 
 class SubdirDataType(type):

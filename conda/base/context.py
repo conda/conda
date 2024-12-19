@@ -286,7 +286,7 @@ class Context(Configuration):
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
         )
-    )  # TODO: consider a different string delimiter  # NOQA
+    )  # TODO: consider a different string delimiter
     disallowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
@@ -1302,10 +1302,10 @@ class Context(Configuration):
                 "solver_ignore_timestamps",
                 "subdir",
                 "subdirs",
-                # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
-                # I don't think this documentation is correct any longer. # NOQA
+                # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies
+                # I don't think this documentation is correct any longer.
                 "target_prefix_override",
-                # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+                # used to override prefix rewriting, for e.g. building docker containers or RPMs
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
             ),
@@ -1461,7 +1461,7 @@ class Context(Configuration):
             #     set to 'warn' or 'prevent'.
             #     """
             # ),
-            # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
+            # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration
             conda_build=dals(
                 """
                 General configuration parameters for conda-build.
