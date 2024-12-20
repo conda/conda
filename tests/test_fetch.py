@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from contextlib import nullcontext
 from os.path import exists, isfile
 from pathlib import Path
@@ -97,15 +98,18 @@ def test_tmpDownload(monkeypatch: MonkeyPatch):
 
 @responses.activate
 def test_resume_download(tmp_path):
+    # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
     size = sum(len(line) for line in test_file)
     sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
 
     output_path = tmp_path / "download.tar.bz2"  # double extension
     url = DEFAULT_CHANNEL_ALIAS
+    # allow the test to pass if we are using /t/<token> auth:
+    url_pattern = re.compile(f"{url}.*")
     responses.add(
         responses.GET,
-        url,
+        url_pattern,
         stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
@@ -134,7 +138,7 @@ def test_resume_download(tmp_path):
     # won't resume download unless Partial Content status code
     responses.replace(
         responses.GET,
-        url,
+        url_pattern,
         stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
@@ -170,6 +174,7 @@ def test_resume_download(tmp_path):
 @responses.activate
 def test_download_when_ranges_not_supported(tmp_path):
     # partial mechanism and `.partial` files sidestepped when size, hash not given
+    # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
     size = sum(len(line) for line in test_file)
     sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
@@ -178,9 +183,11 @@ def test_download_when_ranges_not_supported(tmp_path):
     partial_path = str(output_path) + ".partial"
 
     url = DEFAULT_CHANNEL_ALIAS
+    # allow the test to pass if we are using /t/<token> auth:
+    url_pattern = re.compile(f"{url}.*")
     responses.add(
         responses.GET,
-        url,
+        url_pattern,
         stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "none"},
