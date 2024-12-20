@@ -12,7 +12,7 @@ def conda_virtual_packages():
     archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC")
     if archspec_name:
         yield CondaVirtualPackage("archspec", "1", archspec_name)
-    else:
+    elif archspec_name is None:
         from ...core.index import get_archspec_name
 
         archspec_name = get_archspec_name()
