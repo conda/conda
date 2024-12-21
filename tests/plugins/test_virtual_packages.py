@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import platform
 import re
-from subprocess import check_output
 from typing import TYPE_CHECKING
 
 import pytest
