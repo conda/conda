@@ -30,7 +30,9 @@ def conda_virtual_packages():
             # For these cases, we must set SYSTEM_VERSION_COMPAT=0 and call sw_vers directly.
             env = os.environ.copy()
             env["SYSTEM_VERSION_COMPAT"] = "0"
-            sw_vers = check_output(["/usr/bin/sw_vers", "-productVersion"], env=env, text=True)
+            sw_vers = check_output(
+                ["/usr/bin/sw_vers", "-productVersion"], env=env, text=True
+            )
             if "." in sw_vers:  # more likely to be a version
                 dist_version = ".".join(sw_vers.split(".")[:2])
     if dist_version:
