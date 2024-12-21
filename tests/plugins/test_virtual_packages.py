@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import platform
 import re
+from subprocess import check_output
 from typing import TYPE_CHECKING
 
 import pytest
@@ -15,7 +16,7 @@ from conda.common.compat import on_linux, on_mac
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
-from conda.plugins.virtual_packages import cuda
+from conda.plugins.virtual_packages import cuda, osx
 from conda.testing.solver_helpers import package_dict
 
 if TYPE_CHECKING:
@@ -238,7 +239,7 @@ def test_osx_value(monkeypatch: MonkeyPatch):
     assert context.subdir == "osx-64"
     for prec in get_virtual_precs():
         if prec.name == "__osx":
-            assert prec.version == (platform.mac_ver()[0] if on_mac else "0")
+            assert prec.version == (osx.non_compat_mac_ver() if on_mac else "0")
             break
     else:
         raise AssertionError("Should have found __osx")

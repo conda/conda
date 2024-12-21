@@ -28,12 +28,14 @@ def conda_virtual_packages():
             # https://github.com/conda/conda/issues/13832
             # If Python was compiled against macOS <=10.15, we might get 10.16 instead of 11.0.
             # For these cases, we must set SYSTEM_VERSION_COMPAT=0 and call sw_vers directly.
-            env = os.environ.copy()
-            env["SYSTEM_VERSION_COMPAT"] = "0"
-            sw_vers = check_output(
-                ["/usr/bin/sw_vers", "-productVersion"], env=env, text=True
-            )
-            if "." in sw_vers:  # more likely to be a version
-                dist_version = ".".join(sw_vers.split(".")[:2])
+                return non_compat_mac_ver()
     if dist_version:
         yield CondaVirtualPackage("osx", dist_version, None)
+
+
+def non_compat_mac_ver() -> str:
+    return check_output(
+        ["/usr/bin/sw_vers", "-productVersion"],
+        env={"SYSTEM_VERSION_COMPAT": "0"},
+        text=True,
+    ).strip()
