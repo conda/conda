@@ -27,6 +27,12 @@ __conda_activate() {
     __conda_hashr
 }
 
+__conda_reactivate() {
+    # FUTURE: conda 25.9, remove this function
+    echo `__conda_reactivate` is deprecated and will be removed in 25.9. Use `__conda_activate reactivate` instead. 1>&2
+    __conda_activate reactivate
+}
+
 conda() {
     \local cmd="${1-__missing__}"
     case "$cmd" in
