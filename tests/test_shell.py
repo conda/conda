@@ -1107,12 +1107,12 @@ def test_stacking(
 ) -> None:
     which, envs = create_stackable_envs
     assert _run_command(
-        f"conda config --set auto_stack {auto_stack}",
+        f"{sys.executable} -m conda config --set auto_stack {auto_stack}",
         *(
             f'conda activate "{envs[env.strip()].prefix}"'
             for env in filter(None, stack.split(","))
         ),
-        f'conda run -p "{envs[run.strip()].prefix}" {which}',
+        f'{sys.executable} -m conda run -p "{envs[run.strip()].prefix}" {which}',
     ) == [
         path
         for env in filter(None, expected.split(","))
