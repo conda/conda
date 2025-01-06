@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* If a plugin name conflict is found, report all plugins involved in the conflict. (#14170)
 
 ### Deprecations
 
