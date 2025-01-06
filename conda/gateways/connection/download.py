@@ -99,6 +99,7 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
         headers = {}
         if partial and stat_result.st_size > 0:
             headers = {"Range": f"bytes={stat_result.st_size}-"}
+            target.seek(stat_result.st_size)
 
         resp = session.get(
             url, stream=True, headers=headers, proxies=session.proxies, timeout=timeout
@@ -219,7 +220,7 @@ def download_partial_file(
                 )
 
     try:
-        with partial_path.open(mode="a+b") as partial, lock(partial):
+        with partial_path.open(mode="w+b") as partial, lock(partial):
             yield partial
             check(partial)
     except HTTPError as e:  # before conda error handler wrapper
