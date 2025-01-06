@@ -1053,7 +1053,15 @@ def _run_command(*lines):
         source = f". {Path(sys.prefix, 'etc', 'profile.d', 'conda.sh')}"
 
     marker = uuid4().hex
-    script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
+    script = join(
+        (
+            source,
+            *(["conda deactivate"] * 5),
+            *(("set -x",) if not on_win else ()),
+            f"echo {marker}",
+            *lines,
+        )
+    )
     process = run(script, shell=True, capture_output=True, text=True)
     print(process.stdout)
     print(process.stderr, file=sys.stderr)
