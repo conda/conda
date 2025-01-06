@@ -12,7 +12,7 @@ from pathlib import Path
 from re import escape
 from shutil import which
 from signal import SIGINT
-from subprocess import CalledProcessError, check_output, run
+from subprocess import CalledProcessError, check_output
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -1047,28 +1047,26 @@ def _run_command(*lines):
     # create a custom run command since this is specific to the shell integration
     if on_win:
         join = " && ".join
-        source = f"{Path(sys.prefix, 'condabin', 'conda_hook.bat')}"
+        source = f"{Path(context.root_prefix, 'condabin', 'conda_hook.bat')}"
     else:
         join = "\n".join
-        source = f". {Path(sys.prefix, 'etc', 'profile.d', 'conda.sh')}"
+        source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
 
     marker = uuid4().hex
-    script = join(
-        (
-            source,
-            *(["conda deactivate"] * 5),
-            *(("set -x",) if not on_win else ()),
-            f"echo {marker}",
-            *lines,
-        )
-    )
+    script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
     env = os.environ.copy()
+    # We need to set this so Python loads the dev version of 'conda', usually taken
+    # from the conda/ in the working directory (e.g. the root of the cloned repo in CI).
+    # Otherwise, it will import the one installed in the base environment, which might
+    # have not been overwritten with `pip install -e . --no-deps`. This doesn't happen
+    # in other tests because they run with the equivalent of `python -m conda`. However,
+    # this family of tests relies on conda (shell function) which calls conda (Python entry
+    # point). When a script is called this way, it bypasses the automatic "working directory
+    # is first on sys.path" behavior you find in `python -m` style calls. See
+    # https://docs.python.org/3/library/sys_path_init.html for details.
     env["PYTHONPATH"] = CONDA_SOURCE_ROOT
-    process = run(script, shell=True, capture_output=True, text=True, env=env)
-    print(process.stdout)
-    print(process.stderr, file=sys.stderr)
-    process.check_returncode()
-    output = list(map(str.strip, process.stdout.splitlines()))
+    output = check_output(script, shell=True, env=env).decode().splitlines()
+    output = list(map(str.strip, output))
     output = output[output.index(marker) + 1 :]  # trim setup output
 
     return [Path(path) for path in filter(None, output)]
@@ -1119,7 +1117,6 @@ def test_stacking(
     expected: str,
 ) -> None:
     which, envs = create_stackable_envs
-    _run_command(f"{'where' if on_win else 'which -a'} conda")
     assert _run_command(
         f"conda config --set auto_stack {auto_stack}",
         *(
