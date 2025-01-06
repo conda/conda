@@ -3,10 +3,8 @@
 """Detect whether this is macOS."""
 
 import os
-from subprocess import check_output
 
 from ...base.context import context
-from ...models.version import VersionOrder
 from .. import CondaVirtualPackage, hookimpl
 
 
@@ -24,18 +22,6 @@ def conda_virtual_packages():
             # avoid reporting platform.version() of other OS
             # this happens with CONDA_SUBDIR=osx-* in a non macOS machine
             dist_version = "0"
-        elif VersionOrder("10.15") < VersionOrder(dist_version) < VersionOrder("11"):
-            # https://github.com/conda/conda/issues/13832
-            # If Python was compiled against macOS <=10.15, we might get 10.16 instead of 11.0.
-            # For these cases, we must set SYSTEM_VERSION_COMPAT=0 and call sw_vers directly.
-            dist_version = non_compat_mac_ver() or "0"
-    if dist_version:
+    if dist_version:  # truthy override found
         yield CondaVirtualPackage("osx", dist_version, None)
-
-
-def non_compat_mac_ver() -> str:
-    return check_output(
-        ["/usr/bin/sw_vers", "-productVersion"],
-        env={"SYSTEM_VERSION_COMPAT": "0"},
-        text=True,
-    ).strip()
+    # if a falsey override was found, the __osx virtual package is not exported
