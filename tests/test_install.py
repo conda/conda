@@ -175,12 +175,13 @@ def test_windows_entry_point():
             f.write(fixed_data)
         # without a valid shebang in the exe, this should fail
         with pytest.raises(subprocess.CalledProcessError):
-            subprocess.check_call(["conda.exe", "-h"])
+            subprocess.check_call(["conda.exe", "-h"], env=env)
 
         process = subprocess.Popen(
             ["conda.fixed.exe", "-h"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=env,
         )
         output, error = process.communicate()
         output = output.decode("utf-8")
