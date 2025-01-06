@@ -21,7 +21,6 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
-from ..common.io import dashlist
 from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import (
@@ -254,7 +253,9 @@ class CondaPluginManager(pluggy.PluginManager):
         # Check for conflicts
         seen = set()
         conflicts = {
-            plugin.name for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
+            plugin.name
+            for plugin in plugins
+            if plugin.name in seen or seen.add(plugin.name)
         }
         if conflicts:
             raise PluginError(
