@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import random
 import subprocess
 import sys
@@ -13,6 +14,7 @@ from unittest import mock
 
 import pytest
 
+from conda import CONDA_SOURCE_ROOT
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
@@ -126,6 +128,17 @@ def test_windows_entry_point():
     cwd = getcwd()
     chdir(tmp_dir)
     original_prefix = "C:\\BogusPrefix\\python.exe"
+    env = os.environ.copy()
+    # We need to set this so Python loads the dev version of 'conda', usually taken
+    # from the conda/ in the working directory (e.g. the root of the cloned repo in CI).
+    # Otherwise, it will import the one installed in the base environment, which might
+    # have not been overwritten with `pip install -e . --no-deps`. This doesn't happen
+    # in other tests because they run with the equivalent of `python -m conda`. However,
+    # this family of tests relies on conda (shell function) which calls conda (Python entry
+    # point). When a script is called this way, it bypasses the automatic "working directory
+    # is first on sys.path" behavior you find in `python -m` style calls. See
+    # https://docs.python.org/3/library/sys_path_init.html for details.
+    env["PYTHONPATH"] = CONDA_SOURCE_ROOT
     try:
         url = "https://s3.amazonaws.com/conda-dev/pyzzerw.pyz"
         download(url, "pyzzerw.pyz")
@@ -153,6 +166,7 @@ def test_windows_entry_point():
                 "conda-4.1.6.tar.gz",
             ],
             cwd=tmp_dir,
+            env=env,
         )
         # this is the actual test: change the embedded prefix and make sure that the exe runs.
         data = open("conda.exe", "rb").read()
