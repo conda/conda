@@ -13,13 +13,15 @@ def conda_virtual_packages():
     if not context.subdir.startswith("osx-"):
         return
 
+    # 1: __osx (always exported if the target subdir is osx-*)
     yield CondaVirtualPackage("unix", None, None)
 
-    dist_version = os.environ.get("CONDA_OVERRIDE_OSX")
-    if dist_version is None:
+    # 2: __osx
+    dist_version = os.getenv("CONDA_OVERRIDE_OSX")
+    if dist_version is None:  # no override found, let's detect it
         dist_name, dist_version = context.os_distribution_name_version
         if dist_name != "OSX":
-            # avoid reporting platform.version() of other OS
+            # avoid reporting platform.version() of a different OS
             # this happens with CONDA_SUBDIR=osx-* in a non macOS machine
             dist_version = "0"
     if dist_version:  # truthy override found

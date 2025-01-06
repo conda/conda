@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * Do not use native platform version to set `__osx` or `__linux` version if the underlying OS is not macOS or Linux, respectively. (#14448 via #14449)
-* Report real `__osx` version (11.x) even if the Python interpreter was linked against SDK 10.15 or earlier. (#13832 via #14449)
+* Report real macOS version (11+ instead of 10.16) even if the Python interpreter was linked against SDK 10.15 or earlier. This applies to the `__osx` virtual package and the user agent info. (#13178, #13832 via #14449)
 
 ### Deprecations
 
