@@ -12,7 +12,7 @@ from pathlib import Path
 from re import escape
 from shutil import which
 from signal import SIGINT
-from subprocess import STDOUT, CalledProcessError, check_output
+from subprocess import CalledProcessError, check_output, run
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -1054,8 +1054,12 @@ def _run_command(*lines):
 
     marker = uuid4().hex
     script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
-    output = check_output(script, shell=True, stderr=STDOUT).decode().splitlines()
-    output = list(map(str.strip, output))
+    process = run(script, shell=True, capture_output=True, text=True)
+    if process.returncode:
+        print(process.stdout)
+        print(process.stderr, file=sys.stderr)
+        process.check_returncode()
+    output = list(map(str.strip, process.stdout.splitlines()))
     output = output[output.index(marker) + 1 :]  # trim setup output
 
     return [Path(path) for path in filter(None, output)]
