@@ -62,8 +62,8 @@ _sat_solvers = {
 }
 
 deprecated.module(
-    "25.1.0",
-    "25.7.0",
+    "25.9.0",
+    "26.3.0",
     addendum="Use `conda_libmamba_solver.resolve`.",
 )
 

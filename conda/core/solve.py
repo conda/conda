@@ -295,8 +295,8 @@ class Solver(BaseSolver):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         deprecated.topic(
-            "25.1.0",
-            "25.7.0",
+            "25.9.0",
+            "26.3.0",
             topic="Solver classic moved to conda-classic-solver",
             addendum="The classic solver logic at `conda.core.solve.Solver` is now "
             "distributed as `conda_classic_solver.solver.ClassicSolver`. Solver plugin "

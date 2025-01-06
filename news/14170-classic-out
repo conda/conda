@@ -8,11 +8,11 @@
 
 ### Deprecations
 
-* `conda.resolve` is now deprecated. Use `conda_classic_solver.resolve` instead. (#14170)
-* `conda.logic` is now deprecated. Use `conda_classic_solver.logic` instead. (#14170)
-* `conda._logic` is now deprecated. Use `conda_classic_solver._logic` instead. (#14170)
-* `conda.plugins.solvers` is now deprecated. Use `conda_classic_solver.plugin` instead. (#14170)
-* `conda.core.solve.Solver` is now deprecated. Use `conda_classic_solver.solve.ClassicSolver` for the full classic solver, or `conda.core.solve.BaseSolver` for a subclass-ready base class (e.g. in solver plugins). (#14170)
+* `conda.resolve` is now pending deprecation and will be fully deprecated in 26.3. Use `conda_classic_solver.resolve` instead. (#14170)
+* `conda.logic` is now pending deprecation and will be fully deprecated in 26.3. Use `conda_classic_solver.logic` instead. (#14170)
+* `conda._logic` is now pending deprecation and will be fully deprecated in 26.3. Use `conda_classic_solver._logic` instead. (#14170)
+* `conda.plugins.solvers` is now pending deprecation and will be fully deprecated in 26.3. Use `conda_classic_solver.plugin` instead. (#14170)
+* `conda.core.solve.Solver` is now pending deprecation and will be fully deprecated in 26.3. Use `conda_classic_solver.solve.ClassicSolver` for the full classic solver, or `conda.core.solve.BaseSolver` for a subclass-ready base class (e.g. in solver plugins). (#14170)
 
 ### Docs
 
