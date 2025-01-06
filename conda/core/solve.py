@@ -37,7 +37,6 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..reporters import get_spinner
-from ..resolve import Resolve
 from .index import _supplement_index_with_system, get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -1329,6 +1328,7 @@ class Solver(BaseSolver):
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
         # abstract away the use of `index` or the Resolve object.
+        from ..resolve import Resolve
 
         if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
