@@ -21,6 +21,7 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
+from ..common.io import dashlist
 from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import (
@@ -252,18 +253,18 @@ class CondaPluginManager(pluggy.PluginManager):
 
         # Check for conflicts
         seen = set()
-        conflicts = [
-            plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
-        ]
+        conflicts = {
+            plugin.name for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
+        }
         if conflicts:
             raise PluginError(
                 dals(
                     f"""
                     Conflicting `{name}` plugins found:
 
-                    {', '.join([str(conflict) for conflict in conflicts])}
+                    {', '.join([str(p) for p in plugins if p.name in conflicts])}
 
-                    Multiple conda plugins are registered via the `{specname}` hook.
+                    Multiple conda plugins are registered via the `{specname}`.
                     Please make sure that you don't have any incompatible plugins installed.
                     """
                 )
