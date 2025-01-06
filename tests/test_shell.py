@@ -1055,10 +1055,9 @@ def _run_command(*lines):
     marker = uuid4().hex
     script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
     process = run(script, shell=True, capture_output=True, text=True)
-    if process.returncode:
-        print(process.stdout)
-        print(process.stderr, file=sys.stderr)
-        process.check_returncode()
+    print(process.stdout)
+    print(process.stderr, file=sys.stderr)
+    process.check_returncode()
     output = list(map(str.strip, process.stdout.splitlines()))
     output = output[output.index(marker) + 1 :]  # trim setup output
 
