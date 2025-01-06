@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Use the correct parameter name, `handler`, in the CondaAuthHandler example (#14428).
+
+### Other
+
+* <news item>
