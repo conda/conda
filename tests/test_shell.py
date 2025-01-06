@@ -1062,7 +1062,9 @@ def _run_command(*lines):
             *lines,
         )
     )
-    process = run(script, shell=True, capture_output=True, text=True, cwd=CONDA_SOURCE_ROOT)
+    env = os.environ.copy()
+    env["PYTHONPATH"] = CONDA_SOURCE_ROOT
+    process = run(script, shell=True, capture_output=True, text=True, env=env)
     print(process.stdout)
     print(process.stderr, file=sys.stderr)
     process.check_returncode()
