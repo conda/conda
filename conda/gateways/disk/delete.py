@@ -106,7 +106,7 @@ def rmtree(path):
             pass
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
-        #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html  # NOQA
+        #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html
 
         if isdir(".empty"):
             rsync = which("rsync")

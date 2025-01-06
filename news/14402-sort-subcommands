@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Adds a new plugin hook for adding arbitrary request headers to outgoing HTTP requests. (#14325)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Sort suggested subcommands when an incorrect subcommand is provided in the CLI. (#13332 via 14402)
 
 ### Deprecations
 

@@ -22,7 +22,7 @@ as well as conda's internal implementations of plugins.
 - :mod:`conda.plugins.subcommands.doctor`: ``conda doctor`` subcommand
 - :mod:`conda.plugins.virtual_packages`: registers virtual packages in conda
 
-"""  # noqa: E501
+"""
 
 from .hookspec import hookimpl  # noqa: F401
 from .types import (  # noqa: F401
@@ -32,6 +32,7 @@ from .types import (  # noqa: F401
     CondaPostSolve,
     CondaPreCommand,
     CondaPreSolve,
+    CondaReporterBackend,
     CondaRequestHeader,
     CondaSetting,
     CondaSolver,

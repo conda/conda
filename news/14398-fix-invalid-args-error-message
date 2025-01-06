@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Remove CreateNonAdminAction to prevent conda remove from deleting .nonadmin files. (#14271)
+* Fixes a bug when invalid values are being passed to `conda shell.posix` command (#14398)
 
 ### Deprecations
 

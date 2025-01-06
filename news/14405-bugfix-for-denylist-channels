@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Do not map Python distribution names to conda names in `PrefixData(pip_interop_enabled=True)`. (#14310 via #14317)
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
 
 ### Deprecations
 

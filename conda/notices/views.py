@@ -3,7 +3,7 @@
 """Handles all display/view logic."""
 
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 from ..base.context import context
 from .types import ChannelNotice

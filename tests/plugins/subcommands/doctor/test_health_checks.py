@@ -22,8 +22,8 @@ from conda.plugins.subcommands.doctor.health_checks import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
-    from typing import Iterable
 
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture

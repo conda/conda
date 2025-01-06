@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Do not retry solves twice in failed `conda env` runs. (#13784)
+* <news item>
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Use the correct parameter name, `handler`, in the CondaAuthHandler example (#14428).
 
 ### Other
 

@@ -217,7 +217,7 @@ class UpdateModifier(Enum):
     UPDATE_DEPS = "update_deps"
     UPDATE_SPECS = "update_specs"  # default
     UPDATE_ALL = "update_all"
-    # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149  # NOQA
+    # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149
 
     def __str__(self):
         return self.value
@@ -264,6 +264,12 @@ class SatSolverChoice(ValueEnum):
 #: The name of the default solver, currently "libmamba"
 DEFAULT_SOLVER = "libmamba"
 CLASSIC_SOLVER = "classic"
+
+#: The name of the default json reporter backend
+DEFAULT_JSON_REPORTER_BACKEND = "json"
+
+#: The name of the default console reporter backend
+DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
 
 
 class NoticeLevel(ValueEnum):

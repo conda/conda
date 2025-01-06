@@ -78,7 +78,8 @@ from conda.testing.integration import (
 )
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterator, Literal
+    from collections.abc import Iterator
+    from typing import Callable, Literal
 
     from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
@@ -2295,10 +2296,10 @@ def test_force_remove(
 ):
     with tmp_env("libarchive") as prefix:
         assert package_is_installed(prefix, "libarchive")
-        assert package_is_installed(prefix, "xz")
+        assert package_is_installed(prefix, "bzip2")
 
-        conda_cli("remove", f"--prefix={prefix}", "xz", "--force", "--yes")
-        assert not package_is_installed(prefix, "xz")
+        conda_cli("remove", f"--prefix={prefix}", "bzip2", "--force", "--yes")
+        assert not package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, "libarchive")
 
         conda_cli("remove", f"--prefix={prefix}", "libarchive", "--yes")
@@ -2702,3 +2703,27 @@ def test_nonadmin_file_untouched(
         assert nonadmin_file.is_file(), ".nonadmin file removed after installation"
         conda_cli("remove", "--yes", "--prefix", prefix, "dependency")
         assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"
+
+
+@pytest.mark.skipif(on_win, reason="sample packages used unix style paths")
+def test_python_site_packages_path(
+    test_recipes_channel: Path,
+    request: FixtureRequest,
+    tmp_env: TmpEnvFixture,
+):
+    """
+    When a python package that includes the optional python_site_packages_path repodata record is installed
+    noarch: python packages should be installed into that path.
+
+    Reference: https://github.com/conda/conda/issues/14053
+    """
+    # TODO update this to a version check once conda-libmamba-solver supports python_site_packages_path
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="conda-libmamba-solver does not support python_site_packages_path",
+        )
+    )
+    with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
+        sp_dir = "lib/python3.99t/site-packages"
+        assert (prefix / sp_dir / "sample.py").is_file()
