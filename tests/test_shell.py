@@ -1062,7 +1062,7 @@ def _run_command(*lines):
             *lines,
         )
     )
-    process = run(script, shell=True, capture_output=True, text=True)
+    process = run(script, shell=True, capture_output=True, text=True, cwd=CONDA_SOURCE_ROOT)
     print(process.stdout)
     print(process.stderr, file=sys.stderr)
     process.check_returncode()
