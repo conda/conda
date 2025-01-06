@@ -12,7 +12,7 @@ from pathlib import Path
 from re import escape
 from shutil import which
 from signal import SIGINT
-from subprocess import CalledProcessError, check_output
+from subprocess import STDOUT, CalledProcessError, check_output
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -1047,14 +1047,14 @@ def _run_command(*lines):
     # create a custom run command since this is specific to the shell integration
     if on_win:
         join = " && ".join
-        source = f"{Path(context.root_prefix, 'condabin', 'conda_hook.bat')}"
+        source = f"{Path(sys.prefix, 'condabin', 'conda_hook.bat')}"
     else:
         join = "\n".join
-        source = f". {Path(context.root_prefix, 'etc', 'profile.d', 'conda.sh')}"
+        source = f". {Path(sys.prefix, 'etc', 'profile.d', 'conda.sh')}"
 
     marker = uuid4().hex
     script = join((source, *(["conda deactivate"] * 5), f"echo {marker}", *lines))
-    output = check_output(script, shell=True).decode().splitlines()
+    output = check_output(script, shell=True, stderr=STDOUT).decode().splitlines()
     output = list(map(str.strip, output))
     output = output[output.index(marker) + 1 :]  # trim setup output
 
@@ -1107,12 +1107,12 @@ def test_stacking(
 ) -> None:
     which, envs = create_stackable_envs
     assert _run_command(
-        f"{sys.executable} -m conda config --set auto_stack {auto_stack}",
+        f"conda config --set auto_stack {auto_stack}",
         *(
             f'conda activate "{envs[env.strip()].prefix}"'
             for env in filter(None, stack.split(","))
         ),
-        f'{sys.executable} -m conda run -p "{envs[run.strip()].prefix}" {which}',
+        f'conda run -p "{envs[run.strip()].prefix}" {which}',
     ) == [
         path
         for env in filter(None, expected.split(","))
