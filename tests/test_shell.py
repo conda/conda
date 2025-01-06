@@ -1110,6 +1110,7 @@ def test_stacking(
     expected: str,
 ) -> None:
     which, envs = create_stackable_envs
+    _run_command(f"{'where' if on_win else 'which -a'} conda")
     assert _run_command(
         f"conda config --set auto_stack {auto_stack}",
         *(
