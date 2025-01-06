@@ -1,4 +1,4 @@
-# Copyright (C) 2025 conda
+# Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import platform
 from subprocess import check_output
