@@ -11,11 +11,12 @@ import pytest
 import conda.core.index
 from conda import __version__, plugins
 from conda.base.context import context, reset_context
+from conda.common._os.osx import mac_ver
 from conda.common.compat import on_linux, on_mac
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
-from conda.plugins.virtual_packages import cuda, osx
+from conda.plugins.virtual_packages import cuda
 from conda.testing.solver_helpers import package_dict
 
 if TYPE_CHECKING:
@@ -238,7 +239,7 @@ def test_osx_value(monkeypatch: MonkeyPatch):
     assert context.subdir == "osx-64"
     for prec in get_virtual_precs():
         if prec.name == "__osx":
-            assert prec.version == (osx.non_compat_mac_ver() if on_mac else "0")
+            assert prec.version == (mac_ver() if on_mac else "0")
             break
     else:
         raise AssertionError("Should have found __osx")
