@@ -5,7 +5,8 @@
 ### Bug fixes
 
 * Retry failed downloads one time on `ChecksumMismatchError` as caused by bad
-  partial downloads. (#13488)
+  partial downloads. Use `r+b` or `w+b` instead of "append" mode. Improve test
+  coverage. (#13488)
 
 ### Deprecations
 
