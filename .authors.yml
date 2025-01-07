@@ -642,7 +642,7 @@
   github: bradsaracik
 - name: Jaime Rodríguez-Guerra
   email: jaime.rogue@gmail.com
-  num_commits: 83
+  num_commits: 84
   first_commit: 2016-04-18 20:12:46
   github: jaimergp
   aliases:
@@ -1957,7 +1957,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 445
+  num_commits: 446
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:

@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 24.11.3 (2025-01-06)
+
+### Bug fixes
+
+* Fix recursion error introduced in `__conda_reactivate` deprecation message. (#14468)
+
+### Contributors
+
+* @jaimergp
+
+
+
 ## 24.11.2 (2024-12-19)
 
 ### Bug fixes
