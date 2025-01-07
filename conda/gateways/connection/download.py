@@ -180,6 +180,10 @@ def download_partial_file(
     partial_name = f"{name}.partial"
     partial_path = parent / partial_name
 
+    # read+ to open file, not truncate existing, or write+ to create file,
+    # truncate existing.
+    mode = "r+b" if partial_path.exists() else "w+b"
+
     def check(target):
         target.seek(0)
         if md5 or sha256:
@@ -220,7 +224,7 @@ def download_partial_file(
                 )
 
     try:
-        with partial_path.open(mode="w+b") as partial, lock(partial):
+        with partial_path.open(mode=mode) as partial, lock(partial):
             yield partial
             check(partial)
     except HTTPError as e:  # before conda error handler wrapper

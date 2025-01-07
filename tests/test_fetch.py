@@ -37,6 +37,7 @@ from conda.gateways.connection.download import (
     TmpDownload,
     download,
     download_http_errors,
+    download_text,
 )
 from conda.models.channel import Channel
 
@@ -100,7 +101,7 @@ def test_tmpDownload(monkeypatch: MonkeyPatch):
 def test_resume_download(tmp_path):
     # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
-    size = sum(len(line) for line in test_file)
+    size = len(b"".join(test_file))
     sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
 
     output_path = tmp_path / "download.tar.bz2"  # double extension
@@ -368,3 +369,21 @@ def test_checksum_checks_bytes(
 
     with pytest.raises(CondaValueError) if raises else nullcontext():
         download(url, output_path, size=size, sha256=get_sha256(sha256))
+
+
+@responses.activate
+def test_download_text():
+    test_file = b"text"
+
+    url = DEFAULT_CHANNEL_ALIAS
+    # allow the test to pass if we are using /t/<token> auth:
+    url_pattern = re.compile(f"{url}.*")
+    responses.add(
+        responses.GET,
+        url_pattern,
+        stream=True,
+        content_type="application/octet-stream",
+        body=test_file,
+    )
+
+    assert download_text(DEFAULT_CHANNEL_ALIAS) == test_file.decode("ascii")
