@@ -13,7 +13,7 @@ def conda_virtual_packages():
     if not context.subdir.startswith("win-"):
         return
 
-    dist_version = os.environ.get("CONDA_OVERRIDE_WIN")
+    dist_version = os.getenv("CONDA_OVERRIDE_WIN")
     if dist_version is None:
         dist_name, dist_version = context.os_distribution_name_version
         if dist_name != "Windows":
