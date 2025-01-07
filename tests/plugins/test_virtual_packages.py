@@ -11,7 +11,8 @@ import pytest
 import conda.core.index
 from conda import __version__, plugins
 from conda.base.context import context, reset_context
-from conda.common.compat import on_win
+from conda.common._os.osx import mac_ver
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
@@ -188,6 +189,26 @@ def test_linux_override(monkeypatch: MonkeyPatch, version: str | None, expected:
     assert any(prec.name == "__linux" for prec in get_virtual_precs()) is expected
 
 
+def test_linux_value(monkeypatch: MonkeyPatch):
+    """
+    In non Linux systems, conda cannot know which __linux version to offer if subdir==linux-64;
+    should be 0. In Linux systems, it should match the beginning of the value reported by
+    platform.release().
+    """
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+    assert context.subdir == "linux-64"
+    for prec in get_virtual_precs():
+        if prec.name == "__linux":
+            if on_linux:
+                assert platform.release().startswith(prec.version)
+            else:
+                assert prec.version == "0"
+            break
+    else:
+        raise AssertionError("Should have found __linux")
+
+
 @pytest.mark.parametrize("version,expected", [(None, False), ("1.0", True)])
 def test_glibc_override(monkeypatch: MonkeyPatch, version: str | None, expected: bool):
     """Conda should not produce a libc virtual package when CONDA_OVERRIDE_GLIBC=""."""
@@ -232,6 +253,22 @@ def test_win_value(monkeypatch: MonkeyPatch):
             break
     else:
         raise AssertionError("Should have found __win")
+
+
+def test_osx_value(monkeypatch: MonkeyPatch):
+    """
+    In non macOS systems, conda cannot know which __osx version to offer if subdir==osx-64;
+    should be 0. In macOS systems, it should be the value reported by platform.mac_ver()[0].
+    """
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-64")
+    reset_context()
+    assert context.subdir == "osx-64"
+    for prec in get_virtual_precs():
+        if prec.name == "__osx":
+            assert prec.version == (mac_ver() if on_mac else "0")
+            break
+    else:
+        raise AssertionError("Should have found __osx")
 
 
 def test_conda_virtual_package():
