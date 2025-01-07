@@ -141,7 +141,7 @@ jobs:
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
         env:
-          PYTHONPATH: "."
+          PYTHONPATH: .
         run: >
           pytest
           --cov=conda
@@ -247,7 +247,7 @@ jobs:
 
       - name: Run Tests
         env:
-          PYTHONPATH: "."
+          PYTHONPATH: .
         run: >
           pytest
           --cov=conda
@@ -338,7 +338,7 @@ jobs:
       - name: Run Benchmarks
         uses: CodSpeedHQ/action@513a19673a831f139e8717bf45ead67e47f00044 # v3.2.0
         env:
-          PYTHONPATH: "."
+          PYTHONPATH: .
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/pytest --codspeed
@@ -467,7 +467,7 @@ jobs:
 
       - name: Run memray
         env:
-          PYTHONPATH: "."
+          PYTHONPATH: .
         run: python -m pytest -k memray --memray
 
   # macos test suite
@@ -558,7 +558,7 @@ jobs:
 
       - name: Run Tests
         env:
-          PYTHONPATH: "."
+          PYTHONPATH: .
         run: >
           pytest
           --cov=conda
