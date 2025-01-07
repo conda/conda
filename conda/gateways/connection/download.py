@@ -69,7 +69,10 @@ def download(
             download_inner(
                 url, target_full_path, md5, sha256, size, progress_update_callback
             )
-        except ChecksumMismatchError:
+        except ChecksumMismatchError as e:
+            if not e._kwargs["partial_download"]:
+                raise
+
             log.warning("Retry failed partial download %s", target_full_path)
             download_inner(
                 url, target_full_path, md5, sha256, size, progress_update_callback
@@ -182,7 +185,8 @@ def download_partial_file(
 
     # read+ to open file, not truncate existing, or write+ to create file,
     # truncate existing.
-    mode = "r+b" if partial_path.exists() else "w+b"
+    partial_download = partial_path.exists()
+    mode = "r+b" if partial_download else "w+b"
 
     def check(target):
         target.seek(0)
@@ -208,7 +212,12 @@ def download_partial_file(
                     checksum,
                 )
                 raise ChecksumMismatchError(
-                    url, target_full_path, checksum_type, checksum, actual_checksum
+                    url,
+                    target_full_path,
+                    checksum_type,
+                    checksum,
+                    actual_checksum,
+                    partial_download=partial_download,
                 )
         if size is not None:
             actual_size = os.fstat(target.fileno()).st_size
@@ -220,7 +229,12 @@ def download_partial_file(
                     size,
                 )
                 raise ChecksumMismatchError(
-                    url, target_full_path, "size", size, actual_size
+                    url,
+                    target_full_path,
+                    "size",
+                    size,
+                    actual_size,
+                    partial_download=partial_download,
                 )
 
     try:
