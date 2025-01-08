@@ -26,7 +26,7 @@ log = getLogger(__name__)
 SHEBANG_REGEX = (
     rb"^(#!"  # pretty much the whole match string
     rb"(?:[ ]*)"  # allow spaces between #! and beginning of the executable path
-    rb"(/(?:\\ |[^ \n\r\t])*)"  # the executable is the next text block without an escaped space or non-space whitespace character  # NOQA
+    rb"(/(?:\\ |[^ \n\r\t])*)"  # the executable is the next text block without an escaped space or non-space whitespace character
     rb"(.*)"  # the rest of the line can contain option flags
     rb")$"
 )  # end whole_shebang group

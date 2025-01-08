@@ -30,6 +30,7 @@ from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..common._os.linux import linux_get_libc_version
+from ..common._os.osx import mac_ver
 from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
@@ -286,7 +287,7 @@ class Context(Configuration):
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
         )
-    )  # TODO: consider a different string delimiter  # NOQA
+    )  # TODO: consider a different string delimiter
     disallowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
@@ -1160,9 +1161,9 @@ class Context(Configuration):
             distribution_name, distribution_version = distinfo[0], distinfo[1]
         elif platform_name == "Darwin":
             distribution_name = "OSX"
-            distribution_version = platform.mac_ver()[0]
+            distribution_version = mac_ver()
         else:
-            distribution_name = platform.system()
+            distribution_name = platform_name
             distribution_version = platform.version()
         return distribution_name, distribution_version
 
@@ -1302,10 +1303,10 @@ class Context(Configuration):
                 "solver_ignore_timestamps",
                 "subdir",
                 "subdirs",
-                # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
-                # I don't think this documentation is correct any longer. # NOQA
+                # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies
+                # I don't think this documentation is correct any longer.
                 "target_prefix_override",
-                # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+                # used to override prefix rewriting, for e.g. building docker containers or RPMs
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
             ),
@@ -1461,7 +1462,7 @@ class Context(Configuration):
             #     set to 'warn' or 'prevent'.
             #     """
             # ),
-            # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
+            # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration
             conda_build=dals(
                 """
                 General configuration parameters for conda-build.
