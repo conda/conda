@@ -1163,7 +1163,7 @@ class Context(Configuration):
             distribution_name = "OSX"
             distribution_version = mac_ver()
         else:
-            distribution_name = platform.system()
+            distribution_name = platform_name
             distribution_version = platform.version()
         return distribution_name, distribution_version
 

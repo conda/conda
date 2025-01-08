@@ -12,7 +12,7 @@ import conda.core.index
 from conda import __version__, plugins
 from conda.base.context import context, reset_context
 from conda.common._os.osx import mac_ver
-from conda.common.compat import on_linux, on_mac
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
@@ -216,7 +216,7 @@ def test_glibc_override(monkeypatch: MonkeyPatch, version: str | None, expected:
     monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", version or "")
     reset_context()
     assert context.subdir == "linux-64"
-    assert any(prec.name == "__glibc" for prec in get_virtual_precs()) == expected
+    assert any(prec.name == "__glibc" for prec in get_virtual_precs()) is expected
 
 
 @pytest.mark.parametrize("version,expected", [(None, False), ("1.0", True)])
@@ -226,7 +226,33 @@ def test_osx_override(monkeypatch: MonkeyPatch, version: str | None, expected: b
     monkeypatch.setenv("CONDA_OVERRIDE_OSX", version or "")
     reset_context()
     assert context.subdir == "osx-64"
-    assert any(prec.name == "__osx" for prec in get_virtual_precs()) == expected
+    assert any(prec.name == "__osx" for prec in get_virtual_precs()) is expected
+
+
+@pytest.mark.parametrize("version,expected", [(None, False), ("1.0", True)])
+def test_win_override(monkeypatch: MonkeyPatch, version: str | None, expected: bool):
+    """Conda should not produce a win virtual package when CONDA_OVERRIDE_WIN=""."""
+    monkeypatch.setenv("CONDA_SUBDIR", "win-64")
+    monkeypatch.setenv("CONDA_OVERRIDE_WIN", version or "")
+    reset_context()
+    assert context.subdir == "win-64"
+    assert any(prec.name == "__win" for prec in get_virtual_precs()) is expected
+
+
+def test_win_value(monkeypatch: MonkeyPatch):
+    """
+    In non Windows systems, conda cannot know which __win version to offer if subdir==win-64;
+    should be 0. In Windows systems, it should be set to whatever platform.version() reports.
+    """
+    monkeypatch.setenv("CONDA_SUBDIR", "win-64")
+    reset_context()
+    assert context.subdir == "win-64"
+    for prec in get_virtual_precs():
+        if prec.name == "__win":
+            assert prec.version == (platform.version() if on_win else "0")
+            break
+    else:
+        raise AssertionError("Should have found __win")
 
 
 def test_osx_value(monkeypatch: MonkeyPatch):
