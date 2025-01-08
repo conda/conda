@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-import responses
+import responses.matchers
+import responses.registries
 from conda_package_handling.utils import checksum
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
@@ -387,3 +388,72 @@ def test_download_text():
     )
 
     assert download_text(DEFAULT_CHANNEL_ALIAS) == test_file.decode("ascii")
+
+
+@responses.activate(registry=responses.registries.OrderedRegistry)
+def test_resume_bad_partial(tmp_path: Path):
+    """
+    Test retry when partial file is corrupted.
+    """
+    test_file = b"data"
+    size = len(test_file)
+    sha256 = hashlib.sha256(test_file).hexdigest()
+    output_path = tmp_path / "test_file"
+
+    url = "http://example.org/test_file"
+
+    # won't resume download unless Partial Content status code
+    responses.add(
+        responses.GET,
+        url,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+        status=206,  # partial content
+        body=test_file[1:],
+        match=[
+            responses.matchers.header_matcher({"Range": "bytes=1-"}),
+        ],
+    )
+
+    responses.add(
+        responses.GET,
+        url,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+        status=200,
+        body=test_file,
+    )
+
+    # simulate partial download
+    partial_path = Path(str(output_path) + ".partial")
+    partial_path.write_text("x")
+
+    # resume from `.partial` file
+    download(url, output_path, size=size, sha256=sha256)
+
+    assert output_path.read_bytes() == test_file
+
+
+def test_download_size_none(tmp_path: Path):
+    """
+    Test download with no size.
+    """
+    test_file = b"data"
+    sha256 = hashlib.sha256(test_file).hexdigest()
+    output_path = tmp_path / "test_file"
+
+    url = "http://example.org/test_file"
+
+    responses.add(
+        responses.GET,
+        url,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+        status=200,
+        body=test_file,
+    )
+
+    # no size given
+    download(url, output_path, sha256=sha256)
+
+    assert output_path.read_bytes() == test_file
