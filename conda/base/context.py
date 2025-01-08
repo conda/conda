@@ -980,7 +980,7 @@ class Context(Configuration):
                     (*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME)
                 )
 
-        if self._channels:
+        if self._channels is not None:
             channels = self._channels
         else:
             _warn_defaults_deprecation()
