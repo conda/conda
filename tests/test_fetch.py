@@ -434,6 +434,7 @@ def test_resume_bad_partial(tmp_path: Path):
     assert output_path.read_bytes() == test_file
 
 
+@responses.activate
 def test_download_size_none(tmp_path: Path):
     """
     Test download with no size.
