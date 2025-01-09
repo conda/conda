@@ -488,8 +488,8 @@ def PYTHONPATH():
     https://docs.python.org/3/library/sys_path_init.html for details.
     """
     if "PYTHONPATH" in os.environ:
-        return
-
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
         yield
+    else:
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
+            yield
