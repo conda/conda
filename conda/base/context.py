@@ -30,6 +30,7 @@ from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
 from ..common._os.linux import linux_get_libc_version
+from ..common._os.osx import mac_ver
 from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
@@ -1160,9 +1161,9 @@ class Context(Configuration):
             distribution_name, distribution_version = distinfo[0], distinfo[1]
         elif platform_name == "Darwin":
             distribution_name = "OSX"
-            distribution_version = platform.mac_ver()[0]
+            distribution_version = mac_ver()
         else:
-            distribution_name = platform.system()
+            distribution_name = platform_name
             distribution_version = platform.version()
         return distribution_name, distribution_version
 
