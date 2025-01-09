@@ -314,6 +314,21 @@ def test_tarball_match_specs():
     # assert MatchSpec('defaults/zos::python').get_exact_value('channel').urls() == ()
 
 
+def test_url_percent_encoding():
+    "https://github.com/mamba-org/mamba/issues/3737"
+    # x264 version has an epoch "1!164"; ! is encoded as %21
+    url_with = "https://anaconda.org/conda-forge/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"
+    url_without = "https://anaconda.org/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+
+    assert MatchSpec(url_with).version == MatchSpec(url_without).version
+
+    # Ficticious channel that yells at you
+    url_with = "https://anaconda.org/conda-forge%21/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"
+    url_without = "https://anaconda.org/conda-forge!/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+
+    assert MatchSpec(url_with).get("channel").name == MatchSpec(url_without).get("channel").name
+
+
 def test_exact_values():
     assert MatchSpec("*").get_exact_value("name") is None
     assert MatchSpec("numpy").get_exact_value("name") == "numpy"

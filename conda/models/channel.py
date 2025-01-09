@@ -32,6 +32,7 @@ from ..common.url import (
     is_url,
     join_url,
     path_to_url,
+    percent_decode,
     split_conda_url_easy_parts,
     split_platform,
     split_scheme_auth_token,
@@ -586,6 +587,12 @@ def parse_conda_channel_url(url):
     # if we came out with no channel_location or channel_name, we need to figure it out
     # from host, port, path
     assert channel_location is not None or channel_name is not None
+    # These two fields might have URL-encodable characters that we should decode
+    # We don't decode the full URL because some %XX values might be part some auth
+    if channel_name:
+        channel_name = percent_decode(channel_name)
+    if package_filename:
+        package_filename = percent_decode(package_filename)
 
     return Channel(
         configured_scheme or "https",
