@@ -1908,7 +1908,7 @@ class Context(Configuration):
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
 
-    # reset plugin config params
+    # remove plugin config params
     remove_all_plugin_settings()
 
     context.__init__(search_path, argparse_args)
@@ -1921,6 +1921,9 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
     # clear function cache
     from ..reporters import _get_render_func
+
+    # reload plugin config params
+    context.plugin_manager.load_settings()
 
     _get_render_func.cache_clear()
 
