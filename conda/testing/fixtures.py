@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
+from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
@@ -470,3 +471,25 @@ def tmp_envs_dir(
     assert context.envs_dirs == (envs_dir_str,)
 
     yield envs_dir
+
+
+@pytest.fixture(scope="session", autouse=True)
+def PYTHONPATH():
+    """
+    We need to set this so Python loads the dev version of 'conda', usually taken
+    from `conda/` in the root of the cloned repo. This root is usually the working
+    directory when we run `pytest`.
+    Otherwise, it will import the one installed in the base environment, which might
+    have not been overwritten with `pip install -e . --no-deps`. This doesn't happen
+    in other tests because they run with the equivalent of `python -m conda`. However,
+    some tests directly run `conda (shell function) which calls `conda` (Python entry
+    point). When a script is called this way, it bypasses the automatic "working directory
+    is first on sys.path" behavior you find in `python -m` style calls. See
+    https://docs.python.org/3/library/sys_path_init.html for details.
+    """
+    if "PYTHONPATH" in os.environ:
+        yield
+    else:
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
+            yield
