@@ -57,9 +57,6 @@ changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
 documentation = "https://docs.conda.io/projects/conda/en/stable/"
 repository = "https://github.com/conda/conda"
 
-[tool.coverage.html]
-show_contexts = true
-
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",
@@ -114,8 +111,6 @@ addopts = [
   "--cov-branch",
   "--cov-report=term",  # print summary table to screen
   "--cov-report=xml",  # for codecov/codecov-action upload
-  "--cov-report=html:test-report.html",  # for context debugging (which test ran this line?)
-  "--cov-context=test",
   "--durations=16",
   "--junitxml=test-report.xml",
   "--splitting-algorithm=least_duration",
