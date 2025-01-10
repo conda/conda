@@ -153,6 +153,7 @@ def subprocess_call_with_clean_env(
     raise_on_error=True,
     clean_python=True,
     clean_conda=True,
+    capture_output=True,
 ):
     # Any of these env vars are likely to mess the whole thing up.
     # This has been seen to be the case with PYTHONPATH.
@@ -160,5 +161,10 @@ def subprocess_call_with_clean_env(
     _subprocess_clean_env(env, clean_python, clean_conda)
     # env['CONDA_DLL_SEARCH_MODIFICATION_ENABLE'] = '1'
     return subprocess_call(
-        command, env=env, path=path, stdin=stdin, raise_on_error=raise_on_error
+        command,
+        env=env,
+        path=path,
+        stdin=stdin,
+        raise_on_error=raise_on_error,
+        capture_output=capture_output,
     )

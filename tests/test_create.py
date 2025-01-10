@@ -2448,6 +2448,8 @@ def test_conda_downgrade(
         subprocess_call_with_clean_env(
             [conda_exe, "install", f"--prefix={prefix}", "itsdangerous", "--yes"],
             path=prefix,
+            raise_on_error=False,
+            capture_output=False,
         )  # rev 2
         assert package_is_installed(prefix, "itsdangerous")
 
@@ -2465,10 +2467,12 @@ def test_conda_downgrade(
             ],
             path=prefix,
             raise_on_error=False,
+            capture_output=False,
         )  # rev 3
         assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
         # undo the conda downgrade in the env (using our current outer conda version)
+        PrefixData._cache_.clear()
         conda_cli("install", f"--prefix={prefix}", "--rev=2", "--yes")
         assert package_is_installed(prefix, f"python={py_prec.version}")
         assert package_is_installed(prefix, f"conda={conda_prec.version}")
