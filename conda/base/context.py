@@ -15,7 +15,7 @@ import struct
 import sys
 from collections import defaultdict
 from collections.abc import Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from errno import ENOENT
 from functools import cache, cached_property
 from itertools import chain
@@ -1908,7 +1908,7 @@ class Context(Configuration):
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
 
-    # reset plugin config params
+    # remove plugin config params
     remove_all_plugin_settings()
 
     context.__init__(search_path, argparse_args)
@@ -1921,6 +1921,10 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
     # clear function cache
     from ..reporters import _get_render_func
+
+    # reload plugin config params
+    with suppress(AttributeError):
+        del context.plugins
 
     _get_render_func.cache_clear()
 
