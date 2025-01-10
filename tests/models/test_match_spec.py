@@ -315,7 +315,9 @@ def test_tarball_match_specs():
 
 
 def test_url_percent_encoding():
-    "https://github.com/mamba-org/mamba/issues/3737"
+    """
+    More info here: https://github.com/mamba-org/mamba/issues/3737
+    """
     # x264 version has an epoch "1!164"; ! is encoded as %21
     url_with = (
         "https://anaconda.org/conda-forge/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"

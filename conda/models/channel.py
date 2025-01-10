@@ -588,7 +588,7 @@ def parse_conda_channel_url(url):
     # from host, port, path
     assert channel_location is not None or channel_name is not None
     # These two fields might have URL-encodable characters that we should decode
-    # We don't decode the full URL because some %XX values might be part some auth
+    # We don't decode the full URL because some %XX values might be part of some auth values
     if channel_name:
         channel_name = percent_decode(channel_name)
     if package_filename:
