@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Enable `conda doctor` to check whether the environment exists or not before trying to generate a health report. (#14112)
+* Fixes a bug when invalid values are being passed to `conda shell.posix` command (#14398)
 
 ### Deprecations
 

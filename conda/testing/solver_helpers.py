@@ -8,6 +8,7 @@ import collections
 import functools
 import json
 import pathlib
+import time
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -25,7 +26,7 @@ from ..models.records import PackageRecord
 from . import helpers
 
 
-@functools.lru_cache
+@functools.cache
 def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
@@ -706,6 +707,9 @@ class SolverTests:
             "test::distribute-0.6.36-py33_1",
             "test::pip-1.3.1-py33_1",
         }
+
+        # Add 1s to make sure the new repodata.jsons have different mod times
+        time.sleep(1)
 
         # This time, the latest version is messed up
         env.repo_packages = index_packages(1) + [

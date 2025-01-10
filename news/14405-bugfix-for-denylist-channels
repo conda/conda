@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* `conda remove [env] --all` command no longer deletes empty parent directories for environments that are removed. (#14173)
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
 
 ### Deprecations
 

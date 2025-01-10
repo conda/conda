@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from functools import lru_cache, wraps
+from functools import cache, wraps
 from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
@@ -152,7 +152,7 @@ _MSYS2_SHELL_BASE = dict(
     path_from=_unix_path_to_win,
     path_to=_win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
-    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
+    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",
 )
 
 deprecated.constant(
@@ -195,7 +195,7 @@ if on_win:
             env_script_suffix=".bat",
             printps1="@echo %PROMPT%",
             promptvar="PROMPT",
-            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
+            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
             printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
             "echo %CONDA_DEFAULT_ENV% ) ELSE (\n"
             "echo()",
@@ -278,7 +278,7 @@ deprecated.constant(
 urlpath = url_path = path_to_url
 
 
-@lru_cache(maxsize=None)
+@cache
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to
@@ -343,15 +343,7 @@ if on_win:
         return " ".join(quote(arg) for arg in args)
 
 else:
-    try:
-        from shlex import join as _args_join
-    except ImportError:
-        # [backport] Python <3.8
-        def _args_join(args):
-            """Return a shell-escaped string from *args*."""
-            from shlex import quote
-
-            return " ".join(quote(arg) for arg in args)
+    from shlex import join as _args_join
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
@@ -384,7 +376,7 @@ def massage_arguments(arguments, errors="assert"):
 
     assert not any(
         [isiterable(arg) for arg in arguments]
-    ), "Individual arguments must not be iterable"  # NOQA
+    ), "Individual arguments must not be iterable"
     arguments = list(arguments)
 
     return arguments
@@ -425,7 +417,7 @@ def wrap_subprocess_call(
             fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
             fh.write(f"{silencer}SET PYTHONUTF8=1\n")
             fh.write(
-                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'
             )
             fh.write(f"{silencer}chcp 65001 > NUL\n")
             if dev_mode:

@@ -1,17 +1,26 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import requests
-from pytest import CaptureFixture, MonkeyPatch
 
 from conda.base.context import context, reset_context
+from conda.cli.main_search import _pretty_record_format, pretty_record
 from conda.exceptions import PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
-from conda.testing import CondaCLIFixture
+from conda.models.records import PackageRecord
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import CaptureFixture, MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 # all tests in this file are integration tests
 pytestmark = [pytest.mark.integration]
@@ -198,6 +207,7 @@ def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--override-channels", "--channel=main", "rpy2")
 
+    reset_context()
     # assert conda search can now find rpy2
     stdout, stderr, _ = conda_cli(
         "search",
@@ -206,6 +216,7 @@ def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir
         "rpy2",
         "--json",
     )
+
     assert "rpy2" in json.loads(stdout)
 
 
@@ -280,6 +291,7 @@ def test_anaconda_token_with_private_package(
     capsys.readouterr()
 
     # Step 2. Now with the token make sure we can see the package
+    reset_context()
     channel_url = "https://conda-web.anaconda.org/t/co-de3376bc-5463-41fe-8d14-878c7e6a8253/conda-test"
     stdout, _, _ = conda_cli(
         "search",
@@ -320,3 +332,50 @@ def test_bad_anaconda_token(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
     json_obj = json.loads(stdout)
     assert "anaconda-mosaic" in json_obj
     assert len(json_obj["anaconda-mosaic"]) > 0
+
+
+def test_pretty_record():
+    """
+    Coverage for missing/None fields in PackageRecord
+    """
+    args = []
+
+    def print(arg):
+        args.append(arg)
+
+    pretty_record(
+        PackageRecord.from_objects(
+            {
+                "name": "p",
+                "version": "1",
+                "build": "1",
+                "build_number": 1,
+                "timestamp": 0,
+                "license": None,
+            }
+        ),
+        print=print,
+    )
+
+    # subdir will change, check everything up to that point
+    assert "\n".join(args).startswith(
+        "p 1 1\n-----\nfile name   : p-1-1\nname        : p\nversion     : 1\nbuild       : 1\nbuild number: 1\nsubdir      :"
+    )
+
+    # cover timestamp, size, constrains lines
+    with_timestamp_and_constrains = _pretty_record_format(
+        PackageRecord.from_objects(
+            {
+                "name": "p",
+                "version": "1",
+                "build": "1",
+                "build_number": 1,
+                "timestamp": 1,
+                "license": None,
+                "constrains": ["conda"],
+                "size": 1,
+            }
+        )
+    )
+
+    assert with_timestamp_and_constrains.startswith("p 1 1\n")

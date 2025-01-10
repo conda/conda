@@ -28,10 +28,9 @@ __conda_activate() {
 }
 
 __conda_reactivate() {
-    \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
-    \eval "$ask_conda"
-    __conda_hashr
+    # FUTURE: conda 25.9, remove this function
+    echo "'__conda_reactivate' is deprecated and will be removed in 25.9. Use '__conda_activate reactivate' instead." 1>&2
+    __conda_activate reactivate
 }
 
 conda() {
@@ -42,7 +41,7 @@ conda() {
             ;;
         install|update|upgrade|remove|uninstall)
             __conda_exe "$@" || \return
-            __conda_reactivate
+            __conda_activate reactivate
             ;;
         *)
             __conda_exe "$@"

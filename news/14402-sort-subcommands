@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `conda.common.configuration.ObjectParameter`'s ability to appropriately handle defaults. (#14149)
+* Sort suggested subcommands when an incorrect subcommand is provided in the CLI. (#13332 via 14402)
 
 ### Deprecations
 

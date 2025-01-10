@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Set `__win` version and enable `CONDA_OVERRIDE_WIN` usage. (#14443 via #14450)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Document `--platform` flag for `conda [env] create`. (#14100 via #14181)
+* <news item>
 
 ### Other
 
