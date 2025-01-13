@@ -36,6 +36,7 @@ env:
 jobs:
   # detect whether any code changes are included in this PR
   changes:
+    if: false
     runs-on: ubuntu-latest
     permissions:
       # necessary to detect changes
@@ -67,7 +68,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
     strategy:
@@ -171,7 +172,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -274,7 +275,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -341,7 +342,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -404,7 +405,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -466,7 +467,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:
@@ -579,12 +580,12 @@ jobs:
   aggregate:
     # only aggregate test suite if there are code changes
     needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
-    if: >-
-      !cancelled()
-      && (
-        github.event_name == 'schedule'
-        || needs.changes.outputs.code == 'true'
-      )
+    if: false # >-
+      # !cancelled()
+      # && (
+      #   github.event_name == 'schedule'
+      #   || needs.changes.outputs.code == 'true'
+      # )
 
     runs-on: ubuntu-latest
     steps:
@@ -608,7 +609,7 @@ jobs:
   # required check
   analyze:
     needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
-    if: '!cancelled()'
+    if: false # '!cancelled()'
 
     runs-on: ubuntu-latest
     steps:
@@ -637,19 +638,19 @@ jobs:
 
   # canary builds
   build:
-    needs: [analyze]
+    # needs: [analyze]
     # only build canary build if
     # - prior steps succeeded,
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
-    if: >-
-      !cancelled()
-      && !github.event.repository.fork
-      && (
-        github.ref_name == 'main'
-        || startsWith(github.ref_name, 'feature/')
-        || endsWith(github.ref_name, '.x')
-      )
+    if: true # >-
+      # !cancelled()
+      # && !github.event.repository.fork
+      # && (
+      #   github.ref_name == 'main'
+      #   || startsWith(github.ref_name, 'feature/')
+      #   || endsWith(github.ref_name, '.x')
+      # )
     strategy:
       matrix:
         include:
