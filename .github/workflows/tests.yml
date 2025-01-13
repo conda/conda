@@ -714,7 +714,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@6e72e0db87e72f0020e493aeb02f864363bd9258 # v24.11.1
+        uses: conda/actions/canary-release@debug-canary
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -726,3 +726,5 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          # nested quotes are necessary to prevent argument from being interpreted as a redirect
+          conda-build-dependencies: "'libmamba<2'"
