@@ -719,7 +719,7 @@ jobs:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
           CONDA_PKGS_DIRS: ${{ runner.temp }}/clean-pkgs-dir
-          CONDA_VERBOSITY: 3
+          # CONDA_VERBOSITY: 3
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
