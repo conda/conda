@@ -713,8 +713,11 @@ jobs:
 
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
+      - name: Clean conda cache
+        run: conda clean --all --yes
+
       - name: Create & Upload
-        uses: conda/actions/canary-release@debug-canary
+        uses: conda/actions/canary-release@add-clean-cache-step
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
