@@ -727,7 +727,7 @@ jobs:
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
           # nested quotes are necessary to prevent argument from being interpreted as a redirect
-          conda-build-dependencies: "'libmamba<2'"
+          conda-build-dependencies: "'conda<24.11' 'libmamba<2'"
 
       - if: failure()
         uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19
