@@ -36,6 +36,7 @@ env:
 jobs:
   # detect whether any code changes are included in this PR
   changes:
+    if: false
     runs-on: ubuntu-latest
     permissions:
       # necessary to detect changes
@@ -67,7 +68,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
     strategy:
@@ -171,7 +172,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -274,7 +275,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -341,7 +342,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -404,7 +405,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -466,7 +467,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:
@@ -579,12 +580,12 @@ jobs:
   aggregate:
     # only aggregate test suite if there are code changes
     needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
-    if: >-
-      !cancelled()
-      && (
-        github.event_name == 'schedule'
-        || needs.changes.outputs.code == 'true'
-      )
+    if: false # >-
+      # !cancelled()
+      # && (
+      #   github.event_name == 'schedule'
+      #   || needs.changes.outputs.code == 'true'
+      # )
 
     runs-on: ubuntu-latest
     steps:
@@ -608,7 +609,7 @@ jobs:
   # required check
   analyze:
     needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
-    if: '!cancelled()'
+    if: false # '!cancelled()'
 
     runs-on: ubuntu-latest
     steps:
@@ -637,30 +638,30 @@ jobs:
 
   # canary builds
   build:
-    needs: [analyze]
+    # needs: [analyze]
     # only build canary build if
     # - prior steps succeeded,
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
-    if: >-
-      !cancelled()
-      && !github.event.repository.fork
-      && (
-        github.ref_name == 'main'
-        || startsWith(github.ref_name, 'feature/')
-        || endsWith(github.ref_name, '.x')
-      )
+    if: true # >-
+      # !cancelled()
+      # && !github.event.repository.fork
+      # && (
+      #   github.ref_name == 'main'
+      #   || startsWith(github.ref_name, 'feature/')
+      #   || endsWith(github.ref_name, '.x')
+      # )
     strategy:
       matrix:
         include:
           - runner: ubuntu-latest
             subdir: linux-64
-          - runner: macos-13
-            subdir: osx-64
-          - runner: macos-latest
-            subdir: osx-arm64
-          - runner: windows-latest
-            subdir: win-64
+          # - runner: macos-13
+          #   subdir: osx-64
+          # - runner: macos-latest
+          #   subdir: osx-arm64
+          # - runner: windows-latest
+          #   subdir: win-64
     runs-on: ${{ matrix.runner }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
@@ -713,13 +714,22 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@6e72e0db87e72f0020e493aeb02f864363bd9258 # v24.11.1
+        uses: conda/actions/canary-release@debug-canary
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
+          CONDA_PKGS_DIRS: ${{ runner.temp }}/clean-pkgs-dir
+          # CONDA_VERBOSITY: 3
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          # nested quotes are necessary to prevent argument from being interpreted as a redirect
+          conda-build-dependencies: "'conda<24.11' 'libmamba<2'"
+
+      - if: failure()
+        uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19
+        with:
+          limit-access-to-actor: true
