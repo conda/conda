@@ -242,7 +242,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"""
                     Invalid plugin names found:
 
-                    {', '.join([str(plugin) for plugin in invalid])}
+                    {", ".join([str(plugin) for plugin in invalid])}
 
                     Please report this issue to the plugin author(s).
                     """

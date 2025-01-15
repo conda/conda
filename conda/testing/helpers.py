@@ -74,15 +74,15 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert (
-        a.lower() not in b.lower()
-    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
+    assert a.lower() not in b.lower(), (
+        f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
+    )
 
 
 def assert_in(a, b, output=""):
-    assert (
-        a.lower() in b.lower()
-    ), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
+    assert a.lower() in b.lower(), (
+        f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
+    )
 
 
 def add_subdir(dist_string):
