@@ -91,7 +91,6 @@ def test_jlap_fetch(package_server: socket, tmp_path: Path, mocker):
 @pytest.mark.benchmark
 def test_jlap_fetch_file(package_repository_base: Path, tmp_path: Path, mocker):
     """Check that JlapRepoInterface can fetch from a file:/// URL"""
-    reset_context(())
     base = package_repository_base.as_uri()
     cache = RepodataCache(base=tmp_path / "cache", repodata_fn="repodata.json")
     url = f"{base}/osx-64"
