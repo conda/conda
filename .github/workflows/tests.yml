@@ -645,11 +645,11 @@ jobs:
     if: >-
       !cancelled()
       && !github.event.repository.fork
-    #   && (
-    #     github.ref_name == 'main'
-    #     || startsWith(github.ref_name, 'feature/')
-    #     || endsWith(github.ref_name, '.x')
-    #   )
+      && (
+        github.ref_name == 'main'
+        || startsWith(github.ref_name, 'feature/')
+        || endsWith(github.ref_name, '.x')
+      )
     strategy:
       matrix:
         include:
@@ -713,7 +713,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@upload-dot-conda
+        uses: conda/actions/canary-release@8ff3faa82ad80f5c05d91c22bcd37d897f80ca46 # v25.1.1
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
