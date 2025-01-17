@@ -43,7 +43,7 @@ Conda is available on Windows, macOS, or Linux and can be used with any terminal
 
    .. tab-item:: Windows
 
-      #. Open either the Anaconda Command Prompt (cmd.exe) or Anaconda PowerShell.
+      #. Open either the Anaconda or Miniforge Command Prompt (cmd.exe). A PowerShell prompt is also available with Anaconda Distribution or Miniconda.
 
    .. tab-item:: macOS
 
