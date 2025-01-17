@@ -50,7 +50,7 @@ System requirements
 
 * For Anaconda: Minimum 3 GB disk space to download and install
 
-* For Windows: Windows 8.1 or newer for Python 3.9, or Windows Vista or newer for Python 3.8
+* For Windows: Windows 8.1 or newer for Python 3.9
 
 .. admonition:: Tip
 

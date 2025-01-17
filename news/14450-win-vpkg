@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Set `__win` version and enable `CONDA_OVERRIDE_WIN` usage. (#14443 via #14450)
 
 ### Bug fixes
 
-* Do not retry solves twice in failed `conda env` runs. (#13784)
+* <news item>
 
 ### Deprecations
 

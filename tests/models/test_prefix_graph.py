@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import time
 import warnings
-from functools import lru_cache
+from functools import cache
 from pprint import pprint
 
 import pytest
@@ -19,7 +19,7 @@ from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_conda_build_record_set(tmpdir):
     specs = (
         MatchSpec("conda"),
@@ -31,7 +31,7 @@ def get_conda_build_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_pandas_record_set(tmpdir):
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13")
     with get_solver_4(tmpdir, specs) as solver:
@@ -39,7 +39,7 @@ def get_pandas_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_windows_conda_build_record_set(tmpdir, merge_noarch=True):
     # TODO: We run into stale cache conditions if channels are updated in <1s
     # Remove when https://github.com/conda/conda/issues/13783 is addressed
@@ -56,7 +56,7 @@ def get_windows_conda_build_record_set(tmpdir, merge_noarch=True):
     return final_state, frozenset(specs)
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_sqlite_cyclical_record_set(tmpdir):
     # sqlite-3.20.1-haaaaaaa_4
     if context.solver == "libmamba":

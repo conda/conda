@@ -14,7 +14,6 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -26,7 +25,7 @@ dependencies = [
   "archspec >=0.2.3",
   "boltons >=23.0.0",
   "charset-normalizer",
-  "conda-libmamba-solver >=23.11.0",
+  "conda-libmamba-solver >=24.11.0",
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "frozendict >=2.4.2",
@@ -48,7 +47,7 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 name = "conda"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.scripts]
 conda = "conda.cli.main_pip:main"
@@ -154,7 +153,7 @@ exclude = [
   "tests/data/env_metadata",
   "tools/vendoring",
 ]
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.lint]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
@@ -170,6 +169,7 @@ ignore = [
   "E501",  # line too long
   "E722",  # do not use bare 'except'
   "E731",  # do not assign a lambda expression, use a def
+  "UP031",  # do not fix printf-style string formatting
 ]
 pydocstyle = {convention = "pep257"}
 # see https://docs.astral.sh/ruff/rules/
@@ -180,6 +180,7 @@ select = [
   "FA",  # flake8-future-annotations
   "I",  # isort
   "ISC",  # flake8-implicit-str-concat
+  "RUF100",  # Unused noqa directive
   "T10",  # flake8-debugger
   "TCH",  # flake8-type-checking
   "UP",  # pyupgrade

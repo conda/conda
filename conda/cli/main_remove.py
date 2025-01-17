@@ -9,7 +9,7 @@ import logging
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isfile, join
 
-from .common import confirm_yn
+from ..reporters import confirm_yn
 
 log = logging.getLogger(__name__)
 
@@ -159,8 +159,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if not (args.all or args.package_names):
         raise CondaValueError(
-            "no package names supplied,\n"
-            '       try "conda remove -h" for more details'
+            'no package names supplied,\n       try "conda remove -h" for more details'
         )
 
     prefix = context.target_prefix

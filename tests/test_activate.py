@@ -34,12 +34,16 @@ from conda.base.constants import (
 from conda.base.context import context, reset_context
 from conda.cli.main import main_sourced
 from conda.common.compat import on_win
-from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
+from conda.exceptions import (
+    ArgumentError,
+    EnvironmentLocationNotFound,
+    EnvironmentNameNotFound,
+)
 from conda.gateways.disk.delete import rm_rf
 from conda.plugins.types import CondaPostCommand, CondaPreCommand
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
@@ -2300,3 +2304,34 @@ def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> 
 
     assert len(plugin.pre_command_action.mock_calls) == 2
     assert len(plugin.post_command_action.mock_calls) == 1
+
+
+@pytest.mark.parametrize(
+    "command_args,expected_error_message",
+    (
+        (
+            ["invalid-command"],
+            "'activate', 'deactivate', 'hook', 'commands', or 'reactivate' command must be given.",
+        ),
+        (
+            ["activate", "--stack", "--no-stack"],
+            "cannot specify both --stack and --no-stack to activate",
+        ),
+        (
+            ["activate", "env-one", "env-two"],
+            "activate does not accept more than one argument:\n\\['env-one', 'env-two'\\]\n",
+        ),
+        (
+            ["deactivate", "env-one"],
+            "deactivate does not accept arguments\nremainder_args: \\['env-one']\n",
+        ),
+    ),
+)
+def test_activator_invalid_command_arguments(command_args, expected_error_message):
+    """
+    Ensure that the appropriate error is raised when invalid command arguments are passed
+    """
+    activator = PosixActivator(command_args)
+
+    with pytest.raises(ArgumentError, match=expected_error_message):
+        activator.execute()

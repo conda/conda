@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Merge overlapping glob build specs instead of raising `Incompatible component merge`. (#11612)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Require `conda-libmamba-solver >=24.11.0` for `libmamba 2.x` compatibility. (#11612)

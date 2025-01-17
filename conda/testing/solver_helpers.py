@@ -26,7 +26,7 @@ from ..models.records import PackageRecord
 from . import helpers
 
 
-@functools.lru_cache
+@functools.cache
 def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
@@ -1229,13 +1229,13 @@ class SolverTests:
         ]
         for record in env.install("top", as_specs=True):
             if record.name == "top":
-                assert (
-                    record.version == "2.0"
-                ), f"top version should be 2.0, but is {record.version}"
+                assert record.version == "2.0", (
+                    f"top version should be 2.0, but is {record.version}"
+                )
             elif record.name == "bottom":
-                assert (
-                    record.version == "2.5"
-                ), f"bottom version should be 2.5, but is {record.version}"
+                assert record.version == "2.5", (
+                    f"bottom version should be 2.5, but is {record.version}"
+                )
 
     def test_arch_preferred_over_noarch_when_otherwise_equal(self, env):
         env.repo_packages += [

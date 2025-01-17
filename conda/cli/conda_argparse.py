@@ -222,6 +222,11 @@ class ArgumentParser(ArgumentParserBase):
             add_parser_help(self)
 
     def _check_value(self, action, value):
+        # For our greedy subparsers, sort the choices by their repr for stable output
+        if isinstance(action, _GreedySubParsersAction) and isinstance(
+            action.choices, dict
+        ):
+            action.choices = dict(sorted(action.choices.items()))
         # extend to properly handle when we accept multiple choices and the default is a list
         if action.choices is not None and isiterable(value):
             for element in value:

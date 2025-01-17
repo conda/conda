@@ -24,6 +24,7 @@ from time import sleep, time
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
+from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
@@ -77,7 +78,7 @@ class ContextDecorator:
     makes it a decorator.
     """
 
-    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated  # NOQA
+    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated
 
     def __call__(self, f):
         @wraps(f)
@@ -392,6 +393,11 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             return default_return
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.get_spinner` instead.",
+)
 class Spinner:
     """
     Args:
@@ -463,6 +469,11 @@ class Spinner:
                 sys.stdout.flush()
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.get_progress_bar` instead.",
+)
 class ProgressBar:
     @classmethod
     def get_lock(cls):

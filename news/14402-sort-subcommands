@@ -4,11 +4,11 @@
 
 ### Bug fixes
 
-* <news item>
+* Sort suggested subcommands when an incorrect subcommand is provided in the CLI. (#13332 via 14402)
 
 ### Deprecations
 
-* Remove `__conda_reactivate` shell function in favor of `__conda_activate reactivate`. (#14277)
+* <news item>
 
 ### Docs
 
