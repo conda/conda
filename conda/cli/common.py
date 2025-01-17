@@ -152,9 +152,9 @@ def spec_from_line(line):
         return name + cc.replace("=", " ")
     elif pc:
         if pc.startswith("~= "):
-            assert (
-                pc.count("~=") == 1
-            ), f"Overly complex 'Compatible release' spec not handled {line}"
+            assert pc.count("~=") == 1, (
+                f"Overly complex 'Compatible release' spec not handled {line}"
+            )
             assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
             ver = pc.replace("~= ", "")
             ver2 = ".".join(ver.split(".")[:-1]) + ".*"
