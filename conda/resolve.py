@@ -30,6 +30,7 @@ from .common.logic import (
     minimal_unsatisfiable_subset,
 )
 from .common.toposort import toposort
+from .deprecations import deprecated
 from .exceptions import (
     CondaDependencyError,
     InvalidSpec,
@@ -59,6 +60,12 @@ _sat_solvers = {
     SatSolverChoice.PYCRYPTOSAT: PyCryptoSatSolver,
     SatSolverChoice.PYSAT: PySatSolver,
 }
+
+deprecated.module(
+    "25.9.0",
+    "26.3.0",
+    addendum="Use `conda_libmamba_solver.resolve`.",
+)
 
 
 @cache
