@@ -270,6 +270,109 @@ jobs:
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
 
+  # linux-arm64 test suite
+  linux-arm64:
+    # only run test suite if there are code changes
+    needs: changes
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+    strategy:
+      fail-fast: false
+      matrix:
+        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        default-channel: [defaults, conda-forge]
+        test-type: [unit, integration]
+        test-group: [1, 2, 3]
+        exclude:
+          - python-version: '3.9'
+            default-channel: conda-forge
+          - python-version: '3.10'
+            default-channel: conda-forge
+          - python-version: '3.11'
+            default-channel: conda-forge
+          - test-type: unit
+            test-group: 3
+    env:
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.12' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Hash + Timestamp
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+
+      - name: Cache Conda
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ~/conda_pkgs_dir
+          key: cache-${{ env.HASH }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
+        with:
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          run-post: false  # skip post cleanup
+
+      - name: Conda Install
+        run: >
+          conda install
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          python=${{ matrix.python-version }}
+
+      - name: Conda Info
+        # view test env info (not base)
+        run: python -m conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
+
+      - name: Conda List
+        run: conda list --show-channel-urls
+
+      - name: Run Tests
+        run: >
+          python -m pytest
+          --cov=conda
+          --durations-path=durations/${{ runner.os }}.json
+          --group=${{ matrix.test-group }}
+          --splits=${{ env.PYTEST_SPLITS }}
+          -m "${{ env.PYTEST_MARKER }}"
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
+        with:
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
+          token: ${{ secrets.CODECOV_TOKEN }}  # required
+
+      - name: Upload Test Results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: test-results-${{ env.HASH }}
+          include-hidden-files: true
+          path: |
+            .coverage
+            durations/${{ runner.os }}.json
+            test-report.xml
+          retention-days: 1  # temporary, combined in aggregate below
+
   # linux benchmarks
   linux-benchmarks:
     # only run test suite if there are code changes
@@ -578,7 +681,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
+    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, linux-arm64, macos]
     if: >-
       !cancelled()
       && (

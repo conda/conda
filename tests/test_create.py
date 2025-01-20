@@ -1679,7 +1679,7 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
 @pytest.mark.skipif(
-    context.subdir == "win-32" or platform.machine() == "arm64",
+    context.subdir == "win-32" or platform.machine() in ("arm64", "aarch64"),
     reason="metadata is wrong; give python2.7 or no osx-arm64 package versions",
 )
 def test_conda_pip_interop_pip_clobbers_conda(
@@ -2020,7 +2020,7 @@ def test_conda_pip_interop_conda_editable_package(
 
 
 @pytest.mark.xfail(
-    platform.machine() == "arm64", reason="packages missing for osx-arm64"
+    platform.machine() in ("arm64", "aarch64"), reason="packages missing for osx-arm64"
 )
 def test_conda_pip_interop_compatible_release_operator(
     monkeypatch: MonkeyPatch,
@@ -2494,7 +2494,7 @@ def test_conda_downgrade(
 
 
 @pytest.mark.skipif(
-    on_win or platform.machine() == "arm64",
+    on_win or platform.machine() in ("arm64", "aarch64"),
     reason="openssl only has a postlink script on unix / package missing for osx-arm64",
 )
 def test_run_script_called(tmp_env: TmpEnvFixture):

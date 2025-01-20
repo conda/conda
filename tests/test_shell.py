@@ -670,7 +670,7 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
 
 
 @pytest.mark.skipif(
-    not which_powershell() or platform.machine() == "arm64",
+    not which_powershell() or platform.machine() in ("arm64", "aarch64"),
     reason="PowerShell not installed or not supported on platform",
 )
 def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
