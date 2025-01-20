@@ -40,6 +40,7 @@ log = getLogger(__name__)
 
 PLATFORMS = {
     ("Linux", "x86_64"): "linux-64",
+    ("Linux", "aarch64"): "linux-aarch64",
     ("Darwin", "x86_64"): "osx-64",
     ("Darwin", "arm64"): "osx-arm64",
     ("Windows", "AMD64"): "win-64",
@@ -51,6 +52,13 @@ DEFAULTS_SAMPLE_PACKAGES = {
         "name": "aiohttp",
         "version": "2.3.9",
         "build": "py35_0",
+        "build_number": 0,
+    },
+    "linux-aarch64": {
+        "channel": "pkgs/main/linux-aarch64",
+        "name": "aiohttp",
+        "version": "3.10.11",
+        "build": "py311h998d150_0",
         "build_number": 0,
     },
     "osx-64": {
@@ -82,6 +90,13 @@ CONDAFORGE_SAMPLE_PACKAGES = {
         "name": "vim",
         "version": "9.1.0356",
         "build": "py310pl5321hfe26b83_0",
+        "build_number": 0,
+    },
+    "linux-aarch64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py310pl5321hdc9b7a6_0",
         "build_number": 0,
     },
     "osx-64": {
