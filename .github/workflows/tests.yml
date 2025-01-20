@@ -111,7 +111,9 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
         with:
-          condarc-file: .github\condarc-${{ matrix.default-channel }}
+          condarc-file: .github\condarc
+          channels: ${{ matrix.default-channel }}
+          conda-remove-defaults: ${{ matrix.default-channel == 'conda-forge' && 'true' || 'false' }}
           run-post: false  # skip post cleanup
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
@@ -219,7 +221,9 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
         with:
-          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          condarc-file: .github/condarc
+          channels: ${{ matrix.default-channel }}
+          conda-remove-defaults: ${{ matrix.default-channel == 'conda-forge' && 'true' || 'false' }}
           run-post: false  # skip post cleanup
 
       - name: Conda Install
@@ -306,7 +310,8 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
         with:
-          condarc-file: .github/condarc-defaults
+          condarc-file: .github/condarc
+          channels: defaults
           run-post: false  # skip post cleanup
 
       - name: Conda Install
@@ -434,7 +439,8 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
         with:
-          condarc-file: .github/condarc-defaults
+          condarc-file: .github/condarc
+          channels: defaults
           run-post: false  # skip post cleanup
 
       - name: Conda Install
@@ -521,7 +527,9 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
         with:
-          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          condarc-file: .github/condarc
+          channels: ${{ matrix.default-channel }}
+          conda-remove-defaults: ${{ matrix.default-channel == 'conda-forge' && 'true' || 'false' }}
           run-post: false  # skip post cleanup
           # conda not preinstalled in arm64 runners
           miniconda-version: ${{ (matrix.default-channel == 'defaults' && matrix.arch == 'osx-arm64') && 'latest' || null }}
