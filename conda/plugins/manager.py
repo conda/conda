@@ -243,7 +243,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"""
                     Invalid plugin names found:
 
-                    {', '.join([str(plugin) for plugin in invalid])}
+                    {", ".join([str(plugin) for plugin in invalid])}
 
                     Please report this issue to the plugin author(s).
                     """
@@ -262,7 +262,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"""
                     Conflicting `{name}` plugins found:
 
-                    {', '.join([str(conflict) for conflict in conflicts])}
+                    {", ".join([str(conflict) for conflict in conflicts])}
 
                     Multiple conda plugins are registered via the `{specname}` hook.
                     Please make sure that you don't have any incompatible plugins installed.
