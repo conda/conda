@@ -529,8 +529,7 @@ class Context(Configuration):
                 "client_ssl_cert",
                 self.client_ssl_cert,
                 "<<merged>>",
-                "'client_ssl_cert' is required when 'client_ssl_cert_key' "
-                "is defined",
+                "'client_ssl_cert' is required when 'client_ssl_cert_key' is defined",
             )
             errors.append(error)
         if self.always_copy and self.always_softlink:
