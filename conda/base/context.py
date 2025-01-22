@@ -35,7 +35,6 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
-    ConfigurationType,
     EnvRawParameter,
     MapParameter,
     ParameterLoader,
@@ -561,7 +560,7 @@ class Context(Configuration):
         Preferred way of accessing settings introduced by the settings plugin hook
         """
         self.plugin_manager.load_settings()
-        return PluginConfig(self.raw_data)
+        return PluginConfig(self.raw_data, root_context=self)
 
     @property
     def conda_build_local_paths(self):
@@ -1318,7 +1317,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def description_map(self):
-        return frozendict(
+        description_map = dict(
             add_anaconda_token=dals(
                 """
                 In conjunction with the anaconda command-line client (installed with
@@ -1904,6 +1903,8 @@ class Context(Configuration):
             ),
         )
 
+        return frozendict(description_map)
+
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
@@ -2224,7 +2225,7 @@ def get_plugin_config_data(
     return new_data
 
 
-class PluginConfig(metaclass=ConfigurationType):
+class PluginConfig(Configuration):
     """
     Class used to hold settings for conda plugins.
 
@@ -2240,9 +2241,20 @@ class PluginConfig(metaclass=ConfigurationType):
     plugin hook.
     """
 
-    def __init__(self, data):
+    def __init__(self, data, root_context: Context):
         self._cache_ = {}
         self.raw_data = get_plugin_config_data(data)
+        self.root_context = root_context
+
+    @property
+    def category_map(self) -> dict[str, tuple[str, ...]]:
+        return {"Additional settings provided by plugins": self.parameter_names}
+
+    def get_descriptions(self) -> dict[str, str]:
+        return {
+            name: setting.description
+            for name, setting in self.root_context.plugin_manager.get_settings().items()
+        }
 
 
 def add_plugin_setting(name: str, parameter: Parameter, aliases: tuple[str, ...] = ()):

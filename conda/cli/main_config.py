@@ -261,10 +261,11 @@ def format_dict(d):
     return lines
 
 
-def parameter_description_builder(name):
+def parameter_description_builder(name, context, plugins=False):
     from ..auxlib.entity import EntityEncoder
-    from ..base.context import context
     from ..common.serialize import yaml_round_trip_dump
+
+    name_prefix = "plugins." if plugins else ""
 
     builder = []
     details = context.describe_parameter(name)
@@ -275,12 +276,14 @@ def parameter_description_builder(name):
 
     if details["parameter_type"] == "primitive":
         builder.append(
-            "{} ({})".format(name, ", ".join(sorted({et for et in element_types})))
+            "{} ({})".format(
+                f"{name_prefix}{name}", ", ".join(sorted({et for et in element_types}))
+            )
         )
     else:
         builder.append(
             "{} ({}: {})".format(
-                name,
+                f"{name_prefix}{name}",
                 details["parameter_type"],
                 ", ".join(sorted({et for et in element_types})),
             )
@@ -297,7 +300,9 @@ def parameter_description_builder(name):
     builder = ["# " + line for line in builder]
 
     builder.extend(
-        yaml_round_trip_dump({name: json.loads(default_value_str)}).strip().split("\n")
+        yaml_round_trip_dump({f"{name_prefix}{name}": json.loads(default_value_str)})
+        .strip()
+        .split("\n")
     )
 
     builder = ["# " + line for line in builder]
@@ -305,9 +310,7 @@ def parameter_description_builder(name):
     return builder
 
 
-def describe_all_parameters():
-    from ..base.context import context
-
+def describe_all_parameters(context, plugins=False):
     builder = []
     skip_categories = ("CLI-only", "Hidden and Undocumented")
     for category, parameter_names in context.category_map.items():
@@ -319,7 +322,8 @@ def describe_all_parameters():
         builder.append("")
         builder.extend(
             chain.from_iterable(
-                parameter_description_builder(name) for name in parameter_names
+                parameter_description_builder(name, context, plugins=plugins)
+                for name in parameter_names
             )
         )
         builder.append("")
@@ -354,22 +358,42 @@ def print_config_item(key, value):
                 stdout_write(" ".join(("--add", key, repr(item))))
 
 
+def _key_exists(key: str, warnings: list[str], context) -> bool:
+    """
+    Logic to determine if the key is a valid setting.
+    """
+    first, *rest = key.split(".")
+    if (
+        first == "plugins"
+        and len(rest) > 0
+        and rest[0] in context.plugins.parameter_names
+    ):
+        return True
+
+    if first not in context.list_parameters():
+        if context.json:
+            warnings.append(f"Unknown key: {key!r}")
+        else:
+            print(f"Unknown key: {key!r}", file=sys.stderr)
+        return False
+
+    return True
+
+
 def _get_key(
     key: str,
     config: dict,
     *,
-    json: dict[str, Any] = {},
-    warnings: list[str] = [],
+    json: dict[str, Any] | None = None,
+    warnings: list[str] | None = None,
 ) -> None:
     from ..base.context import context
 
+    json = json or {}
+    warnings = warnings or []
     key_parts = key.split(".")
 
-    if key_parts[0] not in context.list_parameters():
-        if context.json:
-            warnings.append(f"Unknown key: {key_parts[0]!r}")
-        else:
-            print(f"Unknown key: {key_parts[0]!r}", file=sys.stderr)
+    if not _key_exists(key, warnings, context):
         return
 
     sub_config = config
@@ -389,21 +413,31 @@ def _get_key(
 def _set_key(key: str, item: Any, config: dict) -> None:
     from ..base.context import context
 
-    key_parts = key.split(".")
-    try:
-        parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
-    except KeyError:
-        # KeyError: key_parts[0] is an unknown parameter
-        from ..exceptions import CondaKeyError
+    if not _key_exists(key, [], context):
+        return
 
-        raise CondaKeyError(key, "unknown parameter")
+    first, *rest = key.split(".")
 
-    if parameter_type == "primitive" and len(key_parts) == 1:
-        (key,) = key_parts
-        config[key] = context.typify_parameter(key, item, "--set parameter")
-    elif parameter_type == "map" and len(key_parts) == 2:
-        key, subkey = key_parts
-        config.setdefault(key, {})[subkey] = item
+    if first == "plugins":
+        base_context = context.plugins
+        base_config = config.setdefault("plugins", {})
+        parameter_name = rest[0]
+        rest = rest[1:]
+    else:
+        base_context = context
+        base_config = config
+        parameter_name = first
+
+    parameter_type = base_context.describe_parameter(parameter_name)["parameter_type"]
+
+    if parameter_type == "primitive" and len(rest) == 0:
+        base_config[parameter_name] = base_context.typify_parameter(
+            parameter_name, item, "--set parameter"
+        )
+
+    elif parameter_type == "map" and len(rest) == 1:
+        base_config.setdefault(parameter_name, {})[rest[0]] = item
+
     else:
         from ..exceptions import CondaKeyError
 
@@ -413,29 +447,43 @@ def _set_key(key: str, item: Any, config: dict) -> None:
 def _remove_item(key: str, item: Any, config: dict) -> None:
     from ..base.context import context
 
-    key_parts = key.split(".")
+    first, *rest = key.split(".")
+
+    if first == "plugins":
+        base_context = context.plugins
+        base_config = config["plugins"]
+        parameter_name = rest[0]
+        rest = []
+    else:
+        base_context = context
+        base_config = config
+        parameter_name = first
+
     try:
-        parameter_type = context.describe_parameter(key_parts[0])["parameter_type"]
+        parameter_type = base_context.describe_parameter(parameter_name)[
+            "parameter_type"
+        ]
     except KeyError:
         # KeyError: key_parts[0] is an unknown parameter
         from ..exceptions import CondaKeyError
 
         raise CondaKeyError(key, "unknown parameter")
 
-    if parameter_type == "sequence" and len(key_parts) == 1:
-        (key,) = key_parts
-        if key not in config:
-            if key != "channels":
+    if parameter_type == "sequence" and len(rest) == 0:
+        if parameter_name not in base_config:
+            if parameter_name != "channels":
                 from ..exceptions import CondaKeyError
 
                 raise CondaKeyError(key, "undefined in config")
-            config[key] = ["defaults"]
+            config[parameter_name] = ["defaults"]
 
-        if item not in config[key]:
+        if item not in base_config[parameter_name]:
             from ..exceptions import CondaKeyError
 
-            raise CondaKeyError(key, f"value {item!r} not present in config")
-        config[key] = [i for i in config[key] if i != item]
+            raise CondaKeyError(parameter_name, f"value {item!r} not present in config")
+        base_config[parameter_name] = [
+            i for i in base_config[parameter_name] if i != item
+        ]
     else:
         from ..exceptions import CondaKeyError
 
@@ -561,9 +609,9 @@ def execute_config(args, parser):
 
     if args.show is not None:
         if args.show:
-            paramater_names = args.show
+            provided_parameters = args.show
             all_names = context.list_parameters()
-            not_params = set(paramater_names) - set(all_names)
+            not_params = set(provided_parameters) - set(all_names)
             if not_params:
                 from ..common.io import dashlist
                 from ..exceptions import ArgumentError
@@ -572,9 +620,9 @@ def execute_config(args, parser):
                     f"Invalid configuration parameters: {dashlist(not_params)}"
                 )
         else:
-            paramater_names = context.list_parameters()
+            provided_parameters = context.list_parameters()
 
-        d = {key: getattr(context, key) for key in paramater_names}
+        d = {key: getattr(context, key) for key in provided_parameters}
         if context.json:
             stdout_write(
                 json.dumps(
@@ -612,20 +660,39 @@ def execute_config(args, parser):
 
     if args.describe is not None:
         if args.describe:
-            paramater_names = args.describe
+            provided_parameters = args.describe
             all_names = context.list_parameters()
-            not_params = set(paramater_names) - set(all_names)
-            if not_params:
+            all_plugin_names = context.plugins.list_parameters()
+            not_params = set(provided_parameters) - set(all_names)
+            not_plugin_params = set(not_params) - set(all_plugin_names)
+
+            if not_params and not_plugin_params:
                 from ..common.io import dashlist
                 from ..exceptions import ArgumentError
 
                 raise ArgumentError(
                     f"Invalid configuration parameters: {dashlist(not_params)}"
                 )
+
+            regular_params = set(provided_parameters) - set(all_plugin_names)
+            plugin_params = set(provided_parameters) - set(all_names)
+
             if context.json:
                 stdout_write(
                     json.dumps(
-                        [context.describe_parameter(name) for name in paramater_names],
+                        [context.describe_parameter(name) for name in regular_params],
+                        sort_keys=True,
+                        indent=2,
+                        separators=(",", ": "),
+                        cls=EntityEncoder,
+                    )
+                )
+                stdout_write(
+                    json.dumps(
+                        [
+                            context.plugins.describe_parameter(name)
+                            for name in plugin_params
+                        ],
                         sort_keys=True,
                         indent=2,
                         separators=(",", ": "),
@@ -636,14 +703,23 @@ def execute_config(args, parser):
                 builder = []
                 builder.extend(
                     chain.from_iterable(
-                        parameter_description_builder(name) for name in paramater_names
+                        parameter_description_builder(name, context)
+                        for name in regular_params
+                    )
+                )
+                builder.extend(
+                    chain.from_iterable(
+                        parameter_description_builder(
+                            name, context.plugins, plugins=True
+                        )
+                        for name in plugin_params
                     )
                 )
                 stdout_write("\n".join(builder))
         else:
             if context.json:
                 skip_categories = ("CLI-only", "Hidden and Undocumented")
-                paramater_names = sorted(
+                provided_parameters = sorted(
                     chain.from_iterable(
                         parameter_names
                         for category, parameter_names in context.category_map.items()
@@ -652,7 +728,10 @@ def execute_config(args, parser):
                 )
                 stdout_write(
                     json.dumps(
-                        [context.describe_parameter(name) for name in paramater_names],
+                        [
+                            context.describe_parameter(name)
+                            for name in provided_parameters
+                        ],
                         sort_keys=True,
                         indent=2,
                         separators=(",", ": "),
@@ -660,7 +739,8 @@ def execute_config(args, parser):
                     )
                 )
             else:
-                stdout_write(describe_all_parameters())
+                stdout_write(describe_all_parameters(context))
+                stdout_write(describe_all_parameters(context.plugins, plugins=True))
         return
 
     if args.validate:
@@ -692,7 +772,8 @@ def execute_config(args, parser):
                 )
 
         with open(rc_path, "w") as fh:
-            fh.write(describe_all_parameters())
+            fh.write(describe_all_parameters(context))
+            fh.write(describe_all_parameters(context.plugins, plugins=True))
         return
 
     # read existing condarc
@@ -707,12 +788,19 @@ def execute_config(args, parser):
     else:
         rc_config = {}
 
-    grouped_paramaters = groupby(
+    grouped_parameter = groupby(
         lambda p: context.describe_parameter(p)["parameter_type"],
         context.list_parameters(),
     )
-    sequence_parameters = grouped_paramaters["sequence"]
-    map_parameters = grouped_paramaters["map"]
+
+    plugin_grouped_parameters = groupby(
+        lambda p: context.plugins.describe_parameter(p)["parameter_type"],
+        context.plugins.list_parameters(),
+    )
+    sequence_parameters = grouped_parameter["sequence"]
+    plugin_sequence_parameters = plugin_grouped_parameters.get("sequence", [])
+    map_parameters = grouped_parameter["map"]
+    plugin_map_parameters = plugin_grouped_parameters.get("map", [])
 
     # Get
     if args.get is not None:
@@ -750,8 +838,12 @@ def execute_config(args, parser):
 
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
+            elif key == "plugins" and subkey in plugin_sequence_parameters:
+                arglist = rc_config.get("plugins", {}).setdefault(subkey, [])
             elif key in map_parameters:
                 arglist = rc_config.setdefault(key, {}).setdefault(subkey, [])
+            elif key in plugin_map_parameters:
+                arglist = rc_config.get("plugins", {}).setdefault(subkey, {})
             else:
                 from ..exceptions import CondaValueError
 
@@ -773,6 +865,8 @@ def execute_config(args, parser):
                 message = f"Warning: '{item}' already in '{message_key}' list, moving to the {location}"
                 if subkey is None:
                     arglist = rc_config[key] = [p for p in arglist if p != item]
+                if key == "plugins":
+                    arglist = rc_config[key][subkey] = [p for p in arglist if p != item]
                 else:
                     arglist = rc_config[key][subkey] = [p for p in arglist if p != item]
                 if not context.json:
