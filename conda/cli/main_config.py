@@ -617,20 +617,43 @@ def execute_config(args, parser):
 
     if args.show is not None:
         if args.show:
-            provided_parameters = args.show
+            provided_parameters = tuple(
+                name for name in args.show if not name.startswith("plugins.")
+            )
+            provided_plugin_parameters = tuple(
+                name.replace("plugins.", "")
+                for name in args.show
+                if name.startswith("plugins.")
+            )
             all_names = context.list_parameters()
+            all_plugin_names = context.plugins.list_parameters()
             not_params = set(provided_parameters) - set(all_names)
-            if not_params:
+            not_plugin_params = set(provided_plugin_parameters) - set(all_plugin_names)
+
+            if not_params or not_plugin_params:
                 from ..common.io import dashlist
                 from ..exceptions import ArgumentError
 
+                error_params = not_params | not_plugin_params
                 raise ArgumentError(
-                    f"Invalid configuration parameters: {dashlist(not_params)}"
+                    f"Invalid configuration parameters: {dashlist(error_params)}"
                 )
         else:
             provided_parameters = context.list_parameters()
+            provided_plugin_parameters = context.plugins.list_parameters()
 
         d = {key: getattr(context, key) for key in provided_parameters}
+        d["plugins"] = {}
+
+        for key in provided_plugin_parameters:
+            value = getattr(context.plugins, key)
+            if isinstance(value, Mapping):
+                d["plugins"][key] = dict(value)
+            elif isinstance(value, tuple) and len(value) == 0:
+                d["plugins"][key] = []
+            else:
+                d["plugins"][key] = value
+
         if context.json:
             stdout_write(
                 json.dumps(
@@ -664,31 +687,40 @@ def execute_config(args, parser):
 
             stdout_write("\n".join(format_dict(d)))
         context.validate_configuration()
+        context.plugins.validate_configuration()
         return
 
     if args.describe is not None:
         if args.describe:
-            provided_parameters = args.describe
+            provided_parameters = tuple(
+                name for name in args.describe if not name.startswith("plugins.")
+            )
+            provided_plugin_parameters = tuple(
+                name.replace("plugins.", "")
+                for name in args.describe
+                if name.startswith("plugins.")
+            )
             all_names = context.list_parameters()
             all_plugin_names = context.plugins.list_parameters()
             not_params = set(provided_parameters) - set(all_names)
-            not_plugin_params = set(not_params) - set(all_plugin_names)
+            not_plugin_params = set(provided_plugin_parameters) - set(all_plugin_names)
 
-            if not_params and not_plugin_params:
+            if not_params or not_plugin_params:
                 from ..common.io import dashlist
                 from ..exceptions import ArgumentError
 
+                error_params = not_params | not_plugin_params
                 raise ArgumentError(
-                    f"Invalid configuration parameters: {dashlist(not_params)}"
+                    f"Invalid configuration parameters: {dashlist(error_params)}"
                 )
-
-            regular_params = set(provided_parameters) - set(all_plugin_names)
-            plugin_params = set(provided_parameters) - set(all_names)
 
             if context.json:
                 stdout_write(
                     json.dumps(
-                        [context.describe_parameter(name) for name in regular_params],
+                        [
+                            context.describe_parameter(name)
+                            for name in provided_parameters
+                        ],
                         sort_keys=True,
                         indent=2,
                         separators=(",", ": "),
@@ -699,7 +731,7 @@ def execute_config(args, parser):
                     json.dumps(
                         [
                             context.plugins.describe_parameter(name)
-                            for name in plugin_params
+                            for name in provided_plugin_parameters
                         ],
                         sort_keys=True,
                         indent=2,
@@ -712,7 +744,7 @@ def execute_config(args, parser):
                 builder.extend(
                     chain.from_iterable(
                         parameter_description_builder(name, context)
-                        for name in regular_params
+                        for name in provided_parameters
                     )
                 )
                 builder.extend(
@@ -720,7 +752,7 @@ def execute_config(args, parser):
                         parameter_description_builder(
                             name, context.plugins, plugins=True
                         )
-                        for name in plugin_params
+                        for name in provided_plugin_parameters
                     )
                 )
                 stdout_write("\n".join(builder))

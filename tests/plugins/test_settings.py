@@ -1,9 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 import logging
 
 import pytest
 from pytest import MonkeyPatch
+from ruamel.yaml import YAML
 
 from conda import plugins
 from conda.base.context import context, reset_context
@@ -14,6 +16,7 @@ from conda.common.configuration import (
     YamlRawParameter,
     yaml_round_trip_load,
 )
+from conda.exceptions import ArgumentError
 from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
@@ -336,3 +339,102 @@ def test_conda_config_describe_not_included_without_plugins(conda_cli):
 
     assert not err
     assert section_banner not in out
+
+
+def test_conda_config_show_includes_plugin_settings(
+    monkeypatch: MonkeyPatch, condarc_plugin_manager, conda_cli, tmp_path
+):
+    """
+    Ensure that the show command includes plugin settings
+    """
+    condarc = tmp_path / "condarc"
+    monkeypatch.setenv("CONDARC", str(condarc))
+    out, err, _ = conda_cli(
+        "config",
+        "--file",
+        condarc,
+        "--set",
+        f"plugins.{STRING_PARAMETER_NAME}",
+        "value_one",
+    )
+
+    out, err, _ = conda_cli("config", "--show")
+    config_data = YAML().load(out)
+
+    assert not err
+    assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
+    assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
+    assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
+
+    out, err, _ = conda_cli("config", "--show", "--json")
+
+    config_data = json.loads(out)
+    assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
+    assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
+    assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
+
+
+@pytest.mark.parametrize(
+    "parameter_name, expected_output",
+    [
+        (STRING_PARAMETER_NAME, "plugins:\n  string_parameter: value_one\n"),
+        (SEQ_PARAMETER_NAME, "plugins:\n  seq_parameter: []\n"),
+        (MAP_PARAMETER_NAME, "plugins:\n  map_parameter: {}\n"),
+        (
+            "non_existent_parameter",
+            ArgumentError(
+                "Invalid configuration parameters: \n  - non_existent_parameter"
+            ),
+        ),
+    ],
+)
+def test_conda_config_show_for_individual_settings(
+    monkeypatch: MonkeyPatch,
+    condarc_plugin_manager,
+    conda_cli,
+    tmp_path,
+    parameter_name,
+    expected_output,
+):
+    """
+    Ensure that the show command includes plugin settings
+    """
+    condarc = tmp_path / "condarc"
+    monkeypatch.setenv("CONDARC", str(condarc))
+    out, err, _ = conda_cli(
+        "config",
+        "--file",
+        condarc,
+        "--set",
+        f"plugins.{STRING_PARAMETER_NAME}",
+        "value_one",
+    )
+
+    if isinstance(expected_output, Exception):
+        with pytest.raises(ArgumentError, match=expected_output.message):
+            out, err, _ = conda_cli("config", "--show", f"plugins.{parameter_name}")
+    else:
+        out, err, _ = conda_cli("config", "--show", f"plugins.{parameter_name}")
+        assert not err
+        assert out == expected_output
+
+
+@pytest.mark.parametrize(
+    "parameter_name, expected_description",
+    [
+        (STRING_PARAMETER_NAME, "Test string type setting"),
+        (SEQ_PARAMETER_NAME, "Test sequence type setting"),
+        (MAP_PARAMETER_NAME, "Test map type setting"),
+    ],
+)
+def test_conda_config_retrieves_correct_description_single_setting(
+    condarc_plugin_manager, conda_cli, parameter_name, expected_description
+):
+    """
+    Ensure that the describe command includes the correct description when
+    retrieving individual plugin descriptions
+    """
+    out, err, _ = conda_cli("config", "--describe", f"plugins.{parameter_name}")
+
+    assert not err
+    assert expected_description in out
