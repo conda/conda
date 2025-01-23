@@ -873,8 +873,6 @@ def execute_config(args, parser):
                 message = f"Warning: '{item}' already in '{message_key}' list, moving to the {location}"
                 if subkey is None:
                     arglist = rc_config[key] = [p for p in arglist if p != item]
-                if key == "plugins":
-                    arglist = rc_config[key][subkey] = [p for p in arglist if p != item]
                 else:
                     arglist = rc_config[key][subkey] = [p for p in arglist if p != item]
                 if not context.json:

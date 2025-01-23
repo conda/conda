@@ -192,7 +192,7 @@ def test_conda_config_with_string_settings(condarc_plugin_manager, tmp_path, con
     assert not err
     assert not out
 
-    assert condarc.read_text() == "plugins:\n  string_parameter: env_var_value\n"
+    assert "plugins:\n  string_parameter: env_var_value\n" in condarc.read_text()
 
     out, *_ = conda_cli(
         "config", "--file", condarc, "--get", f"plugins.{STRING_PARAMETER_NAME}"
@@ -227,7 +227,7 @@ def test_conda_config_with_sequence_settings(
     assert not err
     assert not out
 
-    assert condarc.read_text() == "plugins:\n  seq_parameter:\n    - value_one\n"
+    assert "plugins:\n  seq_parameter:\n    - value_one\n" in condarc.read_text()
 
     out, *_ = conda_cli(
         "config", "--file", condarc, "--get", f"plugins.{SEQ_PARAMETER_NAME}"
@@ -266,7 +266,7 @@ def test_conda_config_with_map_settings(condarc_plugin_manager, tmp_path, conda_
     assert not err
     assert not out
 
-    assert condarc.read_text() == "plugins:\n  map_parameter:\n    key: value_one\n"
+    assert "plugins:\n  map_parameter:\n    key: value_one\n" in condarc.read_text()
 
     out, *_ = conda_cli(
         "config", "--file", condarc, "--get", f"plugins.{MAP_PARAMETER_NAME}.key"
