@@ -341,6 +341,18 @@ def test_conda_config_describe_not_included_without_plugins(conda_cli):
     assert section_banner not in out
 
 
+def test_conda_config_describe_unknown_plugin_setting(
+    condarc_plugin_manager, conda_cli
+):
+    """
+    Ensure that the correct error message is displayed when an unknown plugin setting is used
+    """
+    with pytest.raises(
+        ArgumentError, match="Invalid configuration parameters: \n  - invalid_setting"
+    ):
+        conda_cli("config", "--describe", "plugins.invalid_setting")
+
+
 def test_conda_config_show_includes_plugin_settings(
     monkeypatch: MonkeyPatch, condarc_plugin_manager, conda_cli, tmp_path
 ):
