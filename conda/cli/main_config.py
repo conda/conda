@@ -639,11 +639,14 @@ def execute_config(args, parser):
                     f"Invalid configuration parameters: {dashlist(error_params)}"
                 )
         else:
-            provided_parameters = context.list_parameters()
-            provided_plugin_parameters = context.plugins.list_parameters()
+            provided_parameters = context.parameter_names
+            provided_plugin_parameters = context.plugins.parameter_names
 
         d = {key: getattr(context, key) for key in provided_parameters}
         d["plugins"] = {}
+
+        # sort to make sure "plugins" appears in the right spot
+        d = {key: value for key, value in sorted(d.items())}
 
         for key in provided_plugin_parameters:
             value = getattr(context.plugins, key)
