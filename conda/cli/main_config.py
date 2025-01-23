@@ -310,7 +310,15 @@ def parameter_description_builder(name, context, plugins=False):
     return builder
 
 
-def describe_all_parameters(context, plugins=False):
+def describe_all_parameters(context, plugins=False) -> str:
+    """
+    Return a string with the descriptions of all available configuration
+
+    When ``context`` has no parameters, this function returns ``""``
+    """
+    if not context.parameter_names:
+        return ""
+
     builder = []
     skip_categories = ("CLI-only", "Hidden and Undocumented")
     for category, parameter_names in context.category_map.items():
@@ -389,8 +397,8 @@ def _get_key(
 ) -> None:
     from ..base.context import context
 
-    json = json or {}
-    warnings = warnings or []
+    json = {} if json is None else json
+    warnings = [] if warnings is None else warnings
     key_parts = key.split(".")
 
     if not _key_exists(key, warnings, context):
@@ -451,7 +459,7 @@ def _remove_item(key: str, item: Any, config: dict) -> None:
 
     if first == "plugins":
         base_context = context.plugins
-        base_config = config["plugins"]
+        base_config = config.setdefault("plugins", {})
         parameter_name = rest[0]
         rest = []
     else:
@@ -839,11 +847,11 @@ def execute_config(args, parser):
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key == "plugins" and subkey in plugin_sequence_parameters:
-                arglist = rc_config.get("plugins", {}).setdefault(subkey, [])
+                arglist = rc_config.setdefault("plugins", {}).setdefault(subkey, [])
             elif key in map_parameters:
                 arglist = rc_config.setdefault(key, {}).setdefault(subkey, [])
             elif key in plugin_map_parameters:
-                arglist = rc_config.get("plugins", {}).setdefault(subkey, {})
+                arglist = rc_config.setdefault("plugins", {}).setdefault(subkey, {})
             else:
                 from ..exceptions import CondaValueError
 

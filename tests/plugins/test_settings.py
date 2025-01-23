@@ -175,14 +175,11 @@ def test_load_plugin_config_with_env_var(
     )
 
 
-def test_conda_config_with_string_settings(
-    monkeypatch: MonkeyPatch, condarc_plugin_manager, tmp_path, conda_cli
-):
+def test_conda_config_with_string_settings(condarc_plugin_manager, tmp_path, conda_cli):
     """
     Ensure that string parameter types work correctly as a plugin setting
     """
-    condarc = (tmp_path / "condarc").touch()
-    monkeypatch.setenv("CONDARC", condarc)
+    condarc = tmp_path / "condarc"
     out, err, _ = conda_cli(
         "config",
         "--file",
@@ -194,6 +191,8 @@ def test_conda_config_with_string_settings(
 
     assert not err
     assert not out
+
+    assert condarc.read_text() == "plugins:\n  string_parameter: env_var_value\n"
 
     out, *_ = conda_cli(
         "config", "--file", condarc, "--get", f"plugins.{STRING_PARAMETER_NAME}"
@@ -210,13 +209,12 @@ def test_conda_config_with_string_settings(
 
 
 def test_conda_config_with_sequence_settings(
-    monkeypatch: MonkeyPatch, condarc_plugin_manager, tmp_path, conda_cli
+    condarc_plugin_manager, tmp_path, conda_cli
 ):
     """
     Ensure that sequence parameter types work correctly as a plugin setting
     """
-    condarc = (tmp_path / "condarc").touch()
-    monkeypatch.setenv("CONDARC", condarc)
+    condarc = tmp_path / "condarc"
     out, err, _ = conda_cli(
         "config",
         "--file",
@@ -229,11 +227,14 @@ def test_conda_config_with_sequence_settings(
     assert not err
     assert not out
 
+    assert condarc.read_text() == "plugins:\n  seq_parameter:\n    - value_one\n"
+
     out, *_ = conda_cli(
         "config", "--file", condarc, "--get", f"plugins.{SEQ_PARAMETER_NAME}"
     )
 
-    assert out == f"--add plugins.{SEQ_PARAMETER_NAME} 'value_one'\n"
+    assert out == "--add plugins.seq_parameter 'value_one'\n"
+    assert not err
 
     out, err, _ = conda_cli(
         "config",
@@ -248,14 +249,11 @@ def test_conda_config_with_sequence_settings(
     assert not err
 
 
-def test_conda_config_with_map_settings(
-    monkeypatch: MonkeyPatch, condarc_plugin_manager, tmp_path, conda_cli
-):
+def test_conda_config_with_map_settings(condarc_plugin_manager, tmp_path, conda_cli):
     """
     Ensure that sequence parameter types work correctly as a plugin setting
     """
-    condarc = (tmp_path / "condarc").touch()
-    monkeypatch.setenv("CONDARC", condarc)
+    condarc = tmp_path / "condarc"
     out, err, _ = conda_cli(
         "config",
         "--file",
@@ -267,6 +265,8 @@ def test_conda_config_with_map_settings(
 
     assert not err
     assert not out
+
+    assert condarc.read_text() == "plugins:\n  map_parameter:\n    key: value_one\n"
 
     out, *_ = conda_cli(
         "config", "--file", condarc, "--get", f"plugins.{MAP_PARAMETER_NAME}.key"
@@ -280,3 +280,59 @@ def test_conda_config_with_map_settings(
 
     assert not out
     assert not err
+
+
+def test_conda_config_with_invalid_setting(condarc_plugin_manager, tmp_path, conda_cli):
+    """
+    Ensure that an error is raised when an invalid setting is passed to the config command
+    """
+    condarc = tmp_path / "condarc"
+    out, err, _ = conda_cli(
+        "config",
+        "--file",
+        condarc,
+        "--set",
+        "plugins.invalid_setting",
+        "value_one",
+    )
+
+    assert not out
+    assert "Unknown key: 'plugins.invalid_setting'\n" in err
+
+
+def test_conda_config_describe_includes_plugin_settings(
+    condarc_plugin_manager, conda_cli
+):
+    """
+    Ensure that the describe command includes plugin settings
+    """
+    out, err, _ = conda_cli("config", "--describe")
+
+    section_banner = (
+        "# ######################################################\n"
+        "# ##     Additional settings provided by plugins      ##\n"
+        "# ######################################################"
+    )
+
+    assert not err
+    assert section_banner in out
+    assert f"plugins.{STRING_PARAMETER_NAME}:" in out
+    assert f"plugins.{SEQ_PARAMETER_NAME}:" in out
+    assert f"plugins.{MAP_PARAMETER_NAME}:" in out
+
+
+def test_conda_config_describe_not_included_without_plugins(conda_cli):
+    """
+    Ensure that the describe command does not include the section banner
+    for plugins when no additional settings are provided by plugins
+    """
+    out, err, _ = conda_cli("config", "--describe")
+
+    section_banner = (
+        "# ######################################################\n"
+        "# ##     Additional settings provided by plugins      ##\n"
+        "# ######################################################"
+    )
+
+    assert not err
+    assert section_banner not in out

@@ -127,12 +127,12 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
     assert warnings == ["Unknown key: 'unknown'"]
 
 
-def test_config_set_key() -> None:
+def test_config_set_key(capsys) -> None:
     config: dict[str, Any] = {}
 
-    # unknown
-    with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
-        _set_key("unknown", None, config)
+    _set_key("unknown", None, config)
+    out, err = capsys.readouterr()  # clear output
+    assert "Unknown key: 'unknown'" in err
 
     # undefined
     _set_key("changeps1", True, config)
