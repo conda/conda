@@ -1316,7 +1316,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def description_map(self):
-        description_map = dict(
+        return frozendict(
             add_anaconda_token=dals(
                 """
                 In conjunction with the anaconda command-line client (installed with
@@ -1901,8 +1901,6 @@ class Context(Configuration):
                 """
             ),
         )
-
-        return frozendict(description_map)
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
