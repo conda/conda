@@ -1569,18 +1569,9 @@ class Configuration(metaclass=ConfigurationType):
 
     def describe_parameter(self, parameter_name):
         # TODO, in Parameter base class, rename element_type to value_type
-        # is_plugin_param = False
-
-        # if parameter_name.startswith("plugins."):
-        #     is_plugin_param = True
-        #     _, parameter_name = parameter_name.split("plugins.")
-        #     parameter_loader = self.plugins.__class__.__dict__[parameter_name]
-
-        # else:
         if parameter_name not in self.parameter_names:
             parameter_name = "_" + parameter_name
         parameter_loader = self.__class__.__dict__[parameter_name]
-
         parameter = parameter_loader.type
         assert isinstance(parameter, Parameter)
 
@@ -1588,9 +1579,6 @@ class Configuration(metaclass=ConfigurationType):
         name = parameter_loader.name.lstrip("_")
         aliases = tuple(alias for alias in parameter_loader.aliases if alias != name)
 
-        # if is_plugin_param:
-        #     description = self.get_descriptions().get(f"plugins.{name}", "")
-        # else:
         description = self.get_descriptions().get(name, "")
         et = parameter._element_type
         if type(et) == EnumMeta:  # noqa: E721
