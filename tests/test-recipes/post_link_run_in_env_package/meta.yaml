@@ -1,6 +1,6 @@
 package:
   name: _conda_test_env_activated_when_post_link_executed
-  version: 1.0
+  version: 1.0.0
 
 about:
   summary: test package that checks for an activated env in the post link script
