@@ -110,6 +110,11 @@ jobs:
         run: Get-Command powershell
 
       - name: Powershell Info
+        if: matrix.powershell-version == 'pwsh-7.5'
+        shell: $env:LOCALAPPDATA\Microsoft\powershell -command ". '{0}'"
+        run: $PSVersionTable
+
+      - name: Powershell Info
         shell: pwsh
         run: $PSVersionTable
 
