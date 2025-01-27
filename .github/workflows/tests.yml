@@ -99,13 +99,15 @@ jobs:
       - name: Setup Powershell
         if: matrix.powershell-version == 'pwsh-7.5'
         shell: pwsh
-        run: Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
+        run: Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -AddToPath"
 
-      - name: Powershell Info
+      - name: Get-Command pwsh
         shell: pwsh
-        run: |
-          Get-Command pwsh
-          Get-Command powershell
+        run: Get-Command pwsh
+
+      - name: Get-Command powershell
+        shell: pwsh
+        run: Get-Command powershell
 
       - name: Powershell Info
         shell: pwsh
