@@ -312,7 +312,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
 
 
 @cache
-def which_powershell() -> tuple[str, str] | None:
+def which_powershell(path: str | None = None) -> tuple[str, str] | None:
     r"""
     Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
     it's helpful to have a utility function that returns the name of the best PowerShell
@@ -323,15 +323,15 @@ def which_powershell() -> tuple[str, str] | None:
     E.g.: ('pwsh', r'C:\Program Files\PowerShell\6.0.2\pwsh.exe)
     """
     if on_win:
-        posh = which("powershell.exe")
+        posh = which("powershell.exe", path=path)
         if posh:
             return "powershell", posh
 
-    posh = which("pwsh")
+    posh = which("pwsh", path=path)
     if posh:
         return "pwsh", posh
 
-    posh = which("pwsh-preview")
+    posh = which("pwsh-preview", path=path)
     if posh:
         return "pwsh-preview", posh
 
@@ -340,7 +340,7 @@ def which_powershell() -> tuple[str, str] | None:
 def latest_powershell() -> tuple[str, str] | None:
     if not (path := os.getenv("PWSHPATH")):
         return None
-    return "pwsh", path
+    return which_powershell(path)
 
 
 parametrize_pwsh = pytest.mark.parametrize(
