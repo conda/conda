@@ -101,7 +101,7 @@ jobs:
         shell: powershell
         run: |
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
-          $env:LOCALAPPDATA\Microsoft\powershell >> $env:GITHUB_PATH
+          $env:LOCALAPPDATA\Microsoft\powershell | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Get-Command pwsh
         shell: powershell
