@@ -103,14 +103,6 @@ jobs:
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
           "$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_PATH -Append
 
-      - name: Get-Command pwsh
-        shell: pwsh
-        run: (Get-Command pwsh).source
-
-      - name: Get-Command powershell
-        shell: pwsh
-        run: (Get-Command powershell).source
-
       - name: Powershell Info
         shell: pwsh
         run: $PSVersionTable
@@ -162,6 +154,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Tests
+        shell: pwsh
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
         run: >
