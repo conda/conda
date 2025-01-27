@@ -839,8 +839,8 @@ class Context(Configuration):
             # error-on-undefined.
             return {
                 "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
-                "_CE_M": None,
-                "_CE_CONDA": None,
+                "_CE_M": "",
+                "_CE_CONDA": "",
                 "CONDA_PYTHON_EXE": sys.executable,
             }
 
