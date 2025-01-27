@@ -111,7 +111,7 @@ jobs:
 
       - name: Powershell Info
         if: matrix.powershell-version == 'pwsh-7.5'
-        shell: $env:LOCALAPPDATA\Microsoft\powershell -command ". '{0}'"
+        shell: C:\Users\runneradmin\AppData\Local\Microsoft\powershell -command ". '{0}'"
         run: $PSVersionTable
 
       - name: Powershell Info
