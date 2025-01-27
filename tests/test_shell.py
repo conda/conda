@@ -176,12 +176,13 @@ class InteractiveShellType(type):
         "pwsh-preview": {"base_shell": "powershell"},
     }
 
-    def __call__(self, shell_name: str):
+    def __call__(self, shell_name: str, **kwargs):
         return super().__call__(
             shell_name,
             **{
                 **self.SHELLS.get(self.SHELLS[shell_name].get("base_shell"), {}),
                 **self.SHELLS[shell_name],
+                **kwargs,
             },
         )
 
