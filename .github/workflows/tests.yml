@@ -98,21 +98,21 @@ jobs:
     steps:
       - name: Setup Powershell
         if: matrix.powershell-version == 'pwsh-7.5'
-        shell: powershell
+        shell: pwsh
         run: |
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
           "$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Get-Command pwsh
-        shell: powershell
+        shell: pwsh
         run: (Get-Command pwsh).source
 
       - name: Get-Command powershell
-        shell: powershell
+        shell: pwsh
         run: (Get-Command powershell).source
 
       - name: Powershell Info
-        shell: powershell
+        shell: pwsh
         run: $PSVersionTable
 
       - name: Checkout Source
