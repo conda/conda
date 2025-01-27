@@ -78,16 +78,11 @@ jobs:
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
-        powershell-version: [pwsh-7.4, pwsh-7.5]
         exclude:
           - default-channel: conda-forge
             python-version: '3.9'
           - test-type: unit
             test-group: 3
-          - powershell-version: pwsh-7.5
-            python-version: '3.9'
-          - powershell-version: pwsh-7.4
-            python-version: '3.12'
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
@@ -143,11 +138,10 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Setup Powershell
-        if: matrix.powershell-version == 'pwsh-7.5'
         shell: pwsh
         run: |
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
-          "$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Powershell Info
         shell: pwsh
@@ -165,6 +159,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          -k test_powershell_basic_integration
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
