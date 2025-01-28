@@ -76,19 +76,17 @@ jobs:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.9', '3.12']
         default-channel: [defaults, conda-forge]
-        test-type: [integration]
-        # test-type: [unit, integration]
-        test-group: [1]
-        # test-group: [1, 2, 3]
+        test-type: [unit, integration]
+        test-group: [1, 2, 3]
         exclude:
           - default-channel: conda-forge
             python-version: '3.9'
-          # - test-type: unit
-          #   test-group: 3
+          - test-type: unit
+            test-group: 3
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_SPLITS: '1' # ${{ matrix.test-type == 'unit' && '2' || '3' }}
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
@@ -140,17 +138,11 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Setup Powershell
-        shell: pwsh
         run: |
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
           "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Powershell Info
-        shell: pwsh
-        run: $PSVersionTable
-
       - name: Run Tests
-        shell: pwsh
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
         run: >
@@ -161,7 +153,6 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
-          -k test_powershell_basic_integration
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
@@ -185,7 +176,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -288,7 +279,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: false # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -355,7 +346,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -418,7 +409,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: false # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -480,7 +471,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:
