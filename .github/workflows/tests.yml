@@ -96,6 +96,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup PowerShell
+        run: |
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
+          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: PowerShell Info
+        run: |
+          echo "Installed PowerShell: $( (Get-Command powershell).Source )"
+          $PSVersionTable
+          echo "Latest PowerShell: $env:PWSHPATH\pwsh.exe"
+          & "$env:PWSHPATH\pwsh.exe" -Command '$PSVersionTable'
+
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
