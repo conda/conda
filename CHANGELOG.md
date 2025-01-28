@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 25.1.1 (2025-01-28)
+
+### Bug fixes
+
+* Fix PowerShell activation/deactivation to properly unset `$env:_CE_M` and $env:_CE_CONDA` environment variables. (#14292 via #14517)
+
+### Contributors
+
+* @travishathaway
+
+
+
 ## 25.1.0 (2025-01-17)
 
 ### Enhancements
