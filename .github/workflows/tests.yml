@@ -137,10 +137,17 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
-      - name: Setup Powershell
+      - name: Setup PowerShell
         run: |
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
           "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: PowerShell Info
+        run: |
+          echo "Installed PowerShell: $( (Get-Command powershell).Source )"
+          $PSVersionTable
+          echo "Latest PowerShell: $env:PWSHPATH\pwsh.exe"
+          & "$env:PWSHPATH\pwsh.exe" -Command '$PSVersionTable'
 
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
