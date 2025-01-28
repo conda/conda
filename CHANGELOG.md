@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix PowerShell activation/deactivation to properly unset `$env:_CE_M` and $env:_CE_CONDA` environment variables. (#14292 via #14517)
+* Fix PowerShell activation/deactivation to properly unset `$env:_CE_M` and `$env:_CE_CONDA` environment variables. (#14292 via #14517)
 
 ### Contributors
 
