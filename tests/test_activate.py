@@ -410,10 +410,13 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
         ENV_TWO=ENV_TWO,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -449,10 +452,13 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
         PKG_A_ENV=overwrite_a,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -483,10 +489,13 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -535,10 +544,13 @@ def test_build_activate_shlvl_1(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -575,10 +587,13 @@ def test_build_activate_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -626,10 +641,13 @@ def test_build_stack_shlvl_1(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_stack(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    stack = activator.build_stack(prefix)
+    stack["unset_vars"].sort()
+    assert stack == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -667,10 +685,13 @@ def test_build_stack_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -694,10 +715,13 @@ def test_activate_same_environment(
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -770,10 +794,13 @@ def test_build_deactivate_shlvl_2_from_stack(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": original_path},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -837,10 +864,13 @@ def test_build_deactivate_shlvl_2_from_activate(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": original_path},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -876,14 +906,17 @@ def test_build_deactivate_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {
             "PATH": activator.pathsep_join(
                 activator.path_conversion(activator._get_starting_path_list())
             )
         },
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt()},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -959,10 +992,13 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -1000,10 +1036,13 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
