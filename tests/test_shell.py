@@ -176,12 +176,13 @@ class InteractiveShellType(type):
         "pwsh-preview": {"base_shell": "powershell"},
     }
 
-    def __call__(self, shell_name: str):
+    def __call__(self, shell_name: str, **kwargs):
         return super().__call__(
             shell_name,
             **{
                 **self.SHELLS.get(self.SHELLS[shell_name].get("base_shell"), {}),
                 **self.SHELLS[shell_name],
+                **kwargs,
             },
         )
 
@@ -197,11 +198,13 @@ class InteractiveShell(metaclass=InteractiveShellType):
         print_env_var: str,
         exit_cmd: str | None = None,
         base_shell: str | None = None,  # ignored
+        shell_path: str | None = None,
     ):
         self.shell_name = shell_name
-        assert (path := which(shell_name))
-        self.shell_exe = quote_for_shell(path, *args)
-        self.shell_dir = dirname(path)
+        if not shell_path:
+            assert (shell_path := which(shell_name))
+        self.shell_exe = quote_for_shell(shell_path, *args)
+        self.shell_dir = dirname(shell_path)
 
         self.activator = activator_map[activator]()
         self.args = args
@@ -308,7 +311,8 @@ class InteractiveShell(metaclass=InteractiveShellType):
         return self.activator.path_conversion(*args, **kwargs)
 
 
-def which_powershell():
+@cache
+def which_powershell(path: str | None = None) -> tuple[str, str] | None:
     r"""
     Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
     it's helpful to have a utility function that returns the name of the best PowerShell
@@ -319,17 +323,33 @@ def which_powershell():
     E.g.: ('pwsh', r'C:\Program Files\PowerShell\6.0.2\pwsh.exe)
     """
     if on_win:
-        posh = which("powershell.exe")
+        posh = which("powershell.exe", path=path)
         if posh:
             return "powershell", posh
 
-    posh = which("pwsh")
+    posh = which("pwsh", path=path)
     if posh:
         return "pwsh", posh
 
-    posh = which("pwsh-preview")
+    posh = which("pwsh-preview", path=path)
     if posh:
         return "pwsh-preview", posh
+
+
+@cache
+def latest_powershell() -> tuple[str, str] | None:
+    if not (path := os.getenv("PWSHPATH")):
+        return None
+    return which_powershell(path)
+
+
+parametrize_pwsh = pytest.mark.parametrize(
+    "pwsh_name,pwsh_path",
+    [
+        *([which_powershell()] if which_powershell() else []),
+        *([latest_powershell()] if latest_powershell() else []),
+    ],
+)
 
 
 @pytest.fixture
@@ -673,12 +693,16 @@ def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str])
     not which_powershell() or platform.machine() == "arm64",
     reason="PowerShell not installed or not supported on platform",
 )
-def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+@parametrize_pwsh
+def test_powershell_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str],
+    pwsh_name: str,
+    pwsh_path: str,
+):
     prefix, charizard, venusaur = shell_wrapper_integration
 
-    posh_kind, posh_path = which_powershell()
-    log.debug(f"## [PowerShell integration] Using {posh_path}.")
-    with InteractiveShell(posh_kind) as shell:
+    log.debug(f"## [PowerShell integration] Using {pwsh_path}.")
+    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as shell:
         log.debug("## [PowerShell integration] Starting test.")
         shell.sendline("(Get-Command conda).CommandType")
         shell.expect_exact("Alias")
@@ -731,14 +755,19 @@ def test_powershell_basic_integration(shell_wrapper_integration: tuple[str, str,
 
 
 @pytest.mark.skipif(
-    not which_powershell() or not on_win, reason="Windows, PowerShell specific test"
+    not which_powershell() or not on_win,
+    reason="Windows, PowerShell specific test",
 )
-def test_powershell_PATH_management(shell_wrapper_integration: tuple[str, str, str]):
+@parametrize_pwsh
+def test_powershell_PATH_management(
+    shell_wrapper_integration: tuple[str, str, str],
+    pwsh_name: str,
+    pwsh_path: str,
+):
     prefix, _, _ = shell_wrapper_integration
 
-    posh_kind, posh_path = which_powershell()
-    print(f"## [PowerShell activation PATH management] Using {posh_path}.")
-    with InteractiveShell(posh_kind) as shell:
+    print(f"## [PowerShell activation PATH management] Using {pwsh_path}.")
+    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as shell:
         prefix = join(prefix, "envs", "test")
         print("## [PowerShell activation PATH management] Starting test.")
         shell.sendline("(Get-Command conda).CommandType")
