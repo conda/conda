@@ -441,14 +441,6 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
         anchor_paths = []
         for fpath in prefix_record.files:
             if on_win:
-                # (micro)mamba didn't slash-normalize paths on Windows
-                # so we might find some conda-meta/*.json files listing
-                # entries with path\\file.ext instead of path/file.ext
-                # https://github.com/conda-forge/conda-forge-ci-setup-feedstock/issues/362
-                # We could fix this earlier in the PrefixRecord instantiation, but then we
-                # would pay for this conversion every time we load any record. However we only
-                # need this fix for conda list, which is the only one that uses PrefixData with
-                # pip_interop_enabled=True. This function in only called in that code path.
                 fpath = fpath.replace("\\", "/")
             if matcher(fpath):
                 anchor_paths.append(fpath)
