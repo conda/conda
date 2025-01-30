@@ -7,7 +7,8 @@ build:
   noarch: generic
   script:
     - mkdir -p ${PREFIX}/bin
-    - echo "echo Hello!" > ${PREFIX}/bin/small
+    - echo "#!/usr/bin/env bash" > ${PREFIX}/bin/small
+    - echo "echo Hello!" >> ${PREFIX}/bin/small
     - mkdir -p ${PREFIX}/Scripts
     - echo "echo Hello!" > ${PREFIX}/Scripts/small.bat
 
