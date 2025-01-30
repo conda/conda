@@ -96,18 +96,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup PowerShell
-        run: |
-          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
-          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: PowerShell Info
-        run: |
-          echo "Installed PowerShell: $( (Get-Command powershell).Source )"
-          $PSVersionTable
-          echo "Latest PowerShell: $env:PWSHPATH\pwsh.exe"
-          & "$env:PWSHPATH\pwsh.exe" -Command '$PSVersionTable'
-
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
@@ -148,6 +136,20 @@ jobs:
 
       - name: Conda List
         run: conda list --show-channel-urls
+
+      - name: Setup PowerShell
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: |
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
+          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: PowerShell Info
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: |
+          Get-Command -All powershell
+          Get-Command -All "$env:PWSHPATH\pwsh.exe"
 
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
@@ -254,6 +256,11 @@ jobs:
 
       - name: Conda List
         run: conda list --show-channel-urls
+
+      - name: Setup Shells
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
 
       - name: Run Tests
         run: >
@@ -565,6 +572,11 @@ jobs:
 
       - name: Conda List
         run: conda list --show-channel-urls
+
+      - name: Setup Shells
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: brew update && brew install fish xonsh
 
       - name: Run Tests
         run: >
