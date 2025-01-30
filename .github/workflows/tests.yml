@@ -389,6 +389,7 @@ jobs:
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
         with:
           platforms: linux/${{ matrix.platform }}
+          # TODO: remove once https://github.com/tonistiigi/binfmt/issues/215 is resolved
           image: tonistiigi/binfmt:qemu-v8.1.5
 
       - name: Run Tests
