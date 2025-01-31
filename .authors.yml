@@ -127,7 +127,7 @@
   first_commit: 2020-06-22 13:01:33
 - name: Daniel Bast
   email: 2790401+dbast@users.noreply.github.com
-  num_commits: 19
+  num_commits: 20
   first_commit: 2021-04-08 13:00:55
   github: dbast
 - name: David Warde-Farley
@@ -642,7 +642,7 @@
   github: bradsaracik
 - name: Jaime Rodríguez-Guerra
   email: jaime.rogue@gmail.com
-  num_commits: 84
+  num_commits: 89
   first_commit: 2016-04-18 20:12:46
   github: jaimergp
   aliases:
@@ -956,7 +956,7 @@
   - kdeldycke@scaleway.com
 - name: Jonathan J. Helmus
   email: jjhelmus@gmail.com
-  num_commits: 139
+  num_commits: 140
   first_commit: 2017-04-05 23:51:36
   github: jjhelmus
 - name: Mervin Fansler
@@ -1519,7 +1519,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 144
+  num_commits: 146
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1724,7 +1724,7 @@
   first_commit: 2019-03-26 21:11:25
 - name: MinRK
   email: benjaminrk@gmail.com
-  num_commits: 9
+  num_commits: 10
   first_commit: 2013-08-28 23:54:33
   github: minrk
 - name: Michaël Defferrard
@@ -1957,7 +1957,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 446
+  num_commits: 451
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2003,7 +2003,7 @@
 - name: Daniel Holth
   email: dholth@anaconda.com
   github: dholth
-  num_commits: 118
+  num_commits: 119
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
   email: flavinj@gmail.com
@@ -2022,7 +2022,7 @@
   github: pre-commit-ci[bot]
   aliases:
   - pre-commit-ci[bot]
-  num_commits: 109
+  num_commits: 116
   first_commit: 2021-11-16 10:37:29
 - name: Yuvi Panda
   email: yuvipanda@gmail.com
@@ -2041,7 +2041,7 @@
   first_commit: 2021-11-29 23:03:32
 - name: Conda Bot
   email: 18747875+conda-bot@users.noreply.github.com
-  num_commits: 151
+  num_commits: 156
   first_commit: 2022-01-17 20:22:29
   github: conda-bot
   aliases:
@@ -2103,7 +2103,7 @@
 - name: Travis Hathaway
   email: travis.j.hathaway@gmail.com
   github: travishathaway
-  num_commits: 54
+  num_commits: 59
   first_commit: 2022-03-31 12:01:37
 - name: Tom Hu
   email: 88201630+thomasrockhu-codecov@users.noreply.github.com
@@ -2199,7 +2199,7 @@
   github: pkmooreanaconda
 - name: Mahe Iram Khan
   email: 65779580+ForgottenProgramme@users.noreply.github.com
-  num_commits: 28
+  num_commits: 29
   first_commit: 2022-10-07 23:21:54
   github: ForgottenProgramme
   alternate_emails:
@@ -2221,7 +2221,7 @@
   github: fragmede
 - name: dependabot[bot]
   email: 49699333+dependabot[bot]@users.noreply.github.com
-  num_commits: 41
+  num_commits: 43
   first_commit: 2022-10-13 14:01:08
   github: dependabot[bot]
 - name: Xuehai Pan
