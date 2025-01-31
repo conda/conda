@@ -3,12 +3,28 @@
 from __future__ import annotations
 
 from shutil import which
+from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.common.compat import on_win
+
 from . import InteractiveShell
 
-pytestmark = pytest.mark.integration
+if TYPE_CHECKING:
+    from . import Shell
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+]
+PARAMETRIZE_FISH = pytest.mark.parametrize("shell", ["fish"], indirect=True)
+
+
+@PARAMETRIZE_FISH
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
 
 
 @pytest.mark.skipif(not which("fish"), reason="fish not installed")

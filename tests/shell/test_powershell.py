@@ -14,10 +14,33 @@ import pytest
 from conda import __version__ as conda_version
 from conda.common.compat import on_win
 
-from . import HDF5_VERSION, InteractiveShell, dev_arg
+from . import DEV_ARG, HDF5_VERSION, InteractiveShell, Shell
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
+PARAMETRIZE_POWERSHELL = pytest.mark.parametrize(
+    "shell",
+    [
+        pytest.param(
+            ("powershell", "pwsh", "pwsh-preview"),
+            id="powershell",
+        ),
+        pytest.param(
+            Shell(("powershell", "pwsh"), path=os.getenv("PWSHPATH")),
+            id="PWSHPATH",
+            marks=pytest.mark.skipif(
+                not os.getenv("PWSHPATH"), reason="PWSHPATH is undefined"
+            ),
+        ),
+    ],
+    indirect=True,
+)
+
+
+@PARAMETRIZE_POWERSHELL
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
 
 
 @cache
@@ -114,7 +137,7 @@ def test_powershell_basic_integration(
 
         # conda run integration test
         log.debug("## [PowerShell integration] Checking conda run.")
-        shell.sendline(f"conda run {dev_arg} h5stat --version")
+        shell.sendline(f"conda run {DEV_ARG} h5stat --version")
         shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
         log.debug("## [PowerShell integration] Deactivating")

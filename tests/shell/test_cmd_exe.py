@@ -8,17 +8,33 @@ from logging import getLogger
 from pathlib import Path
 from re import escape
 from shutil import which
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as conda_version
 from conda.base.context import context
+from conda.common.compat import on_linux, on_mac
 
-from . import HDF5_VERSION, InteractiveShell, activate, deactivate, dev_arg
+from . import ACTIVATE_ARGS, DEACTIVATE_ARGS, DEV_ARG, HDF5_VERSION, InteractiveShell
+
+if TYPE_CHECKING:
+    from . import Shell
 
 log = getLogger(__name__)
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(on_linux, reason="unavailable on Linux"),
+    pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
+]
+PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=True)
+
+
+@PARAMETRIZE_CMD_EXE
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
@@ -41,7 +57,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
 
         PATH0 = shell.get_env_var("PATH", "").split(os.pathsep)
         log.debug(f"{PATH0=}")
-        shell.sendline(f'conda {activate} "{charizard}"')
+        shell.sendline(f'conda {ACTIVATE_ARGS} "{charizard}"')
 
         shell.sendline("chcp")
         shell.clear()
@@ -62,7 +78,7 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         shell.sendline('powershell -NoProfile -c "(Get-Command conda -All).Source"')
         shell.expect_exact(conda_bat)
 
-        shell.sendline(f'conda {activate} "{prefix}"')
+        shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix}"')
         shell.assert_env_var("_CE_CONDA", "conda")
         shell.assert_env_var("_CE_M", "-m")
         shell.assert_env_var("CONDA_EXE", escape(sys.executable))
@@ -85,14 +101,14 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
         # conda run integration test
-        shell.sendline(f"conda run {dev_arg} h5stat --version")
+        shell.sendline(f"conda run {DEV_ARG} h5stat --version")
         shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
-        shell.sendline(f"conda {deactivate}")
+        shell.sendline(f"conda {DEACTIVATE_ARGS}")
         shell.assert_env_var("CONDA_SHLVL", "1")
-        shell.sendline(f"conda {deactivate}")
+        shell.sendline(f"conda {DEACTIVATE_ARGS}")
         shell.assert_env_var("CONDA_SHLVL", "0")
-        shell.sendline(f"conda {deactivate}")
+        shell.sendline(f"conda {DEACTIVATE_ARGS}")
         shell.assert_env_var("CONDA_SHLVL", "0")
 
 
@@ -102,7 +118,7 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
     with InteractiveShell("cmd.exe") as shell:
         shell.sendline("set")
         shell.expect(".*")
-        shell.sendline(f"conda {activate} environment-not-found-doesnt-exist")
+        shell.sendline(f"conda {ACTIVATE_ARGS} environment-not-found-doesnt-exist")
         shell.expect(
             "Could not find conda environment: environment-not-found-doesnt-exist"
         )

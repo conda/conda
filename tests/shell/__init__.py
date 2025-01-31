@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import sys
+from contextlib import contextmanager
+from dataclasses import dataclass
 from os.path import dirname
 from shutil import which
 from signal import SIGINT
@@ -20,7 +22,6 @@ from conda.utils import quote_for_shell
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-
 # Here, by removing --dev you can try weird situations that you may want to test, upgrade paths
 # and the like? What will happen is that the conda being run and the shell scripts it's being run
 # against will be essentially random and will vary over the course of activating and deactivating
@@ -28,13 +29,52 @@ if TYPE_CHECKING:
 # encounter some different code that ends up being run (some of the time). You will go slowly mad.
 # No, you are best off keeping --dev on the end of these. For sure, if conda bundled its own tests
 # module then we could remove --dev if we detect we are being run in that way.
-dev_arg = "--dev"
-activate = f" activate {dev_arg} "
-deactivate = f" deactivate {dev_arg} "
-install = f" install {dev_arg} "
+DEV_ARG = "--dev"
+ACTIVATE_ARGS = f" activate {DEV_ARG} "
+DEACTIVATE_ARGS = f" deactivate {DEV_ARG} "
+INSTALL_ARGS = f" install {DEV_ARG} "
 
 # hdf5 version to use in tests
 HDF5_VERSION = "1.12.1"
+
+
+@dataclass
+class Shell:
+    name: str | tuple[str, ...]  # shell name
+    path: str | None = None  # $PATH style path to search for shell
+    exe: str | None = None  # shell executable path
+
+    def __post_init__(self) -> None:
+        if isinstance(self.name, str):
+            pass
+        elif isinstance(self.name, tuple) and all(
+            isinstance(name, str) for name in self.name
+        ):
+            pass
+        else:
+            raise TypeError(
+                f"shell name must be str or tuple of str, not {self.name!r}"
+            )
+
+    @classmethod
+    def resolve(cls, value: str | tuple[str, ...] | Shell) -> Shell | None:
+        shell = value if isinstance(value, Shell) else cls(value)
+
+        # if shell.exe is already set, use it
+        if shell.exe:
+            return shell
+
+        # find shell executable
+        names = [shell.name] if isinstance(shell.name, str) else list(shell.name)
+        for name in names:
+            if exe := which(name, path=shell.path):
+                return Shell(name=name, exe=exe)
+        raise FileNotFoundError(f"{shell} not found")
+
+    @contextmanager
+    def interactive(self) -> InteractiveShell:
+        with InteractiveShell(self) as interactive:
+            yield interactive
 
 
 class InteractiveShellType(type):
@@ -43,7 +83,7 @@ class InteractiveShellType(type):
         "posix": {
             "activator": "posix",
             "init_command": (
-                f'eval "$({EXE} -m conda shell.posix hook {dev_arg})" '
+                f'eval "$({EXE} -m conda shell.posix hook {DEV_ARG})" '
                 # want CONDA_SHLVL=0 before running tests so deactivate any active environments
                 # since we do not know how many environments have been activated by the user/CI
                 # just to be safe deactivate a few times
@@ -59,6 +99,7 @@ class InteractiveShellType(type):
             "args": ("-l",) if on_win else (),
             "base_shell": "posix",  # inheritance implemented in __init__
         },
+        "ash": {"base_shell": "posix"},
         "dash": {"base_shell": "posix"},
         "zsh": {"base_shell": "posix"},
         # It should be noted here that we use the latest hook with whatever conda.exe is installed
@@ -72,11 +113,11 @@ class InteractiveShellType(type):
             #                            '&& set CONDA_EXE={}'
             #                            '&& set _CE_M='
             #                            '&& set _CE_CONDA='
-            #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
+            #                            .format(CONDA_PACKAGE_ROOT, DEV_ARG,
             #                                    join(sys.prefix, "Scripts", "conda.exe")),
             "init_command": (
                 '@SET "CONDA_SHLVL=" '
-                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {dev_arg} "
+                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {DEV_ARG} "
                 f'&& @SET "CONDA_EXE={sys.executable}" '
                 '&& @SET "_CE_M=-m" '
                 '&& @SET "_CE_CONDA=conda"'
@@ -100,7 +141,7 @@ class InteractiveShellType(type):
         "tcsh": {"base_shell": "csh"},
         "fish": {
             "activator": "fish",
-            "init_command": f"eval ({EXE} -m conda shell.fish hook {dev_arg})",
+            "init_command": f"eval ({EXE} -m conda shell.fish hook {DEV_ARG})",
             "print_env_var": "echo $%s",
         },
         # We don't know if the PowerShell executable is called
@@ -127,12 +168,13 @@ class InteractiveShellType(type):
         "pwsh-preview": {"base_shell": "powershell"},
     }
 
-    def __call__(self, shell_name: str, **kwargs):
+    def __call__(self, shell: str | tuple[str, ...] | Shell, **kwargs):
+        shell = Shell.resolve(shell)
         return super().__call__(
-            shell_name,
+            shell,
             **{
-                **self.SHELLS.get(self.SHELLS[shell_name].get("base_shell"), {}),
-                **self.SHELLS[shell_name],
+                **self.SHELLS.get(self.SHELLS[shell.name].get("base_shell"), {}),
+                **self.SHELLS[shell.name],
                 **kwargs,
             },
         )
@@ -141,7 +183,7 @@ class InteractiveShellType(type):
 class InteractiveShell(metaclass=InteractiveShellType):
     def __init__(
         self,
-        shell_name: str,
+        shell: str | tuple[str, ...] | Shell,
         *,
         activator: str,
         args: Iterable[str] = (),
@@ -149,13 +191,11 @@ class InteractiveShell(metaclass=InteractiveShellType):
         print_env_var: str,
         exit_cmd: str | None = None,
         base_shell: str | None = None,  # ignored
-        shell_path: str | None = None,
     ):
-        self.shell_name = shell_name
-        if not shell_path:
-            assert (shell_path := which(shell_name))
-        self.shell_exe = quote_for_shell(shell_path, *args)
-        self.shell_dir = dirname(shell_path)
+        shell = Shell.resolve(shell)
+        self.shell_name = shell.name
+        self.shell_exe = quote_for_shell(shell.exe, *args)
+        self.shell_dir = dirname(shell.exe)
 
         self.activator = activator_map[activator]()
         self.args = args

@@ -14,15 +14,52 @@ import pytest
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as conda_version
 from conda.base.context import context
-from conda.common.compat import on_win
+from conda.common.compat import on_mac, on_win
 
-from . import HDF5_VERSION, InteractiveShell, activate, deactivate, dev_arg, install
+from . import (
+    ACTIVATE_ARGS,
+    DEACTIVATE_ARGS,
+    DEV_ARG,
+    HDF5_VERSION,
+    INSTALL_ARGS,
+    InteractiveShell,
+)
 
 if TYPE_CHECKING:
     from typing import Callable
 
+    from . import Shell
+
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
+PARAMETRIZE_POSIX = pytest.mark.parametrize(
+    "shell",
+    [
+        pytest.param(
+            "ash",
+            marks=[
+                pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
+                pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+            ],
+        ),
+        "bash",
+        pytest.param(
+            "dash",
+            marks=pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+        ),
+        pytest.param(
+            "zsh",
+            marks=pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+        ),
+    ],
+    indirect=True,
+)
+
+
+@PARAMETRIZE_POSIX
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
 
 
 @cache
@@ -84,7 +121,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.sendline("conda --version")
     shell.expect_exact("conda " + conda_version)
 
-    shell.sendline(f"conda {activate} base")
+    shell.sendline(f"conda {ACTIVATE_ARGS} base")
 
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
@@ -102,7 +139,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     _CE_CONDA = shell.get_env_var("_CE_CONDA")
 
     log.debug("activating ..")
-    shell.sendline(f'conda {activate} "{prefix_p}"')
+    shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix_p}"')
 
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
@@ -132,7 +169,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.expect("CONDA_")
     shell.sendline('echo "PATH=$PATH"')
     shell.expect("PATH=")
-    shell.sendline(f'conda {activate} "{prefix2_p}"')
+    shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix2_p}"')
     shell.sendline("env | sort | grep CONDA")
     shell.expect("CONDA_")
     shell.sendline('echo "PATH=$PATH"')
@@ -149,7 +186,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert _CE_M == _CE_M2
     assert _CE_CONDA == _CE_CONDA2
 
-    shell.sendline(f"conda {install} -yq hdf5={HDF5_VERSION}")
+    shell.sendline(f"conda {INSTALL_ARGS} -yq hdf5={HDF5_VERSION}")
     shell.expect(r"Executing transaction: ...working... done.*\n", timeout=180)
     shell.assert_env_var("?", "0", use_exact=True)
 
@@ -161,26 +198,26 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.sendline("type conda")
     shell.expect(conda_is_a_function)
 
-    shell.sendline(f"conda run {dev_arg} h5stat --version")
+    shell.sendline(f"conda run {DEV_ARG} h5stat --version")
     shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
 
     # regression test for #6840
-    shell.sendline(f"conda {install} --blah")
+    shell.sendline(f"conda {INSTALL_ARGS} --blah")
     shell.assert_env_var("?", "2", use_exact=True)
     shell.sendline("conda list --blah")
     shell.assert_env_var("?", "2", use_exact=True)
 
-    shell.sendline(f"conda {deactivate}")
+    shell.sendline(f"conda {DEACTIVATE_ARGS}")
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH.split(":"))
 
-    shell.sendline(f"conda {deactivate}")
+    shell.sendline(f"conda {DEACTIVATE_ARGS}")
     shell.assert_env_var("CONDA_SHLVL", "1")
     PATH = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH.split(":"))
 
-    shell.sendline(f"conda {deactivate}")
+    shell.sendline(f"conda {DEACTIVATE_ARGS}")
     shell.assert_env_var("CONDA_SHLVL", "0")
     PATH = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) == len(PATH.split(":"))
@@ -190,7 +227,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     shell.clear()
     assert "CONDA_PROMPT_MODIFIER" not in str(shell.p.after)
 
-    shell.sendline(f"conda {deactivate}")
+    shell.sendline(f"conda {DEACTIVATE_ARGS}")
     shell.assert_env_var("CONDA_SHLVL", "0")
 
     # When fully deactivated, CONDA_EXE, _CE_M and _CE_CONDA must be retained
@@ -204,26 +241,26 @@ def basic_posix(shell, prefix, prefix2, prefix3):
 
     PATH0 = shell.get_env_var("PATH")
 
-    shell.sendline(f'conda {activate} "{prefix2_p}"')
+    shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix2_p}"')
     shell.assert_env_var("CONDA_SHLVL", "1")
     PATH1 = shell.get_env_var("PATH")
     assert len(PATH0.split(":")) + num_paths_added == len(PATH1.split(":"))
 
-    shell.sendline(f'conda {activate} "{prefix3}" --stack')
+    shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix3}" --stack')
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH2 = shell.get_env_var("PATH")
     assert "charizard" in PATH2
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline(f'conda {activate} "{prefix_p}"')
+    shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
     assert "venusaur" not in PATH3
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH3.split(":"))
 
-    shell.sendline(f"conda {deactivate}")
+    shell.sendline(f"conda {DEACTIVATE_ARGS}")
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH4 = shell.get_env_var("PATH")
     assert "charizard" in PATH4
@@ -231,7 +268,7 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     assert len(PATH4.split(":")) == len(PATH2.split(":"))
     # assert PATH4 == PATH2  # cygpath may "resolve" paths
 
-    shell.sendline(f"conda {deactivate}")
+    shell.sendline(f"conda {DEACTIVATE_ARGS}")
     shell.assert_env_var("CONDA_SHLVL", "1")
     PATH5 = shell.get_env_var("PATH")
     assert len(PATH1.split(":")) == len(PATH5.split(":"))
@@ -240,14 +277,14 @@ def basic_posix(shell, prefix, prefix2, prefix3):
     # Test auto_stack
     shell.sendline(shell.activator.export_var_tmpl % ("CONDA_AUTO_STACK", "1"))
 
-    shell.sendline(f'conda {activate} "{prefix3}"')
+    shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix3}"')
     shell.assert_env_var("CONDA_SHLVL", "2")
     PATH2 = shell.get_env_var("PATH")
     assert "charizard" in PATH2
     assert "venusaur" in PATH2
     assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
 
-    shell.sendline(f'conda {activate} "{prefix_p}"')
+    shell.sendline(f'conda {ACTIVATE_ARGS} "{prefix_p}"')
     shell.assert_env_var("CONDA_SHLVL", "3")
     PATH3 = shell.get_env_var("PATH")
     assert "charizard" in PATH3
@@ -324,7 +361,7 @@ def test_legacy_activate_deactivate_bash(
         prefix3_p = shell.path_conversion(prefix3)
         shell.sendline(f"export _CONDA_ROOT='{CONDA_PACKAGE_ROOT_p}/shell'")
         shell.sendline(
-            f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix2_p}"'
+            f'source "${{_CONDA_ROOT}}/bin/activate" {DEV_ARG} "{prefix2_p}"'
         )
         PATH0 = shell.get_env_var("PATH")
         assert "charizard" in PATH0
@@ -336,7 +373,7 @@ def test_legacy_activate_deactivate_bash(
         shell.expect_exact("conda " + conda_version)
 
         shell.sendline(
-            f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix3_p}"'
+            f'source "${{_CONDA_ROOT}}/bin/activate" {DEV_ARG} "{prefix3_p}"'
         )
 
         PATH1 = shell.get_env_var("PATH")

@@ -8,13 +8,35 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import __version__ as conda_version
+from conda.common.compat import on_linux, on_win
 
 from . import InteractiveShell
 
 if TYPE_CHECKING:
     from typing import Callable
 
-pytestmark = pytest.mark.integration
+    from . import Shell
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+]
+PARAMETRIZE_CSH = pytest.mark.parametrize(
+    "shell",
+    [
+        # csh is often symlinked to tcsh but on some platforms it is the original csh
+        # we cannot use the original csh since aliases do no support parameter passing
+        pytest.param("csh", marks=pytest.mark.skipif(on_linux, reason="not supported")),
+        "tcsh",
+    ],
+    indirect=True,
+)
+
+
+@PARAMETRIZE_CSH
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
 
 
 def basic_csh(shell, prefix, prefix2, prefix3):
