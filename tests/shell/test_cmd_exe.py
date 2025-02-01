@@ -15,14 +15,17 @@ from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as conda_version
 from conda.base.context import context
 
-from . import HDF5_VERSION, InteractiveShell, activate, deactivate, dev_arg
+from . import InteractiveShell, activate, deactivate, dev_arg, install
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
 
 
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
+def test_cmd_exe_basic_integration(
+    shell_wrapper_integration: tuple[str, str, str],
+    test_recipe_channel: Path,
+) -> None:
     prefix, charizard, _ = shell_wrapper_integration
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
 
@@ -69,24 +72,24 @@ def test_cmd_exe_basic_integration(shell_wrapper_integration: tuple[str, str, st
         sh.assert_env_var("CONDA_SHLVL", "2")
         sh.assert_env_var("CONDA_PREFIX", prefix, True)
 
-        # TODO: Make a dummy package and release it (somewhere?)
-        #       should be a relatively light package, but also
-        #       one that has activate.d or deactivate.d scripts.
-        #       More imporant than size or script though, it must
-        #       not require an old or incompatible version of any
-        #       library critical to the correct functioning of
-        #       Python (e.g. OpenSSL).
-        sh.sendline(f"conda install --yes --quiet hdf5={HDF5_VERSION}")
-        sh.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
+        sh.sendline(
+            f"conda {install} "
+            f"--yes "
+            f"--quiet "
+            f"--override-channels "
+            f"--channel={test_recipe_channel} "
+            f"small-executable"
+        )
+        sh.expect(r"Executing transaction: ...working... done.*\n")
         sh.assert_env_var("errorlevel", "0", True)
         # TODO: assert that reactivate worked correctly
 
-        sh.sendline("h5stat --version")
-        sh.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline("small")
+        sh.expect_exact("Hello!")
 
         # conda run integration test
-        sh.sendline(f"conda run {dev_arg} h5stat --version")
-        sh.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline(f"conda run {dev_arg} small")
+        sh.expect_exact("Hello!")
 
         sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "1")

@@ -8,13 +8,17 @@ from functools import cache
 from logging import getLogger
 from os.path import join
 from shutil import which
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda import __version__ as conda_version
 from conda.common.compat import on_win
 
-from . import HDF5_VERSION, InteractiveShell, dev_arg
+from . import InteractiveShell, dev_arg, install
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
@@ -70,6 +74,7 @@ def test_powershell_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
     pwsh_name: str,
     pwsh_path: str,
+    test_recipe_channel: Path,
 ):
     prefix, charizard, venusaur = shell_wrapper_integration
 
@@ -102,20 +107,27 @@ def test_powershell_basic_integration(
         assert "charizard" in PATH
 
         log.debug("## [PowerShell integration] Installing.")
-        sh.sendline(f"conda install -yq hdf5={HDF5_VERSION}")
+        sh.sendline(
+            f"conda {install} "
+            f"--yes "
+            f"--quiet "
+            f"--override-channels "
+            f"--channel={test_recipe_channel} "
+            f"small-executable"
+        )
         sh.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
         sh.sendline("$LASTEXITCODE")
         sh.expect("0")
         # TODO: assert that reactivate worked correctly
 
         log.debug("## [PowerShell integration] Checking installed version.")
-        sh.sendline("h5stat --version")
-        sh.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline("small")
+        sh.expect_exact("Hello!")
 
         # conda run integration test
         log.debug("## [PowerShell integration] Checking conda run.")
-        sh.sendline(f"conda run {dev_arg} h5stat --version")
-        sh.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline(f"conda run {dev_arg} small")
+        sh.expect_exact("Hello!")
 
         log.debug("## [PowerShell integration] Deactivating")
         sh.sendline("conda deactivate")

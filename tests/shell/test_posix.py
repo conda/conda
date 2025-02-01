@@ -7,6 +7,7 @@ from functools import cache
 from logging import getLogger
 from shutil import which
 from subprocess import CalledProcessError, check_output
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,7 +16,10 @@ from conda import __version__ as conda_version
 from conda.base.context import context
 from conda.common.compat import on_win
 
-from . import HDF5_VERSION, InteractiveShell, activate, deactivate, dev_arg, install
+from . import InteractiveShell, activate, deactivate, dev_arg, install
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
@@ -75,7 +79,8 @@ skip_unsupported_bash = pytest.mark.skipif(
 def test_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
     shell_name: str,
-):
+    test_recipe_channel: Path,
+) -> None:
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
     with InteractiveShell(shell_name) as sh:
@@ -177,20 +182,27 @@ def test_basic_integration(
         assert _CE_M == _CE_M2
         assert _CE_CONDA == _CE_CONDA2
 
-        sh.sendline(f"conda {install} -yq hdf5={HDF5_VERSION}")
-        sh.expect(r"Executing transaction: ...working... done.*\n", timeout=180)
+        sh.sendline(
+            f"conda {install} "
+            f"--yes "
+            f"--quiet "
+            f"--override-channels "
+            f"--channel={test_recipe_channel} "
+            f"small-executable"
+        )
+        sh.expect(r"Executing transaction: ...working... done.*\n")
         sh.assert_env_var("?", "0", use_exact=True)
 
-        sh.sendline("h5stat --version")
-        sh.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline("small")
+        sh.expect_exact("Hello!")
 
         # TODO: assert that reactivate worked correctly
 
         sh.sendline("type conda")
         sh.expect(conda_is_a_function)
 
-        sh.sendline(f"conda run {dev_arg} h5stat --version")
-        sh.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline(f"conda run {dev_arg} small")
+        sh.expect_exact("Hello!")
 
         # regression test for #6840
         sh.sendline(f"conda {install} --blah")
