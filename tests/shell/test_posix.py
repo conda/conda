@@ -79,7 +79,7 @@ skip_unsupported_bash = pytest.mark.skipif(
 def test_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
     shell_name: str,
-    test_recipe_channel: Path,
+    test_recipes_channel: Path,
 ) -> None:
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
@@ -187,7 +187,7 @@ def test_basic_integration(
             f"--yes "
             f"--quiet "
             f"--override-channels "
-            f"--channel={test_recipe_channel} "
+            f"--channel={test_recipes_channel} "
             f"small-executable"
         )
         sh.expect(r"Executing transaction: ...working... done.*\n")

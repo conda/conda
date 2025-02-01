@@ -24,7 +24,7 @@ pytestmark = pytest.mark.integration
 @pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
 def test_cmd_exe_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
-    test_recipe_channel: Path,
+    test_recipes_channel: Path,
 ) -> None:
     prefix, charizard, _ = shell_wrapper_integration
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
@@ -77,7 +77,7 @@ def test_cmd_exe_basic_integration(
             f"--yes "
             f"--quiet "
             f"--override-channels "
-            f"--channel={test_recipe_channel} "
+            f"--channel={test_recipes_channel} "
             f"small-executable"
         )
         sh.expect(r"Executing transaction: ...working... done.*\n")

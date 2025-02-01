@@ -74,7 +74,7 @@ def test_powershell_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
     pwsh_name: str,
     pwsh_path: str,
-    test_recipe_channel: Path,
+    test_recipes_channel: Path,
 ):
     prefix, charizard, venusaur = shell_wrapper_integration
 
@@ -112,7 +112,7 @@ def test_powershell_basic_integration(
             f"--yes "
             f"--quiet "
             f"--override-channels "
-            f"--channel={test_recipe_channel} "
+            f"--channel={test_recipes_channel} "
             f"small-executable"
         )
         sh.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
