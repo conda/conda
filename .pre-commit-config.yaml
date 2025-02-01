@@ -46,6 +46,9 @@ repos:
             tests/requirements.*\.txt
           )
         args: [--unique]
+      - id: pretty-format-json
+        args: [--autofix]
+        files: tests/test-recipes/.+/repodata\.json
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
