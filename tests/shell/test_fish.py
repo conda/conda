@@ -16,25 +16,25 @@ pytestmark = pytest.mark.integration
 def test_fish_basic_integration(shell_wrapper_integration: tuple[str, str, str]):
     prefix, _, _ = shell_wrapper_integration
 
-    with InteractiveShell("fish") as shell:
-        shell.sendline("env | sort")
+    with InteractiveShell("fish") as sh:
+        sh.sendline("env | sort")
         # We should be seeing environment variable output to terminal with this line, but
         # we aren't.  Haven't experienced this problem yet with any other shell...
 
-        shell.assert_env_var("CONDA_SHLVL", "0")
-        shell.sendline("conda activate base")
-        shell.assert_env_var("CONDA_SHLVL", "1")
-        shell.sendline(f'conda activate "{prefix}"')
-        shell.assert_env_var("CONDA_SHLVL", "2")
-        shell.assert_env_var("CONDA_PREFIX", prefix, True)
-        shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "1")
-        shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "0")
+        sh.assert_env_var("CONDA_SHLVL", "0")
+        sh.sendline("conda activate base")
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        sh.sendline(f'conda activate "{prefix}"')
+        sh.assert_env_var("CONDA_SHLVL", "2")
+        sh.assert_env_var("CONDA_PREFIX", prefix, True)
+        sh.sendline("conda deactivate")
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        sh.sendline("conda deactivate")
+        sh.assert_env_var("CONDA_SHLVL", "0")
 
-        shell.sendline(shell.print_env_var % "PS1")
-        shell.clear()
-        assert "CONDA_PROMPT_MODIFIER" not in str(shell.p.after)
+        sh.sendline(sh.print_env_var % "PS1")
+        sh.clear()
+        assert "CONDA_PROMPT_MODIFIER" not in str(sh.p.after)
 
-        shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "0")
+        sh.sendline("conda deactivate")
+        sh.assert_env_var("CONDA_SHLVL", "0")
