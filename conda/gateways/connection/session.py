@@ -1,11 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Requests session configured with all accepted scheme adapters."""
+
 from __future__ import annotations
 
-from functools import lru_cache
+from fnmatch import fnmatch
+from functools import cache
 from logging import getLogger
 from threading import local
+from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -23,6 +26,7 @@ from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
     BaseAdapter,
+    CaseInsensitiveDict,
     Retry,
     Session,
     _basic_auth_str,
@@ -34,6 +38,9 @@ from .adapters.ftp import FTPAdapter
 from .adapters.http import HTTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
+
+if TYPE_CHECKING:
+    from requests.models import PreparedRequest, Request
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -53,11 +60,10 @@ CONDA_SESSION_SCHEMES = frozenset(
 class EnforceUnusedAdapter(BaseAdapter):
     def send(self, request, *args, **kwargs):
         message = dals(
-            """
-        EnforceUnusedAdapter called with url %s
+            f"""
+        EnforceUnusedAdapter called with url {request.url}
         This command is using a remote connection in offline mode.
         """
-            % request.url
         )
         raise RuntimeError(message)
 
@@ -72,7 +78,7 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_session(url: str):
     """
     Function that determines the correct Session object to be returned
@@ -88,7 +94,24 @@ def get_session(url: str):
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
-        if settings.get("channel") == channel_name:
+        channel = settings.get("channel", "")
+        if channel == channel_name:
+            # First we check for exact match
+            channel_settings = settings
+            continue
+
+        # If we don't have an exact match, we attempt to match a URL pattern
+        parsed_url = urlparse(url)
+        parsed_setting = urlparse(channel)
+
+        # We require that the schemes must be identical to prevent downgrade attacks.
+        # This includes the case of a scheme-less pattern like "*", which is not allowed.
+        if parsed_setting.scheme != parsed_url.scheme:
+            continue
+
+        url_without_schema = parsed_url.netloc + parsed_url.path
+        pattern = parsed_setting.netloc + parsed_setting.path
+        if fnmatch(url_without_schema, pattern):
             channel_settings = settings
 
     auth_handler = channel_settings.get("auth", "").strip() or None
@@ -147,7 +170,10 @@ class CondaSessionType(type):
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
-    def __init__(self, auth: AuthBase | tuple[str, str] | None = None):
+    def __init__(
+        self,
+        auth: AuthBase | tuple[str, str] | None = None,
+    ):
         """
         :param auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
@@ -168,7 +194,7 @@ class CondaSession(Session, metaclass=CondaSessionType):
             except ImportError:
                 raise CondaError(
                     "The `ssl_verify: truststore` setting is only supported on"
-                    + "Python 3.10 or later."
+                    "Python 3.10 or later."
                 )
             self.verify = True
         else:
@@ -204,6 +230,32 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+    def prepare_request(self, request: Request) -> PreparedRequest:
+        # inject headers from plugins if this is a https/http request
+        url = urlparse(request.url)
+        if url.scheme in ("https", "http"):
+            request.headers = CaseInsensitiveDict(
+                {
+                    # hardcoded session headers (self.headers) are injected in super().prepare_request
+                    **context.plugin_manager.get_cached_session_headers(
+                        host=url.netloc
+                    ),
+                    **context.plugin_manager.get_cached_request_headers(
+                        host=url.netloc, path=url.path
+                    ),
+                    **(request.headers or {}),
+                }
+            )
+        return super().prepare_request(request)
+
+    @classmethod
+    def cache_clear(cls):
+        try:
+            cls._thread_local.sessions.clear()
+        except AttributeError:
+            # AttributeError: thread's session cache has not been initialized
+            pass
 
 
 class CondaHttpAuth(AuthBase):
@@ -276,11 +328,11 @@ class CondaHttpAuth(AuthBase):
         if proxy_scheme not in proxies:
             raise ProxyError(
                 dals(
-                    """
-            Could not find a proxy for {!r}. See
-            {}/docs/html#configure-conda-for-use-behind-a-proxy-server
+                    f"""
+            Could not find a proxy for {proxy_scheme!r}. See
+            {CONDA_HOMEPAGE_URL}/docs/html#configure-conda-for-use-behind-a-proxy-server
             for more information on how to configure proxies.
-            """.format(proxy_scheme, CONDA_HOMEPAGE_URL)
+            """
                 )
             )
 

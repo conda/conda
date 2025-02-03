@@ -3,15 +3,46 @@
 """
 Collection of helper functions to standardize reused CLI arguments.
 """
+
 from __future__ import annotations
 
 from argparse import (
     SUPPRESS,
-    ArgumentParser,
-    _ArgumentGroup,
+    BooleanOptionalAction,
     _HelpAction,
-    _MutuallyExclusiveGroup,
+    _StoreAction,
 )
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+
+class _ValidatePackages(_StoreAction):
+    """
+    Used to validate match specs of packages
+    """
+
+    @staticmethod
+    def _validate_no_denylist_channels(packages_specs):
+        """
+        Ensure the packages do not contain denylist_channels
+        """
+        from ..base.context import validate_channels
+        from ..models.match_spec import MatchSpec
+
+        if not isinstance(packages_specs, (list, tuple)):
+            packages_specs = [packages_specs]
+
+        validate_channels(
+            channel
+            for spec in map(MatchSpec, packages_specs)
+            if (channel := spec.get_exact_value("channel"))
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        self._validate_no_denylist_channels(values)
+        super().__call__(parser, namespace, values, option_string)
 
 
 def add_parser_create_install_update(p, prefix_required=False):
@@ -48,7 +79,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     p.add_argument(
         "packages",
         metavar="package_spec",
-        action="store",
+        action=_ValidatePackages,
         nargs="*",
         help="List of packages to install or update in the conda environment.",
     )
@@ -130,6 +161,11 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
         action="store_true",
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
+    )
+    output_and_prompt_options.add_argument(
+        "--console",
+        default=NULL,
+        help="Select the backend to use for normal output rendering.",
     )
     add_parser_verbose(output_and_prompt_options)
     output_and_prompt_options.add_argument(
@@ -221,6 +257,14 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         "--no-lock",
         action="store_true",
         help="Disable locking when reading, updating index (repodata.json) cache. ",
+    )
+
+    channel_customization_options.add_argument(
+        "--repodata-use-zst",
+        action=BooleanOptionalAction,
+        dest="repodata_use_zst",
+        default=NULL,
+        help="Check for/do not check for repodata.json.zst. Enabled by default.",
     )
     return channel_customization_options
 
@@ -315,7 +359,7 @@ def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
         help="Exit early and do not run the solver if the requested specs are satisfied. "
         "Also skips aggressive updates as configured by the "
         "'aggressive_update_packages' config setting. Use "
-        "'conda info --describe aggressive_update_packages' to view your setting. "
+        "'conda config --describe aggressive_update_packages' to view your setting. "
         "--satisfied-skip-solve is similar to the default behavior of 'pip install'.",
     )
     update_modifiers.add_argument(

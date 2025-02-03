@@ -1,13 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions testing path properties (e.g., writable, hardlinks, softlinks, etc.)."""
-from functools import lru_cache
+
+from functools import cache
 from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
 from ...base.constants import PREFIX_MAGIC_FILE
+from ...common.constants import TRACE
 from ...common.path import expand
 from ...models.enums import LinkType
 from .create import create_link
@@ -19,7 +21,7 @@ log = getLogger(__name__)
 
 def file_path_is_writable(path):
     path = expand(path)
-    log.trace("checking path is writable %s", path)
+    log.log(TRACE, "checking path is writable %s", path)
     if isdir(dirname(path)):
         path_existed = lexists(path)
         try:
@@ -37,7 +39,7 @@ def file_path_is_writable(path):
         return access(path, W_OK)
 
 
-@lru_cache(maxsize=None)
+@cache
 def hardlink_supported(source_file, dest_dir):
     test_file = join(dest_dir, f".tmp.{basename(source_file)}.{str(uuid4())[:8]}")
     assert isfile(source_file), source_file
@@ -51,22 +53,24 @@ def hardlink_supported(source_file, dest_dir):
         create_link(source_file, test_file, LinkType.hardlink, force=True)
         is_supported = not islink(test_file)
         if is_supported:
-            log.trace("hard link supported for %s => %s", source_file, dest_dir)
+            log.log(TRACE, "hard link supported for %s => %s", source_file, dest_dir)
         else:
-            log.trace("hard link IS NOT supported for %s => %s", source_file, dest_dir)
+            log.log(
+                TRACE, "hard link IS NOT supported for %s => %s", source_file, dest_dir
+            )
         return is_supported
     except OSError:
-        log.trace("hard link IS NOT supported for %s => %s", source_file, dest_dir)
+        log.log(TRACE, "hard link IS NOT supported for %s => %s", source_file, dest_dir)
         return False
     finally:
         rm_rf(test_file)
 
 
-@lru_cache(maxsize=None)
+@cache
 def softlink_supported(source_file, dest_dir):
     # On Windows, softlink creation is restricted to Administrative users by default. It can
     # optionally be enabled for non-admin users through explicit registry modification.
-    log.trace("checking soft link capability for %s => %s", source_file, dest_dir)
+    log.log(TRACE, "checking soft link capability for %s => %s", source_file, dest_dir)
     test_path = join(dest_dir, ".tmp." + basename(source_file))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir

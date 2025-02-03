@@ -1,17 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Entry point for all conda subcommands."""
+
 import sys
 
-from ..deprecations import deprecated
 
-
-@deprecated.argument(
-    "24.3",
-    "24.9",
-    "context",
-    addendum="The context is a global state, no need to pass it around.",
-)
 def init_loggers():
     import logging
 
@@ -27,21 +20,6 @@ def init_loggers():
 
     # set log_level
     set_log_level(context.log_level)
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.cli.conda_argparse.generate_parser` instead.",
-)
-def generate_parser(*args, **kwargs):
-    """
-    Some code paths import this function directly from this module instead
-    of from conda_argparse. We add the forwarder for backwards compatibility.
-    """
-    from .conda_argparse import generate_parser
-
-    return generate_parser(*args, **kwargs)
 
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
@@ -95,7 +73,6 @@ def main_sourced(shell, *args, **kwargs):
     from ..base.context import context
 
     context.__init__()
-    init_loggers()
 
     from ..activate import _build_activator_cls
 
@@ -104,7 +81,7 @@ def main_sourced(shell, *args, **kwargs):
     except KeyError:
         from ..exceptions import CondaError
 
-        raise CondaError("%s is not a supported shell." % shell)
+        raise CondaError(f"{shell} is not a supported shell.")
 
     activator = activator_cls(args)
     print(activator.execute(), end="")

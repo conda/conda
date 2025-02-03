@@ -2,41 +2,31 @@
 Creating custom channels
 ========================
 
-Channels are the path that conda takes to look for packages. The
-easiest way to use and manage custom channels is to use a private
-or public repository on `Anaconda.org <https://anaconda.org/>`_.
-If you designate your Anaconda.org
-repository as private, then only you and those you grant access to
-can access your private repository.
-
-If you do not wish to upload your packages to the Internet, you
-can build a custom repository served either through a web server
-or locally using a ``file://`` URL.
+In this tutorial, we walk through how to create your own channel
+that can either be accessed via the local or network file system or served
+from a webserver.
 
 To create a custom channel:
 
-#. If you have not yet used conda-build, install conda-build:
+#. You will need to install conda-build to complete this tutorial. If you do not already have it,
+   you can install it with the following command:
 
    .. code::
 
       conda install conda-build
 
-#. Organize all the packages in subdirectories for the platforms
-   you wish to serve:
+#. Organize all the packages in subdirectories for the platforms you wish to serve. Below
+   is an example of what this may look like:
 
    .. code::
 
-      channel/
-     linux-64/
-      package-1.0-0.tar.bz2
-     linux-32/
-      package-1.0-0.tar.bz2
-     osx-64/
-      package-1.0-0.tar.bz2
-     win-64/
-      package-1.0-0.tar.bz2
-     win-32/
-      package-1.0-0.tar.bz2
+      channel
+      ├── linux-64
+      │   └── package-1.0-0.tar.bz2
+      ├── osx-64
+      │   └── package-1.0-0.tar.bz2
+      └── win-64
+          └── package-1.0-0.tar.bz2
 
 #. Run ``conda index`` on the channel root directory:
 
@@ -56,7 +46,7 @@ To create a custom channel:
    server or using a ``file://`` URL to the channel directory.
    Test by sending a search command to the custom channel.
 
-   EXAMPLE: If you want a file in the custom channel location
+   **Example**: if you want a file in the custom channel location
    ``/opt/channel/linux-64/``, search for files in that location:
 
    .. code::
@@ -64,14 +54,12 @@ To create a custom channel:
       conda search -c file:///opt/channel/ --override-channels
 
    .. note::
-      The channel URL does not include the platform, as conda
-      automatically detects and adds the platform.
-
-   .. note::
-      The option  ``--override-channels`` ensures that conda
-      searches only your specified channel and no other channels,
-      such as default channels or any other channels you may have
-      listed in your ``.condarc`` file.
+      * The channel URL does not include the platform, as conda
+        automatically detects and adds the platform.
+      * The option ``--override-channels`` ensures that conda
+        searches only your specified channel and no other channels,
+        such as default channels or any other channels you may have
+        listed in your ``.condarc`` file.
 
    If you have set up your private repository correctly, you
    get the following output:

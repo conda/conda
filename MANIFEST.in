@@ -1,6 +1,0 @@
-include CHANGELOG.md
-include LICENSE.txt
-include MANIFEST.in
-include README.md
-include setup.cfg
-include setup.py

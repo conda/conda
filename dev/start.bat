@@ -117,14 +117,14 @@
     @EXIT /B 1
 )
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA "%_BASEEXE%" install -yq --name base defaults::git > NUL
+@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base "defaults::git<2.45" > NUL
 :INSTALLED
 
 :: create empty env if it doesn't exist
 @IF EXIST "%_ENV%" @GOTO ENVEXISTS
 @ECHO Creating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" create -yq --prefix "%_ENV%" > NUL
+@CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to create %_NAME% 1>&2
     @EXIT /B 1
@@ -136,20 +136,21 @@
 @IF NOT %ErrorLevel%==0 @GOTO UPTODATE
 @ECHO Updating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" update -yq --all > NUL
+@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update development environment 1>&2
     @EXIT /B 1
 )
 
 @CALL :CONDA "%_BASEEXE%" install ^
-    -yq ^
-    --prefix "%_ENV%" ^
+    --yes ^
+    --quiet ^
+    "--prefix=%_ENV%" ^
     --override-channels ^
-    -c defaults ^
-    --file "%_SRC%\tests\requirements.txt" ^
-    --file "%_SRC%\tests\requirements-Windows.txt" ^
-    conda ^
+    --channel=defaults ^
+    "--file=%_SRC%\tests\requirements.txt" ^
+    "--file=%_SRC%\tests\requirements-ci.txt" ^
+    "--file=%_SRC%\tests\requirements-Windows.txt" ^
     "python=%_PYTHON%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_NAME% 1>&2
@@ -160,6 +161,22 @@
 @IF EXIST "%_UPDATED%" @DEL "%_UPDATED%"
 @ECHO > "%_UPDATED%"
 :UPTODATE
+
+:: "install" conda
+:: trick conda into importing from our source code and not from site-packages
+@IF "%PYTHONPATH%"=="" (
+    @SET "PYTHONPATH=%_SRC%"
+) ELSE (
+    @SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
+)
+
+:: copy latest shell scripts
+@ECHO Update shell scripts...
+@CALL :CONDA "%_ENVEXE%" init --install > NUL
+@IF NOT %ErrorLevel%==0 (
+    @ECHO Error: failed to update shell scripts 1>&2
+    @EXIT /B 1
+)
 
 :: initialize conda command
 @ECHO Initializing shell integration...
@@ -178,9 +195,6 @@
 )
 @SET "CONDA_BAT=%_CONDABAT%"
 @DOSKEY conda="%CONDA_BAT%" $*
-
-:: "install" conda
-@SET "PYTHONPATH=%_SRC%;%PYTHONPATH%"
 
 :CLEANUP
 @SET _ARG=
@@ -204,7 +218,7 @@
 :CONDA *args
 :: include OpenSSL & git on %PATH%
 @SET "_PATH=%PATH%"
-@SET "PATH=%_DEVENV%\Library\bin;%PATH%"
+@SET "PATH=%1\..\..\Library\bin;%PATH%"
 
 @CALL %*
 @IF NOT %ErrorLevel%==0 @EXIT /B %ErrorLevel%

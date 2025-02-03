@@ -1,6 +1,6 @@
-===========================
-Conda package specification
-===========================
+=====================
+Package specification
+=====================
 
 .. _package_metadata:
 

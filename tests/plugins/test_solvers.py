@@ -6,7 +6,7 @@ import re
 import pytest
 
 from conda import plugins
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins.hookspec import CondaSpecs
@@ -49,10 +49,7 @@ class VerboseSolverPlugin:
         )
 
 
-def test_get_solver_backend(plugin_manager, monkeypatch):
-    # setting the solver to classic, overriding libmamba default
-    # (not mocked in tests)
-    monkeypatch.setattr(context, "solver", "classic")
+def test_get_solver_backend(plugin_manager, solver_classic):
     plugin = SolverPlugin()
     plugin_manager.register(plugin)
     solver_class = plugin_manager.get_solver_backend()
@@ -80,7 +77,10 @@ def clear_user_agent():
 
 def test_solver_user_agent(monkeypatch, plugin_manager, request):
     # setting the solver to the verbose classic version defined in this module
-    monkeypatch.setattr(context, "solver", "verbose-classic")
+    monkeypatch.setenv("CONDA_SOLVER", "verbose-classic")
+    reset_context()
+    assert context.solver == "verbose-classic"
+
     # context.user_agent is a memoizedproperty, which may have been cached from
     # previous test runs. We're checking here and clear the cache if needed.
     request.addfinalizer(clear_user_agent)
@@ -91,11 +91,7 @@ def test_solver_user_agent(monkeypatch, plugin_manager, request):
     assert verbose_user_agent in context.user_agent
 
 
-def test_get_solver_backend_multiple(monkeypatch, plugin_manager):
-    # setting the solver to classic, overriding libmamba default
-    # (not mocked in tests)
-    monkeypatch.setattr(context, "solver", "classic")
-
+def test_get_solver_backend_multiple(solver_classic, plugin_manager):
     plugin = SolverPlugin()
     plugin_manager.register(plugin)
 

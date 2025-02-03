@@ -2,11 +2,9 @@
 Administering a multi-user conda installation
 =============================================
 
-By default, conda and all packages it installs, including
-Anaconda, are installed locally with a user-specific
-configuration. Administrative privileges are not required, and
-no upstream files or other users are affected by
-the installation.
+By default, conda and all of the packages it installs are installed locally with a
+user-specific configuration. Administrative privileges are not required, and
+no upstream files or other users are affected by the installation.
 
 You can make conda and any number of packages available to a
 group of one or more users, while preventing these users
@@ -53,7 +51,8 @@ System configuration file
 -------------------------
 
 #. The system configuration file must be in the top-level conda
-   installation directory. Check the path where conda is located:
+   installation directory. Check the path where ``conda`` is located, e.g.
+   in a miniconda installation
 
    .. code-block:: bash
 

@@ -29,7 +29,7 @@ by a leading double-underscore in the package name.
 Listing detected virtual packages
 =================================
 
-Use the terminal or an Anaconda Prompt for the following steps.
+Use the terminal for the following steps.
 
 To see the list of detected virtual packages, run:
 

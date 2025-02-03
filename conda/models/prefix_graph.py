@@ -8,13 +8,11 @@ Object inheritance:
    :top-classes: conda.models.prefix_graph.PrefixGraph
    :parts: 1
 """
+
 from collections import defaultdict
 from logging import getLogger
 
-try:
-    from boltons.setutils import IndexedSet
-except ImportError:  # pragma: no cover
-    from .._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 
 from ..base.context import context
 from ..common.compat import on_win
@@ -185,7 +183,7 @@ class PrefixGraph:
         """Removes this node and all edges referencing it."""
         graph = self.graph
         if node not in graph:
-            raise KeyError("node %s does not exist" % node)
+            raise KeyError(f"node {node} does not exist")
         graph.pop(node)
         self.spec_matches.pop(node, None)
 

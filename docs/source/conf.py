@@ -40,6 +40,7 @@ extensions = [
     "sphinx_reredirects",
     "sphinx_sitemap",
     "sphinxarg.ext",
+    "sphinxcontrib.mermaid",
     "sphinxcontrib.plantuml",
     "sphinxcontrib.programoutput",
     "sphinx_design",
@@ -98,6 +99,14 @@ html_theme_options = {
     "navbar_start": ["navbar-logo"],
     "use_edit_page_button": True,
     "goatcounter_url": "https://docs-conda-io.goatcounter.com/count",
+    "show_version_warning_banner": True,
+    "switcher": {
+        # This should live in "latest" (=in-development version) since
+        # we can modify the supported versions in the version switcher
+        "json_url": "https://docs.conda.io/projects/conda/en/latest/_static/switcher.json",
+        # Use RTD's automatic version variable, and fallback to "stable"
+        "version_match": os.environ.get("READTHEDOCS_VERSION", "stable"),
+    },
 }
 
 html_context = {
@@ -155,7 +164,8 @@ autoapi_root = "dev-guide/api"
 # folder-view
 autoapi_add_toctree_entry = False
 autoapi_template_dir = "_templates/autoapi"
-
+autoapi_python_class_content = "both"
+autoapi_keep_files = True
 
 suppress_warnings = [
     "autosectionlabel.*",
@@ -218,6 +228,9 @@ redirects = {
     "using/pkgs": "../user-guide/tasks/manage-pkgs.html",
     "using/test-drive": "../user-guide/getting-started.html",
     "using/using": "../user-guide/tasks/manage-conda.html",
+    "user-guide/install/download": "../install/index.html",
+    "user-guide/configuration/sample-condarc": "../configuration/use-condarc.html#sample-condarc",
+    "user-guide/configuration/enable-tab-completion": "../configuration/index.html",
     # external redirects
     "travis": "https://github.com/conda-incubator/setup-miniconda",
     "user-guide/tasks/use-conda-with-travis-ci": "https://github.com/conda-incubator/setup-miniconda",

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Package installation implemented as a series of link/unlink transactions."""
+
 from __future__ import annotations
 
 import itertools
@@ -14,23 +15,22 @@ from os.path import basename, dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
-from typing import Iterable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
-from ..cli.common import confirm_yn
 from ..common.compat import ensure_text_type, on_win
 from ..common.io import (
     DummyExecutor,
-    Spinner,
     ThreadLimitedThreadPoolExecutor,
     dashlist,
     time_recorder,
 )
 from ..common.path import (
+    BIN_DIRECTORY,
     explode_directories,
     get_all_directories,
     get_major_minor_version,
@@ -58,16 +58,14 @@ from ..gateways.disk.test import (
 )
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
-from ..models.package_info import PackageInfo
-from ..models.records import PackageRecord
 from ..models.version import VersionOrder
+from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
 from .path_actions import (
     AggregateCompileMultiPycAction,
     CompileMultiPycAction,
-    CreateNonadminAction,
     CreatePrefixRecordAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
@@ -78,9 +76,18 @@ from .path_actions import (
     UnlinkPathAction,
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
-    _Action,
 )
-from .prefix_data import PrefixData, get_python_version_for_prefix
+from .prefix_data import (
+    PrefixData,
+    python_record_for_prefix,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from ..models.package_info import PackageInfo
+    from ..models.records import PackageRecord
+    from .path_actions import _Action
 
 log = getLogger(__name__)
 
@@ -112,8 +119,8 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = "{}-{}-{}".format(
-                prefix_record.name, prefix_record.version, prefix_record.build
+            extracted_package_dir = (
+                f"{prefix_record.name}-{prefix_record.version}-{prefix_record.build}"
             )
 
     meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
@@ -163,11 +170,11 @@ def match_specs_to_dists(packages_info_to_link, specs):
 
 class PrefixSetup(NamedTuple):
     target_prefix: str
-    unlink_precs: Iterable[PackageRecord]
-    link_precs: Iterable[PackageRecord]
-    remove_specs: Iterable[MatchSpec]
-    update_specs: Iterable[MatchSpec]
-    neutered_specs: Iterable[MatchSpec]
+    unlink_precs: tuple[PackageRecord, ...]
+    link_precs: tuple[PackageRecord, ...]
+    remove_specs: tuple[MatchSpec, ...]
+    update_specs: tuple[MatchSpec, ...]
+    neutered_specs: tuple[MatchSpec, ...]
 
 
 class ActionGroup(NamedTuple):
@@ -261,11 +268,7 @@ class UnlinkLinkTransaction:
 
         self.transaction_context = {}
 
-        with Spinner(
-            "Preparing transaction",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner("Preparing transaction"):
             for stp in self.prefix_setups.values():
                 grps = self._prepare(
                     self.transaction_context,
@@ -291,11 +294,7 @@ class UnlinkLinkTransaction:
             self._verified = True
             return
 
-        with Spinner(
-            "Verifying transaction",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner("Verifying transaction"):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
@@ -386,9 +385,9 @@ class UnlinkLinkTransaction:
             except OSError as e:
                 log.debug(repr(e))
                 raise CondaError(
-                    "Unable to create prefix directory '%s'.\n"
+                    f"Unable to create prefix directory '{target_prefix}'.\n"
                     "Check that you have sufficient permissions."
-                    "" % target_prefix
+                    ""
                 )
 
         # gather information from disk and caches
@@ -413,13 +412,13 @@ class UnlinkLinkTransaction:
 
         # make all the path actions
         # no side effects allowed when instantiating these action objects
-        python_version = cls._get_python_version(
-            target_prefix, prefix_recs_to_unlink, packages_info_to_link
+        python_version, python_site_packages = cls._get_python_info(
+            target_prefix,
+            prefix_recs_to_unlink,
+            packages_info_to_link,
         )
         transaction_context["target_python_version"] = python_version
-        sp = get_python_site_packages_short_path(python_version)
-        transaction_context["target_site_packages_short_path"] = sp
-
+        transaction_context["target_site_packages_short_path"] = python_site_packages
         transaction_context["temp_dir"] = join(target_prefix, ".condatmp")
 
         remove_menu_action_groups = []
@@ -630,8 +629,6 @@ class UnlinkLinkTransaction:
             for link_path_action in axn.all_link_path_actions:
                 if isinstance(link_path_action, CompileMultiPycAction):
                     target_short_paths = link_path_action.target_short_paths
-                elif isinstance(link_path_action, CreateNonadminAction):
-                    continue
                 else:
                     target_short_paths = (
                         (link_path_action.target_short_path,)
@@ -763,8 +760,8 @@ class UnlinkLinkTransaction:
                     or dep_name in pkg_names_being_unlnkd
                 ):
                     yield RemoveError(
-                        "'%s' is a dependency of conda and cannot be removed from\n"
-                        "conda's operating environment." % dep_name
+                        f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
+                        "conda's operating environment."
                     )
 
         # Verification 3. enforce disallowed_packages
@@ -842,11 +839,7 @@ class UnlinkLinkTransaction:
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
-            with Spinner(
-                "Executing transaction",
-                not context.verbose and not context.quiet,
-                context.json,
-            ):
+            with get_spinner("Executing transaction"):
                 # Execute unlink actions
                 for group, register_group, install_side in (
                     (unlink_actions, "unregister", False),
@@ -952,11 +945,7 @@ class UnlinkLinkTransaction:
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    with Spinner(
-                        "Rolling back transaction",
-                        not context.verbose and not context.quiet,
-                        context.json,
-                    ):
+                    with get_spinner("Rolling back transaction"):
                         reverse_actions = reversed(tuple(all_action_groups))
                         for axngroup in reverse_actions:
                             excs = UnlinkLinkTransaction._reverse_actions(axngroup)
@@ -1078,9 +1067,23 @@ class UnlinkLinkTransaction:
         return exceptions
 
     @staticmethod
-    def _get_python_version(target_prefix, pcrecs_to_unlink, packages_info_to_link):
-        # this method determines the python version that will be present at the
-        # end of the transaction
+    def _get_python_info(
+        target_prefix, prefix_recs_to_unlink, packages_info_to_link
+    ) -> tuple[str | None, str | None]:
+        """
+        Return the python version and location of the site-packages directory at the end of the transaction
+        """
+
+        def version_and_sp(python_record) -> tuple[str | None, str | None]:
+            assert python_record.version
+            python_version = get_major_minor_version(python_record.version)
+            python_site_packages = python_record.python_site_packages_path
+            if python_site_packages is None:
+                python_site_packages = get_python_site_packages_short_path(
+                    python_version
+                )
+            return python_version, python_site_packages
+
         linking_new_python = next(
             (
                 package_info
@@ -1090,31 +1093,26 @@ class UnlinkLinkTransaction:
             None,
         )
         if linking_new_python:
-            # is python being linked? we're done
-            full_version = linking_new_python.repodata_record.version
-            assert full_version
-            log.debug("found in current transaction python version %s", full_version)
-            return get_major_minor_version(full_version)
-
-        # is python already linked and not being unlinked? that's ok too
-        linked_python_version = get_python_version_for_prefix(target_prefix)
-        if linked_python_version:
-            find_python = (
-                lnkd_pkg_data
-                for lnkd_pkg_data in pcrecs_to_unlink
-                if lnkd_pkg_data.name == "python"
+            python_record = linking_new_python.repodata_record
+            log.debug(f"found in current transaction python: {python_record}")
+            return version_and_sp(python_record)
+        python_record = python_record_for_prefix(target_prefix)
+        if python_record:
+            unlinking_python = next(
+                (
+                    prefix_rec_to_unlink
+                    for prefix_rec_to_unlink in prefix_recs_to_unlink
+                    if prefix_rec_to_unlink.name == "python"
+                ),
+                None,
             )
-            unlinking_this_python = next(find_python, None)
-            if unlinking_this_python is None:
-                # python is not being unlinked
-                log.debug(
-                    "found in current prefix python version %s", linked_python_version
-                )
-                return linked_python_version
-
-        # there won't be any python in the finished environment
+            if unlinking_python is None:
+                # python is already linked and not being unlinked
+                log.debug(f"found in current prefix, python: {python_record}")
+                return version_and_sp(python_record)
+        # no python in the finished environment
         log.debug("no python version found in prefix")
-        return None
+        return None, None
 
     @staticmethod
     def _make_link_actions(
@@ -1135,13 +1133,11 @@ class UnlinkLinkTransaction:
         create_directory_actions = LinkPathAction.create_directory_actions(
             *required_quad, file_link_actions=file_link_actions
         )
-        create_nonadmin_actions = CreateNonadminAction.create_actions(*required_quad)
 
         # the ordering here is significant
         return (
             *create_directory_actions,
             *file_link_actions,
-            *create_nonadmin_actions,
         )
 
     @staticmethod
@@ -1237,20 +1233,20 @@ class UnlinkLinkTransaction:
     def _change_report_str(self, change_report):
         # TODO (AV): add warnings about unverified packages in this function
         builder = ["", "## Package Plan ##\n"]
-        builder.append("  environment location: %s" % change_report.prefix)
+        builder.append(f"  environment location: {change_report.prefix}")
         builder.append("")
         if change_report.specs_to_remove:
             builder.append(
-                "  removed specs:%s"
-                % dashlist(
-                    sorted(str(s) for s in change_report.specs_to_remove), indent=4
+                "  removed specs:{}".format(
+                    dashlist(
+                        sorted(str(s) for s in change_report.specs_to_remove), indent=4
+                    )
                 )
             )
             builder.append("")
         if change_report.specs_to_add:
             builder.append(
-                "  added / updated specs:%s"
-                % dashlist(sorted(str(s) for s in change_report.specs_to_add), indent=4)
+                f"  added / updated specs:{dashlist(sorted(str(s) for s in change_report.specs_to_add), indent=4)}"
             )
             builder.append("")
 
@@ -1343,7 +1339,7 @@ class UnlinkLinkTransaction:
                 link_prec = change_report.new_precs[namekey]
                 add_single(
                     strip_global(namekey),
-                    f"{link_prec.record_id()} {link_prec['metadata_signature_status']}",
+                    f"{link_prec.record_id()} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.removed_precs:
@@ -1362,7 +1358,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.superseded_precs:
@@ -1376,7 +1372,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
         if change_report.downgraded_precs:
@@ -1387,7 +1383,7 @@ class UnlinkLinkTransaction:
                 add_double(
                     strip_global(namekey),
                     left_str,
-                    f"{right_str} {link_prec['metadata_signature_status']}",
+                    f"{right_str} {' '.join(link_prec.metadata)}",
                 )
         builder.append("")
         builder.append("")
@@ -1465,7 +1461,7 @@ def run_script(
     """
     path = join(
         prefix,
-        "Scripts" if on_win else "bin",
+        BIN_DIRECTORY,
         ".{}-{}.{}".format(prec.name, action, "bat" if on_win else "sh"),
     )
     if not isfile(path):
@@ -1582,7 +1578,7 @@ def run_script(
                     )
                 raise LinkError(message)
             else:
-                log.warn(
+                log.warning(
                     "%s script failed for package %s\n"
                     "consider notifying the package maintainer",
                     action,
@@ -1598,9 +1594,7 @@ def run_script(
                 rm_rf(script_caller)
             else:
                 log.warning(
-                    "CONDA_TEST_SAVE_TEMPS :: retaining run_script {}".format(
-                        script_caller
-                    )
+                    f"CONDA_TEST_SAVE_TEMPS :: retaining run_script {script_caller}"
                 )
 
 

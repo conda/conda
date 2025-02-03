@@ -1,11 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Utilities for finding executables and `conda-*` commands."""
+
 import os
 import re
 import sys
 import sysconfig
-from functools import lru_cache
+from functools import cache
 from os.path import basename, expanduser, isfile, join
 
 from ..common.compat import on_win
@@ -43,7 +44,7 @@ def find_executable(executable, include_others=True):
     return None
 
 
-@lru_cache(maxsize=None)
+@cache
 def find_commands(include_others=True):
     if include_others:
         from ..utils import sys_prefix_unfollowed
