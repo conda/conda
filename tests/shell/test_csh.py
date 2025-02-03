@@ -2,48 +2,48 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from shutil import which
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda import __version__ as conda_version
+from conda import __version__ as CONDA_VERSION
+from conda.common.compat import on_linux, on_win
 
-from . import InteractiveShell
+if TYPE_CHECKING:
+    from . import Shell
 
-pytestmark = pytest.mark.integration
-
-
-@pytest.mark.parametrize(
-    "shell_name",
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+]
+PARAMETRIZE_CSH = pytest.mark.parametrize(
+    "shell",
     [
-        pytest.param(
-            "csh",
-            marks=[
-                pytest.mark.skipif(not which("csh"), reason="csh not installed"),
-                pytest.mark.xfail(
-                    reason="pure csh doesn't support argument passing to sourced scripts"
-                ),
-            ],
-        ),
-        pytest.param(
-            "tcsh",
-            marks=[
-                pytest.mark.skipif(not which("tcsh"), reason="tcsh not installed"),
-                pytest.mark.xfail(
-                    reason="punting until we officially enable support for tcsh"
-                ),
-            ],
-        ),
+        # csh is often symlinked to tcsh but on some platforms it is the original csh
+        # we cannot use the original csh since aliases do no support parameter passing
+        pytest.param("csh", marks=pytest.mark.skipif(on_linux, reason="not supported")),
+        "tcsh",
     ],
+    indirect=True,
 )
+
+
+@PARAMETRIZE_CSH
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
+
+
+@PARAMETRIZE_CSH
 def test_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
-    shell_name: str,
-):
+    shell: Shell,
+) -> None:
     prefix, _, _ = shell_wrapper_integration
-    with InteractiveShell(shell_name) as sh:
+
+    with shell.interactive() as sh:
         sh.sendline("conda --version")
-        sh.expect_exact("conda " + conda_version)
+        sh.expect_exact(f"conda {CONDA_VERSION}")
         sh.assert_env_var("CONDA_SHLVL", "0")
         sh.sendline("conda activate base")
         sh.assert_env_var("prompt", "(base).*")
