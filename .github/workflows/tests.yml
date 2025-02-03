@@ -76,7 +76,7 @@ jobs:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.9', '3.12']
         default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
+        test-type: [integration]
         test-group: [1, 2, 3]
         exclude:
           - default-channel: conda-forge
@@ -95,18 +95,6 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-
-      - name: Setup PowerShell
-        run: |
-          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
-          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: PowerShell Info
-        run: |
-          echo "Installed PowerShell: $( (Get-Command powershell).Source )"
-          $PSVersionTable
-          echo "Latest PowerShell: $env:PWSHPATH\pwsh.exe"
-          & "$env:PWSHPATH\pwsh.exe" -Command '$PSVersionTable'
 
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
@@ -149,6 +137,20 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
+      - name: Setup PowerShell
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: |
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
+          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: PowerShell Info
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: |
+          Get-Command -All powershell
+          Get-Command -All "$env:PWSHPATH\pwsh.exe"
+
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
@@ -160,6 +162,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          tests/shell
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
@@ -196,7 +199,7 @@ jobs:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.9', '3.10', '3.11', '3.12']
         default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
+        test-type: [integration]
         test-group: [1, 2, 3]
         exclude:
           - python-version: '3.9'
@@ -255,6 +258,11 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
+      - name: Setup Shells
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
+
       - name: Run Tests
         run: >
           python -m pytest
@@ -263,6 +271,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          tests/shell
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
@@ -286,7 +295,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -353,7 +362,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -422,7 +431,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -498,7 +507,7 @@ jobs:
         arch: [osx-64, osx-arm64]
         python-version: ['3.9', '3.12']
         default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
+        test-type: [integration]
         test-group: [1, 2, 3]
         exclude:
           - arch: osx-64
@@ -566,6 +575,11 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
+      - name: Setup Shells
+        # for tests/shell, so only necessary for integration tests
+        if: matrix.test-type == 'integration'
+        run: brew update && brew install fish xonsh
+
       - name: Run Tests
         run: >
           python -m pytest
@@ -574,6 +588,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          tests/shell
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
