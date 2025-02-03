@@ -2511,7 +2511,6 @@ def test_run_script_called(tmp_env: TmpEnvFixture):
             assert rs.call_count == 1
 
 
-# @pytest.mark.xfail(on_mac, reason="known broken; see #11127")
 @pytest.mark.integration
 def test_post_link_run_in_env(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
     test_pkg = "post_link_run_in_env_package"
