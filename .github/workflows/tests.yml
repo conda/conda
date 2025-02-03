@@ -597,7 +597,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, linux-arm64, macos]
+    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
     if: >-
       !cancelled()
       && (
