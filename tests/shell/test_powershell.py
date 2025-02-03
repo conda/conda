@@ -123,6 +123,7 @@ def test_powershell_basic_integration(
         log.debug("## [PowerShell integration] Checking installed version.")
         sh.sendline("small")
         sh.expect_exact("Hello!")
+        sh.assert_env_var("SMALL_EXE", "small-var-pwsh")
 
         # conda run integration test
         log.debug("## [PowerShell integration] Checking conda run.")

@@ -195,6 +195,7 @@ def test_basic_integration(
 
         sh.sendline("small")
         sh.expect_exact("Hello!")
+        sh.assert_env_var("SMALL_EXE", "small-var-sh")
 
         # TODO: assert that reactivate worked correctly
 
