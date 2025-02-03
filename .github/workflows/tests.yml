@@ -96,6 +96,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup PowerShell
+        run: |
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
+          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: PowerShell Info
+        run: |
+          echo "Installed PowerShell: $( (Get-Command powershell).Source )"
+          $PSVersionTable
+          echo "Latest PowerShell: $env:PWSHPATH\pwsh.exe"
+          & "$env:PWSHPATH\pwsh.exe" -Command '$PSVersionTable'
+
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
@@ -380,6 +392,12 @@ jobs:
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        with:
+          platforms: linux/${{ matrix.platform }}
+          # TODO: remove once resolved upstream:
+          # - https://github.com/tonistiigi/binfmt/issues/215
+          # - https://github.com/tonistiigi/binfmt/issues/165
+          image: tonistiigi/binfmt:qemu-v8.1.5
 
       - name: Run Tests
         run: >
@@ -721,7 +739,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@6e72e0db87e72f0020e493aeb02f864363bd9258 # v24.11.1
+        uses: conda/actions/canary-release@8ff3faa82ad80f5c05d91c22bcd37d897f80ca46 # v25.1.1
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1

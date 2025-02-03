@@ -532,41 +532,38 @@ def test_install_conda_xsh(verbose):
 
 def test_install_conda_csh(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_prefix = sys.prefix
-        python_exe = sys.executable
-        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "profile.d", "conda.csh")
-        result = install_conda_csh(target_path, conda_prefix)
+        result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
         with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
-        (
-            first_line,
-            second_line,
-            third_line,
-            fourth_line,
-            remainder,
-        ) = created_file_contents.split("\n", 4)
+        hook_source_path = join(
+            CONDA_PACKAGE_ROOT,
+            "shell",
+            "etc",
+            "profile.d",
+            "conda.csh",
+        )
         if on_win:
-            assert first_line == f"setenv CONDA_EXE `cygpath {conda_exe}`"
-            assert second_line == f"setenv _CONDA_ROOT `cygpath {conda_prefix}`"
-            assert third_line == f"setenv _CONDA_EXE `cygpath {conda_exe}`"
-            assert fourth_line == f"setenv CONDA_PYTHON_EXE `cygpath {python_exe}`"
+            assert created_file_contents == (
+                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
+                f"source \"`cygpath '{hook_source_path}'`\";\n"
+            )
         else:
-            assert first_line == f'setenv CONDA_EXE "{conda_exe}"'
-            assert second_line == f'setenv _CONDA_ROOT "{conda_prefix}"'
-            assert third_line == f'setenv _CONDA_EXE "{conda_exe}"'
-            assert fourth_line == f'setenv CONDA_PYTHON_EXE "{python_exe}"'
+            assert created_file_contents == (
+                f'setenv CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
+                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
+                f'source "{hook_source_path}";\n'
+            )
 
-        with open_utf8(
-            join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")
-        ) as fh:
-            original_contents = fh.read()
-        assert remainder == original_contents
-
-        result = install_conda_csh(target_path, conda_prefix)
+        result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.NO_CHANGE
 
 

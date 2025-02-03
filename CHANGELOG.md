@@ -1,5 +1,62 @@
 [//]: # (current developments)
 
+## 25.1.1 (2025-01-28)
+
+### Bug fixes
+
+* Fix PowerShell activation/deactivation to properly unset `$env:_CE_M` and `$env:_CE_CONDA` environment variables. (#14292 via #14517)
+
+### Contributors
+
+* @travishathaway
+
+
+
+## 25.1.0 (2025-01-17)
+
+### Enhancements
+
+* Set `__win` version and enable `CONDA_OVERRIDE_WIN` usage. (#14443 via #14450)
+
+### Bug fixes
+
+* Merge overlapping glob build specs instead of raising `Incompatible component merge`. (#11612)
+* Fix a bug when invalid values are being passed to `conda shell.posix` command (#14398)
+* Sort suggested subcommands when an incorrect subcommand is provided in the CLI. (#13332 via 14402)
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
+* Do not use native platform version to set `__osx` or `__linux` version if the underlying OS is not macOS or Linux, respectively. (#14448 via #14449)
+* Report real macOS version (11+ instead of 10.16) even if the Python interpreter was linked against SDK 10.15 or earlier. This applies to the `__osx` virtual package and the user agent info. (#13178, #13832 via #14449)
+* Accept %-encoded URLs as a valid `MatchSpec`. (#14481)
+* Retry failed downloads one time on `ChecksumMismatchError` as caused by bad
+  partial downloads. Use `r+b` or `w+b` instead of "append" mode. Improve test
+  coverage. (#13488)
+
+### Docs
+
+* Use the correct parameter name, `handler`, in the CondaAuthHandler example (#14428).
+
+### Other
+
+* Require `conda-libmamba-solver >=24.11.0` for `libmamba 2.x` compatibility. (#11612)
+* Added new `PYTHONPATH` autoused fixture in `conda.testing` to ensure development `conda` is used across all tests. The fixture doesn't apply in `PYTHONPATH` is already set in the environment. (#14475)
+
+### Contributors
+
+* @conda-bot
+* @dbast
+* @dholth
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kenodegard
+* @ForgottenProgramme
+* @minrk
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
 ## 24.11.3 (2025-01-06)
 
 ### Bug fixes

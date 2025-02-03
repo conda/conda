@@ -975,13 +975,7 @@ class CshActivator(_Activator):
     set_var_tmpl = "set %s='%s'"
     run_script_tmpl = 'source "%s"'
 
-    hook_source_path = Path(
-        CONDA_PACKAGE_ROOT,
-        "shell",
-        "etc",
-        "profile.d",
-        "conda.csh",
-    )
+    hook_source_path = None  # see _hook_preamble
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         prompt = os.getenv("prompt", "")
@@ -995,24 +989,31 @@ class CshActivator(_Activator):
         )
 
     def _hook_preamble(self) -> str:
+        # TCSH/CSH removes newlines when doing command substitution (see `man tcsh`),
+        # source conda.csh directly and use line terminators to separate commands
+        hook_source_path = Path(
+            CONDA_PACKAGE_ROOT,
+            "shell",
+            "etc",
+            "profile.d",
+            "conda.csh",
+        )
         if on_win:
-            return dedent(
-                f"""
-                setenv CONDA_EXE `cygpath {context.conda_exe}`
-                setenv _CONDA_ROOT `cygpath {context.conda_prefix}`
-                setenv _CONDA_EXE `cygpath {context.conda_exe}`
-                setenv CONDA_PYTHON_EXE `cygpath {sys.executable}`
-                """
-            ).strip()
+            return (
+                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
+                f"source \"`cygpath '{hook_source_path}'`\";\n"
+            )
         else:
-            return dedent(
-                f"""
-                setenv CONDA_EXE "{context.conda_exe}"
-                setenv _CONDA_ROOT "{context.conda_prefix}"
-                setenv _CONDA_EXE "{context.conda_exe}"
-                setenv CONDA_PYTHON_EXE "{sys.executable}"
-                """
-            ).strip()
+            return (
+                f'setenv CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
+                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
+                f'source "{hook_source_path}";\n'
+            )
 
 
 class XonshActivator(_Activator):
