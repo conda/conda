@@ -16,7 +16,7 @@ from conda import __version__ as CONDA_VERSION
 from conda.base.context import context
 from conda.common.compat import on_linux, on_mac
 
-from . import ACTIVATE_ARGS, DEACTIVATE_ARGS, DEV_ARG, INSTALL_ARGS
+from . import activate, deactivate, dev_arg, install
 
 if TYPE_CHECKING:
     from . import Shell
@@ -60,7 +60,7 @@ def test_cmd_exe_basic_integration(
 
         PATH0 = sh.get_env_var("PATH", "").split(os.pathsep)
         log.debug(f"{PATH0=}")
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{charizard}"')
+        sh.sendline(f'conda {activate} "{charizard}"')
 
         sh.sendline("chcp")
         sh.clear()
@@ -81,7 +81,7 @@ def test_cmd_exe_basic_integration(
         sh.sendline('powershell -NoProfile -c "(Get-Command conda -All).Source"')
         sh.expect_exact(conda_bat)
 
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix}"')
+        sh.sendline(f'conda {activate} "{prefix}"')
         sh.assert_env_var("_CE_CONDA", "conda")
         sh.assert_env_var("_CE_M", "-m")
         sh.assert_env_var("CONDA_EXE", escape(sys.executable))
@@ -90,7 +90,7 @@ def test_cmd_exe_basic_integration(
 
         # install local tests/test-recipes/small-executable
         sh.sendline(
-            f"conda {INSTALL_ARGS} "
+            f"conda {install} "
             f"--yes "
             f"--quiet "
             f"--override-channels "
@@ -106,14 +106,14 @@ def test_cmd_exe_basic_integration(
         sh.expect_exact("Hello!")
 
         # see tests/test-recipes/small-executable
-        sh.sendline(f"conda run {DEV_ARG} small")
+        sh.sendline(f"conda run {dev_arg} small")
         sh.expect_exact("Hello!")
 
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "1")
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "0")
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "0")
 
 
@@ -126,7 +126,7 @@ def test_cmd_exe_activate_error(
     with shell.interactive() as sh:
         sh.sendline("set")
         sh.expect(".*")
-        sh.sendline(f"conda {ACTIVATE_ARGS} environment-not-found-doesnt-exist")
+        sh.sendline(f"conda {activate} environment-not-found-doesnt-exist")
         sh.expect(
             "Could not find conda environment: environment-not-found-doesnt-exist"
         )

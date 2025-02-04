@@ -31,10 +31,10 @@ if TYPE_CHECKING:
 # encounter some different code that ends up being run (some of the time). You will go slowly mad.
 # No, you are best off keeping --dev on the end of these. For sure, if conda bundled its own tests
 # module then we could remove --dev if we detect we are being run in that way.
-DEV_ARG = "--dev"
-ACTIVATE_ARGS = f" activate {DEV_ARG} "
-DEACTIVATE_ARGS = f" deactivate {DEV_ARG} "
-INSTALL_ARGS = f" install {DEV_ARG} "
+dev_arg = "--dev"
+activate = f" activate {dev_arg} "
+deactivate = f" deactivate {dev_arg} "
+install = f" install {dev_arg} "
 
 
 @dataclass
@@ -86,7 +86,7 @@ class InteractiveShellType(type):
     SHELLS: dict[str, dict] = {
         "posix": {
             "activator": "posix",
-            "init_command": f'eval "$({EXE_UNIX} -m conda shell.posix hook {DEV_ARG})"',
+            "init_command": f'eval "$({EXE_UNIX} -m conda shell.posix hook {dev_arg})"',
             "print_env_var": 'echo "$%s"',
         },
         "bash": {
@@ -108,11 +108,11 @@ class InteractiveShellType(type):
             #                            '&& set CONDA_EXE={}'
             #                            '&& set _CE_M='
             #                            '&& set _CE_CONDA='
-            #                            .format(CONDA_PACKAGE_ROOT, DEV_ARG,
+            #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
             #                                    join(sys.prefix, "Scripts", "conda.exe")),
             "init_command": (
                 '@SET "CONDA_SHLVL=" '
-                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {DEV_ARG} "
+                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {dev_arg} "
                 f'&& @SET "CONDA_EXE={sys.executable}" '
                 '&& @SET "_CE_M=-m" '
                 '&& @SET "_CE_CONDA=conda"'
@@ -123,13 +123,13 @@ class InteractiveShellType(type):
             "activator": "csh",
             # "args": ("-v", "-x"),  # for debugging
             # unset conda alias before calling conda shell hook
-            "init_command": f'unalias conda;\neval "`{EXE_UNIX} -m conda shell.csh hook {DEV_ARG}`"',
+            "init_command": f'unalias conda;\neval "`{EXE_UNIX} -m conda shell.csh hook {dev_arg}`"',
             "print_env_var": 'echo "$%s"',
         },
         "tcsh": {"base_shell": "csh"},
         "fish": {
             "activator": "fish",
-            "init_command": f"eval ({EXE_UNIX} -m conda shell.fish hook {DEV_ARG})",
+            "init_command": f"eval ({EXE_UNIX} -m conda shell.fish hook {dev_arg})",
             "print_env_var": "echo $%s",
         },
         # We don't know if the PowerShell executable is called

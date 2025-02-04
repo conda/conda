@@ -16,7 +16,7 @@ from conda.base.context import context
 from conda.common.compat import on_mac, on_win
 from conda.common.path import win_path_to_unix
 
-from . import ACTIVATE_ARGS, DEACTIVATE_ARGS, DEV_ARG, INSTALL_ARGS
+from . import activate, deactivate, dev_arg, install
 
 if TYPE_CHECKING:
     from . import InteractiveShell, Shell
@@ -102,7 +102,7 @@ def test_basic_integration(
         sh.sendline("conda --version")
         sh.expect_exact(f"conda {CONDA_VERSION}")
 
-        sh.sendline(f"conda {ACTIVATE_ARGS} base")
+        sh.sendline(f"conda {activate} base")
 
         sh.sendline("type conda")
         sh.expect(is_a_function(sh))
@@ -120,7 +120,7 @@ def test_basic_integration(
         _CE_CONDA = sh.get_env_var("_CE_CONDA")
 
         log.debug("activating ..")
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix_p}"')
+        sh.sendline(f'conda {activate} "{prefix_p}"')
 
         sh.sendline("type conda")
         sh.expect(is_a_function(sh))
@@ -150,7 +150,7 @@ def test_basic_integration(
         sh.expect("CONDA_")
         sh.sendline('echo "PATH=$PATH"')
         sh.expect("PATH=")
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix2_p}"')
+        sh.sendline(f'conda {activate} "{prefix2_p}"')
         sh.sendline("env | sort | grep CONDA")
         sh.expect("CONDA_")
         sh.sendline('echo "PATH=$PATH"')
@@ -173,7 +173,7 @@ def test_basic_integration(
 
         # install local tests/test-recipes/small-executable
         sh.sendline(
-            f"conda {INSTALL_ARGS} "
+            f"conda {install} "
             f"--yes "
             f"--quiet "
             f"--override-channels "
@@ -193,28 +193,28 @@ def test_basic_integration(
         sh.expect(is_a_function(sh))
 
         # see tests/test-recipes/small-executable
-        sh.sendline(f"conda run {DEV_ARG} small")
+        sh.sendline(f"conda run {dev_arg} small")
         sh.expect("Hello!")
 
         # regression test for #6840
-        sh.sendline(f"conda {INSTALL_ARGS} --blah")
+        sh.sendline(f"conda {install} --blah")
         sh.expect("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
         sh.sendline("conda list --blah")
         sh.expect("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
 
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "2")
         PATH = sh.get_env_var("PATH")
         assert len(PATH0.split(":")) + nprefix == len(PATH.split(":"))
 
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "1")
         PATH = sh.get_env_var("PATH")
         assert len(PATH0.split(":")) + nbase == len(PATH.split(":"))
 
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "0")
         PATH = sh.get_env_var("PATH")
         assert len(PATH0.split(":")) == len(PATH.split(":"))
@@ -224,7 +224,7 @@ def test_basic_integration(
         sh.clear()
         assert "CONDA_PROMPT_MODIFIER" not in str(sh.p.after)
 
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "0")
 
         # When fully deactivated, CONDA_EXE, _CE_M and _CE_CONDA must be retained
@@ -238,26 +238,26 @@ def test_basic_integration(
 
         PATH0 = sh.get_env_var("PATH")
 
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix2_p}"')
+        sh.sendline(f'conda {activate} "{prefix2_p}"')
         sh.assert_env_var("CONDA_SHLVL", "1")
         PATH1 = sh.get_env_var("PATH")
         assert len(PATH0.split(":")) + nprefix2 == len(PATH1.split(":"))
 
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix3}" --stack')
+        sh.sendline(f'conda {activate} "{prefix3}" --stack')
         sh.assert_env_var("CONDA_SHLVL", "2")
         PATH2 = sh.get_env_var("PATH")
         assert "charizard" in PATH2
         assert "venusaur" in PATH2
         assert len(PATH0.split(":")) + nprefix2 + nprefix3 == len(PATH2.split(":"))
 
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix_p}"')
+        sh.sendline(f'conda {activate} "{prefix_p}"')
         sh.assert_env_var("CONDA_SHLVL", "3")
         PATH3 = sh.get_env_var("PATH")
         assert "charizard" in PATH3
         assert "venusaur" not in PATH3
         assert len(PATH0.split(":")) + nprefix2 + nprefix == len(PATH3.split(":"))
 
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "2")
         PATH4 = sh.get_env_var("PATH")
         assert "charizard" in PATH4
@@ -265,7 +265,7 @@ def test_basic_integration(
         assert len(PATH4.split(":")) == len(PATH2.split(":"))
         # assert PATH4 == PATH2  # cygpath may "resolve" paths
 
-        sh.sendline(f"conda {DEACTIVATE_ARGS}")
+        sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "1")
         PATH5 = sh.get_env_var("PATH")
         assert len(PATH1.split(":")) == len(PATH5.split(":"))
@@ -274,14 +274,14 @@ def test_basic_integration(
         # Test auto_stack
         sh.sendline(sh.activator.export_var_tmpl % ("CONDA_AUTO_STACK", "1"))
 
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix3}"')
+        sh.sendline(f'conda {activate} "{prefix3}"')
         sh.assert_env_var("CONDA_SHLVL", "2")
         PATH2 = sh.get_env_var("PATH")
         assert "charizard" in PATH2
         assert "venusaur" in PATH2
         assert len(PATH0.split(":")) + nprefix2 + nprefix3 == len(PATH2.split(":"))
 
-        sh.sendline(f'conda {ACTIVATE_ARGS} "{prefix_p}"')
+        sh.sendline(f'conda {activate} "{prefix_p}"')
         sh.assert_env_var("CONDA_SHLVL", "3")
         PATH3 = sh.get_env_var("PATH")
         assert "charizard" in PATH3
@@ -339,7 +339,7 @@ def test_legacy_activate_deactivate_bash(
         prefix3_p = sh.path_conversion(prefix3)
 
         sh.sendline(f"export _CONDA_ROOT='{CONDA_ROOT}/shell'")
-        sh.sendline(f'. "{activate}" {DEV_ARG} "{prefix2_p}"')
+        sh.sendline(f'. "{activate}" {dev_arg} "{prefix2_p}"')
         PATH0 = sh.get_env_var("PATH")
         assert "charizard" in PATH0
 
@@ -349,7 +349,7 @@ def test_legacy_activate_deactivate_bash(
         sh.sendline("conda --version")
         sh.expect_exact(f"conda {CONDA_VERSION}")
 
-        sh.sendline(f'. "{activate}" {DEV_ARG} "{prefix3_p}"')
+        sh.sendline(f'. "{activate}" {dev_arg} "{prefix3_p}"')
 
         PATH1 = sh.get_env_var("PATH")
         assert "venusaur" in PATH1
