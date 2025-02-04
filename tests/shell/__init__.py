@@ -77,12 +77,8 @@ class Shell:
 
 
 class InteractiveShellType(type):
-    if on_win:
-        EXE_WIN = sys.executable
-        EXE_UNIX = win_path_to_unix(sys.executable)
-    else:
-        EXE_UNIX = sys.executable
-        EXE_WIN = unix_path_to_win(sys.executable)
+    EXE_WIN = sys.executable if on_win else unix_path_to_win(sys.executable)
+    EXE_UNIX = win_path_to_unix(sys.executable) if on_win else sys.executable
     SHELLS: dict[str, dict] = {
         "posix": {
             "activator": "posix",
