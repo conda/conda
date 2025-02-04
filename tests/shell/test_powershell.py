@@ -8,13 +8,17 @@ from functools import cache
 from logging import getLogger
 from os.path import join
 from shutil import which
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda import __version__ as conda_version
 from conda.common.compat import on_win
 
-from . import HDF5_VERSION, InteractiveShell, dev_arg
+from . import InteractiveShell, dev_arg, install
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
@@ -70,60 +74,68 @@ def test_powershell_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
     pwsh_name: str,
     pwsh_path: str,
+    test_recipes_channel: Path,
 ):
     prefix, charizard, venusaur = shell_wrapper_integration
 
     log.debug(f"## [PowerShell integration] Using {pwsh_path}.")
-    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as shell:
+    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as sh:
         log.debug("## [PowerShell integration] Starting test.")
-        shell.sendline("(Get-Command conda).CommandType")
-        shell.expect_exact("Alias")
-        shell.sendline("(Get-Command conda).Definition")
-        shell.expect_exact("Invoke-Conda")
-        shell.sendline("(Get-Command Invoke-Conda).Definition")
+        sh.sendline("(Get-Command conda).CommandType")
+        sh.expect_exact("Alias")
+        sh.sendline("(Get-Command conda).Definition")
+        sh.expect_exact("Invoke-Conda")
+        sh.sendline("(Get-Command Invoke-Conda).Definition")
 
         log.debug("## [PowerShell integration] Activating.")
-        shell.sendline(f'conda activate "{charizard}"')
-        shell.assert_env_var("CONDA_SHLVL", "1")
-        PATH = shell.get_env_var("PATH")
+        sh.sendline(f'conda activate "{charizard}"')
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        PATH = sh.get_env_var("PATH")
         assert "charizard" in PATH
-        shell.sendline("conda --version")
-        shell.expect_exact("conda " + conda_version)
-        shell.sendline(f'conda activate "{prefix}"')
-        shell.assert_env_var("CONDA_SHLVL", "2")
-        shell.assert_env_var("CONDA_PREFIX", prefix, True)
+        sh.sendline("conda --version")
+        sh.expect_exact("conda " + conda_version)
+        sh.sendline(f'conda activate "{prefix}"')
+        sh.assert_env_var("CONDA_SHLVL", "2")
+        sh.assert_env_var("CONDA_PREFIX", prefix, True)
 
-        shell.sendline("conda deactivate")
-        PATH = shell.get_env_var("PATH")
+        sh.sendline("conda deactivate")
+        PATH = sh.get_env_var("PATH")
         assert "charizard" in PATH
-        shell.sendline(f'conda activate -stack "{venusaur}"')
-        PATH = shell.get_env_var("PATH")
+        sh.sendline(f'conda activate -stack "{venusaur}"')
+        PATH = sh.get_env_var("PATH")
         assert "venusaur" in PATH
         assert "charizard" in PATH
 
         log.debug("## [PowerShell integration] Installing.")
-        shell.sendline(f"conda install -yq hdf5={HDF5_VERSION}")
-        shell.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
-        shell.sendline("$LASTEXITCODE")
-        shell.expect("0")
+        sh.sendline(
+            f"conda {install} "
+            f"--yes "
+            f"--quiet "
+            f"--override-channels "
+            f"--channel={test_recipes_channel} "
+            f"small-executable"
+        )
+        sh.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
         # TODO: assert that reactivate worked correctly
 
         log.debug("## [PowerShell integration] Checking installed version.")
-        shell.sendline("h5stat --version")
-        shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline("small")
+        sh.expect_exact("Hello!")
 
         # conda run integration test
         log.debug("## [PowerShell integration] Checking conda run.")
-        shell.sendline(f"conda run {dev_arg} h5stat --version")
-        shell.expect(rf".*h5stat: Version {HDF5_VERSION}.*")
+        sh.sendline(f"conda run {dev_arg} small")
+        sh.expect_exact("Hello!")
 
         log.debug("## [PowerShell integration] Deactivating")
-        shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "1")
-        shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "0")
-        shell.sendline("conda deactivate")
-        shell.assert_env_var("CONDA_SHLVL", "0")
+        sh.sendline("conda deactivate")
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        sh.sendline("conda deactivate")
+        sh.assert_env_var("CONDA_SHLVL", "0")
+        sh.sendline("conda deactivate")
+        sh.assert_env_var("CONDA_SHLVL", "0")
 
 
 @pytest.mark.skipif(
@@ -139,22 +151,22 @@ def test_powershell_PATH_management(
     prefix, _, _ = shell_wrapper_integration
 
     print(f"## [PowerShell activation PATH management] Using {pwsh_path}.")
-    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as shell:
+    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as sh:
         prefix = join(prefix, "envs", "test")
         print("## [PowerShell activation PATH management] Starting test.")
-        shell.sendline("(Get-Command conda).CommandType")
-        shell.expect_exact("Alias")
-        shell.sendline("(Get-Command conda).Definition")
-        shell.expect_exact("Invoke-Conda")
-        shell.sendline("(Get-Command Invoke-Conda).Definition")
-        shell.clear()
+        sh.sendline("(Get-Command conda).CommandType")
+        sh.expect_exact("Alias")
+        sh.sendline("(Get-Command conda).Definition")
+        sh.expect_exact("Invoke-Conda")
+        sh.sendline("(Get-Command Invoke-Conda).Definition")
+        sh.clear()
 
-        shell.sendline("conda deactivate")
-        shell.sendline("conda deactivate")
+        sh.sendline("conda deactivate")
+        sh.sendline("conda deactivate")
 
-        PATH0 = shell.get_env_var("PATH", "")
+        PATH0 = sh.get_env_var("PATH", "")
         print(f"PATH is {PATH0.split(os.pathsep)}")
-        shell.sendline("(Get-Command conda).CommandType")
-        shell.expect_exact("Alias")
-        shell.sendline(f'conda create -yqp "{prefix}" bzip2')
-        shell.expect(r"Executing transaction: ...working... done.*\n")
+        sh.sendline("(Get-Command conda).CommandType")
+        sh.expect_exact("Alias")
+        sh.sendline(f'conda create -yqp "{prefix}" bzip2')
+        sh.expect(r"Executing transaction: ...working... done.*\n")
