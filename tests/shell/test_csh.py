@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda import __version__ as CONDA_VERSION
+from conda import __version__ as conda_version
 from conda.common.compat import on_linux, on_win
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ def test_basic_integration(
 
     with shell.interactive() as sh:
         sh.sendline("conda --version")
-        sh.expect_exact(f"conda {CONDA_VERSION}")
+        sh.expect_exact("conda " + conda_version)
         sh.assert_env_var("CONDA_SHLVL", "0")
         sh.sendline("conda activate base")
         sh.assert_env_var("prompt", "(base).*")
