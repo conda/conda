@@ -151,6 +151,11 @@ jobs:
           Get-Command -All powershell
           Get-Command -All "$env:PWSHPATH\pwsh.exe"
 
+      - name: Setup Tmate
+        uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19
+        with:
+          limit-access-to-actor: true
+
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
