@@ -10,14 +10,13 @@ from typing import TYPE_CHECKING
 
 import requests
 
-from ..base.context import context
-from ..common.io import Spinner
 from ..gateways.connection.session import get_session
+from ..reporters import get_spinner
 from .cache import cached_response
 from .types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ def get_notice_responses(
     """
     executor = ThreadPoolExecutor(max_workers=max_workers)
 
-    with Spinner("Retrieving notices", enabled=not silent, json=context.json):
+    with get_spinner("Retrieving notices"):
         return tuple(
             filter(
                 None,

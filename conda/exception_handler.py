@@ -4,7 +4,7 @@
 
 import os
 import sys
-from functools import lru_cache, partial
+from functools import cached_property, partial
 from logging import getLogger
 
 from .common.compat import ensure_text_type, on_win
@@ -231,9 +231,7 @@ class ExceptionHandler:
             message_builder.append("")
             self.write_out(*message_builder)
 
-    # FUTURE: Python 3.8+, replace with functools.cached_property
-    @property
-    @lru_cache(maxsize=None)
+    @cached_property
     def _isatty(self):
         try:
             return os.isatty(0) or on_win

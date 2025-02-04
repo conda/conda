@@ -33,7 +33,7 @@ from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_python_site_packages_short_path,
     pyc_path,
 )
@@ -47,6 +47,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
+    EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
@@ -57,7 +58,6 @@ from conda.exceptions import (
     UnsatisfiableError,
 )
 from conda.gateways.disk.create import compile_multiple_pyc
-from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
@@ -66,10 +66,10 @@ from conda.gateways.subprocess import (
 )
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
+from conda.models.version import VersionOrder
 from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2
 from conda.testing.integration import (
-    BIN_DIRECTORY,
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     get_shortcut_dir,
@@ -78,12 +78,13 @@ from conda.testing.integration import (
 )
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterator, Literal
+    from collections.abc import Iterator
+    from typing import Callable, Literal
 
     from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import (
+    from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
         TmpChannelFixture,
@@ -549,9 +550,7 @@ def test_noarch_python_package_with_entry_points(
         assert (prefix / py_file).is_file()
         assert (prefix / pyc_file).is_file()
         exe_path = (
-            prefix
-            / get_bin_directory_short_path()
-            / ("pygmentize.exe" if on_win else "pygmentize")
+            prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
         )
         assert exe_path.is_file()
         output = check_output([exe_path, "--help"], text=True)
@@ -1680,7 +1679,7 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
 @pytest.mark.skipif(
-    context.subdir == "win-32" or platform.machine() == "arm64",
+    context.subdir == "win-32" or platform.machine() in ("arm64", "aarch64"),
     reason="metadata is wrong; give python2.7 or no osx-arm64 package versions",
 )
 def test_conda_pip_interop_pip_clobbers_conda(
@@ -2021,7 +2020,7 @@ def test_conda_pip_interop_conda_editable_package(
 
 
 @pytest.mark.xfail(
-    platform.machine() == "arm64", reason="packages missing for osx-arm64"
+    platform.machine() in ("arm64", "aarch64"), reason="packages missing for osx-arm64"
 )
 def test_conda_pip_interop_compatible_release_operator(
     monkeypatch: MonkeyPatch,
@@ -2297,20 +2296,14 @@ def test_force_remove(
 ):
     with tmp_env("libarchive") as prefix:
         assert package_is_installed(prefix, "libarchive")
-        assert package_is_installed(prefix, "xz")
+        assert package_is_installed(prefix, "bzip2")
 
-        conda_cli("remove", f"--prefix={prefix}", "xz", "--force", "--yes")
-        assert not package_is_installed(prefix, "xz")
+        conda_cli("remove", f"--prefix={prefix}", "bzip2", "--force", "--yes")
+        assert not package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, "libarchive")
 
         conda_cli("remove", f"--prefix={prefix}", "libarchive", "--yes")
         assert not package_is_installed(prefix, "libarchive")
-
-    # regression test for #3489
-    # don't raise for remove --all if environment doesn't exist
-    # split this into a new test
-    rm_rf(prefix, clean_empty_parents=True)
-    conda_cli("remove", f"--prefix={prefix}", "--all")
 
 
 def test_download_only_flag(
@@ -2501,7 +2494,7 @@ def test_conda_downgrade(
 
 
 @pytest.mark.skipif(
-    on_win or platform.machine() == "arm64",
+    on_win or platform.machine() in ("arm64", "aarch64"),
     reason="openssl only has a postlink script on unix / package missing for osx-arm64",
 )
 def test_run_script_called(tmp_env: TmpEnvFixture):
@@ -2518,12 +2511,10 @@ def test_run_script_called(tmp_env: TmpEnvFixture):
             assert rs.call_count == 1
 
 
-@pytest.mark.xfail(on_mac, reason="known broken; see #11127")
-def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
-    test_pkg = "_conda_test_env_activated_when_post_link_executed"
-    # a non-unicode name must be provided here as activate.d scripts
-    # are not executed on windows, see https://github.com/conda/conda/issues/8241
-    with tmp_env(test_pkg, "--channel=conda-test") as prefix:
+@pytest.mark.integration
+def test_post_link_run_in_env(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    test_pkg = "post_link_run_in_env_package"
+    with tmp_env(test_pkg) as prefix:
         assert package_is_installed(prefix, test_pkg)
 
 
@@ -2598,6 +2589,31 @@ def test_install_bound_virtual_package(tmp_env: TmpEnvFixture):
         pass
 
 
+@pytest.mark.parametrize(
+    "spec,dry_run",
+    [
+        ("__glibc", on_linux),
+        ("__unix", on_linux or on_mac),
+        ("__linux", on_linux),
+        ("__osx", on_mac),
+        ("__win", on_win),
+    ],
+)
+def test_install_virtual_packages(conda_cli: CondaCLIFixture, spec: str, dry_run: bool):
+    """
+    Ensures a solver knows how to deal with virtual specs in the CLI.
+    This means succeeding only if the virtual package is available.
+    https://github.com/conda/conda-libmamba-solver/issues/480
+    """
+    conda_cli(
+        "create",
+        "--dry-run",
+        "--offline",
+        spec,
+        raises=DryRunExit if dry_run else (UnsatisfiableError, PackagesNotFoundError),
+    )
+
+
 @pytest.mark.integration
 def test_remove_empty_env(tmp_path: Path, conda_cli: CondaCLIFixture):
     conda_cli("create", f"--prefix={tmp_path}", "--yes")
@@ -2608,7 +2624,7 @@ def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
     filename = tmp_path / "file.dat"
     filename.touch()
 
-    with pytest.raises(DirectoryNotACondaEnvironmentError):
+    with pytest.raises(EnvironmentLocationNotFound):
         conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
     assert filename.exists()
@@ -2621,11 +2637,13 @@ def test_repodata_v2_base_url(
     monkeypatch: MonkeyPatch,
     request: FixtureRequest,
 ):
-    if context.solver == "libmamba":
+    if context.solver == "libmamba" and VersionOrder(
+        version("libmambapy")
+    ) < VersionOrder("2.0a0"):
         request.applymarker(
             pytest.mark.xfail(
                 context.solver == "libmamba",
-                reason="Libmamba does not support CEP-15 yet.",
+                reason="Libmamba v1 does not support CEP-15.",
                 strict=True,
                 run=True,
             )
@@ -2666,3 +2684,44 @@ def test_create_dry_run_without_prefix(
 
 def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
+
+
+def test_nonadmin_file_untouched(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    channel = Path(__file__).parent / "test-recipes" / "noarch"
+    with tmp_env() as prefix:
+        nonadmin_file = prefix / ".nonadmin"
+        nonadmin_file.touch()
+        assert nonadmin_file.is_file()
+        conda_cli(
+            "install", "--yes", "--prefix", prefix, "--channel", channel, "dependency"
+        )
+        assert nonadmin_file.is_file(), ".nonadmin file removed after installation"
+        conda_cli("remove", "--yes", "--prefix", prefix, "dependency")
+        assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"
+
+
+@pytest.mark.skipif(on_win, reason="sample packages used unix style paths")
+def test_python_site_packages_path(
+    test_recipes_channel: Path,
+    request: FixtureRequest,
+    tmp_env: TmpEnvFixture,
+):
+    """
+    When a python package that includes the optional python_site_packages_path repodata record is installed
+    noarch: python packages should be installed into that path.
+
+    Reference: https://github.com/conda/conda/issues/14053
+    """
+    # TODO update this to a version check once conda-libmamba-solver supports python_site_packages_path
+    request.applymarker(
+        pytest.mark.xfail(
+            context.solver == "libmamba",
+            reason="conda-libmamba-solver does not support python_site_packages_path",
+        )
+    )
+    with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
+        sp_dir = "lib/python3.99t/site-packages"
+        assert (prefix / sp_dir / "sample.py").is_file()

@@ -12,14 +12,14 @@ from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..common._os import is_admin
-from ..common.compat import ensure_text_type, on_win, open
+from ..common.compat import ensure_text_type, on_win, open_utf8
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
 from .prefix_data import PrefixData
 
 if TYPE_CHECKING:
-    from typing import Iterator
+    from collections.abc import Iterator
 
 log = getLogger(__name__)
 
@@ -79,7 +79,7 @@ def register_env(location: str) -> None:
         return
 
     try:
-        with open(user_environments_txt_file, "a") as fh:
+        with open_utf8(user_environments_txt_file, "a") as fh:
             fh.write(ensure_text_type(location))
             fh.write("\n")
     except OSError as e:
@@ -219,7 +219,7 @@ def _rewrite_environments_txt(environments_txt_file: str, prefixes: list[str]) -
     :return: None
     """
     try:
-        with open(environments_txt_file, "w") as fh:
+        with open_utf8(environments_txt_file, "w") as fh:
             fh.write("\n".join(prefixes))
             fh.write("\n")
     except OSError as e:

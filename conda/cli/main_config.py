@@ -19,6 +19,8 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
+from ..base.constants import DEFAULTS_CHANNEL_NAME
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any
@@ -519,7 +521,12 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
 def execute_config(args, parser):
     from .. import CondaError
     from ..auxlib.entity import EntityEncoder
-    from ..base.context import context, sys_rc_path, user_rc_path
+    from ..base.context import (
+        _warn_defaults_deprecation,
+        context,
+        sys_rc_path,
+        user_rc_path,
+    )
     from ..common.io import timeout
     from ..common.iterators import groupby_to_dict as groupby
     from ..common.serialize import yaml_round_trip_load
@@ -731,8 +738,16 @@ def execute_config(args, parser):
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
         for key, item in arg:
             key, subkey = key.split(".", 1) if "." in key else (key, None)
-            if key == "channels" and key not in rc_config:
-                rc_config[key] = ["defaults"]
+
+            channels_is_unpopulated = key == "channels" and key not in rc_config
+
+            if channels_is_unpopulated:
+                # don't warn if users are literally trying to remove the warning
+                # by explicitly adding the defaults channel to the channels list
+                if item != DEFAULTS_CHANNEL_NAME:
+                    _warn_defaults_deprecation()
+                rc_config[key] = [DEFAULTS_CHANNEL_NAME]
+
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key in map_parameters:
@@ -741,17 +756,21 @@ def execute_config(args, parser):
                 from ..exceptions import CondaValueError
 
                 raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
+
             if not (isinstance(arglist, Sequence) and not isinstance(arglist, str)):
                 from ..exceptions import CouldntParseError
 
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
+
             if item in arglist:
+                # don't warn if users are literally trying to remove the warning
+                if channels_is_unpopulated and item == DEFAULTS_CHANNEL_NAME:
+                    continue
                 message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates
-                message = "Warning: '{}' already in '{}' list, moving to the {}".format(
-                    item, message_key, "top" if prepend else "bottom"
-                )
+                location = "top" if prepend else "bottom"
+                message = f"Warning: '{item}' already in '{message_key}' list, moving to the {location}"
                 if subkey is None:
                     arglist = rc_config[key] = [p for p in arglist if p != item]
                 else:

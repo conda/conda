@@ -1,10 +1,10 @@
 anaconda-client
 conda-forge::pytest-split
 conda-forge::pytest-xprocess
-conda-forge::xdoctest
 coverage
 flask >=2.2  # jlap pytest fixture
 git
+importlib_resources >= 5.10  # only necessary for Python < 3.12
 pexpect
 pip
 pytest

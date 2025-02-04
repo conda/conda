@@ -6,7 +6,7 @@ import logging
 import re
 import sys
 from datetime import datetime
-from functools import lru_cache, partial
+from functools import cache, partial
 from logging import (
     DEBUG,
     ERROR,
@@ -18,7 +18,6 @@ from logging import (
     getLogger,
 )
 
-from .. import CondaError
 from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
 from ..deprecations import deprecated
@@ -32,7 +31,6 @@ _VERBOSITY_LEVELS = {
     3: DEBUG,  # -vvv, debug logging
     4: TRACE,  # -vvvv, trace logging
 }
-deprecated.constant("24.3", "24.9", "VERBOSITY_LEVELS", _VERBOSITY_LEVELS)
 
 
 class TokenURLFilter(Filter):
@@ -139,7 +137,7 @@ class StdStreamHandler(StreamHandler):
 # e.g., using their own levels, handlers, formatters and propagation settings.
 
 
-@lru_cache(maxsize=None)
+@cache
 def initialize_logging():
     # 'conda' gets level WARN and does not propagate to root.
     getLogger("conda").setLevel(WARN)
@@ -205,7 +203,7 @@ def set_all_logger_level(level=DEBUG):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
         timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
@@ -216,18 +214,6 @@ def set_file_logging(logger_name=None, level=DEBUG, path=None):
     handler.setFormatter(_FORMATTER)
     handler.setLevel(level)
     conda_logger.addHandler(handler)
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.gateways.logging.set_log_level` instead.",
-)
-def set_verbosity(verbosity: int):
-    try:
-        set_log_level(_VERBOSITY_LEVELS[verbosity])
-    except KeyError:
-        raise CondaError(f"Invalid verbosity level: {verbosity}") from None
 
 
 def set_log_level(log_level: int):

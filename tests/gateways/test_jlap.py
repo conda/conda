@@ -614,9 +614,12 @@ def test_jlap_errors(
 
         # force 304 not modified on the .jlap file (test server doesn't return 304
         # not modified on range requests)
-        with mocker.patch.object(
-            CondaSession, "get", return_value=Mock(status_code=304, headers={})
-        ), pytest.raises(Response304ContentUnchanged):
+        with (
+            mocker.patch.object(
+                CondaSession, "get", return_value=Mock(status_code=304, headers={})
+            ),
+            pytest.raises(Response304ContentUnchanged),
+        ):
             sd._repo.repodata(cache.load_state())  # type: ignore
 
 
