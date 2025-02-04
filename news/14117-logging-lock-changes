@@ -16,4 +16,4 @@
 
 ### Other
 
-* Adapt for logging lock internal changes in Python 3.13 (#14117)
+* Adapt for logging lock internal changes in Python 3.13. (#14117)
