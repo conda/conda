@@ -116,8 +116,6 @@
     @ECHO Error: failed to install development environment 1>&2
     @EXIT /B 1
 )
-:: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base "defaults::git<2.45" > NUL
 :INSTALLED
 
 :: create empty env if it doesn't exist
@@ -216,9 +214,8 @@
 @GOTO :EOF
 
 :CONDA *args
-:: include OpenSSL & git on %PATH%
-@SET "_PATH=%PATH%"
-@SET "PATH=%1\..\..\Library\bin;%PATH%"
+:: include OpenSSL %PATH%
+@SET "_PATH=%PATH%"@SET "PATH=%1\..\..\Library\bin;%PATH%"
 
 @CALL %*
 @IF NOT %ErrorLevel%==0 @EXIT /B %ErrorLevel%
