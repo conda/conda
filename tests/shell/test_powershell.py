@@ -118,11 +118,14 @@ def test_powershell_basic_integration(
         sh.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
         sh.sendline("$LASTEXITCODE")
         sh.expect("0")
-        # TODO: assert that reactivate worked correctly
+
+        # TODO: reactivate does not set envvars?
+        sh.sendline(f'conda activate -stack "{venusaur}"')
 
         log.debug("## [PowerShell integration] Checking installed version.")
         sh.sendline("small")
         sh.expect_exact("Hello!")
+        sh.assert_env_var("SMALL_EXE", "small-var-pwsh")
 
         # conda run integration test
         log.debug("## [PowerShell integration] Checking conda run.")

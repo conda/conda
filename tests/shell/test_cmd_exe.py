@@ -86,6 +86,7 @@ def test_cmd_exe_basic_integration(
 
         sh.sendline("small")
         sh.expect_exact("Hello!")
+        sh.assert_env_var("SMALL_EXE", "small-var-cmd")
 
         # conda run integration test
         sh.sendline(f"conda run {dev_arg} small")
