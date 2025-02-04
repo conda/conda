@@ -40,7 +40,6 @@ def test_basic_integration(
     shell: Shell,
 ) -> None:
     prefix, _, _ = shell_wrapper_integration
-
     with shell.interactive() as sh:
         sh.sendline("conda --version")
         sh.expect_exact("conda " + conda_version)

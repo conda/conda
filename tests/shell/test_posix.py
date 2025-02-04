@@ -198,10 +198,10 @@ def test_basic_integration(
 
         # regression test for #6840
         sh.sendline(f"conda {install} --blah")
-        sh.expect("error: unrecognized arguments: --blah")
+        sh.expect_exact("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
         sh.sendline("conda list --blah")
-        sh.expect("error: unrecognized arguments: --blah")
+        sh.expect_exact("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
 
         sh.sendline(f"conda {deactivate}")
@@ -334,10 +334,8 @@ def test_legacy_activate_deactivate_bash(
         CONDA_ROOT = Path(CONDA_PACKAGE_ROOT)
         activate = sh.path_conversion(CONDA_ROOT / "shell" / "bin" / "activate")
         deactivate = sh.path_conversion(CONDA_ROOT / "shell" / "bin" / "deactivate")
-
         prefix2_p = sh.path_conversion(prefix2)
         prefix3_p = sh.path_conversion(prefix3)
-
         sh.sendline(f"export _CONDA_ROOT='{CONDA_ROOT}/shell'")
         sh.sendline(f'. "{activate}" {dev_arg} "{prefix2_p}"')
         PATH0 = sh.get_env_var("PATH")
