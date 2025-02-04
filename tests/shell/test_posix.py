@@ -19,7 +19,7 @@ from conda.common.path import win_path_to_unix
 from . import ACTIVATE_ARGS, DEACTIVATE_ARGS, DEV_ARG, INSTALL_ARGS
 
 if TYPE_CHECKING:
-    from . import Shell
+    from . import InteractiveShell, Shell
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
@@ -55,8 +55,8 @@ def test_shell_available(shell: Shell) -> None:
 
 
 @cache
-def is_a_function(shell: Shell) -> str:
-    if shell.shell_name in ("ash", "dash", "zsh"):
+def is_a_function(sh: InteractiveShell) -> str:
+    if sh.shell_name in ("ash", "dash", "zsh"):
         return "conda is a shell function"
     return "conda is a function"
 
