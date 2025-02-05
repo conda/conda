@@ -5,8 +5,7 @@ from __future__ import annotations
 import sys
 from functools import cache
 from logging import getLogger
-from shutil import which
-from subprocess import CalledProcessError, check_output
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,87 +13,73 @@ import pytest
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as conda_version
 from conda.base.context import context
-from conda.common.compat import on_win
+from conda.common.compat import on_mac, on_win
+from conda.common.path import win_path_to_unix
 
-from . import InteractiveShell, activate, deactivate, dev_arg, install
+from . import activate, deactivate, dev_arg, install
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from . import InteractiveShell, Shell
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
 
-
-@cache
-def bash_unsupported() -> str | None:
-    if not (bash := which("bash")):
-        return "bash: was not found on PATH"
-    elif on_win:
-        try:
-            output = check_output(f'{bash} -c "uname -v"')
-        except CalledProcessError as exc:
-            return f"bash: something went wrong while running bash, output:\n{exc.output}\n"
-        else:
-            if b"Microsoft" in output:
-                return "bash: WSL is not yet supported. Pull requests welcome."
-            else:
-                output = check_output(f"{bash} --version")
-                if b"msys" not in output and b"cygwin" not in output:
-                    return f"bash: Only MSYS2 and Cygwin bash are supported on Windows, found:\n{output!r}\n"
-    return None
-
-
-skip_unsupported_bash = pytest.mark.skipif(
-    bool(bash_unsupported()),
-    reason=bash_unsupported() or "bash: supported!",
-)
-
-
-@pytest.mark.parametrize(
-    "shell_name",
+PARAMETRIZE_POSIX = pytest.mark.parametrize(
+    "shell",
     [
         pytest.param(
-            "bash",
+            "ash",
             marks=[
-                skip_unsupported_bash,
-                pytest.mark.skipif(
-                    on_win, reason="Temporary skip, larger refactor necessary"
-                ),
+                pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
+                pytest.mark.skipif(on_win, reason="unavailable on Windows"),
             ],
         ),
+        "bash",
         pytest.param(
             "dash",
-            marks=[
-                pytest.mark.skipif(
-                    not which("dash") or on_win, reason="dash not installed"
-                )
-            ],
+            marks=pytest.mark.skipif(on_win, reason="unavailable on Windows"),
         ),
         pytest.param(
             "zsh",
-            marks=[pytest.mark.skipif(not which("zsh"), reason="zsh not installed")],
+            marks=pytest.mark.skipif(on_win, reason="unavailable on Windows"),
         ),
     ],
+    indirect=True,
 )
+
+
+@PARAMETRIZE_POSIX
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
+
+
+@cache
+def is_a_function(sh: InteractiveShell) -> str:
+    if sh.shell_name in ("ash", "dash", "zsh"):
+        return "conda is a shell function"
+    return "conda is a function"
+
+
+@PARAMETRIZE_POSIX
 def test_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
-    shell_name: str,
+    shell: Shell,
     test_recipes_channel: Path,
 ) -> None:
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
-    with InteractiveShell(shell_name) as sh:
-        if sh.shell_name in ("zsh", "dash"):
-            conda_is_a_function = "conda is a shell function"
-        else:
-            conda_is_a_function = "conda is a function"
-
+    with shell.interactive() as sh:
         case = str.lower if on_win else str
 
-        num_paths_added = len(tuple(sh.activator._get_path_dirs(prefix)))
         prefix_p = sh.path_conversion(prefix)
         prefix2_p = sh.path_conversion(prefix2)
         sh.path_conversion(prefix3)
+
+        nbase = len(tuple(sh.activator._get_path_dirs(sys.prefix)))
+        nprefix = len(tuple(sh.activator._get_path_dirs(prefix)))
+        nprefix2 = len(tuple(sh.activator._get_path_dirs(prefix2)))
+        nprefix3 = len(tuple(sh.activator._get_path_dirs(prefix3)))
 
         PATH0 = sh.get_env_var("PATH", "")
         assert any(path.endswith("condabin") for path in PATH0.split(":"))
@@ -109,7 +94,7 @@ def test_basic_integration(
             sh.sendline(f'export PATH="{PATH0}"')
             PATH0 = sh.get_env_var("PATH", "")
         sh.sendline("type conda")
-        sh.expect(conda_is_a_function)
+        sh.expect(is_a_function(sh))
 
         _CE_M = sh.get_env_var("_CE_M")
         _CE_CONDA = sh.get_env_var("_CE_CONDA")
@@ -120,7 +105,7 @@ def test_basic_integration(
         sh.sendline(f"conda {activate} base")
 
         sh.sendline("type conda")
-        sh.expect(conda_is_a_function)
+        sh.expect(is_a_function(sh))
 
         CONDA_EXE2 = case(sh.get_env_var("CONDA_EXE"))
         _CE_M2 = sh.get_env_var("_CE_M")
@@ -128,7 +113,7 @@ def test_basic_integration(
         sh.assert_env_var("PS1", "(base).*")
         sh.assert_env_var("CONDA_SHLVL", "1")
         PATH1 = sh.get_env_var("PATH", "")
-        assert len(PATH0.split(":")) + num_paths_added == len(PATH1.split(":"))
+        assert len(PATH0.split(":")) + nbase == len(PATH1.split(":"))
 
         CONDA_EXE = case(sh.get_env_var("CONDA_EXE"))
         _CE_M = sh.get_env_var("_CE_M")
@@ -138,7 +123,7 @@ def test_basic_integration(
         sh.sendline(f'conda {activate} "{prefix_p}"')
 
         sh.sendline("type conda")
-        sh.expect(conda_is_a_function)
+        sh.expect(is_a_function(sh))
 
         CONDA_EXE2 = case(sh.get_env_var("CONDA_EXE"))
         _CE_M2 = sh.get_env_var("_CE_M")
@@ -159,7 +144,7 @@ def test_basic_integration(
         # Also, self.prefix instead of prefix_p is deliberate (maybe unfortunate?)
         assert CONDA_PREFIX.lower() == prefix.lower()
         PATH2 = sh.get_env_var("PATH", "")
-        assert len(PATH0.split(":")) + num_paths_added == len(PATH2.split(":"))
+        assert len(PATH0.split(":")) + nprefix == len(PATH2.split(":"))
 
         sh.sendline("env | sort | grep CONDA")
         sh.expect("CONDA_")
@@ -173,7 +158,7 @@ def test_basic_integration(
         sh.assert_env_var("PS1", "(charizard).*")
         sh.assert_env_var("CONDA_SHLVL", "3")
         PATH3 = sh.get_env_var("PATH")
-        assert len(PATH0.split(":")) + num_paths_added == len(PATH3.split(":"))
+        assert len(PATH0.split(":")) + nprefix2 == len(PATH3.split(":"))
 
         CONDA_EXE2 = case(sh.get_env_var("CONDA_EXE"))
         _CE_M2 = sh.get_env_var("_CE_M")
@@ -182,6 +167,11 @@ def test_basic_integration(
         assert _CE_M == _CE_M2
         assert _CE_CONDA == _CE_CONDA2
 
+        # despite which OS we are on, channel path needs to be POSIX compliant
+        if on_win:
+            test_recipes_channel = win_path_to_unix(test_recipes_channel)
+
+        # install local tests/test-recipes/small-executable
         sh.sendline(
             f"conda {install} "
             f"--yes "
@@ -193,6 +183,7 @@ def test_basic_integration(
         sh.expect(r"Executing transaction: ...working... done.*\n")
         sh.assert_env_var("?", "0", use_exact=True)
 
+        # see tests/test-recipes/small-executable
         sh.sendline("small")
         sh.expect_exact("Hello!")
         sh.assert_env_var("SMALL_EXE", "small-var-sh")
@@ -200,26 +191,29 @@ def test_basic_integration(
         # TODO: assert that reactivate worked correctly
 
         sh.sendline("type conda")
-        sh.expect(conda_is_a_function)
+        sh.expect(is_a_function(sh))
 
+        # see tests/test-recipes/small-executable
         sh.sendline(f"conda run {dev_arg} small")
         sh.expect_exact("Hello!")
 
         # regression test for #6840
-        sh.sendline(f"conda {install} --blah")
-        sh.assert_env_var("?", "2", use_exact=True)
-        sh.sendline("conda list --blah")
-        sh.assert_env_var("?", "2", use_exact=True)
+        sh.sendline(f'conda {install} --blah || echo "exitcode=$?"')
+        sh.expect_exact("error: unrecognized arguments: --blah")
+        sh.expect_exact("exitcode=2")
+        sh.sendline('conda list --blah || echo "exitcode=$?"')
+        sh.expect_exact("error: unrecognized arguments: --blah")
+        sh.expect_exact("exitcode=2")
 
         sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "2")
         PATH = sh.get_env_var("PATH")
-        assert len(PATH0.split(":")) + num_paths_added == len(PATH.split(":"))
+        assert len(PATH0.split(":")) + nprefix == len(PATH.split(":"))
 
         sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "1")
         PATH = sh.get_env_var("PATH")
-        assert len(PATH0.split(":")) + num_paths_added == len(PATH.split(":"))
+        assert len(PATH0.split(":")) + nbase == len(PATH.split(":"))
 
         sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "0")
@@ -248,21 +242,21 @@ def test_basic_integration(
         sh.sendline(f'conda {activate} "{prefix2_p}"')
         sh.assert_env_var("CONDA_SHLVL", "1")
         PATH1 = sh.get_env_var("PATH")
-        assert len(PATH0.split(":")) + num_paths_added == len(PATH1.split(":"))
+        assert len(PATH0.split(":")) + nprefix2 == len(PATH1.split(":"))
 
         sh.sendline(f'conda {activate} "{prefix3}" --stack')
         sh.assert_env_var("CONDA_SHLVL", "2")
         PATH2 = sh.get_env_var("PATH")
         assert "charizard" in PATH2
         assert "venusaur" in PATH2
-        assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
+        assert len(PATH0.split(":")) + nprefix2 + nprefix3 == len(PATH2.split(":"))
 
         sh.sendline(f'conda {activate} "{prefix_p}"')
         sh.assert_env_var("CONDA_SHLVL", "3")
         PATH3 = sh.get_env_var("PATH")
         assert "charizard" in PATH3
         assert "venusaur" not in PATH3
-        assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH3.split(":"))
+        assert len(PATH0.split(":")) + nprefix2 + nprefix == len(PATH3.split(":"))
 
         sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "2")
@@ -286,21 +280,24 @@ def test_basic_integration(
         PATH2 = sh.get_env_var("PATH")
         assert "charizard" in PATH2
         assert "venusaur" in PATH2
-        assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH2.split(":"))
+        assert len(PATH0.split(":")) + nprefix2 + nprefix3 == len(PATH2.split(":"))
 
         sh.sendline(f'conda {activate} "{prefix_p}"')
         sh.assert_env_var("CONDA_SHLVL", "3")
         PATH3 = sh.get_env_var("PATH")
         assert "charizard" in PATH3
         assert "venusaur" not in PATH3
-        assert len(PATH0.split(":")) + num_paths_added * 2 == len(PATH3.split(":"))
+        assert len(PATH0.split(":")) + nprefix2 + nprefix == len(PATH3.split(":"))
 
 
-@skip_unsupported_bash
+@PARAMETRIZE_POSIX
 @pytest.mark.skipif(on_win, reason="Temporary skip, larger refactor necessary")
-def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
+def test_bash_activate_error(
+    shell_wrapper_integration: tuple[str, str, str],
+    shell: Shell,
+) -> None:
     context.dev = True
-    with InteractiveShell("bash") as sh:
+    with shell.interactive() as sh:
         sh.sendline("export CONDA_SHLVL=unaffected")
         if on_win:
             sh.sendline("uname -o")
@@ -315,35 +312,50 @@ def test_bash_activate_error(shell_wrapper_integration: tuple[str, str, str]):
         sh.expect("usage: conda activate")
 
 
-@skip_unsupported_bash
+@pytest.mark.parametrize(
+    "shell",
+    [
+        pytest.param("ash", marks=pytest.mark.skip("sourcing ignores arguments")),
+        "bash",
+        pytest.param("dash", marks=pytest.mark.skip("sourcing ignores arguments")),
+        pytest.param(
+            "zsh",
+            marks=pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+        ),
+    ],
+    indirect=True,
+)
 def test_legacy_activate_deactivate_bash(
     shell_wrapper_integration: tuple[str, str, str],
-):
+    shell: Shell,
+) -> None:
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
-    with InteractiveShell("bash") as sh:
-        CONDA_PACKAGE_ROOT_p = sh.path_conversion(CONDA_PACKAGE_ROOT)
+    with shell.interactive() as sh:
+        CONDA_ROOT = Path(CONDA_PACKAGE_ROOT)
+        activate = sh.path_conversion(CONDA_ROOT / "shell" / "bin" / "activate")
+        deactivate = sh.path_conversion(CONDA_ROOT / "shell" / "bin" / "deactivate")
         prefix2_p = sh.path_conversion(prefix2)
         prefix3_p = sh.path_conversion(prefix3)
-        sh.sendline(f"export _CONDA_ROOT='{CONDA_PACKAGE_ROOT_p}/shell'")
-        sh.sendline(f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix2_p}"')
+        sh.sendline(f"export _CONDA_ROOT='{CONDA_ROOT}/shell'")
+        sh.sendline(f'. "{activate}" {dev_arg} "{prefix2_p}"')
         PATH0 = sh.get_env_var("PATH")
         assert "charizard" in PATH0
 
         sh.sendline("type conda")
-        sh.expect("conda is a function")
+        sh.expect(is_a_function(sh))
 
         sh.sendline("conda --version")
         sh.expect_exact("conda " + conda_version)
 
-        sh.sendline(f'source "${{_CONDA_ROOT}}/bin/activate" {dev_arg} "{prefix3_p}"')
+        sh.sendline(f'. "{activate}" {dev_arg} "{prefix3_p}"')
 
         PATH1 = sh.get_env_var("PATH")
         assert "venusaur" in PATH1
 
-        sh.sendline('source "${_CONDA_ROOT}/bin/deactivate"')
+        sh.sendline(f'. "{deactivate}"')
         PATH2 = sh.get_env_var("PATH")
         assert "charizard" in PATH2
 
-        sh.sendline('source "${_CONDA_ROOT}/bin/deactivate"')
+        sh.sendline(f'. "{deactivate}"')
         sh.assert_env_var("CONDA_SHLVL", "0")

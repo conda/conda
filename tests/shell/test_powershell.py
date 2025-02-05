@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import os
-import platform
-from functools import cache
 from logging import getLogger
 from os.path import join
-from shutil import which
 from typing import TYPE_CHECKING
 
 import pytest
@@ -15,71 +12,47 @@ import pytest
 from conda import __version__ as conda_version
 from conda.common.compat import on_win
 
-from . import InteractiveShell, dev_arg, install
+from . import Shell, dev_arg, install
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 log = getLogger(__name__)
 pytestmark = pytest.mark.integration
-
-
-@cache
-def which_powershell(path: str | None = None) -> tuple[str, str] | None:
-    r"""
-    Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
-    it's helpful to have a utility function that returns the name of the best PowerShell
-    executable available, or `None` if there's no PowerShell installed.
-
-    If PowerShell is found, this function returns both the kind of PowerShell install
-    found and a path to its main executable.
-    E.g.: ('pwsh', r'C:\Program Files\PowerShell\6.0.2\pwsh.exe)
-    """
-    if on_win:
-        posh = which("powershell.exe", path=path)
-        if posh:
-            return "powershell", posh
-
-    posh = which("pwsh", path=path)
-    if posh:
-        return "pwsh", posh
-
-    posh = which("pwsh-preview", path=path)
-    if posh:
-        return "pwsh-preview", posh
-
-
-@cache
-def latest_powershell() -> tuple[str, str] | None:
-    if not (path := os.getenv("PWSHPATH")):
-        return None
-    return which_powershell(path)
-
-
-parametrize_pwsh = pytest.mark.parametrize(
-    "pwsh_name,pwsh_path",
+PARAMETRIZE_POWERSHELL = pytest.mark.parametrize(
+    "shell",
     [
-        *([which_powershell()] if which_powershell() else []),
-        *([latest_powershell()] if latest_powershell() else []),
+        pytest.param(
+            ("powershell", "pwsh", "pwsh-preview"),
+            id="powershell",
+        ),
+        pytest.param(
+            Shell(("powershell", "pwsh"), path=os.getenv("PWSHPATH")),
+            id="PWSHPATH",
+            marks=pytest.mark.skipif(
+                not os.getenv("PWSHPATH"), reason="PWSHPATH is undefined"
+            ),
+        ),
     ],
+    indirect=True,
 )
 
 
-@pytest.mark.skipif(
-    not which_powershell() or platform.machine() == "arm64",
-    reason="PowerShell not installed or not supported on platform",
-)
-@parametrize_pwsh
+@PARAMETRIZE_POWERSHELL
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
+
+
+@PARAMETRIZE_POWERSHELL
 def test_powershell_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
-    pwsh_name: str,
-    pwsh_path: str,
+    shell: Shell,
     test_recipes_channel: Path,
-):
+) -> None:
     prefix, charizard, venusaur = shell_wrapper_integration
 
-    log.debug(f"## [PowerShell integration] Using {pwsh_path}.")
-    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as sh:
+    with shell.interactive() as sh:
         log.debug("## [PowerShell integration] Starting test.")
         sh.sendline("(Get-Command conda).CommandType")
         sh.expect_exact("Alias")
@@ -106,6 +79,7 @@ def test_powershell_basic_integration(
         assert "venusaur" in PATH
         assert "charizard" in PATH
 
+        # install local tests/test-recipes/small-executable
         log.debug("## [PowerShell integration] Installing.")
         sh.sendline(
             f"conda {install} "
@@ -115,19 +89,20 @@ def test_powershell_basic_integration(
             f"--channel={test_recipes_channel} "
             f"small-executable"
         )
-        sh.expect(r"Executing transaction: ...working... done.*\n", timeout=100)
+        sh.expect(r"Executing transaction: ...working... done.*\n")
         sh.sendline("$LASTEXITCODE")
         sh.expect("0")
 
         # TODO: reactivate does not set envvars?
         sh.sendline(f'conda activate -stack "{venusaur}"')
 
+        # see tests/test-recipes/small-executable
         log.debug("## [PowerShell integration] Checking installed version.")
         sh.sendline("small")
         sh.expect_exact("Hello!")
         sh.assert_env_var("SMALL_EXE", "small-var-pwsh")
 
-        # conda run integration test
+        # see tests/test-recipes/small-executable
         log.debug("## [PowerShell integration] Checking conda run.")
         sh.sendline(f"conda run {dev_arg} small")
         sh.expect_exact("Hello!")
@@ -141,20 +116,15 @@ def test_powershell_basic_integration(
         sh.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.skipif(
-    not which_powershell() or not on_win,
-    reason="Windows, PowerShell specific test",
-)
-@parametrize_pwsh
+@pytest.mark.skipif(on_win, reason="unavailable on Windows")
+@PARAMETRIZE_POWERSHELL
 def test_powershell_PATH_management(
     shell_wrapper_integration: tuple[str, str, str],
-    pwsh_name: str,
-    pwsh_path: str,
-):
+    shell: Shell,
+) -> None:
     prefix, _, _ = shell_wrapper_integration
 
-    print(f"## [PowerShell activation PATH management] Using {pwsh_path}.")
-    with InteractiveShell(pwsh_name, shell_path=pwsh_path) as sh:
+    with shell.interactive() as sh:
         prefix = join(prefix, "envs", "test")
         print("## [PowerShell activation PATH management] Starting test.")
         sh.sendline("(Get-Command conda).CommandType")

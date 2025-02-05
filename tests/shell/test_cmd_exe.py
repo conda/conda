@@ -7,29 +7,45 @@ import sys
 from logging import getLogger
 from pathlib import Path
 from re import escape
-from shutil import which
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as conda_version
 from conda.base.context import context
+from conda.common.compat import on_linux, on_mac
 
-from . import InteractiveShell, activate, deactivate, dev_arg, install
+from . import activate, deactivate, dev_arg, install
+
+if TYPE_CHECKING:
+    from . import Shell
 
 log = getLogger(__name__)
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(on_linux, reason="unavailable on Linux"),
+    pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
+]
+PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=True)
 
 
-@pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
+@PARAMETRIZE_CMD_EXE
+def test_shell_available(shell: Shell) -> None:
+    # the `shell` fixture does all the work
+    pass
+
+
+@PARAMETRIZE_CMD_EXE
 def test_cmd_exe_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
+    shell: Shell,
     test_recipes_channel: Path,
 ) -> None:
     prefix, charizard, _ = shell_wrapper_integration
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
 
-    with InteractiveShell("cmd.exe") as sh:
+    with shell.interactive() as sh:
         sh.assert_env_var("_CE_CONDA", "conda")
         sh.assert_env_var("_CE_M", "-m")
         sh.assert_env_var("CONDA_EXE", escape(sys.executable))
@@ -72,6 +88,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_SHLVL", "2")
         sh.assert_env_var("CONDA_PREFIX", prefix, True)
 
+        # install local tests/test-recipes/small-executable
         sh.sendline(
             f"conda {install} "
             f"--yes "
@@ -84,11 +101,12 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("errorlevel", "0", True)
         # TODO: assert that reactivate worked correctly
 
+        # see tests/test-recipes/small-executable
         sh.sendline("small")
         sh.expect_exact("Hello!")
         sh.assert_env_var("SMALL_EXE", "small-var-cmd")
 
-        # conda run integration test
+        # see tests/test-recipes/small-executable
         sh.sendline(f"conda run {dev_arg} small")
         sh.expect_exact("Hello!")
 
@@ -100,10 +118,13 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_SHLVL", "0")
 
 
-@pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
-def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str]):
+@PARAMETRIZE_CMD_EXE
+def test_cmd_exe_activate_error(
+    shell_wrapper_integration: tuple[str, str, str],
+    shell: Shell,
+) -> None:
     context.dev = True
-    with InteractiveShell("cmd.exe") as sh:
+    with shell.interactive() as sh:
         sh.sendline("set")
         sh.expect(".*")
         sh.sendline(f"conda {activate} environment-not-found-doesnt-exist")
@@ -117,13 +138,14 @@ def test_cmd_exe_activate_error(shell_wrapper_integration: tuple[str, str, str])
         sh.expect("usage: conda activate")
 
 
-@pytest.mark.skipif(not which("cmd.exe"), reason="cmd.exe not installed")
+@PARAMETRIZE_CMD_EXE
 def test_legacy_activate_deactivate_cmd_exe(
     shell_wrapper_integration: tuple[str, str, str],
-):
+    shell: Shell,
+) -> None:
     prefix, prefix2, prefix3 = shell_wrapper_integration
 
-    with InteractiveShell("cmd.exe") as sh:
+    with shell.interactive() as sh:
         sh.sendline("echo off")
 
         conda__ce_conda = sh.get_env_var("_CE_CONDA")
