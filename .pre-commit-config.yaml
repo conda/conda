@@ -5,7 +5,6 @@ ci:
 # ignore patches/diffs since slight reformatting can break them
 exclude: |
   (?x)^(
-    conda/_vendor |
     conda/auxlib |
     tests/data/(
       conda_format_repo |
