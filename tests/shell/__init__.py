@@ -139,6 +139,12 @@ class InteractiveShellType(type):
         },
         "pwsh": {"base_shell": "powershell"},
         "pwsh-preview": {"base_shell": "powershell"},
+        "xonsh": {
+            "activator": "xonsh",
+            "args": ("--interactive",),
+            "init_command": f'__xonsh__.execer.exec($("{EXE_UNIX}" -m conda shell.xonsh hook))',
+            "print_env_var": "print($%s)",
+        },
     }
 
     def __call__(self, shell: str | tuple[str, ...] | Shell, **kwargs):
