@@ -182,7 +182,6 @@ def test_basic_integration(
         )
         sh.expect(r"Executing transaction: ...working... done.*\n")
         sh.assert_env_var("?", "0", use_exact=True)
-        sh.sendline('cat /proc/$$/status | grep "^Pid:"')
 
         # see tests/test-recipes/small-executable
         sh.sendline("small")
