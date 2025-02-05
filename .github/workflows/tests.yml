@@ -76,7 +76,7 @@ jobs:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.9', '3.12']
         default-channel: [defaults, conda-forge]
-        test-type: [integration]
+        test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - default-channel: conda-forge
@@ -151,11 +151,6 @@ jobs:
           Get-Command -All powershell
           Get-Command -All "$env:PWSHPATH\pwsh.exe"
 
-      # - name: Setup Tmate
-      #   uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19
-      #   with:
-      #     limit-access-to-actor: true
-
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
@@ -167,7 +162,6 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
-          tests/shell
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
@@ -204,7 +198,7 @@ jobs:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.9', '3.10', '3.11', '3.12']
         default-channel: [defaults, conda-forge]
-        test-type: [integration]
+        test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - python-version: '3.9'
@@ -276,7 +270,6 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
-          tests/shell
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
@@ -300,7 +293,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: false # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -367,7 +360,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -436,7 +429,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: false # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -512,7 +505,7 @@ jobs:
         arch: [osx-64, osx-arm64]
         python-version: ['3.9', '3.12']
         default-channel: [defaults, conda-forge]
-        test-type: [integration]
+        test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - arch: osx-64
@@ -593,7 +586,6 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
-          tests/shell
 
       - name: Upload Coverage
         uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
