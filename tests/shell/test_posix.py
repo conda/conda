@@ -198,10 +198,10 @@ def test_basic_integration(
         sh.expect_exact("Hello!")
 
         # regression test for #6840
-        sh.sendline(f'conda {install} --blah || (echo "failed $$ $?" && false)')
+        sh.sendline(f'conda {install} --blah 2>&1 || (echo "failed $$ $?" && false)')
         sh.expect_exact("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
-        sh.sendline('conda list --blah || (echo "failed $$ $?" && false)')
+        sh.sendline('conda list --blah 2>&1 || (echo "failed $$ $?" && false)')
         sh.expect_exact("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
 
