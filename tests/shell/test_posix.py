@@ -182,6 +182,7 @@ def test_basic_integration(
         )
         sh.expect(r"Executing transaction: ...working... done.*\n")
         sh.assert_env_var("?", "0", use_exact=True)
+        sh.sendline('cat /proc/$$/status | grep "^Pid:"')
 
         # see tests/test-recipes/small-executable
         sh.sendline("small")
@@ -197,10 +198,10 @@ def test_basic_integration(
         sh.expect_exact("Hello!")
 
         # regression test for #6840
-        sh.sendline(f"conda {install} --blah")
+        sh.sendline(f'conda {install} --blah || (echo "failed $$ $?" && false)')
         sh.expect_exact("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
-        sh.sendline("conda list --blah")
+        sh.sendline('conda list --blah || (echo "failed $$ $?" && false)')
         sh.expect_exact("error: unrecognized arguments: --blah")
         sh.assert_env_var("?", "2", use_exact=True)
 
