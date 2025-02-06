@@ -116,10 +116,7 @@ def create_stackable_envs(
                 paths = (path,) if path.exists() else ()
             self.paths = paths
 
-    sys = _run_command(
-        "conda config --set auto_activate_base false",
-        which,
-    )
+    sys = _run_command(which)
 
     with tmp_env("curl") as base, tmp_env("curl") as haspkg, tmp_env() as notpkg:
         yield (
