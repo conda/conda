@@ -87,7 +87,8 @@ jobs:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file requirements\truststore.txt' || '' }}
+      REQUIREMENTS_S3: ${{ matrix.default-channel == 'conda-forge' && '--file requirements\s3.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -134,10 +135,10 @@ jobs:
         run: >
           conda install
           --yes
-          --file tests\requirements.txt
-          --file tests\requirements-${{ runner.os }}.txt
-          --file tests\requirements-ci.txt
-          --file tests\requirements-s3.txt
+          --file requirements\runtime.txt
+          --file requirements\${{ runner.os }}.txt
+          --file requirements\tests.txt
+          ${{ env.REQUIREMENTS_S3 }}
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
@@ -213,7 +214,8 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file requirements/truststore.txt' || '' }}
+      REQUIREMENTS_S3: ${{ matrix.default-channel == 'conda-forge' && '--file requirements/s3.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.12' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -243,10 +245,10 @@ jobs:
         run: >
           conda install
           --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
+          --file requirements/runtime.txt
+          --file requirements/${{ runner.os }}.txt
+          --file requirements/tests.txt
+          ${{ env.REQUIREMENTS_S3 }}
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
@@ -303,7 +305,7 @@ jobs:
       matrix:
         python-version: ['3.12']
     env:
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file requirements/truststore.txt' || '' }}
 
     steps:
       - name: Checkout Source
@@ -324,18 +326,18 @@ jobs:
         uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
         with:
           condarc-file: .github/condarc
-          channels: defaults
+          channels: conda-forge
           run-post: false  # skip post cleanup
 
       - name: Conda Install
         run: >
           conda install
           --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          --file tests/requirements-benchmarks.txt
+          --file requirements/runtime.txt
+          --file requirements/${{ runner.os }}.txt
+          --file requirements/tests.txt
+          --file requirements/s3.txt
+          --file requirements/benchmarks.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
@@ -414,9 +416,9 @@ jobs:
           && conda create
           --name test
           --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
+          --file requirements/runtime.txt
+          --file requirements/${{ runner.os }}.txt
+          --file requirements/tests.txt
           python=${{ matrix.python-version }}
           && conda activate test
           && python -m conda info --verbose
@@ -459,20 +461,20 @@ jobs:
         uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
         with:
           condarc-file: .github/condarc
-          channels: defaults
+          channels: conda-forge
           run-post: false  # skip post cleanup
 
       - name: Conda Install
         run: >
           conda install
           --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
+          --file requirements/runtime.txt
+          --file requirements/${{ runner.os }}.txt
+          --file requirements/tests.txt
+          --file requirements/s3.txt
+          --file requirements/truststore.txt
+          --file requirements/memray.txt
           python=${{ matrix.python-version }}
-          conda-forge::pytest-memray
 
       - name: Conda Info
         # view test env info (not base)
@@ -525,7 +527,8 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
+      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12', matrix.python-version) && '--file requirements/truststore.txt' || '' }}
+      REQUIREMENTS_S3: ${{ matrix.default-channel == 'conda-forge' && '--file requirements/s3.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -559,10 +562,10 @@ jobs:
         run: >
           conda install
           --yes
-          --file tests/requirements.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
+          --file requirements/runtime.txt
+          --file requirements/tests.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          ${{ env.REQUIREMENTS_S3 }}
           python=${{ matrix.python-version }}
 
       - name: Conda Info

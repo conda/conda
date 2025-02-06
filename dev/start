@@ -244,9 +244,9 @@ if updating; then
         "--prefix=${_ENV}" \
         --override-channels \
         --channel=defaults \
-        "--file=${_SRC}/tests/requirements.txt" \
-        "--file=${_SRC}/tests/requirements-ci.txt" \
-        "$([ "${_MACH}" = "Linux" ] && echo "--file=${_SRC}/tests/requirements-Linux.txt")" \
+        "--file=${_SRC}/requirements/runtime.txt" \
+        "--file=${_SRC}/requirements/tests.txt" \
+        "$([ "${_MACH}" = "Linux" ] && echo "--file=${_SRC}/requirements/Linux.txt")" \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1
