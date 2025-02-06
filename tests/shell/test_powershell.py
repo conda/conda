@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda import __version__ as conda_version
+from conda import __version__ as CONDA_VERSION
 from conda.common.compat import on_win
 
 from . import Shell, dev_arg, install
@@ -66,7 +66,7 @@ def test_powershell_basic_integration(
         PATH = sh.get_env_var("PATH")
         assert "charizard" in PATH
         sh.sendline("conda --version")
-        sh.expect_exact("conda " + conda_version)
+        sh.expect_exact(f"conda {CONDA_VERSION}")
         sh.sendline(f'conda activate "{prefix}"')
         sh.assert_env_var("CONDA_SHLVL", "2")
         sh.assert_env_var("CONDA_PREFIX", prefix, True)

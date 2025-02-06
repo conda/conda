@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
-from conda import __version__ as conda_version
+from conda import __version__ as CONDA_VERSION
 from conda.base.context import context
 from conda.common.compat import on_mac, on_win
 from conda.common.path import win_path_to_unix
@@ -100,7 +100,7 @@ def test_basic_integration(
         _CE_CONDA = sh.get_env_var("_CE_CONDA")
 
         sh.sendline("conda --version")
-        sh.expect_exact("conda " + conda_version)
+        sh.expect_exact(f"conda {CONDA_VERSION}")
 
         sh.sendline(f"conda {activate} base")
 
@@ -346,7 +346,7 @@ def test_legacy_activate_deactivate_bash(
         sh.expect(is_a_function(sh))
 
         sh.sendline("conda --version")
-        sh.expect_exact("conda " + conda_version)
+        sh.expect_exact(f"conda {CONDA_VERSION}")
 
         sh.sendline(f'. "{activate}" {dev_arg} "{prefix3_p}"')
 

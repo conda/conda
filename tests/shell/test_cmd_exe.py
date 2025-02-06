@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
-from conda import __version__ as conda_version
+from conda import __version__ as CONDA_VERSION
 from conda.base.context import context
 from conda.common.compat import on_linux, on_mac
 
@@ -168,7 +168,7 @@ def test_legacy_activate_deactivate_cmd_exe(
         assert conda__ce_conda == "conda"
 
         sh.sendline("conda --version")
-        sh.expect_exact("conda " + conda_version)
+        sh.expect_exact(f"conda {CONDA_VERSION}")
 
         sh.sendline(f'activate.bat --dev "{prefix3}"')
         PATH = sh.get_env_var("PATH")

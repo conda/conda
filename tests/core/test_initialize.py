@@ -505,7 +505,6 @@ def test_install_conda_xsh(verbose):
 
     with tempdir() as conda_temp_prefix:
         conda_prefix = sys.prefix
-        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "Lib", "site-packages", "conda.xsh")
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.MODIFIED
@@ -513,18 +512,23 @@ def test_install_conda_xsh(verbose):
         with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
-        first_line, remainder = created_file_contents.split("\n", 1)
-        if on_win:
-            assert (
-                first_line
-                == f'$CONDA_EXE = "{XonshActivator.path_conversion(conda_exe)}"'
-            )
-        else:
-            assert first_line == f'$CONDA_EXE = "{conda_exe}"'
-
         with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
-        assert remainder == original_contents
+
+        assert created_file_contents == (
+            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
+            f"try:\n"
+            f"    del $_CE_M\n"
+            f"except KeyError:\n"
+            f"    pass\n"
+            f"try:\n"
+            f"    del $_CE_CONDA\n"
+            f"except KeyError:\n"
+            f"    pass\n"
+            f"$CONDA_PYTHON_EXE = '{XonshActivator.path_conversion(sys.executable)}'\n"
+            f"\n"
+            f"{original_contents}"
+        )
 
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.NO_CHANGE

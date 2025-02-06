@@ -1003,7 +1003,7 @@ class XonshActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = "del $%s"
+    unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
     # TODO: determine if different than export_var_tmpl
     set_var_tmpl = "$%s = '%s'"
@@ -1016,7 +1016,13 @@ class XonshActivator(_Activator):
     hook_source_path = Path(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
     def _hook_preamble(self) -> str:
-        return f'$CONDA_EXE = "{self.path_conversion(context.conda_exe)}"'
+        result = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                result.append(self.unset_var_tmpl % key)
+            else:
+                result.append(self.export_var_tmpl % (key, self.path_conversion(value)))
+        return "\n".join(result) + "\n"
 
 
 class CmdExeActivator(_Activator):
