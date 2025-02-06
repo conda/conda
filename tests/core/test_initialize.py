@@ -517,8 +517,14 @@ def test_install_conda_xsh(verbose):
 
         assert created_file_contents == (
             f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
-            f"del $_CE_M\n"
-            f"del $_CE_CONDA\n"
+            f"try:\n"
+            f"    del $_CE_M\n"
+            f"except KeyError:\n"
+            f"    pass\n"
+            f"try:\n"
+            f"    del $_CE_CONDA\n"
+            f"except KeyError:\n"
+            f"    pass\n"
             f"$CONDA_PYTHON_EXE = '{XonshActivator.path_conversion(sys.executable)}'\n"
             f"\n"
             f"{original_contents}"
