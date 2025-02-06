@@ -8,6 +8,13 @@ else
   endif
 endif
 
+# Deal with case when script run in a non-interactive shell
+# that is, `prompt` is not set.
+if (! $?prompt) then
+    set _prompt_set
+    set prompt=""
+endif
+
 if ("`alias conda`" == "") then
     if ($?_CONDA_EXE) then
         # _CONDA_PFX is named so as not to cause confusion with CONDA_PREFIX
@@ -21,9 +28,6 @@ if ("`alias conda`" == "") then
         alias conda source "${PWD}/conda/shell/etc/profile.d/conda.csh"
     endif
     setenv CONDA_SHLVL 0
-    if (! $?prompt) then
-        set prompt=""
-    endif
 else
     switch ( "${1}" )
         case "activate":
@@ -52,4 +56,10 @@ else
             $_CONDA_EXE $argv[1-]
             breaksw
     endsw
+endif
+
+# Clear the prompt variable if set above in non-interactive shells
+if ($?_prompt_set) then
+    unset _prompt_set
+    unset prompt
 endif
