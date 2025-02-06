@@ -1028,7 +1028,7 @@ class XonshActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = "del $%s"
+    unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
     # TODO: determine if different than export_var_tmpl
     set_var_tmpl = "$%s = '%s'"
