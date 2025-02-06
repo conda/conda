@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from conda.base.context import context, reset_context
@@ -11,7 +10,6 @@ from conda.gateways.disk.test import is_conda_environment
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from _pytest.capture import MultiCapture
     from pytest import MonkeyPatch, Pytester
 
     from conda.testing.fixtures import (
@@ -22,14 +20,6 @@ if TYPE_CHECKING:
     )
 
 pytest_plugins = ["conda.testing.fixtures", "pytester"]
-
-
-def test_session_capsys(session_capsys: MultiCapture) -> None:
-    print("stdout")
-    print("stderr", file=sys.stderr)
-    out, err = session_capsys.readouterr()
-    assert out == "stdout\n"
-    assert err == "stderr\n"
 
 
 def test_conda_cli(conda_cli: CondaCLIFixture) -> None:
