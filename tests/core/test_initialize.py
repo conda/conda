@@ -517,10 +517,10 @@ def test_install_conda_xsh(verbose):
         if on_win:
             assert (
                 first_line
-                == f'$CONDA_EXE = "{XonshActivator.path_conversion(conda_exe)}"'
+                == f"$CONDA_EXE = '{XonshActivator.path_conversion(conda_exe)}'"
             )
         else:
-            assert first_line == f'$CONDA_EXE = "{conda_exe}"'
+            assert first_line == f"$CONDA_EXE = '{conda_exe}'"
 
         with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
