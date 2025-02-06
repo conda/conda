@@ -8,8 +8,8 @@
 
 ### Deprecations
 
-* Remove `conda._vendor.frozendict`. Use `frozendict` instead.
-* Mark `conda._vendor` as pending deprecation. Conda no longer vendors dependencies.
+* Remove `conda._vendor.frozendict`. Use `frozendict` instead. (#14562)
+* Mark `conda._vendor` as pending deprecation. Conda no longer vendors dependencies.  (#14562)
 
 ### Docs
 
