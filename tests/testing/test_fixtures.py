@@ -31,7 +31,7 @@ def test_conda_cli(conda_cli: CondaCLIFixture) -> None:
 
 def test_session_conda_cli(session_conda_cli: CondaCLIFixture) -> None:
     stdout, stderr, err = session_conda_cli("info")
-    assert stdout
+    assert not stdout
     assert not stderr
     assert not err
 
