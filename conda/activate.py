@@ -156,30 +156,6 @@ class _Activator(metaclass=abc.ABCMeta):
 
         return export_vars, unset_vars
 
-    @deprecated(
-        "24.9",
-        "25.3",
-        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
-    )
-    def add_export_unset_vars(self, export_vars, unset_vars, **kwargs):
-        new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
-        return {
-            {**(export_vars or {}), **new_export_vars},
-            [*(unset_vars or []), *new_unset_vars],
-        }
-
-    @deprecated("24.9", "25.3", addendum="For testing only. Moved to test suite.")
-    def get_scripts_export_unset_vars(self, **kwargs) -> tuple[str, str]:
-        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        return (
-            self.command_join.join(
-                self.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
-            ),
-            self.command_join.join(
-                self.unset_var_tmpl % (k) for k in (unset_vars or [])
-            ),
-        )
-
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
         if ext is None:
@@ -614,7 +590,6 @@ class _Activator(metaclass=abc.ABCMeta):
         path_split = path.split(os.pathsep)
         return path_split
 
-    @deprecated.argument("24.9", "25.3", "extra_library_bin")
     def _get_path_dirs(self, prefix):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip(self.sep)
@@ -1028,7 +1003,7 @@ class XonshActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = "del $%s"
+    unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
     # TODO: determine if different than export_var_tmpl
     set_var_tmpl = "$%s = '%s'"
@@ -1041,7 +1016,13 @@ class XonshActivator(_Activator):
     hook_source_path = Path(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
     def _hook_preamble(self) -> str:
-        return f'$CONDA_EXE = "{self.path_conversion(context.conda_exe)}"'
+        result = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                result.append(self.unset_var_tmpl % key)
+            else:
+                result.append(self.export_var_tmpl % (key, self.path_conversion(value)))
+        return "\n".join(result) + "\n"
 
 
 class CmdExeActivator(_Activator):
@@ -1183,15 +1164,6 @@ class JSONFormatMixin(_Activator):
                 "_CONDA_ROOT": context.conda_prefix,
                 "_CONDA_EXE": context.conda_exe,
             }
-
-    @deprecated(
-        "24.9",
-        "25.3",
-        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
-    )
-    def get_scripts_export_unset_vars(self, **kwargs):
-        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        return export_vars or {}, unset_vars or []
 
     def _finalize(self, commands, ext):
         merged = {}

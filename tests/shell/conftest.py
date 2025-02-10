@@ -9,10 +9,19 @@ import pytest
 
 from conda.testing.integration import SPACER_CHARACTER
 
+from . import Shell
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    from pytest import FixtureRequest
+
     from conda.testing.fixtures import PathFactoryFixture
+
+
+@pytest.fixture(scope="module")
+def shell(request: FixtureRequest) -> Shell:
+    return Shell.resolve(request.param)
 
 
 @pytest.fixture
@@ -20,7 +29,9 @@ def shell_wrapper_integration(
     path_factory: PathFactoryFixture,
 ) -> Iterator[tuple[str, str, str]]:
     prefix = path_factory(
-        prefix=uuid4().hex[:4], name=SPACER_CHARACTER, suffix=uuid4().hex[:4]
+        prefix=uuid4().hex[:4],
+        name=SPACER_CHARACTER,
+        suffix=uuid4().hex[:4],
     )
     history = prefix / "conda-meta" / "history"
     history.parent.mkdir(parents=True, exist_ok=True)
