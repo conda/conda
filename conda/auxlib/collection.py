@@ -2,13 +2,10 @@
 from functools import reduce
 from collections.abc import Mapping, Set
 
+from frozendict import frozendict
+
 from .compat import isiterable
 from ..deprecations import deprecated
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from .._vendor.frozendict import frozendict
 
 
 @deprecated("24.9", "25.3", addendum="Use `frozendict.deepfreeze` instead.")
