@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Replace use of `_logger_lock()` with `logging._lock` and mark the former for deprecation.
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
