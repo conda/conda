@@ -62,7 +62,7 @@ def test_reorder_channel_priority(
         PrefixData._cache_.clear()
         expected_channel = "pkgs/main" if pinned_package else "conda-forge"
         assert PrefixData(prefix).get(package1).channel.name == expected_channel
-        if context.solver == "libmamba":
+        if context.solver in ["libmamba", "rattler"]:
             # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
             # the request, so it stays in pkgs/main. Other transient deps do change, though.
             if on_linux:  # lazy, only check on linux
