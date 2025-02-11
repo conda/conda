@@ -152,7 +152,7 @@ _MSYS2_SHELL_BASE = dict(
     path_from=_unix_path_to_win,
     path_to=_win_path_to_unix,
     binpath="/bin/",  # mind the trailing slash.
-    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
+    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",
 )
 
 deprecated.constant(
@@ -195,7 +195,7 @@ if on_win:
             env_script_suffix=".bat",
             printps1="@echo %PROMPT%",
             promptvar="PROMPT",
-            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
+            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
             printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
             "echo %CONDA_DEFAULT_ENV% ) ELSE (\n"
             "echo()",
@@ -374,9 +374,9 @@ def massage_arguments(arguments, errors="assert"):
     if not isiterable(arguments):
         arguments = (arguments,)
 
-    assert not any(
-        [isiterable(arg) for arg in arguments]
-    ), "Individual arguments must not be iterable"  # NOQA
+    assert not any([isiterable(arg) for arg in arguments]), (
+        "Individual arguments must not be iterable"
+    )
     arguments = list(arguments)
 
     return arguments
@@ -417,7 +417,7 @@ def wrap_subprocess_call(
             fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
             fh.write(f"{silencer}SET PYTHONUTF8=1\n")
             fh.write(
-                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'
             )
             fh.write(f"{silencer}chcp 65001 > NUL\n")
             if dev_mode:

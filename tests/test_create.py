@@ -1679,7 +1679,7 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
 @pytest.mark.skipif(
-    context.subdir == "win-32" or platform.machine() == "arm64",
+    context.subdir == "win-32" or platform.machine() in ("arm64", "aarch64"),
     reason="metadata is wrong; give python2.7 or no osx-arm64 package versions",
 )
 def test_conda_pip_interop_pip_clobbers_conda(
@@ -2020,7 +2020,7 @@ def test_conda_pip_interop_conda_editable_package(
 
 
 @pytest.mark.xfail(
-    platform.machine() == "arm64", reason="packages missing for osx-arm64"
+    platform.machine() in ("arm64", "aarch64"), reason="packages missing for osx-arm64"
 )
 def test_conda_pip_interop_compatible_release_operator(
     monkeypatch: MonkeyPatch,
@@ -2296,10 +2296,10 @@ def test_force_remove(
 ):
     with tmp_env("libarchive") as prefix:
         assert package_is_installed(prefix, "libarchive")
-        assert package_is_installed(prefix, "xz")
+        assert package_is_installed(prefix, "bzip2")
 
-        conda_cli("remove", f"--prefix={prefix}", "xz", "--force", "--yes")
-        assert not package_is_installed(prefix, "xz")
+        conda_cli("remove", f"--prefix={prefix}", "bzip2", "--force", "--yes")
+        assert not package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, "libarchive")
 
         conda_cli("remove", f"--prefix={prefix}", "libarchive", "--yes")
@@ -2494,7 +2494,7 @@ def test_conda_downgrade(
 
 
 @pytest.mark.skipif(
-    on_win or platform.machine() == "arm64",
+    on_win or platform.machine() in ("arm64", "aarch64"),
     reason="openssl only has a postlink script on unix / package missing for osx-arm64",
 )
 def test_run_script_called(tmp_env: TmpEnvFixture):
@@ -2511,12 +2511,10 @@ def test_run_script_called(tmp_env: TmpEnvFixture):
             assert rs.call_count == 1
 
 
-@pytest.mark.xfail(on_mac, reason="known broken; see #11127")
-def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
-    test_pkg = "_conda_test_env_activated_when_post_link_executed"
-    # a non-unicode name must be provided here as activate.d scripts
-    # are not executed on windows, see https://github.com/conda/conda/issues/8241
-    with tmp_env(test_pkg, "--channel=conda-test") as prefix:
+@pytest.mark.integration
+def test_post_link_run_in_env(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    test_pkg = "post_link_run_in_env_package"
+    with tmp_env(test_pkg) as prefix:
         assert package_is_installed(prefix, test_pkg)
 
 

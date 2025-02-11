@@ -348,7 +348,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         if self.link_type != LinkType.directory and not lexists(
             self.source_full_path
-        ):  # pragma: no cover  # NOQA
+        ):  # pragma: no cover
             return CondaVerificationError(
                 dals(
                     f"""

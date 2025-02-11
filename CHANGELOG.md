@@ -1,5 +1,151 @@
 [//]: # (current developments)
 
+## 25.1.1 (2025-01-28)
+
+### Bug fixes
+
+* Fix PowerShell activation/deactivation to properly unset `$env:_CE_M` and `$env:_CE_CONDA` environment variables. (#14292 via #14517)
+
+### Contributors
+
+* @travishathaway
+
+
+
+## 25.1.0 (2025-01-17)
+
+### Enhancements
+
+* Set `__win` version and enable `CONDA_OVERRIDE_WIN` usage. (#14443 via #14450)
+
+### Bug fixes
+
+* Merge overlapping glob build specs instead of raising `Incompatible component merge`. (#11612)
+* Fix a bug when invalid values are being passed to `conda shell.posix` command (#14398)
+* Sort suggested subcommands when an incorrect subcommand is provided in the CLI. (#13332 via 14402)
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
+* Do not use native platform version to set `__osx` or `__linux` version if the underlying OS is not macOS or Linux, respectively. (#14448 via #14449)
+* Report real macOS version (11+ instead of 10.16) even if the Python interpreter was linked against SDK 10.15 or earlier. This applies to the `__osx` virtual package and the user agent info. (#13178, #13832 via #14449)
+* Accept %-encoded URLs as a valid `MatchSpec`. (#14481)
+* Retry failed downloads one time on `ChecksumMismatchError` as caused by bad
+  partial downloads. Use `r+b` or `w+b` instead of "append" mode. Improve test
+  coverage. (#13488)
+
+### Docs
+
+* Use the correct parameter name, `handler`, in the CondaAuthHandler example (#14428).
+
+### Other
+
+* Require `conda-libmamba-solver >=24.11.0` for `libmamba 2.x` compatibility. (#11612)
+* Added new `PYTHONPATH` autoused fixture in `conda.testing` to ensure development `conda` is used across all tests. The fixture doesn't apply in `PYTHONPATH` is already set in the environment. (#14475)
+
+### Contributors
+
+* @conda-bot
+* @dbast
+* @dholth
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kenodegard
+* @ForgottenProgramme
+* @minrk
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 24.11.3 (2025-01-06)
+
+### Bug fixes
+
+* Fix recursion error introduced in `__conda_reactivate` deprecation message. (#14468)
+
+### Contributors
+
+* @jaimergp
+
+
+
+## 24.11.2 (2024-12-19)
+
+### Bug fixes
+
+* Restore `__conda_reactivate` shell command removed in 24.11.0. (#14455)
+
+### Deprecations
+
+* Mark `__conda_reactivate` as deprecated. Use `__conda_activate reactivate` instead. (#14455)
+
+### Contributors
+
+* @kenodegard
+
+
+
+## 24.11.1 (2024-12-10)
+
+### Bug fixes
+
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
+
+### Contributors
+
+* @travishathaway
+
+
+
+## 24.11.0 (2024-11-18)
+
+### Enhancements
+
+* Adds a new plugin hook for reporter backends. (#13868)
+* Add support for CEP-17 that allows specifying the path to the site-packages directory of the the Python package via the `repodata.json`. (#14053 via #14256)
+* Adds progress bar support for reporter backends plugin hook. (#14083)
+* Adds support for defining spinners for the reporter backends plugin hook. (#14206)
+* Adds support for confirmation functions for reporter backends plugin hook. (#14244)
+* Add new plugin hooks (`conda_session_headers` and `conda_request_headers`) to add headers to outgoing HTTP requests. (#14325, #14382)
+
+### Bug fixes
+
+* Do not retry solves twice in failed `conda env` runs. (#13784)
+* Remove CreateNonAdminAction to prevent conda remove from deleting `.nonadmin` files. (#14271)
+* Do not map Python distribution names to conda names in `PrefixData(pip_interop_enabled=True)`. (#14310 via #14317)
+* Fix output writing for `conda export --json --file`. (#14316 via #14323)
+* Update `deprecated.action()` function to account for positional arguments that have no value specified. (#14355 via
+#14359)
+* Fix continuous integration upload of coverage files. (#14375)
+
+### Deprecations
+
+* Remove `__conda_reactivate` shell function in favor of `__conda_activate reactivate`. (#14277)
+* Mark `conda.misc.rel_path` as pending deprecation. (#14338)
+* Require Python 3.9 or greater. (#14201 via #14368)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dholth
+* @duncanmmacleod
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kathatherine
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @marcoesters
+* @muffato made their first contribution in https://github.com/conda/conda/pull/14342
+* @nilskch made their first contribution in https://github.com/conda/conda/pull/14214
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
 ## 24.9.2 (2024-10-16)
 
 ### Bug fixes

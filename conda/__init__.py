@@ -7,6 +7,8 @@ import sys
 from json import JSONEncoder
 from os.path import abspath, dirname
 
+from frozendict import frozendict
+
 try:
     from ._version import __version__
 except ImportError:
@@ -22,12 +24,6 @@ except ImportError:
         # Conda abides by CEP-8 which specifies using CalVer, so the dev version is:
         #     YY.MM.MICRO.devN+gHASH[.dirty]
         __version__ = "0.0.0.dev0+placeholder"
-
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from ._vendor.frozendict import frozendict
 
 __all__ = (
     "__name__",

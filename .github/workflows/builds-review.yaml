@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@15f883f14f4232f83658e3609c3316d58905138f # v24.8.0
+        uses: conda/actions/canary-release@7873f9d7c90877290866eb893b8f6eff2e88429a # v25.1.2
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
