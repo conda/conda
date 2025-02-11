@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 
+from conda.common.compat import on_win
 from conda.testing.integration import SPACER_CHARACTER
 
 from . import Shell
@@ -21,7 +22,12 @@ if TYPE_CHECKING:
 
 @pytest.fixture(scope="module")
 def shell(request: FixtureRequest) -> Shell:
-    return Shell.resolve(request.param)
+    try:
+        shell = request.param
+    except AttributeError:
+        # AttributeError: 'FixtureRequest' object has no attribute 'param'
+        shell = "cmd.exe" if on_win else "bash"
+    return Shell.resolve(shell)
 
 
 @pytest.fixture

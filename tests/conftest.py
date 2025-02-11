@@ -14,7 +14,7 @@ from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 
-from . import http_test_server
+from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -38,17 +38,15 @@ def pytest_report_header(config: pytest.Config):
 
 @pytest.fixture
 def test_recipes_channel(mocker: MockerFixture) -> Path:
-    channel = Path(__file__).parent / "test-recipes"
-
     mocker.patch(
         "conda.base.context.Context.channels",
         new_callable=mocker.PropertyMock,
-        return_value=(channel_str := str(channel),),
+        return_value=(channel_str := str(TEST_RECIPES_CHANNEL),),
     )
     reset_context()
     assert context.channels == (channel_str,)
 
-    return channel
+    return TEST_RECIPES_CHANNEL
 
 
 @pytest.fixture

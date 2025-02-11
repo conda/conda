@@ -24,6 +24,7 @@ from os.path import split as path_split
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
+from frozendict import frozendict
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
@@ -75,11 +76,6 @@ from .constants import (
     SatSolverChoice,
     UpdateModifier,
 )
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from .._vendor.frozendict import frozendict
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
