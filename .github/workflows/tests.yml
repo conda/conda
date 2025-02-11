@@ -123,6 +123,7 @@ jobs:
         run: >
           conda install
           --yes
+          --channel jjhelmus/label/stub_conda
           --file requirements\runtime.txt
           --file requirements\${{ runner.os }}.txt
           --file requirements\tests.txt
@@ -247,6 +248,7 @@ jobs:
         run: >
           conda install
           --yes
+          --channel jjhelmus/label/stub_conda
           --file requirements/runtime.txt
           --file requirements/${{ runner.os }}.txt
           --file requirements/tests.txt
@@ -340,6 +342,7 @@ jobs:
         run: >
           conda install
           --yes
+          --channel jjhelmus/label/stub_conda
           --file requirements/runtime.txt
           --file requirements/${{ runner.os }}.txt
           --file requirements/tests.txt
@@ -475,6 +478,7 @@ jobs:
         run: >
           conda install
           --yes
+          --channel jjhelmus/label/stub_conda
           --file requirements/runtime.txt
           --file requirements/${{ runner.os }}.txt
           --file requirements/tests.txt
@@ -569,6 +573,7 @@ jobs:
         run: >
           conda install
           --yes
+          --channel jjhelmus/label/stub_conda
           --file requirements/runtime.txt
           --file requirements/tests.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
