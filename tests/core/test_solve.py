@@ -23,9 +23,9 @@ from conda.exceptions import (
 )
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
+from conda.models.match_spec import MatchSpec
 from conda.models.records import PrefixRecord
 from conda.models.version import VersionOrder
-from conda.resolve import MatchSpec
 from conda.testing.helpers import (
     CHANNEL_DIR_V1,
     add_subdir,
