@@ -8,7 +8,7 @@
 .. argparse::
    :module: conda.cli.conda_argparse
    :func: generate_parser
-   :prog: conda
-   :path: repoquery whoneeds
+   :prog: conda repoquery
+   :path: whoneeds
    :nodefault:
    :nodefaultconst:
