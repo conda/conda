@@ -9,7 +9,7 @@ pluggy==1.3.0
 pylint==3.0.2
 requests==2.31.0
 ruamel.yaml==0.18.5
-sphinx-argparse==0.4.0
+sphinx-argparse==0.5.2
 sphinx-autoapi==3.0.0
 sphinx-autobuild==2021.3.14
 sphinx-reredirects==0.1.3
