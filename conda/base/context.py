@@ -24,6 +24,7 @@ from os.path import split as path_split
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
+from frozendict import frozendict
 
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
@@ -74,11 +75,6 @@ from .constants import (
     SatSolverChoice,
     UpdateModifier,
 )
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from .._vendor.frozendict import frozendict
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -833,12 +829,10 @@ class Context(Configuration):
             }
         else:
             exe = "conda.exe" if on_win else "conda"
-            # I was going to use None to indicate a variable to unset, but that gets tricky with
-            # error-on-undefined.
             return {
                 "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
-                "_CE_M": "",
-                "_CE_CONDA": "",
+                "_CE_M": None,
+                "_CE_CONDA": None,
                 "CONDA_PYTHON_EXE": sys.executable,
             }
 

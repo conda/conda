@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
+from conda.deprecations import deprecated
+
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
@@ -190,6 +192,7 @@ def _solver_helper(
 
 
 @pytest.fixture(scope="session")
+@deprecated("25.9", "26.3")
 def session_capsys(request) -> Iterator[MultiCapture]:
     # https://github.com/pytest-dev/pytest/issues/2704#issuecomment-603387680
     capmanager = request.config.pluginmanager.getplugin("capturemanager")
@@ -199,7 +202,7 @@ def session_capsys(request) -> Iterator[MultiCapture]:
 
 @dataclass
 class CondaCLIFixture:
-    capsys: CaptureFixture | MultiCapture
+    capsys: CaptureFixture | None
 
     @overload
     def __call__(
@@ -215,7 +218,7 @@ class CondaCLIFixture:
         self,
         *argv: str | os.PathLike | Path,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
-    ) -> tuple[str, str, int | ExceptionInfo]:
+    ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`
@@ -226,7 +229,8 @@ class CondaCLIFixture:
         :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
         """
         # clear output
-        self.capsys.readouterr()
+        if self.capsys:
+            self.capsys.readouterr()
 
         # ensure arguments are string
         argv = tuple(map(str, argv))
@@ -236,7 +240,10 @@ class CondaCLIFixture:
         with pytest.raises(raises) if raises else nullcontext() as exception:
             code = main_subshell(*argv)
         # capture output
-        out, err = self.capsys.readouterr()
+        if self.capsys:
+            out, err = self.capsys.readouterr()
+        else:
+            out = err = None
 
         # restore to prior state
         reset_context()
@@ -255,13 +262,13 @@ def conda_cli(capsys: CaptureFixture) -> Iterator[CondaCLIFixture]:
 
 
 @pytest.fixture(scope="session")
-def session_conda_cli(session_capsys: MultiCapture) -> Iterator[CondaCLIFixture]:
+def session_conda_cli() -> Iterator[CondaCLIFixture]:
     """A session scoped fixture returning CondaCLIFixture instance.
 
     Use this for any commands that are global to the test session (e.g., creating a
     conda environment shared across tests, `conda info`, etc.).
     """
-    yield CondaCLIFixture(session_capsys)
+    yield CondaCLIFixture(None)
 
 
 @dataclass
