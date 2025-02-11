@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Replace use of `_logger_lock()` with `logging._lock` and mark the former for deprecation. (#14584)
+* Mark `conda.common.io._logger_lock` as pending deprecation. Use `logging._lock` instead. (#14584)
 
 ### Docs
 
