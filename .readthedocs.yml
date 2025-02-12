@@ -13,7 +13,7 @@ build:
       # Unshallow the git clone to make sure we can identify the version
       - git fetch --unshallow
     pre_install:
-      - git update-index --assume-unchanged docs/requirements.txt docs/source/conf.py
+      - git update-index --assume-unchanged docs/environment.yml docs/source/conf.py
     pre_build:
       # Install conda so we can run conda commands (e.g., see configuration.rst)
       - python -m pip install --no-deps --no-cache-dir --editable .
@@ -21,10 +21,6 @@ build:
     # Needed for the UML graph Sphinx extension
     - graphviz
     - default-jre
-
-python:
-  install:
-    - requirements: docs/requirements.txt
 
 conda:
   environment: docs/environment.yml
