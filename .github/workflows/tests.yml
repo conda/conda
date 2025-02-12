@@ -256,6 +256,9 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
+      - name: Python Project Install
+        run: python -m pip install --no-deps .
+
       - name: Conda Info
         # view test env info (not base)
         run: python -m conda info --verbose
