@@ -4,15 +4,15 @@ channels:
 dependencies:
   - Pillow==10.1.0
   - Sphinx<9
-  - boltons==23.1.1
+  - boltons >=23.0.0
   - conda-sphinx-theme==0.2.3
   - frozendict>=2.4.2
   - linkify-it-py==2.0.2
   - myst-parser==2.0.0
   - pluggy==1.3.0
   - pylint==3.0.2
-  - requests==2.31.0
-  - ruamel.yaml==0.18.5
+  - requests>=2.28.0,<3
+  - ruamel.yaml>=0.11.14,<0.19
   - sphinx-argparse==0.5.2
   - sphinx-autoapi==3.0.0
   - sphinx-autobuild==2021.3.14
@@ -28,5 +28,6 @@ dependencies:
   - sphinxcontrib-qthelp==1.0.6
   - sphinxcontrib-serializinghtml==1.1.9
   - tqdm>=4
+  - conda-libmamba-solver>=24.11.0
   - pip:
       - sphinxcontrib-plantuml==0.21
