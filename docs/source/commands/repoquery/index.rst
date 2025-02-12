@@ -10,6 +10,7 @@
    :func: generate_parser
    :prog: conda
    :path: repoquery
+   :nosubcommands:
    :nodefault:
    :nodefaultconst:
 
