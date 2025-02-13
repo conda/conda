@@ -47,6 +47,7 @@ class _ValidatePackages(_StoreAction):
 
 def add_parser_create_install_update(p, prefix_required=False):
     from ..common.constants import NULL
+    from ..deprecations import deprecated
 
     add_parser_prefix(p, prefix_required)
     channel_options = add_parser_channels(p)
