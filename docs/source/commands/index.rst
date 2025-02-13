@@ -15,12 +15,14 @@ The following commands are part of conda:
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
 
+   activate
    clean
    compare
    config
    create
+   deactivate
    doctor
    env/index
    info
@@ -29,6 +31,7 @@ The following commands are part of conda:
    list
    notices
    package
+   repoquery/index
    remove
    rename
    run
