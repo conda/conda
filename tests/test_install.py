@@ -171,6 +171,8 @@ def test_windows_entry_point():
         output, error = process.communicate()
         output = output.decode("utf-8")
         error = error.decode("utf-8")
+        print(output)
+        print(error, file=sys.stderr)
         assert (
             "conda is a tool for managing and deploying applications, "
             "environments and packages."

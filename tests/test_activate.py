@@ -410,10 +410,13 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
         ENV_TWO=ENV_TWO,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -449,10 +452,13 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
         PKG_A_ENV=overwrite_a,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -483,10 +489,13 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -535,10 +544,13 @@ def test_build_activate_shlvl_1(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -575,10 +587,13 @@ def test_build_activate_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -626,10 +641,13 @@ def test_build_stack_shlvl_1(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_stack(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    stack = activator.build_stack(prefix)
+    stack["unset_vars"].sort()
+    assert stack == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -667,10 +685,13 @@ def test_build_stack_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -694,10 +715,13 @@ def test_activate_same_environment(
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -770,10 +794,13 @@ def test_build_deactivate_shlvl_2_from_stack(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": original_path},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -837,10 +864,13 @@ def test_build_deactivate_shlvl_2_from_activate(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": original_path},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -876,14 +906,17 @@ def test_build_deactivate_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {
             "PATH": activator.pathsep_join(
                 activator.path_conversion(activator._get_starting_path_list())
             )
         },
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt()},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -959,10 +992,13 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -1000,10 +1036,13 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -1323,12 +1362,13 @@ def test_posix_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
 
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
     )
     assert activate_data == (
+        f"{unset_vars}\n"
         f"PS1='{get_prompt(shell_wrapper_unit)}'\n"
         f"export PATH='{activator.pathsep_join(new_path_parts)}'\n"
         f"export CONDA_PREFIX='{shell_wrapper_unit}'\n"
@@ -1352,7 +1392,7 @@ def test_posix_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
     )
@@ -1367,6 +1407,7 @@ def test_posix_basic(
     )
     assert reactivate_data == (
         f'. "{deactivate1}"\n'
+        f"{unset_vars}\n"
         f"PS1='{get_prompt(shell_wrapper_unit)}'\n"
         f"export PATH='{activator.pathsep_join(new_path_parts)}'\n"
         f"export CONDA_SHLVL='1'\n"
@@ -1383,7 +1424,7 @@ def test_posix_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     deactivate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1399,6 +1440,7 @@ def test_posix_basic(
         f"unset CONDA_PREFIX\n"
         f"unset CONDA_DEFAULT_ENV\n"
         f"unset CONDA_PROMPT_MODIFIER\n"
+        f"{unset_vars}\n"
         f"PS1='{get_prompt()}'\n"
         f"export CONDA_SHLVL='0'\n"
         f"{conda_exe_export}\n"
@@ -1423,11 +1465,12 @@ def test_cmd_exe_basic(
     rm_rf(activate_result)
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.bat")
     )
     assert activate_data == (
+        f"{unset_vars}\n"
         f'@SET "PATH={activator.pathsep_join(new_path_parts)}"\n'
         f'@SET "CONDA_PREFIX={activator.path_conversion(shell_wrapper_unit)}"\n'
         f'@SET "CONDA_SHLVL=1"\n'
@@ -1453,7 +1496,7 @@ def test_cmd_exe_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1474,6 +1517,7 @@ def test_cmd_exe_basic(
     )
     assert reactivate_data == (
         f'@CALL "{deactivate1}"\n'
+        f"{unset_vars}\n"
         f'@SET "PATH={activator.pathsep_join(new_path_parts)}"\n'
         f'@SET "CONDA_SHLVL=1"\n'
         f'@SET "CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}"\n'
@@ -1507,6 +1551,7 @@ def test_cmd_exe_basic(
         f"@SET CONDA_PREFIX=\n"
         f"@SET CONDA_DEFAULT_ENV=\n"
         f"@SET CONDA_PROMPT_MODIFIER=\n"
+        f"{unset_vars}\n"
         f'@SET "CONDA_SHLVL=0"\n'
         f"{conda_exe_export}\n"
     )
@@ -1526,11 +1571,12 @@ def test_csh_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.csh")
     )
     assert activate_data == (
+        f"{unset_vars};\n"
         f"set prompt='{get_prompt(shell_wrapper_unit)}';\n"
         f'setenv PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'setenv CONDA_PREFIX "{shell_wrapper_unit}";\n'
@@ -1554,7 +1600,7 @@ def test_csh_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1575,6 +1621,7 @@ def test_csh_basic(
     )
     assert reactivate_data == (
         f'source "{deactivate1}";\n'
+        f"{unset_vars};\n"
         f"set prompt='{get_prompt(shell_wrapper_unit)}';\n"
         f'setenv PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'setenv CONDA_SHLVL "1";\n'
@@ -1591,7 +1638,7 @@ def test_csh_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     deactivate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1607,6 +1654,7 @@ def test_csh_basic(
         f"unsetenv CONDA_PREFIX;\n"
         f"unsetenv CONDA_DEFAULT_ENV;\n"
         f"unsetenv CONDA_PROMPT_MODIFIER;\n"
+        f"{unset_vars};\n"
         f"set prompt='{get_prompt()}';\n"
         f'setenv CONDA_SHLVL "0";\n'
         f"{conda_exe_export};\n"
@@ -1627,7 +1675,7 @@ def test_xonsh_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     if on_win:
         sourcer = "source-cmd --suppress-skip-message"
     else:
@@ -1642,6 +1690,7 @@ def test_xonsh_basic(
         )
     )
     assert activate_data == (
+        f"{unset_vars}\n"
         f"$PATH = '{activator.pathsep_join(new_path_parts)}'\n"
         f"$CONDA_PREFIX = '{shell_wrapper_unit}'\n"
         f"$CONDA_SHLVL = '1'\n"
@@ -1668,7 +1717,7 @@ def test_xonsh_basic(
         sourcer = "source-cmd --suppress-skip-message"
     else:
         sourcer = "source-bash --suppress-skip-message -n"
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1689,6 +1738,7 @@ def test_xonsh_basic(
     )
     assert reactivate_data == (
         f'{sourcer} "{deactivate1}"\n'
+        f"{unset_vars}\n"
         f"$PATH = '{activator.pathsep_join(new_path_parts)}'\n"
         f"$CONDA_SHLVL = '1'\n"
         f"$CONDA_PROMPT_MODIFIER = '{get_prompt_modifier(shell_wrapper_unit)}'\n"
@@ -1704,7 +1754,7 @@ def test_xonsh_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     if on_win:
         sourcer = "source-cmd --suppress-skip-message"
         deactivate1 = activator.path_conversion(
@@ -1724,9 +1774,19 @@ def test_xonsh_basic(
     assert deactivate_data == (
         f"$PATH = '{new_path}'\n"
         f'{sourcer} "{deactivate1}"\n'
-        f"del $CONDA_PREFIX\n"
-        f"del $CONDA_DEFAULT_ENV\n"
-        f"del $CONDA_PROMPT_MODIFIER\n"
+        f"try:\n"
+        f"    del $CONDA_PREFIX\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"try:\n"
+        f"    del $CONDA_DEFAULT_ENV\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"try:\n"
+        f"    del $CONDA_PROMPT_MODIFIER\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"{unset_vars}\n"
         f"$CONDA_SHLVL = '0'\n"
         f"{conda_exe_export}\n"
     )
@@ -1746,11 +1806,12 @@ def test_fish_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.fish")
     )
     assert activate_data == (
+        f"{unset_vars};\n"
         f'set -gx PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'set -gx CONDA_PREFIX "{shell_wrapper_unit}";\n'
         f'set -gx CONDA_SHLVL "1";\n'
@@ -1773,7 +1834,7 @@ def test_fish_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1794,6 +1855,7 @@ def test_fish_basic(
     )
     assert reactivate_data == (
         f'source "{deactivate1}";\n'
+        f"{unset_vars};\n"
         f'set -gx PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'set -gx CONDA_SHLVL "1";\n'
         f'set -gx CONDA_PROMPT_MODIFIER "{get_prompt_modifier(shell_wrapper_unit)}";\n'
@@ -1809,7 +1871,7 @@ def test_fish_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     deactivate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1825,6 +1887,7 @@ def test_fish_basic(
         f"set -e CONDA_PREFIX;\n"
         f"set -e CONDA_DEFAULT_ENV;\n"
         f"set -e CONDA_PROMPT_MODIFIER;\n"
+        f"{unset_vars};\n"
         f'set -gx CONDA_SHLVL "0";\n'
         f"{conda_exe_export};\n"
     )
@@ -1844,9 +1907,10 @@ def test_powershell_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1")
     assert activate_data == (
+        f"{unset_vars}\n"
         f'$Env:PATH = "{activator.pathsep_join(new_path_parts)}"\n'
         f'$Env:CONDA_PREFIX = "{shell_wrapper_unit}"\n'
         f'$Env:CONDA_SHLVL = "1"\n'
@@ -1869,7 +1933,7 @@ def test_powershell_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1")
     deactivate1 = join(
         shell_wrapper_unit,
@@ -1880,6 +1944,7 @@ def test_powershell_basic(
     )
     assert reactivate_data == (
         f'. "{deactivate1}"\n'
+        f"{unset_vars}\n"
         f'$Env:PATH = "{activator.pathsep_join(new_path_parts)}"\n'
         f'$Env:CONDA_SHLVL = "1"\n'
         f'$Env:CONDA_PROMPT_MODIFIER = "{get_prompt_modifier(shell_wrapper_unit)}"\n'
@@ -1908,6 +1973,7 @@ def test_powershell_basic(
         f"$Env:CONDA_PREFIX = $null\n"
         f"$Env:CONDA_DEFAULT_ENV = $null\n"
         f"$Env:CONDA_PROMPT_MODIFIER = $null\n"
+        f"{unset_vars}\n"
         f'$Env:CONDA_SHLVL = "0"\n'
         f"{conda_exe_export}\n"
     )
@@ -1965,7 +2031,7 @@ def test_json_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    export_vars, _ = activator.get_export_unset_vars()
+    export_vars, unset_vars = activator.get_export_unset_vars()
     assert json.loads(reactivate_data) == {
         "path": {"PATH": list(new_path_parts)},
         "vars": {
@@ -1975,7 +2041,7 @@ def test_json_basic(
                 **export_vars,
             },
             "set": {"PS1": get_prompt(shell_wrapper_unit)},
-            "unset": [],
+            "unset": unset_vars,
         },
         "scripts": {
             "activate": [

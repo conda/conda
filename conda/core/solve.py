@@ -303,10 +303,7 @@ class Solver:
         force_remove = context.force_remove if force_remove is NULL else force_remove
 
         log.debug(
-            "solving prefix %s\n"
-            "  specs_to_remove: %s\n"
-            "  specs_to_add: %s\n"
-            "  prune: %s",
+            "solving prefix %s\n  specs_to_remove: %s\n  specs_to_add: %s\n  prune: %s",
             self.prefix,
             self.specs_to_remove,
             self.specs_to_add,
@@ -1415,12 +1412,12 @@ def diff_for_unlink_link_precs(
 ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
-        assert hasattr(
-            final_precs, "__getitem__"
-        ), "final_precs must support list indexing"
-        assert hasattr(
-            final_precs, "__sub__"
-        ), "final_precs must support set difference"
+        assert hasattr(final_precs, "__getitem__"), (
+            "final_precs must support list indexing"
+        )
+        assert hasattr(final_precs, "__sub__"), (
+            "final_precs must support set difference"
+        )
 
     previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
     force_reinstall = (

@@ -159,8 +159,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if not (args.all or args.package_names):
         raise CondaValueError(
-            "no package names supplied,\n"
-            '       try "conda remove -h" for more details'
+            'no package names supplied,\n       try "conda remove -h" for more details'
         )
 
     prefix = context.target_prefix
