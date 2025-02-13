@@ -450,6 +450,18 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         "Package Linking and Install-time Options"
     )
     package_install_options.add_argument(
+        "-f",
+        dest="force",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            argparse._StoreTrueAction,
+            addendum="Use `--force` instead.",
+        ),
+        default=False,
+        help=SUPPRESS,
+    )
+    package_install_options.add_argument(
         "-f",  # FUTURE: 25.7: Remove here and add as alias to --file
         "--force",
         action="store_true",
