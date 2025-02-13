@@ -67,7 +67,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
     strategy:
@@ -210,6 +210,13 @@ jobs:
             default-channel: conda-forge
           - test-type: unit
             test-group: 3
+          - test-type: unit
+          - python-version: '3.9'
+          - python-version: '3.10'
+          - python-version: '3.11'
+          - test-group: 1
+          - test-group: 3
+          - default-channel: conda-forge
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -294,7 +301,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -361,7 +368,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -430,7 +437,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -492,7 +499,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:

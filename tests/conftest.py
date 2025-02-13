@@ -17,6 +17,8 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pytest_mock import MockerFixture
 
 pytest_plugins = (
@@ -107,3 +109,16 @@ def plugin_manager_with_reporter_backends(plugin_manager) -> CondaPluginManager:
     plugin_manager.load_plugins(*reporter_backend_plugins)
 
     return plugin_manager
+
+
+@pytest.fixture(autouse=True)
+def check_for_session_cache() -> Iterable[None]:
+    yield None
+
+    from conda.gateways.connection.session import get_session
+
+    cache_info = get_session.cache_info()
+    if cache_info.currsize > 0:
+        raise AssertionError(
+            f"Session cache was not empty after test. Current size: {cache_info.currsize}"
+        )
