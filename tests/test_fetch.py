@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from contextlib import nullcontext
 from os.path import exists, isfile
 from pathlib import Path
@@ -12,7 +13,8 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-import responses
+import responses.matchers
+import responses.registries
 from conda_package_handling.utils import checksum
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
@@ -36,6 +38,7 @@ from conda.gateways.connection.download import (
     TmpDownload,
     download,
     download_http_errors,
+    download_text,
 )
 from conda.models.channel import Channel
 
@@ -97,15 +100,18 @@ def test_tmpDownload(monkeypatch: MonkeyPatch):
 
 @responses.activate
 def test_resume_download(tmp_path):
+    # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
-    size = sum(len(line) for line in test_file)
+    size = len(b"".join(test_file))
     sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
 
     output_path = tmp_path / "download.tar.bz2"  # double extension
     url = DEFAULT_CHANNEL_ALIAS
+    # allow the test to pass if we are using /t/<token> auth:
+    url_pattern = re.compile(f"{url}.*")
     responses.add(
         responses.GET,
-        url,
+        url_pattern,
         stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
@@ -134,7 +140,7 @@ def test_resume_download(tmp_path):
     # won't resume download unless Partial Content status code
     responses.replace(
         responses.GET,
-        url,
+        url_pattern,
         stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
@@ -170,6 +176,7 @@ def test_resume_download(tmp_path):
 @responses.activate
 def test_download_when_ranges_not_supported(tmp_path):
     # partial mechanism and `.partial` files sidestepped when size, hash not given
+    # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
     size = sum(len(line) for line in test_file)
     sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
@@ -178,9 +185,11 @@ def test_download_when_ranges_not_supported(tmp_path):
     partial_path = str(output_path) + ".partial"
 
     url = DEFAULT_CHANNEL_ALIAS
+    # allow the test to pass if we are using /t/<token> auth:
+    url_pattern = re.compile(f"{url}.*")
     responses.add(
         responses.GET,
-        url,
+        url_pattern,
         stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "none"},
@@ -361,3 +370,91 @@ def test_checksum_checks_bytes(
 
     with pytest.raises(CondaValueError) if raises else nullcontext():
         download(url, output_path, size=size, sha256=get_sha256(sha256))
+
+
+@responses.activate
+def test_download_text():
+    test_file = b"text"
+
+    url = DEFAULT_CHANNEL_ALIAS
+    # allow the test to pass if we are using /t/<token> auth:
+    url_pattern = re.compile(f"{url}.*")
+    responses.add(
+        responses.GET,
+        url_pattern,
+        stream=True,
+        content_type="application/octet-stream",
+        body=test_file,
+    )
+
+    assert download_text(DEFAULT_CHANNEL_ALIAS) == test_file.decode("ascii")
+
+
+@responses.activate(registry=responses.registries.OrderedRegistry)
+def test_resume_bad_partial(tmp_path: Path):
+    """
+    Test retry when partial file is corrupted.
+    """
+    test_file = b"data"
+    size = len(test_file)
+    sha256 = hashlib.sha256(test_file).hexdigest()
+    output_path = tmp_path / "test_file"
+
+    url = "http://example.org/test_file"
+
+    # won't resume download unless Partial Content status code
+    responses.add(
+        responses.GET,
+        url,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+        status=206,  # partial content
+        body=test_file[1:],
+        match=[
+            responses.matchers.header_matcher({"Range": "bytes=1-"}),
+        ],
+    )
+
+    responses.add(
+        responses.GET,
+        url,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+        status=200,
+        body=test_file,
+    )
+
+    # simulate partial download
+    partial_path = Path(str(output_path) + ".partial")
+    partial_path.write_text("x")
+
+    # resume from `.partial` file
+    download(url, output_path, size=size, sha256=sha256)
+
+    assert output_path.read_bytes() == test_file
+
+
+@responses.activate
+def test_download_size_none(tmp_path: Path):
+    """
+    Test download with no size.
+    """
+    test_file = b"data"
+    sha256 = hashlib.sha256(test_file).hexdigest()
+    output_path = tmp_path / "test_file"
+
+    url = "http://example.org/test_file"
+
+    responses.add(
+        responses.GET,
+        url,
+        content_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+        status=200,
+        body=test_file,
+    )
+
+    # no size given
+    download(url, output_path, sha256=sha256)
+
+    assert output_path.read_bytes() == test_file

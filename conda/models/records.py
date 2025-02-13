@@ -229,7 +229,7 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(str, required=False, nullable=True)

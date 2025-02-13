@@ -24,3 +24,4 @@ zos-z
 # ignore optional files
 channeldata.json
 index.html
+repodata.json.bz2

@@ -6,13 +6,11 @@ import copy
 import platform
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
 import conda
-from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import context, non_x86_machines, reset_context
+from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_vars
 from conda.core.index import (
@@ -29,7 +27,7 @@ from conda.core.index import (
     get_reduced_index,
 )
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import ChannelDenied, ChannelNotAllowed, OperationNotAllowed
+from conda.exceptions import OperationNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
@@ -37,14 +35,12 @@ from conda.models.records import PackageCacheRecord, PackageRecord, PrefixRecord
 from tests.core.test_subdir_data import platform_in_record
 from tests.data.pkg_cache import load_cache_entries
 
-if TYPE_CHECKING:
-    from pytest import MonkeyPatch
-
 log = getLogger(__name__)
 
 
 PLATFORMS = {
     ("Linux", "x86_64"): "linux-64",
+    ("Linux", "aarch64"): "linux-aarch64",
     ("Darwin", "x86_64"): "osx-64",
     ("Darwin", "arm64"): "osx-arm64",
     ("Windows", "AMD64"): "win-64",
@@ -56,6 +52,13 @@ DEFAULTS_SAMPLE_PACKAGES = {
         "name": "aiohttp",
         "version": "2.3.9",
         "build": "py35_0",
+        "build_number": 0,
+    },
+    "linux-aarch64": {
+        "channel": "pkgs/main/linux-aarch64",
+        "name": "aiohttp",
+        "version": "3.10.11",
+        "build": "py311h998d150_0",
         "build_number": 0,
     },
     "osx-64": {
@@ -87,6 +90,13 @@ CONDAFORGE_SAMPLE_PACKAGES = {
         "name": "vim",
         "version": "9.1.0356",
         "build": "py310pl5321hfe26b83_0",
+        "build_number": 0,
+    },
+    "linux-aarch64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py310pl5321hdc9b7a6_0",
         "build_number": 0,
     },
     "osx-64": {
@@ -126,90 +136,6 @@ def patch_pkg_cache(mocker, pkg_cache_entries):
         lambda: pkg_cache_entries,
     )
     mocker.patch("conda.base.context.context.track_features", ("test_feature",))
-
-
-def test_check_allowlist(monkeypatch: MonkeyPatch):
-    # any channel is allowed
-    check_allowlist(("conda-canary", "conda-forge"))
-
-    allowlist = (
-        "defaults",
-        "conda-forge",
-        "https://beta.conda.anaconda.org/conda-test",
-    )
-    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
-    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
-    reset_context()
-
-    with pytest.raises(ChannelNotAllowed):
-        check_allowlist(("conda-canary",))
-
-    with pytest.raises(ChannelNotAllowed):
-        check_allowlist(("https://repo.anaconda.com/pkgs/denied",))
-
-    check_allowlist(("defaults",))
-    check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
-    check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
-
-
-def test_check_denylist(monkeypatch: MonkeyPatch):
-    # any channel is allowed
-    check_allowlist(("conda-canary", "conda-forge"))
-
-    denylist = (
-        "defaults",
-        "conda-forge",
-        "https://beta.conda.anaconda.org/conda-test",
-    )
-    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
-    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
-    reset_context()
-
-    with pytest.raises(ChannelDenied):
-        check_allowlist(("defaults",))
-
-    with pytest.raises(ChannelDenied):
-        check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
-
-    with pytest.raises(ChannelDenied):
-        check_allowlist(("conda-forge",))
-
-    with pytest.raises(ChannelDenied):
-        check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
-
-    with pytest.raises(ChannelDenied):
-        check_allowlist(("https://beta.conda.anaconda.org/conda-test",))
-
-
-def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
-    # any channel is allowed
-    check_allowlist(
-        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge")
-    )
-    allowlist = (
-        "defaults",
-        "https://beta.conda.anaconda.org/conda-test",
-        "conda-forge",
-    )
-    denylist = ("conda-forge",)
-    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
-    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
-    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
-    reset_context()
-
-    # neither in allowlist nor denylist
-    with pytest.raises(ChannelNotAllowed):
-        check_allowlist(("conda-canary",))
-
-    # conda-forge is on denylist, so it should raise ChannelDenied
-    # even though it is in the allowlist
-    with pytest.raises(ChannelDenied):
-        check_allowlist(("conda-forge",))
-    with pytest.raises(ChannelDenied):
-        check_allowlist(("https://conda.anaconda.org/conda-forge/linux-64",))
-
-    check_allowlist(("defaults",))
-    check_allowlist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
 def test_supplement_index_with_system():
@@ -334,7 +260,7 @@ def test_basic_get_reduced_index():
 
 def test_fetch_index(test_recipes_channel):
     idx = fetch_index(Channel(str(test_recipes_channel)).urls())
-    assert len(idx) == 23
+    assert len(idx) == 24
 
 
 def test_dist_str_in_index(test_recipes_channel):
@@ -600,3 +526,13 @@ class TestIndex:
             # each OS has different virtual packages
             + len(context.plugin_manager.get_virtual_package_records())
         )
+
+
+def test_check_allowlist_deprecation_warning():
+    """
+    Ensure a deprecation warning is raised for ``check_allowlist``.
+
+    Also used to ensure coverage on this code path
+    """
+    with pytest.deprecated_call():
+        check_allowlist(("defaults",))

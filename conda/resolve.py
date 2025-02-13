@@ -13,6 +13,7 @@ from collections import defaultdict, deque
 from functools import cache
 from logging import DEBUG, getLogger
 
+from frozendict import frozendict
 from tqdm import tqdm
 
 from .auxlib.decorators import memoizemethod
@@ -41,11 +42,6 @@ from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from ._vendor.frozendict import FrozenOrderedDict as frozendict
 
 log = getLogger(__name__)
 stdoutlog = getLogger("conda.stdoutlog")
@@ -930,7 +926,7 @@ class Resolve:
         channel = prec.channel
         channel_priority = self._channel_priorities_map.get(
             channel.name, 1
-        )  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
+        )  # TODO: ask @mcg1969 why the default value is 1 here
         valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
         version_comparator = VersionOrder(prec.get("version", ""))
         build_number = prec.get("build_number", 0)
