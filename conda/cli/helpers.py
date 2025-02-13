@@ -48,7 +48,6 @@ class _ValidatePackages(_StoreAction):
 
 def add_parser_create_install_update(p, prefix_required=False):
     from ..common.constants import NULL
-    from ..deprecations import deprecated
 
     add_parser_prefix(p, prefix_required)
     channel_options = add_parser_channels(p)
@@ -447,6 +446,7 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
+    from ..deprecations import deprecated
 
     package_install_options = p.add_argument_group(
         "Package Linking and Install-time Options"
