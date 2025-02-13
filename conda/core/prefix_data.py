@@ -20,6 +20,7 @@ from ..base.constants import (
     PREFIX_STATE_FILE,
 )
 from ..base.context import context
+from ..common.compat import on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
@@ -437,7 +438,12 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
     ).match
 
     for prefix_record in python_records:
-        anchor_paths = tuple(fpath for fpath in prefix_record.files if matcher(fpath))
+        anchor_paths = []
+        for fpath in prefix_record.files:
+            if on_win:
+                fpath = fpath.replace("\\", "/")
+            if matcher(fpath):
+                anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
             anchor_path = sorted(anchor_paths, key=len)[0]
             log.info(
