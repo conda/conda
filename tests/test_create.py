@@ -2689,17 +2689,15 @@ def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture)
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
-    channel = Path(__file__).parent / "test-recipes" / "noarch"
+    test_recipes_channel: Path,
+) -> None:
     with tmp_env() as prefix:
         nonadmin_file = prefix / ".nonadmin"
         nonadmin_file.touch()
         assert nonadmin_file.is_file()
-        conda_cli(
-            "install", "--yes", "--prefix", prefix, "--channel", channel, "dependency"
-        )
+        conda_cli("install", "--yes", f"--prefix={prefix}", "dependency")
         assert nonadmin_file.is_file(), ".nonadmin file removed after installation"
-        conda_cli("remove", "--yes", "--prefix", prefix, "dependency")
+        conda_cli("remove", "--yes", f"--prefix={prefix}", "dependency")
         assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"
 
 
