@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import pytest
 
+import conda.plan
+
 
 @pytest.mark.parametrize(
     "constant",
     [
-        None,  # ensure module is deprecated
         "sys",
         "defaultdict",
         "log",
@@ -40,9 +41,6 @@ import pytest
         "log",
     ],
 )
-def test_deprecations(constant: str | None) -> None:
+def test_deprecations(constant: str) -> None:
     with pytest.deprecated_call():
-        import conda.plan
-
-        if constant:
-            getattr(conda.plan, constant)
+        getattr(conda.plan, constant)
