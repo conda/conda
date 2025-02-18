@@ -7,7 +7,6 @@ from os.path import isfile, join
 
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache_data import ProgressiveFetchExtract
-from .deprecations import deprecated
 from .exceptions import CondaFileIOError
 from .gateways.disk.link import islink
 
@@ -20,7 +19,6 @@ CHECK_EXTRACT = "CHECK_EXTRACT"
 EXTRACT = "EXTRACT"
 RM_EXTRACTED = "RM_EXTRACTED"
 RM_FETCHED = "RM_FETCHED"
-deprecated.constant("24.9", "25.3", "PREFIX", "PREFIX")
 PRINT = "PRINT"
 PROGRESS = "PROGRESS"
 SYMLINK_CONDA = "SYMLINK_CONDA"
