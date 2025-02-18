@@ -16,8 +16,6 @@ from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
-from ..deprecations import deprecated
-
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from collections.abc import Iterable
@@ -187,7 +185,6 @@ def pretty_package(prec: PackageRecord) -> None:
         print(f"    {dep}")
 
 
-@deprecated.argument("24.9", "25.3", "system")
 def get_info_dict() -> dict[str, Any]:
     """
     Returns a dictionary of contextual information.
