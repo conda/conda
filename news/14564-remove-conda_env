@@ -11,7 +11,7 @@
 * Remove `conda_env.cli.common`. Use `conda.env.env` instead. (#14564)
 * Remove `conda_env.cli.main_config`. Use `conda.cli.main_env_config` instead. (#14564)
 * Remove `conda_env.cli.main_create`. Use `conda.cli.main_env_create` instead. (#14564)
-* Remove `conda_env.cli.main_export`. Use `conda.cli.main_env_export` instead. (#14564)
+* Remove `conda_env.cli.main_export`. Use `conda.cli.main_export` instead. (#14564, #14601)
 * Remove `conda_env.cli.main_list`. Use `conda.cli.main_env_list` instead. (#14564)
 * Remove `conda_env.cli.main_remove`. Use `conda.cli.main_env_remove` instead. (#14564)
 * Remove `conda_env.cli.main_update`. Use `conda.cli.main_env_update` instead. (#14564)
