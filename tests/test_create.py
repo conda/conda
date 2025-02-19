@@ -2333,7 +2333,7 @@ def test_dont_remove_conda_3(
                     check=True,
                     encoding="utf-8",
                 )
-            except CalledProcessError as e:
+            except (CalledProcessError, FileNotFoundError) as e:
                 listdir = []
                 for path in prefix, prefix / "bin", prefix / "Scripts":
                     try:
