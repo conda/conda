@@ -3,13 +3,31 @@
 :: Helper routine for activation, deactivation, and reactivation.
 @ECHO OFF
 
-:: Process temporary file from conda - each line is either:
-:: 1. A regular environment variable (key=value)
-:: 2. An unset operation (key=)
-:: 3. A script to run (_CONDA_SCRIPT=script)
-FOR /F "usebackq delims=" %%T IN (`"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %*`) DO (
+SET "__conda_tmp=%TEMP%\__conda_tmp_%RANDOM%.txt"
+
+:: Run conda command and get its output
+:: WARNING: This cannot be simplified into a FOR /F parsing loop because of the way
+:: MSDOS associates the outer quotes for usebackq. E.g., the following:
+::   `"%CONDA_EXE%" shell.cmd.exe activate "name"`
+:: Which results in the following gibberish being run:
+::   %CONDA_EXE%" shell.cmd.exe activate "environment
+:: Producing an error like:
+::   The filename, directory name, or volume label syntax is incorrect.
+:: Instead we run the command and store the output for subsequent processing.
+"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* > "%__conda_tmp%"
+IF %ERRORLEVEL% NEQ 0 (
+    ECHO Failed to run 'conda %*'.
+    IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
+    SET "__conda_tmp="
+    EXIT /B 1
+)
+
+:: Check if conda produced output
+FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     IF NOT EXIST "%%T" (
         ECHO Failed to run 'conda %*'.
+        DEL /F /Q "%__conda_tmp%" 2>NUL
+        SET "__conda_tmp="
         EXIT /B 2
     ) ELSE (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
@@ -26,9 +44,22 @@ FOR /F "usebackq delims=" %%T IN (`"%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.e
         )
         :: Clean up
         DEL /F /Q "%%T" 2>NUL
+        DEL /F /Q "%__conda_tmp%" 2>NUL
+        SET "__conda_tmp="
+        EXIT /B 0
     )
 )
-@IF %ERRORLEVEL% NEQ 0 (
+IF %ERRORLEVEL% NEQ 0 (
     ECHO Failed to run 'conda %*'.
-    EXIT /B 1
+    DEL /F /Q "%__conda_tmp%" 2>NUL
+    SET "__conda_tmp="
+    EXIT /B 3
+)
+
+:: If we get here, the FOR loop never ran which means no output
+IF EXIST "%__conda_tmp%" (
+    ECHO Failed to run 'conda %*'.
+    DEL /F /Q "%__conda_tmp%" 2>NUL
+    SET "__conda_tmp="
+    EXIT /B 4
 )
