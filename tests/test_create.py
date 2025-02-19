@@ -378,8 +378,7 @@ def test_json_create_install_update_remove(
                     err,
                 )
                 return False
-            else:
-                return True
+        return True
 
     stdout, _, _ = conda_cli(
         "create",
