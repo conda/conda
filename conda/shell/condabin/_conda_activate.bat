@@ -2,7 +2,7 @@
 :: SPDX-License-Identifier: BSD-3-Clause
 :: Helper routine for activation, deactivation, and reactivation.
 @ECHO OFF
-
+SETLOCAL
 SET "__conda_tmp=%TEMP%\__conda_tmp_%RANDOM%.txt"
 
 :: Run conda command and get its output
@@ -18,8 +18,7 @@ SET "__conda_tmp=%TEMP%\__conda_tmp_%RANDOM%.txt"
 IF %ERRORLEVEL% NEQ 0 (
     ECHO Failed to run 'conda %*'.
     IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
-    SET "__conda_tmp="
-    EXIT /B 1
+    ENDLOCAL & EXIT /B 1
 )
 
 :: Check if conda produced output
@@ -27,9 +26,8 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     IF NOT EXIST "%%T" (
         ECHO Failed to run 'conda %*'.
         DEL /F /Q "%__conda_tmp%" 2>NUL
-        SET "__conda_tmp="
-        EXIT /B 2
-    ) ELSE (
+        ENDLOCAL & EXIT /B 2
+    ) ELSE ENDLOCAL & (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
             IF "%%A"=="_CONDA_SCRIPT" (
                 :: Script execution
@@ -45,21 +43,11 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
         :: Clean up
         DEL /F /Q "%%T" 2>NUL
         DEL /F /Q "%__conda_tmp%" 2>NUL
-        SET "__conda_tmp="
         EXIT /B 0
     )
 )
-IF %ERRORLEVEL% NEQ 0 (
-    ECHO Failed to run 'conda %*'.
-    DEL /F /Q "%__conda_tmp%" 2>NUL
-    SET "__conda_tmp="
-    EXIT /B 3
-)
 
 :: If we get here, the FOR loop never ran which means no output
-IF EXIST "%__conda_tmp%" (
-    ECHO Failed to run 'conda %*'.
-    DEL /F /Q "%__conda_tmp%" 2>NUL
-    SET "__conda_tmp="
-    EXIT /B 4
-)
+ECHO Failed to run 'conda %*'.
+IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
+ENDLOCAL & EXIT /B 3
