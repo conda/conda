@@ -2335,8 +2335,11 @@ def test_dont_remove_conda_3(
                 )
             except CalledProcessError as e:
                 listdir = []
-                listdir += os.listdir(prefix)
-                listdir += os.listdir(prefix / "bin")
+                for path in prefix, prefix / "bin", prefix / "Scripts":
+                    try:
+                        listdir += os.listdir(path)
+                    except FileNotFoundError:
+                        pass
                 listdir.append(f"sys.executable={sys.executable}")
                 # assert "RemoveError" in e.stderr
                 raise Exception(repr(listdir)) from e
