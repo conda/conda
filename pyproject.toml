@@ -114,7 +114,8 @@ addopts = [
   "--durations=16",
   "--junitxml=test-report.xml",
   "--splitting-algorithm=least_duration",
-  "--store-durations",
+  "--store-durations",  # pytest-split, update duration cache
+  "--clean-durations",  # pytest-split, remove duration for tests no longer present
   "--strict-markers",
   "--tb=native",
   "-vv",

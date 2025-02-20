@@ -1,11 +1,10 @@
-``conda env config vars set``
-*****************************
+``conda activate``
+******************
 
 .. argparse::
    :module: conda.cli.conda_argparse
    :func: generate_parser
    :prog: conda
-   :path: env config vars set
-   :nosubcommands:
+   :path: activate
    :nodefault:
    :nodefaultconst:
