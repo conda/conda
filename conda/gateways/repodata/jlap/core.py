@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """JLAP reader."""
+
 from __future__ import annotations
 
 import logging
@@ -10,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable, Iterator
+    from collections.abc import Iterable, Iterator
 
 log = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for reading and processing file contents."""
+
 from __future__ import annotations
 
 import hashlib
@@ -20,14 +21,13 @@ from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import open
+from ...common.compat import open_utf8
 from ...common.pkg_formats.python import (
     PythonDistribution,
     PythonEggInfoDistribution,
     PythonEggLinkDistribution,
     PythonInstalledDistribution,
 )
-from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PackageType, PathType
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
+listdir = lambda d: list(entry.name for entry in os.scandir(d))
 
 
 def yield_lines(path):
@@ -55,7 +55,7 @@ def yield_lines(path):
 
     """
     try:
-        with open(path) as fh:
+        with open_utf8(path) as fh:
             for line in fh:
                 line = line.strip()
                 if not line or line.startswith("#"):
@@ -66,13 +66,6 @@ def yield_lines(path):
             pass
         else:
             raise
-
-
-@deprecated(
-    "23.9", "24.3", addendum="Use `conda.gateways.disk.read.compute_sum` instead."
-)
-def _digest_path(algo: Literal["md5", "sha256"], path: str | os.PathLike) -> str:
-    return compute_sum(path, algo)
 
 
 def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
@@ -86,24 +79,6 @@ def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
         for chunk in iter(partial(fh.read, 8192), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead.',
-)
-def compute_md5sum(path: str | os.PathLike) -> str:
-    return compute_sum(path, "md5")
-
-
-@deprecated(
-    "23.9",
-    "24.3",
-    addendum='Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead.',
-)
-def compute_sha256sum(path: str | os.PathLike) -> str:
-    return compute_sum(path, "sha256")
 
 
 # ####################################################
@@ -130,7 +105,7 @@ def read_package_info(record, package_cache_record):
 
 
 def read_index_json(extracted_package_directory):
-    with open(join(extracted_package_directory, "info", "index.json")) as fi:
+    with open_utf8(join(extracted_package_directory, "info", "index.json")) as fi:
         return json.load(fi)
 
 
@@ -139,20 +114,22 @@ def read_index_json_from_tarball(package_tarball_full_path):
 
     with TemporaryDirectory() as tmpdir:
         conda_package_handling.api.extract(package_tarball_full_path, tmpdir, "info")
-        with open(join(tmpdir, "info", "index.json")) as f:
+        with open_utf8(join(tmpdir, "info", "index.json")) as f:
             json_data = json.load(f)
     return json_data
 
 
 def read_repodata_json(extracted_package_directory):
-    with open(join(extracted_package_directory, "info", "repodata_record.json")) as fi:
+    with open_utf8(
+        join(extracted_package_directory, "info", "repodata_record.json")
+    ) as fi:
         return json.load(fi)
 
 
 def read_icondata(extracted_package_directory):
     icon_file_path = join(extracted_package_directory, "info", "icon.png")
     if isfile(icon_file_path):
-        with open(icon_file_path, "rb") as f:
+        with open_utf8(icon_file_path, "rb") as f:
             data = f.read()
         return b64encode(data).decode("utf-8")
     else:
@@ -168,7 +145,7 @@ def read_package_metadata(extracted_package_directory):
     if not path:
         return None
     else:
-        with open(path) as f:
+        with open_utf8(path) as f:
             data = json.loads(f.read())
             if data.get("package_metadata_version") != 1:
                 raise CondaUpgradeError(
@@ -188,7 +165,7 @@ def read_paths_json(extracted_package_directory):
     info_dir = join(extracted_package_directory, "info")
     paths_json_path = join(info_dir, "paths.json")
     if isfile(paths_json_path):
-        with open(paths_json_path) as paths_json:
+        with open_utf8(paths_json_path) as paths_json:
             data = json.load(paths_json)
         if data.get("paths_version") != 1:
             raise CondaUpgradeError(
@@ -253,7 +230,7 @@ def read_has_prefix(path):
         elif len(parts) == 3:
             return ParseResult(parts[0], FileMode(parts[1]), parts[2])
         else:
-            raise CondaVerificationError("Invalid has_prefix file at path: %s" % path)
+            raise CondaVerificationError(f"Invalid has_prefix file at path: {path}")
 
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
@@ -330,7 +307,7 @@ def read_python_record(prefix_path, anchor_file, python_version):
 
     return PrefixRecord(
         package_type=package_type,
-        name=pydist.conda_name,
+        name=pydist.norm_name,
         version=pydist.version,
         channel=channel,
         subdir="pypi",

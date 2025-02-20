@@ -123,6 +123,48 @@ Use the terminal for the following steps:
 
    You can also use ``conda info --envs``.
 
+.. _specifying-environment-platform:
+
+Specifying a different target platform for an environment
+=========================================================
+
+By default, ``conda`` will create environments targeting the platform it's
+currently running on. You can check which platform you are currently on by running
+``conda info`` and checking the ``platform`` entry.
+
+However, in some cases you might want to create an environment for a
+different target platform or architecture. To do so, use the
+``--platform`` flag available in the ``conda create`` and
+``conda env create`` commands. See ``--subdir, --platform``
+in :doc:`/commands/create` for more information about allowed values.
+
+For example, a user running macOS on the Apple Silicon platform
+might want to create a ``python`` environment for Intel processors
+and emulate the executables with Rosetta. The command would be:
+
+.. code::
+
+   conda create --platform osx-64 --name python-x64 python
+
+.. note::
+   You can't specify the ``--platform`` flag for existing environments.
+   When created, the environment will be annotated with the custom configuration and
+   subsequent operations on it will remember the target platform.
+
+This flag also allows specifying a different OS (e.g. creating a Linux
+environment on macOS), but we don't recommend its usage outside of
+``--dry-run`` operations. Common problems with mismatched OSes include:
+
+- The environment cannot be solved because virtual packages are missing.
+  You can workaround this issue by exporting the necessary
+  ``CONDA_OVERRIDE_****`` environment variables. For example, solving
+  for Linux from macOS, you will probably need ``CONDA_OVERRIDE_LINUX=1``
+  and ``CONDA_OVERRIDE_GLIBC=2.17``.
+- The environment can be solved, but extraction and linking fails due
+  filesystem limitations (case insensitive systems, incompatible paths,
+  etc). The only workaround here is to use ``--dry-run --json`` to obtain
+  the solution and process the payload into a lockfile that can be shared
+  with the target machine. See :ref:`dry-run-explicit` for more details.
 
 .. _specifying-location:
 
@@ -206,9 +248,11 @@ For example, it may be the case that:
 
 If any of these occur, all you need to do is update the contents of
 your ``environment.yml`` file accordingly and then run the following
-command::
+command:
 
-conda env update --file environment.yml  --prune
+.. code::
+
+   conda env update --file environment.yml  --prune
 
 .. note::
    The ``--prune`` option causes conda to remove any dependencies
@@ -241,6 +285,7 @@ To verify that the copy was made:
 In the environments list that displays, you should see both the
 source environment and the new copy.
 
+.. _identical-conda-envs:
 
 Building identical conda environments
 =====================================
@@ -336,7 +381,7 @@ not global.
    for "All Users", we add it to the *system* PATH. In the former case,
    you can end up with system PATH values taking precedence over
    your entries. In the latter case, you do not. *We do not recommend*
-   `multi-user installs <https://docs.anaconda.com/free/anaconda/install/multi-user/>`_.
+   `multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`__.
 
 To activate an environment: ``conda activate myenv``
 
@@ -904,3 +949,47 @@ To verify that the environment was removed, in your terminal window, run:
 
 The environments list that displays should not show the removed
 environment.
+
+.. _dry-run-explicit:
+
+Create explicit lockfiles without creating an environment
+=========================================================
+
+``@EXPLICIT`` lockfiles allow you to (re)create environments without invoking the solver.
+They consist of an ``@EXPLICIT`` header plus a list of conda package URLs, optionally followed
+by their MD5 or SHA256 hash.
+
+They can be obtained from existing environments via ``conda list --explicit``, as seen in
+:ref:`identical-conda-envs`.
+
+But what if you only need the lockfile? Would you need create to a temporary environment first just
+to delete it later? Fortunately, there's a way: you can invoke ``conda`` in JSON mode and then
+process the output with ``jq``.
+
+.. tip::
+
+   You'll need ``jq`` in your system. If you don't have it yet, you can install it via
+   ``conda`` (e.g. ``conda create -n jq jq``) or via your system package manager.
+
+The command looks like this for Linux and macOS (replace ``MATCHSPECS_GO_HERE`` with the relevant
+packages you want):
+
+.. code-block:: shell
+
+   echo "@EXPLICIT" > explicit.txt
+   CONDA_PKGS_DIRS=$(mktemp -d) conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+
+The syntax in Windows only needs some small changes:
+
+.. code-block:: shell
+
+   echo "@EXPLICIT" > explicit.txt
+   set "CONDA_PKGS_DIRS=%TMP%\conda-%RANDOM%"
+   conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+   set "CONDA_PKGS_DIRS="
+
+The resulting ``explicit.txt`` can be used to create a new environment with:
+
+.. code::
+
+   conda create -n new-environment --file explicit.txt

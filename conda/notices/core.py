@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Core conda notices logic."""
+
 from __future__ import annotations
 
 import logging
@@ -15,7 +16,7 @@ from . import cache, fetch, views
 from .types import ChannelNoticeResultSet
 
 if TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
     from ..base.context import Context
     from ..models.channel import Channel, MultiChannel

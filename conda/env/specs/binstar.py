@@ -1,12 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Define binstar spec."""
+
 from __future__ import annotations
 
 import re
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+from ...deprecations import deprecated
 from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
@@ -16,9 +18,12 @@ if TYPE_CHECKING:
 
     from ...env.env import Environment
 
-ENVIRONMENT_TYPE = "env"
+deprecated.module("24.7", "25.9")
+
+deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
 
 
+@deprecated("24.7", "25.9")
 class BinstarSpec:
     """
     spec = BinstarSpec('darth/deathstar')
@@ -71,19 +76,17 @@ class BinstarSpec:
         return len(self.file_data) > 0
 
     @cached_property
-    def binstar(self) -> ModuleType:
+    def binstar(self) -> ModuleType | None:
         try:
             from binstar_client.utils import get_server_api
 
             return get_server_api()
         except ImportError:
-            pass
+            return None
 
     @cached_property
     def file_data(self) -> list[dict[str, str]]:
-        return [
-            data for data in self.package["files"] if data["type"] == ENVIRONMENT_TYPE
-        ]
+        return [data for data in self.package["files"] if data["type"] == "env"]
 
     @cached_property
     def environment(self) -> Environment:

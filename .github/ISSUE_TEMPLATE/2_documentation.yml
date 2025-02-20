@@ -1,4 +1,5 @@
----
+# edit this in https://github.com/conda/infrastructure
+
 name: Documentation
 description: Create a documentation related issue.
 labels:

@@ -1,5 +1,650 @@
 [//]: # (current developments)
 
+## 25.1.1 (2025-01-28)
+
+### Bug fixes
+
+* Fix PowerShell activation/deactivation to properly unset `$env:_CE_M` and `$env:_CE_CONDA` environment variables. (#14292 via #14517)
+
+### Contributors
+
+* @travishathaway
+
+
+
+## 25.1.0 (2025-01-17)
+
+### Enhancements
+
+* Set `__win` version and enable `CONDA_OVERRIDE_WIN` usage. (#14443 via #14450)
+
+### Bug fixes
+
+* Merge overlapping glob build specs instead of raising `Incompatible component merge`. (#11612)
+* Fix a bug when invalid values are being passed to `conda shell.posix` command (#14398)
+* Sort suggested subcommands when an incorrect subcommand is provided in the CLI. (#13332 via 14402)
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
+* Do not use native platform version to set `__osx` or `__linux` version if the underlying OS is not macOS or Linux, respectively. (#14448 via #14449)
+* Report real macOS version (11+ instead of 10.16) even if the Python interpreter was linked against SDK 10.15 or earlier. This applies to the `__osx` virtual package and the user agent info. (#13178, #13832 via #14449)
+* Accept %-encoded URLs as a valid `MatchSpec`. (#14481)
+* Retry failed downloads one time on `ChecksumMismatchError` as caused by bad
+  partial downloads. Use `r+b` or `w+b` instead of "append" mode. Improve test
+  coverage. (#13488)
+
+### Docs
+
+* Use the correct parameter name, `handler`, in the CondaAuthHandler example (#14428).
+
+### Other
+
+* Require `conda-libmamba-solver >=24.11.0` for `libmamba 2.x` compatibility. (#11612)
+* Added new `PYTHONPATH` autoused fixture in `conda.testing` to ensure development `conda` is used across all tests. The fixture doesn't apply in `PYTHONPATH` is already set in the environment. (#14475)
+
+### Contributors
+
+* @conda-bot
+* @dbast
+* @dholth
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kenodegard
+* @ForgottenProgramme
+* @minrk
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 24.11.3 (2025-01-06)
+
+### Bug fixes
+
+* Fix recursion error introduced in `__conda_reactivate` deprecation message. (#14468)
+
+### Contributors
+
+* @jaimergp
+
+
+
+## 24.11.2 (2024-12-19)
+
+### Bug fixes
+
+* Restore `__conda_reactivate` shell command removed in 24.11.0. (#14455)
+
+### Deprecations
+
+* Mark `__conda_reactivate` as deprecated. Use `__conda_activate reactivate` instead. (#14455)
+
+### Contributors
+
+* @kenodegard
+
+
+
+## 24.11.1 (2024-12-10)
+
+### Bug fixes
+
+* Fix a bug where the setting `denylist_channels` was not being recognized in certain cases. (#14405)
+
+### Contributors
+
+* @travishathaway
+
+
+
+## 24.11.0 (2024-11-18)
+
+### Enhancements
+
+* Adds a new plugin hook for reporter backends. (#13868)
+* Add support for CEP-17 that allows specifying the path to the site-packages directory of the the Python package via the `repodata.json`. (#14053 via #14256)
+* Adds progress bar support for reporter backends plugin hook. (#14083)
+* Adds support for defining spinners for the reporter backends plugin hook. (#14206)
+* Adds support for confirmation functions for reporter backends plugin hook. (#14244)
+* Add new plugin hooks (`conda_session_headers` and `conda_request_headers`) to add headers to outgoing HTTP requests. (#14325, #14382)
+
+### Bug fixes
+
+* Do not retry solves twice in failed `conda env` runs. (#13784)
+* Remove CreateNonAdminAction to prevent conda remove from deleting `.nonadmin` files. (#14271)
+* Do not map Python distribution names to conda names in `PrefixData(pip_interop_enabled=True)`. (#14310 via #14317)
+* Fix output writing for `conda export --json --file`. (#14316 via #14323)
+* Update `deprecated.action()` function to account for positional arguments that have no value specified. (#14355 via
+#14359)
+* Fix continuous integration upload of coverage files. (#14375)
+
+### Deprecations
+
+* Remove `__conda_reactivate` shell function in favor of `__conda_activate reactivate`. (#14277)
+* Mark `conda.misc.rel_path` as pending deprecation. (#14338)
+* Require Python 3.9 or greater. (#14201 via #14368)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dholth
+* @duncanmmacleod
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kathatherine
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @marcoesters
+* @muffato made their first contribution in https://github.com/conda/conda/pull/14342
+* @nilskch made their first contribution in https://github.com/conda/conda/pull/14214
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 24.9.2 (2024-10-16)
+
+### Bug fixes
+
+* Refine the deprecation warning to the prepopulation of the channel list with "defaults". (#14305)
+* Add protected directories guardrail to `conda create` command. (#14282, #14315)
+
+### Contributors
+
+* @beeankha
+* @jezdez
+* @travishathaway
+
+
+
+## 24.9.1 (2024-10-01)
+
+### Bug fixes
+
+* Tweak pending deprecation warning for the upcoming changes in channel defaults. (#14287 via #14288)
+
+### Deprecations
+
+* Remove deprecated testing entrypoint `shell/bin/conda`. Use `dev/start[.bat]` instead. (#14285)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+
+
+
+## 24.9.0 (2024-09-26)
+
+
+### ✨ Special announcement ✨
+
+This is an announcement about an important and positive **future** change in conda's functionality:
+
+Following feedback from conda users about the pre-configuration of the conda code base to favor channels from Anaconda Inc, we've [started the process to deprecate](https://github.com/conda/conda/issues/14178) hardcoding Anaconda's channels as the default set of channels in the conda source code, which is a remnant of conda's incubation at the company.
+
+In the future, we will rely on providers of conda distributions, such as [miniforge](https://github.com/conda-forge/miniforge) or Anaconda (including miniconda), to pre-configure their preferred channels, e.g. by running the necessary ``conda config --set channels`` command.
+
+We're also going to continue to [work on improving channel management](https://github.com/conda/conda/issues/14217) in the forseeable future and would love to get your feedback.
+
+### Enhancements
+
+* Add `conda.core.index.Index` as a faster drop-in replacement of the realized dictionary index. Note: The loggers are no longer implicitly initialized when fetching the index. Instead, you must explicitly call `conda.gateways.logging.initialize_logging`. (#13880, #14267)
+* Alias `conda env remove` command to `conda remove --all`. (#13977)
+* Add a new health check to `conda doctor` that detects if the `REQUESTS_CA_BUNDLE` env var points to a non-existent file. (#12905 via #14037)
+* Add `--sha256` flag to `conda list --explicit` so it lists URLs with a SHA256 hash instead of MD5 and make `conda install|create` compatible with these inputs. (#2903, #7882 via #14048)
+* Report `conda` version used to generate a `@EXPLICIT` text file. (#14048)
+* Update health checks outputs for consistency. (#14049 via #14079)
+* Fix Windows to Unix path conversion to handle UNC mounts and root paths. (#14157)
+* Add a new `denylist_channels` config option and `CONDA_DENYLIST_CHANNELS` environment variable to explicitly deny using specific channels globally, which is complementing the already existing `allowlist_channels` config option. (#14176 via #14196)
+* Add `conda commands` subcommand. (#14215)
+* Add `conda.testing.fixtures.session_capsys`. Use this to capture stdout and stderr within module, package, and session scoped fixtures. (#14243)
+* Add `conda.testing.fixtures.session_conda_cli`. Use this to invoke conda commands within module, package, and session scoped fixtures. (#14243)
+* Add `conda.testing.fixtures.session_tmp_env`. Use this to create a conda environment within module, package, and session scoped fixtures. (#14243)
+
+### Bug fixes
+
+* Prevent directories that contain conda environments from being specified as an environment prefix when creating new envs; this provides guardrails against the accidental deletion of environments via commands such as `conda rename`. (#13955)
+* Enable `conda doctor` to check whether the environment exists or not before trying to generate a health report. (#14042 via #14112)
+* Fix `conda.common.configuration.ObjectParameter`'s ability to appropriately handle defaults. (#14148 via #14149)
+* `conda remove [env] --all` command no longer deletes empty parent directories for environments that are removed. (#14173)
+* Raise an error when attempting to remove non-existent environment. (#14174 via #14199)
+* Add pre-/post-command hooks to activation subcommands (`activate`, `deactivate`, `reactivate`, `hooks`, and `commands`). (#14211 via #14212)
+* Replace extensions from end of filename only, not `str.replace()`, in two places. (#14241)
+* Fix PowerShell activation/deactivation to properly unset environment variables using `$Env:VARIABLE = $null` instead of `$Env:VARIABLE = ""`. (#14237 via #14246)
+
+### Deprecations
+
+* Mark `conda.core.index.get_index` as pending deprecation. Use `conda.core.index.Index` instead. (#13880)
+* Mark `conda.core.index.get_reduced_index` as pending deprecation. Use `conda.core.index.ReducedIndex` instead. (#13880)
+* Mark `conda.core.index.fetch_index` as pending deprecation. Use `conda.core.index.Index` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_prefix` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_cache` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_features` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._supplement_index_with_system` as pending deprecation. Use `conda.core.index.Index.reload` instead. (#13880)
+* Mark `conda.core.index._make_virtual_package` as pending deprecation. Use `conda.models.records.PackageRecord.virtual_package` instead. (#13880)
+* Mark `conda.core.subdir_data.make_feature_record` as pending deprecation. Use `conda.models.records.PackageRecord.feature` instead. (#13880)
+* Mark `conda.plugins.manager.CondaPluginManager.get_virtual_packages` as pending deprecation. Use `conda.plugins.manager.CondaPluginManager.get_virtual_package_records` instead. (#13880)
+* Mark `conda.misc.explicit(index_args)` as pending deprecation. (#14267)
+* Mark `conda.cli.main_rename.validate_destination` as pending deprecation. Use `conda.cli.install.validate_new_prefix` instead. (#13955)
+* Mark `conda.cli.main_env_remove.execute` as pending deprecation. Use `conda.cli.main_remove.execute` instead. (#13977)
+* Mark `conda.activate.path_identity` as pending deprecation. Use `conda.common.path.path_identity` instead. (#14068)
+* Mark `conda.utils.path_identity` as pending deprecation. Use `conda.common.path.path_identity` instead. (#14068)
+* Mark `conda.models.leased_path_entry` as pending deprecation. (#14077)
+* Postpone removal of `conda.base.context.Context.conda_exe` to `conda 25.3`. (#14077)
+* Postpone removal of `conda.cli.python_api` to `conda 25.9`. (#14077)
+* Remove `conda._vendor.appdirs`. Use `platformdirs` instead. (#14077)
+* Remove `conda._vendor.cpuinfo`. (#14077)
+* Remove `conda._vendor.distro`. Use `distro` instead. (#14077)
+* Remove `conda.auxlib.collection.call_each`. (#14077)
+* Remove `conda.auxlib.collection.firstitem`. (#14077)
+* Remove `conda.auxlib.compat.NoneType`. (#14077)
+* Remove `conda.auxlib.compat.primitive_types`. (#14077)
+* Remove `conda.auxlib.compat.utf8_writer`. (#14077)
+* Remove `conda.auxlib.exceptions.AssignmentError`. (#14077)
+* Remove `conda.auxlib.exceptions.AuthenticationError`. (#14077)
+* Remove `conda.auxlib.exceptions.InitializationError`. (#14077)
+* Remove `conda.auxlib.exceptions.NotFoundError`. (#14077)
+* Remove `conda.auxlib.exceptions.SenderError`. (#14077)
+* Remove `conda.auxlib.type_coercion.boolify_truthy_string_ok`. (#14077)
+* Remove `conda.auxlib.type_coercion.listify`. (#14077)
+* Remove `conda.base.context.Context.root_dir`. Use `conda.base.context.Context.root_prefix` instead. (#14077)
+* Remove `conda.base.exceptions`. (#14077)
+* Remove `conda.cli.main.generate_parser`. Use `conda.cli.conda_argparse.generate_parser` instead. (#14077)
+* Remove `conda.cli.main.init_loggers(context)` (#14077)
+* Remove `conda.cli.main_rename.validate_src(name)`. (#14077)
+* Remove `conda.cli.main_rename.validate_src(prefix)`. (#14077)
+* Remove `conda.common.configuration.load_file_configs`. (#14077)
+* Remove `conda.common.decorators.env_override`. (#14077)
+* Remove `conda.common.decorators`. (#14077)
+* Remove `conda.common.disk.temporary_content_in_file`. Use `tempfile` instead. (#14077)
+* Remove `conda.core.package_cache_data.download`. Use `conda.gateways.connection.download.download` instead. (#14077)
+* Remove `conda.core.package_cache_data.rm_fetched`. (#14077)
+* Remove `conda.core.package_cache`. Use `conda.core.package_cache_data` instead. (#14077)
+* Remove `conda.core.prefix_data.PrefixData._has_python`. (#14077)
+* Remove `conda.core.subdir_data.get_cache_control_max_age`. Use `conda.gateways.repodata.get_cache_control_max_age` instead. (#14077)
+* Remove `conda.exports.fetch_index`. Use `conda.core.index.fetch_index` instead. (#14077)
+* Remove `conda.exports.IndexRecord`. Use `conda.models.records.PackageRecord` instead. (#14077)
+* Remove `conda.gateways.anaconda_client.EnvAppDirs`. Use `platformdirs` instead. (#14077)
+* Remove `conda.gateways.connection.adapters.ftp.FTPAdapter.stor`. (#14077)
+* Remove `conda.gateways.connection.adapters.ftp.parse_multipart_files` (#14077)
+* Remove `conda.gateways.logging.set_verbosity`. Use `conda.gateways.logging.set_log_level` instead. (#14077)
+* Remove `conda.gateways.logging.VERBOSITY_LEVELS`. (#14077)
+* Remove `conda.models.dist.IndexRecord`. Use `conda.models.records.PackageRecord` instead. (#14077)
+* Remove `conda.models.enums.LeasedPathType`. (#14077)
+* Remove `conda.models.leased_path_entry.LeasedPathEntry`. (#14077)
+* Remove `conda.plugins.subcommands.doctor.get_prefix`. Use `conda.base.context.context.target_prefix` instead. (#14077)
+* Remove `conda.plugins.subcommands.doctor.health_checks.display_health_checks`. (#14077)
+* Remove `conda.plugins.subcommands.doctor.health_checks.display_report_heading`. (#14077)
+* Remove `conda.testing.helpers.set_active_prefix`. Use `mocker.patch('conda.base.context.Context.active_prefix')` instead. (#14077)
+* Remove `tests.env.utils.run_command`. Use `conda_cli` fixture instead. (#14077)
+* Mark `tests.env.utils.make_temp_envs_dir` as pending deprecation. Use `tmp_envs_dir` fixture instead. (#14093)
+* Mark `conda.gateways.disk.delete.rm_rf(max_retries)` as pending deprecated. (#14094)
+* Mark `conda.gateways.disk.delete.rm_rf(trash)` as pending deprecated. (#14094)
+* Mark `conda.gateways.disk.delete.try_rmdir_all_empty` as pending deprecated. Use `conda.gateways.disk.delete.rm_rf` instead. (#14094)
+* Mark `conda.gateways.disk.delete.move_to_trash` as pending deprecated. Use `conda.gateways.disk.delete.rm_rf` instead. (#14094)
+* Mark `conda.gateways.disk.delete.move_path_to_trash` as pending deprecated. Use `conda.gateways.disk.delete.rm_rf` instead. (#14094)
+* Mark `conda.exports.move_to_trash` as pending deprecation. Use `conda.gateways.disk.delete.rm_rf` instead. (#14118)
+* Mark `conda.activate.ensure_binary` as pending deprecation. Use `conda.common.compat.ensure_binary` instead. (#14144)
+* Mark `conda.activate.ensure_fs_path_encoding` as pending deprecation. (#14144)
+* Mark `conda.common.compat.six_with_metaclass` as pending deprecation. Use class' `metaclass=` keyword argument instead. (#14144)
+* Mark `conda.common.compat.open` as pending deprecation. Use `conda.common.compat.open_utf8` instead. (#14144, #14169)
+* Mark `conda.common.compat.ensure_unicode` as pending deprecation. (#14144)
+* Mark `conda.common.compat.ensure_fs_path_encoding` as pending deprecation. (#14144)
+* Mark `conda.common.compat.FILESYSTEM_ENCODING` as pending deprecation. (#14144, #14169)
+* Mark `conda.activate.native_path_to_unix` as pending deprecation. Use `conda.common.path.win_path_to_unix` instead. (#14157)
+* Mark `conda.activate.unix_path_to_native` as pending deprecation. Use `conda.common.path.unix_path_to_win` instead. (#14157)
+* Mark `conda.activate._Cygpath` as pending deprecation. Use `conda.common.path._cygpath` instead. (#14157)
+* Mark `conda.activate._Cygpath.RE_UNIX` as pending deprecation. Use `conda.common.path._cygpath.RE_WIN_DRIVE` instead. (#14157)
+* Mark `conda.activate._Cygpath.translate_unix` as pending deprecation. Use `conda.common.path._cygpath._to_unix_drive` instead. (#14157)
+* Mark `conda.activate._Cygpath.RE_DRIVE` as pending deprecation. Use `conda.common.path._cygpath.RE_UNIX_DRIVE` instead. (#14157)
+* Mark `conda.activate._Cygpath.translation_drive` as pending deprecation. Use `conda.common.path._cygpath._to_win_drive` instead. (#14157)
+* Mark `conda.activate._Cygpath.RE_MOUNT` as pending deprecation. Use `conda.common.path._cygpath.RE_UNIX_MOUNT` instead. (#14157)
+* Mark `conda.activate._Cygpath.translation_mount` as pending deprecation. Use `conda.common.path._cygpath._to_win_mount` instead. (#14157)
+* Mark `conda.activate._Cygpath.RE_ROOT` as pending deprecation. Use `conda.common.path._cygpath.RE_UNIX_ROOT` instead. (#14157)
+* Mark `conda.activate._Cygpath.translation_root` as pending deprecation. Use `conda.common.path._cygpath._to_win_root` instead. (#14157)
+* Mark `conda.utils.unix_path_to_win` as pending deprecation. Use `conda.common.path.unix_path_to_win` instead. (#14157)
+* Deprecate `conda.env.specs.binstar` module. (#14158 via #14160)
+* Deprecate `conda env [create|update] REMOTE_DEFINITION`. Use `conda env [create|update] --file=URL` instead. (#14158 via #14160)
+* Mark `conda.testing.integration.BIN_DIRECTORY` as pending deprecation. Use `conda.common.path.BIN_DIRECTORY` instead. (#14188)
+* Mark `conda.common.path.get_bin_directory_short_path()` as pending deprecation. Use `conda.common.path.BIN_DIRECTORY` instead. (#14188)
+* Mark `conda.common.path.is_private_env_name` as pending deprecation. (#14189)
+* Mark `conda.common.path.is_private_env_path` as pending deprecation. (#14189)
+* Mark `conda shell.SHELL commands` as pending deprecation. Use `conda commands` instead. (#14215)
+* The `defaults` multichannel will stop being the (implicit) default value for `channels`. Users relying on this behavior are encouraged to run `conda config --add channels defaults`. This is pending deprecation, and will be fully deprecated in 25.3. (#14178 via #14227)
+* `conda config --add/--append channels ...` will warn when `defaults` is implicitly added. In `conda 25.3`, this behavior will be removed and users should run `conda config --add/--append channels defaults` explicitly if needed. Conda distribution installers like miniforge or miniconda will pre-configure conda channels during installation. (#12356 via #14227)
+* Without an explicit `channels` configuration (via `condarc` files, environment variables, or CLI flags), conda will warn about using `defaults` implicitly. In 25.3, an empty list will be used. (#14227)
+* Mark the `restore_free_channel` configuration option as pending deprecation. Add `https://repo.anaconda.com/pkgs/free` to your channel list after `defaults` instead. (#14231 via #14269)
+* Mark `conda.testing.CondaCLIFixture` as pending deprecation. Use `conda.testing.fixtures.CondaCLIFixture` instead. (#14243)
+* Mark `conda.testing.conda_cli` as pending deprecation. Use `conda.testing.fixtures.conda_cli` instead. (#14243)
+* Mark `conda.testing.PathFactoryFixture` as pending deprecation. Use `conda.testing.fixtures.PathFactoryFixture` instead. (#14243)
+* Mark `conda.testing.path_factory` as pending deprecation. Use `conda.testing.fixtures.path_factory` instead. (#14243)
+* Mark `conda.testing.TmpEnvFixture` as pending deprecation. Use `conda.testing.fixtures.TmpEnvFixture` instead. (#14243)
+* Mark `conda.testing.tmp_env` as pending deprecation. Use `conda.testing.fixtures.tmp_env` instead. (#14243)
+* Mark `conda.testing.TmpChannelFixture` as pending deprecation. Use `conda.testing.fixtures.TmpChannelFixture` instead. (#14243)
+* Mark `conda.testing.tmp_channel` as pending deprecation. Use `conda.testing.fixtures.tmp_channel` instead. (#14243)
+* Mark `conda.testing.context_aware_monkeypatch` as pending deprecation. Use `conda.testing.fixtures.context_aware_monkeypatch` instead. (#14243)
+* Mark `conda.testing.tmp_pkgs_dir` as pending deprecation. Use `conda.testing.fixtures.tmp_pkgs_dir` instead. (#14243)
+* Mark `conda.testing.tmp_envs_dir` as pending deprecation. Use `conda.testing.fixtures.tmp_envs_dir` instead. (#14243)
+
+### Docs
+
+* Document `--platform` flag for `conda [env] create`. (#14100 via #14181)
+
+### Other
+
+* Update `xonsh` support to accomodate deprecated import path. (#14047)
+
+### Contributors
+
+* @anki-code made their first contribution in https://github.com/conda/conda/pull/14047
+* @beeankha
+* @conda-bot
+* @dholth
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @scw
+* @SylvainCorlay made their first contribution in https://github.com/conda/conda/pull/14226
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 24.7.1 (2024-07-24)
+
+### Bug fixes
+
+* Revert potential regression introduced in #13975. The previously forbidden characters (`^`, `%`, `!`, `=`, `(`, `)`, `\`) are allowed again until the impact is assessed. (#14065)
+
+### Contributors
+
+* @jaimergp
+
+
+
+## 24.7.0 (2024-07-17)
+
+### Enhancements
+
+* Add a new `reporters` setting for configuring output. (#13736)
+* Report traceback of plugin loading errors with verbosity 2 or higher (`-vv` or more). (#13742 via #13846)
+* Skip checking for `.pyc` and `.pyo` files in the `conda doctor` "missing files" health check. (#13370 via #13931)
+* **Breaking change**  `conda list --explicit` will not print authentication details by default. A new flag `--auth` has been added so folks can opt-in to this behaviour. (#13936)
+* Print transaction report for `@EXPLICIT` lockfile installs too. (#13940)
+* Do not require `-n/--name` or `-p/--prefix` if `conda create` is invoked with `--dry-run`. (#13941)
+* Add an `envvars_force_uppercase` setting which defaults to `True`, uppercasing all environment variables (thereby justifying `conda`'s current behaviour); when `envvars_force_uppercase` is set to `False`, conda will only save preserved-case variable names. (#13713 via #13943)
+* Alias `conda env list` command to `conda info --envs`. (#13972)
+
+### Bug fixes
+
+* Improve treatment of logger levels. (#13735)
+* Mask authentication details in `conda-meta/*.json` metadata. (#13937)
+* Mask Anaconda.org tokens in verbose logs. (#13939, #13987)
+* Fix parsing error when history file only contains a single commented line. (#13960)
+* Add missing `emscripten` and `wasi` entries to the recognized platforms, and `wasm32` to the recognized architectures. (#13095)
+* Fix checksum comparisons in `conda.gateways.connection.download.download()` to be case insensitive. (#13969)
+* Disallow some more characters in Windows for prefix names (`^`, `%`, `!`, `=`, `(`, `)`, `\`). These characters complicate or prevent environment activation if present. (#12558 via #13975)
+* Fix caching when `repodata.json` contains `\r\n` line endings. (#14002 via #14003)
+* Fix `conda.core.portability.binary_replace` not matching chunks that end with `\n`. (#14043 via #14044)
+
+### Deprecations
+
+* Mark `conda.gateways.logging.initialize_root_logger` as pending deprecation. (#13735, #14046)
+* Mark `conda.cli.main_env_list.execute` as pending deprecation. Use `conda.cli.main_info.execute` instead. (#13972)
+* Revert `--all` deprecation in `conda info`. (#14004)
+* Mark `conda.exports.iteritems` as pending deprecation. Use builtin `dict.items()` instead. (#14034)
+* Mark `conda.exports.Completer` as pending deprecation. (#14034)
+* Mark `conda.exports.InstalledPackages` as pending deprecation. (#14034)
+* Mark `conda.exports.KEYS` as pending deprecation. (#14034)
+* Mark `conda.exports.KEYS_DIR` as pending deprecation. (#14034)
+* Mark `conda.exports.hash_file` as pending deprecation. (#14034)
+* Mark `conda.exports.verify` as pending deprecation. (#14034)
+* Mark `conda.exports.symlink_conda` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.exports._symlink_conda_hlp` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.exports.win_conda_bat_redirect` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.win_path_to_cygwin` as pending deprecation. Use `conda.common.path.win_path_to_unix` instead. (#14034)
+* Mark `conda.utils.cygwin_path_to_win` as pending deprecation. Use `conda.utils.unix_path_to_win` instead. (#14034)
+* Mark `conda.utils.translate_stream` as pending deprecation. (#14034)
+* Mark `conda.utils.unix_shell_base` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.msys2_shell_base` as pending deprecation. Use `conda.activate` instead. (#14034)
+* Mark `conda.utils.shells` as pending deprecation. Use `conda.activate` instead. (#14034)
+
+### Docs
+
+* Clarify proxy server configuration in documentation. (#12856)
+* Add type hints and doc strings to `conda.core.envs_manager`. (#13817)
+* Add logging overview as deep-dive. (#13735)
+* Update conda cheatsheet text and add it directly to cheatsheet page. (#13889)
+* Add cheatsheet PDF download to cheatsheet page. (#13909)
+* Add `ssl_verify: truststore` to the user guide. (#13935)
+* Fix the help text of the `satisfied-skip-solve` flag. (#13946)
+* Add a section explaining how to correctly raise exceptions from a plugin. (#13741 via #13950)
+* Add new article for configuring `envs_dirs` and `pkgs_dirs`. (#13954)
+
+### Other
+
+* Replace calls to `logger.warn` with `logger.warning`. (#13963)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @erik-whiting made their first contribution in https://github.com/conda/conda/pull/13877
+* @ifitchet
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kelvinou01 made their first contribution in https://github.com/conda/conda/pull/14044
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @Nathann03
+* @zeehio
+* @skupr-anaconda made their first contribution in https://github.com/conda/conda/pull/13946
+* @tl-hbk
+* @DerThorsten made their first contribution in https://github.com/conda/conda/pull/13962
+* @travishathaway
+* @dependabot[bot]
+* @padeoe made their first contribution in https://github.com/conda/conda/pull/12856
+* @pre-commit-ci[bot]
+
+
+
+## 24.5.0 (2024-05-08)
+
+### Enhancements
+
+* Report which `MatchSpec` item caused `Invalid*Spec` exceptions for more informative error messages. (#11203 via #13598)
+* MSYS2 packages can now use the upstream installation prefixes. (#13649)
+* Add support for CEP-15 `base_url` field in `repodata.json`. (#13137 via #13744)
+* In custom channel settings, allow specification of channel URLs using a glob-like wildcard pattern, e.g. for user with auth handler plugins. (#13778 via #13779)
+
+### Bug fixes
+
+* Fix `conda notices --json` to correctly output JSON. (#13561)
+* Fix prefix replacement for Windows `subdir` on Unix. (#13689)
+
+### Deprecations
+
+* Mark `conda.plan._get_best_prec_match` as pending deprecation. Use `conda.misc._get_best_prec_match` instead. (#12421)
+* Mark `conda.plan._handle_menuinst` as pending deprecation. (#12421)
+* Mark `conda.plan._inject_UNLINKLINKTRANSACTION` as pending deprecation. (#12421)
+* Mark `conda.plan._plan_from_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.add_defaults_to_specs` as pending deprecation. (#12421)
+* Mark `conda.plan.add_unlink` as pending deprecation. (#12421)
+* Mark `conda.plan.display_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.execute_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.get_blank_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.install_actions` as pending deprecation. (#12421)
+* Mark `conda.plan.print_dists` as pending deprecation. (#12421)
+* Mark `conda.plan.revert_actions` as pending deprecation. Use `conda.cli.install.revert_actions` instead. (#12421)
+* Mark `conda.plan` as an entrypoint as pending deprecation. (#12421)
+* Mark `conda.activate._Activator.add_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
+* Mark `conda.activate._Activator.get_scripts_export_unset_vars` as pending deprecation. Use `get_scripts_export_unset_vars` helper function in `test_activate.py` instead. (#13720)
+* Mark `conda.activate._Activator._get_path_dirs(extra_library_bin)` as pending deprecation. (#13720)
+* Mark `conda.activate.JSONFormatMixin.get_scripts_export_unset_vars` as pending deprecation. Use `conda.activate._Activator.get_export_unset_vars` instead. (#13720)
+* Mark `conda.gateways.logging.trace` as pending deprecation. Use `Logger.log(conda.common.constants.TRACE, msg)` instead. (#13732)
+* Mark `conda create --mkdir` as pending deprecation. The argument is redundant and unnecessary. (#13751)
+* Mark `conda install --mkdir` as pending deprecation. Use `conda create` instead. (#13751)
+* Mark `conda._vendor.frozendict` as pending deprecation. Use `frozendict` instead. (#13767 via #13766)
+* Mark `conda.auxlib.collection.make_immutable` as pending deprecation. Use `frozendict.deepfreeze` instead. (#13801)
+* Mark `conda.plan.execute_plan` as pending deprecation. (#13869)
+* Mark `conda.plan.execute_instructions` as pending deprecation. (#13869)
+* Mark `conda.plan._update_old_plan` as pending deprecation. (#13869)
+
+### Docs
+
+* Add type hints and doc strings to `conda.core.index`. (#13816)
+
+### Other
+
+* Remove `setuptools` remainings (`MANIFEST.in`, `wheel` build dependency) not required since the move to `hatch` in #12509. (#13684)
+* Remove and update any imports inside conda that is importing from `conda/exports.py`. (#13869)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dbast
+* @ifitchet made their first contribution in https://github.com/conda/conda/pull/13649
+* @isuruf
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @zklaus
+* @ForgottenProgramme
+* @mattkram
+* @Nathann03 made their first contribution in https://github.com/conda/conda/pull/13816
+* @dwr-psandhu made their first contribution in https://github.com/conda/conda/pull/13770
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 24.4.0 (2024-04-24)
+
+### Enhancements
+
+* For Windows users, the stub executables used for Python entrypoints in packages are now codesigned. (#13721)
+
+### Contributors
+
+* @dholth
+* @jezdez
+* @Callek made their first contribution in https://github.com/conda/conda/pull/13721
+
+
+## 24.3.0 (2024-03-12)
+
+### Enhancements
+
+* Show first few characters of undecodeable response if `repodata.json` raises
+  `JSONDecodeError`. (#11804)
+* Update `conda.gateways.subprocess.subprocess_call` to use `text=True` to avoid manual encoding/decoding. (#13240)
+* Add a new plugin hook giving plugin authors the ability to define new settings. (#13554)
+* Optimize module imports to speed up `conda activate`. (#13567 via #13568)
+* Move `conda env export` to `conda export` and alias the old command to the new command. (#13577)
+* Report progress while running `conda install --revision <idx>`. (#13611)
+* Add `conda.testing.tmp_channel` pytest fixture to create a temporary local channel for testing. (#13634)
+
+### Bug fixes
+
+* Print traceback on `KeyboardInterrupt` instead of raising another `AttributeError` exception, when conda debugging logs are enabled. (#13531)
+* Parse integer channel notice IDs as `str` instead of raising an exception. (#13543)
+* Add direct runtime dependency on `zstandard` for use when downloading `repodata.json.zst`. (#13551)
+* Fallback to `repodata.json` if `repodata.json.zst` cannot be decompressed as `zstandard`. (#13558)
+* `conda rename` command no longer throws an error when conda is not active. (#13565)
+* Fallback to `repodata.json` from `repodata.json.zst` on most 4xx error codes. (#13573)
+* Fix excess resource usage by log handling when fetching repodata. (#13541 via #13628)
+* Re-enable `--subdir` and `--platform` flags to be available for `conda env create` command. (#13632)
+* Fix `__archspec` virtual package on Windows to return microarchitecture instead of the default `x86_64`. (#13641)
+* Check `Content-Length` is nonzero before calculating progress, avoiding a possible `ZeroDivisionError`. (#13653, #13671)
+
+### Deprecations
+
+* Discontinue custom docker images. Use images provided by [Anaconda Inc.](https://hub.docker.com/r/continuumio/miniconda3) or [conda-forge](https://hub.docker.com/r/condaforge/miniforge3) instead. (#13162)
+* Mark `conda.common.compat.encode_arguments` as pending deprecation. (#13240)
+* Remove `conda.export.handle_proxy_407`. (#13629)
+* Mark `conda.testing.integration.make_temp_channel` as pending deprecation. Use `conda.testing.tmp_channel` fixture instead. (#13634)
+* Mark `conda.testing.integration.running_a_python_capable_of_unicode_subprocessing` as pending deprecation. (#13634)
+* Mark `conda.testing.integration.set_tmpdir` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration._get_temp_prefix` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration.make_temp_prefix` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration.FORCE_temp_prefix` as pending deprecation. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#13634)
+* Mark `conda.testing.integration.create_temp_location` as pending deprecation. Use `tmp_path` or `conda.testing.path_factory` instead. (#13634)
+* Mark `conda.testing.integration.tempdir` as pending deprecation. Use `tmp_path` or `conda.testing.path_factory` instead. (#13634)
+* Mark `conda.testing.integration.reload_config` as pending deprecation. Use `conda.base.context.reset_context` instead. (#13634)
+* Postpone `conda.base.context.Context.conda_exe` deprecation to `conda 24.9`. (#13634)
+* Postpone `conda.testing.integration.run_command` deprecation to `conda 25.3`. (#13634)
+* Postpone loading subcommands from executables deprecation to `conda 25.3`. (#13634)
+* Remove vendored `conda._vendor.boltons`. Use `boltons` package instead. (#12681 via #13634)
+* Remove `conda.auxlib.packaging`. Use a modern build system instead; see https://packaging.python.org/en/latest/tutorials/packaging-projects#creating-pyproject-toml for more details. (#12681 via #13634)
+* Remove `conda env create --force`. Use `conda env create --yes` instead. (#12681 via #13634)
+* Remove `conda info PACKAGE`. Use `conda search PACKAGE --info` instead. (#12681 via #13634)
+* Remove `conda.core.subdir_data.fetch_repodata_remote_request`. Use `conda.core.subdir_data.SubdirData.repo_fetch.fetch_latest_parsed` instead." (#12681 via #13634)
+* Remove `conda.exports.memoized`. Use `functools.lru_cache` instead. (#12681 via #13634)
+* Remove `conda.gateways.disk.read._digest_path`. Use `conda.gateways.disk.read.compute_sum` instead. (#12681 via #13634)
+* Remove `conda.gateways.disk.read.compute_md5sum`. Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead. (#12681 via #13634)
+* Remove `conda.gateways.disk.read.compute_sha256sum`. Use `conda.gateways.disk.read.compute_sum(path, "sha256")` instead. (#12681 via #13634)
+* Remove `conda.instructions.PREFIX`. (#12681 via #13634)
+* Remove `conda.instructions.PREFIX_CMD`. (#12681 via #13634)
+* Remove `conda.testing.encode_for_env_var`. (#12681 via #13634)
+* Remove `conda.testing.conda_check_versions_aligned`. (#12681 via #13634)
+* Remove `conda.testing.helpers.run_inprocess_conda_command`. Use `conda.testing.tmp_env` instead. (#12681 via #13634)
+* Remove `conda.testing.helpers.capture_json_with_argv`. (#12681 via #13634)
+* Remove `conda.testing.integration.get_conda_list_tuple`. Use `conda.core.prefix_data.PrefixData.get` instead. (#12681 via #13634)
+* Remove `conda.utils.md5_file`. Use `conda.gateways.disk.read.compute_sum(path, "md5")` instead. (#12681 via #13634)
+* Remove `conda.utils.hashsum_file`. Use `conda.gateways.disk.read.compute_sum` instead. (#12681 via #13634)
+* Remove `conda.utils.safe_open`. Use `open` instead. (#12681 via #13634)
+* Remove `python -m conda_env`. Use `conda env` or `python -m conda env` instead. (#12681 via #13634)
+* Remove `conda_env.env.load_from_directory`. (#12681 via #13634)
+* Remove `conda_env.pip_util.get_pip_version`. (#12681 via #13634)
+* Remove `conda_env.pip_util.PipPackage`. (#12681 via #13634)
+* Remove `conda_env.pip_util.installed`. (#12681 via #13634)
+* Remove `conda_env.pip_util._canonicalize_name`. (#12681 via #13634)
+* Remove `conda_env.pip_util.add_pip_installed`. (#12681 via #13634)
+
+### Docs
+
+* Update the navigation links for Miniconda. (#13572)
+
+### Other
+
+* Remove `dev/*` scripts in favor of `conda-incubator/setup-miniconda` GitHub Action in `.github/workflows/tests.yml`. (#13162)
+* Stop chaining commands for steps in `.github/workflows/tests.yml`.  (#12418 via #13162)
+* Modernize tests. (#13547, #13292)
+* Run GitHub tests workflow also on `osx-arm64` (aka Apple Silicon) runners. Enable `osx-arm64` canary builds. Fix or disable broken tests. (#13617)
+* Upload stable release artifacts to GitHub releases during releases. (#13399)
+
+### Contributors
+
+* @beeankha
+* @conda-bot
+* @dbast
+* @dholth
+* @FFY00
+* @isuruf
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kenodegard
+* @zklaus made their first contribution in https://github.com/conda/conda/pull/13579
+* @ForgottenProgramme
+* @mbargull
+* @travishathaway
+* @pre-commit-ci[bot]
+
+
+
 ## 24.1.2 (2024-02-15)
 
 ### Bug fixes
@@ -805,6 +1450,7 @@ Since July 2023, that [`conda-libmamba-solver`](https://github.com/conda/conda-l
 * @beeankha
 * @dholth
 * @dariocurr made their first contribution in https://github.com/conda/conda/pull/12128
+* @FFY00 made their first contribution in https://github.com/conda/conda/pull/11600
 * @jezdez
 * @jay-tau made their first contribution in https://github.com/conda/conda/pull/11738
 * @kenodegard

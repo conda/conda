@@ -1,37 +1,42 @@
 [conda-logo]: https://s3.amazonaws.com/conda-dev/conda_logo.svg
-[tests-badge]: https://github.com/conda/conda/actions/workflows/tests.yml/badge.svg
-[images-badge]: https://github.com/conda/conda/actions/workflows/images.yml/badge.svg
-[codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main.svg?label=coverage
+[tests-badge]: https://img.shields.io/github/actions/workflow/status/conda/conda/tests.yml?branch=main&event=schedule&logo=github&label=tests
+[codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main?logo=codecov
 [codspeed-badge]: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
-[release-badge]: https://img.shields.io/github/release/conda/conda.svg
+[release-badge]: https://img.shields.io/github/v/release/conda/conda?logo=github
+[anaconda-badge]: https://img.shields.io/conda/vn/anaconda/conda?logo=anaconda
+[conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/conda?logo=conda-forge
+[calver-badge]: https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg
 [gitpod]: https://gitpod.io/button/open-in-gitpod.svg
 
 [![Conda Logo][conda-logo]](https://github.com/conda/conda)
 
-[![Tests (GitHub Actions)][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml)
-[![Images (GitHub Actions)][images-badge]](https://github.com/conda/conda/actions/workflows/images.yml)
+[![GitHub Scheduled Tests][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml?query=branch%3Amain+event%3Aschedule)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
 [![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
-[![latest release version][release-badge]](https://github.com/conda/conda/releases)
+[![CalVer Versioning][calver-badge]](https://calver.org)
+<br>
+[![GitHub Release][release-badge]](https://github.com/conda/conda/releases)
+[![Anaconda Package][anaconda-badge]](https://anaconda.org/anaconda/conda)
+[![conda-forge Package][conda-forge-badge]](https://anaconda.org/conda-forge/conda)
 
-Conda is a cross-platform, language-agnostic binary package manager. It is the
-package manager used by [Anaconda](https://www.anaconda.com/distribution/) installations, but it may be
+Conda is a cross-platform, language-agnostic binary package manager. It is a
+package manager used in conda distributions like [Miniforge](https://github.com/conda-forge/miniforge)
+and the [Anaconda Distribution](https://www.anaconda.com/distribution/), but it may be
 used for other systems as well. Conda makes environments first-class
 citizens, making it easy to create independent environments even for C
-libraries. Conda is written entirely in Python, and is BSD licensed open
-source.
+libraries. The conda command line interface is written entirely in Python,
+and is BSD licensed open source.
 
 Conda is enhanced by organizations, tools, and repositories created and managed by
-the amazing members of the conda community. Some of them can be found
-[here](https://github.com/conda/conda/wiki/Conda-Community).
+the amazing members of the [conda community](https://conda.org/). Some of them
+can be found [here](https://github.com/conda/conda/wiki/Conda-Community).
 
 
 ## Installation
 
-Conda is a part of the [Anaconda Distribution](https://repo.anaconda.com).
-Use [Miniconda](https://docs.anaconda.com/free/miniconda/) to bootstrap a minimal installation
-that only includes conda and its dependencies.
+To bootstrap a minimal distribution, use a minimal installer such as [Miniconda](https://docs.anaconda.com/free/miniconda/) or [Miniforge](https://conda-forge.org/download/).
 
+Conda is also included in the [Anaconda Distribution](https://repo.anaconda.com).
 
 ## Updating conda
 

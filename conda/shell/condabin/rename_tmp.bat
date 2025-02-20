@@ -1,3 +1,6 @@
-@pushd "%1"
-@REM Rename src to dest
-@ren "%2" "%3" > NUL 2> NUL
+:: Copyright (C) 2012 Anaconda, Inc
+:: SPDX-License-Identifier: BSD-3-Clause
+
+:: Rename src to dest
+@PUSHD "%1"
+@RENAME "%2" "%3" > NUL 2> NUL

@@ -23,6 +23,7 @@ Authors are sorted alphabetically.
 * Andrew Achkar
 * Andrew Arendt
 * Andrew M. Farrell
+* Andy Kipp
 * Andy R. Terrel
 * Angela Gloyna
 * Aniket Patil
@@ -125,11 +126,13 @@ Authors are sorted alphabetically.
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
+* Erik Whiting
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
 * Faustin Carter
 * FelisNivalis
+* Filipe Laíns
 * Flavio Martins
 * Florenz A. P. Hollebrandse
 * Floris Bruynooghe
@@ -152,6 +155,7 @@ Authors are sorted alphabetically.
 * Hsin-Hsiang Peng
 * Hugo Buddelmeijer
 * Iain Gillis
+* Ian Fitchet
 * Ian Stokes-Rees
 * Igor Igamberdiev
 * Ikko Eltociear Ashimine
@@ -202,6 +206,7 @@ Authors are sorted alphabetically.
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
 * Julien Schueller
+* Justin Wood (Callek)
 * Justus Schwabedal
 * Justyn Harriman
 * Kahlil Hodgson
@@ -212,6 +217,7 @@ Authors are sorted alphabetically.
 * Kara de la Marck
 * Katherine Abrikian
 * Katherine Kinnaman
+* Kelvin Ou
 * Ken Odegard
 * Kenneth Laskoski
 * Kenneth Schackart
@@ -219,6 +225,7 @@ Authors are sorted alphabetically.
 * Kevin Deldycke
 * Kfir Zvi
 * Kian-Meng Ang
+* Klaus Zimmermann
 * Korijn van Golen
 * Kurt Wheeler
 * Kyle Gerard Felker
@@ -263,6 +270,7 @@ Authors are sorted alphabetically.
 * Matthew Rocklin
 * Matthew Wardrop
 * Matthieu Guillaumin
+* Matthieu Muffato
 * MatthieuDartiailh
 * Matti Picus
 * Maurice Meyer
@@ -292,15 +300,18 @@ Authors are sorted alphabetically.
 * Murray Read
 * NaincyKumariKnoldus
 * Nate Coraor
+* Nathan Nguyen
 * Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
 * Nicholas Pierotti
 * Nick Eubank
+* Nicky Sandhu
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
+* Nils Koch
 * Nir Ganani
 * Nitin Madnani
 * Nixon Kwok
@@ -363,9 +374,9 @@ Authors are sorted alphabetically.
 * Sean Ross-Ross
 * Sebastien Awwad
 * Sergio Oller
+* Serhii Kupriienko
 * Shannon Green
 * Shaun Thompson
-* Shaun Walbridge
 * Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
@@ -386,6 +397,7 @@ Authors are sorted alphabetically.
 * Steven Engler
 * Stijn Verstraeten
 * Stuart Berg
+* Sylvain Corlay
 * Tadeu Manoel
 * Tarcisio
 * Teake Nutma
@@ -393,6 +405,7 @@ Authors are sorted alphabetically.
 * Thomas Kluyver
 * Thomas Lam
 * Thomas Wiecki
+* Thorsten Beier
 * Théo Segonds
 * Tian Zhang
 * Tianchen Zhong
@@ -442,6 +455,7 @@ Authors are sorted alphabetically.
 * mcopes73
 * oinizan
 * ovz
+* padeoe
 * peter1000
 * pre-commit CI
 * saraneem

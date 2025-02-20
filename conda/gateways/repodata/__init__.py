@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Repodata interface."""
+
 from __future__ import annotations
 
 import abc
@@ -66,6 +67,9 @@ ETAG_KEY = "etag"
 CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
 CACHE_STATE_SUFFIX = ".info.json"
+
+# show some unparseable json in error
+ERROR_SNIPPET_LENGTH = 32
 
 
 class RepodataIsEmpty(UnavailableInvalidChannel):
@@ -298,8 +302,8 @@ will need to
         followed by collecting a new token with `anaconda login`, or
     (b) provide conda with a valid token directly.
 
-Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             else:
                 help_message = """\
@@ -307,8 +311,8 @@ The credentials you have provided for this URL are invalid.
 
 You will need to modify your conda configuration to proceed.
 Use `conda config --show` to view your configuration's current state.
-Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = """\
@@ -322,22 +326,22 @@ of the remote server.
 
         else:
             if url.startswith("https://repo.anaconda.com/"):
-                help_message = """\
+                help_message = f"""\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
-%s
-""" % maybe_unquote(repr(url))
+{maybe_unquote(repr(url))}
+"""
 
             else:
-                help_message = """\
+                help_message = f"""\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
-%s
-""" % maybe_unquote(repr(url))
+{maybe_unquote(repr(url))}
+"""
 
         raise CondaHTTPError(
             help_message,
@@ -434,7 +438,7 @@ class RepodataState(UserDict):
             value = bool(obj["value"])
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
-            log.warn(
+            log.warning(
                 f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
                 exc_info=e,
             )
@@ -725,7 +729,14 @@ class RepodataFetch:
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
-            return json.loads(parsed), state
+            try:
+                return json.loads(parsed), state
+            except json.JSONDecodeError as e:
+                e.args = (
+                    f'{e.args[0]}; got "{parsed[:ERROR_SNIPPET_LENGTH]}"',
+                    *e.args[1:],
+                )
+                raise
         else:
             return parsed, state
 
@@ -860,8 +871,8 @@ class RepodataFetch:
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
                     raw_repodata = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata)  # type: ignore
                     stat = self.cache_path_json.stat()
+                    cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()
@@ -915,16 +926,8 @@ so they can be downloaded again."""
             raise CondaError(message)
 
 
-try:
-    hashlib.md5(b"", usedforsecurity=False)
-
-    def _md5_not_for_security(data):
-        return hashlib.md5(data, usedforsecurity=False)
-
-except TypeError:  # pragma: no cover
-    # Python < 3.9
-    def _md5_not_for_security(data):
-        return hashlib.md5(data)
+def _md5_not_for_security(data):
+    return hashlib.md5(data, usedforsecurity=False)
 
 
 def cache_fn_url(url, repodata_fn=REPODATA_FN):

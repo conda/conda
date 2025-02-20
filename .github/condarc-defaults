@@ -1,0 +1,3 @@
+channels:
+  - defaults
+anaconda_anon_usage: false

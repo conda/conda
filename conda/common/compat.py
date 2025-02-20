@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Common compatiblity code."""
+"""Common compatibility code."""
 # Try to keep compat small because it's imported by everything
 # What is compat, and what isn't?
 # If a piece of code is "general" and used in multiple modules, it goes here.
@@ -10,15 +10,21 @@
 import builtins
 import sys
 
+from ..deprecations import deprecated
+
 on_win = bool(sys.platform == "win32")
 on_mac = bool(sys.platform == "darwin")
 on_linux = bool(sys.platform == "linux")
 
-FILESYSTEM_ENCODING = sys.getfilesystemencoding()
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "FILESYSTEM_ENCODING",
+    _FILESYSTEM_ENCODING := sys.getfilesystemencoding(),
+)
 
 # Control some tweakables that will be removed finally.
 ENCODE_ENVIRONMENT = True
-ENCODE_ARGS = False
 
 
 def encode_for_env_var(value) -> str:
@@ -36,9 +42,8 @@ def encode_environment(env):
     return env
 
 
+@deprecated("24.9", "25.3")
 def encode_arguments(arguments):
-    if ENCODE_ARGS:
-        arguments = {encode_for_env_var(arg) for arg in arguments}
     return arguments
 
 
@@ -56,7 +61,7 @@ def isiterable(obj):
 from collections import OrderedDict as odict  # noqa: F401
 
 
-def open(
+def open_utf8(
     file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
 ):
     if "b" in mode:
@@ -80,6 +85,18 @@ def open(
         )
 
 
+@deprecated("25.3", "25.9", addendum="Use `conda.common.compat.open_utf8` instead.")
+def open(
+    file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True
+):
+    return open_utf8(file, mode, buffering, encoding, errors, newline, closefd)
+
+
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use class' `metaclass=` keyword argument instead.",
+)
 def six_with_metaclass(meta, *bases):
     """Create a base class with a metaclass."""
 
@@ -128,6 +145,7 @@ def ensure_text_type(value) -> str:
         return value
 
 
+@deprecated("25.3", "25.9")
 def ensure_unicode(value):
     try:
         return value.decode("unicode_escape")
@@ -137,9 +155,10 @@ def ensure_unicode(value):
         return value
 
 
+@deprecated("25.3", "25.9")
 def ensure_fs_path_encoding(value):
     try:
-        return value.encode(FILESYSTEM_ENCODING)
+        return value.encode(_FILESYSTEM_ENCODING)
     except AttributeError:
         return value
     except UnicodeEncodeError:

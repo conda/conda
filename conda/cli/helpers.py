@@ -3,59 +3,46 @@
 """
 Collection of helper functions to standardize reused CLI arguments.
 """
+
 from __future__ import annotations
 
-from argparse import SUPPRESS, _HelpAction
+from argparse import (
+    SUPPRESS,
+    BooleanOptionalAction,
+    _HelpAction,
+    _StoreAction,
+)
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
-try:
-    from argparse import BooleanOptionalAction
-except ImportError:
-    # Python < 3.9
-    from argparse import Action
 
-    class BooleanOptionalAction(Action):
-        # from Python 3.9+ argparse.py
-        def __init__(
-            self,
-            option_strings,
-            dest,
-            default=None,
-            type=None,
-            choices=None,
-            required=False,
-            help=None,
-            metavar=None,
-        ):
-            _option_strings = []
-            for option_string in option_strings:
-                _option_strings.append(option_string)
+class _ValidatePackages(_StoreAction):
+    """
+    Used to validate match specs of packages
+    """
 
-                if option_string.startswith("--"):
-                    option_string = "--no-" + option_string[2:]
-                    _option_strings.append(option_string)
+    @staticmethod
+    def _validate_no_denylist_channels(packages_specs):
+        """
+        Ensure the packages do not contain denylist_channels
+        """
+        from ..base.context import validate_channels
+        from ..models.match_spec import MatchSpec
 
-            super().__init__(
-                option_strings=_option_strings,
-                dest=dest,
-                nargs=0,
-                default=default,
-                type=type,
-                choices=choices,
-                required=required,
-                help=help,
-                metavar=metavar,
-            )
+        if not isinstance(packages_specs, (list, tuple)):
+            packages_specs = [packages_specs]
 
-        def __call__(self, parser, namespace, values, option_string=None):
-            if option_string in self.option_strings:
-                setattr(namespace, self.dest, not option_string.startswith("--no-"))
+        validate_channels(
+            channel
+            for spec in map(MatchSpec, packages_specs)
+            if (channel := spec.get_exact_value("channel"))
+        )
 
-        def format_usage(self):
-            return " | ".join(self.option_strings)
+    def __call__(self, parser, namespace, values, option_string=None):
+        self._validate_no_denylist_channels(values)
+        super().__call__(parser, namespace, values, option_string)
 
 
 def add_parser_create_install_update(p, prefix_required=False):
@@ -92,7 +79,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     p.add_argument(
         "packages",
         metavar="package_spec",
-        action="store",
+        action=_ValidatePackages,
         nargs="*",
         help="List of packages to install or update in the conda environment.",
     )
@@ -174,6 +161,11 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
         action="store_true",
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
+    )
+    output_and_prompt_options.add_argument(
+        "--console",
+        default=NULL,
+        help="Select the backend to use for normal output rendering.",
     )
     add_parser_verbose(output_and_prompt_options)
     output_and_prompt_options.add_argument(
@@ -367,7 +359,7 @@ def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
         help="Exit early and do not run the solver if the requested specs are satisfied. "
         "Also skips aggressive updates as configured by the "
         "'aggressive_update_packages' config setting. Use "
-        "'conda info --describe aggressive_update_packages' to view your setting. "
+        "'conda config --describe aggressive_update_packages' to view your setting. "
         "--satisfied-skip-solve is similar to the default behavior of 'pip install'.",
     )
     update_modifiers.add_argument(

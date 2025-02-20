@@ -1,15 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Pip-flavored installer."""
+
 import os
 import os.path as op
 from logging import getLogger
 
 from ...auxlib.compat import Utf8NamedTemporaryFile
-from ...base.context import context
-from ...common.io import Spinner
 from ...env.pip_util import get_pip_installed_packages, pip_subprocess
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
+from ...reporters import get_spinner
 
 log = getLogger(__name__)
 
@@ -68,9 +68,5 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
 
 
 def install(*args, **kwargs):
-    with Spinner(
-        "Installing pip dependencies",
-        not context.verbose and not context.quiet,
-        context.json,
-    ):
+    with get_spinner("Installing pip dependencies"):
         return _pip_install_via_requirements(*args, **kwargs)

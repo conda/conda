@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Tools for managing the packages installed within an environment."""
+
 from __future__ import annotations
 
 import json
@@ -9,6 +10,7 @@ import re
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import (
@@ -23,7 +25,8 @@ from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
-from ..deprecations import deprecated
+from ..common.url import mask_anaconda_token
+from ..common.url import remove_auth as url_remove_auth
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
@@ -37,6 +40,9 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
+
+if TYPE_CHECKING:
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -64,12 +70,12 @@ class PrefixData(metaclass=PrefixDataType):
 
     def __init__(
         self,
-        prefix_path: Path,
+        prefix_path: str | os.PathLike[str] | Path,
         pip_interop_enabled: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
-        self.prefix_path = prefix_path
+        self.prefix_path = Path(prefix_path)
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -77,6 +83,19 @@ class PrefixData(metaclass=PrefixDataType):
             if pip_interop_enabled is not None
             else context.pip_interop_enabled
         )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, PrefixData):
+            return False
+        if self.prefix_path.exists():
+            if other.prefix_path.exists():
+                return self.prefix_path.samefile(other.prefix_path)
+            return False  # only one prefix exists, cannot be the same
+        elif other.prefix_path.exists():
+            return False  # only one prefix exists, cannot be the same
+        else:
+            # neither prefix exists, raw comparison
+            return self.prefix_path.resolve() == other.prefix_path.resolve()
 
     @time_recorder(module_name=__name__)
     def load(self):
@@ -103,19 +122,19 @@ class PrefixData(metaclass=PrefixDataType):
         # .dist-info is for things installed by pip
         for ext in CONDA_PACKAGE_EXTENSIONS + (".dist-info",):
             if fn.endswith(ext):
-                fn = fn.replace(ext, "")
+                fn = fn[: -len(ext)]
                 known_ext = True
         if not known_ext:
             raise ValueError(
-                "Attempted to make prefix record for unknown package type: %s" % fn
+                f"Attempted to make prefix record for unknown package type: {fn}"
             )
         return fn + ".json"
 
-    def insert(self, prefix_record):
+    def insert(self, prefix_record, remove_auth=True):
         assert prefix_record.name not in self._prefix_records, (
-            "Prefix record insertion error: a record with name %s already exists "
+            f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
             "in the prefix. This is a bug in conda. Please report it at "
-            "https://github.com/conda/conda/issues" % prefix_record.name
+            "https://github.com/conda/conda/issues"
         )
 
         prefix_record_json_path = (
@@ -131,8 +150,14 @@ class PrefixData(metaclass=PrefixDataType):
                 context,
             )
             rm_rf(prefix_record_json_path)
-
-        write_as_json_to_file(prefix_record_json_path, prefix_record)
+        if remove_auth:
+            prefix_record_json = prefix_record.dump()
+            prefix_record_json["url"] = url_remove_auth(
+                mask_anaconda_token(prefix_record.url)
+            )
+        else:
+            prefix_record_json = prefix_record
+        write_as_json_to_file(prefix_record_json_path, prefix_record_json)
 
         self._prefix_records[prefix_record.name] = prefix_record
 
@@ -222,7 +247,7 @@ class PrefixData(metaclass=PrefixDataType):
                 ):
                     raise ValueError()
             except ValueError:
-                log.warn(
+                log.warning(
                     "Ignoring malformed prefix record at: %s", prefix_record_json_path
                 )
                 # TODO: consider just deleting here this record file in the future
@@ -240,10 +265,6 @@ class PrefixData(metaclass=PrefixDataType):
                 is_writable = file_path_is_writable(test_path)
             self.__is_writable = is_writable
         return self.__is_writable
-
-    @deprecated("24.3", "24.9")
-    def _has_python(self):
-        return "python" in self._prefix_records
 
     @property
     def _python_pkg_record(self):
@@ -344,7 +365,7 @@ class PrefixData(metaclass=PrefixDataType):
                 import traceback
 
                 tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                log.warn(
+                log.warning(
                     "Problem reading non-conda package record at %s. Please verify that you "
                     "still need this, and if so, that this is still installed correctly. "
                     "Reinstalling this package may help.",
@@ -431,23 +452,38 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
     return conda_python_packages
 
 
-def get_python_version_for_prefix(prefix):
-    # returns a string e.g. "2.7", "3.4", "3.5" or None
-    py_record_iter = (
-        rcrd for rcrd in PrefixData(prefix).iter_records() if rcrd.name == "python"
+def python_record_for_prefix(prefix) -> PrefixRecord | None:
+    """
+    For the given conda prefix, return the PrefixRecord of the Python installed
+    in that prefix.
+    """
+    python_record_iterator = (
+        record
+        for record in PrefixData(prefix).iter_records()
+        if record.name == "python"
     )
-    record = next(py_record_iter, None)
-    if record is None:
-        return None
-    next_record = next(py_record_iter, None)
-    if next_record is not None:
-        raise CondaDependencyError(
-            "multiple python records found in prefix %s" % prefix
-        )
-    elif record.version[3].isdigit():
-        return record.version[:4]
-    else:
-        return record.version[:3]
+    record = next(python_record_iterator, None)
+    if record is not None:
+        next_record = next(python_record_iterator, None)
+        if next_record is not None:
+            raise CondaDependencyError(
+                f"multiple python records found in prefix {prefix}"
+            )
+    return record
+
+
+def get_python_version_for_prefix(prefix) -> str | None:
+    """
+    For the given conda prefix, return the version of the Python installation
+    in that prefix.
+    """
+    # returns a string e.g. "2.7", "3.4", "3.5" or None
+    record = python_record_for_prefix(prefix)
+    if record is not None:
+        if record.version[3].isdigit():
+            return record.version[:4]
+        else:
+            return record.version[:3]
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

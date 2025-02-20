@@ -5,14 +5,15 @@ Functions related to core conda functionality that relates to pip
 
 NOTE: This modules used to in conda, as conda/pip.py
 """
+
 import os
 import re
 import sys
 from logging import getLogger
 
 from ..base.context import context
+from ..common.compat import on_win
 from ..exceptions import CondaEnvException
-from ..exports import on_win
 from ..gateways.subprocess import any_subprocess
 
 log = getLogger(__name__)

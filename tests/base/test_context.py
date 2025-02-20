@@ -1,38 +1,54 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import os
 from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
-from tempfile import gettempdir
+from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.constants import ChannelPriority, PathConflict
+from conda.base.constants import (
+    DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+    DEFAULT_CHANNELS,
+    ChannelPriority,
+    PathConflict,
+)
 from conda.base.context import (
-    conda_tests_ctxt_mgmt_def_pol,
+    channel_alias_validation,
     context,
+    default_python_validation,
+    get_plugin_config_data,
     reset_context,
+    validate_channels,
     validate_prefix_name,
 )
-from conda.common.configuration import ValidationError, YamlRawParameter
-from conda.common.io import env_var, env_vars
+from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
-from conda.core.package_cache_data import PackageCacheData
-from conda.exceptions import CondaValueError, EnvironmentNameNotFound
-from conda.gateways.disk.create import create_package_cache_directory, mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.exceptions import (
+    ChannelDenied,
+    ChannelNotAllowed,
+    CondaValueError,
+    EnvironmentNameNotFound,
+)
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.disk.update import touch
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.testing.helpers import tempdir
 from conda.utils import on_win
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.testing import PathFactoryFixture
 
 TEST_CONDARC = dals(
     """
@@ -105,7 +121,7 @@ def test_old_channel_alias(testdata: None):
     platform = context.subdir
 
     cf_urls = [
-        "ftp://new.url:8082/conda-forge/%s" % platform,
+        f"ftp://new.url:8082/conda-forge/{platform}",
         "ftp://new.url:8082/conda-forge/noarch",
     ]
     assert Channel("conda-forge").urls() == cf_urls
@@ -193,62 +209,51 @@ def test_conda_envs_path(testdata: None):
             del os.environ["CONDA_ENVS_PATH"]
 
 
-def test_conda_bld_path(testdata: None):
-    conda_bld_path = join(gettempdir(), "conda-bld")
+def test_conda_bld_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    conda_bld_path = str(tmp_path)
     conda_bld_url = path_to_url(conda_bld_path)
-    try:
-        mkdir_p(conda_bld_path)
-        with env_var(
-            "CONDA_BLD_PATH",
-            conda_bld_path,
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            assert len(context.conda_build_local_paths) >= 1
-            assert context.conda_build_local_paths[0] == conda_bld_path
 
-            channel = Channel("local")
-            assert channel.channel_name == "local"
-            assert channel.channel_location is None
-            assert channel.platform is None
-            assert channel.package_filename is None
-            assert channel.auth is None
-            assert channel.token is None
-            assert channel.scheme is None
-            assert channel.canonical_name == "local"
-            assert channel.url() is None
-            urls = list(
-                chain.from_iterable(
-                    (
-                        join_url(url, context.subdir),
-                        join_url(url, "noarch"),
-                    )
-                    for url in context.conda_build_local_urls
-                )
-            )
-            assert channel.urls() == urls
+    monkeypatch.setenv("CONDA_BLD_PATH", conda_bld_path)
+    reset_context()
+    assert context.bld_path == conda_bld_path
+    assert len(context.conda_build_local_paths) >= 1
+    assert context.conda_build_local_paths[0] == conda_bld_path
 
-            channel = Channel(conda_bld_url)
-            assert channel.canonical_name == "local"
-            assert channel.platform is None
-            assert channel.package_filename is None
-            assert channel.auth is None
-            assert channel.token is None
-            assert channel.scheme == "file"
-            assert channel.urls() == [
-                join_url(conda_bld_url, context.subdir),
-                join_url(conda_bld_url, "noarch"),
-            ]
-            assert channel.url() == join_url(conda_bld_url, context.subdir)
-            assert (
-                channel.channel_name.lower()
-                == win_path_backout(conda_bld_path).lstrip("/").lower()
-            )
-            assert (
-                channel.channel_location == ""
-            )  # location really is an empty string; all path information is in channel_name
-            assert channel.canonical_name == "local"
-    finally:
-        rm_rf(conda_bld_path)
+    channel = Channel("local")
+    assert channel.channel_name == "local"
+    assert channel.channel_location is None
+    assert channel.platform is None
+    assert channel.package_filename is None
+    assert channel.auth is None
+    assert channel.token is None
+    assert channel.scheme is None
+    assert channel.canonical_name == "local"
+    assert channel.url() is None
+    assert channel.urls() == [
+        join_url(url, subdir)
+        for url in context.conda_build_local_urls
+        for subdir in (context.subdir, "noarch")
+    ]
+
+    channel = Channel(conda_bld_url)
+    assert channel.canonical_name == "local"
+    assert channel.platform is None
+    assert channel.package_filename is None
+    assert channel.auth is None
+    assert channel.token is None
+    assert channel.scheme == "file"
+    assert channel.urls() == [
+        join_url(conda_bld_url, context.subdir),
+        join_url(conda_bld_url, "noarch"),
+    ]
+    assert channel.url() == join_url(conda_bld_url, context.subdir)
+    assert (
+        channel.channel_name.lower()
+        == win_path_backout(conda_bld_path).lstrip("/").lower()
+    )
+    # location really is an empty string; all path information is in channel_name
+    assert channel.channel_location == ""
+    assert channel.canonical_name == "local"
 
 
 def test_custom_multichannels(testdata: None):
@@ -258,16 +263,15 @@ def test_custom_multichannels(testdata: None):
     )
 
 
-def test_restore_free_channel(testdata: None):
-    assert "https://repo.anaconda.com/pkgs/free" not in context.default_channels
-    with env_var(
-        "CONDA_RESTORE_FREE_CHANNEL",
-        "true",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert (
-            context.default_channels.index("https://repo.anaconda.com/pkgs/free") == 1
-        )
+def test_restore_free_channel(monkeypatch: MonkeyPatch) -> None:
+    free_channel = "https://repo.anaconda.com/pkgs/free"
+    assert free_channel not in context.default_channels
+
+    monkeypatch.setenv("CONDA_RESTORE_FREE_CHANNEL", "true")
+    reset_context()
+    assert context.restore_free_channel
+
+    assert context.default_channels[1] == free_channel
 
 
 def test_proxy_servers(testdata: None):
@@ -283,27 +287,25 @@ def test_conda_build_root_dir(testdata: None):
     assert context.conda_build["root-dir"] == "/some/test/path"
 
 
-def test_clobber_enum(testdata: None):
-    with env_var(
-        "CONDA_PATH_CONFLICT",
-        "prevent",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.path_conflict == PathConflict.prevent
+@pytest.mark.parametrize("path_conflict", PathConflict.__members__)
+def test_clobber_enum(monkeypatch: MonkeyPatch, path_conflict: str) -> None:
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", path_conflict)
+    reset_context()
+    assert context.path_conflict == PathConflict(path_conflict)
 
 
 def test_context_parameter_map(testdata: None):
-    all_parameter_names = context.list_parameters()
-    all_mapped_parameter_names = tuple(
-        chain.from_iterable(context.category_map.values())
-    )
+    parameters = list(context.list_parameters())
+    mapped = [name for names in context.category_map.values() for name in names]
 
-    unmapped_parameter_names = set(all_parameter_names) - set(
-        all_mapped_parameter_names
-    )
-    assert not unmapped_parameter_names, unmapped_parameter_names
+    # ignore anaconda-anon-usage's context monkeypatching
+    if "anaconda_anon_usage" in parameters:
+        parameters.remove("anaconda_anon_usage")
+    if "anaconda_anon_usage" in mapped:
+        mapped.remove("anaconda_anon_usage")
 
-    assert len(all_parameter_names) == len(all_mapped_parameter_names)
+    assert not set(parameters).difference(mapped)
+    assert len(parameters) == len(mapped)
 
 
 def test_context_parameters_have_descriptions(testdata: None):
@@ -323,124 +325,123 @@ def test_context_parameters_have_descriptions(testdata: None):
         pprint(context.describe_parameter(name))
 
 
-def test_local_build_root_custom_rc(testdata: None):
+def test_local_build_root_custom_rc(
+    testdata: None,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactoryFixture,
+) -> None:
+    # testdata sets conda-build.root-dir
     assert context.local_build_root == abspath("/some/test/path")
 
-    test_path_1 = join(os.getcwd(), "test_path_1")
-    with env_var(
-        "CONDA_CROOT", test_path_1, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        assert context.local_build_root == test_path_1
+    monkeypatch.setenv("CONDA_BLD_PATH", bld_path := str(path_factory()))
+    reset_context()
+    assert context.local_build_root == bld_path
 
-    test_path_2 = join(os.getcwd(), "test_path_2")
-    with env_var(
-        "CONDA_BLD_PATH", test_path_2, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        assert context.local_build_root == test_path_2
+    monkeypatch.setenv("CONDA_CROOT", croot := str(path_factory()))
+    reset_context()
+    assert context.local_build_root == croot
 
 
 def test_default_target_is_root_prefix(testdata: None):
     assert context.target_prefix == context.root_prefix
 
 
-def test_target_prefix(testdata: None):
-    with tempdir() as prefix:
-        mkdir_p(join(prefix, "first", "envs"))
-        mkdir_p(join(prefix, "second", "envs"))
-        create_package_cache_directory(join(prefix, "first", "pkgs"))
-        create_package_cache_directory(join(prefix, "second", "pkgs"))
-        envs_dirs = (join(prefix, "first", "envs"), join(prefix, "second", "envs"))
-        with env_var(
-            "CONDA_ENVS_DIRS",
-            os.pathsep.join(envs_dirs),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            # with both dirs writable, choose first
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
-            assert context.target_prefix == join(envs_dirs[0], "blarg")
+def test_target_prefix(
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    (envs1 := path_factory()).mkdir()
+    (envs2 := path_factory()).mkdir()
+    envs_dirs = (str(envs1), str(envs2))
 
-            # with first dir read-only, choose second
-            PackageCacheData._cache_.clear()
-            make_read_only(join(envs_dirs[0], ".conda_envs_dir_test"))
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
-            assert context.target_prefix == join(envs_dirs[1], "blarg")
+    monkeypatch.setenv("CONDA_ENVS_DIRS", os.pathsep.join(envs_dirs))
+    reset_context()
+    assert context._envs_dirs == envs_dirs
+    assert context.envs_dirs[:2] == envs_dirs
 
-            # if first dir is read-only but environment exists, choose first
-            PackageCacheData._cache_.clear()
-            mkdir_p(join(envs_dirs[0], "blarg"))
-            touch(join(envs_dirs[0], "blarg", "history"))
-            reset_context((), argparse_args=AttrDict(name="blarg", func="create"))
-            assert context.target_prefix == join(envs_dirs[0], "blarg")
+    # with both dirs writable, choose first
+    reset_context(argparse_args=SimpleNamespace(name="blarg"))
+    assert context.target_prefix == str(envs1 / "blarg")
+
+    # with first dir read-only, choose second
+    make_read_only(envs1 / ".conda_envs_dir_test")
+    reset_context(argparse_args=SimpleNamespace(name="blarg"))
+    assert context.target_prefix == str(envs2 / "blarg")
+
+    # if first dir is read-only but environment exists, choose first
+    (envs1 / "blarg").mkdir()
+    reset_context(argparse_args=SimpleNamespace(name="blarg"))
+    assert context.target_prefix == str(envs1 / "blarg")
 
 
-def test_aggressive_update_packages(testdata: None):
-    assert context.aggressive_update_packages == ()
-    specs = ["certifi", "openssl>=1.1"]
-    with env_var(
-        "CONDA_AGGRESSIVE_UPDATE_PACKAGES",
-        ",".join(specs),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
+def test_aggressive_update_packages(monkeypatch: MonkeyPatch) -> None:
+    assert context._aggressive_update_packages == DEFAULT_AGGRESSIVE_UPDATE_PACKAGES
+
+    specs = ("certifi", "openssl>=1.1")
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", ",".join(specs))
+    reset_context()
+    assert context._aggressive_update_packages == specs
+    assert context.aggressive_update_packages == tuple(map(MatchSpec, specs))
 
 
 def test_channel_priority(testdata: None):
     assert context.channel_priority == ChannelPriority.DISABLED
 
 
-def test_threads(testdata: None):
+def test_threads(monkeypatch: MonkeyPatch) -> None:
     default_value = None
     assert context.default_threads == default_value
     assert context.repodata_threads == default_value
     assert context.verify_threads == 1
     assert context.execute_threads == 1
 
-    with env_var(
-        "CONDA_DEFAULT_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_DEFAULT_THREADS", "3")
+        reset_context()
         assert context.default_threads == 3
         assert context.verify_threads == 3
         assert context.repodata_threads == 3
         assert context.execute_threads == 3
 
-    with env_var(
-        "CONDA_VERIFY_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_VERIFY_THREADS", "3")
+        reset_context()
         assert context.default_threads == default_value
         assert context.verify_threads == 3
         assert context.repodata_threads == default_value
         assert context.execute_threads == 1
 
-    with env_var(
-        "CONDA_REPODATA_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_REPODATA_THREADS", "3")
+        reset_context()
         assert context.default_threads == default_value
         assert context.verify_threads == 1
         assert context.repodata_threads == 3
         assert context.execute_threads == 1
 
-    with env_var(
-        "CONDA_EXECUTE_THREADS", "3", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_EXECUTE_THREADS", "3")
+        reset_context()
         assert context.default_threads == default_value
         assert context.verify_threads == 1
         assert context.repodata_threads == default_value
         assert context.execute_threads == 3
 
-    with env_vars(
-        {"CONDA_EXECUTE_THREADS": "3", "CONDA_DEFAULT_THREADS": "1"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_EXECUTE_THREADS", "3")
+        m.setenv("CONDA_DEFAULT_THREADS", "1")
+        reset_context()
         assert context.default_threads == 1
         assert context.verify_threads == 1
         assert context.repodata_threads == 1
         assert context.execute_threads == 3
 
 
-def test_channels_defaults(testdata: None):
-    """Test when no channels provided in cli."""
+def test_channels_empty(testdata: None):
+    """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())
-    assert context.channels == ("defaults",)
+    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
+        assert context.channels == ("defaults",)
 
 
 def test_channels_defaults_condarc(testdata: None):
@@ -460,13 +461,16 @@ def test_channels_defaults_condarc(testdata: None):
     assert context.channels == ("defaults", "conda-forge")
 
 
-def test_specify_channels_cli_adding_defaults_no_condarc(testdata: None):
+def test_specify_channels_cli_not_adding_defaults_no_condarc(testdata: None):
     """
     When the channel haven't been specified in condarc, 'defaults'
-    should be present when specifying channel in the cli
+    should NOT be present when specifying channel in the cli.
+
+    See https://github.com/conda/conda/issues/14217 for context.
     """
     reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
-    assert context.channels == ("conda-forge", "defaults")
+    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
+        assert context.channels == ("conda-forge", "defaults")
 
 
 def test_specify_channels_cli_condarc(testdata: None):
@@ -572,6 +576,7 @@ def test_expandvars(testdata: None):
         "channels",
         "default_channels",
         "allowlist_channels",
+        "denylist_channels",
     ):
         value = _get_expandvars_context(attr, "['${TEST_VAR}']", "foo")
         assert value == ("foo",)
@@ -606,16 +611,13 @@ def test_channel_settings(testdata: None):
     )
 
 
-def test_subdirs():
+def test_subdirs(monkeypatch: MonkeyPatch) -> None:
     assert context.subdirs == (context.subdir, "noarch")
 
     subdirs = ("linux-highest", "linux-64", "noarch")
-    with env_var(
-        "CONDA_SUBDIRS",
-        ",".join(subdirs),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.subdirs == subdirs
+    monkeypatch.setenv("CONDA_SUBDIRS", ",".join(subdirs))
+    reset_context()
+    assert context.subdirs == subdirs
 
 
 def test_local_build_root_default_rc():
@@ -668,9 +670,10 @@ VALIDATE_PREFIX_TEST_CASES = (
 def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
     ctx = mock.MagicMock()
 
-    with mock.patch(
-        "conda.base.context._first_writable_envs_dir"
-    ) as mock_one, mock.patch("conda.base.context.locate_prefix_by_name") as mock_two:
+    with (
+        mock.patch("conda.base.context._first_writable_envs_dir") as mock_one,
+        mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
+    ):
         mock_one.side_effect = [mock_return_values[0]]
         mock_two.side_effect = [mock_return_values[1]]
 
@@ -684,3 +687,197 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         else:
             actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
+
+
+def test_get_plugin_config_data_file_source(tmp_path):
+    """
+    Test file source of plugin configuration values
+    """
+    condarc = tmp_path / "condarc"
+
+    condarc.write_text(
+        dals(
+            """
+            plugins:
+              option_one: value_one
+              option_two: value_two
+            """
+        )
+    )
+
+    config_data = {
+        path: data for path, data in Configuration._load_search_path((condarc,))
+    }
+
+    plugin_config_data = get_plugin_config_data(config_data)
+
+    assert plugin_config_data.get(condarc) is not None
+
+    option_one = plugin_config_data.get(condarc).get("option_one")
+    assert option_one is not None
+    assert option_one.value(None) == "value_one"
+
+    option_two = plugin_config_data.get(condarc).get("option_two")
+    assert option_two is not None
+    assert option_two.value(None) == "value_two"
+
+
+def test_get_plugin_config_data_env_var_source():
+    """
+    Test environment variable source of plugin configuration values
+    """
+    raw_data = {
+        "envvars": {
+            "plugins_option_one": {"_raw_value": "value_one"},
+            "plugins_option_two": {"_raw_value": "value_two"},
+        }
+    }
+
+    plugin_config_data = get_plugin_config_data(raw_data)
+
+    assert plugin_config_data.get("envvars") is not None
+
+    option_one = plugin_config_data.get("envvars").get("option_one")
+    assert option_one is not None
+    assert option_one.get("_raw_value") == "value_one"
+
+    option_two = plugin_config_data.get("envvars").get("option_two")
+    assert option_two is not None
+    assert option_two.get("_raw_value") == "value_two"
+
+
+def test_get_plugin_config_data_skip_bad_values():
+    """
+    Make sure that values that are not frozendict for file sources are skipped
+    """
+    path = Path("/tmp/")
+
+    class Value:
+        def value(self, _):
+            return "some_value"
+
+    raw_data = {path: {"plugins": Value()}}
+
+    plugin_config_data = get_plugin_config_data(raw_data)
+
+    assert plugin_config_data == {}
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("https://example.com/", True),
+        ("bad_value", "channel_alias value 'bad_value' must have scheme/protocol."),
+    ),
+)
+def test_channel_alias_validation(value, expected):
+    """
+    Ensure that ``conda.base.context.channel_alias_validation`` works as expected
+    """
+    assert channel_alias_validation(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("3.12", True),
+        (
+            "4.12",
+            "default_python value '4.12' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+        ("", True),
+        (
+            "not a number",
+            "default_python value 'not a number' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+    ),
+)
+def test_default_python_validation(value, expected):
+    """
+    Ensure that ``conda.base.context.default_python_validation`` works as expected
+    """
+    assert default_python_validation(value) == expected
+
+
+def test_check_allowlist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(("conda-canary", "conda-forge"))
+
+    allowlist = (
+        "defaults",
+        "conda-forge",
+        "https://beta.conda.anaconda.org/conda-test",
+    )
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("conda-canary",))
+
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("https://repo.anaconda.com/pkgs/denied",))
+
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+    validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+
+def test_check_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(("conda-canary", "conda-forge"))
+
+    denylist = (
+        "defaults",
+        "conda-forge",
+        "https://beta.conda.anaconda.org/conda-test",
+    )
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("defaults",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("conda-forge",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://beta.conda.anaconda.org/conda-test",))
+
+
+def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(
+        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge")
+    )
+    allowlist = (
+        "defaults",
+        "https://beta.conda.anaconda.org/conda-test",
+        "conda-forge",
+    )
+    denylist = ("conda-forge",)
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    # neither in allowlist nor denylist
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("conda-canary",))
+
+    # conda-forge is on denylist, so it should raise ChannelDenied
+    # even though it is in the allowlist
+    with pytest.raises(ChannelDenied):
+        validate_channels(("conda-forge",))
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))

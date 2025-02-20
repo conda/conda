@@ -8,6 +8,7 @@ parser, an abstract shell class, and special path handling for Windows.
 
 See conda.cli.main.main_sourced for the entry point into this module.
 """
+
 from __future__ import annotations
 
 import abc
@@ -40,13 +41,25 @@ from .base.constants import (
     PREFIX_STATE_FILE,
 )
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-from .common.compat import FILESYSTEM_ENCODING, on_win
-from .common.path import paths_equal
+from .common.compat import on_win
+from .common.path import _cygpath, paths_equal, unix_path_to_win, win_path_to_unix
+from .common.path import path_identity as _path_identity
+from .deprecations import deprecated
+from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
 log = getLogger(__name__)
+
+
+BUILTIN_COMMANDS = {
+    "activate": ActivateHelp(),
+    "deactivate": DeactivateHelp(),
+    "hook": GenericHelp("hook"),
+    "commands": GenericHelp("commands"),
+    "reactivate": GenericHelp("reactivate"),
+}
 
 
 class _Activator(metaclass=abc.ABCMeta):
@@ -91,7 +104,6 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
-        self.environ = os.environ.copy()
 
     def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
@@ -109,47 +121,40 @@ class _Activator(metaclass=abc.ABCMeta):
         # split provided environment variables into exports vs unsets
         for name, value in kwargs.items():
             if value is None:
-                unset_vars.append(name.upper())
+                if context.envvars_force_uppercase:
+                    unset_vars.append(name.upper())
+                else:
+                    unset_vars.append(name)
+
             else:
-                export_vars[name.upper()] = value
+                if context.envvars_force_uppercase:
+                    export_vars[name.upper()] = value
+                else:
+                    export_vars[name] = value
 
         if export_metavars:
             # split meta variables into exports vs unsets
             for name, value in context.conda_exe_vars_dict.items():
                 if value is None:
-                    unset_vars.append(name.upper())
+                    if context.envvars_force_uppercase:
+                        unset_vars.append(name.upper())
+                    else:
+                        unset_vars.append(name)
                 elif "/" in value or "\\" in value:
-                    export_vars[name.upper()] = self.path_conversion(value)
+                    if context.envvars_force_uppercase:
+                        export_vars[name.upper()] = self.path_conversion(value)
+                    else:
+                        export_vars[name] = self.path_conversion(value)
                 else:
-                    export_vars[name.upper()] = value
+                    if context.envvars_force_uppercase:
+                        export_vars[name.upper()] = value
+                    else:
+                        export_vars[name] = value
         else:
             # unset all meta variables
             unset_vars.extend(context.conda_exe_vars_dict)
 
         return export_vars, unset_vars
-
-    # Used in tests only.
-    def add_export_unset_vars(self, export_vars, unset_vars, **kwargs):
-        new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
-        if export_vars is not None:
-            export_vars = {**export_vars, **new_export_vars}
-        if unset_vars is not None:
-            unset_vars = [*unset_vars, *new_unset_vars]
-        return export_vars, unset_vars
-
-    # Used in tests only.
-    def get_scripts_export_unset_vars(self, **kwargs):
-        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        script_export_vars = script_unset_vars = None
-        if export_vars:
-            script_export_vars = self.command_join.join(
-                [self.export_var_tmpl % (k, v) for k, v in export_vars.items()]
-            )
-        if unset_vars:
-            script_unset_vars = self.command_join.join(
-                [self.unset_var_tmpl % (k) for k in unset_vars]
-            )
-        return script_export_vars or "", script_unset_vars or ""
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
@@ -202,9 +207,22 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def execute(self):
         # return value meant to be written to stdout
-        self._parse_and_set_args(self._raw_arguments)
-        return getattr(self, self.command)()
+        self._parse_and_set_args()
 
+        # invoke pre/post commands, see conda.cli.conda_argparse.do_call
+        context.plugin_manager.invoke_pre_commands(self.command)
+        response = getattr(self, self.command)()
+        context.plugin_manager.invoke_post_commands(self.command)
+        return response
+
+    @deprecated(
+        "25.3",
+        "25.9",
+        addendum="Use `conda commands` instead.",
+        # these commands are already pretty hidden in their implementation and access (`conda shell.posix commands`)
+        # so we opt to not warn end users that this is going away, we only need to notify tab-completion devs
+        # deprecation_type=FutureWarning,
+    )
     def commands(self):
         """
         Returns a list of possible subcommands that are valid
@@ -219,7 +237,10 @@ class _Activator(metaclass=abc.ABCMeta):
         # Hidden commands to provide metadata to shells.
         return "\n".join(
             sorted(
-                find_builtin_commands(generate_parser()) + tuple(find_commands(True))
+                {
+                    *find_builtin_commands(generate_parser()),
+                    *find_commands(True),
+                }
             )
         )
 
@@ -231,48 +252,21 @@ class _Activator(metaclass=abc.ABCMeta):
     def _hook_postamble(self) -> str | None:
         return None
 
-    def _parse_and_set_args(self, arguments):
-        def raise_invalid_command_error(actual_command=None):
-            from .exceptions import ArgumentError
-
-            message = (
-                "'activate', 'deactivate', 'hook', 'commands', or 'reactivate' "
-                "command must be given"
-            )
-            if actual_command:
-                message += ". Instead got '%s'." % actual_command
-            raise ArgumentError(message)
-
-        if arguments is None or len(arguments) < 1:
-            raise_invalid_command_error()
-
-        command, *arguments = arguments
+    @deprecated.argument("25.3", "25.9", "arguments")
+    def _parse_and_set_args(self) -> None:
+        command, *arguments = self._raw_arguments or [None]
         help_flags = ("-h", "--help", "/?")
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
         remainder_args = list(arg for arg in non_help_args if arg and arg != command)
 
-        if not command:
-            raise_invalid_command_error()
+        if command not in BUILTIN_COMMANDS:
+            raise ArgumentError(
+                "'activate', 'deactivate', 'hook', 'commands', or 'reactivate' "
+                "command must be given." + (f", not '{command}'." if command else ".")
+            )
         elif help_requested:
-            from .exceptions import ActivateHelp, DeactivateHelp, GenericHelp
-
-            help_classes = {
-                "activate": ActivateHelp(),
-                "deactivate": DeactivateHelp(),
-                "hook": GenericHelp("hook"),
-                "commands": GenericHelp("commands"),
-                "reactivate": GenericHelp("reactivate"),
-            }
-            raise help_classes[command]
-        elif command not in (
-            "activate",
-            "deactivate",
-            "reactivate",
-            "hook",
-            "commands",
-        ):
-            raise_invalid_command_error(actual_command=command)
+            raise BUILTIN_COMMANDS[command]
 
         if command.endswith("activate") or command == "hook":
             try:
@@ -294,8 +288,6 @@ class _Activator(metaclass=abc.ABCMeta):
             except ValueError:
                 no_stack_idx = -1
             if stack_idx >= 0 and no_stack_idx >= 0:
-                from .exceptions import ArgumentError
-
                 raise ArgumentError(
                     "cannot specify both --stack and --no-stack to " + command
                 )
@@ -306,8 +298,6 @@ class _Activator(metaclass=abc.ABCMeta):
                 self.stack = False
                 del remainder_args[no_stack_idx]
             if len(remainder_args) > 1:
-                from .exceptions import ArgumentError
-
                 raise ArgumentError(
                     command
                     + " does not accept more than one argument:\n"
@@ -318,8 +308,6 @@ class _Activator(metaclass=abc.ABCMeta):
 
         else:
             if remainder_args:
-                from .exceptions import ArgumentError
-
                 raise ArgumentError(
                     f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
                 )
@@ -365,8 +353,8 @@ class _Activator(metaclass=abc.ABCMeta):
             prefix = locate_prefix_by_name(env_name_or_prefix)
 
         # get prior shlvl and prefix
-        old_conda_shlvl = int(self.environ.get("CONDA_SHLVL", "").strip() or 0)
-        old_conda_prefix = self.environ.get("CONDA_PREFIX")
+        old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
+        old_conda_prefix = os.getenv("CONDA_PREFIX")
 
         # if the prior active prefix is this prefix we are actually doing a reactivate
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
@@ -383,11 +371,11 @@ class _Activator(metaclass=abc.ABCMeta):
         }
 
         # get clobbered environment variables
-        clobber_vars = set(env_vars.keys()).intersection(os.environ.keys())
+        clobber_vars = set(env_vars).intersection(os.environ)
         overwritten_clobber_vars = [
             clobber_var
             for clobber_var in clobber_vars
-            if os.environ[clobber_var] != env_vars[clobber_var]
+            if os.getenv(clobber_var) != env_vars[clobber_var]
         ]
         if overwritten_clobber_vars:
             print(
@@ -396,7 +384,7 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             print(f"overwriting variable {overwritten_clobber_vars}", file=sys.stderr)
         for name in clobber_vars:
-            env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.environ.get(name)
+            env_vars[f"__CONDA_SHLVL_{old_conda_shlvl}_{name}"] = os.getenv(name)
 
         if old_conda_shlvl == 0:
             export_vars, unset_vars = self.get_export_unset_vars(
@@ -453,8 +441,8 @@ class _Activator(metaclass=abc.ABCMeta):
     def build_deactivate(self):
         self._deactivate = True
         # query environment
-        old_conda_prefix = self.environ.get("CONDA_PREFIX")
-        old_conda_shlvl = int(self.environ.get("CONDA_SHLVL", "").strip() or 0)
+        old_conda_prefix = os.getenv("CONDA_PREFIX")
+        old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
         if not old_conda_prefix or old_conda_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
             return {
@@ -490,17 +478,15 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             conda_prompt_modifier = ""
             activate_scripts = ()
-            export_path = {
-                "PATH": new_path,
-            }
+            export_path = {"PATH": new_path}
         else:
             assert old_conda_shlvl > 1
-            new_prefix = self.environ.get("CONDA_PREFIX_%d" % new_conda_shlvl)
+            new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
             new_conda_environment_env_vars = self._get_environment_env_vars(new_prefix)
 
-            old_prefix_stacked = "CONDA_STACKED_%d" % old_conda_shlvl in self.environ
+            old_prefix_stacked = "CONDA_STACKED_%d" % old_conda_shlvl in os.environ
             new_path = ""
 
             unset_vars = ["CONDA_PREFIX_%d" % new_conda_shlvl]
@@ -522,19 +508,17 @@ class _Activator(metaclass=abc.ABCMeta):
                 **new_conda_environment_env_vars,
             )
             unset_vars += unset_vars2
-            export_path = {
-                "PATH": new_path,
-            }
+            export_path = {"PATH": new_path}
             activate_scripts = self._get_activate_scripts(new_prefix)
 
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         for env_var in old_conda_environment_env_vars.keys():
-            unset_vars.append(env_var)
-            save_var = f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"
-            if save_var in os.environ.keys():
-                export_vars[env_var] = os.environ[save_var]
+            if save_value := os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"):
+                export_vars[env_var] = save_value
+            else:
+                unset_vars.append(env_var)
         return {
             "unset_vars": unset_vars,
             "set_vars": set_vars,
@@ -546,18 +530,18 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def build_reactivate(self):
         self._reactivate = True
-        conda_prefix = self.environ.get("CONDA_PREFIX")
-        conda_shlvl = int(self.environ.get("CONDA_SHLVL", "").strip() or 0)
+        conda_prefix = os.getenv("CONDA_PREFIX")
+        conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
-                "unset_vars": (),
+                "unset_vars": [],
                 "set_vars": {},
                 "export_vars": {},
                 "deactivate_scripts": (),
                 "activate_scripts": (),
             }
-        conda_default_env = self.environ.get(
+        conda_default_env = os.getenv(
             "CONDA_DEFAULT_ENV", self._default_env(conda_prefix)
         )
         new_path = self.pathsep_join(
@@ -568,25 +552,19 @@ class _Activator(metaclass=abc.ABCMeta):
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
-        env_vars_to_unset = ()
-        env_vars_to_export = {
-            "PATH": new_path,
-            "CONDA_SHLVL": conda_shlvl,
-            "CONDA_PROMPT_MODIFIER": self._prompt_modifier(
+        export_vars, unset_vars = self.get_export_unset_vars(
+            PATH=new_path,
+            CONDA_SHLVL=conda_shlvl,
+            CONDA_PROMPT_MODIFIER=self._prompt_modifier(
                 conda_prefix, conda_default_env
             ),
-        }
-        conda_environment_env_vars = self._get_environment_env_vars(conda_prefix)
-        for k, v in conda_environment_env_vars.items():
-            if v == CONDA_ENV_VARS_UNSET_VAR:
-                env_vars_to_unset = env_vars_to_unset + (k,)
-            else:
-                env_vars_to_export[k] = v
+        )
+
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
-            "unset_vars": env_vars_to_unset,
+            "unset_vars": unset_vars,
             "set_vars": set_vars,
-            "export_vars": env_vars_to_export,
+            "export_vars": export_vars,
             "deactivate_scripts": self._get_deactivate_scripts(conda_prefix),
             "activate_scripts": self._get_activate_scripts(conda_prefix),
         }
@@ -605,16 +583,48 @@ class _Activator(metaclass=abc.ABCMeta):
             "C:\\Windows\\System32\\Wbem;"
             "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\",
         }
-        path = self.environ.get(
+        path = os.getenv(
             "PATH",
             clean_paths[sys.platform] if sys.platform in clean_paths else "/usr/bin",
         )
         path_split = path.split(os.pathsep)
         return path_split
 
-    def _get_path_dirs(self, prefix, extra_library_bin=False):
+    def _get_path_dirs(self, prefix):
         if on_win:  # pragma: unix no cover
-            yield prefix.rstrip("\\")
+            yield prefix.rstrip(self.sep)
+
+            # We need to stat(2) for possible environments because
+            # tests can't be told where to look!
+            #
+            # mingw-w64 is a legacy variant used by m2w64-* packages
+            #
+            # We could include clang32 and mingw32 variants
+            variants = []
+            for variant in ["ucrt64", "clang64", "mingw64", "clangarm64"]:
+                path = self.sep.join((prefix, "Library", variant))
+
+                # MSYS2 /c/
+                # cygwin /cygdrive/c/
+                if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
+                    path = unix_path_to_win(path, prefix)
+
+                if isdir(path):
+                    variants.append(variant)
+
+            if len(variants) > 1:
+                print(
+                    f"WARNING: {prefix}: {variants} MSYS2 envs exist: please check your dependencies",
+                    file=sys.stderr,
+                )
+                print(
+                    f"WARNING: conda list -n {self._default_env(prefix)}",
+                    file=sys.stderr,
+                )
+
+            if variants:
+                yield self.sep.join((prefix, "Library", variants[0], "bin"))
+
             yield self.sep.join((prefix, "Library", "mingw-w64", "bin"))
             yield self.sep.join((prefix, "Library", "usr", "bin"))
             yield self.sep.join((prefix, "Library", "bin"))
@@ -634,7 +644,7 @@ class _Activator(metaclass=abc.ABCMeta):
         # the condabin directory is included in the path list.
         # Under normal conditions, if the shell hook is working correctly, this should
         # never trigger.
-        old_conda_shlvl = int(self.environ.get("CONDA_SHLVL", "").strip() or 0)
+        old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
         if not old_conda_shlvl and not any(p.endswith("condabin") for p in path_list):
             condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
             path_list.insert(0, condabin_dir)
@@ -704,15 +714,15 @@ class _Activator(metaclass=abc.ABCMeta):
             # Get current environment and prompt stack
             env_stack = []
             prompt_stack = []
-            old_shlvl = int(self.environ.get("CONDA_SHLVL", "0").rstrip())
+            old_shlvl = int(os.getenv("CONDA_SHLVL", "0").rstrip())
             for i in range(1, old_shlvl + 1):
                 if i == old_shlvl:
-                    env_i = self._default_env(self.environ.get("CONDA_PREFIX", ""))
+                    env_i = self._default_env(os.getenv("CONDA_PREFIX", ""))
                 else:
                     env_i = self._default_env(
-                        self.environ.get(f"CONDA_PREFIX_{i}", "").rstrip()
+                        os.getenv(f"CONDA_PREFIX_{i}", "").rstrip()
                     )
-                stacked_i = bool(self.environ.get(f"CONDA_STACKED_{i}", "").rstrip())
+                stacked_i = bool(os.getenv(f"CONDA_STACKED_{i}", "").rstrip())
                 env_stack.append(env_i)
                 if not stacked_i:
                     prompt_stack = prompt_stack[0:-1]
@@ -724,9 +734,7 @@ class _Activator(metaclass=abc.ABCMeta):
             if deactivate:
                 prompt_stack = prompt_stack[0:-1]
                 env_stack = env_stack[0:-1]
-                stacked = bool(
-                    self.environ.get(f"CONDA_STACKED_{old_shlvl}", "").rstrip()
-                )
+                stacked = bool(os.getenv(f"CONDA_STACKED_{old_shlvl}", "").rstrip())
                 if not stacked and env_stack:
                     prompt_stack.append(env_stack[-1])
             elif reactivate:
@@ -803,7 +811,7 @@ class _Activator(metaclass=abc.ABCMeta):
                         "will overwrite those from packages",
                         file=sys.stderr,
                     )
-                    print("variable %s duplicated" % dup, file=sys.stderr)
+                    print(f"variable {dup} duplicated", file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
 
         return env_vars
@@ -813,6 +821,7 @@ def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
+@deprecated("25.3", "25.9", addendum="Use `conda.common.compat.ensure_binary` instead.")
 def ensure_binary(value):
     try:
         return value.encode("utf-8")
@@ -822,84 +831,46 @@ def ensure_binary(value):
         return value
 
 
+@deprecated("25.3", "25.9")
 def ensure_fs_path_encoding(value):
+    from .common.compat import FILESYSTEM_ENCODING
+
     try:
         return value.decode(FILESYSTEM_ENCODING)
     except AttributeError:
         return value
 
 
-def native_path_to_unix(
-    paths: str | Iterable[str] | None,
-) -> str | tuple[str, ...] | None:
-    if paths is None:
-        return None
-    elif not on_win:
-        return path_identity(paths)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "_Cygpath",
+    _cygpath,
+    addendum="Use `conda.common.path._cygpath` instead.",
+)
+del _cygpath
 
-    # short-circuit if we don't get any paths
-    paths = paths if isinstance(paths, str) else tuple(paths)
-    if not paths:
-        return "." if isinstance(paths, str) else ()
-
-    # on windows, uses cygpath to convert windows native paths to posix paths
-    from shutil import which
-    from subprocess import run
-
-    # It is very easy to end up with a bash in one place and a cygpath in another due to e.g.
-    # using upstream MSYS2 bash, but with a conda env that does not have bash but does have
-    # cygpath.  When this happens, we have two different virtual POSIX machines, rooted at
-    # different points in the Windows filesystem.  We do our path conversions with one and
-    # expect the results to work with the other.  It does not.
-
-    bash = which("bash")
-    cygpath = str(Path(bash).parent / "cygpath") if bash else "cygpath"
-    joined = paths if isinstance(paths, str) else os.pathsep.join(paths)
-
-    try:
-        # if present, use cygpath to convert paths since its more reliable
-        unix_path = run(
-            [cygpath, "--path", joined],
-            text=True,
-            capture_output=True,
-            check=True,
-        ).stdout.strip()
-    except FileNotFoundError:
-        # fallback logic when cygpath is not available
-        # i.e. conda without anything else installed
-        def _translation(match):
-            return "/" + (
-                match.group(1)
-                .replace("\\", "/")
-                .replace(":", "")
-                .replace("//", "/")
-                .rstrip("/")
-            )
-
-        unix_path = (
-            re.sub(r"([a-zA-Z]:[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)", _translation, joined)
-            .replace(";", ":")
-            .rstrip(";")
-        )
-    except Exception as err:
-        log.error("Unexpected cygpath error (%s)", err)
-        raise
-
-    if isinstance(paths, str):
-        return unix_path
-    elif not unix_path:
-        return ()
-    else:
-        return tuple(unix_path.split(":"))
-
-
-def path_identity(paths: str | Iterable[str] | None) -> str | tuple[str, ...] | None:
-    if paths is None:
-        return None
-    elif isinstance(paths, str):
-        return os.path.normpath(paths)
-    else:
-        return tuple(os.path.normpath(path) for path in paths)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "native_path_to_unix",
+    win_path_to_unix,
+    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "unix_path_to_native",
+    unix_path_to_win,
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
+deprecated.constant(
+    "25.3",
+    "25.9",
+    "path_identity",
+    _path_identity,
+    addendum="Use `conda.common.path.path_identity` instead.",
+)
 
 
 def backslash_to_forwardslash(
@@ -916,7 +887,7 @@ def backslash_to_forwardslash(
 class PosixActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
+    path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
@@ -935,11 +906,11 @@ class PosixActivator(_Activator):
     )
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
-        ps1 = self.environ.get("PS1", "")
+        ps1 = os.getenv("PS1", "")
         if "POWERLINE_COMMAND" in ps1:
             # Defer to powerline (https://github.com/powerline/powerline) if it's in use.
             return
-        current_prompt_modifier = self.environ.get("CONDA_PROMPT_MODIFIER")
+        current_prompt_modifier = os.getenv("CONDA_PROMPT_MODIFIER")
         if current_prompt_modifier:
             ps1 = re.sub(re.escape(current_prompt_modifier), r"", ps1)
         # Because we're using single-quotes to set shell variables, we need to handle the
@@ -969,7 +940,7 @@ class PosixActivator(_Activator):
 class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
+    path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -979,17 +950,11 @@ class CshActivator(_Activator):
     set_var_tmpl = "set %s='%s'"
     run_script_tmpl = 'source "%s"'
 
-    hook_source_path = Path(
-        CONDA_PACKAGE_ROOT,
-        "shell",
-        "etc",
-        "profile.d",
-        "conda.csh",
-    )
+    hook_source_path = None  # see _hook_preamble
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
-        prompt = self.environ.get("prompt", "")
-        current_prompt_modifier = self.environ.get("CONDA_PROMPT_MODIFIER")
+        prompt = os.getenv("prompt", "")
+        current_prompt_modifier = os.getenv("CONDA_PROMPT_MODIFIER")
         if current_prompt_modifier:
             prompt = re.sub(re.escape(current_prompt_modifier), r"", prompt)
         set_vars.update(
@@ -999,31 +964,38 @@ class CshActivator(_Activator):
         )
 
     def _hook_preamble(self) -> str:
+        # TCSH/CSH removes newlines when doing command substitution (see `man tcsh`),
+        # source conda.csh directly and use line terminators to separate commands
+        hook_source_path = Path(
+            CONDA_PACKAGE_ROOT,
+            "shell",
+            "etc",
+            "profile.d",
+            "conda.csh",
+        )
         if on_win:
-            return dedent(
-                f"""
-                setenv CONDA_EXE `cygpath {context.conda_exe}`
-                setenv _CONDA_ROOT `cygpath {context.conda_prefix}`
-                setenv _CONDA_EXE `cygpath {context.conda_exe}`
-                setenv CONDA_PYTHON_EXE `cygpath {sys.executable}`
-                """
-            ).strip()
+            return (
+                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
+                f"source \"`cygpath '{hook_source_path}'`\";\n"
+            )
         else:
-            return dedent(
-                f"""
-                setenv CONDA_EXE "{context.conda_exe}"
-                setenv _CONDA_ROOT "{context.conda_prefix}"
-                setenv _CONDA_EXE "{context.conda_exe}"
-                setenv CONDA_PYTHON_EXE "{sys.executable}"
-                """
-            ).strip()
+            return (
+                f'setenv CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
+                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
+                f'source "{hook_source_path}";\n'
+            )
 
 
 class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
     path_conversion = staticmethod(
-        backslash_to_forwardslash if on_win else path_identity
+        backslash_to_forwardslash if on_win else _path_identity
     )
     # 'scripts' really refer to de/activation scripts, not scripts in the language per se
     # xonsh can piggy-back activation scripts from other languages depending on the platform
@@ -1031,7 +1003,7 @@ class XonshActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = "del $%s"
+    unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
     # TODO: determine if different than export_var_tmpl
     set_var_tmpl = "$%s = '%s'"
@@ -1044,13 +1016,19 @@ class XonshActivator(_Activator):
     hook_source_path = Path(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")
 
     def _hook_preamble(self) -> str:
-        return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
+        result = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                result.append(self.unset_var_tmpl % key)
+            else:
+                result.append(self.export_var_tmpl % (key, self.path_conversion(value)))
+        return "\n".join(result) + "\n"
 
 
 class CmdExeActivator(_Activator):
     pathsep_join = ";".join
     sep = "\\"
-    path_conversion = staticmethod(path_identity)
+    path_conversion = staticmethod(_path_identity)
     script_extension = ".bat"
     tempfile_extension = ".bat"
     command_join = "\n"
@@ -1072,7 +1050,7 @@ class CmdExeActivator(_Activator):
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
-    path_conversion = staticmethod(native_path_to_unix)
+    path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
@@ -1115,12 +1093,12 @@ class FishActivator(_Activator):
 class PowerShellActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "\\" if on_win else "/"
-    path_conversion = staticmethod(path_identity)
+    path_conversion = staticmethod(_path_identity)
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
 
-    unset_var_tmpl = '$Env:%s = ""'
+    unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'
     set_var_tmpl = '$Env:%s = "%s"'
     run_script_tmpl = '. "%s"'
@@ -1149,8 +1127,8 @@ class PowerShellActivator(_Activator):
             return dedent(
                 f"""
                 $Env:CONDA_EXE = "{context.conda_exe}"
-                $Env:_CE_M = ""
-                $Env:_CE_CONDA = ""
+                $Env:_CE_M = $null
+                $Env:_CE_CONDA = $null
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
                 $Env:_CONDA_EXE = "{context.conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
@@ -1186,15 +1164,6 @@ class JSONFormatMixin(_Activator):
                 "_CONDA_ROOT": context.conda_prefix,
                 "_CONDA_EXE": context.conda_exe,
             }
-
-    def get_scripts_export_unset_vars(self, **kwargs):
-        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        script_export_vars = script_unset_vars = None
-        if export_vars:
-            script_export_vars = dict(export_vars.items())
-        if unset_vars:
-            script_unset_vars = unset_vars
-        return script_export_vars or {}, script_unset_vars or []
 
     def _finalize(self, commands, ext):
         merged = {}

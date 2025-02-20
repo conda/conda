@@ -12,7 +12,7 @@ import struct
 from enum import Enum, EnumMeta
 from os.path import join
 
-from ..common.compat import on_win, six_with_metaclass
+from ..common.compat import on_win
 
 PREFIX_PLACEHOLDER = (
     "/opt/anaconda1anaconda2"
@@ -90,7 +90,6 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
 
 RECOGNIZED_URL_SCHEMES = ("http", "https", "ftp", "s3", "file")
 
-
 DEFAULT_CHANNELS_UNIX = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",
@@ -109,6 +108,7 @@ DEFAULT_CUSTOM_CHANNELS = {
 DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = "base"
+UNUSED_ENV_NAME = "unused-env-name"
 
 ROOT_NO_RM = (
     "python",
@@ -217,7 +217,7 @@ class UpdateModifier(Enum):
     UPDATE_DEPS = "update_deps"
     UPDATE_SPECS = "update_specs"  # default
     UPDATE_ALL = "update_all"
-    # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149  # NOQA
+    # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149
 
     def __str__(self):
         return self.value
@@ -246,7 +246,7 @@ class ValueEnum(Enum):
         return f"{self.value}"
 
 
-class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, ValueEnum)):
+class ChannelPriority(ValueEnum, metaclass=ChannelPriorityMeta):
     __name__ = "ChannelPriority"
 
     STRICT = "strict"
@@ -264,6 +264,12 @@ class SatSolverChoice(ValueEnum):
 #: The name of the default solver, currently "libmamba"
 DEFAULT_SOLVER = "libmamba"
 CLASSIC_SOLVER = "classic"
+
+#: The name of the default json reporter backend
+DEFAULT_JSON_REPORTER_BACKEND = "json"
+
+#: The name of the default console reporter backend
+DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
 
 
 class NoticeLevel(ValueEnum):

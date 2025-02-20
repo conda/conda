@@ -1,18 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Wrapper for running conda CLI commands as a Python API."""
+
 from logging import getLogger
 
 from ..base.constants import SEARCH_PATH
 from ..base.context import context
-from ..common.compat import encode_arguments
 from ..common.io import CaptureTarget, argv, captured
 from ..deprecations import deprecated
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
 from .conda_argparse import do_call, generate_parser
 
-deprecated.module("24.3", "24.9", addendum="Use `conda.testing.conda_cli` instead.")
+deprecated.module("24.3", "25.9", addendum="Use `conda.testing.conda_cli` instead.")
 
 log = getLogger(__name__)
 
@@ -104,9 +104,7 @@ def run_command(command, *arguments, **kwargs):
     else:
         cap_args = (stdout, stderr)
     try:
-        with argv(["python_api"] + encode_arguments(arguments)), captured(
-            *cap_args
-        ) as c:
+        with argv(["python_api", *arguments]), captured(*cap_args) as c:
             if use_exception_handler:
                 result = conda_exception_handler(do_call, args, p)
             else:

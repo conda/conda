@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Implements all conda.notices types."""
+
 from __future__ import annotations
 
 import hashlib
@@ -10,8 +11,8 @@ from typing import TYPE_CHECKING, NamedTuple
 from ..base.constants import NoticeLevel
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
-    from typing import Sequence
 
 #: Value to use for message ID when it is not provided
 UNDEFINED_MESSAGE_ID = "undefined"
@@ -27,6 +28,17 @@ class ChannelNotice(NamedTuple):
     created_at: datetime | None
     expired_at: datetime | None
     interval: int | None
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "channel_name": self.channel_name,
+            "message": self.message,
+            "level": self.level.name.lower(),
+            "created_at": self.created_at.isoformat(),
+            "expired_at": self.expired_at.isoformat(),
+            "interval": self.interval,
+        }
 
 
 class ChannelNoticeResultSet(NamedTuple):

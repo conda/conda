@@ -4,10 +4,16 @@
 
 Updates the specified packages in an existing environment.
 """
+
+from __future__ import annotations
+
 import sys
-from argparse import ArgumentParser, Namespace, _SubParsersAction
+from typing import TYPE_CHECKING
 
 from ..notices import notices
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:

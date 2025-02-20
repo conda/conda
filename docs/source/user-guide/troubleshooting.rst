@@ -151,6 +151,7 @@ PATH folders goes from left to right. If you choose to put Anaconda's folders on
 PATH, there are several of them:
 
   * (install root)
+  * (install root)/Library/(MSYS2 env)/bin ## dependent on MSYS2 packages
   * (install root)/Library/mingw-w64/bin
   * (install root)/Library/usr/bin
   * (install root)/Library/bin
@@ -403,7 +404,7 @@ Install using the ``--force`` option.
 
 Download and install the appropriate Miniconda
 for your operating system from the `Miniconda download page
-<https://docs.anaconda.com/free/miniconda/>`_ using the force option
+<https://docs.anaconda.com/miniconda/>`__ using the force option
 ``--force`` or ``-f``:
 
 .. code-block::

@@ -4,6 +4,7 @@
 
 Prepares the user's profile for running conda, and sets up the conda shell interface.
 """
+
 from __future__ import annotations
 
 from argparse import SUPPRESS

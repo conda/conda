@@ -1,25 +1,33 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import copy
+import os
+import re
 import sys
+from importlib.metadata import version
 from pprint import pprint
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.compat import on_linux
+from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
 from conda.core.solve import DepsModifier, UpdateModifier
-from conda.exceptions import SpecsConfigurationConflictError, UnsatisfiableError
+from conda.exceptions import (
+    PackagesNotFoundError,
+    ResolvePackageNotFound,
+    SpecsConfigurationConflictError,
+    UnsatisfiableError,
+)
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PrefixRecord
 from conda.models.version import VersionOrder
 from conda.resolve import MatchSpec
 from conda.testing.helpers import (
-    CHANNEL_DIR,
+    CHANNEL_DIR_V1,
     add_subdir,
     add_subdir_to_iter,
     convert_to_dist_str,
@@ -337,8 +345,9 @@ Your installed version is: 8.0"""
 def test_cuda_glibc_sat(tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"), env_var(
-        "CONDA_OVERRIDE_GLIBC", "2.23"
+    with (
+        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
+        env_var("CONDA_OVERRIDE_GLIBC", "2.23"),
     ):
         with get_solver_cuda(tmpdir, specs) as solver:
             final_state = solver.solve_final_state()
@@ -372,12 +381,29 @@ Your installed version is: 8.0"""
 def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"), env_var(
-        "CONDA_OVERRIDE_GLIBC", "2.12"
+    with (
+        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
+        env_var("CONDA_OVERRIDE_GLIBC", "2.12"),
     ):
         with get_solver_cuda(tmpdir, specs) as solver:
             with pytest.raises(UnsatisfiableError):
                 solver.solve_final_state()
+
+
+@pytest.mark.skipif(
+    not (on_win or on_mac or on_linux),
+    reason="archspec is only supported on win, mac or linux",
+)
+def test_archspec_call(tmpdir):
+    specs = (MatchSpec("numpy"),)
+
+    with env_vars(), patch("archspec.cpu.host") as archspec:
+        if "CONDA_OVERRIDE_ARCHSPEC" in os.environ:
+            del os.environ["CONDA_OVERRIDE_ARCHSPEC"]
+
+        with get_solver_cuda(tmpdir, specs) as solver:
+            solver.solve_final_state()
+            archspec.assert_called()
 
 
 def test_prune_1(tmpdir, request):
@@ -2675,6 +2701,14 @@ def test_timestamps_1(tmpdir):
 
 
 def test_channel_priority_churn_minimized(tmpdir):
+    """
+    get_solver_aggregate_2 has [channel-4, channel-2].
+    When the channels are reverted in the second operation, we put
+    channel-2 first. Under these circumstances, reinstalling
+    'itsdangerous' should pick the noarch version from channel-2
+    instead of the non-noarch variant in channel-4. Everything
+    else should stay the same due to FREEZE_INSTALLED.
+    """
     specs = (
         MatchSpec("conda-build"),
         MatchSpec("itsdangerous"),
@@ -2684,6 +2718,12 @@ def test_channel_priority_churn_minimized(tmpdir):
 
     pprint(convert_to_dist_str(final_state))
 
+    if context.solver == "libmamba":
+        # With libmamba v2, we need this extra flag to make this test pass
+        # Otherwise, the solver considers the current state as satisfying.
+        solver_kwargs = {"force_reinstall": True}
+    else:
+        solver_kwargs = {}
     with get_solver_aggregate_2(
         tmpdir,
         [MatchSpec("itsdangerous")],
@@ -2692,7 +2732,8 @@ def test_channel_priority_churn_minimized(tmpdir):
     ) as solver:
         solver.channels.reverse()
         unlink_dists, link_dists = solver.solve_for_diff(
-            update_modifier=UpdateModifier.FREEZE_INSTALLED
+            update_modifier=UpdateModifier.FREEZE_INSTALLED,
+            **solver_kwargs,
         )
         pprint(convert_to_dist_str(unlink_dists))
         pprint(convert_to_dist_str(link_dists))
@@ -3060,8 +3101,15 @@ def test_freeze_deps_1(tmpdir):
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
                 # LIBMAMBA ADJUSTMENT
-                # libmamba doesn't remove xz in this solve
-                *(() if context.solver == "libmamba" else ("channel-2::xz-5.2.3-0",)),
+                # libmamba v1 doesn't remove xz in this solve
+                *(
+                    ()
+                    if (
+                        context.solver == "libmamba"
+                        and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
+                    )
+                    else ("channel-2::xz-5.2.3-0",)
+                ),
             )
         )
         link_order = add_subdir_to_iter(
@@ -3185,7 +3233,7 @@ def test_current_repodata_usage(tmpdir):
     with env_vars(config, stack_callback=conda_tests_ctxt_mgmt_def_pol):
         solver = context.plugin_manager.get_solver_backend()(
             tmpdir.strpath,
-            (Channel(CHANNEL_DIR),),
+            (Channel(CHANNEL_DIR_V1),),
             ("win-64",),
             specs_to_add=[MatchSpec("zlib")],
             repodata_fn="current_repodata.json",
@@ -3206,7 +3254,7 @@ def test_current_repodata_usage(tmpdir):
 def test_current_repodata_fallback(tmpdir):
     solver = context.plugin_manager.get_solver_backend()(
         tmpdir.strpath,
-        (Channel(CHANNEL_DIR),),
+        (Channel(CHANNEL_DIR_V1),),
         ("win-64",),
         specs_to_add=[MatchSpec("zlib=1.2.8")],
     )
@@ -3265,12 +3313,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             error_snippets = [
                 "Encountered problems while solving",
                 "Pins seem to be involved in the conflict. Currently pinned specs",
-                "python 2.6.*",
-                "scikit-learn 0.13",
+                r"python.*2\.6",
+                r"scikit-learn.*0\.13",
             ]
 
         for snippet in error_snippets:
-            assert snippet in error_msg
+            assert re.search(snippet, error_msg)
 
     specs_to_add = (MatchSpec("unsatisfiable-with-py26"),)
     with get_solver(
@@ -3293,12 +3341,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             error_snippets = [
                 "Encountered problems while solving",
                 "Pins seem to be involved in the conflict. Currently pinned specs",
-                "python 2.6.*",
+                r"python.*2\.6",
                 "unsatisfiable-with-py26",
             ]
 
         for snippet in error_snippets:
-            assert snippet in error_msg
+            assert re.search(snippet, error_msg)
 
 
 fake_index = [
@@ -3352,7 +3400,7 @@ def test_packages_in_solution_change_already_newest(tmpdir):
     pre_packages = {"mypkg": [("mypkg", "0.1.1")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
         pre_packages, post_packages, fake_index
@@ -3365,7 +3413,7 @@ def test_packages_in_solution_change_needs_update(tmpdir):
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.1")]}
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
         pre_packages, post_packages, fake_index
@@ -3378,7 +3426,7 @@ def test_packages_in_solution_change_constrained(tmpdir):
     pre_packages = {"mypkg": [("mypkg", "0.1.0")]}
     post_packages = {"mypkg": [("mypkg", "0.1.0")]}
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[specs]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[specs]
     )
     constrained = solver.get_constrained_packages(
         pre_packages, post_packages, fake_index
@@ -3419,7 +3467,7 @@ def test_determine_constricting_specs_conflicts(tmpdir):
     ]
     spec = MatchSpec("mypkg")
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -3458,7 +3506,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
     ]
     spec = MatchSpec("mypkg")
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -3511,7 +3559,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
     ]
     spec = MatchSpec("mypkg")
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert any(i for i in constricting if i[0] == "mypkgnot")
@@ -3551,7 +3599,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
     ]
     spec = MatchSpec("mypkg")
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -3590,7 +3638,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
     ]
     spec = MatchSpec("mypkg")
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -3615,7 +3663,7 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
     ]
     spec = MatchSpec("mypkg")
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -3654,7 +3702,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
     ]
     spec = MatchSpec("mypkg")
     solver = context.plugin_manager.get_solver_backend()(
-        tmpdir, (Channel(CHANNEL_DIR),), ("linux-64",), specs_to_add=[spec]
+        tmpdir, (Channel(CHANNEL_DIR_V1),), ("linux-64",), specs_to_add=[spec]
     )
     constricting = solver.determine_constricting_specs(spec, solution_prec)
     assert constricting is None
@@ -3705,3 +3753,44 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
                 assert prec.build_number == 1
             elif prec.name == "_dummy_anaconda_impl":
                 assert prec.version == "2.0"
+
+
+@pytest.mark.integration
+def test_globstr_matchspec_compatible(tmpdir):
+    # This should work -- build strings are compatible
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"))
+    with get_solver(tmpdir, specs) as solver:
+        solver.solve_final_state()
+
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np17py27*"))
+    with get_solver(tmpdir, specs) as solver:
+        solver.solve_final_state()
+
+
+@pytest.mark.integration
+def test_globstr_matchspec_non_compatible(tmpdir):
+    # This should fail -- build strings are not compatible
+
+    # This one fails with ValueError (glob str match_spec checks)
+    # because we can anticipate the globs are not compatible. Note it
+    # fails during the Solver INSTANTIATION; i.e. in get_solver(...)
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np16*"))
+    with pytest.raises(ValueError):
+        with get_solver(tmpdir, specs) as solver:
+            solver.solve_final_state()
+
+    # This one fails later, because we cannot anticipate whether a package
+    # with both np17 and np16 exists just by looking at the glob strings
+    # We do know the index doesn't contain any though, so ResolvePackageNotFound
+    # which is only raised when the solve starts. Note how the pytest.raises
+    # context manager is now in the inner block!
+    specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
+    with get_solver(tmpdir, specs) as solver:
+        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+            solver.solve_final_state()
+
+    # Same here; the index has no accelerate pkg with BOTH np15 and py33
+    specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
+    with get_solver(tmpdir, specs) as solver:
+        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+            solver.solve_final_state()

@@ -1,15 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
 import random
 from io import StringIO
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from pytest import MonkeyPatch
 
-from conda.base.context import context, reset_context
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
@@ -18,18 +18,18 @@ from conda.env.env import (
     from_environment,
     from_file,
 )
-from conda.exceptions import CondaHTTPError, EnvironmentFileNotFound
+from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
-from conda.testing import CondaCLIFixture, PathFactoryFixture
 from conda.testing.integration import package_is_installed
 
-# Note: The conda_env module will be deprecated in 25.3,
-#       this is the only place that the load_from_directory function
-#       utilized in the codebase.
-from conda_env.env import load_from_directory
-
 from . import support_file
-from .utils import make_temp_envs_dir
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
 
 class FakeStream:
@@ -237,7 +237,7 @@ def test_to_yaml_returns_proper_yaml():
 
     expected = "\n".join(
         [
-            "name: %s" % random_name,
+            f"name: {random_name}",
             "channels:",
             "  - javascript",
             "dependencies:",
@@ -259,7 +259,7 @@ def test_to_yaml_takes_stream():
 
     expected = "\n".join(
         [
-            "name: %s" % random_name,
+            f"name: {random_name}",
             "channels:",
             "  - javascript",
             "dependencies:",
@@ -302,49 +302,6 @@ def test_invalid_keys():
     assert len(e_dict) == 1
 
 
-@pytest.mark.parametrize(
-    "directory",
-    ["example", "example-yaml", "foo/bar", "foo/bar/baz", "foo/bar/baz/"],
-)
-def test_load_from_directory(directory: str):
-    env = load_from_directory(support_file(directory))
-
-    assert isinstance(env, Environment)
-    assert "test" == env.name
-    assert len(env.dependencies["conda"]) == 1
-    assert "numpy" in env.dependencies["conda"]
-
-
-def test_raises_when_unable_to_find():
-    with pytest.raises(EnvironmentFileNotFound):
-        load_from_directory("/path/to/unknown/env-spec")
-
-
-def test_raised_exception_has_environment_yml_as_file():
-    with pytest.raises(EnvironmentFileNotFound) as err:
-        load_from_directory("/path/to/unknown/env-spec")
-    assert err.value.filename == "environment.yml"
-
-
-def test_load_from_directory_and_save(tmp_path: Path):
-    original = Path(support_file("saved-env/environment.yml")).read_text()
-
-    tmp = tmp_path / "environment.yml"
-    tmp.write_text(original)
-
-    env = load_from_directory(tmp)
-
-    assert len(env.dependencies["conda"]) == 1
-    assert "numpy" not in env.dependencies["conda"]
-
-    env.dependencies.add("numpy")
-    env.save()
-
-    new_env = load_from_directory(tmp)
-    assert len(new_env.dependencies["conda"]) == 2
-    assert "numpy" in new_env.dependencies["conda"]
-
-
 def test_creates_file_on_save(tmp_path: Path):
     tmp = tmp_path / "environment.yml"
 
@@ -362,24 +319,20 @@ def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
+    tmp_envs_dir: Path,
 ):
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "true")
 
-    with make_temp_envs_dir() as envs_dir:
-        monkeypatch.setenv("CONDA_ENVS_DIRS", envs_dir)
-        reset_context()
-        assert context.envs_dirs[0] == envs_dir
-
-        prefix = path_factory()
-        assert not prefix.exists()
-        conda_cli(
-            *("env", "create"),
-            *("--prefix", prefix),
-            *("--file", support_file("pip_argh.yml")),
-        )
-        assert prefix.exists()
-        PrefixData._cache_.clear()
-        assert package_is_installed(prefix, "argh==0.26.2")
+    prefix = path_factory()
+    assert not prefix.exists()
+    conda_cli(
+        *("env", "create"),
+        *("--prefix", prefix),
+        *("--file", support_file("pip_argh.yml")),
+    )
+    assert prefix.exists()
+    PrefixData._cache_.clear()
+    assert package_is_installed(prefix, "argh==0.26.2")
 
 
 def test_from_history():
