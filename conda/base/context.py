@@ -194,24 +194,6 @@ def ssl_verify_validation(value):
     return True
 
 
-def _warn_defaults_deprecation():
-    deprecated.topic(
-        "24.9",
-        "25.3",
-        topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
-        addendum=(
-            "\n\n"
-            "To remove this warning, please choose a default channel explicitly "
-            "with conda's regular configuration system, e.g. "
-            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n\n"
-            f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
-            "\n\n"
-            "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
-        ),
-        deprecation_type=FutureWarning,
-    )
-
-
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -938,48 +920,46 @@ class Context(Configuration):
     @property
     def channels(self):
         local_channels = ("local",) if self.use_local else ()
+
         argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
-        # TODO: it's args.channel right now, not channels
+        # NOTE: args.channel since the CLI uses `--channel`
         cli_channels = argparse_args.get("channel") or ()
 
+        default_channels = self._channels
         if argparse_args.get("override_channels"):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
 
                 raise OperationNotAllowed("Overriding channels has been disabled.")
-
-            if cli_channels:
-                return validate_channels((*local_channels, *cli_channels))
-            else:
+            if not local_channels and not cli_channels:
                 from ..exceptions import ArgumentError
 
                 raise ArgumentError(
-                    "At least one -c / --channel flag must be supplied when using "
-                    "--override-channels."
+                    "At least one -c / --channel flag (or --use-local) must be "
+                    "supplied when using --override-channels."
                 )
+            default_channels = ()
 
-        # add 'defaults' channel when necessary if --channel is given via the command line
-        if cli_channels:
-            # Add condition to make sure that we add the 'defaults'
-            # channel only when no channels are defined in condarc
-            # We need to get the config_files and then check that they
-            # don't define channels
-            channel_in_config_files = any(
-                "channels" in context.raw_data[rc_file] for rc_file in self.config_files
+        channels = validate_channels(
+            (
+                *local_channels,
+                *cli_channels,
+                *default_channels,
             )
-            if cli_channels and not channel_in_config_files:
-                _warn_defaults_deprecation()
-                return validate_channels(
-                    (*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME)
-                )
+        )
+        if not channels:
+            from ..exceptions import ArgumentError
 
-        if self._channels:
-            channels = self._channels
-        else:
-            _warn_defaults_deprecation()
-            channels = [DEFAULTS_CHANNEL_NAME]
-
-        return validate_channels((*local_channels, *channels))
+            raise ArgumentError(
+                f"No channels defined. Please explicitly choose the default "
+                f"channel(s) with conda's configuration system, e.g. by adding "
+                f"'{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n"
+                f"\n"
+                f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}\n"
+                f"\n"
+                f"For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html"
+            )
+        return channels
 
     @property
     def config_files(self):
