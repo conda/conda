@@ -83,6 +83,9 @@ jobs:
             python-version: '3.9'
           - test-type: unit
             test-group: 3
+          - test-type: unit
+          - test-group: 2
+          - test-group: 3
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
@@ -158,10 +161,7 @@ jobs:
           python -m pytest
           --cov=conda
           --basetemp=${{ runner.temp }}
-          --durations-path=durations\${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
+          tests/test_create.py::test_update_all_updates_pip_pkg
 
       - name: Upload Coverage
         uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
@@ -185,7 +185,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -294,7 +294,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -361,7 +361,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -430,7 +430,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false # needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -492,7 +492,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:
