@@ -8,11 +8,11 @@ SET "__conda_tmp=%TEMP%\__conda_tmp_%RANDOM%.txt"
 :: Run conda command and get its output
 :: WARNING: This cannot be simplified into a FOR /F parsing loop because of the way
 :: MSDOS associates the outer quotes for usebackq. E.g., the following:
-::     `"%CONDA_EXE%" shell.cmd.exe activate "name"`
-:: results in the following gibberish being run:
-::     %CONDA_EXE%" shell.cmd.exe activate "environment
-:: which will produce an error like:
-::     The filename, directory name, or volume label syntax is incorrect.
+::   `"%CONDA_EXE%" shell.cmd.exe activate "name"`
+:: Which results in the following gibberish being run:
+::   %CONDA_EXE%" shell.cmd.exe activate "environment
+:: Producing an error like:
+::   The filename, directory name, or volume label syntax is incorrect.
 :: Instead we run the command and store the output for subsequent processing.
 "%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* > "%__conda_tmp%"
 IF %ERRORLEVEL% NEQ 0 (
