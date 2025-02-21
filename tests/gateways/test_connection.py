@@ -38,19 +38,7 @@ if TYPE_CHECKING:
 BOTO3_AVAILABLE = bool(find_spec("boto3"))
 log = getLogger(__name__)
 
-
-@pytest.fixture(autouse=True)
-def clean_up_object_cache():
-    """
-    We use this to clean up the class/function cache on various things in the
-    ``conda.gateways.connection.session`` module.
-    """
-    try:
-        del CondaSession._thread_local.sessions
-    except AttributeError:
-        pass
-
-    get_session.cache_clear()
+pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
 
 
 def test_add_binstar_token():

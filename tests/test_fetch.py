@@ -47,6 +47,8 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
+pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
+
 
 @pytest.mark.integration
 def test_download_connectionerror(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
