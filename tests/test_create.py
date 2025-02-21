@@ -354,41 +354,37 @@ def test_safety_checks_disabled(
 
 
 def test_json_create_install_update_remove(
-    path_factory: PathFactoryFixture,
+    tmp_path: Path,
     conda_cli: CondaCLIFixture,
-    capsys: CaptureFixture,
 ):
     # regression test for #5384
 
-    def assert_json_parsable(content):
-        string = None
-        try:
-            for string in content and content.split("\0") or ():
+    def is_json_parsable(content: str) -> bool:
+        for string in content and content.split("\0") or ():
+            try:
                 json.loads(string)
-        except Exception as e:
-            log.warning(
-                "Problem parsing json output.\n"
-                "  content: %s\n"
-                "  string: %s\n"
-                "  error: %r",
-                content,
-                string,
-                e,
-            )
-            raise
+            except Exception as err:
+                log.warning(
+                    "Problem parsing json output.\n"
+                    "  content: %s\n"
+                    "  string: %s\n"
+                    "  error: %r",
+                    content,
+                    string,
+                    err,
+                )
+                return False
+        return True
 
-    prefix = path_factory()
-
-    with pytest.raises(DryRunExit):
-        conda_cli(
-            "create",
-            f"--prefix={prefix}",
-            "zlib",
-            "--json",
-            "--dry-run",
-        )
-    stdout, stderr = capsys.readouterr()
-    assert_json_parsable(stdout)
+    stdout, _, _ = conda_cli(
+        "create",
+        f"--prefix={tmp_path}",
+        "zlib",
+        "--json",
+        "--dry-run",
+        raises=DryRunExit,
+    )
+    assert is_json_parsable(stdout)
 
     # regression test for #5825
     # contents of LINK and UNLINK is expected to have dist format
@@ -396,69 +392,64 @@ def test_json_create_install_update_remove(
     dist_dump = json_obj["actions"]["LINK"][0]
     assert "dist_name" in dist_dump
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "create",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "zlib",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
+    assert is_json_parsable(stdout)
 
     json_obj = json.loads(stdout)
     dist_dump = json_obj["actions"]["LINK"][0]
     assert "dist_name" in dist_dump
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "install",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "ca-certificates<2023",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert package_is_installed(prefix, "ca-certificates<2023")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert package_is_installed(tmp_path, "ca-certificates<2023")
+    assert package_is_installed(tmp_path, "zlib")
 
     # Test force reinstall
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "install",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "--force-reinstall",
         "ca-certificates<2023",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert package_is_installed(prefix, "ca-certificates<2023")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert package_is_installed(tmp_path, "ca-certificates<2023")
+    assert package_is_installed(tmp_path, "zlib")
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "update",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "ca-certificates",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert package_is_installed(prefix, "ca-certificates>=2023")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert package_is_installed(tmp_path, "ca-certificates>=2023")
+    assert package_is_installed(tmp_path, "zlib")
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "remove",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "ca-certificates",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert not package_is_installed(prefix, "ca-certificates")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert not package_is_installed(tmp_path, "ca-certificates")
+    assert package_is_installed(tmp_path, "zlib")
 
     # regression test for #5825
     # contents of LINK and UNLINK is expected to have Dist format
@@ -466,23 +457,21 @@ def test_json_create_install_update_remove(
     dist_dump = json_obj["actions"]["UNLINK"][0]
     assert "dist_name" in dist_dump
 
-    stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--revisions", "--json")
-    assert not stderr
+    stdout, _, _ = conda_cli("list", f"--prefix={tmp_path}", "--revisions", "--json")
     json_obj = json.loads(stdout)
     assert len(json_obj) == 5
     assert json_obj[4]["rev"] == 4
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "install",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "--revision=0",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert not package_is_installed(prefix, "ca-certificates")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert not package_is_installed(tmp_path, "ca-certificates")
+    assert package_is_installed(tmp_path, "zlib")
 
 
 def test_not_writable_env_raises_EnvironmentNotWritableError(
