@@ -1319,12 +1319,31 @@ def test_update_all_updates_pip_pkg(
     assert context.pip_interop_enabled
 
     with tmp_env("python", "pip", "pytz<2023") as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            "--dev",
+            f"--prefix={prefix}",
+            *("where", "python"),
+        )
+        log.error(f"{stdout=}")
+        log.error(f"{stderr=}")
+        log.error(f"{err=}")
+
         # install an old version of itsdangerous from pip
         stdout, stderr, err = conda_cli(
             "run",
+            "--dev",
             f"--prefix={prefix}",
             *("python", "-m", "pip", "install", "itsdangerous==1.*"),
         )
+        log.error(f"{stdout=}")
+        log.error(f"{stderr=}")
+        log.error(f"{err=}")
+
+        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        log.error(f"{stdout=}")
+        log.error(f"{stderr=}")
+        log.error(f"{err=}")
 
         # ensure installed version of itsdangerous is from PyPI
         PrefixData._cache_.clear()
