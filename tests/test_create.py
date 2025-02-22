@@ -1323,8 +1323,17 @@ def test_update_all_updates_pip_pkg(
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
+            "--no-capture-output",
             *("python", "-m", "pip", "install", "itsdangerous==1.*"),
         )
+        log.error(f"{stdout=}")
+        log.error(f"{stderr=}")
+        log.error(f"{err=}")
+
+        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        log.error(f"{stdout=}")
+        log.error(f"{stderr=}")
+        log.error(f"{err=}")
 
         # ensure installed version of itsdangerous is from PyPI
         PrefixData._cache_.clear()
