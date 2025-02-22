@@ -1321,6 +1321,7 @@ def test_update_all_updates_pip_pkg(
     with tmp_env("python", "pip", "pytz<2023") as prefix:
         stdout, stderr, err = conda_cli(
             "run",
+            "--dev",
             f"--prefix={prefix}",
             *("where", "python"),
         )
@@ -1331,6 +1332,7 @@ def test_update_all_updates_pip_pkg(
         # install an old version of itsdangerous from pip
         stdout, stderr, err = conda_cli(
             "run",
+            "--dev",
             f"--prefix={prefix}",
             *("python", "-m", "pip", "install", "itsdangerous==1.*"),
         )
