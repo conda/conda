@@ -1322,7 +1322,6 @@ def test_update_all_updates_pip_pkg(
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
-            "--no-capture-output",
             *("where", "python"),
         )
         log.error(f"{stdout=}")
@@ -1333,7 +1332,6 @@ def test_update_all_updates_pip_pkg(
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
-            "--no-capture-output",
             *("python", "-m", "pip", "install", "itsdangerous==1.*"),
         )
         log.error(f"{stdout=}")

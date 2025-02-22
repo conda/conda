@@ -6,8 +6,8 @@
   @SET _CE_M=
   @SET _CE_CONDA=
 )
-@IF [%1]==[activate]   "%~dp0_conda_activate" %*
-@IF [%1]==[deactivate] "%~dp0_conda_activate" %*
+IF [%1]==[activate]   "%~dp0_conda_activate" %*
+IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
 @SET CONDA_EXES="%CONDA_EXE%" %_CE_M% %_CE_CONDA%
 @CALL %CONDA_EXES% %*
