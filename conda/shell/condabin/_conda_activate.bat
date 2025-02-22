@@ -1,7 +1,7 @@
 :: Copyright (C) 2012 Anaconda, Inc
 :: SPDX-License-Identifier: BSD-3-Clause
 :: Helper routine for activation, deactivation, and reactivation.
-@ECHO OFF
+:: @ECHO OFF
 SETLOCAL
 SET "__conda_tmp=%TEMP%\__conda_tmp_%RANDOM%.txt"
 
@@ -14,6 +14,7 @@ SET "__conda_tmp=%TEMP%\__conda_tmp_%RANDOM%.txt"
 :: Producing an error like:
 ::   The filename, directory name, or volume label syntax is incorrect.
 :: Instead we run the command and store the output for subsequent processing.
+ECHO "%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %*
 "%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* > "%__conda_tmp%"
 IF %ERRORLEVEL% NEQ 0 (
     ECHO Failed to run 'conda %*'.
@@ -28,7 +29,9 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
         DEL /F /Q "%__conda_tmp%" 2>NUL
         ENDLOCAL & EXIT /B 2
     ) ELSE ENDLOCAL & (
+        ECHO File: %%T
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
+            ECHO %%A: %%B
             IF "%%A"=="_CONDA_SCRIPT" (
                 :: Script execution
                 CALL "%%B"
