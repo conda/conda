@@ -1319,6 +1319,16 @@ def test_update_all_updates_pip_pkg(
     assert context.pip_interop_enabled
 
     with tmp_env("python", "pip", "pytz<2023") as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "--no-capture-output",
+            *("where", "python"),
+        )
+        log.error(f"{stdout=}")
+        log.error(f"{stderr=}")
+        log.error(f"{err=}")
+
         # install an old version of itsdangerous from pip
         stdout, stderr, err = conda_cli(
             "run",
