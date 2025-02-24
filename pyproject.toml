@@ -72,7 +72,7 @@ exclude_lines = [
 omit = [
   "*/site-packages/*",
   '*\site-packages\*',
-  "conda/_vendor/*",
+  "conda/_vendor.py",
   "conda/console.py",
   "conda/cli/activate.py",
   "conda/cli/main_package.py",
@@ -114,7 +114,8 @@ addopts = [
   "--durations=16",
   "--junitxml=test-report.xml",
   "--splitting-algorithm=least_duration",
-  "--store-durations",
+  "--store-durations",  # pytest-split, update duration cache
+  "--clean-durations",  # pytest-split, remove duration for tests no longer present
   "--strict-markers",
   "--tb=native",
   "-vv",
@@ -147,11 +148,9 @@ testpaths = ["tests"]
 
 [tool.ruff]
 exclude = [
-  "conda/_vendor",
   "conda/auxlib",
   "tests/data/conda_format_repo",
   "tests/data/env_metadata",
-  "tools/vendoring",
 ]
 target-version = "py39"
 
@@ -186,24 +185,3 @@ select = [
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
 ]
-
-[tool.vendoring]
-destination = "conda/_vendor/"
-namespace = "conda._vendor"
-patches-dir = "tools/vendoring/patches"
-protected-files = ["__init__.py", "vendor.txt", "README.md"]
-requirements = "conda/_vendor/vendor.txt"
-
-[tool.vendoring.license.fallback-urls]
-frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt"  # LGPL
-
-[tool.vendoring.transformations]
-drop = [
-  # contains unnecessary scripts
-  "bin/",
-]
-substitute = []
-
-[tool.vendoring.typing-stubs]
-# prevent stubs from being generated
-frozendict = []
