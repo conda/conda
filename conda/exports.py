@@ -61,13 +61,6 @@ from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
 from .models.enums import FileMode, PathType  # noqa: F401
 from .models.version import VersionOrder, normalized_version  # noqa: F401
-from .plan import display_actions as _display_actions
-from .plan import (  # noqa: F401
-    execute_actions,
-    execute_instructions,
-    execute_plan,
-    install_actions,
-)
 from .resolve import (  # noqa: F401
     MatchSpec,
     Resolve,
@@ -182,21 +175,6 @@ def hash_file(_):
 @deprecated("25.3", "25.9", addendum="Unused.")
 def verify(_):
     return False  # pragma: no cover
-
-
-def display_actions(
-    actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()
-):
-    if "FETCH" in actions:
-        actions["FETCH"] = [index[d] for d in actions["FETCH"]]
-    if "LINK" in actions:
-        actions["LINK"] = [index[d] for d in actions["LINK"]]
-    if "UNLINK" in actions:
-        actions["UNLINK"] = [index[d] for d in actions["UNLINK"]]
-    index = {prec: prec for prec in index.values()}
-    return _display_actions(
-        actions, index, show_channel_urls, specs_to_remove, specs_to_add
-    )
 
 
 def get_index(
