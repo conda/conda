@@ -1,0 +1,29 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.cli.main_info.get_info_dict(system)`.
+* Remove `conda.common.compat.encode_arguments`.
+* Remove `conda.env.specs.detect(remote_definition)`.
+* Remove `conda.instructions.PREFIX`.
+* Remove `conda.testing.integration.FORCE_temp_prefix`. Use `tmp_path`, `conda.testing.fixtures.path_factory`, or `conda.testing.fixtures.tmp_env` fixtures instead. (#14604)
+* Remove `conda.testing.integration.tempdir`. Use `tmp_path` or `conda.testing.fixtures.path_factory` fixtures instead. (#14604)
+* Remove `conda.testing.integration.create_temp_location`. Use `tmp_path` or `conda.testing.fixtures.path_factory` fixtures instead. (#14604)
+* Remove `conda.testing.integration.make_temp_package_cache`. Use `conda.testing.fixtures.tmp_pkgs_dir` fixture instead. (#14604)
+* Remove `conda.testing.integration.make_temp_channel`. Use `conda.testing.fixtures.tmp_channel` fixture instead. (#14604)
+* Remove `conda.testing.integration.make_temp_env`. Use `conda.testing.fixtures.tmp_env` fixture instead. (#14604)
+
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
