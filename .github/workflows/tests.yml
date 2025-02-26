@@ -142,14 +142,15 @@ jobs:
         if: matrix.test-type == 'integration'
         run: |
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
-          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Daily"
+          "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell;$env:LOCALAPPDATA\Microsoft\powershell-daily" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: PowerShell Info
         # for tests/shell, so only necessary for integration tests
         if: matrix.test-type == 'integration'
         run: |
           Get-Command -All powershell
-          Get-Command -All "$env:PWSHPATH\pwsh.exe"
+          $env:PWSHPATH -split ';' | ForEach-Object { Get-Command -All "$_\pwsh.exe" }
 
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
