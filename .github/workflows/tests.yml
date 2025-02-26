@@ -141,12 +141,9 @@ jobs:
         # for tests/shell, so only necessary for integration tests
         if: matrix.test-type == 'integration'
         run: |
-          $PWSH_STABLE = "$env:LOCALAPPDATA\Microsoft\powershell"
-          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Destination `"$PWSH_STABLE`""
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
           $PWSH_PREVIEW = "$env:LOCALAPPDATA\Microsoft\powershell-preview"
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Preview -Destination `"$PWSH_PREVIEW`""
-          "PWSH_STABLE=$PWSH_STABLE" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "PWSH_PREVIEW=$PWSH_PREVIEW" | Out-File -FilePath $env:GITHUB_ENV -Append
           "PWSHPATH=$PWSH_STABLE;$PWSH_PREVIEW" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: PowerShell Info
@@ -154,8 +151,7 @@ jobs:
         if: matrix.test-type == 'integration'
         run: |
           Get-Command -All powershell
-          Get-Command -All $env:PWSH_STABLE\pwsh
-          Get-Command -All $env:PWSH_PREVIEW\pwsh
+          $env:PWSHPATH -split ';' | ForEach-Object { Get-Command -All "$_\pwsh" }
 
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
