@@ -142,7 +142,7 @@ jobs:
         if: matrix.test-type == 'integration'
         run: |
           Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) }"
-          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Daily"
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Preview -Destination `"$env:LOCALAPPDATA\Microsoft\powershell-preview`""
           "PWSHPATH=$env:LOCALAPPDATA\Microsoft\powershell;$env:LOCALAPPDATA\Microsoft\powershell-daily" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: PowerShell Info
