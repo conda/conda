@@ -31,7 +31,7 @@ PARAMETRIZE_POWERSHELL = pytest.mark.parametrize(
                 Shell(("powershell", "pwsh"), path=path),
                 id=str(path),
             )
-            for path in filter(None, (os.getenv("PWSHPATH", "").split(";"))
+            for path in filter(None, os.getenv("PWSHPATH", "").split(";"))
         ),
     ],
     indirect=True,
