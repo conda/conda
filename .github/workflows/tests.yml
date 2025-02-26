@@ -150,7 +150,12 @@ jobs:
         if: matrix.test-type == 'integration'
         run: |
           Get-Command -All powershell
-          $env:PWSHPATH -split ';' | ForEach-Object { Get-Command -All "$_\pwsh.exe" }
+          $executables = @("pwsh.exe", "pwsh-preview.exe")
+          $env:PWSHPATH -split ';' | ForEach-Object {
+              $path = $_
+              $executables | ForEach-Object { Get-Command -All "$path\$_" -ErrorAction SilentlyContinue }
+          }
+
 
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
