@@ -55,6 +55,9 @@ The Application Identity Service is required for AppLocker to function properly.
    - Set the absolute path
 6. Restart your computer to apply the rules
 
+```{figure} /img/applocker.png
+:name: Windows AppLocker
+
 ## Testing Conda with AppLocker Enabled
 
 After setting up AppLocker, you can test conda to ensure it works correctly:
