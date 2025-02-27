@@ -18,7 +18,7 @@ from .. import TEST_RECIPES_CHANNEL
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from pytest import FixtureRequest, TempPathFactory
+    from pytest import FixtureRequest, MonkeyPatch, TempPathFactory
 
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
@@ -186,22 +186,26 @@ def expected(request: FixtureRequest, stacking_envs: dict[str, Env]) -> tuple[En
     indirect=["stack", "run", "expected"],
 )
 def test_stacking(
+    monkeypatch: MonkeyPatch,
     auto_stack: int,
     stack: tuple[Env, ...],
     run: Env,
     expected: tuple[Env, ...],
     shell: Shell,
 ) -> None:
+    monkeypatch.setenv("CONDA_AUTO_STACK", str(auto_stack))
+
     which = f"{'where' if on_win else 'which -a'} small"
     with shell.interactive() as sh:
-        sh.sendline(sh.activator.set_var_tmpl % ("CONDA_AUTO_STACK", auto_stack))
         for env in stack:
             sh.sendline(f'conda activate "{env.prefix}"')
+        sh.clear()
 
-        sh.sendline(f'conda run --prefix="{run.prefix}" {which}')
+        sh.sendline(f'conda run --prefix="{run.prefix}" --dev {which}')
         if not expected:
             sh.expect_exact(f"'conda run {which}' failed")
         else:
             for env in expected:
                 for path in env.paths:
                     sh.expect_exact(str(path))
+        sh.clear()
