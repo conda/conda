@@ -267,8 +267,7 @@ In order to not have to manually type or copy/paste the above repeatedly, note t
 
 ## Commit Signing
 
-For all conda maintainers, we require commit signing and strongly recommend it for all others wishing to contribute to conda
-related projects. More information about how to set this up within GitHub can be found here:
+For all maintainers, we require commit signing and strongly recommend it for all others wishing to contribute. More information about how to set this up within GitHub can be found here:
 
 - [GitHub's signing commits docs][docs-commit-signing]
 

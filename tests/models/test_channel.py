@@ -702,7 +702,7 @@ def test_old_channel_alias(testdata: None):
 
 @pytest.fixture
 def testdata2() -> None:
-    reset_context()
+    reset_context(())
     context._set_raw_data(
         {
             "testdata": YamlRawParameter.make_raw_parameters(

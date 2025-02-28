@@ -1,0 +1,22 @@
+package:
+  name: small-executable
+  version: 1.0.0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    # executables
+    - mkdir -p ${PREFIX}/bin
+    - echo '#!/usr/bin/env bash' > ${PREFIX}/bin/small
+    - echo 'echo Hello!' >> ${PREFIX}/bin/small
+    - mkdir -p ${PREFIX}/Scripts
+    - echo 'echo Hello!' > ${PREFIX}/Scripts/small.bat
+    # activate scripts
+    - mkdir -p ${PREFIX}/etc/conda/activate.d
+    - echo 'SMALL_EXE="small-var-sh"' > ${PREFIX}/etc/conda/activate.d/small_executable.sh
+    - echo '$Env:SMALL_EXE = "small-var-pwsh"' > ${PREFIX}/etc/conda/activate.d/small_executable.ps1
+    - echo 'set "SMALL_EXE=small-var-cmd"' > ${PREFIX}/etc/conda/activate.d/small_executable.bat
+
+about:
+  summary: A small executable package

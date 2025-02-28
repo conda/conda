@@ -1,17 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from json import loads as json_loads
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import DirectoryNotACondaEnvironmentError, PackagesNotFoundError
 from conda.gateways.disk.delete import path_is_clean, rm_rf
-from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import package_is_installed
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_install_freezes_env_by_default(
@@ -55,14 +62,13 @@ def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         ):
             conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
 
-        conda_cli("create", f"--prefix={dir}", "--yes")
-        conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
-        assert package_is_installed(dir, "python")
+        conda_cli("create", f"--prefix={prefix}", "--yes")
+        conda_cli("install", f"--prefix={prefix}", "python", "--mkdir", "--yes")
+        assert package_is_installed(prefix, "python")
 
         rm_rf(prefix, clean_empty_parents=True)
         assert path_is_clean(dir)
 
-        # regression test for #4849
         conda_cli(
             "install",
             f"--prefix={dir}",

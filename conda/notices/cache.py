@@ -30,7 +30,7 @@ from ..utils import ensure_dir_exists
 from .types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
 
     from .types import ChannelNotice
 

@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import PathFactoryFixture
+    from conda.testing.fixtures import PathFactoryFixture
 
 
 TESTDATA = Path(__file__).parent / "testdata"

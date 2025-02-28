@@ -53,7 +53,7 @@ class ResolvePackageNotFound(CondaError):
         super().__init__(message)
 
 
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 
 class LockError(CondaError):
@@ -482,18 +482,28 @@ class ChannelError(CondaError):
 
 
 class ChannelNotAllowed(ChannelError):
+    warning = "Channel not included in allowlist"
+
     def __init__(self, channel):
-        channel = Channel(channel)
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
         message = dals(
             """
-        Channel not included in allowlist:
+        %(warning)s:
           channel name: %(channel_name)s
           channel url: %(channel_url)s
         """
         )
-        super().__init__(message, channel_url=channel_url, channel_name=channel_name)
+        super().__init__(
+            message,
+            channel_url=channel_url,
+            channel_name=channel_name,
+            warning=self.warning,
+        )
+
+
+class ChannelDenied(ChannelNotAllowed):
+    warning = "Channel included in denylist"
 
 
 class UnavailableInvalidChannel(ChannelError):
@@ -582,7 +592,13 @@ class CouldntParseError(ParseError):
 
 class ChecksumMismatchError(CondaError):
     def __init__(
-        self, url, target_full_path, checksum_type, expected_checksum, actual_checksum
+        self,
+        url,
+        target_full_path,
+        checksum_type,
+        expected_checksum,
+        actual_checksum,
+        partial_download=False,
     ):
         message = dals(
             """
@@ -601,6 +617,7 @@ class ChecksumMismatchError(CondaError):
             checksum_type=checksum_type,
             expected_checksum=expected_checksum,
             actual_checksum=actual_checksum,
+            partial_download=partial_download,
         )
 
 

@@ -16,10 +16,8 @@ from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
 if TYPE_CHECKING:
-    from typing import Type, Union
-
-    FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
-    SpecTypes = Union[YamlFileSpec, RequirementsSpec]
+    FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec]
+    SpecTypes = YamlFileSpec | RequirementsSpec
 
 
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:

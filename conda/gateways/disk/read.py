@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
+listdir = lambda d: list(entry.name for entry in os.scandir(d))
 
 
 def yield_lines(path):
@@ -307,7 +307,7 @@ def read_python_record(prefix_path, anchor_file, python_version):
 
     return PrefixRecord(
         package_type=package_type,
-        name=pydist.conda_name,
+        name=pydist.norm_name,
         version=pydist.version,
         channel=channel,
         subdir="pypi",

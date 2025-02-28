@@ -6,7 +6,7 @@ import logging
 import re
 import sys
 from datetime import datetime
-from functools import lru_cache, partial
+from functools import cache, partial
 from logging import (
     DEBUG,
     ERROR,
@@ -45,7 +45,7 @@ class TokenURLFilter(Filter):
         r"(|:\d{1,5})?"  # \3  port
         r"/t/[a-z0-9A-Z-]+/"  # token
     )
-    TOKEN_REPLACE = partial(TOKEN_URL_PATTERN.sub, r"\1\2\3/t/<TOKEN>/")
+    TOKEN_REPLACE = staticmethod(partial(TOKEN_URL_PATTERN.sub, r"\1\2\3/t/<TOKEN>/"))
 
     def filter(self, record):
         """
@@ -137,7 +137,7 @@ class StdStreamHandler(StreamHandler):
 # e.g., using their own levels, handlers, formatters and propagation settings.
 
 
-@lru_cache(maxsize=None)
+@cache
 def initialize_logging():
     # 'conda' gets level WARN and does not propagate to root.
     getLogger("conda").setLevel(WARN)
@@ -203,7 +203,7 @@ def set_all_logger_level(level=DEBUG):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
         timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")

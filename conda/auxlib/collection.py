@@ -2,33 +2,10 @@
 from functools import reduce
 from collections.abc import Mapping, Set
 
+from frozendict import frozendict
+
 from .compat import isiterable
 from ..deprecations import deprecated
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from .._vendor.frozendict import frozendict
-
-
-@deprecated("24.9", "25.3", addendum="Use `frozendict.deepfreeze` instead.")
-def make_immutable(value):
-    # this function is recursive, and if nested data structures fold back on themselves,
-    #   there will likely be recursion errors
-    if isinstance(value, Mapping):
-        if isinstance(value, frozendict):
-            return value
-        return frozendict((k, make_immutable(v)) for k, v in value.items())
-    elif isinstance(value, Set):
-        if isinstance(value, frozenset):
-            return value
-        return frozenset(make_immutable(v) for v in value)
-    elif isiterable(value):
-        if isinstance(value, tuple):
-            return value
-        return tuple(make_immutable(v) for v in value)
-    else:
-        return value
 
 
 # http://stackoverflow.com/a/14620633/2127762
