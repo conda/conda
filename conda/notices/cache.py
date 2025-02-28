@@ -88,7 +88,7 @@ def get_notices_cache_dir() -> Path:
 
 def get_notices_cache_file() -> Path:
     """
-    Returns the location of the notices cache file as a Path object
+    Return path of notices cache
 
     If the file does not exist, we create it and set the "created_at" time stamp
     of the file so that it is in the past. This forces the notices to be checked
