@@ -1,6 +1,6 @@
 anaconda-client
-conda-forge::pytest-split
-conda-forge::pytest-xprocess
+pytest-split
+pytest-xprocess
 coverage
 flask >=2.2  # jlap pytest fixture
 git
