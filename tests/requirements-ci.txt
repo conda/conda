@@ -1,6 +1,4 @@
 anaconda-client
-pytest-split
-pytest-xprocess
 coverage
 flask >=2.2  # jlap pytest fixture
 git
@@ -11,7 +9,9 @@ pytest
 pytest-cov
 pytest-mock
 pytest-rerunfailures
+pytest-split
 pytest-timeout
+pytest-xprocess
 responses
 tomli  # for coverage pyproject.toml, only necessary for Python <= 3.11.0a6
 werkzeug >=2.2  # jlap pytest fixture
