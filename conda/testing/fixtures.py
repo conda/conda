@@ -315,7 +315,7 @@ class PathFactoryFixture:
         :return: A new unique path
         """
         prefix = prefix or ""
-        name = name or uuid.uuid4().hex
+        name = name or uuid.uuid4().hex[:8]
         suffix = suffix or ""
         return self.tmp_path / (prefix + name + suffix)
 
