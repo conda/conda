@@ -729,10 +729,7 @@ def get_solver_cuda(
 
 
 def convert_to_dist_str(solution):
-    converted = []
-    for prec in solution:
-        converted.append(dist_str(prec))
-    return tuple(converted)
+    return tuple(dist_str(prec) for prec in solution)
 
 
 def dist_str(prec):
