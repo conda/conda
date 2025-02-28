@@ -170,9 +170,8 @@ def clear_cache() -> None:
     """
     Removes all files in notices cache
     """
-    cache_dir = get_notices_cache_dir()
+    cache_dir = Path(get_notices_cache_dir())
 
-    for cache_file in os.listdir(cache_dir):
-        full_cache_file_path = Path(cache_dir) / cache_file
-        if full_cache_file_path.is_file():
-            full_cache_file_path.unlink()
+    for cache_file in cache_dir.iterdir():
+        if cache_file.is_file():
+            cache_file.unlink()

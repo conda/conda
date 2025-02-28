@@ -380,7 +380,10 @@ def test_notices_does_not_interrupt_command_on_failure(
     prefix = path_factory()
 
     _, _, exit_code = conda_cli(
-        "create", f"--prefix={prefix}", "--yes", "--channel", test_recipes_channel
+        "create",
+        f"--prefix={prefix}",
+        "--yes",
+        f"--channel={test_recipes_channel}",
     )
 
     assert exit_code is None
@@ -432,10 +435,8 @@ def test_notices_shown_after_previous_command_error(
     with pytest.raises(PackagesNotFoundError):
         conda_cli(
             "create",
-            "--name",
-            env_one,
-            "--channel",
-            test_recipes_channel,
+            f"--name={env_one}",
+            f"--channel={test_recipes_channel}",
             "--override-channels",
             "--yes",
             "package-does-not-exist",
@@ -447,10 +448,8 @@ def test_notices_shown_after_previous_command_error(
 
     out, err, exc = conda_cli(
         "create",
-        "--name",
-        env_one,
-        "--channel",
-        test_recipes_channel,
+        f"--name={env_one}",
+        f"--channel={test_recipes_channel}",
         "--override-channels",
         "--yes",
     )
