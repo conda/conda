@@ -314,6 +314,32 @@ def test_tarball_match_specs():
     # assert MatchSpec('defaults/zos::python').get_exact_value('channel').urls() == ()
 
 
+def test_url_percent_encoding():
+    """
+    More info here: https://github.com/mamba-org/mamba/issues/3737
+    """
+    # x264 version has an epoch "1!164"; ! is encoded as %21
+    url_with = (
+        "https://anaconda.org/conda-forge/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"
+    )
+    url_without = (
+        "https://anaconda.org/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+    )
+
+    assert MatchSpec(url_with).version == MatchSpec(url_without).version
+
+    # Ficticious channel that yells at you
+    url_with = "https://anaconda.org/conda-forge%21/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"
+    url_without = (
+        "https://anaconda.org/conda-forge!/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+    )
+
+    assert (
+        MatchSpec(url_with).get("channel").name
+        == MatchSpec(url_without).get("channel").name
+    )
+
+
 def test_exact_values():
     assert MatchSpec("*").get_exact_value("name") is None
     assert MatchSpec("numpy").get_exact_value("name") == "numpy"
@@ -1181,38 +1207,199 @@ def test_build_number_merge():
         MatchSpec.merge(specs)
 
 
-def test_hash_merge_with_name():
-    for hash_type in ("md5", "sha256"):
-        specs = (
-            MatchSpec(f"python[{hash_type}=deadbeef]"),
-            MatchSpec("python=1.2.3"),
-            MatchSpec(f"conda-forge::python[{hash_type}=deadbeef]"),
-        )
-        merged = MatchSpec.merge(specs)
-        assert len(merged) == 1
-        assert str(merged[0]) == f"conda-forge::python=1.2.3[{hash_type}=deadbeef]"
+def test_build_glob_merge():
+    red = {
+        "name": "my_pkg",
+        "version": "1.17.3",
+        "build": "red_habc123_3",
+        "build_number": 3,
+    }
+    blue = {**red, "build": "blue_hdef1234_3"}
 
-        specs = (
-            MatchSpec(f"python[{hash_type}=FFBADD11]"),
-            MatchSpec("python=1.2.3"),
-            MatchSpec(f"python[{hash_type}=ffbadd11]"),
-        )
-        with pytest.raises(ValueError):
-            MatchSpec.merge(specs)
+    no_build = MatchSpec("my_pkg=1.17.*")
+    assert no_build.match(red)
+    assert no_build.match(blue)
+
+    red_prefix = MatchSpec("my_pkg=1.17.*=red_*")
+    assert red_prefix.match(red)
+    assert not red_prefix.match(blue)
+
+    blue_prefix = MatchSpec("my_pkg=1.17.*=blue_*")
+    assert not blue_prefix.match(red)
+    assert blue_prefix.match(blue)
+
+    blue_hash_prefix = MatchSpec("my_pkg=1.17.*=blue_hdef1234_*")
+    assert not blue_hash_prefix.match(red)
+    assert blue_hash_prefix.match(blue)
+
+    red_exact = MatchSpec(f"my_pkg=1.17.*={red['build']}")
+    assert red_exact.match(red)
+    assert not red_exact.match(blue)
+
+    red_scalar_wild = MatchSpec("my_pkg=1.17.*=*red*")
+    assert red_scalar_wild.match(red)
+    assert not red_scalar_wild.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge([red_scalar_wild, red_prefix])
+    assert not unmergeable
+    assert merged.match(red)
+    # resulting build is the regex intersection
+    assert merged.get("build") == "^(?=.*red.*)(?:red_.*)$"
+
+    build_tail_2 = MatchSpec("my_pkg=1.17.*=*_2")
+    build_tail_3 = MatchSpec("my_pkg=1.17.*=*_3")
+    assert build_tail_3.match(red)
+    assert build_tail_3.match(blue)
+
+    hash_build_tail_3 = MatchSpec("my_pkg=1.17.*=*_habc123_3")
+    assert hash_build_tail_3.match(red)
+    assert not hash_build_tail_3.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            no_build,
+            red_prefix,
+        ]
+    )
+    assert not unmergeable
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            red_prefix,
+            red_exact,
+        ]
+    )
+    assert merged.get("build") == red_exact.get("build")
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            red_exact,
+            red_prefix,
+        ]
+    )
+    assert merged.get("build") == red_exact.get("build")
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    # prefix + prefix, we keep the longest if compatible
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            blue_prefix,
+            blue_hash_prefix,
+        ]
+    )
+    assert merged.get("build") == blue_hash_prefix.get("build")
+    assert merged.match(blue)
+    assert not merged.match(red)
+
+    # suffix + suffix, we keep the longest if compatible
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            build_tail_3,
+            hash_build_tail_3,
+        ]
+    )
+    assert merged.get("build") == hash_build_tail_3.get("build")
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            no_build,
+            red_prefix,
+            red_scalar_wild,
+        ]
+    )
+    assert not unmergeable
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            no_build,
+            red_prefix,
+            red_scalar_wild,
+            build_tail_3,
+        ]
+    )
+    assert not unmergeable
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    # definitely-incompatible combinations
+    with pytest.raises(ValueError):
+        MatchSpec.merge([red_exact, blue_prefix])
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge([blue_prefix, red_exact])
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge([blue_prefix, red_prefix])
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge([build_tail_2, hash_build_tail_3])
 
 
-def test_hash_merge_wo_name():
-    for hash_type in ("md5", "sha256"):
-        specs = (
-            MatchSpec(f"*[{hash_type}=deadbeef]"),
-            MatchSpec(f"*[{hash_type}=FFBADD11]"),
+def test_build_glob_merge_channel():
+    no_channel = {
+        "name": "my_pkg",
+        "version": "1.17.3",
+        "build": "pyhabc123_3",
+        "build_number": 3,
+    }
+    exact_channel = {**no_channel, "channel": "conda-forge"}
+    star_channel = {**no_channel, "channel": "conda-*"}
+    non_matching_star_channel = {**no_channel, "channel": "*-adnoc"}
+
+    merged, *unmergeable = MatchSpec.merge(
+        [MatchSpec(spec) for spec in (no_channel, exact_channel, star_channel)]
+    )
+    assert not unmergeable
+    assert merged.match(exact_channel)
+    assert merged.get("channel") == exact_channel["channel"]
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge(
+            [MatchSpec(spec) for spec in (exact_channel, non_matching_star_channel)]
         )
-        merged = MatchSpec.merge(specs)
-        assert len(merged) == 2
-        str_specs = (f"*[{hash_type}=deadbeef]", f"*[{hash_type}=FFBADD11]")
-        assert str(merged[0]) in str_specs
-        assert str(merged[1]) in str_specs
-        assert str(merged[0]) != str(merged[1])
+
+
+@pytest.mark.parametrize("hash_type", ["md5", "sha256"])
+def test_hash_merge_with_name(hash_type):
+    specs = (
+        MatchSpec(f"python[{hash_type}=deadbeef]"),
+        MatchSpec("python=1.2.3"),
+        MatchSpec(f"conda-forge::python[{hash_type}=deadbeef]"),
+    )
+    merged = MatchSpec.merge(specs)
+    assert len(merged) == 1
+    assert str(merged[0]) == f"conda-forge::python=1.2.3[{hash_type}=deadbeef]"
+
+    specs = (
+        MatchSpec(f"python[{hash_type}=FFBADD11]"),
+        MatchSpec("python=1.2.3"),
+        MatchSpec(f"python[{hash_type}=ffbadd11]"),
+    )
+    with pytest.raises(ValueError):
+        MatchSpec.merge(specs)
+
+
+@pytest.mark.parametrize("hash_type", ["md5", "sha256"])
+def test_hash_merge_wo_name(hash_type):
+    specs = (
+        MatchSpec(f"*[{hash_type}=deadbeef]"),
+        MatchSpec(f"*[{hash_type}=FFBADD11]"),
+    )
+    merged = MatchSpec.merge(specs)
+    assert len(merged) == 2
+    str_specs = (f"*[{hash_type}=deadbeef]", f"*[{hash_type}=FFBADD11]")
+    assert str(merged[0]) in str_specs
+    assert str(merged[1]) in str_specs
+    assert str(merged[0]) != str(merged[1])
 
 
 def test_catch_invalid_regexes():

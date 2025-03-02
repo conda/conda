@@ -265,9 +265,11 @@ For example, it may be the case that:
 
 If any of these occur, all you need to do is update the contents of
 your ``environment.yml`` file accordingly and then run the following
-command::
+command:
 
-conda env update --file environment.yml  --prune
+.. code::
+
+   conda env update --file environment.yml  --prune
 
 .. note::
    The ``--prune`` option causes conda to remove any dependencies

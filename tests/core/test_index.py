@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import platform
 from logging import getLogger
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -32,14 +32,24 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageCacheRecord, PackageRecord, PrefixRecord
-from tests.core.test_subdir_data import platform_in_record
-from tests.data.pkg_cache import load_cache_entries
+
+from ..core.test_subdir_data import platform_in_record
+from ..data.pkg_cache import load_cache_entries
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from pytest import FixtureRequest
+
+    from conda.core.index import ReducedIndex
 
 log = getLogger(__name__)
 
 
 PLATFORMS = {
     ("Linux", "x86_64"): "linux-64",
+    ("Linux", "aarch64"): "linux-aarch64",
     ("Darwin", "x86_64"): "osx-64",
     ("Darwin", "arm64"): "osx-arm64",
     ("Windows", "AMD64"): "win-64",
@@ -51,6 +61,13 @@ DEFAULTS_SAMPLE_PACKAGES = {
         "name": "aiohttp",
         "version": "2.3.9",
         "build": "py35_0",
+        "build_number": 0,
+    },
+    "linux-aarch64": {
+        "channel": "pkgs/main/linux-aarch64",
+        "name": "aiohttp",
+        "version": "3.10.11",
+        "build": "py311h998d150_0",
         "build_number": 0,
     },
     "osx-64": {
@@ -82,6 +99,13 @@ CONDAFORGE_SAMPLE_PACKAGES = {
         "name": "vim",
         "version": "9.1.0356",
         "build": "py310pl5321hfe26b83_0",
+        "build_number": 0,
+    },
+    "linux-aarch64": {
+        "channel": "conda-forge",
+        "name": "vim",
+        "version": "9.1.0356",
+        "build": "py310pl5321hdc9b7a6_0",
         "build_number": 0,
     },
     "osx-64": {
@@ -243,21 +267,23 @@ def test_basic_get_reduced_index():
     )
 
 
-def test_fetch_index(test_recipes_channel):
+def test_fetch_index(test_recipes_channel: Path) -> None:
     idx = fetch_index(Channel(str(test_recipes_channel)).urls())
-    assert len(idx) == 23
+    assert len(idx) == 24
 
 
-def test_dist_str_in_index(test_recipes_channel):
+def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
     assert not dist_str_in_index(idx.data, "test-1.4.0-0")
     assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
 
 
-def test__supplement_index_with_prefix(test_recipes_channel, tmp_env):
-    channel = Path(__file__).parent.parent / "test-recipes"
+def test__supplement_index_with_prefix(
+    test_recipes_channel: Path,
+    tmp_env: Path,
+) -> None:
     ref = PackageRecord(
-        channel=Channel(str(channel)),
+        channel=Channel(str(test_recipes_channel)),
         name="dependent",
         subdir="noarch",
         version="2.0",
@@ -277,10 +303,12 @@ def test__supplement_index_with_prefix(test_recipes_channel, tmp_env):
     assert ref == pkg
 
 
-def test__supplement_index_with_prefix_index_class(test_recipes_channel, tmp_env):
-    channel = Path(__file__).parent.parent / "test-recipes"
+def test__supplement_index_with_prefix_index_class(
+    test_recipes_channel: Path,
+    tmp_env: Path,
+) -> None:
     ref = PackageRecord(
-        channel=Channel(str(channel)),
+        channel=Channel(str(test_recipes_channel)),
         name="dependent",
         subdir="noarch",
         version="2.0",
@@ -341,23 +369,26 @@ def test_get_index_lazy():
 
 class TestIndex:
     @pytest.fixture(params=[False, True])
-    def index(self, request, test_recipes_channel, tmp_env):
-        pkg_spec = "dependent=2.0"
-        with tmp_env(pkg_spec) as prefix:
+    def index(
+        self,
+        request: FixtureRequest,
+        test_recipes_channel: Path,
+        tmp_env: Path,
+    ) -> Iterable[Index]:
+        with tmp_env("dependent=2.0") as prefix:
             _index = Index(prefix=prefix, use_cache=True, use_system=True)
             if request.param:
                 _index.data
             yield _index
 
     @pytest.fixture
-    def reduced_index(self, index):
+    def reduced_index(self, index: Index) -> ReducedIndex:
         return index.get_reduced_index((MatchSpec("dependent=2.0"),))
 
     @pytest.fixture
-    def valid_channel_entry(self):
-        channel = Path(__file__).parent.parent / "test-recipes"
+    def valid_channel_entry(self, test_recipes_channel: Path) -> PackageRecord:
         return PackageRecord(
-            channel=Channel(str(channel)),
+            channel=Channel(str(test_recipes_channel)),
             name="dependent",
             subdir="noarch",
             version="1.0",
@@ -367,10 +398,9 @@ class TestIndex:
         )
 
     @pytest.fixture
-    def invalid_channel_entry(self):
-        channel = Path(__file__).parent.parent / "test-recipes"
+    def invalid_channel_entry(self, test_recipes_channel: Path) -> PackageRecord:
         return PackageRecord(
-            channel=Channel(str(channel)),
+            channel=Channel(str(test_recipes_channel)),
             name="dependent-non-existent",
             subdir="noarch",
             version="1.0",
@@ -380,10 +410,9 @@ class TestIndex:
         )
 
     @pytest.fixture
-    def valid_prefix_entry(self):
-        channel = Path(__file__).parent.parent / "test-recipes"
+    def valid_prefix_entry(self, test_recipes_channel: Path) -> PackageRecord:
         return PackageRecord(
-            channel=Channel(str(channel)),
+            channel=Channel(str(test_recipes_channel)),
             name="dependent",
             subdir="noarch",
             version="2.0",
@@ -506,7 +535,7 @@ class TestIndex:
             75
             # we have 1 feature, see patch_pkg_cache
             + 1
-            # only 4 packages are loaded from tests/test-recipes/noarch/repodata.json
+            # only 4 packages are loaded from tests/data/test-recipes/noarch/repodata.json
             + 4
             # each OS has different virtual packages
             + len(context.plugin_manager.get_virtual_package_records())

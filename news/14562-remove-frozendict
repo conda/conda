@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda._vendor.frozendict`. Use `frozendict` instead. (#14562, #14582)
+* Mark `conda._vendor` as pending deprecation. Conda no longer vendors dependencies.  (#14562)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

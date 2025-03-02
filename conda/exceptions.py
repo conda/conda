@@ -592,7 +592,13 @@ class CouldntParseError(ParseError):
 
 class ChecksumMismatchError(CondaError):
     def __init__(
-        self, url, target_full_path, checksum_type, expected_checksum, actual_checksum
+        self,
+        url,
+        target_full_path,
+        checksum_type,
+        expected_checksum,
+        actual_checksum,
+        partial_download=False,
     ):
         message = dals(
             """
@@ -611,6 +617,7 @@ class ChecksumMismatchError(CondaError):
             checksum_type=checksum_type,
             expected_checksum=expected_checksum,
             actual_checksum=actual_checksum,
+            partial_download=partial_download,
         )
 
 

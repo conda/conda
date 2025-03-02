@@ -33,25 +33,12 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.base.context import Context
     from conda.testing.fixtures import TmpEnvFixture
 
 BOTO3_AVAILABLE = bool(find_spec("boto3"))
 log = getLogger(__name__)
 
-
-@pytest.fixture(autouse=True)
-def clean_up_object_cache():
-    """
-    We use this to clean up the class/function cache on various things in the
-    ``conda.gateways.connection.session`` module.
-    """
-    try:
-        del CondaSession._thread_local.sessions
-    except AttributeError:
-        pass
-
-    get_session.cache_clear()
+pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
 
 
 def test_add_binstar_token():
@@ -272,9 +259,13 @@ def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match
         "conda.gateways.connection.session.get_channel_name_from_url",
         return_value=channel_url,
     )
-    mock_context: Context = mocker.patch("conda.gateways.connection.session.context")
-    mock_context.channel_settings = (
-        {"channel": channel_settings_url, "auth": "dummy_one"},
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=[{"channel": channel_settings_url, "auth": "dummy_one"}],
+    )
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler"
     )
 
     session_obj = get_session(channel_url)
@@ -287,16 +278,13 @@ def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match
         assert type(session_obj.auth) is not CondaHttpAuth
 
         # Make sure we tried to retrieve our auth handler in this function
-        assert (
-            mocker.call("dummy_one")
-            in mock_context.plugin_manager.get_auth_handler.mock_calls
-        )
+        assert mocker.call("dummy_one") in get_auth_handler.mock_calls
     else:
         # If we do not match, then we default to CondaHttpAuth
         assert type(session_obj.auth) is CondaHttpAuth
 
         # We have not tried to retrieve our auth handler
-        assert not mock_context.plugin_manager.get_auth_handler.mock_calls
+        assert not get_auth_handler.mock_calls
 
 
 def test_get_session_with_channel_settings_multiple(mocker):
@@ -312,12 +300,18 @@ def test_get_session_with_channel_settings_multiple(mocker):
         "conda.gateways.connection.session.get_channel_name_from_url",
         side_effect=["channel_one", "channel_two"],
     )
-    mock_context: Context = mocker.patch("conda.gateways.connection.session.context")
-    mock_context.channel_settings = (
-        {"channel": "channel_one", "auth": "dummy_one"},
-        {"channel": "channel_two", "auth": "dummy_one"},
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=[
+            {"channel": "channel_one", "auth": "dummy_one"},
+            {"channel": "channel_two", "auth": "dummy_one"},
+        ],
     )
-    mock_context.plugin_manager.get_auth_handler.return_value = ChannelAuthBase
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler",
+        return_value=ChannelAuthBase,
+    )
 
     url_one = "https://localhost/test1"
     url_two = "https://localhost/test2"
@@ -341,10 +335,7 @@ def test_get_session_with_channel_settings_multiple(mocker):
     assert type(session_obj_two.auth) is not CondaHttpAuth
 
     # Make sure we tried to retrieve our auth handler in this function
-    assert (
-        mocker.call("dummy_one")
-        in mock_context.plugin_manager.get_auth_handler.mock_calls
-    )
+    assert mocker.call("dummy_one") in get_auth_handler.mock_calls
 
 
 def test_get_session_with_channel_settings_no_handler(mocker):

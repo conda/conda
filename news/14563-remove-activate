@@ -1,0 +1,22 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.activate._Activator.add_export_unset_vars`. Use `conda.activate._Activator.get_export_unset_vars` instead. (#14563)
+* Remove `conda.activate._Activator.get_scripts_export_unset_vars`. Use `get_scripts_export_unset_vars` helper function in `test_activate.py` instead. (#14563)
+* Remove `conda.activate._Activator._get_path_dirs(extra_library_bin)`. (#14563)
+* Remove `conda.activate.JSONFormatMixin.get_scripts_export_unset_vars`. Use `conda.activate._Activator.get_export_unset_vars` instead. (#14563)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

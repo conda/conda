@@ -45,7 +45,7 @@ class TokenURLFilter(Filter):
         r"(|:\d{1,5})?"  # \3  port
         r"/t/[a-z0-9A-Z-]+/"  # token
     )
-    TOKEN_REPLACE = partial(TOKEN_URL_PATTERN.sub, r"\1\2\3/t/<TOKEN>/")
+    TOKEN_REPLACE = staticmethod(partial(TOKEN_URL_PATTERN.sub, r"\1\2\3/t/<TOKEN>/"))
 
     def filter(self, record):
         """
