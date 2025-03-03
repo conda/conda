@@ -95,17 +95,13 @@ log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")
 stderr_log_level(TEST_LOG_LEVEL, "requests")
 
-
-# all tests in this file are integration tests
 pytestmark = [
+    # all tests in this file are integration tests
     pytest.mark.integration,
     pytest.mark.usefixtures("parametrized_solver_fixture"),
+    pytest.mark.usefixtures("clear_conda_session_cache"),
+    pytest.mark.usefixtures("clear_package_cache"),
 ]
-
-
-@pytest.fixture(autouse=True)
-def clear_package_cache() -> None:
-    PackageCacheData.clear()
 
 
 def test_install_python_and_search(

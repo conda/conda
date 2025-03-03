@@ -193,15 +193,16 @@ def test_stacking(
     shell: Shell,
 ) -> None:
     which = f"{'where' if on_win else 'which -a'} small"
-    with shell.interactive() as sh:
-        sh.sendline(sh.activator.set_var_tmpl % ("CONDA_AUTO_STACK", auto_stack))
+    with shell.interactive(env={"CONDA_AUTO_STACK": str(auto_stack)}) as sh:
         for env in stack:
             sh.sendline(f'conda activate "{env.prefix}"')
+        sh.clear()
 
-        sh.sendline(f'conda run --prefix="{run.prefix}" {which}')
+        sh.sendline(f'conda run --prefix="{run.prefix}" --dev {which}')
         if not expected:
             sh.expect_exact(f"'conda run {which}' failed")
         else:
             for env in expected:
                 for path in env.paths:
                     sh.expect_exact(str(path))
+        sh.clear()

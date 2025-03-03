@@ -10,6 +10,8 @@ import pytest
 
 import conda
 from conda.base.context import context, reset_context
+from conda.core.package_cache_data import PackageCacheData
+from conda.gateways.connection.session import CondaSession, get_session
 from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
@@ -17,6 +19,8 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pytest_mock import MockerFixture
 
 pytest_plugins = (
@@ -107,3 +111,35 @@ def plugin_manager_with_reporter_backends(plugin_manager) -> CondaPluginManager:
     plugin_manager.load_plugins(*reporter_backend_plugins)
 
     return plugin_manager
+
+
+@pytest.fixture
+def clear_conda_session_cache() -> Iterable[None]:
+    """
+    We use this to clean up the class/function cache on various things in the
+    ``conda.gateways.connection.session`` module.
+    """
+    try:
+        del CondaSession._thread_local.sessions
+    except AttributeError:
+        pass
+
+    get_session.cache_clear()
+
+    yield
+
+    try:
+        del CondaSession._thread_local.sessions
+    except AttributeError:
+        pass
+
+    get_session.cache_clear()
+
+
+@pytest.fixture
+def clear_package_cache() -> Iterable[None]:
+    PackageCacheData.clear()
+
+    yield
+
+    PackageCacheData.clear()
