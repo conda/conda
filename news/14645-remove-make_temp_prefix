@@ -11,6 +11,7 @@
 * Remove `conda.testing.integration.set_tmpdir` fixture. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#14645)
 * Remove `conda.testing.integration._get_temp_prefix`. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#14645)
 * Remove `conda.testing.integration.make_temp_prefix`. Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead. (#14645)
+* Remove `conda.testing.integration.run_command`. Use `conda.testing.conda_cli` instead. (#14645)
 
 ### Docs
 

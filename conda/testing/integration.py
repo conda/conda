@@ -18,23 +18,13 @@ from subprocess import check_output
 from typing import TYPE_CHECKING
 
 from ..auxlib.compat import Utf8NamedTemporaryFile
-from ..base.context import context, reset_context
-from ..cli.conda_argparse import do_call, generate_parser
-from ..cli.main import init_loggers
 from ..common.compat import on_win
-from ..common.io import (
-    argv,
-    captured,
-    dashlist,
-    stderr_log_level,
-)
+from ..common.io import dashlist
 from ..common.path import BIN_DIRECTORY
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
-from ..exceptions import conda_exception_handler
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
-from ..utils import massage_arguments
 
 if TYPE_CHECKING:
     from ..models.records import PrefixRecord
@@ -108,92 +98,6 @@ class Commands:
     SEARCH = "search"
     UPDATE = "update"
     RUN = "run"
-
-
-@deprecated("23.9", "25.3", addendum="Use `conda.testing.conda_cli` instead.")
-def run_command(command, prefix, *arguments, **kwargs) -> tuple[str, str, int]:
-    assert isinstance(arguments, tuple), "run_command() arguments must be tuples"
-    arguments = massage_arguments(arguments)
-
-    use_exception_handler = kwargs.get("use_exception_handler", False)
-    # These commands require 'dev' mode to be enabled during testing because
-    # they end up calling run_script() in link.py and that uses wrapper scripts for e.g. activate.
-    # Setting `dev` means that, in these scripts, conda is executed via:
-    #   `sys.prefix/bin/python -m conda` (or the Windows equivalent).
-    # .. and the source code for `conda` is put on `sys.path` via `PYTHONPATH` (a bit gross but
-    # less so than always requiring `cwd` to be the root of the conda source tree in every case).
-    # If you do not want this to happen for some test you must pass dev=False as a kwarg, though
-    # for nearly all tests, you want to make sure you are running *this* conda and not some old
-    # conda (it was random which you'd get depending on the initial values of PATH and PYTHONPATH
-    # - and likely more variables - before `dev` came along). Setting CONDA_EXE is not enough
-    # either because in the 4.5 days that would just run whatever Python was found first on PATH.
-    command_defaults_to_dev = command in (
-        Commands.CREATE,
-        Commands.INSTALL,
-        Commands.REMOVE,
-        Commands.RUN,
-    )
-    dev = kwargs.get("dev", True if command_defaults_to_dev else False)
-    debug = kwargs.get("debug_wrapper_scripts", False)
-
-    p = generate_parser()
-
-    if command is Commands.CONFIG:
-        arguments.append("--file")
-        arguments.append(join(prefix, "condarc"))
-    if command in (
-        Commands.LIST,
-        Commands.COMPARE,
-        Commands.CREATE,
-        Commands.INSTALL,
-        Commands.REMOVE,
-        Commands.UPDATE,
-        Commands.RUN,
-    ):
-        arguments.insert(0, "-p")
-        arguments.insert(1, prefix)
-    if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
-        arguments.extend(["-y", "-q"])
-
-    arguments.insert(0, command)
-    if dev:
-        arguments.insert(1, "--dev")
-    if debug:
-        arguments.insert(1, "--debug-wrapper-scripts")
-
-    # It would be nice at this point to re-use:
-    # from ..cli.python_api import run_command as python_api_run_command
-    # python_api_run_command
-    # .. but that does not support no_capture and probably more stuff.
-
-    args = p.parse_args(arguments)
-    context._set_argparse_args(args)
-    init_loggers()
-    cap_args = () if not kwargs.get("no_capture") else (None, None)
-    # list2cmdline is not exact, but it is only informational.
-    print(
-        "\n\nEXECUTING COMMAND >>> $ conda {}\n\n".format(" ".join(arguments)),
-        file=sys.stderr,
-    )
-    with (
-        stderr_log_level(TEST_LOG_LEVEL, "conda"),
-        stderr_log_level(TEST_LOG_LEVEL, "requests"),
-    ):
-        with argv(["python_api", *arguments]), captured(*cap_args) as c:
-            if use_exception_handler:
-                result = conda_exception_handler(do_call, args, p)
-            else:
-                result = do_call(args, p)
-        stdout = c.stdout
-        stderr = c.stderr
-        print(stdout, file=sys.stdout)
-        print(stderr, file=sys.stderr)
-
-    # Unfortunately there are other ways to change context, such as Commands.CREATE --offline.
-    # You will probably end up playing whack-a-bug here adding more and more the tuple here.
-    if command in (Commands.CONFIG,):
-        reset_context([os.path.join(prefix + os.sep, "condarc")], args)
-    return stdout, stderr, result
 
 
 def package_is_installed(
