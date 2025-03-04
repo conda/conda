@@ -8,10 +8,8 @@ Installs the specified packages into an existing environment.
 from __future__ import annotations
 
 import sys
-from argparse import _StoreTrueAction
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
 from ..notices import notices
 
 if TYPE_CHECKING:
@@ -103,16 +101,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "reinstalled, even if that package already exists in the environment.",
     )
     add_parser_update_modifiers(solver_mode_options)
-    package_install_options.add_argument(
-        "-m",
-        "--mkdir",
-        action=deprecated.action(
-            "24.9",
-            "25.3",
-            _StoreTrueAction,
-            addendum="Use `conda create` instead.",
-        ),
-    )
     package_install_options.add_argument(
         "--clobber",
         action="store_true",

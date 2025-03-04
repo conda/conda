@@ -36,7 +36,6 @@ from ..exceptions import (
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
-    CondaOSError,
     CondaSystemExit,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
@@ -52,7 +51,6 @@ from ..exceptions import (
     TooManyArgumentsError,
     UnsatisfiableError,
 )
-from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
 from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
@@ -253,12 +251,6 @@ def install(args, parser, command="install"):
         else:
             # fall-through expected under normal operation
             pass
-    elif getattr(args, "mkdir", False):
-        # --mkdir is deprecated and marked for removal in conda 25.3
-        try:
-            mkdir_p(prefix)
-        except OSError as e:
-            raise CondaOSError(f"Could not create directory: {prefix}", caused_by=e)
     else:
         raise EnvironmentLocationNotFound(prefix)
 
