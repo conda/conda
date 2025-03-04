@@ -8,10 +8,10 @@
 
 ### Deprecations
 
-* Remove `conda.cli.main_info.get_info_dict(system)`.
-* Remove `conda.common.compat.encode_arguments`.
-* Remove `conda.env.specs.detect(remote_definition)`.
-* Remove `conda.instructions.PREFIX`.
+* Remove `conda.cli.main_info.get_info_dict(system)`. (#14604)
+* Remove `conda.common.compat.encode_arguments`. (#14604)
+* Remove `conda.env.specs.detect(remote_definition)`. (#14604)
+* Remove `conda.instructions.PREFIX`. (#14604)
 * Remove `conda.testing.integration.FORCE_temp_prefix`. Use `tmp_path`, `conda.testing.fixtures.path_factory`, or `conda.testing.fixtures.tmp_env` fixtures instead. (#14604)
 * Remove `conda.testing.integration.tempdir`. Use `tmp_path` or `conda.testing.fixtures.path_factory` fixtures instead. (#14604)
 * Remove `conda.testing.integration.create_temp_location`. Use `tmp_path` or `conda.testing.fixtures.path_factory` fixtures instead. (#14604)
