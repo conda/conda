@@ -8,16 +8,13 @@ them too.
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from contextlib import contextmanager
 from functools import cache
 from logging import getLogger
-from os.path import dirname, isdir, join, lexists
+from os.path import dirname, isdir, join
 from pathlib import Path
 from random import sample
-from shutil import copyfile, rmtree
 from subprocess import check_output
 from tempfile import gettempdir
 from typing import TYPE_CHECKING
@@ -26,9 +23,7 @@ from uuid import uuid4
 import pytest
 
 from ..auxlib.compat import Utf8NamedTemporaryFile
-from ..auxlib.entity import EntityEncoder
-from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..base.context import context, reset_context
 from ..cli.conda_argparse import do_call, generate_parser
 from ..cli.main import init_loggers
 from ..common.compat import on_win
@@ -36,28 +31,19 @@ from ..common.io import (
     argv,
     captured,
     dashlist,
-    disable_logger,
-    env_var,
     stderr_log_level,
 )
 from ..common.path import BIN_DIRECTORY
-from ..common.url import path_to_url
-from ..core.package_cache_data import PackageCacheData
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
 from ..exceptions import conda_exception_handler
-from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.link import link
-from ..gateways.disk.update import touch
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord
 from ..utils import massage_arguments
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-
     from ..models.records import PrefixRecord
 
 TEST_LOG_LEVEL = DEBUG
@@ -206,21 +192,6 @@ def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None)
     return _temp_prefix
 
 
-@deprecated(
-    "24.9",
-    "25.3",
-    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
-)
-def FORCE_temp_prefix(name=None, use_restricted_unicode=False):
-    _temp_prefix = _get_temp_prefix(
-        name=name, use_restricted_unicode=use_restricted_unicode
-    )
-    rm_rf(_temp_prefix)
-    os.makedirs(_temp_prefix)
-    assert isdir(_temp_prefix)
-    return _temp_prefix
-
-
 class Commands:
     COMPARE = "compare"
     CONFIG = "config"
@@ -319,133 +290,6 @@ def run_command(command, prefix, *arguments, **kwargs) -> tuple[str, str, int]:
     if command in (Commands.CONFIG,):
         reset_context([os.path.join(prefix + os.sep, "condarc")], args)
     return stdout, stderr, result
-
-
-@deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_env` instead.")
-@contextmanager
-def make_temp_env(*packages, **kwargs) -> Iterator[str]:
-    name = kwargs.pop("name", None)
-    use_restricted_unicode = kwargs.pop("use_restricted_unicode", False)
-
-    prefix = kwargs.pop("prefix", None) or _get_temp_prefix(
-        name=name, use_restricted_unicode=use_restricted_unicode
-    )
-    clean_prefix = kwargs.pop("clean_prefix", None)
-    if clean_prefix:
-        if os.path.exists(prefix):
-            rm_rf(prefix)
-    if not isdir(prefix):
-        make_temp_prefix(name, use_restricted_unicode, prefix)
-    with disable_logger("fetch"):
-        try:
-            # try to clear any config that's been set by other tests
-            # CAUTION :: This does not partake in the context stack management code
-            #            of env_{var,vars,unmodified} and, when used in conjunction
-            #            with that code, this *must* be called first.
-            reset_context([os.path.join(prefix + os.sep, "condarc")])
-            run_command(Commands.CREATE, prefix, *packages, **kwargs)
-            yield prefix
-        finally:
-            if "CONDA_TEST_SAVE_TEMPS" not in os.environ:
-                rmtree(prefix, ignore_errors=True)
-            else:
-                log.warning(
-                    f"CONDA_TEST_SAVE_TEMPS :: retaining make_temp_env {prefix}"
-                )
-
-
-@deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_pkgs_dir` instead.")
-@contextmanager
-def make_temp_package_cache() -> Iterator[str]:
-    prefix = make_temp_prefix(use_restricted_unicode=on_win)
-    pkgs_dir = join(prefix, "pkgs")
-    mkdir_p(pkgs_dir)
-    touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
-
-    try:
-        with env_var(
-            "CONDA_PKGS_DIRS",
-            pkgs_dir,
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            assert context.pkgs_dirs == (pkgs_dir,)
-            yield pkgs_dir
-    finally:
-        rmtree(prefix, ignore_errors=True)
-        PackageCacheData._cache_.pop(pkgs_dir, None)
-
-
-@deprecated("24.9", "25.3", addendum="Use `conda.testing.tmp_channel` instead.")
-@contextmanager
-def make_temp_channel(packages) -> Iterator[str]:
-    package_reqs = [pkg.replace("-", "=") for pkg in packages]
-    package_names = [pkg.split("-")[0] for pkg in packages]
-
-    with make_temp_env(*package_reqs) as prefix:
-        for package in packages:
-            assert package_is_installed(prefix, package.replace("-", "="))
-        data = [
-            p for p in PrefixData(prefix).iter_records() if p["name"] in package_names
-        ]
-        run_command(Commands.REMOVE, prefix, *package_names)
-        for package in packages:
-            assert not package_is_installed(prefix, package.replace("-", "="))
-
-    repodata = {"info": {}, "packages": {}}
-    tarfiles = {}
-    for package_data in data:
-        pkg_data = package_data
-        fname = pkg_data["fn"]
-        tarfiles[fname] = join(PackageCacheData.first_writable().pkgs_dir, fname)
-
-        pkg_data = pkg_data.dump()
-        for field in ("url", "channel", "schannel"):
-            pkg_data.pop(field, None)
-        repodata["packages"][fname] = PackageRecord(**pkg_data)
-
-    with make_temp_env() as channel:
-        subchan = join(channel, context.subdir)
-        noarch_dir = join(channel, "noarch")
-        channel = path_to_url(channel)
-        os.makedirs(subchan)
-        os.makedirs(noarch_dir)
-        for fname, tar_old_path in tarfiles.items():
-            tar_new_path = join(subchan, fname)
-            copyfile(tar_old_path, tar_new_path)
-
-        with open(join(subchan, "repodata.json"), "w") as f:
-            f.write(json.dumps(repodata, cls=EntityEncoder))
-        with open(join(noarch_dir, "repodata.json"), "w") as f:
-            f.write(json.dumps({}, cls=EntityEncoder))
-
-        yield channel
-
-
-@deprecated(
-    "24.9", "25.3", addendum="Use `tmp_path` or `conda.testing.path_factory` instead."
-)
-def create_temp_location() -> str:
-    return _get_temp_prefix()
-
-
-@deprecated(
-    "24.9", "25.3", addendum="Use `tmp_path` or `conda.testing.path_factory` instead."
-)
-@contextmanager
-def tempdir() -> Iterator[str]:
-    prefix = create_temp_location()
-    try:
-        os.makedirs(prefix)
-        yield prefix
-    finally:
-        if lexists(prefix):
-            rm_rf(prefix)
-
-
-@deprecated("24.9", "25.3", addendum="Use `conda.base.context.reset_context` instead.")
-def reload_config(prefix) -> None:
-    prefix_condarc = join(prefix, "condarc")
-    reset_context([prefix_condarc])
 
 
 def package_is_installed(
