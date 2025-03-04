@@ -12,15 +12,10 @@ import os
 import sys
 from functools import cache
 from logging import getLogger
-from os.path import dirname, isdir, join
+from os.path import dirname, join
 from pathlib import Path
-from random import sample
 from subprocess import check_output
-from tempfile import gettempdir
 from typing import TYPE_CHECKING
-from uuid import uuid4
-
-import pytest
 
 from ..auxlib.compat import Utf8NamedTemporaryFile
 from ..base.context import context, reset_context
@@ -37,8 +32,6 @@ from ..common.path import BIN_DIRECTORY
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
 from ..exceptions import conda_exception_handler
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.link import link
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
 from ..utils import massage_arguments
@@ -101,95 +94,6 @@ def running_a_python_capable_of_unicode_subprocessing():
         finally:
             os.unlink(name)
     return False
-
-
-tmpdir_in_use = None
-
-
-@pytest.fixture(autouse=True)
-@deprecated(
-    "24.9",
-    "25.3",
-    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
-)
-def set_tmpdir(tmpdir):
-    global tmpdir_in_use
-    if not tmpdir:
-        return tmpdir_in_use
-    td = tmpdir.strpath
-    assert os.sep in td
-    tmpdir_in_use = td
-
-
-@deprecated(
-    "24.9",
-    "25.3",
-    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
-)
-def _get_temp_prefix(name=None, use_restricted_unicode=False):
-    tmpdir = tmpdir_in_use or gettempdir()
-    capable = running_a_python_capable_of_unicode_subprocessing()
-
-    if not capable or use_restricted_unicode:
-        RESTRICTED = UNICODE_CHARACTERS_RESTRICTED
-        random_unicode = "".join(sample(RESTRICTED, len(RESTRICTED)))
-    else:
-        random_unicode = "".join(sample(UNICODE_CHARACTERS, len(UNICODE_CHARACTERS)))
-    tmpdir_name = os.environ.get(
-        "CONDA_TEST_TMPDIR_NAME",
-        (str(uuid4())[:4] + SPACER_CHARACTER + random_unicode)
-        if name is None
-        else name,
-    )
-    prefix = join(tmpdir, tmpdir_name)
-
-    # Exit immediately if we cannot use hardlinks, on Windows, we get permissions errors if we use
-    # sys.executable so instead use the pdb files.
-    src = sys.executable.replace(".exe", ".pdb") if on_win else sys.executable
-    dst = os.path.join(tmpdir, os.path.basename(sys.executable))
-
-    try:
-        link(src, dst)
-    except OSError:
-        print(
-            f"\nWARNING :: You are testing `conda` with `tmpdir`:-\n           {tmpdir}\n"
-            f"           not on the same FS as `sys.prefix`:\n           {sys.prefix}\n"
-            "           this will be slow and unlike the majority of end-user installs.\n"
-            "           Please pass `--basetemp=<somewhere-else>` instead."
-        )
-    try:
-        rm_rf(dst)
-    except Exception as e:
-        print(e)
-        pass
-
-    return prefix
-
-
-@deprecated(
-    "24.9",
-    "25.3",
-    addendum="Use `tmp_path`, `conda.testing.path_factory`, or `conda.testing.tmp_env` instead.",
-)
-def make_temp_prefix(name=None, use_restricted_unicode=False, _temp_prefix=None):
-    """
-    When the env. you are creating will be used to install Python 2.7 on Windows
-    only a restricted amount of Unicode will work, and probably only those chars
-    in your current codepage, so the characters in UNICODE_CHARACTERS_RESTRICTED
-    should probably be randomly generated from that instead. The problem here is
-    that the current codepage needs to be able to handle 'sys.prefix' otherwise
-    ntpath will fall over.
-    """
-    if not _temp_prefix:
-        _temp_prefix = _get_temp_prefix(
-            name=name, use_restricted_unicode=use_restricted_unicode
-        )
-    try:
-        os.makedirs(_temp_prefix)
-    except:
-        pass
-    assert isdir(_temp_prefix)
-    return _temp_prefix
 
 
 class Commands:
