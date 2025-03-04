@@ -38,7 +38,6 @@ if TYPE_CHECKING:
 
     from requests.auth import AuthBase
 
-    from ..common.configuration import ParameterLoader
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -321,14 +320,14 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
-    def get_settings(self) -> dict[str, ParameterLoader]:
+    def get_settings(self) -> dict[str, CondaSetting]:
         """
         Return a mapping of plugin setting name to ParameterLoader class
 
         This method intentionally overwrites any duplicates that may be present
         """
         return {
-            config_param.name.lower(): (config_param.parameter, config_param.aliases)
+            config_param.name.lower(): config_param
             for config_param in self.get_hook_results("settings")
         }
 
@@ -460,8 +459,8 @@ class CondaPluginManager(pluggy.PluginManager):
         Iterates through all registered settings and adds them to the
         :class:`conda.common.configuration.PluginConfig` class.
         """
-        for name, (parameter, aliases) in self.get_settings().items():
-            add_plugin_setting(name, parameter, aliases)
+        for name, setting in self.get_settings().items():
+            add_plugin_setting(name, setting.parameter, setting.aliases)
 
 
 @functools.cache
