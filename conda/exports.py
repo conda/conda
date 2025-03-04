@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Backported exports for conda-build."""
 
+from __future__ import annotations
+
 import errno
 import functools
 import os
-import warnings
 from builtins import input  # noqa: F401, UP029
 from io import StringIO  # noqa: F401, for conda-build
+from typing import TYPE_CHECKING
 
 from . import CondaError  # noqa: F401
 from .auxlib.entity import EntityEncoder  # noqa: F401
@@ -70,6 +72,9 @@ from .resolve import (  # noqa: F401
 )
 from .utils import human_bytes, unix_path_to_win, url_path  # noqa: F401
 
+if TYPE_CHECKING:
+    from typing import Any
+
 reset_context()  # initialize context when conda.exports is imported
 
 
@@ -102,13 +107,14 @@ PY3 = True
 string_types = str
 text_type = str
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", PendingDeprecationWarning)
-    warnings.simplefilter("ignore", DeprecationWarning)
-    from . import plan
 
-    deprecated.constant("25.9", "26.3", "plan", plan)
-    del plan
+def __getattr__(name: str) -> Any:
+    # lazy load the deprecated module
+    if name == "plan":
+        from . import plan
+
+        return plan
+
 
 deprecated.constant(
     "25.3",
