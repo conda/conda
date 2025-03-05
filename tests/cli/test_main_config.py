@@ -259,7 +259,9 @@ def test_config_set_and_get_key_for_env(
     test_channel_name = "my-super-special-channel"
     with tmp_env() as prefix:
         # add config to prefix
-        conda_cli("config", "--append", "channels", test_channel_name, "--prefix", prefix)
+        conda_cli(
+            "config", "--append", "channels", test_channel_name, "--prefix", prefix
+        )
         
         # check config is added to the prefix config
         stdout, _, _ = conda_cli("config", "--show", "--prefix", prefix, "--json")
@@ -276,4 +278,6 @@ def test_config_env_does_not_exist(
     conda_cli: CondaCLIFixture,
 ) -> None:
     with pytest.raises(EnvironmentLocationNotFound):
-        conda_cli("config", "--get", "channels","--prefix", "ireallydontexist", "--json")
+        conda_cli(
+            "config", "--get", "channels","--prefix", "ireallydontexist", "--json"
+        )

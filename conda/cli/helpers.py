@@ -133,21 +133,25 @@ def add_parser_prefix(
     npgroup = target_environment_group.add_mutually_exclusive_group(
         required=prefix_required
     )
-    npgroup.add_argument(
+    add_parser_prefix_to_group(npgroup)
+    return npgroup
+
+
+def add_parser_prefix_to_group(m: _MutuallyExclusiveGroup) -> None:
+    m.add_argument(
         "-n",
         "--name",
         action="store",
         help="Name of environment.",
         metavar="ENVIRONMENT",
     )
-    npgroup.add_argument(
+    m.add_argument(
         "-p",
         "--prefix",
         action="store",
         help="Full path to environment location (i.e. prefix).",
         metavar="PATH",
     )
-    return npgroup
 
 
 def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
