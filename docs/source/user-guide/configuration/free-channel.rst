@@ -12,52 +12,8 @@ and hid old software. That old software could have incompatible
 constraint information. Read more about `why we made this change
 <https://www.anaconda.com/why-we-removed-the-free-channel-in-conda-4-7/>`_.
 
-
 If you still need the content from the ``free`` channel to reproduce
 old environments, you can re-add the channel following the directions below.
-
-.. versionchanged:: 24.9.0
-
-  The ``restore_free_channel`` option has been marked for pending deprecation
-  with removal in conda 25.3.0.
-
-  To achieve the same effect, you may add the ``free`` channel to your
-  the :ref:`defaults channel <default-channels>` using the regular ``condarc``
-  configuration.
-
-  On UNIX-style systems:
-
-  .. code-block:: yaml
-
-     default_channels:
-         - https://repo.anaconda.com/pkgs/main
-         - https://repo.anaconda.com/pkgs/free
-         - https://repo.anaconda.com/pkgs/r
-
-  On Windows:
-
-  .. code-block:: yaml
-
-     default_channels:
-         - https://repo.anaconda.com/pkgs/main
-         - https://repo.anaconda.com/pkgs/free
-         - https://repo.anaconda.com/pkgs/r
-         - https://repo.anaconda.com/pkgs/msys2
-
-  Note that the free channel is listed after the main channel.
-
-.. _free-channel-default:
-
-Adding the free channel to defaults
-===================================
-
-If you want to add the ``free`` channel back into your default list,
-use the command::
-
-   conda config --set restore_free_channel true
-
-The order of the channels is important. Using the above
-command will restore the ``free`` channel in the correct order.
 
 Changing .condarc
 =================
@@ -65,9 +21,26 @@ Changing .condarc
 You can also add the ``free`` channel back into your defaults by
 changing the ``.condarc`` file itself.
 
-Add the following to the conda section of your ``.condarc`` file::
+On UNIX-style systems:
 
-   restore_free_channel: true
+.. code-block:: yaml
+
+   default_channels:
+       - https://repo.anaconda.com/pkgs/main
+       - https://repo.anaconda.com/pkgs/free
+       - https://repo.anaconda.com/pkgs/r
+
+On Windows:
+
+.. code-block:: yaml
+
+   default_channels:
+       - https://repo.anaconda.com/pkgs/main
+       - https://repo.anaconda.com/pkgs/free
+       - https://repo.anaconda.com/pkgs/r
+       - https://repo.anaconda.com/pkgs/msys2
+
+Note that the free channel is listed after the main channel.
 
 Read more about :doc:`use-condarc`.
 
