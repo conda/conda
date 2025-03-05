@@ -412,7 +412,6 @@ class Context(Configuration):
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True,
     )
-    restore_free_channel = ParameterLoader(PrimitiveParameter(False))
     repodata_fns = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str),
@@ -882,18 +881,6 @@ class Context(Configuration):
         else:
             default_channels = list(self._default_channels)
 
-        if self.restore_free_channel:
-            deprecated.topic(
-                "24.9",
-                "25.3",
-                topic="Adding the 'free' channel as it existed prior to conda 4.7.",
-                addendum="See "
-                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
-                "for more details.",
-                deprecation_type=FutureWarning,
-            )
-            default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
-
         reserved_multichannel_urls = {
             DEFAULTS_CHANNEL_NAME: default_channels,
             "local": self.conda_build_local_urls,
@@ -1190,7 +1177,6 @@ class Context(Configuration):
                 "migrated_custom_channels",
                 "add_anaconda_token",
                 "allow_non_channel_urls",
-                "restore_free_channel",
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
@@ -1715,12 +1701,6 @@ class Context(Configuration):
                 Opt in, or opt out, of automatic error reporting to core maintainers. Error
                 reports are anonymous, with only the error stack trace and information given
                 by `conda info` being sent.
-                """
-            ),
-            restore_free_channel=dals(
-                """"
-                Add the "free" channel back into defaults, behind "main" in priority. The "free"
-                channel was removed from the collection of default channels in conda 4.7.0.
                 """
             ),
             rollback_enabled=dals(
