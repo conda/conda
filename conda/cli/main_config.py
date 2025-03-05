@@ -124,7 +124,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
        "-n",
         "--name",
         action="store",
-        help="Write to the .condarc file for the specified environment name.s",
+        help="Write to the .condarc file for the specified environment name.",
         metavar="ENVIRONMENT",
     )
     location.add_argument(
