@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Allow user to specify --name or --prefix as part of conda config command. (#14648)
+* Allow user to specify `--name` or `--prefix` as part of `conda config` command. (#12137 via #14648)
 
 ### Deprecations
 
