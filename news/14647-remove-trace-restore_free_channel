@@ -10,7 +10,7 @@
 
 * Postpone `conda.base.context.Context.conda_exe` deprecation to `26.3`. (#14647)
 * Remove `logging.Logger.trace` monkeypatch. Use `logging.getLogger(__name__)(conda.common.constants.TRACE, ...)` instead. (#14647)
-* Remove `conda.base.context.Context.restore_free_channel`. See https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html for more details. (#14647)
+* Postpone `conda.base.context.Context.restore_free_channel` deprecation to `25.9`. (#14647)
 
 ### Docs
 
