@@ -454,7 +454,7 @@ def test_set_map_key(key, from_val, to_val, conda_cli: CondaCLIFixture):
 
 
 def test_set_unconfigured_key(conda_cli: CondaCLIFixture):
-    key, to_val = "clobber", "true"
+    key, to_val = "restore_free_channel", "true"
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, to_val)
         assert stdout == stderr == ""
@@ -514,9 +514,12 @@ def test_remove_key_duplicate(conda_cli: CondaCLIFixture):
 
 
 def test_remove_unconfigured_key(conda_cli: CondaCLIFixture):
-    key = "clobber"
+    key = "restore_free_channel"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        with pytest.raises(CondaKeyError, match=rf"{key!r}: undefined in config"):
+        with pytest.raises(
+            CondaKeyError,
+            match=r"'restore_free_channel': undefined in config",
+        ):
             conda_cli("config", "--file", rc, "--remove-key", key)
 
         assert _read_test_condarc(rc) == CONDARC_BASE
@@ -545,7 +548,7 @@ def test_set_check_types(key, str_value, py_value, conda_cli: CondaCLIFixture):
 
 
 def test_set_and_get_bool(conda_cli: CondaCLIFixture):
-    key = "clobger"
+    key = "restore_free_channel"
     with make_temp_condarc() as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, "yes")
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", key)
