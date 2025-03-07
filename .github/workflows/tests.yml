@@ -407,6 +407,7 @@ jobs:
           docker run
           --rm
           --volume ${PWD}:/opt/conda-src
+          --volume ${PWD}/.github/condarc-defaults:/root/.condarc:ro
           --workdir /opt/conda-src
           --platform linux/${{ matrix.platform }}
           ${{ matrix.image }}
