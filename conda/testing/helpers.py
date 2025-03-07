@@ -732,7 +732,6 @@ def convert_to_dist_str(solution):
     return tuple(prec.dist_str(canonical_name=False) for prec in solution)
 
 
-
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_solver_backend()
