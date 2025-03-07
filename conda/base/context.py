@@ -2242,7 +2242,7 @@ def remove_all_plugin_settings() -> None:
 
 
 try:
-    context = Context((), None)
+    context = Context(SEARCH_PATH, None)
 except ConfigurationLoadError as e:  # pragma: no cover
     print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
