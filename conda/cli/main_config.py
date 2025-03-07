@@ -261,9 +261,13 @@ def format_dict(d):
     return lines
 
 
-def parameter_description_builder(name, context, plugins=False):
+def parameter_description_builder(name, context=None, plugins=False):
     from ..auxlib.entity import EntityEncoder
     from ..common.serialize import yaml_round_trip_dump
+
+    # Keeping this for backward-compatibility, in case no context instance is provided
+    if context is None:
+        from ..base.context import context
 
     name_prefix = "plugins." if plugins else ""
 
@@ -310,12 +314,16 @@ def parameter_description_builder(name, context, plugins=False):
     return builder
 
 
-def describe_all_parameters(context, plugins=False) -> str:
+def describe_all_parameters(context=None, plugins=False) -> str:
     """
     Return a string with the descriptions of all available configuration
 
     When ``context`` has no parameters, this function returns ``""``
     """
+    # Keeping this for backward-compatibility, in case no context instance is provided
+    if context is None:
+        from ..base.context import context
+
     if not context.parameter_names:
         return ""
 
@@ -366,10 +374,13 @@ def print_config_item(key, value):
                 stdout_write(" ".join(("--add", key, repr(item))))
 
 
-def _key_exists(key: str, warnings: list[str], context) -> bool:
+def _key_exists(key: str, warnings: list[str], context=None) -> bool:
     """
     Logic to determine if the key is a valid setting.
     """
+    if context is None:
+        from ..base.context import context
+
     first, *rest = key.split(".")
     if (
         first == "plugins"

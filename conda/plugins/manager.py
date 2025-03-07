@@ -20,7 +20,7 @@ import pluggy
 
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
-from ..base.context import add_plugin_setting, context
+from ..base.context import context
 from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import (
@@ -30,6 +30,7 @@ from . import (
     subcommands,
     virtual_packages,
 )
+from .config import add_plugin_setting, PluginConfig
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
@@ -322,7 +323,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_settings(self) -> dict[str, CondaSetting]:
         """
-        Return a mapping of plugin setting name to ParameterLoader class
+        Return a mapping of plugin setting name to CondaSetting objects.
 
         This method intentionally overwrites any duplicates that may be present
         """
@@ -461,6 +462,9 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for name, setting in self.get_settings().items():
             add_plugin_setting(name, setting.parameter, setting.aliases)
+
+    def get_config(self, data):
+        return PluginConfig(data)
 
 
 @functools.cache

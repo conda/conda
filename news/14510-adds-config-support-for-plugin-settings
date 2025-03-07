@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Adds support for showing and manipulating settings registered via the settings plugin hook to `conda config`
+* Adds support for showing and manipulating settings registered via the settings plugin hook to `conda config`. (#13661 via #14510)
 
 ### Bug fixes
 
