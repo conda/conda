@@ -35,6 +35,7 @@ from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
 from conda.exceptions import (
+    ArgumentError,
     ChannelDenied,
     ChannelNotAllowed,
     CondaValueError,
@@ -440,18 +441,14 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
 def test_channels_empty(testdata: None):
     """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())
-    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
-        assert context.channels == ("defaults",)
+    with pytest.raises(ArgumentError, match="No channels defined"):
+        context.channels
 
 
 def test_channels_defaults_condarc(testdata: None):
     """Test when no channels provided in cli, but some in condarc."""
     reset_context(())
-    string = dals(
-        """
-        channels: ['defaults', 'conda-forge']
-        """
-    )
+    string = "channels: ['defaults', 'conda-forge']"
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
             "testdata", yaml_round_trip_load(string)
@@ -469,8 +466,7 @@ def test_specify_channels_cli_not_adding_defaults_no_condarc(testdata: None):
     See https://github.com/conda/conda/issues/14217 for context.
     """
     reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
-    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
-        assert context.channels == ("conda-forge", "defaults")
+    assert context.channels == ("conda-forge",)
 
 
 def test_specify_channels_cli_condarc(testdata: None):
@@ -479,18 +475,14 @@ def test_specify_channels_cli_condarc(testdata: None):
     should be used along with the one specified
     """
     reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
-    string = dals(
-        """
-        channels: ['defaults', 'conda-forge']
-        """
-    )
+    string = "channels: ['defaults', 'conda-forge']"
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
             "testdata", yaml_round_trip_load(string)
         )
     }
     context._set_raw_data(rd)
-    assert context.channels == ("defaults", "conda-forge")
+    assert context.channels == ("conda-forge", "defaults")
 
 
 def test_specify_different_channels_cli_condarc(testdata: None):
@@ -501,18 +493,14 @@ def test_specify_different_channels_cli_condarc(testdata: None):
     'defaults' should not be added
     """
     reset_context((), argparse_args=AttrDict(channel=["other"]))
-    string = dals(
-        """
-        channels: ['conda-forge']
-        """
-    )
+    string = "channels: ['conda-forge']"
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
             "testdata", yaml_round_trip_load(string)
         )
     }
     context._set_raw_data(rd)
-    assert context.channels == ("conda-forge", "other")
+    assert context.channels == ("other", "conda-forge")
 
 
 def test_specify_same_channels_cli_as_in_condarc(testdata: None):
