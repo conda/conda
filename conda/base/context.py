@@ -13,8 +13,6 @@ import os
 import platform
 import struct
 import sys
-from collections import defaultdict
-from collections.abc import Mapping
 from contextlib import contextmanager, suppress
 from errno import ENOENT
 from functools import cache, cached_property
@@ -36,7 +34,6 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
-    EnvRawParameter,
     MapParameter,
     ParameterLoader,
     PrimitiveParameter,
@@ -78,10 +75,12 @@ from .constants import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
     from typing import Literal
 
     from ..plugins.manager import CondaPluginManager
     from ..plugins.config import PluginConfig
+    from ..common.configuration import Parameter, RawParameter
 
 try:
     os.getcwd()
@@ -1901,6 +1900,7 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
     # remove plugin config params
     from ..plugins.config import remove_all_plugin_settings
+
     remove_all_plugin_settings()
 
     context.__init__(search_path, argparse_args)
@@ -2185,6 +2185,47 @@ def _first_writable_envs_dir():
     from ..exceptions import NoWritableEnvsDirError
 
     raise NoWritableEnvsDirError(context.envs_dirs)
+
+
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.config.get_plugin_config_data` instead.",
+)
+def get_plugin_config_data(
+    data: dict[Path, dict[str, RawParameter]],
+) -> dict[Path, dict[str, RawParameter]]:
+    from ..plugins.config import get_plugin_config_data as _get_plugin_config_data
+
+    return _get_plugin_config_data(data)
+
+
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.config.add_plugin_setting` instead.",
+)
+def add_plugin_setting(
+    name: str,
+    parameter: Parameter,
+    aliases: tuple[str, ...] = (),
+) -> None:
+    from ..plugins.config import add_plugin_setting as _add_plugin_setting
+
+    return _add_plugin_setting(name, parameter, aliases)
+
+
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.plugins.config.remove_all_plugin_settings` instead.",
+)
+def remove_all_plugin_settings() -> None:
+    from ..plugins.config import (
+        remove_all_plugin_settings as _remove_all_plugin_settings,
+    )
+
+    return _remove_all_plugin_settings()
 
 
 try:
