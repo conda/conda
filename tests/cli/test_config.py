@@ -117,25 +117,19 @@ def test_channels_add_empty(conda_cli: CondaCLIFixture):
             *("--add", "channels", "test"),
         )
         assert stdout == stderr == ""
-        # TODO: Update in 25.3
-        assert _read_test_condarc(rc) == _channels_as_yaml("test", "defaults")
+        assert _read_test_condarc(rc) == _channels_as_yaml("test")
 
 
 def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
-    # When defaults is explicitly given, it should not be added
     with make_temp_condarc() as rc:
         stdout, stderr, _ = conda_cli(
             "config",
-            *("--file", rc),
+            f"--file={rc}",
             *("--add", "channels", "test"),
             *("--add", "channels", "defaults"),
         )
-        assert stdout == ""
-        # TODO: Update in 25.3
-        assert (
-            stderr.strip()
-            == "Warning: 'defaults' already in 'channels' list, moving to the top"
-        )
+        assert not stdout
+        assert not stderr
         assert _read_test_condarc(rc) == _channels_as_yaml("defaults", "test")
 
 
