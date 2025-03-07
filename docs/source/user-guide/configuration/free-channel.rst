@@ -19,7 +19,7 @@ old environments, you can re-add the channel following the directions below.
 .. versionchanged:: 24.9.0
 
   The ``restore_free_channel`` option has been marked for pending deprecation
-  with removal in conda 25.3.0.
+  with removal in conda 25.9.0.
 
   To achieve the same effect, you may add the ``free`` channel to your
   the :ref:`defaults channel <default-channels>` using the regular ``condarc``
