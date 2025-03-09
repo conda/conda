@@ -25,7 +25,6 @@ from conda.base.context import (
     channel_alias_validation,
     context,
     default_python_validation,
-    get_plugin_config_data,
     reset_context,
     validate_channels,
     validate_prefix_name,
@@ -43,6 +42,7 @@ from conda.exceptions import (
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
+from conda.plugins.config import get_plugin_config_data
 from conda.utils import on_win
 
 if TYPE_CHECKING:
