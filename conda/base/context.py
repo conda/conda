@@ -79,8 +79,8 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from ..common.configuration import Parameter, RawParameter
-    from ..plugins.manager import CondaPluginManager
     from ..plugins.config import PluginConfig
+    from ..plugins.manager import CondaPluginManager
 
 try:
     os.getcwd()
