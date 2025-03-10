@@ -20,7 +20,6 @@ from ..common.configuration import (
     ParameterLoader,
 )
 
-
 if TYPE_CHECKING:
     from pathlib import Path
 
