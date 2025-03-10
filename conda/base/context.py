@@ -1899,9 +1899,9 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     global context
 
     # remove plugin config params
-    from ..plugins.config import remove_all_plugin_settings
+    from ..plugins.config import PluginConfig
 
-    remove_all_plugin_settings()
+    PluginConfig.remove_all_plugin_settings()
 
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
@@ -2190,42 +2190,40 @@ def _first_writable_envs_dir():
 @deprecated(
     "25.3",
     "25.9",
-    addendum="Use `conda.plugins.config.get_plugin_config_data` instead.",
+    addendum="Use `conda.base.context.plugins.raw_data` instead.",
 )
 def get_plugin_config_data(
     data: dict[Path, dict[str, RawParameter]],
 ) -> dict[Path, dict[str, RawParameter]]:
-    from ..plugins.config import get_plugin_config_data as _get_plugin_config_data
+    from ..plugins.config import PluginConfig
 
-    return _get_plugin_config_data(data)
+    return PluginConfig(data).raw_data
 
 
 @deprecated(
     "25.3",
     "25.9",
-    addendum="Use `conda.plugins.config.add_plugin_setting` instead.",
+    addendum="Use `conda.plugins.config.PluginConfig.add_plugin_setting` instead.",
 )
 def add_plugin_setting(
     name: str,
     parameter: Parameter,
     aliases: tuple[str, ...] = (),
 ) -> None:
-    from ..plugins.config import add_plugin_setting as _add_plugin_setting
+    from ..plugins.config import PluginConfig
 
-    return _add_plugin_setting(name, parameter, aliases)
+    return PluginConfig.add_plugin_setting(name, parameter, aliases)
 
 
 @deprecated(
     "25.3",
     "25.9",
-    addendum="Use `conda.plugins.config.remove_all_plugin_settings` instead.",
+    addendum="Use `conda.plugins.config.PluginConfig.remove_all_plugin_settings` instead.",
 )
 def remove_all_plugin_settings() -> None:
-    from ..plugins.config import (
-        remove_all_plugin_settings as _remove_all_plugin_settings,
-    )
+    from ..plugins.config import PluginConfig
 
-    return _remove_all_plugin_settings()
+    return PluginConfig.remove_all_plugin_settings()
 
 
 try:

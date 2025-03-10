@@ -42,7 +42,7 @@ from conda.exceptions import (
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.plugins.config import get_plugin_config_data
+from conda.plugins.config import PluginConfig
 from conda.utils import on_win
 
 if TYPE_CHECKING:
@@ -689,7 +689,7 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
             assert actual == str(expected)
 
 
-def test_get_plugin_config_data_file_source(tmp_path):
+def test_plugin_config_data_file_source(tmp_path):
     """
     Test file source of plugin configuration values
     """
@@ -709,7 +709,7 @@ def test_get_plugin_config_data_file_source(tmp_path):
         path: data for path, data in Configuration._load_search_path((condarc,))
     }
 
-    plugin_config_data = get_plugin_config_data(config_data)
+    plugin_config_data = PluginConfig(config_data).raw_data
 
     assert plugin_config_data.get(condarc) is not None
 
@@ -722,7 +722,7 @@ def test_get_plugin_config_data_file_source(tmp_path):
     assert option_two.value(None) == "value_two"
 
 
-def test_get_plugin_config_data_env_var_source():
+def test_plugin_config_data_env_var_source():
     """
     Test environment variable source of plugin configuration values
     """
@@ -733,7 +733,7 @@ def test_get_plugin_config_data_env_var_source():
         }
     }
 
-    plugin_config_data = get_plugin_config_data(raw_data)
+    plugin_config_data = PluginConfig(raw_data).raw_data
 
     assert plugin_config_data.get("envvars") is not None
 
@@ -746,7 +746,7 @@ def test_get_plugin_config_data_env_var_source():
     assert option_two.get("_raw_value") == "value_two"
 
 
-def test_get_plugin_config_data_skip_bad_values():
+def test_plugin_config_data_skip_bad_values():
     """
     Make sure that values that are not frozendict for file sources are skipped
     """
@@ -758,9 +758,7 @@ def test_get_plugin_config_data_skip_bad_values():
 
     raw_data = {path: {"plugins": Value()}}
 
-    plugin_config_data = get_plugin_config_data(raw_data)
-
-    assert plugin_config_data == {}
+    assert PluginConfig(raw_data).raw_data == {}
 
 
 @pytest.mark.parametrize(

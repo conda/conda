@@ -27,35 +27,6 @@ if TYPE_CHECKING:
     from ..common.configuration import Parameter, RawParameter
 
 
-def get_plugin_config_data(
-    data: dict[Path, dict[str, RawParameter]],
-) -> dict[Path, dict[str, RawParameter]]:
-    """
-    This is used to move everything under the key "plugins" from the provided dictionary
-    to the top level of the returned dictionary. The returned dictionary is then passed
-    to :class:`PluginConfig`.
-    """
-    new_data = defaultdict(dict)
-
-    for source, config in data.items():
-        if plugin_data := config.get("plugins"):
-            plugin_data_value = plugin_data.value(None)
-
-            if not isinstance(plugin_data_value, Mapping):
-                continue
-
-            for param_name, raw_param in plugin_data_value.items():
-                new_data[source][param_name] = raw_param
-
-        elif source == EnvRawParameter.source:
-            for env_var, raw_param in config.items():
-                if env_var.startswith("plugins_"):
-                    _, param_name = env_var.split("plugins_")
-                    new_data[source][param_name] = raw_param
-
-    return new_data
-
-
 class PluginConfig(Configuration):
     """
     Class used to hold settings for conda plugins.
@@ -72,9 +43,61 @@ class PluginConfig(Configuration):
     plugin hook.
     """
 
+    @classmethod
+    def add_plugin_setting(
+        cls, name: str, parameter: Parameter, aliases: tuple[str, ...] = ()
+    ):
+        """
+        Adds a setting to the :class:`PluginConfig` class
+        """
+        cls.parameter_names = cls.parameter_names + (name,)
+        loader = ParameterLoader(parameter, aliases=aliases)
+        name = loader._set_name(name)
+        setattr(cls, name, loader)
+
+    @classmethod
+    def remove_all_plugin_settings(cls) -> None:
+        """
+        Removes all attached settings from the :class:`PluginConfig` class
+        """
+        for name in cls.parameter_names:
+            try:
+                delattr(cls, name)
+            except AttributeError:
+                continue
+
+        cls.parameter_names = tuple()
+
     def __init__(self, data):
         self._cache_ = {}
-        self.raw_data = get_plugin_config_data(data)
+        self._data = data
+
+    @property
+    def raw_data(self) -> dict[Path, dict[str, RawParameter]]:
+        """
+        This is used to move everything under the key "plugins" from the provided dictionary
+        to the top level of the returned dictionary. The returned dictionary is then passed
+        to :class:`PluginConfig`.
+        """
+        new_data = defaultdict(dict)
+
+        for source, config in self._data.items():
+            if plugin_data := config.get("plugins"):
+                plugin_data_value = plugin_data.value(None)
+
+                if not isinstance(plugin_data_value, Mapping):
+                    continue
+
+                for param_name, raw_param in plugin_data_value.items():
+                    new_data[source][param_name] = raw_param
+
+            elif source == EnvRawParameter.source:
+                for env_var, raw_param in config.items():
+                    if env_var.startswith("plugins_"):
+                        _, param_name = env_var.split("plugins_")
+                        new_data[source][param_name] = raw_param
+
+        return new_data
 
     @property
     def category_map(self) -> dict[str, tuple[str, ...]]:
@@ -87,26 +110,3 @@ class PluginConfig(Configuration):
             name: setting.description
             for name, setting in context.plugin_manager.get_settings().items()
         }
-
-
-def add_plugin_setting(name: str, parameter: Parameter, aliases: tuple[str, ...] = ()):
-    """
-    Adds a setting to the :class:`PluginConfig` class
-    """
-    PluginConfig.parameter_names = PluginConfig.parameter_names + (name,)
-    loader = ParameterLoader(parameter, aliases=aliases)
-    name = loader._set_name(name)
-    setattr(PluginConfig, name, loader)
-
-
-def remove_all_plugin_settings() -> None:
-    """
-    Removes all attached settings from the :class:`PluginConfig` class
-    """
-    for name in PluginConfig.parameter_names:
-        try:
-            delattr(PluginConfig, name)
-        except AttributeError:
-            continue
-
-    PluginConfig.parameter_names = tuple()

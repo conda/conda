@@ -30,7 +30,7 @@ from . import (
     subcommands,
     virtual_packages,
 )
-from .config import add_plugin_setting, PluginConfig
+from .config import PluginConfig
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
@@ -461,9 +461,14 @@ class CondaPluginManager(pluggy.PluginManager):
         :class:`conda.common.configuration.PluginConfig` class.
         """
         for name, setting in self.get_settings().items():
-            add_plugin_setting(name, setting.parameter, setting.aliases)
+            PluginConfig.add_plugin_setting(name, setting.parameter, setting.aliases)
 
-    def get_config(self, data):
+    def get_config(self, data) -> PluginConfig:
+        """
+        Retrieve the configuration for the plugin.
+        Returns:
+            PluginConfig: The configuration object for the plugin, initialized with raw data from the context.
+        """
         return PluginConfig(data)
 
 
