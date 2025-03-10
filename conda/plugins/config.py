@@ -1,11 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from __future__ import annotations
-
-from collections import defaultdict
-from collections.abc import Mapping
-from typing import TYPE_CHECKING
-
 """
 Handles plugin configuration functionality including:
   - Managing plugin-specific settings
@@ -13,6 +7,12 @@ Handles plugin configuration functionality including:
   - Dynamically adding and removing plugin settings
   - Providing a standardized interface for plugins to access their configurations
 """
+
+from __future__ import annotations
+
+from collections import defaultdict
+from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 from ..common.configuration import (
     Configuration,
