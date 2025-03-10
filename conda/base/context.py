@@ -409,7 +409,10 @@ class Context(Configuration):
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True,
     )
-    restore_free_channel = ParameterLoader(PrimitiveParameter(False))
+    _restore_free_channel = ParameterLoader(
+        PrimitiveParameter(False),
+        aliases=("restore_free_channel",),
+    )
     repodata_fns = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str),
@@ -787,7 +790,7 @@ class Context(Configuration):
     @property
     @deprecated(
         "23.9",
-        "25.3",
+        "26.3",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
     def conda_exe(self):
@@ -866,6 +869,17 @@ class Context(Configuration):
         #   - are meant to be prepended with channel_alias
         return self.custom_multichannels[DEFAULTS_CHANNEL_NAME]
 
+    @property
+    @deprecated(
+        "24.9",
+        "25.9",
+        addendum="See "
+        "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
+        "for more details.",
+    )
+    def restore_free_channel(self) -> bool:
+        return self._restore_free_channel
+
     @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
@@ -879,11 +893,11 @@ class Context(Configuration):
         else:
             default_channels = list(self._default_channels)
 
-        if self.restore_free_channel:
+        if self._restore_free_channel:
             deprecated.topic(
                 "24.9",
-                "25.3",
-                topic="Adding the 'free' channel as it existed prior to conda 4.7.",
+                "25.9",
+                topic="Adding the 'free' channel using `restore_free_channel` config",
                 addendum="See "
                 "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
                 "for more details.",
