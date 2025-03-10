@@ -78,9 +78,9 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Literal
 
+    from ..common.configuration import Parameter, RawParameter
     from ..plugins.manager import CondaPluginManager
     from ..plugins.config import PluginConfig
-    from ..common.configuration import Parameter, RawParameter
 
 try:
     os.getcwd()
