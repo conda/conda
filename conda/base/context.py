@@ -913,9 +913,10 @@ class Context(Configuration):
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls
             )
             for name, urls in {
-                DEFAULTS_CHANNEL_NAME: default_channels,
-                **self._custom_multichannels,
-                "local": self.conda_build_local_urls,
+                # order matters
+                DEFAULTS_CHANNEL_NAME: default_channels,  # default_channels is a legacy keyword
+                **self._custom_multichannels,  # custom_multichannels.defaults overrides default_channels
+                "local": self.conda_build_local_urls,  # local channel is always last
             }.items()
         }
 
