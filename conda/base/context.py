@@ -908,28 +908,15 @@ class Context(Configuration):
             )
             default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
 
-        reserved_multichannel_urls = {
-            DEFAULTS_CHANNEL_NAME: default_channels,
-            "local": self.conda_build_local_urls,
-        }
-        reserved_multichannels = {
-            name: tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls
-            )
-            for name, urls in reserved_multichannel_urls.items()
-        }
-        custom_multichannels = {
-            name: tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls
-            )
-            for name, urls in self._custom_multichannels.items()
-        }
         return {
-            name: channels
-            for name, channels in (
-                *custom_multichannels.items(),
-                *reserved_multichannels.items(),  # order maters, reserved overrides custom
+            name: tuple(
+                Channel.make_simple_channel(self.channel_alias, url) for url in urls
             )
+            for name, urls in {
+                DEFAULTS_CHANNEL_NAME: default_channels,
+                **self._custom_multichannels,
+                "local": self.conda_build_local_urls,
+            }.items()
         }
 
     @memoizedproperty
