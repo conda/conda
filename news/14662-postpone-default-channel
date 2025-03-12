@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Postpone implicit `defaults` multichannel deprecation to `25.9`. Users relying on this behavior are encouraged to run `conda config --add channels defaults`. (#14178 via #14662)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
