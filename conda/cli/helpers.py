@@ -460,7 +460,7 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
             _StoreTrueAction,
             addendum="Use `--force` instead.",
         ),
-        default=False,
+        default=NULL,
         help=SUPPRESS,
     )
     package_install_options.add_argument(
