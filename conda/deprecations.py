@@ -216,6 +216,7 @@ class DeprecationHandler:
                     raise DeprecatedError(message)
 
                 inner_self.category = category
+                inner_self.deprecation = message
                 if inner_self.help is not SUPPRESS:
                     inner_self.help = message
 
@@ -227,9 +228,11 @@ class DeprecationHandler:
                 option_string: str | None = None,
             ) -> None:
                 # alert user that it's time to remove something
-                if values:
+                from conda.common.constants import NULL
+
+                if values is not NULL:
                     warnings.warn(
-                        inner_self.help,
+                        inner_self.deprecation,
                         inner_self.category,
                         stacklevel=7 + stack,
                     )
