@@ -197,7 +197,7 @@ def ssl_verify_validation(value):
 def _warn_defaults_deprecation():
     deprecated.topic(
         "24.9",
-        "25.3",
+        "25.9",
         topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
         addendum=(
             "\n\n"
