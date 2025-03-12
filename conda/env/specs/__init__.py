@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
@@ -44,7 +43,6 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     raise EnvironmentFileNotFound(filename=filename)
 
 
-@deprecated.argument("24.7", "25.3", "remote_definition")
 def detect(
     name: str | None = None,
     filename: str | None = None,

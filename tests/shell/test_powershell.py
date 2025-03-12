@@ -26,12 +26,12 @@ PARAMETRIZE_POWERSHELL = pytest.mark.parametrize(
             ("powershell", "pwsh", "pwsh-preview"),
             id="powershell",
         ),
-        pytest.param(
-            Shell(("powershell", "pwsh"), path=os.getenv("PWSHPATH")),
-            id="PWSHPATH",
-            marks=pytest.mark.skipif(
-                not os.getenv("PWSHPATH"), reason="PWSHPATH is undefined"
-            ),
+        *(
+            pytest.param(
+                Shell(("powershell", "pwsh"), path=path),
+                id=str(path),
+            )
+            for path in filter(None, os.getenv("PWSHPATH", "").split(";"))
         ),
     ],
     indirect=True,

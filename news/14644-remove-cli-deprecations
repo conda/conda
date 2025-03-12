@@ -1,0 +1,22 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Postpone loading subcommands from executables deprecation to `conda 26.3`. (#14644)
+* Remove `conda create --mkdir`. Redundant argument. (#14644)
+* Remove `conda install --mkdir`. Use `conda create` instead. (#14644)
+* Remove `conda rename --force`. Use `conda rename --yes` instead. (#14644)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

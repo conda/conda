@@ -373,9 +373,9 @@ class PackageRecord(DictSafeMixin, Entity):
     def __eq__(self, other):
         return self._pkey == other._pkey
 
-    def dist_str(self):
+    def dist_str(self, canonical_name: bool = True) -> str:
         return "{}{}::{}-{}-{}".format(
-            self.channel.canonical_name,
+            self.channel.canonical_name if canonical_name else self.channel.name,
             ("/" + self.subdir) if self.subdir else "",
             self.name,
             self.version,

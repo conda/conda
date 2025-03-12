@@ -729,15 +729,7 @@ def get_solver_cuda(
 
 
 def convert_to_dist_str(solution):
-    dist_str = []
-    for prec in solution:
-        # This is needed to remove the local path prefix in the
-        # dist_str() calls, otherwise we cannot compare them
-        canonical_name = prec.channel._Channel__canonical_name
-        prec.channel._Channel__canonical_name = prec.channel.name
-        dist_str.append(prec.dist_str())
-        prec.channel._Channel__canonical_name = canonical_name
-    return tuple(dist_str)
+    return tuple(prec.dist_str(canonical_name=False) for prec in solution)
 
 
 @pytest.fixture()
