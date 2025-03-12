@@ -464,7 +464,6 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         help=SUPPRESS,
     )
     package_install_options.add_argument(
-        "-f",  # FUTURE: 26.3: Remove here and add as alias to --file
         "--force",
         action="store_true",
         default=NULL,
