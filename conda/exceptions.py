@@ -1297,3 +1297,7 @@ class InvalidInstaller(Exception):
     def __init__(self, name):
         msg = f"Unable to load installer for {name}"
         super().__init__(msg)
+
+
+class OfflineError(CondaError, RuntimeError):
+    pass
