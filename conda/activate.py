@@ -304,7 +304,7 @@ class _Activator(metaclass=abc.ABCMeta):
                     + str(remainder_args)
                     + "\n"
                 )
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or "base"
+            self.env_name_or_prefix = remainder_args and remainder_args[0] or context.default_prefix
 
         else:
             if remainder_args:
