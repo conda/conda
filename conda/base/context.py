@@ -221,11 +221,14 @@ class Context(Configuration):
     auto_update_conda = ParameterLoader(
         PrimitiveParameter(True), aliases=("self_update",)
     )
-    auto_activate_base = ParameterLoader(PrimitiveParameter(True))
+    auto_activate_base = ParameterLoader(
+        PrimitiveParameter(True), aliases=("auto_activate_default_env",)
+    )
     auto_stack = ParameterLoader(PrimitiveParameter(0))
     notify_outdated_conda = ParameterLoader(PrimitiveParameter(True))
     clobber = ParameterLoader(PrimitiveParameter(False))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
+    default_env = ParameterLoader(PrimitiveParameter(ROOT_ENV_NAME, element_type=str))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
@@ -747,7 +750,7 @@ class Context(Configuration):
     def default_prefix(self):
         if self.active_prefix:
             return self.active_prefix
-        _default_env = os.getenv("CONDA_DEFAULT_ENV")
+        _default_env = self.default_env
         if _default_env in (None, ROOT_ENV_NAME, "root"):
             return self.root_prefix
         elif os.sep in _default_env:
@@ -1269,6 +1272,7 @@ class Context(Configuration):
                 "auto_activate_base",
                 "auto_stack",
                 "changeps1",
+                "default_env",
                 "env_prompt",
                 "json",
                 "console",
@@ -1391,7 +1395,7 @@ class Context(Configuration):
             ),
             auto_activate_base=dals(
                 """
-                Automatically activate the base environment during shell initialization.
+                Automatically activate the default (base) environment during shell initialization.
                 """
             ),
             auto_update_conda=dals(
@@ -1523,6 +1527,12 @@ class Context(Configuration):
             #     the version used by conda itself.
             #     """
             # ),
+            default_env=dals(
+                f"""
+                The name of the environment to be used when no name or prefix is provided,
+                and no other environment is active. Defaults to '{ROOT_ENV_NAME}'.
+                """
+            )
             default_threads=dals(
                 """
                 Threads to use by default for parallel operations.  Default is None,
