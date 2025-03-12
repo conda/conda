@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import sys
 import warnings
-from argparse import Action
+from argparse import SUPPRESS, Action
 from functools import wraps
 from types import ModuleType
 from typing import TYPE_CHECKING
@@ -216,7 +216,8 @@ class DeprecationHandler:
                     raise DeprecatedError(message)
 
                 inner_self.category = category
-                inner_self.help = message
+                if inner_self.help is not SUPPRESS:
+                    inner_self.help = message
 
             def __call__(
                 inner_self: Self,
