@@ -1532,7 +1532,7 @@ class Context(Configuration):
                 The name of the environment to be used when no name or prefix is provided,
                 and no other environment is active. Defaults to '{ROOT_ENV_NAME}'.
                 """
-            )
+            ),
             default_threads=dals(
                 """
                 Threads to use by default for parallel operations.  Default is None,
