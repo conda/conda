@@ -93,12 +93,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..cli.main_rename import check_protected_dirs
     from ..common.path import paths_equal
-    from ..exceptions import ArgumentError, CondaValueError
+    from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
     from ..reporters import confirm_yn
     from .install import check_prefix, install
 
+    # Ensure provided combination of command line argments are valid
+    # At least one of the arguments -n/--name -p/--prefix is required
     if not args.name and not args.prefix:
         if context.dry_run:
             args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
@@ -107,6 +109,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise ArgumentError(
                 "one of the arguments -n/--name -p/--prefix is required"
             )
+    
+    # Only one of the arguments --clone and packages is allowed
+    if args.clone and args.packages:
+        raise TooManyArgumentsError(
+            0,
+            len(args.packages),
+            list(args.packages),
+            "did not expect any arguments for --clone",
+        )
 
     check_protected_dirs(context.target_prefix)
 
