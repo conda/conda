@@ -1884,9 +1884,9 @@ def test_fish_basic(
     assert deactivate_data == (
         f'set -gx PATH "{new_path}";\n'
         f'source "{deactivate1}";\n'
-        f"set -e CONDA_PREFIX;\n"
-        f"set -e CONDA_DEFAULT_ENV;\n"
-        f"set -e CONDA_PROMPT_MODIFIER;\n"
+        f"set -e CONDA_PREFIX || true;\n"
+        f"set -e CONDA_DEFAULT_ENV || true;\n"
+        f"set -e CONDA_PROMPT_MODIFIER || true;\n"
         f"{unset_vars};\n"
         f'set -gx CONDA_SHLVL "0";\n'
         f"{conda_exe_export};\n"
