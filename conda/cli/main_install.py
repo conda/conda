@@ -144,7 +144,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         get_revision(args.revision, json=context.json)
     elif not (args.file or args.packages):
         raise CondaValueError(
-            "too few arguments, must supply command line package specs, --file or --revision"
+            "too few arguments, must supply command line packages, --file or --revision"
         )
 
     return install(args, parser, "install")

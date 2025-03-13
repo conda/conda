@@ -121,8 +121,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             "did not expect any arguments for --clone",
         )
 
+    # Validate configuration
+    # Ensure no protected dirs are getting overwritten
     check_protected_dirs(context.target_prefix)
 
+    # Ensure the user wants to update the provided prefix if there is already
+    # an installed conda environment or other files in the target
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
@@ -142,8 +146,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
     elif isdir(context.target_prefix):
-        check_prefix(context.target_prefix)
-
         confirm_yn(
             f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
             "but it is not a conda environment.\n"
@@ -152,8 +154,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             dry_run=False,
         )
 
-    # Validate config
+    # Ensure the subdir config is valid
     validate_subdir_config()
+
+    # Ensure the provided prefix is of the right form
+    check_prefix(context.target_prefix)
 
     # Run appropriate install
     if args.clone:
