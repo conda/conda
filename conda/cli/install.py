@@ -174,8 +174,10 @@ def get_revision(arg, json=False):
 
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
+    # common validations for all types of installs
     context.validate_configuration()
     check_non_admin()
+
     # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
     #    because it deduplicates records that exist as both formats.  Forcing this to
     #    repodata.json ensures that .tar.bz2 files are available
@@ -187,21 +189,11 @@ def install(args, parser, command="install"):
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
     prefix = context.target_prefix
+
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if isupdate and not (
-        args.file
-        or args.packages
-        or context.update_modifier == UpdateModifier.UPDATE_ALL
-    ):
-        raise CondaValueError(
-            """no package names supplied
-# Example: conda update -n myenv scipy
-"""
-        )
 
     if newenv:
-        check_prefix(prefix, json=context.json)
         if context.subdir != context._native_subdir():
             # We will only allow a different subdir if it's specified by global
             # configuration, environment variable or command line argument. IOW,
