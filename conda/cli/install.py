@@ -172,11 +172,53 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, and `conda create`."""
-    # common validations for all types of installs
+def validate_install_command(prefix: str, newenv: bool):
+    """Executes a set of validations that are required before any installation
+    command is executed.
+
+    :param prefix: The prefix where the environment will be created
+    :param newenv: Boolean indicating the command is a request for a new environment
+    :raises: error if the configuration for the install is bad
+    """
     context.validate_configuration()
     check_non_admin()
+
+    if context.force_32bit and prefix == context.root_prefix:
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+
+    # Ensure the prefix exists if it is meant to
+    if newenv:
+        # new environments should not have a prefix that exists
+        pass
+    elif isdir(prefix):
+        # if the prefix exists (and this is not a new environment)
+        # the conda-meta/history file must also exists - if it does not
+        # then this is not a valid conda environment
+        if isfile(join(prefix, "conda-meta", "history")):
+            # if the prefix exists, ensure that it is writable
+            validate_prefix_is_writable(prefix)
+        else:
+            if paths_equal(prefix, context.conda_prefix):
+                raise NoBaseEnvironmentError()
+            else:
+                if not path_is_clean(prefix):
+                    raise DirectoryNotACondaEnvironmentError(prefix)
+    else:
+        # if this is not a new env and the prefix does not exist, then
+        # there is no existing environment - this is an error
+        EnvironmentLocationNotFound(prefix)
+
+
+def install(args, parser, command="install"):
+    """Logic for `conda install`, `conda update`, and `conda create`."""
+    prefix = context.target_prefix
+    newenv = bool(command == "create")
+    isupdate = bool(command == "update")
+    isinstall = bool(command == "install")
+    isremove = bool(command == "remove")
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, newenv=newenv)
 
     # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
     #    because it deduplicates records that exist as both formats.  Forcing this to
@@ -184,27 +226,10 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    newenv = bool(command == "create")
-    isupdate = bool(command == "update")
-    isinstall = bool(command == "install")
-    isremove = bool(command == "remove")
-    prefix = context.target_prefix
 
-    if context.force_32bit and prefix == context.root_prefix:
-        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-
+    # ensure trash is cleared
     if isdir(prefix):
         delete_trash(prefix)
-        if not isfile(join(prefix, "conda-meta", "history")):
-            if paths_equal(prefix, context.conda_prefix):
-                raise NoBaseEnvironmentError()
-            else:
-                if not path_is_clean(prefix):
-                    raise DirectoryNotACondaEnvironmentError(prefix)
-        else:
-            validate_prefix_is_writable(prefix)
-    elif not newenv:
-        raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
