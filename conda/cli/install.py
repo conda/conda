@@ -53,7 +53,7 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
+from ..misc import _get_best_prec_match, clone_env, explicit
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
@@ -242,7 +242,6 @@ def install_clone(args, parser):
         index_args=index_args,
     )
 
-    touch_nonadmin(prefix)
     print_activate(args.name or prefix)
     return
 
@@ -283,7 +282,6 @@ def install(args, parser, command="install"):
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)
             if newenv:
-                touch_nonadmin(prefix)
                 print_activate(args.name or prefix)
             return
         else:
@@ -306,7 +304,6 @@ def install(args, parser, command="install"):
             # short circuit to installing explicit if explicit specs are provided
             explicit(specs, prefix, verbose=not context.quiet)
             if newenv:
-                touch_nonadmin(prefix)
                 print_activate(args.name or prefix)
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
@@ -536,7 +533,6 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise CondaSystemExit("Exiting", e)
 
     if newenv:
-        touch_nonadmin(prefix)
         if context.subdir != context._native_subdir():
             set_keys(
                 ("subdir", context.subdir),
