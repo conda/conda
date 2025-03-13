@@ -295,13 +295,6 @@ def install(args, parser, command="install"):
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
 
-    if isinstall and args.revision:
-        get_revision(args.revision, json=context.json)
-    elif isinstall and not (args.file or args_packages):
-        raise CondaValueError(
-            "too few arguments, must supply command line package specs or --file"
-        )
-
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
@@ -317,14 +310,6 @@ def install(args, parser, command="install"):
                 raise PackageNotInstalledError(prefix, spec.name)
 
     if newenv and args.clone:
-        if args.packages:
-            raise TooManyArgumentsError(
-                0,
-                len(args.packages),
-                list(args.packages),
-                "did not expect any arguments for --clone",
-            )
-
         clone(
             args.clone,
             prefix,
