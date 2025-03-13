@@ -88,6 +88,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
+    from ..base.constants import UpdateModifier
+    from ..exceptions import CondaValueError
     from .install import install
 
     if context.force:
@@ -98,6 +100,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             "         and --clobber flags.\n"
             "\n",
             file=sys.stderr,
+        )
+
+    # ensure provided combination of command line argments are valid
+    if not (
+        args.file
+        or args.packages
+        or context.update_modifier == UpdateModifier.UPDATE_ALL
+    ):
+        raise CondaValueError(
+            """no package names supplied
+# Example: conda update -n myenv scipy
+"""
         )
 
     install(args, parser, "update")
