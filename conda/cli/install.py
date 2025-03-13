@@ -209,6 +209,44 @@ def validate_install_command(prefix: str, newenv: bool):
         EnvironmentLocationNotFound(prefix)
 
 
+def get_index_args(args) -> dict[str, any]:
+    """Retruns a dict of args required for fetching an index
+
+    :param args: The args provided by the cli
+    :returns: dict of index args
+    """
+    return {
+        # TODO: deprecate --use-index-cache
+        # "use_cache": args.use_index_cache,  # --use-index-cache
+        "channel_urls": context.channels,
+        # TODO: deprecate --unknown
+        # "unknown": args.unknown,  # --unknown
+        "prepend": not args.override_channels,  # --override-channels
+        "use_local": args.use_local,  # --use-local
+    }
+
+
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning."""
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, newenv=True)
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
+
+    touch_nonadmin(prefix)
+    print_activate(args.name or prefix)
+    return
+
+
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
     prefix = context.target_prefix
@@ -226,11 +264,11 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-
-    # ensure trash is cleared
+    # ensure trash is cleared from existing prefix
     if isdir(prefix):
         delete_trash(prefix)
 
+    # collect packages provided from the command line
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
@@ -239,17 +277,7 @@ def install(args, parser, command="install"):
             if MatchSpec(default_package).name not in names:
                 args_packages.append(default_package)
 
-    context_channels = context.channels
-    index_args = {
-        # TODO: deprecate --use-index-cache
-        # "use_cache": args.use_index_cache,  # --use-index-cache
-        "channel_urls": context_channels,
-        # TODO: deprecate --unknown
-        # "unknown": args.unknown,  # --unknown
-        "prepend": not args.override_channels,  # --override-channels
-        "use_local": args.use_local,  # --use-local
-    }
-
+    # short circuit to installing explicit if explicit specs are provided
     num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
@@ -263,6 +291,7 @@ def install(args, parser, command="install"):
                 "cannot mix specifications with conda package filenames"
             )
 
+    # collect specs provided by --file arguments
     specs = []
     if args.file:
         for fpath in args.file:
@@ -274,6 +303,7 @@ def install(args, parser, command="install"):
                     " packages \nconda create --help for details"
                 )
         if "@EXPLICIT" in specs:
+            # short circuit to installing explicit if explicit specs are provided
             explicit(specs, prefix, verbose=not context.quiet)
             if newenv:
                 touch_nonadmin(prefix)
@@ -295,18 +325,6 @@ def install(args, parser, command="install"):
             if not prefix_data.get(spec.name, None):
                 raise PackageNotInstalledError(prefix, spec.name)
 
-    if newenv and args.clone:
-        clone(
-            args.clone,
-            prefix,
-            json=context.json,
-            quiet=context.quiet,
-            index_args=index_args,
-        )
-        touch_nonadmin(prefix)
-        print_activate(args.name or prefix)
-        return
-
     repodata_fns = args.repodata_fns
     if not repodata_fns:
         repodata_fns = list(context.repodata_fns)
@@ -323,6 +341,9 @@ def install(args, parser, command="install"):
         or args.update_modifier
         not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
+
+    context_channels = context.channels
+    index_args = get_index_args(args)
 
     for repodata_fn in repodata_fns:
         try:
