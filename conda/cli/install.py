@@ -11,7 +11,6 @@ conda.cli.main_remove for the entry points into this module.
 from __future__ import annotations
 
 import os
-import sys
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
@@ -32,7 +31,6 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaEnvException,
     CondaExitZero,
