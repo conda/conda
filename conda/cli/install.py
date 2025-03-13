@@ -191,14 +191,6 @@ def install(args, parser, command="install"):
     prefix = context.target_prefix
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if getattr(args, "force", None) and "-f" in sys.argv:
-        deprecated.topic(
-            "25.9.0",
-            "26.3.0",
-            topic="Deprecated -f flag will be repurposed as a --file alias.",
-            addendum="The -f alias for --force has not been used for long. In the future, "
-            "it will be repurposed as an alias for --file.",
-        )
     if isupdate and not (
         args.file
         or args.packages
