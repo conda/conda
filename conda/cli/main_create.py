@@ -98,6 +98,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.test import is_conda_environment
     from ..reporters import confirm_yn
     from .install import check_prefix, install
+    from .common import validate_subdir_config
 
     # Ensure provided combination of command line argments are valid
     # At least one of the arguments -n/--name -p/--prefix is required
@@ -149,5 +150,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             default="no",
             dry_run=False,
         )
+
+    validate_subdir_config()
 
     return install(args, parser, "create")

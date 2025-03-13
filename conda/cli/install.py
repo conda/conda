@@ -193,46 +193,7 @@ def install(args, parser, command="install"):
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
-    if newenv:
-        if context.subdir != context._native_subdir():
-            # We will only allow a different subdir if it's specified by global
-            # configuration, environment variable or command line argument. IOW,
-            # prevent a non-base env configured for a non-native subdir from leaking
-            # its subdir to a newer env.
-            context_sources = context.collect_all()
-            if context_sources.get("cmd_line", {}).get("subdir") == context.subdir:
-                pass  # this is ok
-            elif context_sources.get("envvars", {}).get("subdir") == context.subdir:
-                pass  # this is ok too
-            # config does not come from envvars or cmd_line, it must be a file
-            # that's ok as long as it's a base env or a global file
-            elif not paths_equal(context.active_prefix, context.root_prefix):
-                # this is only ok as long as it's base environment
-                active_env_config = next(
-                    (
-                        config
-                        for path, config in context_sources.items()
-                        if paths_equal(context.active_prefix, path.parent)
-                    ),
-                    None,
-                )
-                if active_env_config.get("subdir") == context.subdir:
-                    # In practice this never happens; the subdir info is not even
-                    # loaded from the active env for conda create :shrug:
-                    msg = dals(
-                        f"""
-                        Active environment configuration ({context.active_prefix}) is
-                        implicitly requesting a non-native platform ({context.subdir}).
-                        Please deactivate first or explicitly request the platform via
-                        the --platform=[value] command line flag.
-                        """
-                    )
-                    raise OperationNotAllowed(msg)
-            log.info(
-                "Creating new environment for a non-native platform %s",
-                context.subdir,
-            )
-    elif isdir(prefix):
+    if isdir(prefix):
         delete_trash(prefix)
         if not isfile(join(prefix, "conda-meta", "history")):
             if paths_equal(prefix, context.conda_prefix):
@@ -242,7 +203,7 @@ def install(args, parser, command="install"):
                     raise DirectoryNotACondaEnvironmentError(prefix)
         else:
             validate_prefix_is_writable(prefix)
-    else:
+    elif not newenv:
         raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip("\"'") for s in args.packages]
