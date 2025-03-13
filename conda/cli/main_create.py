@@ -96,6 +96,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
+    from ..misc import touch_nonadmin
     from ..reporters import confirm_yn
     from .install import check_prefix, install, install_clone
     from .common import validate_subdir_config
@@ -156,6 +157,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Run appropriate install
     if args.clone:
-        return install_clone(args, parser)
+        install_clone(args, parser)
     else:
-        return install(args, parser, "create")
+        install(args, parser, "create")
+
+    # Run post-install steps applicable to all new environments
+    touch_nonadmin(context.target_prefix)
+
+    return
