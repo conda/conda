@@ -246,6 +246,26 @@ def install_clone(args, parser):
     return
 
 
+def ensure_update_specs_exist(prefix: str, specs: list[str]):
+    """Checks that each spec that is requested as an update exists in the prefix
+
+    :param prefix: The target install prefix
+    :param specs: List of specs to be updated
+    :raises CondaError: if there is an invalid spec provided
+    :raises PackageNotInstalledError: if the requested specs to install don't exist in the prefix
+    """
+    prefix_data = PrefixData(prefix)
+    for spec in specs:
+        spec = MatchSpec(spec)
+        if not spec.is_name_only_spec:
+            raise CondaError(
+                f"Invalid spec for 'conda update': {spec}\n"
+                "Use 'conda install' instead."
+            )
+        if not prefix_data.get(spec.name, None):
+            raise PackageNotInstalledError(prefix, spec.name)
+
+
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
     prefix = context.target_prefix
@@ -311,16 +331,7 @@ def install(args, parser, command="install"):
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
-        prefix_data = PrefixData(prefix)
-        for spec in specs:
-            spec = MatchSpec(spec)
-            if not spec.is_name_only_spec:
-                raise CondaError(
-                    f"Invalid spec for 'conda update': {spec}\n"
-                    "Use 'conda install' instead."
-                )
-            if not prefix_data.get(spec.name, None):
-                raise PackageNotInstalledError(prefix, spec.name)
+        ensure_update_specs_exist(specs, prefix)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
