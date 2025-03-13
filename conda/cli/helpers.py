@@ -11,6 +11,7 @@ from argparse import (
     BooleanOptionalAction,
     _HelpAction,
     _StoreAction,
+    _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
 
@@ -70,6 +71,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
+        # "-f",  # FUTURE: 26.3: Enable this after deprecating alias in --force
         "--file",
         default=[],
         action="append",
@@ -448,12 +450,24 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
+    from ..deprecations import deprecated
 
     package_install_options = p.add_argument_group(
         "Package Linking and Install-time Options"
     )
     package_install_options.add_argument(
         "-f",
+        dest="force",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--force` instead.",
+        ),
+        default=NULL,
+        help=SUPPRESS,
+    )
+    package_install_options.add_argument(
         "--force",
         action="store_true",
         default=NULL,
