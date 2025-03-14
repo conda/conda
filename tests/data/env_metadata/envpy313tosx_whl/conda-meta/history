@@ -1,0 +1,20 @@
+==> 2025-03-14 13:51:04 <==
+# cmd: /Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/bin/conda create -n for_pip --override-channels -c conda-forge python=3.13 python_abi=*=*_cp313t pip --solver classic
+# conda version: 25.1.2
++conda-forge/noarch::pip-25.0.1-pyh145f28c_0
++conda-forge/noarch::tzdata-2025a-h78e105d_0
++conda-forge/osx-arm64::bzip2-1.0.8-h99b78c6_7
++conda-forge/osx-arm64::ca-certificates-2025.1.31-hf0a4a13_0
++conda-forge/osx-arm64::libexpat-2.6.4-h286801f_0
++conda-forge/osx-arm64::libffi-3.4.2-h3422bc3_5
++conda-forge/osx-arm64::liblzma-5.6.4-h39f12f2_0
++conda-forge/osx-arm64::libmpdec-4.0.0-h99b78c6_0
++conda-forge/osx-arm64::libsqlite-3.49.1-h3f77e49_1
++conda-forge/osx-arm64::libzlib-1.3.1-h8359307_2
++conda-forge/osx-arm64::ncurses-6.5-h5e97a16_3
++conda-forge/osx-arm64::openssl-3.4.1-h81ee809_0
++conda-forge/osx-arm64::python-3.13.2-hfd29fff_1_cp313t
++conda-forge/osx-arm64::python_abi-3.13-5_cp313t
++conda-forge/osx-arm64::readline-8.2-h1d1bf99_2
++conda-forge/osx-arm64::tk-8.6.13-h5083fa2_1
+# update specs: ['python_abi[build=*_cp313t]', 'python=3.13', 'pip']
