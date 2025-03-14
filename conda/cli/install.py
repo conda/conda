@@ -403,7 +403,7 @@ def install(args, parser, command="install"):
                     )
                     # convert the ResolvePackageNotFound into PackagesNotFoundError
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
-        except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
+        except (UnsatisfiableError, SpecsConfigurationConflictError) as e:
             if not getattr(e, "allow_retry", True):
                 # TODO: This is a temporary workaround to allow downstream libraries
                 # to inject this attribute set to False and skip the retry logic
@@ -433,21 +433,16 @@ def install(args, parser, command="install"):
                     SystemExit,
                     SpecsConfigurationConflictError,
                 ) as e:
-                    # Unsatisfiable package specifications/no such revision/import error
-                    if e.args and "could not import" in e.args[0]:
-                        raise CondaImportError(str(e))
                     # we want to fall through without raising if we're not at the end of the list
                     #    of fns.  That way, we fall to the next fn.
                     if repodata_fn == repodata_fns[-1]:
                         raise e
-            elif repodata_fn != repodata_fns[-1]:
-                continue  # if we hit this, we should retry with next repodata source
-            else:
-                # end of the line.  Raise the exception
-                # Unsatisfiable package specifications/no such revision/import error
-                if e.args and "could not import" in e.args[0]:
-                    raise CondaImportError(str(e))
+            elif repodata_fn == repodata_fns[-1]:
                 raise e
+        except (SystemExit) as e:
+            if e.args and "could not import" in e.args[0]:
+                raise CondaImportError(str(e))
+            raise e
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
