@@ -251,6 +251,14 @@ ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
             id=PATH_TEST_ENV_2.name,
             marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
+        pytest.param(
+            PATH_TEST_ENV_3 := ENV_METADATA_DIR / "envpy313tosx_whl",
+            {
+                "imagesize",
+            },
+            id=PATH_TEST_ENV_3.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
+        ),
     ],
 )
 def test_pip_interop(
