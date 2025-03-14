@@ -296,9 +296,11 @@ class PrefixData(metaclass=PrefixDataType):
         if not python_pkg_record:
             return {}
 
-        site_packages_dir = get_python_site_packages_short_path(
-            python_pkg_record.version
-        )
+        site_packages_dir = python_pkg_record.python_site_packages_path
+        if site_packages_dir is None:
+            site_packages_dir = get_python_site_packages_short_path(
+                python_pkg_record.version
+            )
         site_packages_path = self.prefix_path / win_path_ok(site_packages_dir)
 
         if not site_packages_path.is_dir():
