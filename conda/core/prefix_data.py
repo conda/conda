@@ -296,25 +296,51 @@ class PrefixData(metaclass=PrefixDataType):
         if not python_pkg_record:
             return {}
 
-        site_packages_dir = get_python_site_packages_short_path(
-            python_pkg_record.version
-        )
+        site_packages_dir = python_pkg_record.python_site_packages_path
+        if site_packages_dir is None:
+            site_packages_dir = get_python_site_packages_short_path(
+                python_pkg_record.version
+            )
         site_packages_path = self.prefix_path / win_path_ok(site_packages_dir)
 
-        if not site_packages_path.is_dir():
+        # The site-packages directory may include a symlink
+        # for example if lib/python3.XY is a symlink to lib/python3.XYt
+        resolved_site_packages_path = site_packages_path.resolve()
+        resolved_site_packages_dir = str(
+            resolved_site_packages_path.relative_to(self.prefix_path.resolve())
+        )
+
+        if not resolved_site_packages_path.is_dir():
             return {}
 
         # Get anchor files for corresponding conda (handled) python packages
         prefix_graph = PrefixGraph(self.iter_records())
         python_records = prefix_graph.all_descendants(python_pkg_record)
         conda_python_packages = get_conda_anchor_files_and_records(
-            site_packages_dir, python_records
+            resolved_site_packages_dir, python_records
         )
+        if resolved_site_packages_dir != site_packages_dir:
+            # The short site-packages directory is a symlink to another path.
+            # It is possible that conda installed files through the symlink.
+            # Find those files and resolve them for comparison.
+
+            def resolved_short_path(short_path: str, prefix_path: Path) -> str:
+                """Return short_path with any symlinks resolved."""
+                resolved_path = (prefix_path / short_path).resolve()
+                return str(resolved_path.relative_to(prefix_path.resolve()))
+
+            symlinked_conda_python_packages = get_conda_anchor_files_and_records(
+                site_packages_dir, python_records
+            )
+            for anchor_file, pkg in symlinked_conda_python_packages.items():
+                conda_python_packages[
+                    resolved_short_path(anchor_file, self.prefix_path)
+                ] = pkg
 
         # Get all anchor files and compare against conda anchor files to find clobbered conda
         # packages and python packages installed via other means (not handled by conda)
         sp_anchor_files = get_site_packages_anchor_files(
-            site_packages_path, site_packages_dir
+            resolved_site_packages_path, resolved_site_packages_dir
         )
         conda_anchor_files = set(conda_python_packages)
         clobbered_conda_anchor_files = conda_anchor_files - sp_anchor_files
