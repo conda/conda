@@ -303,20 +303,26 @@ class PrefixData(metaclass=PrefixDataType):
             )
         site_packages_path = self.prefix_path / win_path_ok(site_packages_dir)
 
-        if not site_packages_path.is_dir():
+        # The site-packages directory may include a symlink
+        # for example if lib/python3.XY is a symlink to lib/python3.XYt
+        resolved_site_packages_path = site_packages_path.resolve()
+        resolved_site_packages_dir = str(
+            resolved_site_packages_path.relative_to(self.prefix_path.resolve()))
+
+        if not resolved_site_packages_path.is_dir():
             return {}
 
         # Get anchor files for corresponding conda (handled) python packages
         prefix_graph = PrefixGraph(self.iter_records())
         python_records = prefix_graph.all_descendants(python_pkg_record)
         conda_python_packages = get_conda_anchor_files_and_records(
-            site_packages_dir, python_records
+            resolved_site_packages_dir, python_records
         )
 
         # Get all anchor files and compare against conda anchor files to find clobbered conda
         # packages and python packages installed via other means (not handled by conda)
         sp_anchor_files = get_site_packages_anchor_files(
-            site_packages_path, site_packages_dir
+            resolved_site_packages_path, resolved_site_packages_dir
         )
         conda_anchor_files = set(conda_python_packages)
         clobbered_conda_anchor_files = conda_anchor_files - sp_anchor_files
