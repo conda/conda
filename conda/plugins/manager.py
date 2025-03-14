@@ -26,7 +26,6 @@ from ..exceptions import CondaValueError, PluginError
 from . import (
     post_solves,
     reporter_backends,
-    solvers,
     subcommands,
     virtual_packages,
 )
@@ -253,18 +252,20 @@ class CondaPluginManager(pluggy.PluginManager):
 
         # Check for conflicts
         seen = set()
-        conflicts = [
-            plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
-        ]
+        conflicts = {
+            plugin.name
+            for plugin in plugins
+            if plugin.name in seen or seen.add(plugin.name)
+        }
         if conflicts:
             raise PluginError(
                 dals(
                     f"""
                     Conflicting `{name}` plugins found:
 
-                    {", ".join([str(conflict) for conflict in conflicts])}
+                    {', '.join([str(p) for p in plugins if p.name in conflicts])}
 
-                    Multiple conda plugins are registered via the `{specname}` hook.
+                    Multiple conda plugins are registered via the `{specname}`.
                     Please make sure that you don't have any incompatible plugins installed.
                     """
                 )
@@ -473,7 +474,6 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
-        solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
         health_checks,
