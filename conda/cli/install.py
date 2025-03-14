@@ -331,7 +331,7 @@ def install(args, parser, command="install"):
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
-        ensure_update_specs_exist(specs, prefix)
+        ensure_update_specs_exist(prefix=prefix, specs=specs)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
@@ -355,48 +355,30 @@ def install(args, parser, command="install"):
 
     for repodata_fn in repodata_fns:
         try:
-            if isinstall and args.revision:
-                with get_spinner(f"Collecting package metadata ({repodata_fn})"):
-                    index = get_index(
-                        channel_urls=index_args["channel_urls"],
-                        prepend=index_args["prepend"],  # --override-channels
-                        platform=None,
-                        use_local=index_args["use_local"],  # --use-local
-                        # use_cache=index_args["use_cache"],  # --use-index-cache
-                        # unknown=index_args["unknown"],  # --unknown
-                        prefix=prefix,
-                        repodata_fn=repodata_fn,
-                    )
-                revision_idx = get_revision(args.revision)
-                with get_spinner(f"Reverting to revision {revision_idx}"):
-                    unlink_link_transaction = revert_actions(
-                        prefix, revision_idx, index
-                    )
-            else:
-                solver_backend = context.plugin_manager.get_cached_solver_backend()
-                solver = solver_backend(
-                    prefix,
-                    context_channels,
-                    context.subdirs,
-                    specs_to_add=specs,
-                    repodata_fn=repodata_fn,
-                    command=args.cmd,
-                )
-                update_modifier = context.update_modifier
-                if (isinstall or isremove) and args.update_modifier == NULL:
-                    update_modifier = UpdateModifier.FREEZE_INSTALLED
-                deps_modifier = context.deps_modifier
-                if isupdate:
-                    deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+            solver_backend = context.plugin_manager.get_cached_solver_backend()
+            solver = solver_backend(
+                prefix,
+                context_channels,
+                context.subdirs,
+                specs_to_add=specs,
+                repodata_fn=repodata_fn,
+                command=args.cmd,
+            )
+            update_modifier = context.update_modifier
+            if (isinstall or isremove) and args.update_modifier == NULL:
+                update_modifier = UpdateModifier.FREEZE_INSTALLED
+            deps_modifier = context.deps_modifier
+            if isupdate:
+                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
-                unlink_link_transaction = solver.solve_for_transaction(
-                    deps_modifier=deps_modifier,
-                    update_modifier=update_modifier,
-                    force_reinstall=context.force_reinstall or context.force,
-                    should_retry_solve=(
-                        _should_retry_unfrozen or repodata_fn != repodata_fns[-1]
-                    ),
-                )
+            unlink_link_transaction = solver.solve_for_transaction(
+                deps_modifier=deps_modifier,
+                update_modifier=update_modifier,
+                force_reinstall=context.force_reinstall or context.force,
+                should_retry_solve=(
+                    _should_retry_unfrozen or repodata_fn != repodata_fns[-1]
+                ),
+            )
             # we only need one of these to work.  If we haven't raised an exception,
             #   we're good.
             break
@@ -468,6 +450,72 @@ def install(args, parser, command="install"):
                     raise CondaImportError(str(e))
                 raise e
     handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+
+def install_revision(args, parser):
+    """Install a previous version of a conda environment"""
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, newenv=False)
+
+    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
+    #    because it deduplicates records that exist as both formats.  Forcing this to
+    #    repodata.json ensures that .tar.bz2 files are available
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ("repodata.json",)
+
+    # ensure trash is cleared from existing prefix
+    delete_trash(prefix)
+
+    repodata_fns = args.repodata_fns
+    if not repodata_fns:
+        repodata_fns = list(context.repodata_fns)
+    if REPODATA_FN not in repodata_fns:
+        repodata_fns.append(REPODATA_FN)
+
+    for repodata_fn in repodata_fns:
+        try:
+            with get_spinner(f"Collecting package metadata ({repodata_fn})"):
+                index = get_index(
+                    channel_urls=index_args["channel_urls"],
+                    prepend=index_args["prepend"],  # --override-channels
+                    platform=None,
+                    use_local=index_args["use_local"],  # --use-local
+                    # use_cache=index_args["use_cache"],  # --use-index-cache
+                    # unknown=index_args["unknown"],  # --unknown
+                    prefix=prefix,
+                    repodata_fn=repodata_fn,
+                )
+            revision_idx = get_revision(args.revision)
+            with get_spinner(f"Reverting to revision {revision_idx}"):
+                unlink_link_transaction = revert_actions(
+                    prefix, revision_idx, index
+                )
+            break
+        except (ResolvePackageNotFound, PackagesNotFoundError) as e:
+            if not getattr(e, "allow_retry", True):
+                raise e  # see note in next except block
+            # end of the line.  Raise the exception
+            if repodata_fn == repodata_fns[-1]:
+                # PackagesNotFoundError is the only exception type we want to raise.
+                #    Over time, we should try to get rid of ResolvePackageNotFound
+                if isinstance(e, PackagesNotFoundError):
+                    raise e
+                else:
+                    channels_urls = tuple(
+                        calculate_channel_urls(
+                            channel_urls=index_args["channel_urls"],
+                            prepend=index_args["prepend"],
+                            platform=None,
+                            use_local=index_args["use_local"],
+                        )
+                    )
+                    # convert the ResolvePackageNotFound into PackagesNotFoundError
+                    raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+
+    handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 
 
 def revert_actions(prefix, revision=-1, index=None):
