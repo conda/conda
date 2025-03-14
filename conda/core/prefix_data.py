@@ -307,7 +307,8 @@ class PrefixData(metaclass=PrefixDataType):
         # for example if lib/python3.XY is a symlink to lib/python3.XYt
         resolved_site_packages_path = site_packages_path.resolve()
         resolved_site_packages_dir = str(
-            resolved_site_packages_path.relative_to(self.prefix_path.resolve()))
+            resolved_site_packages_path.relative_to(self.prefix_path.resolve())
+        )
 
         if not resolved_site_packages_path.is_dir():
             return {}
@@ -324,7 +325,7 @@ class PrefixData(metaclass=PrefixDataType):
             # Find those files and resolve them for comparison.
 
             def resolved_short_path(short_path: str, prefix_path: Path) -> str:
-                """ Return short_path with any symlinks resolved. """
+                """Return short_path with any symlinks resolved."""
                 resolved_path = (prefix_path / short_path).resolve()
                 return str(resolved_path.relative_to(prefix_path.resolve()))
 
@@ -332,7 +333,9 @@ class PrefixData(metaclass=PrefixDataType):
                 site_packages_dir, python_records
             )
             for anchor_file, pkg in symlinked_conda_python_packages.items():
-                conda_python_packages[resolved_short_path(anchor_file, self.prefix_path)] = pkg
+                conda_python_packages[
+                    resolved_short_path(anchor_file, self.prefix_path)
+                ] = pkg
 
         # Get all anchor files and compare against conda anchor files to find clobbered conda
         # packages and python packages installed via other means (not handled by conda)
