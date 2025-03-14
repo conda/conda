@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
+from functools import wraps
 
 from boltons.setutils import IndexedSet
 
@@ -206,7 +207,7 @@ def validate_install_command(prefix: str, newenv: bool):
     else:
         # if this is not a new env and the prefix does not exist, then
         # there is no existing environment - this is an error
-        EnvironmentLocationNotFound(prefix)
+        raise EnvironmentLocationNotFound(prefix)
 
 
 def get_index_args(args) -> dict[str, any]:
@@ -346,8 +347,7 @@ def install(args, parser, command="install"):
     # behavior in our initial fast frozen solve
     _should_retry_unfrozen = (
         not args_set_update_modifier
-        or args.update_modifier
-        not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
+        or args.update_modifier not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
 
     context_channels = context.channels
@@ -403,7 +403,6 @@ def install(args, parser, command="install"):
                     )
                     # convert the ResolvePackageNotFound into PackagesNotFoundError
                     raise PackagesNotFoundError(e._formatted_chains, channels_urls)
-
         except (UnsatisfiableError, SystemExit, SpecsConfigurationConflictError) as e:
             if not getattr(e, "allow_retry", True):
                 # TODO: This is a temporary workaround to allow downstream libraries
@@ -449,7 +448,39 @@ def install(args, parser, command="install"):
                 if e.args and "could not import" in e.args[0]:
                     raise CondaImportError(str(e))
                 raise e
+
     handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+
+def retry_package_not_found(repodata_fns: list, index_args):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for repodata_fn in repodata_fns:
+                try:
+                    return func(repodata_fn=repodata_fn, *args, **kwargs)
+                except (ResolvePackageNotFound, PackagesNotFoundError) as e:
+                    if not getattr(e, "allow_retry", True):
+                        raise e  # see note in next except block
+                    # end of the line.  Raise the exception
+                    if repodata_fn == repodata_fns[-1]:
+                        # PackagesNotFoundError is the only exception type we want to raise.
+                        #    Over time, we should try to get rid of ResolvePackageNotFound
+                        if isinstance(e, PackagesNotFoundError):
+                            raise e
+                        else:
+                            channels_urls = tuple(
+                                calculate_channel_urls(
+                                    channel_urls=index_args["channel_urls"],
+                                    prepend=index_args["prepend"],
+                                    platform=None,
+                                    use_local=index_args["use_local"],
+                                )
+                            )
+                            # convert the ResolvePackageNotFound into PackagesNotFoundError
+                            raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+        return wrapper
+    return decorator
 
 
 def install_revision(args, parser):
@@ -475,46 +506,26 @@ def install_revision(args, parser):
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    for repodata_fn in repodata_fns:
-        try:
-            with get_spinner(f"Collecting package metadata ({repodata_fn})"):
-                index = get_index(
-                    channel_urls=index_args["channel_urls"],
-                    prepend=index_args["prepend"],  # --override-channels
-                    platform=None,
-                    use_local=index_args["use_local"],  # --use-local
-                    # use_cache=index_args["use_cache"],  # --use-index-cache
-                    # unknown=index_args["unknown"],  # --unknown
-                    prefix=prefix,
-                    repodata_fn=repodata_fn,
-                )
-            revision_idx = get_revision(args.revision)
-            with get_spinner(f"Reverting to revision {revision_idx}"):
-                unlink_link_transaction = revert_actions(
-                    prefix, revision_idx, index
-                )
-            break
-        except (ResolvePackageNotFound, PackagesNotFoundError) as e:
-            if not getattr(e, "allow_retry", True):
-                raise e  # see note in next except block
-            # end of the line.  Raise the exception
-            if repodata_fn == repodata_fns[-1]:
-                # PackagesNotFoundError is the only exception type we want to raise.
-                #    Over time, we should try to get rid of ResolvePackageNotFound
-                if isinstance(e, PackagesNotFoundError):
-                    raise e
-                else:
-                    channels_urls = tuple(
-                        calculate_channel_urls(
-                            channel_urls=index_args["channel_urls"],
-                            prepend=index_args["prepend"],
-                            platform=None,
-                            use_local=index_args["use_local"],
-                        )
-                    )
-                    # convert the ResolvePackageNotFound into PackagesNotFoundError
-                    raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+    @retry_package_not_found(repodata_fns=repodata_fns, index_args=index_args)
+    def get_revision_transactions(repodata_fn):
+        with get_spinner(f"Collecting package metadata ({repodata_fn})"):
+            index = get_index(
+                channel_urls=index_args["channel_urls"],
+                prepend=index_args["prepend"],  # --override-channels
+                platform=None,
+                use_local=index_args["use_local"],  # --use-local
+                # use_cache=index_args["use_cache"],  # --use-index-cache
+                # unknown=index_args["unknown"],  # --unknown
+                prefix=prefix,
+                repodata_fn=repodata_fn,
+            )
+        revision_idx = get_revision(args.revision)
+        with get_spinner(f"Reverting to revision {revision_idx}"):
+            return revert_actions(
+                prefix, revision_idx, index
+            )
 
+    unlink_link_transaction = get_revision_transactions()
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 
 
