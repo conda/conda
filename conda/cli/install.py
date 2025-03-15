@@ -58,7 +58,7 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
-from .common import check_non_admin
+from .common import check_non_admin, validate_prefix_is_writable
 from .main_config import set_keys
 
 log = getLogger(__name__)
@@ -249,8 +249,7 @@ def install(args, parser, command="install"):
                 if not path_is_clean(prefix):
                     raise DirectoryNotACondaEnvironmentError(prefix)
         else:
-            # fall-through expected under normal operation
-            pass
+            validate_prefix_is_writable(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
 
