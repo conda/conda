@@ -1237,7 +1237,7 @@
   first_commit: 2013-07-08 11:05:16
   github: almarklein
 - name: Sophia Castellarin
-  email: scastellarin@continuum.io
+  email: scastellarin@quansight.com
   github: soapy1
   aliases:
   - Sophia Castellarin
@@ -1246,6 +1246,7 @@
   alternate_emails:
   - scastellarin@anaconda.com
   - scastellarin95@gmail.com
+  - scastellarin@continuum.io
   num_commits: 387
   first_commit: 2016-10-11 00:29:05
 - name: Ryan Grout
@@ -2525,3 +2526,6 @@
   github: muffato
   num_commits: 1
   first_commit: 2024-10-29 20:28:00
+- name: Ali Abbas Zaidi
+  email: v2thegreat@gmail.com
+  github: v2thegreat
