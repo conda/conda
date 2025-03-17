@@ -194,12 +194,8 @@ class _Activator(metaclass=abc.ABCMeta):
             builder.append(preamble)
         if self.hook_source_path:
             builder.append(self.hook_source_path.read_text())
-        if (
-            auto_activate_base is None
-            and context.auto_activate_base
-            or auto_activate_base
-        ):
-            builder.append("conda activate base\n")
+        if auto_activate_base or context.auto_activate:
+            builder.append(f"conda activate '{context.default_activation_env}'\n")
         postamble = self._hook_postamble()
         if postamble is not None:
             builder.append(postamble)
@@ -304,11 +300,11 @@ class _Activator(metaclass=abc.ABCMeta):
                     + str(remainder_args)
                     + "\n"
                 )
-            self.env_name_or_prefix = (
-                remainder_args and remainder_args[0] or context.default_prefix
-            )
-
+        if remainder_args:
+            self.env_name_or_prefix = remainder_args[0]
         else:
+            self.env_name_or_prefix = context.default_activation_env
+
             if remainder_args:
                 raise ArgumentError(
                     f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
