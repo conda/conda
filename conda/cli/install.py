@@ -173,54 +173,14 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def retry_unfrozen(should_retry_unfrozen: bool = True):
-    """Decorator to retry running a (conda solving) function with an unfrozen update_modifier.
-    The function being decorated should accept the update modifer as an input 'update_mod'.
-    
-    :param should_retry_unfrozen: bool indicating if the function should be rerun with 'UpdateModifier.UPDATE_SPECS' update modifier
-    :raises ResolvePackageNotFound: is the ResolvePackageNotFound is thrown by the called function after retrying
-    :raises PackagesNotFoundError: is the PackagesNotFoundError is thrown by the called function after retrying
-    """
-    def decorator(func):
-        @wraps(func)
-        def wrapper(update_mod, *args, **kwargs):
-            retries = 0
-            if should_retry_unfrozen:
-                retries = 1
-            trys = 0
-
-            while trys <= retries:
-                try:
-                    return func(update_mod=update_mod, *args, **kwargs)
-                except (ResolvePackageNotFound, PackagesNotFoundError) as e:
-                    if not getattr(e, "allow_retry", True):
-                        # TODO: This is a temporary workaround to allow downstream libraries
-                        # to inject this attribute set to False and skip the retry logic
-                        # Other solvers might implement their own internal retry logic without
-                        # depending --freeze-install implicitly like conda classic does. Example
-                        # retry loop in conda-libmamba-solver:
-                        # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
-                        # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
-                        # so we don't have go through all the repodatas and freeze-installed logic
-                        # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
-                        # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
-                        raise e
-                    if trys < retries:
-                        update_mod = UpdateModifier.UPDATE_SPECS
-                        trys += 1
-                    else:
-                        raise e
-        return wrapper
-    return decorator
-
-
-def retry_package_not_found(repodata_fns: list[str], index_args: dict[str, any]):
+def retry_package_not_found(repodata_fns: list[str], index_args: dict[str, any], retry_extra_errors: tuple[Exception] = ()):
     """Decorator to retry running a (conda solving) function 
     The function being decorated should accept a repodata as an input 'repodata'.
     
     :param repodata_fns: a list of the repodatas
     :param index_args: a dict of arguments for describing the index
-    :raises PackagesNotFoundError: if the package is not found in any of the provided repodata_fns
+    :param retry_extra_errors: a tuple of exceptions to catch and retry with the next repodata file 
+    :raises Excption: if the package is not found in any of the provided repodata_fns, or one of the provided retry_extra_errors occurs
     """
     def decorator(func):
         @wraps(func)
@@ -240,7 +200,8 @@ def retry_package_not_found(repodata_fns: list[str], index_args: dict[str, any])
                         # so we don't have go through all the repodatas and freeze-installed logic
                         # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
                         # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
-                        raise e 
+                        raise e
+                    
                     if repodata_fn == repodata_fns[-1]:
                         # PackagesNotFoundError is the only exception type we want to raise.
                         #    Over time, we should try to get rid of ResolvePackageNotFound
@@ -257,6 +218,15 @@ def retry_package_not_found(repodata_fns: list[str], index_args: dict[str, any])
                             )
                             # convert the ResolvePackageNotFound into PackagesNotFoundError
                             raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+                except Exception as e:
+                     # If the exception is:
+                     # 1. not in the list of exceptions that should be retried OR
+                     # 2. their are no more repodata files to try, 
+                     # then we must raise the exception
+                     if (type(e) not in retry_extra_errors 
+                         or repodata_fn == repodata_fns[-1]):
+                         raise e
+
         return wrapper
     return decorator
 
@@ -422,89 +392,75 @@ def install(args, parser, command="install"):
         not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
 
-    for repodata_fn in repodata_fns:
-        try:
-            solver_backend = context.plugin_manager.get_cached_solver_backend()
-            solver = solver_backend(
-                prefix,
-                context_channels,
-                context.subdirs,
-                specs_to_add=specs,
-                repodata_fn=repodata_fn,
-                command=args.cmd,
-            )
-            update_modifier = context.update_modifier
-            if (isinstall or isremove) and args.update_modifier == NULL:
-                update_modifier = UpdateModifier.FREEZE_INSTALLED
-            deps_modifier = context.deps_modifier
-            if isupdate:
-                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+    update_modifier = context.update_modifier
+    if (isinstall or isremove) and args.update_modifier == NULL:
+        update_modifier = UpdateModifier.FREEZE_INSTALLED
+    deps_modifier = context.deps_modifier
+    if isupdate:
+        deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
-            unlink_link_transaction = solver.solve_for_transaction(
+
+    @retry_package_not_found(repodata_fns=repodata_fns, index_args=index_args, retry_extra_errors=(UnsatisfiableError, SpecsConfigurationConflictError, SystemExit))
+    def get_solve_transaction(repodata):
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver = solver_backend(
+            prefix,
+            context_channels,
+            context.subdirs,
+            specs_to_add=specs,
+            repodata_fn=repodata,
+            command=args.cmd,
+        )
+        
+        try:
+            return solver.solve_for_transaction(
                 deps_modifier=deps_modifier,
                 update_modifier=update_modifier,
                 force_reinstall=context.force_reinstall or context.force,
                 should_retry_solve=(
-                    _should_retry_unfrozen or repodata_fn != repodata_fns[-1]
+                     _should_retry_unfrozen or repodata != repodata_fns[-1]
                 ),
             )
-            # we only need one of these to work.  If we haven't raised an exception,
-            #   we're good.
-            break
-
-        except (ResolvePackageNotFound, PackagesNotFoundError) as e:
-            if not getattr(e, "allow_retry", True):
-                raise e  # see note in next except block
-            # end of the line.  Raise the exception
-            if repodata_fn == repodata_fns[-1]:
-                # PackagesNotFoundError is the only exception type we want to raise.
-                #    Over time, we should try to get rid of ResolvePackageNotFound
-                if isinstance(e, PackagesNotFoundError):
-                    raise e
-                else:
-                    channels_urls = tuple(
-                        calculate_channel_urls(
-                            channel_urls=index_args["channel_urls"],
-                            prepend=index_args["prepend"],
-                            platform=None,
-                            use_local=index_args["use_local"],
-                        )
-                    )
-                    # convert the ResolvePackageNotFound into PackagesNotFoundError
-                    raise PackagesNotFoundError(e._formatted_chains, channels_urls)
-
         except (UnsatisfiableError, SpecsConfigurationConflictError) as e:
             if not getattr(e, "allow_retry", True):
+                # TODO: This is a temporary workaround to allow downstream libraries
+                # to inject this attribute set to False and skip the retry logic
+                # Other solvers might implement their own internal retry logic without
+                # depending --freeze-install implicitly like conda classic does. Example
+                # retry loop in conda-libmamba-solver:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
+                # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
+                # so we don't have go through all the repodatas and freeze-installed logic
+                # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
                 raise e
-            # Quick solve with frozen env or trimmed repodata failed.  Try again without that.
             if _should_retry_unfrozen:
-                try:
-                    unlink_link_transaction = solver.solve_for_transaction(
-                        deps_modifier=deps_modifier,
-                        update_modifier=UpdateModifier.UPDATE_SPECS,
-                        force_reinstall=context.force_reinstall or context.force,
-                        should_retry_solve=(repodata_fn != repodata_fns[-1]),
-                    )
-                except (
-                    UnsatisfiableError,
-                    SystemExit,
-                    SpecsConfigurationConflictError,
-                ) as e:
-                    # Unsatisfiable package specifications/no such revision/import error
-                    if e.args and "could not import" in e.args[0]:
-                        raise CondaImportError(str(e))
-                    # we want to fall through without raising if we're not at the end of the list
-                    #    of fns.  That way, we fall to the next fn.
-                    if repodata_fn == repodata_fns[-1]:
-                        raise e
-            elif repodata_fn == repodata_fns[-1]:
+                return solver.solve_for_transaction(
+                    deps_modifier=deps_modifier,
+                    update_modifier=UpdateModifier.UPDATE_SPECS,
+                    force_reinstall=context.force_reinstall or context.force,
+                    should_retry_solve=(repodata != repodata_fns[-1]),
+                )
+            else:
                 raise e
-        except SystemExit as e:
+        except (SystemExit) as e:
+            if not getattr(e, "allow_retry", True):
+                # TODO: This is a temporary workaround to allow downstream libraries
+                # to inject this attribute set to False and skip the retry logic
+                # Other solvers might implement their own internal retry logic without
+                # depending --freeze-install implicitly like conda classic does. Example
+                # retry loop in conda-libmamba-solver:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
+                # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
+                # so we don't have go through all the repodatas and freeze-installed logic
+                # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
+                # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
+                raise e
             if e.args and "could not import" in e.args[0]:
                 raise CondaImportError(str(e))
             raise e
 
-
+    unlink_link_transaction = get_solve_transaction()
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 
