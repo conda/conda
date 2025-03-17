@@ -221,7 +221,9 @@ class Context(Configuration):
     auto_update_conda = ParameterLoader(
         PrimitiveParameter(True), aliases=("self_update",)
     )
-    auto_activate = ParameterLoader(PrimitiveParameter(True), aliases=("auto_activate_base",))
+    auto_activate = ParameterLoader(
+        PrimitiveParameter(True), aliases=("auto_activate_base",)
+    )
     default_activation_env = ParameterLoader(PrimitiveParameter(ROOT_ENV_NAME))
     auto_stack = ParameterLoader(PrimitiveParameter(0))
     notify_outdated_conda = ParameterLoader(PrimitiveParameter(True))
