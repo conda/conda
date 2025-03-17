@@ -271,7 +271,7 @@ def validate_prefix(prefix) -> str:
 
 def validate_subdir_config():
     """Validates that the configured subdir is ok. A subdir that is different from
-    the native system is only allowed if it comes from the global configration, or
+    the native system is only allowed if it comes from the global configuration, or
     from an environment variable.
 
     :raises OperationNotAllowed: Active environment is not allowed to request
@@ -290,7 +290,7 @@ def validate_subdir_config():
         # config does not come from envvars or cmd_line, it must be a file
         # that's ok as long as it's a base env or a global file
         elif not paths_equal(context.active_prefix, context.root_prefix):
-            # this is only ok as long as it's base environment
+            # this is only ok as long as it's NOT base environment
             active_env_config = next(
                 (
                     config
