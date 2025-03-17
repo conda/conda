@@ -251,7 +251,7 @@ def validate_install_command(prefix: str, newenv: bool):
         pass
     elif isdir(prefix):
         # if the prefix exists (and this is not a new environment)
-        # the conda-meta/history file must also exists - if it does not
+        # the conda-meta/history file must also exist - if it does not
         # then this is not a valid conda environment
         if isfile(join(prefix, "conda-meta", "history")):
             # if the prefix exists, ensure that it is writable
@@ -269,7 +269,7 @@ def validate_install_command(prefix: str, newenv: bool):
 
 
 def get_index_args(args) -> dict[str, any]:
-    """Retruns a dict of args required for fetching an index
+    """Returns a dict of args required for fetching an index
 
     :param args: The args provided by the cli
     :returns: dict of index args
