@@ -4,10 +4,12 @@
 
 from __future__ import annotations
 
+import os
 from functools import reduce
 from itertools import accumulate, chain
 from logging import getLogger
-from os.path import join
+from os.path import isdir, join
+from shutil import copy2, copytree
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -56,3 +58,22 @@ def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str
             accumulate(directory, join) for directory in child_directories if directory
         )
     )
+
+
+def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
+    """Copy the contents of a directory to a destination.
+
+    Parameters
+    ----------
+    src : os.PathLike
+        Source directory
+    dst : os.PathLike
+        Destination where the contents of src are to be copied
+    """
+    for item in os.listdir(src):
+        src_path = join(src, item)
+        dst_path = join(dst, item)
+        if isdir(src_path):
+            copytree(src_path, dst_path, symlinks=True)
+        else:
+            copy2(src_path, dst_path)

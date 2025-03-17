@@ -137,19 +137,57 @@ def user_data_dir(  # noqa: F811
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
-def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
+def mockable_context_pkgs_dirs(_pkgs_dirs):
+    if _pkgs_dirs:
+        dirs = _pkgs_dirs
+    else:
+        dirs = (user_data_pkgs(),)
+
+    return tuple(IndexedSet(expand(p) for p in dirs))
+
+
+def mockable_context_envs_dirs(_envs_dirs):
+    if _envs_dirs:
+        dirs = _envs_dirs
+    else:
+        dirs = (user_data_envs(),)
+    return tuple(IndexedSet(expand(path) for path in dirs))
+
+
+def root_prefix_envs(root_prefix) -> os.PathLike:
+    return expand(join(root_prefix, "envs"))
+
+
+def root_prefix_pkgs(root_prefix, force_32bit) -> os.PathLike:
+    return expand(join(root_prefix, "pkgs32" if force_32bit else "pkgs"))
+
+
+def user_data_envs() -> os.PathLike:
+    return expand(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+
+
+def user_data_pkgs() -> os.PathLike:
+    return expand(
+        join(
+            user_data_dir(APP_NAME, APP_NAME),
+            "pkgs32" if context.force_32bit else "pkgs",
+        )
+    )
+
+
+def mockable_legacy_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
     if root_writable:
         fixed_dirs = [
-            join(root_prefix, "envs"),
+            root_prefix_envs(root_prefix),
             join("~", ".conda", "envs"),
         ]
     else:
         fixed_dirs = [
             join("~", ".conda", "envs"),
-            join(root_prefix, "envs"),
+            root_prefix_envs(root_prefix),
         ]
     if on_win:
-        fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+        fixed_dirs = (join(user_data_dir(APP_NAME, APP_NAME), "envs"),)
     return tuple(IndexedSet(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
 
 
@@ -710,26 +748,88 @@ class Context(Configuration):
         return False
 
     @property
-    def envs_dirs(self):
-        return mockable_context_envs_dirs(
+    def envs_dirs(self) -> tuple[IndexedSet]:
+        """Get the env_dirs for the environment.
+
+        Returns
+        -------
+        tuple[IndexedSet[os.PathLike]]
+            Directories where envs are stored
+        """
+        if self._envs_dirs:
+            # User has already specified what directories to use
+            return self._legacy_envs_dirs()
+
+        legacy_dir = self._legacy_root_prefix_envs()
+        if isdir(legacy_dir) and len(os.listdir(legacy_dir)) > 0:
+            # Old location is in use; emit warning message.
+            log.warning(
+                "conda is using the legacy location for the envs directory "
+                f"({legacy_dir}). To migrate all environments to use the new default "
+                "location, run `conda config --migrate-envs`. To silence "
+                "this message and continue using the current legacy locations, run "
+                f"`conda config --append {legacy_dir}`"
+            )
+            return self._legacy_envs_dirs()
+
+        # User has not specified what directories to use, and the legacy
+        # directories are not in use. We can safely use the new directories.
+        return mockable_context_envs_dirs(self._envs_dirs)
+
+    @property
+    def pkgs_dirs(self) -> tuple[IndexedSet]:
+        """Get the pkgs_dirs for the environment.
+
+        Returns
+        -------
+        tuple[IndexedSet[os.PathLike]]
+            Directories where pkgs are stored
+        """
+        if self._pkgs_dirs:
+            # User has already specified what directories to use
+            return self._legacy_pkgs_dirs()
+
+        legacy_dir = self._legacy_root_prefix_pkgs()
+        if isdir(legacy_dir) and len(os.listdir(legacy_dir)) > 0:
+            # Old location is in use; emit warning message.
+            log.warning(
+                "conda is using the legacy location for the pkgs directory "
+                f"({legacy_dir}). To migrate all environments to use the new default "
+                "location, run `conda config --migrate-pkgs`. To silence "
+                "this message and continue using the current legacy locations, run "
+                f"`conda config --append {legacy_dir}`"
+            )
+            return self._legacy_pkgs_dirs()
+
+        # User has not specified what directories to use, and the legacy
+        # directories are not in use. We can safely use the new directories.
+        return mockable_context_pkgs_dirs(self._pkgs_dirs)
+
+    def _legacy_envs_dirs(self):
+        return mockable_legacy_context_envs_dirs(
             self.root_writable, self.root_prefix, self._envs_dirs
         )
 
-    @property
-    def pkgs_dirs(self):
+    def _legacy_pkgs_dirs(self):
         if self._pkgs_dirs:
             return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
             cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
-            fixed_dirs = (
-                self.root_prefix,
-                join("~", ".conda"),
-            )
+            fixed_dirs = (join("~", ".conda"),)
             if on_win:
                 fixed_dirs += (user_data_dir(APP_NAME, APP_NAME),)
             return tuple(
-                IndexedSet(expand(join(p, cache_dir_name)) for p in (fixed_dirs))
+                IndexedSet(
+                    self._legacy_root_prefix_pkgs(),
+                    *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
+                )
             )
+
+    def _legacy_root_prefix_envs(self) -> os.PathLike:
+        return root_prefix_envs(self.root_prefix)
+
+    def _legacy_root_prefix_pkgs(self) -> os.PathLike:
+        return root_prefix_pkgs(self.root_prefix, self.force_32bit)
 
     @memoizedproperty
     def trash_dir(self):

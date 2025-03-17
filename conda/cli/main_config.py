@@ -215,6 +215,24 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Apply configuration information given in yaml format piped through stdin.",
     )
+    config_modifiers.add_argument(
+        "--migrate-envs",
+        action="store_true",
+        help=(
+            "Migrate the contents of the default envs/ directory out from the base "
+            "environment to the user config directory. Migration can only be "
+            "completed if envs_dirs is unset in the conda configuration."
+        ),
+    )
+    config_modifiers.add_argument(
+        "--migrate-pkgs",
+        action="store_true",
+        help=(
+            "Migrate the contents of the default pkgs/ directory out from the base "
+            "environment to the user config directory. Migration can only be "
+            "completed if pkgs_dirs is unset in the conda configuration."
+        ),
+    )
 
     p.add_argument(
         "-f",
@@ -801,6 +819,12 @@ def execute_config(args, parser):
     for key in args.remove_key:
         _remove_key(key, rc_config)
 
+    if args.migrate_pkgs:
+        migrate_pkgs(context, rc_config, json_warnings)
+
+    if args.migrate_envs:
+        migrate_envs(context, rc_config, json_warnings)
+
     # config.rc_keys
     if not args.get:
         _write_rc(rc_path, rc_config)
@@ -809,3 +833,92 @@ def execute_config(args, parser):
         from .common import stdout_json_success
 
         stdout_json_success(rc_path=rc_path, warnings=json_warnings, get=json_get)
+
+
+def migrate_pkgs(context, config: dict, json_warnings: list[str]):
+    """Migrate the pkgs/ directory from the root prefix to the user data directory.
+
+    Parameters
+    ----------
+    context : Context
+        Current execution context
+    config : dict
+        Configuration dict read from `.condarc`
+    json_warnings : list[str]
+        Warnings to be emitted
+    """
+    from ..base.context import user_data_pkgs
+
+    migrate_envs_or_pkgs(
+        context,
+        config,
+        "pkgs_dirs",
+        user_data_pkgs(),
+        context._legacy_root_prefix_pkgs(),
+        json_warnings,
+    )
+
+
+def migrate_envs(context, config: dict, json_warnings: list[str]):
+    """Migrate the envs/ directory from the root prefix to the user data directory.
+
+    Parameters
+    ----------
+    context : Context
+        Current execution context
+    config : dict
+        Configuration dict read from `.condarc`
+    json_warnings : list[str]
+        Warnings to be emitted
+    """
+    from ..base.context import user_data_envs
+
+    migrate_envs_or_pkgs(
+        context,
+        config,
+        "envs_dirs",
+        user_data_envs(),
+        context._legacy_root_prefix_envs(),
+        json_warnings,
+    )
+
+
+def migrate_envs_or_pkgs(
+    context,
+    config: dict,
+    key: str,
+    target_dir: os.PathLike,
+    legacy_dir: os.PathLike,
+    json_warnings: list[str],
+):
+    """Migrate either the envs/ or pkgs/ directories to the user data directory.
+
+    Parameters
+    ----------
+    context : Context
+        Current execution context
+    config : dict
+        Configuration dict read from `.condarc`
+    key : str
+    target_dir : os.PathLike
+        Target directory where files should be moved
+    legacy_dir : os.PathLike
+        Legacy directory whose contents need to be moved
+    json_warnings : list[str]
+        Warnings to be emitted
+    """
+    from .. import CondaError
+    from ..common.path.directories import copy_dir_contents
+
+    if key in config:
+        raise CondaError(
+            f"The conda configuration for {key} has explicitly set and"
+            "cannot be migrated."
+        )
+
+    copy_dir_contents(legacy_dir, target_dir)
+    json_warnings.append(
+        f"Copied contents of {legacy_dir} -> {target_dir}. {target_dir} will "
+        f"be used for the value of '{key}' by default from now on."
+        f"{target_dir} can be safely deleted."
+    )
