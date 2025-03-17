@@ -195,7 +195,9 @@ class _Activator(metaclass=abc.ABCMeta):
         if self.hook_source_path:
             builder.append(self.hook_source_path.read_text())
         if auto_activate_base or context.auto_activate:
-            builder.append(f"conda activate '{context.default_activation_env}'\n")
+            builder.append(
+                f"conda activate '{context.default_activation_env or ROOT_ENV_NAME}'\n"
+            )
         postamble = self._hook_postamble()
         if postamble is not None:
             builder.append(postamble)
@@ -303,7 +305,7 @@ class _Activator(metaclass=abc.ABCMeta):
         if remainder_args:
             self.env_name_or_prefix = remainder_args[0]
         else:
-            self.env_name_or_prefix = context.default_activation_env
+            self.env_name_or_prefix = context.default_activation_env or ROOT_ENV_NAME
 
             if remainder_args:
                 raise ArgumentError(
