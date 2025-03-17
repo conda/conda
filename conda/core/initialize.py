@@ -254,7 +254,7 @@ def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
     yield f'eval "$("{sys_executable}" -m conda shell.bash hook)"'
 
     # optionally activate environment
-    if context.auto_activate_base:
+    if context.auto_activate:
         yield f"conda activate '{prefix}'"
 
 
@@ -280,7 +280,7 @@ def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
     yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
 
     # optionally activate environment
-    if context.auto_activate_base:
+    if context.auto_activate:
         yield f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"'
         yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
 

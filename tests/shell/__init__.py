@@ -194,7 +194,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
             cwd=os.getcwd(),
             env={
                 **os.environ,
-                "CONDA_AUTO_ACTIVATE_BASE": "false",
+                "CONDA_AUTO_ACTIVATE": "false",
                 "CONDA_AUTO_STACK": "0",
                 "CONDA_CHANGEPS1": "true",
                 # "CONDA_ENV_PROMPT": "({default_env}) ",

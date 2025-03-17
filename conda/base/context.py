@@ -221,14 +221,12 @@ class Context(Configuration):
     auto_update_conda = ParameterLoader(
         PrimitiveParameter(True), aliases=("self_update",)
     )
-    auto_activate_base = ParameterLoader(
-        PrimitiveParameter(True), aliases=("auto_activate_default_env",)
-    )
+    auto_activate = ParameterLoader(PrimitiveParameter(True), aliases=("auto_activate_base",))
+    default_activation_env = ParameterLoader(PrimitiveParameter(ROOT_ENV_NAME))
     auto_stack = ParameterLoader(PrimitiveParameter(0))
     notify_outdated_conda = ParameterLoader(PrimitiveParameter(True))
     clobber = ParameterLoader(PrimitiveParameter(False))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
-    default_env = ParameterLoader(PrimitiveParameter(ROOT_ENV_NAME, element_type=str))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
@@ -750,7 +748,7 @@ class Context(Configuration):
     def default_prefix(self):
         if self.active_prefix:
             return self.active_prefix
-        _default_env = self.default_env
+        _default_env = os.getenv("CONDA_DEFAULT_ENV")
         if _default_env in (None, ROOT_ENV_NAME, "root"):
             return self.root_prefix
         elif os.sep in _default_env:
@@ -1191,6 +1189,15 @@ class Context(Configuration):
         return self._console
 
     @property
+    @deprecated(
+        "25.6",
+        "26.1",
+        addendum="Please use `conda.base.context.context.auto_activate` instead",
+    )
+    def auto_activate_base(self) -> bool:
+        return self.auto_activate
+
+    @property
     def category_map(self):
         return {
             "Channel Configuration": (
@@ -1269,10 +1276,10 @@ class Context(Configuration):
             ),
             "Output, Prompt, and Flow Control Configuration": (
                 "always_yes",
-                "auto_activate_base",
+                "auto_activate",
+                "default_activation_env",
                 "auto_stack",
                 "changeps1",
-                "default_env",
                 "env_prompt",
                 "json",
                 "console",
@@ -1393,9 +1400,15 @@ class Context(Configuration):
                 Automatically upload packages built with conda build to anaconda.org.
                 """
             ),
-            auto_activate_base=dals(
+            # auto_activate_base=dals(
+            #     """
+            #     Automatically activate the base environment during shell initialization.
+            #     """
+            # ),
+            auto_activate=dals(
                 """
-                Automatically activate the default (base) environment during shell initialization.
+                Automatically activate the environment given at 'default_activation_env'
+                during shell initialization.
                 """
             ),
             auto_update_conda=dals(
@@ -1514,6 +1527,13 @@ class Context(Configuration):
                 a list of channel names and/or channel urls.
                 """
             ),
+            default_activation_env=dals(
+                """
+                The environment to be automatically activated on startup if 'auto_activate'
+                is True. Also sets the default environment to activate when 'conda activate'
+                receives no arguments.
+                """
+            ),
             default_channels=dals(
                 """
                 The list of channel names and/or urls used for the 'defaults' multichannel.
@@ -1527,12 +1547,6 @@ class Context(Configuration):
             #     the version used by conda itself.
             #     """
             # ),
-            default_env=dals(
-                f"""
-                The name of the environment to be used when no name or prefix is provided,
-                and no other environment is active. Defaults to '{ROOT_ENV_NAME}'.
-                """
-            ),
             default_threads=dals(
                 """
                 Threads to use by default for parallel operations.  Default is None,
