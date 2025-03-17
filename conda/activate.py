@@ -305,11 +305,13 @@ class _Activator(metaclass=abc.ABCMeta):
             if remainder_args:
                 self.env_name_or_prefix = remainder_args[0]
             else:
-                self.env_name_or_prefix = context.default_activation_env or ROOT_ENV_NAME
-        elif remainder_args:
-                raise ArgumentError(
-                    f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
+                self.env_name_or_prefix = (
+                    context.default_activation_env or ROOT_ENV_NAME
                 )
+        elif remainder_args:
+            raise ArgumentError(
+                f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
+            )
 
         self.command = command
 
