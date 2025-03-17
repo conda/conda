@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `context.default_env` option, previously only available via `CONDA_DEFAULT_ENV` environment variable. (#14666)
+* Add `context.default_activation_env` setting, which allows users to customize which environment should get auto activated on initialization (if `context.auto_activate` is enabled), as well as `conda activate` calls without arguments. Defaults to `base`. (#14666)
 
 ### Bug fixes
 
@@ -8,7 +8,8 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `context.auto_activate_base` as pending deprecation in favor of `context.auto_activate`.
+  It will be permanently removed in 26.1. (#14666)
 
 ### Docs
 
