@@ -194,7 +194,7 @@ class _Activator(metaclass=abc.ABCMeta):
             builder.append(preamble)
         if self.hook_source_path:
             builder.append(self.hook_source_path.read_text())
-        if auto_activate_base or context.auto_activate:
+        if auto_activate_base in (True, None) or context.auto_activate:
             builder.append(
                 f"conda activate '{context.default_activation_env or ROOT_ENV_NAME}'\n"
             )
