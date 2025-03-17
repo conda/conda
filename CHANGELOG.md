@@ -118,7 +118,7 @@
 
 ### Contributors
 
-* @v2thegreat
+* @v2thegreat made their first contribution in https://github.com/conda/conda/pull/14581
 * @conda-bot
 * @jaimergp
 * @jezdez
