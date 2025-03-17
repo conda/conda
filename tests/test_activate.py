@@ -2406,12 +2406,16 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
 
 @pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
 def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
+    # Make sure local config does not affect the test; empty string -> base
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", "")
+    reset_context()
+
     output = activator_cls(["activate"]).execute()
     if activator_cls == CmdExeActivator:
         output = Path(output.strip()).read_text()
     assert "(base)" in output
 
-    monkeypatch.setenv("CONDA_DEFAULT_ENV", str(tmp_path))
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", str(tmp_path))
     reset_context()
 
     conda_cli("create", "-p", tmp_path, "--yes", "--offline")
