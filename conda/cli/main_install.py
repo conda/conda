@@ -126,8 +126,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..exceptions import CondaValueError
-    from .install import install, get_revision, install_revision
     from .common import validate_prefix
+    from .install import get_revision, install, install_revision
 
     if context.force:
         print(

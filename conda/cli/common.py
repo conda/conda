@@ -3,8 +3,8 @@
 """Common utilities for conda command line tools."""
 
 import re
-from logging import getLogger
 import sys
+from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals

@@ -98,8 +98,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.test import is_conda_environment
     from ..misc import touch_nonadmin
     from ..reporters import confirm_yn
-    from .install import check_prefix, install, install_clone
     from .common import validate_subdir_config
+    from .install import check_prefix, install, install_clone
 
     # Ensure provided combination of command line argments are valid
     # At least one of the arguments -n/--name -p/--prefix is required
@@ -111,7 +111,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise ArgumentError(
                 "one of the arguments -n/--name -p/--prefix is required"
             )
-    
+
     # Only one of the arguments --clone and packages is allowed
     if args.clone and args.packages:
         raise TooManyArgumentsError(

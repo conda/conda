@@ -11,10 +11,10 @@ conda.cli.main_remove for the entry points into this module.
 from __future__ import annotations
 
 import os
+from functools import wraps
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
-from functools import wraps
 
 from boltons.setutils import IndexedSet
 
@@ -44,12 +44,10 @@ from ..exceptions import (
     DryRunExit,
     EnvironmentLocationNotFound,
     NoBaseEnvironmentError,
-    OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
-    TooManyArgumentsError,
     UnsatisfiableError,
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
@@ -173,15 +171,20 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def retry_package_not_found(repodata_fns: list[str], index_args: dict[str, any], retry_extra_errors: tuple[Exception] = ()):
-    """Decorator to retry running a (conda solving) function 
+def retry_package_not_found(
+    repodata_fns: list[str],
+    index_args: dict[str, any],
+    retry_extra_errors: tuple[Exception] = (),
+):
+    """Decorator to retry running a (conda solving) function
     The function being decorated should accept a repodata as an input 'repodata'.
-    
+
     :param repodata_fns: a list of the repodatas
     :param index_args: a dict of arguments for describing the index
-    :param retry_extra_errors: a tuple of exceptions to catch and retry with the next repodata file 
+    :param retry_extra_errors: a tuple of exceptions to catch and retry with the next repodata file
     :raises Excption: if the package is not found in any of the provided repodata_fns, or one of the provided retry_extra_errors occurs
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -201,7 +204,7 @@ def retry_package_not_found(repodata_fns: list[str], index_args: dict[str, any],
                         # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
                         # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
                         raise e
-                    
+
                     if repodata_fn == repodata_fns[-1]:
                         # PackagesNotFoundError is the only exception type we want to raise.
                         #    Over time, we should try to get rid of ResolvePackageNotFound
@@ -217,17 +220,22 @@ def retry_package_not_found(repodata_fns: list[str], index_args: dict[str, any],
                                 )
                             )
                             # convert the ResolvePackageNotFound into PackagesNotFoundError
-                            raise PackagesNotFoundError(e._formatted_chains, channels_urls)
+                            raise PackagesNotFoundError(
+                                e._formatted_chains, channels_urls
+                            )
                 except Exception as e:
-                     # If the exception is:
-                     # 1. not in the list of exceptions that should be retried OR
-                     # 2. their are no more repodata files to try, 
-                     # then we must raise the exception
-                     if (type(e) not in retry_extra_errors 
-                         or repodata_fn == repodata_fns[-1]):
-                         raise e
+                    # If the exception is:
+                    # 1. not in the list of exceptions that should be retried OR
+                    # 2. their are no more repodata files to try,
+                    # then we must raise the exception
+                    if (
+                        type(e) not in retry_extra_errors
+                        or repodata_fn == repodata_fns[-1]
+                    ):
+                        raise e
 
         return wrapper
+
     return decorator
 
 
@@ -298,8 +306,7 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
         spec = MatchSpec(spec)
         if not spec.is_name_only_spec:
             raise CondaError(
-                f"Invalid spec for 'conda update': {spec}\n"
-                "Use 'conda install' instead."
+                f"Invalid spec for 'conda update': {spec}\nUse 'conda install' instead."
             )
         if not prefix_data.get(spec.name, None):
             raise PackageNotInstalledError(prefix, spec.name)
@@ -399,8 +406,15 @@ def install(args, parser, command="install"):
     if isupdate:
         deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
-
-    @retry_package_not_found(repodata_fns=repodata_fns, index_args=index_args, retry_extra_errors=(UnsatisfiableError, SpecsConfigurationConflictError, SystemExit))
+    @retry_package_not_found(
+        repodata_fns=repodata_fns,
+        index_args=index_args,
+        retry_extra_errors=(
+            UnsatisfiableError,
+            SpecsConfigurationConflictError,
+            SystemExit,
+        ),
+    )
     def get_solve_transaction(repodata):
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         solver = solver_backend(
@@ -411,14 +425,14 @@ def install(args, parser, command="install"):
             repodata_fn=repodata,
             command=args.cmd,
         )
-        
+
         try:
             return solver.solve_for_transaction(
                 deps_modifier=deps_modifier,
                 update_modifier=update_modifier,
                 force_reinstall=context.force_reinstall or context.force,
                 should_retry_solve=(
-                     _should_retry_unfrozen or repodata != repodata_fns[-1]
+                    _should_retry_unfrozen or repodata != repodata_fns[-1]
                 ),
             )
         except (UnsatisfiableError, SpecsConfigurationConflictError) as e:
@@ -443,7 +457,7 @@ def install(args, parser, command="install"):
                 )
             else:
                 raise e
-        except (SystemExit) as e:
+        except SystemExit as e:
             if not getattr(e, "allow_retry", True):
                 # TODO: This is a temporary workaround to allow downstream libraries
                 # to inject this attribute set to False and skip the retry logic
@@ -502,9 +516,7 @@ def install_revision(args, parser):
             )
         revision_idx = get_revision(args.revision)
         with get_spinner(f"Reverting to revision {revision_idx}"):
-            return revert_actions(
-                prefix, revision_idx, index
-            )
+            return revert_actions(prefix, revision_idx, index)
 
     unlink_link_transaction = get_revision_transactions()
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
