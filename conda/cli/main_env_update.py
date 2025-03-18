@@ -156,7 +156,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     result = {"conda": None, "pip": None}
     for installer_type, specs in env.dependencies.items():
         installer = installers[installer_type]
-        result[installer_type] = installer.install(prefix, specs, args, env)
+        result[installer_type] = installer.install(prefix, specs, context)
 
     if env.variables:
         pd = PrefixData(prefix)

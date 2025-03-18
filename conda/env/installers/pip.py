@@ -6,15 +6,16 @@ import os
 import os.path as op
 from logging import getLogger
 
-from ...auxlib.compat import Utf8NamedTemporaryFile
-from ...env.pip_util import get_pip_installed_packages, pip_subprocess
-from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from ...reporters import get_spinner
+from ..auxlib.compat import Utf8NamedTemporaryFile
+from ..base.context import context
+from ..common.io import Spinner
+from ..env.pip_util import get_pip_installed_packages, pip_subprocess
+from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 
 log = getLogger(__name__)
 
 
-def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
+def _pip_install_via_requirements(prefix, specs, pip_workdir):
     """
     Installs the pip dependencies in specs using a temporary pip requirements file.
 
@@ -28,16 +29,6 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
       See: https://pip.pypa.io/en/stable/user_guide/#requirements-files
            https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
     """
-    url_scheme = args.file.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
-        pip_workdir = None
-    else:
-        try:
-            pip_workdir = op.dirname(op.abspath(args.file))
-            if not os.access(pip_workdir, os.W_OK):
-                pip_workdir = None
-        except AttributeError:
-            pip_workdir = None
     requirements = None
     try:
         # Generate the temporary requirements file
@@ -71,6 +62,20 @@ def dry_run(*args, **kwargs):
     return None
 
 
-def install(*args, **kwargs):
-    with get_spinner("Installing pip dependencies"):
-        return _pip_install_via_requirements(*args, **kwargs)
+def install(prefix, specs, context, *args, **kwargs):
+    with Spinner(
+        "Installing pip dependencies",
+        not context.verbose and not context.quiet,
+        context.json,
+    ):
+        url_scheme = args.file.split("://", 1)[0]
+        pip_workdir = None
+        if url_scheme not in CONDA_SESSION_SCHEMES:
+            try:
+                pip_workdir = op.dirname(op.abspath(args.file))
+                if not os.access(pip_workdir, os.W_OK):
+                    pip_workdir = None
+            except AttributeError:
+                pip_workdir = None
+
+        return _pip_install_via_requirements(prefix, specs, pip_workdir)

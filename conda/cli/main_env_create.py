@@ -166,19 +166,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if args_packages:
             installer_type = "conda"
             installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, args_packages)
+            result[installer_type] = installer.install(prefix, args_packages, context)
 
         if len(env.dependencies.items()) == 0:
             installer_type = "conda"
             pkg_specs = []
             installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, pkg_specs)
+            result[installer_type] = installer.install(prefix, pkg_specs, context)
         else:
             for installer_type, pkg_specs in env.dependencies.items():
                 try:
                     installer = get_installer(installer_type)
                     result[installer_type] = installer.install(
-                        prefix, pkg_specs
+                        prefix, pkg_specs, context
                     )
                 except InvalidInstaller as exc:
                     raise CondaError(
