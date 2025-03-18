@@ -188,11 +188,8 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
 
-    def hook(self, auto_activate_base: bool | None = None) -> str:
-        # NOTE: auto_activate_base was renamed to auto_activate in 25.5.
-        # We didn't rename it in the signature for backwards compatibility.
-        # They are otherwise equivalent.
-        auto_activate = auto_activate_base
+    @deprecated.argument("25.5", "26.1", "auto_activate_base", rename="auto_activate")
+    def hook(self, auto_activate: bool | None = None) -> str:
         builder: list[str] = []
         if preamble := self._hook_preamble():
             builder.append(preamble)

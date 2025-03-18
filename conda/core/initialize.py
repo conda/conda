@@ -1041,7 +1041,7 @@ def _install_file(target_path, file_content):
 
 def install_conda_sh(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
-    file_content = PosixActivator().hook(auto_activate_base=False)
+    file_content = PosixActivator().hook(auto_activate=False)
     return _install_file(target_path, file_content)
 
 
@@ -1143,7 +1143,7 @@ def install_condabin_hook_bat(target_path, conda_prefix):
 
 def install_conda_fish(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
-    file_content = FishActivator().hook(auto_activate_base=False)
+    file_content = FishActivator().hook(auto_activate=False)
     return _install_file(target_path, file_content)
 
 
@@ -1157,19 +1157,19 @@ def install_conda_psm1(target_path, conda_prefix):
 
 def install_conda_hook_ps1(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1')
-    file_content = PowerShellActivator().hook(auto_activate_base=False)
+    file_content = PowerShellActivator().hook(auto_activate=False)
     return _install_file(target_path, file_content)
 
 
 def install_conda_xsh(target_path, conda_prefix):
     # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
-    file_content = XonshActivator().hook(auto_activate_base=False)
+    file_content = XonshActivator().hook(auto_activate=False)
     return _install_file(target_path, file_content)
 
 
 def install_conda_csh(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.csh')
-    file_content = CshActivator().hook(auto_activate_base=False)
+    file_content = CshActivator().hook(auto_activate=False)
     return _install_file(target_path, file_content)
 
 
