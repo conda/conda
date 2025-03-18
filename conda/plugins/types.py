@@ -28,23 +28,21 @@ if TYPE_CHECKING:
     from ..env.env import Environment
     from ..models.match_spec import MatchSpec
 
-    class CondaEnvInstallerInstallProtocol(Protocol):
+
+    class EnvInstallerInstallProtocol(Protocol):
         def __call__(
             self,
             prefix: str,
             specs: Iterable[str],
-            args: Namespace,
-            env: Environment,
             *_,
             **kwargs,
         ) -> Iterable[str]: ...
 
-    class CondaEnvInstallerDryRunProtocol(Protocol):
+
+    class EnvInstallerDryRunProtocol(Protocol):
         def __call__(
             self,
             specs: Iterable[str],
-            args: Namespace,
-            env: Environment,
             *_,
             **kwargs,
         ) -> Environment: ...
@@ -193,8 +191,8 @@ class CondaEnvInstaller:
 
     name: str
     types: Iterable[str]
-    install: CondaEnvInstallerInstallProtocol
-    dry_run: CondaEnvInstallerDryRunProtocol
+    install: EnvInstallerInstallProtocol
+    dry_run: EnvInstallerDryRunProtocol
 
 
 class CondaHealthCheck(NamedTuple):

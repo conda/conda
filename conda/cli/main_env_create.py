@@ -155,7 +155,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         pkg_specs = env.dependencies.get(installer_type, [])
         pkg_specs.extend(args_packages)
 
-        solved_env = installer.dry_run(pkg_specs, args, env)
+        solved_env = installer.dry_run(pkg_specs)
         if solved_env is not None:
             if args.json:
                 print(json.dumps(solved_env.to_dict(), indent=2))
@@ -166,19 +166,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if args_packages:
             installer_type = "conda"
             installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, args_packages, args, env)
+            result[installer_type] = installer.install(prefix, args_packages)
 
         if len(env.dependencies.items()) == 0:
             installer_type = "conda"
             pkg_specs = []
             installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+            result[installer_type] = installer.install(prefix, pkg_specs)
         else:
             for installer_type, pkg_specs in env.dependencies.items():
                 try:
                     installer = get_installer(installer_type)
                     result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
+                        prefix, pkg_specs
                     )
                 except InvalidInstaller as exc:
                     raise CondaError(
