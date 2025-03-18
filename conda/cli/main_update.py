@@ -87,8 +87,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
     from ..base.constants import UpdateModifier
+    from ..base.context import context
     from ..exceptions import CondaValueError
     from .install import install
 

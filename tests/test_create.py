@@ -2678,8 +2678,18 @@ def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture)
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
 
 
-def test_create_without_clone_and_packages_raises_argument_error(conda_cli: CondaCLIFixture):
-    conda_cli("create", "--prefix", "/tmp/idontexist", "--clone", "idontexist", "ca-certificates", raises=TooManyArgumentsError)
+def test_create_without_clone_and_packages_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+):
+    conda_cli(
+        "create",
+        "--prefix",
+        "/tmp/idontexist",
+        "--clone",
+        "idontexist",
+        "ca-certificates",
+        raises=TooManyArgumentsError,
+    )
 
 
 def test_nonadmin_file_untouched(
