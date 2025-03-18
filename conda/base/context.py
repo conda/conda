@@ -1192,7 +1192,7 @@ class Context(Configuration):
 
     @property
     @deprecated(
-        "25.6",
+        "25.5",
         "26.1",
         addendum="Please use `conda.base.context.context.auto_activate` instead",
     )
@@ -1402,11 +1402,6 @@ class Context(Configuration):
                 Automatically upload packages built with conda build to anaconda.org.
                 """
             ),
-            # auto_activate_base=dals(
-            #     """
-            #     Automatically activate the base environment during shell initialization.
-            #     """
-            # ),
             auto_activate=dals(
                 """
                 Automatically activate the environment given at 'default_activation_env'
