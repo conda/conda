@@ -189,12 +189,16 @@ class _Activator(metaclass=abc.ABCMeta):
         )
 
     def hook(self, auto_activate_base: bool | None = None) -> str:
+        # NOTE: auto_activate_base was renamed to auto_activate in 25.5.
+        # We didn't rename it in the signature for backwards compatibility.
+        # They are otherwise equivalent.
+        auto_activate = auto_activate_base
         builder: list[str] = []
         if preamble := self._hook_preamble():
             builder.append(preamble)
         if self.hook_source_path:
             builder.append(self.hook_source_path.read_text())
-        if auto_activate_base is None and context.auto_activate or auto_activate_base:
+        if auto_activate is None and context.auto_activate or auto_activate:
             builder.append(
                 f"conda activate '{context.default_activation_env or ROOT_ENV_NAME}'\n"
             )
