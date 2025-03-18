@@ -4,6 +4,7 @@
 
 ### Enhancements
 
+* Add support for Python 3.13. (#14584)
 * Refactor CMD's activation process to use a static shell script instead of a dynamic temporary script. This resolves using `conda activate` with script execution restrictions when Windows AppLocker is enabled. (#13610 via #14607)
 
 ### Bug fixes
