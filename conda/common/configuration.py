@@ -408,6 +408,37 @@ class YamlRawParameter(RawParameter):
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
 
 
+class EnvironmentSpecificationRawParameter(RawParameter):
+    """A raw parameter that can be injected"""
+    def value(self, parameter_obj):
+        if isiterable(self._raw_value):
+            children_values = []
+            for i in range(len(self._raw_value)):
+                children_values.append(
+                    EnvironmentSpecificationRawParameter(self.source, self.key, self._raw_value[i])
+                )
+            return tuple(children_values)
+        else:
+            return deepfreeze(self._raw_value)
+
+    def keyflag(self):
+        return None
+
+    def valueflags(self, parameter_obj):
+        return None if isinstance(parameter_obj, PrimitiveLoadedParameter) else ()
+
+    @classmethod
+    def make_raw_parameters(cls, source, from_map):
+        if from_map:
+            return {
+                key: cls(
+                    source, key, from_map[key]
+                )
+                for key in from_map
+            }
+        return EMPTY_MAP
+
+
 class DefaultValueRawParameter(RawParameter):
     """Wraps a default value as a RawParameter, for usage in ParameterLoader."""
 

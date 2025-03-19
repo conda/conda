@@ -98,6 +98,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         directory=os.getcwd(),
     )
     env = spec.environment
+    context.add_environment_file_config_source(args.file, env.get_configuration())
 
     if not (args.name or args.prefix):
         if not env.name:

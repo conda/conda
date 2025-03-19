@@ -9,21 +9,18 @@ from os.path import basename
 from boltons.setutils import IndexedSet
 
 from ..base.constants import UpdateModifier
-from ..base.context import context
+from ..base.context import Context
 from ..common.constants import NULL
 from ..env.env import Environment
 from ..exceptions import UnsatisfiableError
 from ..models.channel import Channel, prioritize_channels
 
 
-def _solve(prefix, specs, channels):
+def _solve(prefix, specs, context: Context):
     """Solve the environment"""
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
-    channel_urls = [chan for chan in channels if chan != "nodefaults"]
-
-    if "nodefaults" not in channels:
-        channel_urls.extend(context.channels)
+    channel_urls = context.channels
     _channel_priority_map = prioritize_channels(channel_urls)
 
     channels = IndexedSet(Channel(url) for url in _channel_priority_map)
@@ -34,35 +31,27 @@ def _solve(prefix, specs, channels):
     return solver
 
 
-def dry_run(specs, *args, **kwargs) -> Environment:
+def dry_run(specs, context, *args, **kwargs) -> Environment:
     """Do a dry run of the environment solve"""
-    # TODO: get this config
-    channels =  ["conda-forge"]
-
-    solver = _solve(tempfile.mkdtemp(), specs, channels)
+    solver = _solve(tempfile.mkdtemp(), specs, context)
     pkgs = solver.solve_final_state()
     solved_env = Environment(
-        name="tmp", dependencies=[str(p) for p in pkgs], channels=channels
+        name="todo", dependencies=[str(p) for p in pkgs], channels=context.channels
     )
     return solved_env
 
 
-def install(prefix, specs, *args, **kwargs) -> Iterable[str]:
+def install(prefix, specs, context: Context, *args, **kwargs) -> Iterable[str]:
     """Install packages into an environment"""
-    # TODO: get this config
-    channels = ["conda-forge"]
-    prune = False
-
-    solver = _solve(prefix, specs, channels)
+    solver = _solve(prefix, specs, context)
 
     try:
         unlink_link_transaction = solver.solve_for_transaction(
-            prune=prune,
             update_modifier=UpdateModifier.FREEZE_INSTALLED,
         )
     except (UnsatisfiableError, SystemExit):
         unlink_link_transaction = solver.solve_for_transaction(
-            prune=prune, update_modifier=NULL
+            update_modifier=NULL
         )
 
     if unlink_link_transaction.nothing_to_do:

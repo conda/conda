@@ -38,6 +38,7 @@ from ..common.configuration import (
     ConfigurationLoadError,
     ConfigurationType,
     EnvRawParameter,
+    EnvironmentSpecificationRawParameter,
     MapParameter,
     ParameterLoader,
     PrimitiveParameter,
@@ -522,8 +523,12 @@ class Context(Configuration):
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
 
-    def add_config_source(self, data):
-        self._set_raw_data(data)
+    def add_environment_file_config_source(self, file, data):
+        self._set_raw_data(
+            {
+                file: EnvironmentSpecificationRawParameter.make_raw_parameters(file, data)
+            }
+        )
 
     def post_build_validation(self):
         errors = []

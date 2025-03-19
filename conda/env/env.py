@@ -264,6 +264,10 @@ class Environment:
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
 
+    def get_configuration(self):
+        """Returns the conda settings for the environment"""
+        return {"channels": self.channels}
+
 
 def get_filename(filename):
     """Expand filename if local path or return the ``url``"""

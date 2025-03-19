@@ -110,8 +110,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..cli.main_rename import check_protected_dirs
-    from ..common.configuration import YamlRawParameter
-    from ..common.serialize import yaml_round_trip_load
+    from ..common.configuration import EnvironmentSpecificationRawParameter
     from ..core.prefix_data import PrefixData
     from ..env import specs
     from ..env.env import get_filename, print_result
@@ -127,15 +126,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         directory=os.getcwd(),
     )
     env = spec.environment
-    # TODO: decide how to add config from env
-    context.add_config_source(
-        {
-            "env_file":
-            YamlRawParameter.make_raw_parameters(
-                "env_file", yaml_round_trip_load(f"channels: {env.channels}")
-            )
-        }
-    )
+    context.add_environment_file_config_source(args.file, env.get_configuration())
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
@@ -166,7 +157,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         pkg_specs = env.dependencies.get(installer_type, [])
         pkg_specs.extend(args_packages)
 
-        solved_env = installer.dry_run(pkg_specs)
+        solved_env = installer.dry_run(pkg_specs, context)
         if solved_env is not None:
             if args.json:
                 print(json.dumps(solved_env.to_dict(), indent=2))
