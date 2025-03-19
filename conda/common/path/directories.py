@@ -4,15 +4,16 @@
 
 from __future__ import annotations
 
+import os
 import pathlib
 from functools import reduce
 from itertools import accumulate, chain
 from logging import getLogger
-from os.path import join
+from os.path import isdir, join
+from shutil import copy2, copytree
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import os
     from collections.abc import Iterable, Sequence
 
 log = getLogger(__name__)
@@ -79,3 +80,24 @@ def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
         dst_fname = dst / src_fname.relative_to(src)
         dst_fname.parent.mkdir(parents=True, exist_ok=True)
         dst_fname.hardlink_to(src_fname)
+
+
+def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
+    """Copy the contents of a directory to a destination.
+
+    Directories will be created as needed.
+
+    Parameters
+    ----------
+    src : os.PathLike
+        Source directory
+    dst : os.PathLike
+        Destination where the contents of src are to be copied
+    """
+    for item in os.listdir(src):
+        src_path = join(src, item)
+        dst_path = join(dst, item)
+        if isdir(src_path):
+            copytree(src_path, dst_path, symlinks=True)
+        else:
+            copy2(src_path, dst_path)

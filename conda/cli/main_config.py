@@ -820,7 +820,7 @@ def execute_config(args, parser):
         _remove_key(key, rc_config)
 
     if args.migrate_pkgs:
-        migrate_pkgs(context, rc_config, json_warnings)
+        migrate_pkgs(context, rc_config)
 
     if args.migrate_envs:
         raise NotImplementedError
@@ -835,8 +835,11 @@ def execute_config(args, parser):
         stdout_json_success(rc_path=rc_path, warnings=json_warnings, get=json_get)
 
 
-def migrate_pkgs(context, config: dict, json_warnings: list[str]):
+def migrate_pkgs(context, config: dict):
     """Migrate the pkgs/ directory from the root prefix to the user data directory.
+
+    Uses hardlinks if they are supported, otherwise fall back to just copying
+    the directory contents instead.
 
     Parameters
     ----------
@@ -844,12 +847,10 @@ def migrate_pkgs(context, config: dict, json_warnings: list[str]):
         Current execution context
     config : dict
         Configuration dict read from `.condarc`
-    json_warnings : list[str]
-        Warnings to be emitted
     """
     from .. import CondaError
     from ..base.context import user_data_pkgs
-    from ..common.path.directories import hardlink_dir_contents
+    from ..common.path.directories import copy_dir_contents, hardlink_dir_contents
 
     key = "pkgs_dirs"
     if key in config:
@@ -860,7 +861,15 @@ def migrate_pkgs(context, config: dict, json_warnings: list[str]):
 
     # There will be two copies of pkgs now; the legacy directory will
     # be cleaned up with the next `conda clean`
-    hardlink_dir_contents(
-        context._legacy_root_prefix_pkgs(),
-        user_data_pkgs(),
-    )
+    try:
+        hardlink_dir_contents(
+            context._legacy_root_prefix_pkgs(),
+            user_data_pkgs(),
+        )
+    except NotImplementedError:
+        # Hardlinks are not supported on all platforms; attempt a simple
+        # recursive copy instead.
+        copy_dir_contents(
+            context._legacy_root_prefix_pkgs(),
+            user_data_pkgs(),
+        )
