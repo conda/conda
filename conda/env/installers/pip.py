@@ -68,11 +68,15 @@ def install(prefix, specs, context, *args, **kwargs):
         not context.verbose and not context.quiet,
         context.json,
     ):
-        url_scheme = args.file.split("://", 1)[0]
-        pip_workdir = None
-        if url_scheme not in CONDA_SESSION_SCHEMES:
+        # TODO: don't use context._**
+        file = context._argparse_args.file
+
+        url_scheme = file.split("://", 1)[0]
+        if url_scheme in CONDA_SESSION_SCHEMES:
+            pip_workdir = None
+        else:
             try:
-                pip_workdir = op.dirname(op.abspath(args.file))
+                pip_workdir = op.dirname(op.abspath(file))
                 if not os.access(pip_workdir, os.W_OK):
                     pip_workdir = None
             except AttributeError:
