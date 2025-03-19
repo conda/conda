@@ -22,6 +22,7 @@ from conda.activate import (
     PowerShellActivator,
     XonshActivator,
     _build_activator_cls,
+    activator_map,
     native_path_to_unix,
     unix_path_to_native,
 )
@@ -2401,3 +2402,25 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
 
     with pytest.raises(ArgumentError, match=expected_error_message):
         activator.execute()
+
+
+@pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
+def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
+    # Make sure local config does not affect the test; empty string -> base
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", "")
+    reset_context()
+
+    output = activator_cls(["activate"]).execute()
+    if activator_cls == CmdExeActivator:
+        output = Path(output.strip()).read_text()
+    assert "(base)" in output
+
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", str(tmp_path))
+    reset_context()
+
+    conda_cli("create", "-p", tmp_path, "--yes", "--offline")
+
+    output = activator_cls(["activate"]).execute()
+    if activator_cls == CmdExeActivator:
+        output = Path(output.strip()).read_text()
+    assert str(tmp_path) in output
