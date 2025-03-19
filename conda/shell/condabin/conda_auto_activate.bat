@@ -5,7 +5,6 @@
 
 @FOR /F "delims=" %%i IN ('@CALL "%CONDA_EXE%" config --show auto_activate') DO @SET "__conda_auto_activate=%%i"
 @FOR /F "delims=" %%i IN ('@CALL "%CONDA_EXE%" config --show default_activation_env') DO @SET "__conda_auto_activate_name=%%i"
-@IF NOT "x%__conda_auto_activate:True=%"=="x%__conda_auto_activate%" @CALL "%CONDA_BAT%" activate "%__conda_auto_activate_name:default_activation_env: =%
-)
+@IF NOT "x%__conda_auto_activate:True=%"=="x%__conda_auto_activate%" @CALL "%CONDA_BAT%" activate "%__conda_auto_activate_name:default_activation_env: =%"
 @SET "__conda_auto_activate="
 @SET "__conda_auto_activate_name="
