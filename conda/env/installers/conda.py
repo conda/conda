@@ -31,14 +31,11 @@ def _solve(prefix, specs, context: Context):
     return solver
 
 
-def dry_run(specs, context, *args, **kwargs) -> Environment:
+def dry_run(specs, context, *args, **kwargs) -> Iterable[str]:
     """Do a dry run of the environment solve"""
     solver = _solve(tempfile.mkdtemp(), specs, context)
     pkgs = solver.solve_final_state()
-    solved_env = Environment(
-        name="todo", dependencies=[str(p) for p in pkgs], channels=context.channels
-    )
-    return solved_env
+    return [str(p) for p in pkgs]
 
 
 def install(prefix, specs, context: Context, *args, **kwargs) -> Iterable[str]:

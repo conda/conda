@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from ..base.context import Context
     from ..common.configuration import Parameter
     from ..core.solve import Solver
-    from ..env.env import Environment
     from ..models.match_spec import MatchSpec
 
 
@@ -48,7 +47,7 @@ if TYPE_CHECKING:
             context: Context,
             *_,
             **kwargs,
-        ) -> Environment: ...
+        ) -> Iterable[str]: ...
 
 
 @dataclass

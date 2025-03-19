@@ -110,10 +110,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..cli.main_rename import check_protected_dirs
-    from ..common.configuration import EnvironmentSpecificationRawParameter
     from ..core.prefix_data import PrefixData
     from ..env import specs
-    from ..env.env import get_filename, print_result
+    from ..env.env import get_filename, print_result, Environment
     from ..env.installers.base import get_installer
     from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
@@ -157,7 +156,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         pkg_specs = env.dependencies.get(installer_type, [])
         pkg_specs.extend(args_packages)
 
-        solved_env = installer.dry_run(pkg_specs, context)
+        solved_packages = installer.dry_run(pkg_specs, context)
+        solved_env = Environment(
+            name=env.name, dependencies=solved_packages, channels=context.channels
+        )
         if solved_env is not None:
             if args.json:
                 print(json.dumps(solved_env.to_dict(), indent=2))
