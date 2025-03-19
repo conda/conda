@@ -128,17 +128,40 @@ def validate_destination(dest: str, force: bool = False) -> str:
     return dest
 
 
-def execute(args: Namespace, parser: ArgumentParser) -> int:
-    """Executes the command for renaming an existing environment."""
+def rename(
+    source: str,
+    destination: str,
+    dry_run: bool = False,
+    force: bool = False,
+    quiet: bool = False,
+    json: bool = False,
+):
+    """Rename an environment.
+
+    Parameters
+    ----------
+    source : str
+        Environment to be renamed; assumed to be validated, i.e. that the prefix
+        exists, is not the root prefix, is not a protected directory, and that
+        the environment is not activated
+    destination : str
+        Name of the new environment; assumed to be validated, i.e. that no
+        prefix with the same name exists already
+    dry_run : bool
+        If True, just print information about the actions to be taken
+    force : bool
+        If True, allow renamed environments to overwrite any existing prefix
+    quiet : bool
+        If True, do not print progress or diagnostic information to the console.
+        See `conda.cli.install.clone` for more info about how this is used
+    json : bool
+        If True, print diagnostic information in json format to the console.
+        See `conda.cli.install.clone` for more info about how this is used
+    """
     from ..base.constants import DRY_RUN_PREFIX
-    from ..base.context import context
     from ..cli import install
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.update import rename_context
-    from .install import validate_new_prefix
-
-    source = validate_src()
-    destination = validate_new_prefix(args.destination, force=args.yes)
 
     def clone_and_remove() -> None:
         actions: tuple[partial, ...] = (
@@ -146,22 +169,37 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 install.clone,
                 source,
                 destination,
-                quiet=context.quiet,
-                json=context.json,
+                quiet=quiet,
+                json=json,
             ),
             partial(rm_rf, source),
         )
 
         # We now either run collected actions or print dry run statement
         for func in actions:
-            if args.dry_run:
+            if dry_run:
                 print(f"{DRY_RUN_PREFIX} {func.func.__name__} {','.join(func.args)}")
             else:
                 func()
 
-    if args.yes:
-        with rename_context(destination, dry_run=args.dry_run):
+    if force:
+        with rename_context(destination, dry_run=dry_run):
             clone_and_remove()
     else:
         clone_and_remove()
+
+
+def execute(args: Namespace, parser: ArgumentParser) -> int:
+    """Executes the command for renaming an existing environment."""
+    from ..base.context import context
+    from .install import validate_new_prefix
+
+    rename(
+        source=validate_src(),
+        destination=validate_new_prefix(args.destination, force=args.yes),
+        dry_run=args.dry_run,
+        force=args.yes,
+        quiet=context.quiet,
+        json=context.json,
+    )
     return 0

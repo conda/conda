@@ -14,7 +14,7 @@ from argparse import SUPPRESS
 from collections.abc import Mapping, Sequence
 from itertools import chain
 from logging import getLogger
-from os.path import isfile, join
+from os.path import isdir, isfile, join
 from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
@@ -823,7 +823,7 @@ def execute_config(args, parser):
         migrate_pkgs(context, rc_config)
 
     if args.migrate_envs:
-        raise NotImplementedError
+        migrate_envs(context, rc_config)
 
     # config.rc_keys
     if not args.get:
@@ -859,17 +859,78 @@ def migrate_pkgs(context, config: dict):
             "cannot be migrated."
         )
 
+    root_prefix_pkgs = context._legacy_root_prefix_pkgs()
+    if not isdir(root_prefix_pkgs):
+        raise CondaError(
+            f"The root prefix ({context.root_prefix}) does not contain a `pkgs` "
+            "directory. No migration is necessary."
+        )
+
     # There will be two copies of pkgs now; the legacy directory will
     # be cleaned up with the next `conda clean`
     try:
-        hardlink_dir_contents(
-            context._legacy_root_prefix_pkgs(),
+        hardlink_dir_contents(root_prefix_pkgs, user_data_pkgs())
+    except NotImplementedError:
+        # Hardlinks are not supported on all platforms, or between different
+        # filesystems; fall back a simple recursive copy instead.
+        copy_dir_contents(
+            root_prefix_pkgs,
             user_data_pkgs(),
         )
-    except NotImplementedError:
-        # Hardlinks are not supported on all platforms; attempt a simple
-        # recursive copy instead.
-        copy_dir_contents(
-            context._legacy_root_prefix_pkgs(),
-            user_data_pkgs(),
+
+
+def migrate_envs(context, config: dict):
+    """Migrate the pkgs/ directory from the root prefix to the user data directory.
+
+    Uses hardlinks if they are supported, otherwise fall back to just copying
+    the directory contents instead.
+
+    Parameters
+    ----------
+    context : Context
+        Current execution context
+    config : dict
+        Configuration dict read from `.condarc`
+    """
+    from .. import CondaError
+    from ..base.context import user_data_envs
+    from ..cli.main_rename import rename
+
+    logger = getLogger("conda.stdout")
+
+    key = "pkgs_dirs"
+    if key in config:
+        raise CondaError(
+            f"The conda configuration for {key} has explicitly set and"
+            "cannot be migrated."
+        )
+
+    root_prefix_envs = context._legacy_root_prefix_envs()
+    if not isdir(root_prefix_envs):
+        raise CondaError(
+            f"The root prefix ({context.root_prefix}) does not contain an `envs` "
+            "directory. No migration is necessary."
+        )
+
+    dest = user_data_envs()
+    failures = {}
+    for env in os.listdir(context._legacy_root_prefix_envs()):
+        try:
+            rename(
+                source=env,
+                destination=dest,
+                dry_run=False,
+                force=False,
+                quiet=True,
+                json=False,
+            )
+        except Exception as e:
+            logger.warning(
+                f"Could not migrate environment at {env} to {dest}. Reason: {e}"
+            )
+            failures[env] = e
+
+    if failures:
+        raise CondaError(
+            f"Errors migrating the following environments: {list(failures)}"
         )
