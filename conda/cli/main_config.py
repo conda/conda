@@ -866,17 +866,23 @@ def migrate_pkgs(context, config: dict):
             "directory. No migration is necessary."
         )
 
-    # There will be two copies of pkgs now; the legacy directory will
+    # After migration, there will be two copies of pkgs; the legacy directory will
     # be cleaned up with the next `conda clean`
+    #
+    # If the user wants to always copy, short-circuit hardlinking
+    dest = user_data_pkgs()
+    if context.always_copy:
+        copy_dir_contents(root_prefix_pkgs, dest)
+        return
+
     try:
-        hardlink_dir_contents(root_prefix_pkgs, user_data_pkgs())
+        hardlink_dir_contents(root_prefix_pkgs, dest)
     except NotImplementedError:
         # Hardlinks are not supported on all platforms, or between different
         # filesystems; fall back a simple recursive copy instead.
-        copy_dir_contents(
-            root_prefix_pkgs,
-            user_data_pkgs(),
-        )
+        copy_dir_contents(root_prefix_pkgs, dest)
+    except Exception as e:
+        raise CondaError(f"Failed to migrate {root_prefix_pkgs} to {dest}.") from e
 
 
 def migrate_envs(context, config: dict):
@@ -926,7 +932,7 @@ def migrate_envs(context, config: dict):
             )
         except Exception as e:
             logger.warning(
-                f"Could not migrate environment at {env} to {dest}. Reason: {e}"
+                f"Failed to migrate environment at {env} to {dest}. Reason: {e}"
             )
             failures[env] = e
 
