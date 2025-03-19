@@ -11,7 +11,6 @@ from boltons.setutils import IndexedSet
 from ..base.constants import UpdateModifier
 from ..base.context import Context
 from ..common.constants import NULL
-from ..env.env import Environment
 from ..exceptions import UnsatisfiableError
 from ..models.channel import Channel, prioritize_channels
 
@@ -31,14 +30,14 @@ def _solve(prefix, specs, context: Context):
     return solver
 
 
-def dry_run(specs, context, *args, **kwargs) -> Iterable[str]:
+def dry_run(specs: Iterable[str], context: Context, *args, **kwargs) -> Iterable[str]:
     """Do a dry run of the environment solve"""
     solver = _solve(tempfile.mkdtemp(), specs, context)
     pkgs = solver.solve_final_state()
     return [str(p) for p in pkgs]
 
 
-def install(prefix, specs, context: Context, *args, **kwargs) -> Iterable[str]:
+def install(prefix: str, specs: Iterable[str], context: Context, *args, **kwargs) -> Iterable[str]:
     """Install packages into an environment"""
     solver = _solve(prefix, specs, context)
 
