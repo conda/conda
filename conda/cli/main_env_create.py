@@ -110,6 +110,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..cli.main_rename import check_protected_dirs
+    from ..common.configuration import YamlRawParameter
+    from ..common.serialize import yaml_round_trip_load
     from ..core.prefix_data import PrefixData
     from ..env import specs
     from ..env.env import get_filename, print_result
@@ -125,6 +127,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         directory=os.getcwd(),
     )
     env = spec.environment
+    # TODO: decide how to add config from env
+    context.add_config_source(
+        {
+            "env_file":
+            YamlRawParameter.make_raw_parameters(
+                "env_file", yaml_round_trip_load(f"channels: {env.channels}")
+            )
+        }
+    )
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254

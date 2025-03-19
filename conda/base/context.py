@@ -522,6 +522,9 @@ class Context(Configuration):
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
 
+    def add_config_source(self, data):
+        self._set_raw_data(data)
+
     def post_build_validation(self):
         errors = []
         if self.client_ssl_cert_key and not self.client_ssl_cert:
