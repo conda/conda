@@ -823,7 +823,7 @@ def execute_config(args, parser):
         migrate_pkgs(context, rc_config, json_warnings)
 
     if args.migrate_envs:
-        migrate_envs(context, rc_config, json_warnings)
+        raise NotImplementedError
 
     # config.rc_keys
     if not args.get:
@@ -847,78 +847,20 @@ def migrate_pkgs(context, config: dict, json_warnings: list[str]):
     json_warnings : list[str]
         Warnings to be emitted
     """
-    from ..base.context import user_data_pkgs
-
-    migrate_envs_or_pkgs(
-        context,
-        config,
-        "pkgs_dirs",
-        user_data_pkgs(),
-        context._legacy_root_prefix_pkgs(),
-        json_warnings,
-    )
-
-
-def migrate_envs(context, config: dict, json_warnings: list[str]):
-    """Migrate the envs/ directory from the root prefix to the user data directory.
-
-    Parameters
-    ----------
-    context : Context
-        Current execution context
-    config : dict
-        Configuration dict read from `.condarc`
-    json_warnings : list[str]
-        Warnings to be emitted
-    """
-    from ..base.context import user_data_envs
-
-    migrate_envs_or_pkgs(
-        context,
-        config,
-        "envs_dirs",
-        user_data_envs(),
-        context._legacy_root_prefix_envs(),
-        json_warnings,
-    )
-
-
-def migrate_envs_or_pkgs(
-    context,
-    config: dict,
-    key: str,
-    target_dir: os.PathLike,
-    legacy_dir: os.PathLike,
-    json_warnings: list[str],
-):
-    """Migrate either the envs/ or pkgs/ directories to the user data directory.
-
-    Parameters
-    ----------
-    context : Context
-        Current execution context
-    config : dict
-        Configuration dict read from `.condarc`
-    key : str
-    target_dir : os.PathLike
-        Target directory where files should be moved
-    legacy_dir : os.PathLike
-        Legacy directory whose contents need to be moved
-    json_warnings : list[str]
-        Warnings to be emitted
-    """
     from .. import CondaError
-    from ..common.path.directories import copy_dir_contents
+    from ..base.context import user_data_pkgs
+    from ..common.path.directories import hardlink_dir_contents
 
+    key = "pkgs_dirs"
     if key in config:
         raise CondaError(
             f"The conda configuration for {key} has explicitly set and"
             "cannot be migrated."
         )
 
-    copy_dir_contents(legacy_dir, target_dir)
-    json_warnings.append(
-        f"Copied contents of {legacy_dir} -> {target_dir}. {target_dir} will "
-        f"be used for the value of '{key}' by default from now on."
-        f"{target_dir} can be safely deleted."
+    # There will be two copies of pkgs now; the legacy directory will
+    # be cleaned up with the next `conda clean`
+    hardlink_dir_contents(
+        context._legacy_root_prefix_pkgs(),
+        user_data_pkgs(),
     )
