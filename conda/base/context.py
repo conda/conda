@@ -805,8 +805,8 @@ class Context(Configuration):
         # directories are not in use. We can safely use the new directories.
         return mockable_context_pkgs_dirs(self._pkgs_dirs)
 
-    def _legacy_envs_dirs(self):
-        return mockable_legacy_context_envs_dirs(
+    def _prefix_envs_dirs(self):
+        return mockable_prefix_context_envs_dirs(
             self.root_writable, self.root_prefix, self._envs_dirs
         )
 
