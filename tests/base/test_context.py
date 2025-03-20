@@ -923,27 +923,27 @@ def test_set_pkgs_envs_default_dirs(testdata):
         {"testdata": YamlRawParameter.make_raw_parameters("testdata", condarc)}
     )
 
-    # Track the calls to the context methods that get the legacy
+    # Track the calls to the context methods that get the old prefix
     # locations of the pkgs and envs
     with (
         mock.patch.object(
-            context, "_legacy_pkgs_dirs", wraps=context._legacy_pkgs_dirs
-        ) as mock_legacy_pkgs,
+            context, "_prefix_pkgs_dirs", wraps=context._prefix_pkgs_dirs
+        ) as mock_prefix_pkgs,
         mock.patch.object(
-            context, "_legacy_envs_dirs", wraps=context._legacy_envs_dirs
-        ) as mock_legacy_envs,
+            context, "_prefix_envs_dirs", wraps=context._prefix_envs_dirs
+        ) as mock_prefix_envs,
     ):
         context_envs_dirs = context.envs_dirs
         context_pkgs_dirs = context.pkgs_dirs
 
-    # The legacy pkgs and envs methods should have been called
-    mock_legacy_pkgs.assert_called_once()
-    mock_legacy_envs.assert_called_once()
+    # The prefix pkgs and envs methods should have been called
+    mock_prefix_pkgs.assert_called_once()
+    mock_prefix_envs.assert_called_once()
 
-    # The legacy paths should match the context.pkgs_dirs and
+    # The prefix paths should match the context.pkgs_dirs and
     # context.envs_dirs
-    assert set(context_envs_dirs) == set(context._legacy_envs_dirs())
-    assert set(context_pkgs_dirs) == set(context._legacy_pkgs_dirs())
+    assert set(context_envs_dirs) == set(context._prefix_envs_dirs())
+    assert set(context_pkgs_dirs) == set(context._prefix_pkgs_dirs())
 
 
 def test_pkgs_envs_old_default_dirs(testdata, propagate_conda_logger, caplog):
@@ -952,8 +952,8 @@ def test_pkgs_envs_old_default_dirs(testdata, propagate_conda_logger, caplog):
     pkgs = Path(context.root_prefix) / "pkgs"
 
     with (
-        mock.patch.object(context, "_legacy_root_prefix_pkgs", return_value=str(pkgs)),
-        mock.patch.object(context, "_legacy_root_prefix_envs", return_value=str(envs)),
+        mock.patch.object(context, "_root_prefix_pkgs", return_value=str(pkgs)),
+        mock.patch.object(context, "_root_prefix_envs", return_value=str(envs)),
         mock.patch("conda.base.context.isdir", return_value=True),
         mock.patch("conda.base.context.os.listdir", return_value=["a/", "b/", "c/"]),
     ):

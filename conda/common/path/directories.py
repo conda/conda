@@ -66,12 +66,8 @@ def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
 
     Directories will be created as needed.
 
-    Parameters
-    ----------
-    src : os.PathLike
-        Source directory
-    dst : os.PathLike
-        Destination where the contents of src are to be hardlinked
+    :param src: Source directory
+    :param dst: Destination where the contents of src are to be hardlinked
     """
     src = pathlib.Path(src)
     dst = pathlib.Path(dst)
@@ -87,12 +83,8 @@ def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
 
     Directories will be created as needed.
 
-    Parameters
-    ----------
-    src : os.PathLike
-        Source directory
-    dst : os.PathLike
-        Destination where the contents of src are to be copied
+    :param src: Source directory
+    :param dst: Destination where the contents of src are to be copied
     """
     for item in os.listdir(src):
         src_path = join(src, item)

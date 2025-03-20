@@ -787,7 +787,7 @@ class Context(Configuration):
         """
         if self._pkgs_dirs:
             # User has already specified what directories to use
-            return self._legacy_pkgs_dirs()
+            return self._prefix_pkgs_dirs()
 
         prefix_dir = self._root_prefix_pkgs()
         if isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0:
@@ -821,7 +821,7 @@ class Context(Configuration):
             return tuple(
                 IndexedSet(
                     (
-                        self._legacy_root_prefix_pkgs(),
+                        self._root_prefix_pkgs(),
                         *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
                     )
                 )

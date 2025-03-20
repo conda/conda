@@ -138,24 +138,16 @@ def rename(
 ):
     """Rename an environment.
 
-    Parameters
-    ----------
-    source : str
-        Environment to be renamed; assumed to be validated, i.e. that the prefix
+    :param source: Environment to be renamed; assumed to be validated, i.e. that the prefix
         exists, is not the root prefix, is not a protected directory, and that
         the environment is not activated
-    destination : str
-        Name of the new environment; assumed to be validated, i.e. that no
+    :param destination: Name of the new environment; assumed to be validated, i.e. that no
         prefix with the same name exists already
-    dry_run : bool
-        If True, just print information about the actions to be taken
-    force : bool
-        If True, allow renamed environments to overwrite any existing prefix
-    quiet : bool
-        If True, do not print progress or diagnostic information to the console.
+    :param dry_run: If True, just print information about the actions to be taken
+    :param force: If True, allow renamed environments to overwrite any existing prefix
+    :param quiet: If True, do not print progress or diagnostic information to the console.
         See `conda.cli.install.clone` for more info about how this is used
-    json : bool
-        If True, print diagnostic information in json format to the console.
+    :param json: If True, print diagnostic information in json format to the console.
         See `conda.cli.install.clone` for more info about how this is used
     """
     from ..base.constants import DRY_RUN_PREFIX

@@ -841,12 +841,8 @@ def migrate_pkgs(context, config: dict):
     Uses hardlinks if they are supported, otherwise fall back to just copying
     the directory contents instead.
 
-    Parameters
-    ----------
-    context : Context
-        Current execution context
-    config : dict
-        Configuration dict read from `.condarc`
+    :param context: Current execution context
+    :param config: Configuration dict read from `.condarc`
     """
     from .. import CondaError
     from ..base.context import user_data_pkgs
@@ -891,12 +887,8 @@ def migrate_envs(context, config: dict):
     Uses hardlinks if they are supported, otherwise fall back to just copying
     the directory contents instead.
 
-    Parameters
-    ----------
-    context : Context
-        Current execution context
-    config : dict
-        Configuration dict read from `.condarc`
+    :param context: Current execution context
+    :param config: Configuration dict read from `.condarc`
     """
     from .. import CondaError
     from ..base.context import user_data_envs
@@ -920,7 +912,7 @@ def migrate_envs(context, config: dict):
 
     dest = user_data_envs()
     failures = {}
-    for env in os.listdir(context._legacy_root_prefix_envs()):
+    for env in os.listdir(context._root_prefix_envs()):
         try:
             rename(
                 source=env,
