@@ -175,7 +175,7 @@ def user_data_pkgs() -> os.PathLike:
     )
 
 
-def mockable_legacy_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
+def mockable_prefix_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
     if root_writable:
         fixed_dirs = [
             root_prefix_envs(root_prefix),
