@@ -1,0 +1,16 @@
+/* Remove page break before H2 headers*/
+
+body {
+
+  h2 {
+    page-break-before: avoid !important;
+    font-size: 16pt !important;
+  }
+}
+
+/* make table text bigger */
+table.docutils.ssp-tiny {
+    td, th {
+        font-size: 0.85em;
+    }
+}
