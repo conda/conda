@@ -827,10 +827,10 @@ class Context(Configuration):
                 )
             )
 
-    def _legacy_root_prefix_envs(self) -> os.PathLike:
+    def _root_prefix_envs(self) -> os.PathLike:
         return root_prefix_envs(self.root_prefix)
 
-    def _legacy_root_prefix_pkgs(self) -> os.PathLike:
+    def _root_prefix_pkgs(self) -> os.PathLike:
         return root_prefix_pkgs(self.root_prefix, self.force_32bit)
 
     @memoizedproperty
