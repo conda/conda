@@ -810,7 +810,7 @@ class Context(Configuration):
             self.root_writable, self.root_prefix, self._envs_dirs
         )
 
-    def _legacy_pkgs_dirs(self):
+    def _prefix_pkgs_dirs(self):
         if self._pkgs_dirs:
             return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
