@@ -866,7 +866,7 @@ def migrate_pkgs(context, config: dict):
             "directory. No migration is necessary."
         )
 
-    # After migration, there will be two copies of pkgs; the legacy directory will
+    # After migration, there will be two copies of pkgs; the prefix directory will
     # be cleaned up with the next `conda clean`
     #
     # If the user wants to always copy, short-circuit hardlinking
