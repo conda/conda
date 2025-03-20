@@ -902,7 +902,7 @@ def migrate_envs(context, config: dict):
     from ..base.context import user_data_envs
     from ..cli.main_rename import rename
 
-    logger = getLogger("conda.stdout")
+    logger = getLogger(__name__)
 
     key = "pkgs_dirs"
     if key in config:
