@@ -8,7 +8,7 @@ from logging import getLogger
 from typing import Iterable
 
 from ...auxlib.compat import Utf8NamedTemporaryFile
-from ...base.context import Context
+from ...base.context import context
 from ...common.io import Spinner
 from ...env.pip_util import get_pip_installed_packages, pip_subprocess
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -61,7 +61,7 @@ def _pip_install_via_requirements(prefix, specs, pip_workdir, dry_run=False):
     return get_pip_installed_packages(stdout)
 
 
-def _get_pip_workdir(context: Context) -> str:
+def _get_pip_workdir() -> str:
     pip_workdir = None
     if hasattr(context._argparse_args, "file"):
         file = context._argparse_args.file
@@ -78,16 +78,16 @@ def _get_pip_workdir(context: Context) -> str:
     return pip_workdir
 
 
-def dry_run(specs: Iterable[str], context: Context, *args, **kwargs) -> Iterable[str]:
-    pip_workdir = _get_pip_workdir(context)
+def dry_run(specs: Iterable[str], *args, **kwargs) -> Iterable[str]:
+    pip_workdir = _get_pip_workdir()
     return _pip_install_via_requirements("", specs, pip_workdir, dry_run=True)
 
 
-def install(prefix: str, specs: Iterable[str], context: Context, *args, **kwargs) -> Iterable[str]:
+def install(prefix: str, specs: Iterable[str], *args, **kwargs) -> Iterable[str]:
     with Spinner(
         "Installing pip dependencies",
         not context.verbose and not context.quiet,
         context.json,
     ):
-        pip_workdir = _get_pip_workdir(context)
+        pip_workdir = _get_pip_workdir()
         return _pip_install_via_requirements(prefix, specs, pip_workdir)

@@ -9,13 +9,13 @@ from os.path import basename
 from boltons.setutils import IndexedSet
 
 from ...base.constants import UpdateModifier
-from ...base.context import Context
+from ...base.context import context
 from ...common.constants import NULL
 from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 
 
-def _solve(prefix, specs, context: Context):
+def _solve(prefix, specs):
     """Solve the environment"""
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
@@ -30,16 +30,16 @@ def _solve(prefix, specs, context: Context):
     return solver
 
 
-def dry_run(specs: Iterable[str], context: Context, *args, **kwargs) -> Iterable[str]:
+def dry_run(specs: Iterable[str], *args, **kwargs) -> Iterable[str]:
     """Do a dry run of the environment solve"""
-    solver = _solve(tempfile.mkdtemp(), specs, context)
+    solver = _solve(tempfile.mkdtemp(), specs)
     pkgs = solver.solve_final_state()
     return [str(p) for p in pkgs]
 
 
-def install(prefix: str, specs: Iterable[str], context: Context, *args, **kwargs) -> Iterable[str]:
+def install(prefix: str, specs: Iterable[str], *args, **kwargs) -> Iterable[str]:
     """Install packages into an environment"""
-    solver = _solve(prefix, specs, context)
+    solver = _solve(prefix, specs)
 
     try:
         unlink_link_transaction = solver.solve_for_transaction(
