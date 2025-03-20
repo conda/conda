@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import os
 from itertools import chain
 from os.path import abspath, join
@@ -34,7 +35,7 @@ from conda.base.context import (
 )
 from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml_round_trip_load, yaml_safe_dump, yaml_safe_load
 from conda.common.url import join_url, path_to_url
 from conda.exceptions import (
     ChannelDenied,
@@ -101,6 +102,43 @@ def testdata() -> None:
             )
         }
     )
+
+
+@pytest.fixture
+def unset_condarc_pkgs() -> None:
+    """Fixture which rewrites `.condarc` temporarily to remove the `pkgs_dirs` entry.
+
+    Necessary in CI, where the `setup-miniconda` action writes `pkgs_dirs` to ~/.condarc.
+    For some reason, the `testdata` fixture doesn't override this, meaning we don't get
+    a clean conda installation during tests, which can break tests which rely on not
+    having this setting configured.
+
+    If no .condarc is found in the context, this fixture is a noop.
+    """
+    for path in context.config_files:
+        if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
+            with open(path) as f:
+                old_condarc = yaml_safe_load(f.read())
+
+            if "pkgs_dirs" not in old_condarc:
+                # If the condarc that was found has no 'pkgs_dirs' entry,
+                # don't do anything
+                yield
+                return
+
+            new_condarc = copy.deepcopy(old_condarc)
+            del new_condarc["pkgs_dirs"]
+            with open(path, "w") as f:
+                yaml_safe_dump(new_condarc, f)
+
+            yield
+            with open(path, "w") as f:
+                yaml_safe_dump(old_condarc, f)
+            return
+
+    else:
+        # This fixture is a noop if a .condarc isn't found
+        yield
 
 
 def test_migrated_custom_channels(testdata: None):
@@ -885,7 +923,7 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
-def test_pkgs_envs_default_dirs(testdata):
+def test_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs):
     """Test that the default envs/pkgs directories are not in the base environment."""
     user_data = Path(user_data_dir(APP_NAME, APP_NAME, None, False))
     envs = user_data / "envs"
@@ -901,9 +939,8 @@ def test_pkgs_envs_default_dirs(testdata):
     assert not pkgs.is_relative_to(prefix)
 
 
-def test_set_pkgs_envs_default_dirs(testdata):
+def test_set_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs):
     """Test that the envs/pkgs directories revert to legacy behavior if set."""
-
     envs = "/usr/local/foo/envs"
     pkgs = "/usr/local/foo/pkgs"
 
@@ -946,7 +983,9 @@ def test_set_pkgs_envs_default_dirs(testdata):
     assert set(context_pkgs_dirs) == set(context._prefix_pkgs_dirs())
 
 
-def test_pkgs_envs_old_default_dirs(testdata, propagate_conda_logger, caplog):
+def test_pkgs_envs_old_default_dirs(
+    testdata, propagate_conda_logger, caplog, unset_condarc_pkgs
+):
     """Test that the old locations of envs/pkgs directories generate a log warning."""
     envs = Path(context.root_prefix) / "envs"
     pkgs = Path(context.root_prefix) / "pkgs"
