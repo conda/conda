@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Check target env is writable. (#12561 via #14668)
+* Add a validation step to check if the target environment is writable when running the `install` or `update` commands. (#12561 via #14668)
 
 ### Deprecations
 
