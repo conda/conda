@@ -88,7 +88,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env import specs as install_specs
     from ..env.env import get_filename, print_result
-    from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..misc import touch_nonadmin
 
@@ -139,7 +138,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     for installer_type in env.dependencies:
         try:
-            installers[installer_type] = get_installer(installer_type)
+            installers[installer_type] = context.plugin_manager.get_env_installer(installer_type)
         except InvalidInstaller:
             raise CondaError(
                 dals(
