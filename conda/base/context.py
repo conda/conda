@@ -758,7 +758,7 @@ class Context(Configuration):
         """
         if self._envs_dirs:
             # User has already specified what directories to use
-            return self._legacy_envs_dirs()
+            return self._prefix_envs_dirs()
 
         legacy_dir = self._legacy_root_prefix_envs()
         if isdir(legacy_dir) and len(os.listdir(legacy_dir)) > 0:
