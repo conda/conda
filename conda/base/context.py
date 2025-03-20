@@ -760,17 +760,17 @@ class Context(Configuration):
             # User has already specified what directories to use
             return self._prefix_envs_dirs()
 
-        legacy_dir = self._legacy_root_prefix_envs()
-        if isdir(legacy_dir) and len(os.listdir(legacy_dir)) > 0:
-            # Old location is in use; emit warning message.
+        prefix_dir = self._root_prefix_envs()
+        if isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0:
+            # Prefix location is in use; emit warning message.
             log.warning(
-                "conda is using the legacy location for the envs directory "
-                f"({legacy_dir}). To migrate all environments to use the new default "
+                "conda is using the prefix location for the envs directory "
+                f"({prefix_dir}). To migrate all environments to use the new default "
                 "location, run `conda config --migrate-envs`. To silence "
-                "this message and continue using the current legacy locations, run "
-                f"`conda config --append {legacy_dir}`"
+                "this message and continue using the current prefix locations, run "
+                f"`conda config --append {prefix_dir}`"
             )
-            return self._legacy_envs_dirs()
+            return self._prefix_envs_dirs()
 
         # User has not specified what directories to use, and the legacy
         # directories are not in use. We can safely use the new directories.
