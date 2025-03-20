@@ -17,8 +17,6 @@ from ...models.channel import Channel, prioritize_channels
 
 def _solve(prefix, specs):
     """Solve the environment"""
-    # TODO: support all various ways this happens
-    # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = context.channels
     _channel_priority_map = prioritize_channels(channel_urls)
 
