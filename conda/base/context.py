@@ -820,8 +820,10 @@ class Context(Configuration):
                 fixed_dirs += (user_data_dir(APP_NAME, APP_NAME),)
             return tuple(
                 IndexedSet(
-                    self._legacy_root_prefix_pkgs(),
-                    *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
+                    (
+                        self._legacy_root_prefix_pkgs(),
+                        *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
+                    )
                 )
             )
 

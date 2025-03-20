@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -143,3 +144,16 @@ def clear_package_cache() -> Iterable[None]:
     yield
 
     PackageCacheData.clear()
+
+
+@pytest.fixture
+def propagate_conda_logger():
+    """A fixture which propagates the logs of the `conda` logger to the root.
+
+    This fixture is useful when writing tests that rely on the caplog fixture to
+    capture log messages.
+    """
+    logger = logging.getLogger("conda")
+    logger.propagate = True
+    yield
+    logger.propagate = False

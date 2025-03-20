@@ -292,6 +292,7 @@ class YamlRawParameter(RawParameter):
 
     def __init__(self, source, key, raw_value, key_comment):
         self._key_comment = key_comment
+
         super().__init__(source, key, raw_value)
 
         if isinstance(self._raw_value, CommentedSeq):

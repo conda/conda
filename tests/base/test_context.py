@@ -12,10 +12,12 @@ from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
+from platformdirs import user_data_dir
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
     ChannelPriority,
@@ -881,3 +883,83 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+
+def test_pkgs_envs_default_dirs(testdata):
+    """Test that the default envs/pkgs directories are not in the base environment."""
+    user_data = Path(user_data_dir(APP_NAME, APP_NAME, None, False))
+    envs = user_data / "envs"
+    pkgs = user_data / "pkgs"
+
+    # The pkgs and envs should exist in the user data dir
+    assert str(envs) in set(context.envs_dirs)
+    assert str(pkgs) in set(context.pkgs_dirs)
+
+    # They should not be in the prefix
+    prefix = Path(context.conda_prefix)
+    assert not envs.is_relative_to(prefix)
+    assert not pkgs.is_relative_to(prefix)
+
+
+def test_set_pkgs_envs_default_dirs(testdata):
+    """Test that the envs/pkgs directories revert to legacy behavior if set."""
+
+    envs = "/usr/local/foo/envs"
+    pkgs = "/usr/local/foo/pkgs"
+
+    additional_settings = dals(
+        f"""
+        envs_dirs:
+          - {envs}
+        pkgs_dirs:
+          - {pkgs}
+        """
+    )
+
+    # Set up the context
+    reset_context()
+    condarc = yaml_round_trip_load(TEST_CONDARC + additional_settings)
+    context._set_raw_data(
+        {"testdata": YamlRawParameter.make_raw_parameters("testdata", condarc)}
+    )
+
+    # Track the calls to the context methods that get the legacy
+    # locations of the pkgs and envs
+    with (
+        mock.patch.object(
+            context, "_legacy_pkgs_dirs", wraps=context._legacy_pkgs_dirs
+        ) as mock_legacy_pkgs,
+        mock.patch.object(
+            context, "_legacy_envs_dirs", wraps=context._legacy_envs_dirs
+        ) as mock_legacy_envs,
+    ):
+        context_envs_dirs = context.envs_dirs
+        context_pkgs_dirs = context.pkgs_dirs
+
+    # The legacy pkgs and envs methods should have been called
+    mock_legacy_pkgs.assert_called_once()
+    mock_legacy_envs.assert_called_once()
+
+    # The legacy paths should match the context.pkgs_dirs and
+    # context.envs_dirs
+    assert set(context_envs_dirs) == set(context._legacy_envs_dirs())
+    assert set(context_pkgs_dirs) == set(context._legacy_pkgs_dirs())
+
+
+def test_pkgs_envs_old_default_dirs(testdata, propagate_conda_logger, caplog):
+    """Test that the old locations of envs/pkgs directories generate a log warning."""
+    envs = Path(context.root_prefix) / "envs"
+    pkgs = Path(context.root_prefix) / "pkgs"
+
+    with (
+        mock.patch.object(context, "_legacy_root_prefix_pkgs", return_value=str(pkgs)),
+        mock.patch.object(context, "_legacy_root_prefix_envs", return_value=str(envs)),
+        mock.patch("conda.base.context.isdir", return_value=True),
+        mock.patch("conda.base.context.os.listdir", return_value=["a/", "b/", "c/"]),
+    ):
+        _context_envs_dirs = context.envs_dirs
+        _context_pkgs_dirs = context.pkgs_dirs
+
+    assert len(caplog.records) == 2
+    assert any([str(envs) in record.message for record in caplog.records])
+    assert any([str(pkgs) in record.message for record in caplog.records])
