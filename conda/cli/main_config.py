@@ -911,7 +911,7 @@ def migrate_envs(context, config: dict):
             "cannot be migrated."
         )
 
-    root_prefix_envs = context._legacy_root_prefix_envs()
+    root_prefix_envs = context._root_prefix_envs()
     if not isdir(root_prefix_envs):
         raise CondaError(
             f"The root prefix ({context.root_prefix}) does not contain an `envs` "
