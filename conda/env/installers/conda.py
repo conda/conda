@@ -8,11 +8,11 @@ from os.path import basename
 
 from boltons.setutils import IndexedSet
 
-from ..base.constants import UpdateModifier
-from ..base.context import Context
-from ..common.constants import NULL
-from ..exceptions import UnsatisfiableError
-from ..models.channel import Channel, prioritize_channels
+from ...base.constants import UpdateModifier
+from ...base.context import Context
+from ...common.constants import NULL
+from ...exceptions import UnsatisfiableError
+from ...models.channel import Channel, prioritize_channels
 
 
 def _solve(prefix, specs, context: Context):
