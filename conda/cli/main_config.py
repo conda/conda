@@ -859,7 +859,7 @@ def migrate_pkgs(context, config: dict):
             "cannot be migrated."
         )
 
-    root_prefix_pkgs = context._legacy_root_prefix_pkgs()
+    root_prefix_pkgs = context._root_prefix_pkgs()
     if not isdir(root_prefix_pkgs):
         raise CondaError(
             f"The root prefix ({context.root_prefix}) does not contain a `pkgs` "
