@@ -14,6 +14,7 @@ Authors are sorted alphabetically.
 * Alex Hall
 * Alex Liew
 * Alex Wiltschko
+* Ali Abbas Zaidi
 * Alisue
 * Almar Klein
 * Amelio Vazquez-Reina
