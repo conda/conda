@@ -148,9 +148,9 @@
     "--prefix=%_ENV%" ^
     --override-channels ^
     --channel=defaults ^
-    "--file=%_SRC%\tests\requirements.txt" ^
-    "--file=%_SRC%\tests\requirements-ci.txt" ^
-    "--file=%_SRC%\tests\requirements-Windows.txt" ^
+    "--file=%_SRC%\requirements\runtime.txt" ^
+    "--file=%_SRC%\requirements\tests.txt" ^
+    "--file=%_SRC%\requirements\Windows.txt" ^
     "python=%_PYTHON%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_NAME% 1>&2
