@@ -58,6 +58,26 @@ def env_one(conda_cli: CondaCLIFixture) -> Iterable[str]:
 
 
 @pytest.fixture
+def env_one_in_default_prefix(conda_cli: CondaCLIFixture) -> Iterable[str]:
+    """A fixture for an environment created inside the root environment prefix.
+
+    This is one of the default locations that environments have historically been
+    created in, so this fixture is for tests which require such configurations.
+    """
+    # Setup
+    name = uuid.uuid4().hex
+    conda_cli(
+        "create", "--prefix", str(Path(context.root_prefix) / "envs" / name), "--yes"
+    )
+
+    yield name
+
+    # Teardown
+    if is_conda_environment(name):
+        conda_cli("remove", "--all", "--yes", "--name", name)
+
+
+@pytest.fixture
 def env_two(conda_cli: CondaCLIFixture) -> Iterable[str]:
     # Setup
     name = uuid.uuid4().hex
@@ -296,7 +316,9 @@ def test_rename_with_force_and_dry_run(
     assert not err
 
 
-def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: str):
+def test_protected_dirs_error_for_rename(
+    conda_cli: CondaCLIFixture, env_one_in_default_prefix: str
+):
     with pytest.raises(CondaEnvException) as error:
         conda_cli(
             "rename",
