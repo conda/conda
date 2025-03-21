@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Type, Union
+from typing import TYPE_CHECKING
 
 from ...base.context import context
 from ...deprecations import deprecated
@@ -13,12 +13,12 @@ from ...exceptions import (
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from .binstar import BinstarSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
-FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
-SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
+if TYPE_CHECKING:
+    FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec]
+    SpecTypes = YamlFileSpec | RequirementsSpec
 
 
 @deprecated(
@@ -53,8 +53,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
             return YamlFileSpec
         elif ext in RequirementsSpec.extensions:
             return RequirementsSpec
-    else:
-        raise EnvironmentFileNotFound(filename=filename)
+    raise EnvironmentFileNotFound(filename=filename)
 
 
 @deprecated.argument("24.7", "25.1", "name")
@@ -62,10 +61,9 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     "24.7", "25.1", "directory", addendum="Specify the full path in filename"
 )
 def detect(
-    name: str = None,
-    filename: str = None,
-    directory: str = None,
-    remote_definition: str = None,
+    name: str | None = None,
+    filename: str | None = None,
+    directory: str | None = None,
 ) -> SpecTypes:
     """
     Return the appropriate spec type to use.
@@ -73,10 +71,9 @@ def detect(
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
     spec_hook = context.plugin_manager.get_env_spec_handler(
-        remote_definition=remote_definition,
         filename=filename,
     )
-    spec = spec_hook.handler_class(remote_definition or filename)
+    spec = spec_hook.handler_class(filename)
     if spec.can_handle():
         return spec
     raise SpecNotFound(spec.msg)

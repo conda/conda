@@ -20,12 +20,8 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-<<<<<<< HEAD
     from contextlib import AbstractContextManager
-    from typing import Any, Callable
-=======
-    from typing import Callable, Iterable
->>>>>>> d7e4b67fb (Draft conda env spec hooks)
+    from typing import Any, Callable, Iterable
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver

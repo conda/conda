@@ -94,7 +94,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     spec = install_specs.detect(
         filename=args.file,
-        remote_definition=args.remote_definition,
     )
     env = spec.environment
 
