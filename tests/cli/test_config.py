@@ -7,6 +7,7 @@ import os
 import re
 import sys
 from contextlib import contextmanager, nullcontext
+from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -15,7 +16,13 @@ from ruamel.yaml.scanner import ScannerError
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
+from conda.base.context import (
+    context,
+    reset_context,
+    sys_rc_path,
+    user_data_pkgs,
+    user_rc_path,
+)
 from conda.common.configuration import ConfigurationLoadError, CustomValidationError
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
@@ -912,3 +919,43 @@ def test_conda_config_validate_sslverify_truststore(
             assert not stdout
             assert not stderr
             assert not err
+
+
+def test_migrate_pkgs(
+    tmp_env,
+    conda_cli: CondaCLIFixture,
+    caplog,
+):
+    # Create some fake packages
+    root_pkgs = Path(context._root_prefix_pkgs())
+    root_pkgs.mkdir(parents=True, exist_ok=True)
+    (root_pkgs / "testpkg1").touch()
+    (root_pkgs / "testpkg2").touch()
+
+    # Check that having packages in the root triggers a warning
+    context.pkgs_dirs
+    assert len(caplog.records) == 1
+
+    conda_cli("config", "--migrate-pkgs")
+
+    # Post-migration: the fake packages and the pkgs directory should not exist anymore
+    assert not root_pkgs.exists()
+
+    # Check that the packages have been migrated to the user_data_pkgs() directory
+    new_pkgs = Path(user_data_pkgs())
+    assert new_pkgs.exists()
+    assert (new_pkgs / "testpkg1").exists()
+    assert (new_pkgs / "testpkg2").exists()
+
+    # Post-migration, running the migration again should raise an error
+    with pytest.raises(CondaError):
+        conda_cli("config", "--migrate-pkgs")
+
+    # Post-migration, accessing `pkgs_dirs` should not produce warnings
+    caplog.clear()
+    context.pkgs_dirs
+    assert len(caplog.records) == 0
+
+
+def test_migrate_envs():
+    pass

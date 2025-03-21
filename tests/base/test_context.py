@@ -1003,3 +1003,26 @@ def test_pkgs_envs_old_default_dirs(
     assert len(caplog.records) == 2
     assert any([str(envs) in record.message for record in caplog.records])
     assert any([str(pkgs) in record.message for record in caplog.records])
+
+
+def test_pkgs_envs_configured(
+    testdata, propagate_conda_logger, caplog, unset_condarc_pkgs, monkeypatch, tmp_path
+):
+    """Test that the context uses legacy paths when `pkgs_dirs`/`envs_dirs` are set."""
+    pkgs = str(tmp_path / "pkgs")
+    envs = str(tmp_path / "envs")
+
+    monkeypatch.setenv("CONDA_PKGS_DIRS", pkgs)
+    monkeypatch.setenv("CONDA_ENVS_DIRS", envs)
+    reset_context()
+
+    assert set(context.pkgs_dirs) == set((pkgs,))
+    assert set(context._pkgs_dirs) == set(context.pkgs_dirs)
+
+    # When setting `envs_dirs`, the legacy behavior is to use
+    # ~/.conda/envs, <root prefix>/envs,
+    # and if running on windows, <user data dir>/conda/conda/envs.
+    # Here we just check that the requested envs are a subset
+    # of the actual envs returned.
+    assert envs in set(context.envs_dirs)
+    assert set(context._envs_dirs) <= set(context.envs_dirs)

@@ -19,6 +19,7 @@ import py
 import pytest
 
 from conda.deprecations import deprecated
+from conda.gateways.disk.test import is_conda_environment
 
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
@@ -523,3 +524,23 @@ def PYTHONPATH():
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
             yield
+
+
+@pytest.fixture
+def env_in_root_prefix(conda_cli) -> str:
+    """A fixture for an environment created inside the root environment prefix.
+
+    This is one of the default locations that environments have historically been
+    created in, so this fixture is for tests which require such configurations.
+    """
+    # Setup
+    name = uuid.uuid4().hex
+    conda_cli(
+        "create", "--prefix", str(Path(context.root_prefix) / "envs" / name), "--yes"
+    )
+
+    yield name
+
+    # Teardown
+    if is_conda_environment(name):
+        conda_cli("remove", "--all", "--yes", "--name", name)

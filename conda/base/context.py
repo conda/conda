@@ -757,7 +757,9 @@ class Context(Configuration):
             Directories where envs are stored
         """
         if self._envs_dirs:
-            # User has already specified what directories to use
+            # User has already specified what directories to use. Use the legacy behavior
+            # (which in this case _doesn't_ mean just use the directories specified in
+            # the configuration)
             return self._prefix_envs_dirs()
 
         prefix_dir = self._root_prefix_envs()

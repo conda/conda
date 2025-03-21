@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 
@@ -32,24 +31,6 @@ if TYPE_CHECKING:
         PathFactoryFixture,
         TmpEnvFixture,
     )
-
-
-@pytest.fixture
-def tmp_pkgs_dirs(tmp_path: Path) -> Path:
-    patch(
-        "conda.base.context.mockable_context_envs_dirs",
-        return_value=(str(tmp_path),),
-    )
-    return tmp_path
-
-
-@pytest.fixture
-def tmp_envs_dirs(tmp_path: Path) -> Path:
-    patch(
-        "conda.base.context.mockable_context_envs_dirs",
-        return_value=(str(tmp_path),),
-    )
-    return tmp_path
 
 
 @pytest.mark.parametrize(
