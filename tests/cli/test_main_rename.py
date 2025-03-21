@@ -331,6 +331,10 @@ def test_protected_dirs_error_for_rename(
         in str(error.value)
     )
 
+    # Clean up: remove the environment and the envs directory
+    conda_cli("env", "remove", "-n", env_one)
+    (Path(context.root_prefix) / "envs").unlink()
+
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
 def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
