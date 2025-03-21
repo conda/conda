@@ -1030,14 +1030,15 @@ class CmdExeActivator(_Activator):
     sep = "\\"
     path_conversion = staticmethod(_path_identity)
     script_extension = ".bat"
-    tempfile_extension = ".bat"
+    tempfile_extension = ".env"
     command_join = "\n"
 
-    unset_var_tmpl = "@SET %s="
-    export_var_tmpl = '@SET "%s=%s"'
-    # TODO: determine if different than export_var_tmpl
-    set_var_tmpl = '@SET "%s=%s"'
-    run_script_tmpl = '@CALL "%s"'
+    # we are not generating a script to run but rather an INI style file
+    # with key=value pairs to set environment variables, key= to unset them,
+    # and _CONDA_SCRIPT=script pairs to run scripts
+    unset_var_tmpl = "%s="
+    export_var_tmpl = set_var_tmpl = "%s=%s"
+    run_script_tmpl = "_CONDA_SCRIPT=%s"
 
     hook_source_path = None
 

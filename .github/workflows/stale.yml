@@ -33,7 +33,7 @@ jobs:
             days-before-issue-stale: 90
             days-before-issue-close: 21
     steps:
-      - uses: conda/actions/read-yaml@7873f9d7c90877290866eb893b8f6eff2e88429a # v25.1.2
+      - uses: conda/actions/read-yaml@c1c8ebf3059ee1645f9395771671262a7ea8da63 # v25.3.0
         id: read_yaml
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml

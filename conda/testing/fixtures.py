@@ -207,16 +207,19 @@ class CondaCLIFixture:
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike | Path,
+        *argv: str | os.PathLike[str] | Path,
         raises: type[Exception] | tuple[type[Exception], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
-    def __call__(self, *argv: str | os.PathLike | Path) -> tuple[str, str, int]: ...
+    def __call__(
+        self,
+        *argv: str | os.PathLike[str] | Path,
+    ) -> tuple[str, str, int]: ...
 
     def __call__(
         self,
-        *argv: str | os.PathLike | Path,
+        *argv: str | os.PathLike[str] | Path,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
     ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
@@ -232,13 +235,10 @@ class CondaCLIFixture:
         if self.capsys:
             self.capsys.readouterr()
 
-        # ensure arguments are string
-        argv = tuple(map(str, argv))
-
         # run command
         code = None
         with pytest.raises(raises) if raises else nullcontext() as exception:
-            code = main_subshell(*argv)
+            code = main_subshell(*self._cast_args(argv))
         # capture output
         if self.capsys:
             out, err = self.capsys.readouterr()
@@ -249,6 +249,29 @@ class CondaCLIFixture:
         reset_context()
 
         return out, err, exception if raises else code
+
+    @staticmethod
+    def _cast_args(argv: tuple[str | os.PathLike[str] | Path, ...]) -> Iterable[str]:
+        """Cast args to string and inspect for `conda run`.
+
+        `conda run` is a unique case that requires `--dev` to use the src shell scripts
+        and not the shell scripts provided by the installer.
+        """
+        # TODO: Refactor this so we don't expose testing infrastructure to the user
+        # (i.e., deprecate `conda run --dev`).
+        argv = map(str, argv)
+        for arg in argv:
+            yield arg
+
+            # detect if arg is the command (the first positional)
+            if arg[0] != "-":
+                # this is the first positional, return remaining arguments
+
+                # if this happens to be the `conda run` command, add --dev
+                if arg == "run":
+                    yield "--dev"  # use src, not installer's shell scripts
+
+                yield from argv
 
 
 @pytest.fixture
@@ -292,7 +315,7 @@ class PathFactoryFixture:
         :return: A new unique path
         """
         prefix = prefix or ""
-        name = name or uuid.uuid4().hex
+        name = name or uuid.uuid4().hex[:8]
         suffix = suffix or ""
         return self.tmp_path / (prefix + name + suffix)
 

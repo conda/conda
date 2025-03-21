@@ -12,4 +12,4 @@ conda_move_to_front_of_PATH()
 
 from pathlib import Path
 
-TEST_RECIPES_CHANNEL = Path(__file__).parent / "test-recipes"
+TEST_RECIPES_CHANNEL = Path(__file__).parent / "data" / "test-recipes"

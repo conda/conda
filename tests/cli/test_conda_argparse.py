@@ -75,6 +75,7 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.add_parser_networking", isfunction),
         ("conda.cli.conda_argparse.add_parser_package_install_options", isfunction),
         ("conda.cli.conda_argparse.add_parser_prefix", isfunction),
+        ("conda.cli.conda_argparse.add_parser_prefix_to_group", isfunction),
         ("conda.cli.conda_argparse.add_parser_prune", isfunction),
         ("conda.cli.conda_argparse.add_parser_pscheck", isfunction),
         ("conda.cli.conda_argparse.add_parser_show_channel_urls", isfunction),
