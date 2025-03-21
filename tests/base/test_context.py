@@ -131,6 +131,7 @@ def unset_condarc_pkgs() -> None:
             with open(path, "w") as f:
                 yaml_safe_dump(new_condarc, f)
 
+            reset_context()
             yield
             with open(path, "w") as f:
                 yaml_safe_dump(old_condarc, f)
