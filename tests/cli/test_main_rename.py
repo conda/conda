@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import shutil
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -323,7 +324,7 @@ def test_protected_dirs_error_for_rename(
         conda_cli(
             "rename",
             f"--prefix={context.root_prefix}/envs",
-            env_one,
+            env_one_in_default_prefix,
         )
 
     assert (
@@ -332,8 +333,8 @@ def test_protected_dirs_error_for_rename(
     )
 
     # Clean up: remove the environment and the envs directory
-    conda_cli("env", "remove", "-n", env_one)
-    (Path(context.root_prefix) / "envs").unlink()
+    conda_cli("env", "remove", "-n", env_one_in_default_prefix, "--yes")
+    shutil.rmtree(Path(context.root_prefix) / "envs")
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
