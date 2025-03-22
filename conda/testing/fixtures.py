@@ -13,7 +13,7 @@ from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
-from shutil import copyfile
+from shutil import copyfile, rmtree
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
 import py
@@ -547,10 +547,13 @@ class RootPrefixEnvFactory:
         return env
 
     def cleanup(self):
-        for env in self.envs:
+        envs_dir = Path(context.root_prefix) / "envs"
+        for env_name in self.envs:
+            env = str(envs_dir / env_name)
             if is_conda_environment(env):
-                self.cli("remove", "--all", "--yes", "--name", env)
+                self.cli("remove", "--all", "--yes", "--prefix", env)
         del self.envs[:]
+        rmtree(envs_dir, ignore_errors=True)
 
 
 @pytest.fixture
