@@ -64,7 +64,9 @@ def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str
 def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
     """Recursively hardlink the contents of a directory to a destination.
 
-    Directories will be created as needed.
+    Directories will be created as needed. Raises a NotImplementedError if
+    os.link is not supported on the platform, mimicking the behavior of
+    pathlib.Path.hardlink_to().
 
     :param src: Source directory
     :param dst: Destination where the contents of src are to be hardlinked
@@ -76,7 +78,10 @@ def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
         if src_fname.is_file():
             dst_fname = dst / src_fname.relative_to(src)
             dst_fname.parent.mkdir(parents=True, exist_ok=True)
-            dst_fname.hardlink_to(src_fname)
+            try:
+                os.link(str(src_fname), str(dst_fname))
+            except AttributeError:
+                raise NotImplementedError
 
 
 def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
