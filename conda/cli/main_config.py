@@ -820,6 +820,9 @@ def execute_config(args, parser):
         _remove_key(key, rc_config)
 
     if args.migrate_pkgs:
+        print(
+            f"RC_CONFIG PATH: {rc_path}; RC_CONFIG={rc_config}; os.environ={os.environ}"
+        )
         migrate_pkgs(context, rc_config)
 
     if args.migrate_envs:
