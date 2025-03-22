@@ -303,7 +303,7 @@ def test_protected_dirs_error_for_rename(
     with pytest.raises(CondaEnvException) as error:
         conda_cli(
             "rename",
-            f"--prefix={context.root_prefix}/envs",
+            f"--prefix={str(Path(context.root_prefix) / 'envs')}",
             env_in_root_prefix,
         )
 
@@ -313,7 +313,13 @@ def test_protected_dirs_error_for_rename(
     )
 
     # Clean up: remove the environment and the envs directory
-    conda_cli("env", "remove", "-n", env_in_root_prefix, "--yes")
+    conda_cli(
+        "env",
+        "remove",
+        "-p",
+        str(Path(context.root_prefix) / "envs" / env_in_root_prefix),
+        "--yes",
+    )
     shutil.rmtree(Path(context.root_prefix) / "envs")
 
 
