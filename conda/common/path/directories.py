@@ -73,9 +73,10 @@ def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
     dst = pathlib.Path(dst)
 
     for src_fname in src.glob("**/*"):
-        dst_fname = dst / src_fname.relative_to(src)
-        dst_fname.parent.mkdir(parents=True, exist_ok=True)
-        dst_fname.hardlink_to(src_fname)
+        if src_fname.is_file():
+            dst_fname = dst / src_fname.relative_to(src)
+            dst_fname.parent.mkdir(parents=True, exist_ok=True)
+            dst_fname.hardlink_to(src_fname)
 
 
 def copy_dir_contents(src: os.PathLike, dst: os.PathLike):

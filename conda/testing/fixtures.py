@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import uuid
@@ -18,6 +19,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
+from conda.common.serialize import yaml_round_trip_load, yaml_safe_dump, yaml_safe_load
 from conda.deprecations import deprecated
 from conda.gateways.disk.test import is_conda_environment
 
@@ -29,7 +31,6 @@ from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
 from ..common.io import env_vars
-from ..common.serialize import yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -39,6 +40,7 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
+    from typing import Callable
 
     from _pytest.capture import MultiCapture
     from pytest import (
@@ -526,21 +528,88 @@ def PYTHONPATH():
             yield
 
 
+class RootPrefixEnvFactory:
+    """A factory which produces environments in the root prefix."""
+
+    def __init__(self, cli):
+        self.envs = []
+        self.cli = cli
+
+    def __call__(self) -> Path:
+        env = uuid.uuid4().hex
+        self.cli(
+            "create",
+            "--prefix",
+            str(Path(context.root_prefix) / "envs" / env),
+            "--yes",
+        )
+        self.envs.append(env)
+        return env
+
+    def cleanup(self):
+        for env in self.envs:
+            if is_conda_environment(env):
+                self.cli("remove", "--all", "--yes", "--name", env)
+        del self.envs[:]
+
+
 @pytest.fixture
-def env_in_root_prefix(conda_cli) -> str:
+def env_in_root_prefix(conda_cli) -> Iterable[str]:
     """A fixture for an environment created inside the root environment prefix.
 
     This is one of the default locations that environments have historically been
     created in, so this fixture is for tests which require such configurations.
     """
-    # Setup
-    name = uuid.uuid4().hex
-    conda_cli(
-        "create", "--prefix", str(Path(context.root_prefix) / "envs" / name), "--yes"
-    )
+    factory = RootPrefixEnvFactory(conda_cli)
+    yield factory()
+    factory.cleanup()
 
-    yield name
 
-    # Teardown
-    if is_conda_environment(name):
-        conda_cli("remove", "--all", "--yes", "--name", name)
+@pytest.fixture
+def root_prefix_env_factory(env_in_root_prefix, conda_cli) -> Callable:
+    """A fixture for a factory which generates environments in the root prefix.
+
+    This is one of the default locations that environments have historically been
+    created in, so this fixture is for tests which require such configurations.
+    """
+    factory = RootPrefixEnvFactory(conda_cli)
+    yield factory
+    factory.cleanup()
+
+
+@pytest.fixture
+def unset_condarc_pkgs() -> None:
+    """Fixture which rewrites `.condarc` temporarily to remove the `pkgs_dirs` entry.
+
+    Necessary in CI, where the `setup-miniconda` action writes `pkgs_dirs` to ~/.condarc.
+    For some reason, the `testdata` fixture doesn't override this, meaning we don't get
+    a clean conda installation during tests, which can break tests which rely on not
+    having this setting configured.
+
+    If no .condarc is found in the context, this fixture is a noop.
+    """
+    for path in context.config_files:
+        if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
+            with open(path) as f:
+                old_condarc = yaml_safe_load(f.read())
+
+            if "pkgs_dirs" not in old_condarc:
+                # If the condarc that was found has no 'pkgs_dirs' entry,
+                # don't do anything
+                yield
+                return
+
+            new_condarc = copy.deepcopy(old_condarc)
+            del new_condarc["pkgs_dirs"]
+            with open(path, "w") as f:
+                yaml_safe_dump(new_condarc, f)
+
+            reset_context()
+            yield
+            with open(path, "w") as f:
+                yaml_safe_dump(old_condarc, f)
+            return
+
+    else:
+        # This fixture is a noop if a .condarc isn't found
+        yield

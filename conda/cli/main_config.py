@@ -887,6 +887,8 @@ def migrate_envs(context, config: dict):
     Uses hardlinks if they are supported, otherwise fall back to just copying
     the directory contents instead.
 
+    The (empty) path at `<root prefix>/envs` will be removed if the move is successful.
+
     :param context: Current execution context
     :param config: Configuration dict read from `.condarc`
     """
@@ -910,13 +912,14 @@ def migrate_envs(context, config: dict):
             "directory. No migration is necessary."
         )
 
-    dest = user_data_envs()
     failures = {}
-    for env in os.listdir(context._root_prefix_envs()):
+    dest = Path(user_data_envs())
+    root_prefix_envs = Path(context._root_prefix_envs())
+    for env in os.listdir(root_prefix_envs):
         try:
             rename(
-                source=env,
-                destination=dest,
+                source=str(root_prefix_envs / env),
+                destination=str(dest / env),
                 dry_run=False,
                 force=False,
                 quiet=True,
@@ -932,3 +935,6 @@ def migrate_envs(context, config: dict):
         raise CondaError(
             f"Errors migrating the following environments: {list(failures)}"
         )
+    else:
+        # Directory should be emptied by the rename above
+        root_prefix_envs.rmdir()

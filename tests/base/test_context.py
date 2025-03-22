@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import copy
 import os
 from itertools import chain
 from os.path import abspath, join
@@ -35,7 +34,7 @@ from conda.base.context import (
 )
 from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
-from conda.common.serialize import yaml_round_trip_load, yaml_safe_dump, yaml_safe_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
 from conda.exceptions import (
     ChannelDenied,
@@ -102,44 +101,6 @@ def testdata() -> None:
             )
         }
     )
-
-
-@pytest.fixture
-def unset_condarc_pkgs() -> None:
-    """Fixture which rewrites `.condarc` temporarily to remove the `pkgs_dirs` entry.
-
-    Necessary in CI, where the `setup-miniconda` action writes `pkgs_dirs` to ~/.condarc.
-    For some reason, the `testdata` fixture doesn't override this, meaning we don't get
-    a clean conda installation during tests, which can break tests which rely on not
-    having this setting configured.
-
-    If no .condarc is found in the context, this fixture is a noop.
-    """
-    for path in context.config_files:
-        if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
-            with open(path) as f:
-                old_condarc = yaml_safe_load(f.read())
-
-            if "pkgs_dirs" not in old_condarc:
-                # If the condarc that was found has no 'pkgs_dirs' entry,
-                # don't do anything
-                yield
-                return
-
-            new_condarc = copy.deepcopy(old_condarc)
-            del new_condarc["pkgs_dirs"]
-            with open(path, "w") as f:
-                yaml_safe_dump(new_condarc, f)
-
-            reset_context()
-            yield
-            with open(path, "w") as f:
-                yaml_safe_dump(old_condarc, f)
-            return
-
-    else:
-        # This fixture is a noop if a .condarc isn't found
-        yield
 
 
 def test_migrated_custom_channels(testdata: None):
