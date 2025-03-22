@@ -588,6 +588,7 @@ def unset_condarc_pkgs() -> None:
 
     If no .condarc is found in the context, this fixture is a noop.
     """
+    print(f"Found configs: {context.config_files}")
     old_condarcs = {}
     for path in context.config_files:
         if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
@@ -602,6 +603,8 @@ def unset_condarc_pkgs() -> None:
             old_condarcs[path] = old_condarc
             new_condarc = copy.deepcopy(old_condarc)
             del new_condarc["pkgs_dirs"]
+
+            print(f"Rewriting {path}")
             with open(path, "w") as f:
                 yaml_safe_dump(new_condarc, f)
 
@@ -610,8 +613,10 @@ def unset_condarc_pkgs() -> None:
         yield
 
         for path, old_condarc in old_condarcs.items():
+            print(f"Resetting {path}")
             with open(path, "w") as f:
                 yaml_safe_dump(old_condarc, f)
     else:
+        print("No condarcs rewritten.")
         # This fixture is a noop if a .condarc isn't found
         yield
