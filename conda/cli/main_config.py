@@ -851,7 +851,7 @@ def migrate_pkgs(context, config: dict):
     key = "pkgs_dirs"
     if key in config:
         raise CondaError(
-            f"The conda configuration for {key} has explicitly set and"
+            f"The conda configuration for {key} has been explicitly set and "
             "cannot be migrated."
         )
 
@@ -901,7 +901,7 @@ def migrate_envs(context, config: dict):
     key = "pkgs_dirs"
     if key in config:
         raise CondaError(
-            f"The conda configuration for {key} has explicitly set and"
+            f"The conda configuration for {key} has been explicitly set and "
             "cannot be migrated."
         )
 

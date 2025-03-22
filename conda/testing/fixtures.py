@@ -579,7 +579,7 @@ def root_prefix_env_factory(env_in_root_prefix, conda_cli) -> Callable:
 
 @pytest.fixture
 def unset_condarc_pkgs() -> None:
-    """Fixture which rewrites `.condarc` temporarily to remove the `pkgs_dirs` entry.
+    """Fixture which rewrites all `.condarc` temporarily to remove the `pkgs_dirs` entry.
 
     Necessary in CI, where the `setup-miniconda` action writes `pkgs_dirs` to ~/.condarc.
     For some reason, the `testdata` fixture doesn't override this, meaning we don't get
@@ -588,6 +588,7 @@ def unset_condarc_pkgs() -> None:
 
     If no .condarc is found in the context, this fixture is a noop.
     """
+    old_condarcs = {}
     for path in context.config_files:
         if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
             with open(path) as f:
@@ -596,20 +597,21 @@ def unset_condarc_pkgs() -> None:
             if "pkgs_dirs" not in old_condarc:
                 # If the condarc that was found has no 'pkgs_dirs' entry,
                 # don't do anything
-                yield
-                return
+                continue
 
+            old_condarcs[path] = old_condarc
             new_condarc = copy.deepcopy(old_condarc)
             del new_condarc["pkgs_dirs"]
             with open(path, "w") as f:
                 yaml_safe_dump(new_condarc, f)
 
-            reset_context()
-            yield
+    if old_condarcs:
+        reset_context()
+        yield
+
+        for path, old_condarc in old_condarcs.items():
             with open(path, "w") as f:
                 yaml_safe_dump(old_condarc, f)
-            return
-
     else:
         # This fixture is a noop if a .condarc isn't found
         yield
