@@ -1068,6 +1068,7 @@ def test_ignore_migrate_pkgs(
 
     # Clean up fake packages
     shutil.rmtree(str(root_pkgs), ignore_errors=True)
+    conda_cli("config", "--remove", "pkgs_dirs", str(root_pkgs))
 
 
 def test_ignore_migrate_envs(
@@ -1111,3 +1112,5 @@ def test_ignore_migrate_envs(
     # This should fail because the config is set
     with pytest.raises(CondaError):
         conda_cli("config", "--migrate-envs")
+
+    conda_cli("config", "--remove", "envs_dirs", str(root_envs))
