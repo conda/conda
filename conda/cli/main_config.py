@@ -882,7 +882,7 @@ def migrate_pkgs(context, config: dict):
 
 
 def migrate_envs(context, config: dict):
-    """Migrate the pkgs/ directory from the root prefix to the user data directory.
+    """Migrate the envs/ directory from the root prefix to the user data directory.
 
     Uses hardlinks if they are supported, otherwise fall back to just copying
     the directory contents instead.
@@ -898,7 +898,7 @@ def migrate_envs(context, config: dict):
 
     logger = getLogger(__name__)
 
-    key = "pkgs_dirs"
+    key = "envs_dirs"
     if key in config:
         raise CondaError(
             f"The conda configuration for {key} has been explicitly set and "

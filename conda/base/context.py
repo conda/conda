@@ -770,7 +770,7 @@ class Context(Configuration):
                 f"({prefix_dir}). To migrate all environments to use the new default "
                 "location, run `conda config --migrate-envs`. To silence "
                 "this message and continue using the current prefix locations, run "
-                f"`conda config --append {prefix_dir}`"
+                f"`conda config --append envs_dirs {prefix_dir}`"
             )
             return self._prefix_envs_dirs()
 
@@ -799,7 +799,7 @@ class Context(Configuration):
                 f"({prefix_dir}). To migrate all environments to use the new default "
                 "location, run `conda config --migrate-pkgs`. To silence "
                 "this message and continue using the current prefix locations, run "
-                f"`conda config --append {prefix_dir}`"
+                f"`conda config --append pkgs_dirs {prefix_dir}`"
             )
             return self._prefix_pkgs_dirs()
 
