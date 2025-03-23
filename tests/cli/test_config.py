@@ -12,6 +12,7 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 from ruamel.yaml.scanner import ScannerError
@@ -29,6 +30,7 @@ from conda.base.context import (
     user_rc_path,
 )
 from conda.common.configuration import ConfigurationLoadError, CustomValidationError
+from conda.common.path.directories import copy_dir_contents, hardlink_dir_contents
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
@@ -933,6 +935,7 @@ def test_migrate_pkgs(
     caplog,
     unset_condarc_pkgs,
 ):
+    """Test that migrating pkgs works as intended."""
     # Ensure there are no packages at user_data_pkgs()
     shutil.rmtree(user_data_pkgs(), ignore_errors=True)
 
@@ -973,13 +976,15 @@ def test_migrate_pkgs(
 
     # After migration, accessing `pkgs_dirs` should not produce warnings
     caplog.clear()
-    context.pkgs_dirs
+    with caplog.at_level(logging.WARNING):
+        context.pkgs_dirs
     assert len(caplog.records) == 0
 
 
 def test_migrate_envs(
     root_prefix_env_factory, conda_cli: CondaCLIFixture, caplog, unset_condarc_pkgs
 ):
+    """Test that migrating the environments works as intended."""
     # Ensure there are no envs at user_data_envs()
     shutil.rmtree(user_data_envs(), ignore_errors=True)
 
@@ -1024,7 +1029,8 @@ def test_migrate_envs(
 
     # Post-migration, accessing `envs_dirs` should not produce warnings
     caplog.clear()
-    context.envs_dirs
+    with caplog.at_level(logging.WARNING):
+        context.envs_dirs
     assert len(caplog.records) == 0
 
 
@@ -1114,3 +1120,203 @@ def test_ignore_migrate_envs(
         conda_cli("config", "--migrate-envs")
 
     conda_cli("config", "--remove", "envs_dirs", str(root_envs))
+
+
+def test_migrate_pkgs_pointless(
+    tmp_env,
+    conda_cli: CondaCLIFixture,
+    propagate_conda_logger,
+    caplog,
+    unset_condarc_pkgs,
+):
+    """Test --migrate-pkgs when there's no <root prefix>/pkgs directory."""
+    # Ensure there are no packages at user_data_pkgs()
+    shutil.rmtree(user_data_pkgs(), ignore_errors=True)
+
+    # Check that having no pkgs in the root doesn't raise a warning
+    # We need this context manager because there's an autouse
+    # fixture which calls caplog.set_level in tests.cli.conftest
+    # which affects this; more background info can be found at
+    # https://github.com/pytest-dev/pytest/issues/7656
+    with caplog.at_level(logging.WARNING):
+        context.pkgs_dirs
+    assert len(caplog.records) == 0
+
+    with pytest.raises(CondaError):
+        conda_cli("config", "--migrate-pkgs")
+    # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
+    # things reinitializes the loggers, we need to manually reset the propagation
+    # state of the conda logger here in order to capture messages below
+    logging.getLogger("conda").propagate = True
+
+    # Post-migration, there should still be no pkgs in the root
+    root_pkgs = Path(root_prefix_pkgs(context.root_prefix, context.force_32bit))
+    assert not root_pkgs.exists()
+
+    # After migration, running the migration again should raise an error
+    with pytest.raises(CondaError):
+        conda_cli("config", "--migrate-pkgs")
+
+    # After migration, accessing `pkgs_dirs` should still not produce warnings
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        context.pkgs_dirs
+    assert len(caplog.records) == 0
+
+
+def test_migrate_pkgs_always_copy(
+    tmp_env,
+    conda_cli: CondaCLIFixture,
+    propagate_conda_logger,
+    caplog,
+    unset_condarc_pkgs,
+    monkeypatch,
+):
+    """Test that migrating pkgs copies if the `always_copy` has been set."""
+    # Ensure there are no packages at user_data_pkgs()
+    shutil.rmtree(user_data_pkgs(), ignore_errors=True)
+
+    monkeypatch.setenv("CONDA_ALWAYS_COPY", "true")
+    reset_context()
+
+    # Create some fake packages
+    root_pkgs = Path(root_prefix_pkgs(context.root_prefix, context.force_32bit))
+    root_pkgs.mkdir(parents=True, exist_ok=True)
+    (root_pkgs / "testpkg1").touch()
+    (root_pkgs / "testpkg2").touch()
+
+    # Check that having pkgs in the root triggers a warning
+    # We need this context manager because there's an autouse
+    # fixture which calls caplog.set_level in tests.cli.conftest
+    # which affects this; more background info can be found at
+    # https://github.com/pytest-dev/pytest/issues/7656
+    with caplog.at_level(logging.WARNING):
+        context.pkgs_dirs
+    assert len(caplog.records) == 1
+
+    with (
+        mock.patch(
+            "conda.cli.main_config.copy_dir_contents",
+            wraps=copy_dir_contents,
+        ) as mock_copy_dir_contents,
+        mock.patch(
+            "conda.cli.main_config.hardlink_dir_contents",
+            wraps=hardlink_dir_contents,
+        ) as mock_hardlink_dir_contents,
+    ):
+        conda_cli("config", "--migrate-pkgs")
+
+    mock_copy_dir_contents.assert_called_once()
+    mock_hardlink_dir_contents.assert_not_called()
+
+    # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
+    # things reinitializes the loggers, we need to manually reset the propagation
+    # state of the conda logger here in order to capture messages below
+    logging.getLogger("conda").propagate = True
+
+    # Post-migration, the fake packages and the pkgs directory should still exist;
+    # these get cleaned up with `conda clean`
+    assert root_pkgs.exists()
+
+    # Check that the packages have been migrated to the user_data_pkgs() directory
+    new_pkgs = Path(user_data_pkgs())
+    assert new_pkgs.exists()
+    assert (new_pkgs / "testpkg1").exists()
+    assert (new_pkgs / "testpkg2").exists()
+
+    # After migration, running the migration again should raise an error
+    with pytest.raises(CondaError):
+        conda_cli("config", "--migrate-pkgs")
+
+    # After migration, accessing `pkgs_dirs` should not produce warnings
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        context.pkgs_dirs
+    assert len(caplog.records) == 0
+
+
+def test_migrate_pkgs_copy_fallback(
+    tmp_env,
+    conda_cli: CondaCLIFixture,
+    propagate_conda_logger,
+    caplog,
+    unset_condarc_pkgs,
+    monkeypatch,
+):
+    """Test that migrating pkgs falls back to copying if hardlinking fails."""
+    # Ensure there are no packages at user_data_pkgs()
+    shutil.rmtree(user_data_pkgs(), ignore_errors=True)
+
+    # Create some fake packages
+    root_pkgs = Path(root_prefix_pkgs(context.root_prefix, context.force_32bit))
+    root_pkgs.mkdir(parents=True, exist_ok=True)
+    (root_pkgs / "testpkg1").touch()
+    (root_pkgs / "testpkg2").touch()
+
+    # Check that having pkgs in the root triggers a warning
+    # We need this context manager because there's an autouse
+    # fixture which calls caplog.set_level in tests.cli.conftest
+    # which affects this; more background info can be found at
+    # https://github.com/pytest-dev/pytest/issues/7656
+    with caplog.at_level(logging.WARNING):
+        context.pkgs_dirs
+    assert len(caplog.records) == 1
+
+    # This causes the migration to fail entirely
+    with (
+        mock.patch(
+            "conda.cli.main_config.copy_dir_contents",
+            wraps=copy_dir_contents,
+        ) as mock_copy_dir_contents,
+        mock.patch(
+            "conda.cli.main_config.hardlink_dir_contents",
+        ) as mock_hardlink_dir_contents,
+    ):
+        mock_hardlink_dir_contents.side_effect = Exception()
+
+        with pytest.raises(CondaError):
+            conda_cli("config", "--migrate-pkgs")
+
+    mock_copy_dir_contents.assert_called_once()
+    mock_hardlink_dir_contents.assert_called_once()
+
+    # This causes the migration to try hardlinking, but to fall back to copying.
+    with (
+        mock.patch(
+            "conda.cli.main_config.copy_dir_contents",
+            wraps=copy_dir_contents,
+        ) as mock_copy_dir_contents,
+        mock.patch(
+            "conda.cli.main_config.hardlink_dir_contents",
+        ) as mock_hardlink_dir_contents,
+    ):
+        mock_hardlink_dir_contents.side_effect = NotImplementedError()
+        conda_cli("config", "--migrate-pkgs")
+
+    mock_copy_dir_contents.assert_called_once()
+    mock_hardlink_dir_contents.assert_called_once()
+
+    # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
+    # things reinitializes the loggers, we need to manually reset the propagation
+    # state of the conda logger here in order to capture messages below
+    logging.getLogger("conda").propagate = True
+
+    # Post-migration, the fake packages and the pkgs directory should still exist;
+    # these get cleaned up with `conda clean`
+    assert root_pkgs.exists()
+
+    # Check that the packages have been migrated to the user_data_pkgs() directory
+    new_pkgs = Path(user_data_pkgs())
+    assert new_pkgs.exists()
+    assert (new_pkgs / "testpkg1").exists()
+    assert (new_pkgs / "testpkg2").exists()
+
+    # After migration, running the migration again should raise an error
+    with pytest.raises(CondaError):
+        conda_cli("config", "--migrate-pkgs")
+
+    # After migration, accessing `pkgs_dirs` should not produce warnings
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        context.pkgs_dirs
+    assert len(caplog.records) == 0

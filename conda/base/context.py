@@ -187,7 +187,7 @@ def mockable_prefix_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
             root_prefix_envs(root_prefix),
         ]
     if on_win:
-        fixed_dirs = (join(user_data_dir(APP_NAME, APP_NAME), "envs"),)
+        fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
     return tuple(IndexedSet(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
 
 
@@ -751,10 +751,7 @@ class Context(Configuration):
     def envs_dirs(self) -> tuple[IndexedSet]:
         """Get the env_dirs for the environment.
 
-        Returns
-        -------
-        tuple[IndexedSet[os.PathLike]]
-            Directories where envs are stored
+        :return: Directories where envs are stored
         """
         if self._envs_dirs:
             # User has already specified what directories to use. Use the legacy behavior
@@ -782,10 +779,7 @@ class Context(Configuration):
     def pkgs_dirs(self) -> tuple[IndexedSet]:
         """Get the pkgs_dirs for the environment.
 
-        Returns
-        -------
-        tuple[IndexedSet[os.PathLike]]
-            Directories where pkgs are stored
+        :return: Directories where pkgs are stored
         """
         if self._pkgs_dirs:
             # User has already specified what directories to use
