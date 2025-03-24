@@ -4,9 +4,10 @@
 
 import re
 import sys
-from os.path import isdir, isfile, join, normcase
+from os.path import dirname, isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals
+from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
@@ -16,7 +17,9 @@ from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
+    EnvironmentNotWritableError,
 )
+from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
 
@@ -257,9 +260,24 @@ def validate_prefix(prefix):
     :rtype: str
     """
     if isdir(prefix):
-        if not isfile(join(prefix, "conda-meta", "history")):
+        if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
             raise DirectoryNotACondaEnvironmentError(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
 
     return prefix
+
+
+def validate_prefix_is_writable(prefix: str) -> str:
+    """Verifies the environment directory is writable by trying to access
+    the conda-meta/history file. If this file is not writable then we assume
+    the whole prefix is not writable and raise an exception.
+
+    :raises EnvironmentNotWritableError: Conda does not have permission to write to the prefix
+    :returns: Valid prefix.
+    :rtype: str
+    """
+    test_path = join(prefix, PREFIX_MAGIC_FILE)
+    if isdir(dirname(test_path)) and file_path_is_writable(test_path):
+        return prefix
+    raise EnvironmentNotWritableError(prefix)
