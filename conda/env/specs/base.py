@@ -13,11 +13,34 @@ if TYPE_CHECKING:
 
 
 class BaseEnvSpec:
+    """
+    Base class for all env spec plugins.
+
+    :param extensions: Filename extensions the class is able to handle, if any.
+                       Only required for resources represented by a file.
+    """
     msg: str | None = None
+    extensions: list[str] = ()
+
+    def __init__(self, filename=None):
+        """Create a EnvSpec.
+
+        :param filename: file that describes the environment.
+        """
+        pass
 
     def can_handle(self) -> bool:
+        """Determines if the EnvSpec plugin can read and operate on the
+        environment described by the `filename`.
+
+        :returns bool: returns True, if the plugin can interpret the file.
+        """
         raise NotImplementedError
 
     @property
     def environment(self) -> Environment:
+        """Express the provided environment file as a conda environment object.
+
+        :returns Environment: the conda environment represented by the file.
+        """
         raise NotImplementedError
