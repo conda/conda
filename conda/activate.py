@@ -1056,7 +1056,7 @@ class FishActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
 
-    unset_var_tmpl = "set -e %s"
+    unset_var_tmpl = "set -e %s || true"
     export_var_tmpl = 'set -gx %s "%s"'
     set_var_tmpl = 'set -g %s "%s"'
     run_script_tmpl = 'source "%s"'
