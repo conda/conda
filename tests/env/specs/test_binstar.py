@@ -14,7 +14,6 @@ from conda.env.specs import binstar
     "function,raises",
     [
         ("ENVIRONMENT_TYPE", TypeError),
-        ("BinstarSpec", None),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

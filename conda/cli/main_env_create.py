@@ -119,7 +119,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..misc import touch_nonadmin
     from . import install as cli_install
 
-    spec = detect(filename=args.file, remote_definition=args.remote_definition)
+    spec = detect(filename=args.file)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix

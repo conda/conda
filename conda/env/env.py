@@ -208,7 +208,7 @@ class Dependencies(dict):
 
 
 class Environment:
-    """A class representing an ``environment.yaml`` file"""
+    """A class representing a conda environment file"""
 
     def __init__(
         self,
