@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import os
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
@@ -20,13 +19,12 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib.ish import dals
-from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, RECOGNIZED_URL_SCHEMES
+from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
-    EnvironmentFileExtensionNotValid,
-    EnvironmentFileNotFound,
+    EnvSpecPluginNotDetected,
     PluginError,
 )
 from . import (
@@ -474,37 +472,18 @@ class CondaPluginManager(pluggy.PluginManager):
             add_plugin_setting(name, parameter, aliases)
 
     def get_env_spec_handler(
-        self, remote_definition: str = "", filename: str = "environment.yml"
+        self, filename: str = "environment.yml"
     ) -> CondaEnvSpec:
         hooks = self.get_hook_results("env_specs")
-        # match by protocol
-        if "://" in (remote_definition or ""):
-            protocol, _ = remote_definition.split("://", 1)
-            for hook in hooks:
-                if not hook.protocols:
-                    continue
-                if protocol in hook.protocols:
-                    return hook
-        elif remote_definition:
-            # must be the binstar handler, which takes a remote environment
-            for hook in hooks:
-                if hook.name == "binstar":
-                    return hook
-        elif filename:
-            # match by extensions
-            path = os.path.expandvars(os.path.expanduser(filename))
-            extension = os.path.splitext(path)[-1]
-            protocol = path.split("://", 1)[0]
-            if os.path.exists(path) or protocol in RECOGNIZED_URL_SCHEMES:
-                for hook in hooks:
-                    if not hook.extensions:
-                        continue
-                    if extension in hook.extensions:
-                        return hook
-                raise EnvironmentFileExtensionNotValid(path)
-            raise EnvironmentFileNotFound(filename=path)
-        raise PluginError(
-            f"Could not find any env spec handlers for '{remote_definition}'."
+        for hook in hooks:
+            handler = hook.handler_class(filename)
+            if handler.can_handle():
+                return hook
+
+        # raise error if no plugins found that can read the environment file
+        hook_names = [h.name for h in hooks]
+        raise EnvSpecPluginNotDetected(
+            name=filename, plugin_names=hook_names
         )
 
 

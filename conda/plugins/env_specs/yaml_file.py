@@ -12,5 +12,4 @@ def conda_env_specs():
     yield CondaEnvSpec(
         name="yaml_file",
         handler_class=YamlFileSpec,
-        extensions=YamlFileSpec.extensions,
     )

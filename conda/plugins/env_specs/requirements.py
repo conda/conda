@@ -12,5 +12,4 @@ def conda_env_specs():
     yield CondaEnvSpec(
         name="requirements",
         handler_class=RequirementsSpec,
-        extensions=RequirementsSpec.extensions,
     )

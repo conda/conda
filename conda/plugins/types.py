@@ -367,5 +367,4 @@ class CondaEnvSpec:
 
     name: str
     handler_class: BaseEnvSpec
-    extensions: Iterable[str] | None = None
     protocols: Iterable[str] | None = None

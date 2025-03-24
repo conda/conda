@@ -49,8 +49,12 @@ class RequirementsSpec(BaseEnvSpec):
         else:
             return True
 
-    def can_handle(self):
-        return os.path.exists(self.filename)
+    def can_handle(self) -> bool:
+        for ext in RequirementsSpec.extensions:
+            if self.filename.endswith(ext) and os.path.exists(self.filename):
+                return True
+
+        return False
 
     @property
     def environment(self):
