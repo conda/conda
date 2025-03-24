@@ -9,6 +9,7 @@ import sys
 from functools import cached_property, partial
 from logging import getLogger
 from typing import TYPE_CHECKING
+from .deprecations import deprecated
 
 from .common.compat import ensure_text_type, on_win
 
@@ -105,7 +106,6 @@ class ExceptionHandler:
     ) -> int:
         error_report = self.get_error_report(exc_val, exc_tb)
         self.print_unexpected_error_report(error_report)
-        self._upload(error_report)
         rc = getattr(exc_val, "return_code", None)
         return rc if rc is not None else 1
 
@@ -118,7 +118,6 @@ class ExceptionHandler:
         if context.json:
             error_report.update(exc_val.dump_map())
         self.print_expected_error_report(error_report)
-        self._upload(error_report)
         return exc_val.return_code
 
     def get_error_report(
@@ -263,7 +262,12 @@ class ExceptionHandler:
         except Exception as e:
             log.debug("%r", e)
             return True
-
+    
+    @deprecated(
+        "26.9",
+        "27.3",
+        addendum="`_upload` is being deprecated and will be removed in conda version 27.3",
+    )
     def _upload(self, error_report: dict[str, str]) -> None:
         """Determine whether or not to upload the error report."""
         from .base.context import context
@@ -295,7 +299,12 @@ class ExceptionHandler:
         if post_upload:
             # post submission text
             self._post_upload(do_upload)
-
+            
+    @deprecated(
+        "26.9",
+        "27.3",
+        addendum="`_ask_upload` is being deprecated and will be removed in conda version 27.3",
+    )
     def _ask_upload(self) -> bool:
         from .auxlib.type_coercion import boolify
         from .common.io import timeout
@@ -316,6 +325,11 @@ class ExceptionHandler:
             log.debug("%r", e)
             return False
 
+    @deprecated(
+        "26.9",
+        "27.3",
+        addendum="`_execute_upload` is being deprecated and will be removed in conda version 27.3",
+    )
     def _execute_upload(self, error_report: dict[str, Any]) -> None:
         import getpass
 
@@ -375,6 +389,11 @@ class ExceptionHandler:
         except Exception as e:
             log.debug(f"{e!r}")
 
+    @deprecated(
+        "26.9",
+        "27.3",
+        addendum="`_post_upload` is being deprecated and will be removed in conda version 27.3",
+    )
     def _post_upload(self, do_upload: bool) -> None:
         if do_upload is True:
             # report was submitted
