@@ -9,7 +9,7 @@ import pathlib
 from functools import reduce
 from itertools import accumulate, chain
 from logging import getLogger
-from os.path import isdir, join
+from os.path import join
 from shutil import copy2, copytree
 from typing import TYPE_CHECKING
 
@@ -92,10 +92,14 @@ def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
     :param src: Source directory
     :param dst: Destination where the contents of src are to be copied
     """
+    src = pathlib.Path(src)
+    dst = pathlib.Path(dst)
+
     for item in os.listdir(src):
-        src_path = join(src, item)
-        dst_path = join(dst, item)
-        if isdir(src_path):
+        src_path = src / item
+        dst_path = dst / item
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        if src_path.is_dir():
             copytree(src_path, dst_path, symlinks=True)
         else:
             copy2(src_path, dst_path)

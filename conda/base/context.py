@@ -785,9 +785,12 @@ class Context(Configuration):
             # User has already specified what directories to use
             return self._prefix_pkgs_dirs()
 
+        user_pkgs = user_data_pkgs()
         prefix_dir = self._root_prefix_pkgs()
-        if isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0:
-            # Prefix location is in use; emit warning message.
+        if (isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0) and (
+            not isdir(user_pkgs) or len(os.listdir(user_pkgs)) == 0
+        ):
+            # Prefix location is in use and user data is not; emit warning message
             log.warning(
                 "conda is using the prefix location for the pkgs directory "
                 f"({prefix_dir}). To migrate all environments to use the new default "

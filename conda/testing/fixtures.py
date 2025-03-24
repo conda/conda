@@ -7,6 +7,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import shutil
 import uuid
 import warnings
 from contextlib import contextmanager, nullcontext
@@ -27,7 +28,12 @@ from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..base.context import (
+    conda_tests_ctxt_mgmt_def_pol,
+    context,
+    reset_context,
+    root_prefix_pkgs,
+)
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
 from ..common.io import env_vars
@@ -622,3 +628,53 @@ def unset_condarc_pkgs() -> None:
     else:
         # This fixture is a noop if a .condarc isn't found
         yield
+
+
+@pytest.fixture
+def unset_condarc_envs() -> None:
+    """Fixture which rewrites all `.condarc` temporarily to remove the `envs_dirs` entry.
+
+    If no .condarc is found in the context, this fixture is a noop.
+    """
+    # Start by resetting the context to ensure the all config files are targeted
+    reset_context()
+
+    old_condarcs = {}
+    for path in context.config_files:
+        if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
+            with open(path) as f:
+                old_condarc = yaml_safe_load(f.read())
+
+            if "envs_dirs" not in old_condarc:
+                # If the condarc that was found has no 'envs_dirs' entry,
+                # don't do anything
+                continue
+
+            old_condarcs[path] = old_condarc
+            new_condarc = copy.deepcopy(old_condarc)
+            del new_condarc["envs_dirs"]
+
+            with open(path, "w") as f:
+                yaml_safe_dump(new_condarc, f)
+
+    if old_condarcs:
+        reset_context()
+        yield
+
+        for path, old_condarc in old_condarcs.items():
+            with open(path, "w") as f:
+                yaml_safe_dump(old_condarc, f)
+    else:
+        # This fixture is a noop if a .condarc isn't found
+        yield
+
+
+@pytest.fixture
+def fake_root_pkgs():
+    """Provide a fixture that temporarily creates fake packages in the root prefix."""
+    root_pkgs = Path(root_prefix_pkgs(context.root_prefix, context.force_32bit))
+    root_pkgs.mkdir(parents=True, exist_ok=True)
+    (root_pkgs / "testpkg1").touch()
+    (root_pkgs / "testpkg2").touch()
+    yield root_pkgs
+    shutil.rmtree(str(root_pkgs), ignore_errors=True)
