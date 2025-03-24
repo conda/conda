@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check CLA
-        uses: conda/actions/check-cla@c1c8ebf3059ee1645f9395771671262a7ea8da63 # v25.3.0
+        uses: conda/actions/check-cla@eb545bb8ab48d499b31c057a6df3cf46753fdbcb # v25.3.1
         with:
           # [required]
           # A token with ability to comment, label, and modify the commit status
