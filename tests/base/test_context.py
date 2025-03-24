@@ -29,6 +29,7 @@ from conda.base.context import (
     default_python_validation,
     get_plugin_config_data,
     reset_context,
+    user_data_pkgs,
     validate_channels,
     validate_prefix_name,
 )
@@ -946,7 +947,7 @@ def test_set_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs):
 
 
 def test_pkgs_envs_old_default_dirs(
-    testdata, propagate_conda_logger, caplog, unset_condarc_pkgs
+    testdata, propagate_conda_logger, caplog, unset_condarc_pkgs, unset_condarc_envs
 ):
     """Test that the old locations of envs/pkgs directories generate a log warning."""
     envs = Path(context.root_prefix) / "envs"
@@ -955,9 +956,29 @@ def test_pkgs_envs_old_default_dirs(
     with (
         mock.patch.object(context, "_root_prefix_pkgs", return_value=str(pkgs)),
         mock.patch.object(context, "_root_prefix_envs", return_value=str(envs)),
-        mock.patch("conda.base.context.isdir", return_value=True),
-        mock.patch("conda.base.context.os.listdir", return_value=["a/", "b/", "c/"]),
+        mock.patch("conda.base.context.isdir") as mock_isdir,
+        mock.patch("conda.base.context.os.listdir") as mock_listdir,
     ):
+
+        def mock_isdir_ret(path):
+            if path == user_data_pkgs():
+                return False
+            if path == context._root_prefix_pkgs():
+                return True
+            if path == context._root_prefix_envs():
+                return True
+
+        def mock_listdir_ret(path):
+            if path == user_data_pkgs():
+                return []
+            if path == context._root_prefix_pkgs():
+                return ["a/", "b/", "c/"]
+            if path == context._root_prefix_envs():
+                return ["a/", "b/", "c/"]
+
+        mock_isdir.side_effect = mock_isdir_ret
+        mock_listdir.side_effect = mock_listdir_ret
+
         _context_envs_dirs = context.envs_dirs
         _context_pkgs_dirs = context.pkgs_dirs
 
