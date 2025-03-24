@@ -91,7 +91,7 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
         yield MatchSpec(url, **checksums)
 
 
-@deprecated.argument("25.3", "25.9", "index_args")
+@deprecated.argument("25.3", "26.3", "index_args")
 def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
     actions = defaultdict(list)
     actions["PREFIX"] = prefix

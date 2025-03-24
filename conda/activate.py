@@ -252,7 +252,7 @@ class _Activator(metaclass=abc.ABCMeta):
     def _hook_postamble(self) -> str | None:
         return None
 
-    @deprecated.argument("25.3", "25.9", "arguments")
+    @deprecated.argument("25.3", "26.3", "arguments")
     def _parse_and_set_args(self) -> None:
         command, *arguments = self._raw_arguments or [None]
         help_flags = ("-h", "--help", "/?")

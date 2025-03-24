@@ -196,8 +196,8 @@ def remove_empty_parent_paths(path):
         parent_path = dirname(parent_path)
 
 
-@deprecated.argument("25.3", "25.9", "max_retries")
-@deprecated.argument("25.3", "25.9", "trash")
+@deprecated.argument("25.3", "26.3", "max_retries")
+@deprecated.argument("25.3", "26.3", "trash")
 def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     """
     Completely delete path
