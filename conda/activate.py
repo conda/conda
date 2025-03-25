@@ -967,7 +967,7 @@ class CshActivator(_Activator):
         # TCSH/CSH removes newlines when doing command substitution (see `man tcsh`),
         # source conda.csh directly and use line terminators to separate commands
         hook_source_path = Path(
-            CONDA_PACKAGE_ROOT,
+            context.conda_prefix,
             "shell",
             "etc",
             "profile.d",
