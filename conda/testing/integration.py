@@ -10,14 +10,11 @@ from __future__ import annotations
 
 import os
 import sys
-from functools import cache
 from logging import getLogger
-from os.path import dirname, join
+from os.path import join
 from pathlib import Path
-from subprocess import check_output
 from typing import TYPE_CHECKING
 
-from ..auxlib.compat import Utf8NamedTemporaryFile
 from ..common.compat import on_win
 from ..common.io import dashlist
 from ..common.path import BIN_DIRECTORY
@@ -58,32 +55,6 @@ log = getLogger(__name__)
 
 def escape_for_winpath(p):
     return p.replace("\\", "\\\\")
-
-
-@cache
-@deprecated("24.9", "25.3")
-def running_a_python_capable_of_unicode_subprocessing():
-    name = None
-    # try:
-    # UNICODE_CHARACTERS + os.sep +
-    with Utf8NamedTemporaryFile(
-        mode="w", suffix=UNICODE_CHARACTERS + ".bat", delete=False
-    ) as batch_file:
-        batch_file.write("@echo Hello World\n")
-        batch_file.write("@exit 0\n")
-        name = batch_file.name
-    if name:
-        try:
-            out = check_output(name, cwd=dirname(name), stderr=None, shell=False)
-            out = out.decode("utf-8") if hasattr(out, "decode") else out
-            if out.startswith("Hello World"):
-                return True
-            return False
-        except Exception:
-            return False
-        finally:
-            os.unlink(name)
-    return False
 
 
 class Commands:
