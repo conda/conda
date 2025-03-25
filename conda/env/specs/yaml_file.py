@@ -4,9 +4,10 @@
 
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from .. import env
+from ...plugins.types import EnvSpecBase
 
 
-class YamlFileSpec:
+class YamlFileSpec(EnvSpecBase):
     _environment = None
     extensions = {".yaml", ".yml"}
 
