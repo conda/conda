@@ -489,7 +489,7 @@ class CondaPluginManager(pluggy.PluginManager):
             add_plugin_setting(name, parameter, aliases)
 
     def get_env_spec_handler(
-        self, filename: str = "environment.yml"
+        self, filename: str
     ) -> CondaEnvSpec:
         hooks = self.get_hook_results("env_specs")
         for hook in hooks:

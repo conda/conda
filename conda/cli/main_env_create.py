@@ -110,22 +110,28 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
-    from ..env import specs
+    from ..env.specs import detect
     from ..env.env import get_filename, print_result
     from ..env.installers.base import get_installer
-    from ..exceptions import InvalidInstaller
+    from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
 
-    spec = specs.detect(
-        name=args.name,
-        filename=get_filename(args.file),
-        directory=os.getcwd(),
-    )
+    spec = detect(filename=args.file)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
     if args.prefix is None and args.name is None:
+        if env.name is None:  # requirements.txt won't populate Environment.name
+            msg = dals(
+                """
+                Unable to create environment
+                Please re-run this command with one of the following options:
+                * Provide an environment name via --name or -n
+                * Provide a path on disk via --prefix or -p
+                """
+            )
+            raise CondaEnvException(msg)
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)
