@@ -15,6 +15,7 @@ import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
+from os.path import exists
 
 import pluggy
 
@@ -24,6 +25,7 @@ from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
+    EnvironmentFileNotFound,
     EnvSpecPluginNotDetected,
     PluginError,
 )
