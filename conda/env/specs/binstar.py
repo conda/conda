@@ -12,6 +12,7 @@ from ...deprecations import deprecated
 from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
+from ...plugins.types import EnvSpecBase
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -22,9 +23,8 @@ deprecated.module("24.7", "25.9")
 
 deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
 
-
 @deprecated("24.7", "25.9")
-class BinstarSpec:
+class BinstarSpec(EnvSpecBase):
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
