@@ -4,7 +4,7 @@
 
 import os
 import sys
-from functools import cached_property, partial
+from functools import cached_property
 from logging import getLogger
 
 from .common.compat import ensure_text_type, on_win
@@ -86,7 +86,6 @@ class ExceptionHandler:
     def handle_unexpected_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
         self.print_unexpected_error_report(error_report)
-        self._upload(error_report)
         rc = getattr(exc_val, "return_code", None)
         return rc if rc is not None else 1
 
@@ -97,7 +96,6 @@ class ExceptionHandler:
         if context.json:
             error_report.update(exc_val.dump_map())
         self.print_expected_error_report(error_report)
-        self._upload(error_report)
         return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
@@ -238,147 +236,6 @@ class ExceptionHandler:
         except Exception as e:
             log.debug("%r", e)
             return True
-
-    def _upload(self, error_report) -> None:
-        """Determine whether or not to upload the error report."""
-        from .base.context import context
-
-        post_upload = False
-        if context.report_errors is False:
-            # no prompt and no submission
-            do_upload = False
-        elif context.report_errors is True or context.always_yes:
-            # no prompt and submit
-            do_upload = True
-        elif context.json or context.quiet or not self._isatty:
-            # never prompt under these conditions, submit iff always_yes
-            do_upload = bool(not context.offline and context.always_yes)
-        else:
-            # prompt whether to submit
-            do_upload = self._ask_upload()
-            post_upload = True
-
-        # the upload state is one of the following:
-        #   - True: upload error report
-        #   - False: do not upload error report
-        #   - None: while prompting a timeout occurred
-
-        if do_upload:
-            # user wants report to be submitted
-            self._execute_upload(error_report)
-
-        if post_upload:
-            # post submission text
-            self._post_upload(do_upload)
-
-    def _ask_upload(self):
-        from .auxlib.type_coercion import boolify
-        from .common.io import timeout
-
-        try:
-            do_upload = timeout(
-                40,
-                partial(
-                    input,
-                    "If submitted, this report will be used by core maintainers to improve\n"
-                    "future releases of conda.\n"
-                    "Would you like conda to send this report to the core maintainers? "
-                    "[y/N]: ",
-                ),
-            )
-            return do_upload and boolify(do_upload)
-        except Exception as e:
-            log.debug("%r", e)
-            return False
-
-    def _execute_upload(self, error_report):
-        import getpass
-        import json
-
-        from .auxlib.entity import EntityEncoder
-
-        headers = {
-            "User-Agent": self.user_agent,
-        }
-        _timeout = self.http_timeout
-        username = getpass.getuser()
-        error_report["is_ascii"] = (
-            True if all(ord(c) < 128 for c in username) else False
-        )
-        error_report["has_spaces"] = True if " " in str(username) else False
-        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + "\n"
-        data = data.replace(str(username), "USERNAME_REMOVED")
-        response = None
-        try:
-            # requests does not follow HTTP standards for redirects of non-GET methods
-            # That is, when following a 301 or 302, it turns a POST into a GET.
-            # And no way to disable.  WTF
-            import requests
-
-            redirect_counter = 0
-            url = self.error_upload_url
-            response = requests.post(
-                url, headers=headers, timeout=_timeout, data=data, allow_redirects=False
-            )
-            response.raise_for_status()
-            while response.status_code in (301, 302) and response.headers.get(
-                "Location"
-            ):
-                url = response.headers["Location"]
-                response = requests.post(
-                    url,
-                    headers=headers,
-                    timeout=_timeout,
-                    data=data,
-                    allow_redirects=False,
-                )
-                response.raise_for_status()
-                redirect_counter += 1
-                if redirect_counter > 15:
-                    from . import CondaError
-
-                    raise CondaError("Redirect limit exceeded")
-            log.debug("upload response status: %s", response and response.status_code)
-        except Exception as e:  # pragma: no cover
-            log.info("%r", e)
-        try:
-            if response and response.ok:
-                self.write_out("Upload successful.")
-            else:
-                self.write_out("Upload did not complete.")
-                if response and response.status_code:
-                    self.write_out(f" HTTP {response.status_code}")
-        except Exception as e:
-            log.debug(f"{e!r}")
-
-    def _post_upload(self, do_upload):
-        if do_upload is True:
-            # report was submitted
-            self.write_out(
-                "",
-                "Thank you for helping to improve conda.",
-                "Opt-in to always sending reports (and not see this message again)",
-                "by running",
-                "",
-                "    $ conda config --set report_errors true",
-                "",
-            )
-        elif do_upload is None:
-            # timeout was reached while prompting user
-            self.write_out(
-                "",
-                "Timeout reached. No report sent.",
-                "",
-            )
-        else:
-            # no report submitted
-            self.write_out(
-                "",
-                "No report sent. To permanently opt-out, use",
-                "",
-                "    $ conda config --set report_errors false",
-                "",
-            )
 
 
 def conda_exception_handler(func, *args, **kwargs):
