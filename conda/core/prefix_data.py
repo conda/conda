@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from logging import getLogger
@@ -24,7 +23,7 @@ from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.pkg_formats.python import get_site_packages_anchor_files
-from ..common.serialize import json_load
+from ..common.serialize import json
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
 from ..exceptions import (
@@ -224,10 +223,10 @@ class PrefixData(metaclass=PrefixDataType):
         log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
-                json_data = json_load(fh.read())
+                json_data = json.loads(fh.read())
             except (UnicodeDecodeError, json.JSONDecodeError):
                 # UnicodeDecodeError: catch horribly corrupt files
-                # JSONDecodeError: catch bad json format files
+                # json.JSONDecodeError: catch bad json format files
                 raise CorruptedEnvironmentError(
                     self.prefix_path, prefix_record_json_path
                 )
@@ -391,9 +390,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def _write_environment_state_file(self, state):
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
-        env_vars_file.write_text(
-            json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__)
-        )
+        env_vars_file.write_text(json.dumps(state, ensure_ascii=False))
 
     def get_environment_env_vars(self):
         prefix_state = self._get_environment_state_file()

@@ -172,7 +172,7 @@ def fix_shebang(tmp_dir, path):
 
 
 def _add_info_dir(t, tmp_dir, files, has_prefix, info):
-    from ..common.serialize.json import dump
+    from ..common.serialize import json
 
     info_dir = join(tmp_dir, "info")
     os.mkdir(info_dir)
@@ -181,7 +181,7 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
             fo.write(f + "\n")
 
     with open(join(info_dir, "index.json"), "w") as fo:
-        dump(info, fo, sort_keys=True)
+        json.dump(info, fo, sort_keys=True)
 
     if has_prefix:
         with open(join(info_dir, "has_prefix"), "w") as fo:

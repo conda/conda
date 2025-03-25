@@ -294,7 +294,7 @@ class ExceptionHandler:
     def _execute_upload(self, error_report):
         import getpass
 
-        from .common.serialize.json import dumps
+        from .common.serialize import json
 
         headers = {
             "User-Agent": self.user_agent,
@@ -305,7 +305,7 @@ class ExceptionHandler:
             True if all(ord(c) < 128 for c in username) else False
         )
         error_report["has_spaces"] = True if " " in str(username) else False
-        data = dumps(error_report, sort_keys=True) + "\n"
+        data = json.dumps(error_report, sort_keys=True) + "\n"
         data = data.replace(str(username), "USERNAME_REMOVED")
         response = None
         try:

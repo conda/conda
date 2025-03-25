@@ -5,7 +5,6 @@
 Creates new conda environments with the specified packages.
 """
 
-import json
 import os
 from argparse import (
     ArgumentParser,
@@ -110,6 +109,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..cli.main_rename import check_protected_dirs
+    from ..common.serialize import json
     from ..core.prefix_data import PrefixData
     from ..env import specs
     from ..env.env import get_filename, print_result
@@ -157,7 +157,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         solved_env = installer.dry_run(pkg_specs, args, env)
         if args.json:
-            print(json.dumps(solved_env.to_dict(), indent=2))
+            print(json.dumps(solved_env.to_dict()))
         else:
             print(solved_env.to_yaml(), end="")
 
