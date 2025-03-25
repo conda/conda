@@ -8,7 +8,6 @@ Renames an existing environment by cloning it and then removing the original env
 from __future__ import annotations
 
 import os
-from argparse import _StoreTrueAction
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -62,19 +61,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_prefix(p)
 
     p.add_argument("destination", help="New name for the conda environment.")
-    p.add_argument(
-        "-f",
-        "--force",
-        dest="yes",
-        help="Force rename of an environment.",
-        action=deprecated.action(
-            "24.9",
-            "25.3",
-            _StoreTrueAction,
-            addendum="Use `--yes` instead.",
-        ),
-        default=False,
-    )
 
     add_output_and_prompt_options(p)
 

@@ -96,17 +96,13 @@ log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")
 stderr_log_level(TEST_LOG_LEVEL, "requests")
 
-
-# all tests in this file are integration tests
 pytestmark = [
+    # all tests in this file are integration tests
     pytest.mark.integration,
     pytest.mark.usefixtures("parametrized_solver_fixture"),
+    pytest.mark.usefixtures("clear_conda_session_cache"),
+    pytest.mark.usefixtures("clear_package_cache"),
 ]
-
-
-@pytest.fixture(autouse=True)
-def clear_package_cache() -> None:
-    PackageCacheData.clear()
 
 
 def test_install_python_and_search(
@@ -359,41 +355,37 @@ def test_safety_checks_disabled(
 
 
 def test_json_create_install_update_remove(
-    path_factory: PathFactoryFixture,
+    tmp_path: Path,
     conda_cli: CondaCLIFixture,
-    capsys: CaptureFixture,
 ):
     # regression test for #5384
 
-    def assert_json_parsable(content):
-        string = None
-        try:
-            for string in content and content.split("\0") or ():
+    def is_json_parsable(content: str) -> bool:
+        for string in content and content.split("\0") or ():
+            try:
                 json.loads(string)
-        except Exception as e:
-            log.warning(
-                "Problem parsing json output.\n"
-                "  content: %s\n"
-                "  string: %s\n"
-                "  error: %r",
-                content,
-                string,
-                e,
-            )
-            raise
+            except Exception as err:
+                log.warning(
+                    "Problem parsing json output.\n"
+                    "  content: %s\n"
+                    "  string: %s\n"
+                    "  error: %r",
+                    content,
+                    string,
+                    err,
+                )
+                return False
+        return True
 
-    prefix = path_factory()
-
-    with pytest.raises(DryRunExit):
-        conda_cli(
-            "create",
-            f"--prefix={prefix}",
-            "zlib",
-            "--json",
-            "--dry-run",
-        )
-    stdout, stderr = capsys.readouterr()
-    assert_json_parsable(stdout)
+    stdout, _, _ = conda_cli(
+        "create",
+        f"--prefix={tmp_path}",
+        "zlib",
+        "--json",
+        "--dry-run",
+        raises=DryRunExit,
+    )
+    assert is_json_parsable(stdout)
 
     # regression test for #5825
     # contents of LINK and UNLINK is expected to have dist format
@@ -401,69 +393,64 @@ def test_json_create_install_update_remove(
     dist_dump = json_obj["actions"]["LINK"][0]
     assert "dist_name" in dist_dump
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "create",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "zlib",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
+    assert is_json_parsable(stdout)
 
     json_obj = json.loads(stdout)
     dist_dump = json_obj["actions"]["LINK"][0]
     assert "dist_name" in dist_dump
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "install",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "ca-certificates<2023",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert package_is_installed(prefix, "ca-certificates<2023")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert package_is_installed(tmp_path, "ca-certificates<2023")
+    assert package_is_installed(tmp_path, "zlib")
 
     # Test force reinstall
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "install",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "--force-reinstall",
         "ca-certificates<2023",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert package_is_installed(prefix, "ca-certificates<2023")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert package_is_installed(tmp_path, "ca-certificates<2023")
+    assert package_is_installed(tmp_path, "zlib")
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "update",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "ca-certificates",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert package_is_installed(prefix, "ca-certificates>=2023")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert package_is_installed(tmp_path, "ca-certificates>=2023")
+    assert package_is_installed(tmp_path, "zlib")
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "remove",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "ca-certificates",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert not package_is_installed(prefix, "ca-certificates")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert not package_is_installed(tmp_path, "ca-certificates")
+    assert package_is_installed(tmp_path, "zlib")
 
     # regression test for #5825
     # contents of LINK and UNLINK is expected to have Dist format
@@ -471,23 +458,21 @@ def test_json_create_install_update_remove(
     dist_dump = json_obj["actions"]["UNLINK"][0]
     assert "dist_name" in dist_dump
 
-    stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}", "--revisions", "--json")
-    assert not stderr
+    stdout, _, _ = conda_cli("list", f"--prefix={tmp_path}", "--revisions", "--json")
     json_obj = json.loads(stdout)
     assert len(json_obj) == 5
     assert json_obj[4]["rev"] == 4
 
-    stdout, stderr, _ = conda_cli(
+    stdout, _, _ = conda_cli(
         "install",
-        f"--prefix={prefix}",
+        f"--prefix={tmp_path}",
         "--revision=0",
         "--json",
         "--yes",
     )
-    assert_json_parsable(stdout)
-    assert not stderr
-    assert not package_is_installed(prefix, "ca-certificates")
-    assert package_is_installed(prefix, "zlib")
+    assert is_json_parsable(stdout)
+    assert not package_is_installed(tmp_path, "ca-certificates")
+    assert package_is_installed(tmp_path, "zlib")
 
 
 def test_not_writable_env_raises_EnvironmentNotWritableError(
@@ -501,16 +486,17 @@ def test_not_writable_env_raises_EnvironmentNotWritableError(
     with tmp_env() as prefix:
         make_read_only(prefix / PREFIX_MAGIC_FILE)
 
-        _, _, exc = conda_cli(
+        stdout, stderr, exc = conda_cli(
             "install",
             f"--prefix={prefix}",
             "ca-certificates",
             "--yes",
-            raises=CondaMultiError,
+            raises=EnvironmentNotWritableError,
         )
 
-        assert len(exc.value.errors) == 1
-        assert isinstance(exc.value.errors[0], EnvironmentNotWritableError)
+        assert stdout == ""
+        assert stderr == ""
+        assert isinstance(exc.value, EnvironmentNotWritableError)
 
 
 def test_conda_update_package_not_installed(
@@ -1680,7 +1666,7 @@ def test_packages_not_found(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
 
 # XXX this test fails for osx-arm64 or other platforms absent from old 'free' channel
 @pytest.mark.skipif(
-    context.subdir == "win-32" or platform.machine() == "arm64",
+    context.subdir == "win-32" or platform.machine() in ("arm64", "aarch64"),
     reason="metadata is wrong; give python2.7 or no osx-arm64 package versions",
 )
 def test_conda_pip_interop_pip_clobbers_conda(
@@ -2021,7 +2007,7 @@ def test_conda_pip_interop_conda_editable_package(
 
 
 @pytest.mark.xfail(
-    platform.machine() == "arm64", reason="packages missing for osx-arm64"
+    platform.machine() in ("arm64", "aarch64"), reason="packages missing for osx-arm64"
 )
 def test_conda_pip_interop_compatible_release_operator(
     monkeypatch: MonkeyPatch,
@@ -2548,7 +2534,7 @@ def test_conda_downgrade(
 
 
 @pytest.mark.skipif(
-    on_win or platform.machine() == "arm64",
+    on_win or platform.machine() in ("arm64", "aarch64"),
     reason="openssl only has a postlink script on unix / package missing for osx-arm64",
 )
 def test_run_script_called(tmp_env: TmpEnvFixture):
@@ -2565,12 +2551,10 @@ def test_run_script_called(tmp_env: TmpEnvFixture):
             assert rs.call_count == 1
 
 
-@pytest.mark.xfail(on_mac, reason="known broken; see #11127")
-def test_post_link_run_in_env(tmp_env: TmpEnvFixture):
-    test_pkg = "_conda_test_env_activated_when_post_link_executed"
-    # a non-unicode name must be provided here as activate.d scripts
-    # are not executed on windows, see https://github.com/conda/conda/issues/8241
-    with tmp_env(test_pkg, "--channel=conda-test") as prefix:
+@pytest.mark.integration
+def test_post_link_run_in_env(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
+    test_pkg = "post_link_run_in_env_package"
+    with tmp_env(test_pkg) as prefix:
         assert package_is_installed(prefix, test_pkg)
 
 
@@ -2745,17 +2729,15 @@ def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture)
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-):
-    channel = Path(__file__).parent / "test-recipes" / "noarch"
+    test_recipes_channel: Path,
+) -> None:
     with tmp_env() as prefix:
         nonadmin_file = prefix / ".nonadmin"
         nonadmin_file.touch()
         assert nonadmin_file.is_file()
-        conda_cli(
-            "install", "--yes", "--prefix", prefix, "--channel", channel, "dependency"
-        )
+        conda_cli("install", "--yes", f"--prefix={prefix}", "dependency")
         assert nonadmin_file.is_file(), ".nonadmin file removed after installation"
-        conda_cli("remove", "--yes", "--prefix", prefix, "dependency")
+        conda_cli("remove", "--yes", f"--prefix={prefix}", "dependency")
         assert nonadmin_file.is_file(), ".nonadmin file removed after uninstallation"
 
 

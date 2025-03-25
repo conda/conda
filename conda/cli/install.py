@@ -36,7 +36,6 @@ from ..exceptions import (
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
-    CondaOSError,
     CondaSystemExit,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
@@ -52,7 +51,6 @@ from ..exceptions import (
     TooManyArgumentsError,
     UnsatisfiableError,
 )
-from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
 from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
@@ -60,7 +58,7 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
-from .common import check_non_admin
+from .common import check_non_admin, validate_prefix_is_writable
 from .main_config import set_keys
 
 log = getLogger(__name__)
@@ -251,14 +249,7 @@ def install(args, parser, command="install"):
                 if not path_is_clean(prefix):
                     raise DirectoryNotACondaEnvironmentError(prefix)
         else:
-            # fall-through expected under normal operation
-            pass
-    elif getattr(args, "mkdir", False):
-        # --mkdir is deprecated and marked for removal in conda 25.3
-        try:
-            mkdir_p(prefix)
-        except OSError as e:
-            raise CondaOSError(f"Could not create directory: {prefix}", caused_by=e)
+            validate_prefix_is_writable(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
 

@@ -5,7 +5,6 @@ ci:
 # ignore patches/diffs since slight reformatting can break them
 exclude: |
   (?x)^(
-    conda/_vendor |
     conda/auxlib |
     tests/data/(
       conda_format_repo |
@@ -33,8 +32,8 @@ repos:
         exclude: |
           (?x)^(
             (conda\.)?recipe/meta.yaml |
-            tests/test-recipes/font-ttf-inconsolata/meta.yaml |
-            tests/test-recipes/dependent/meta.yaml
+            tests/data/recipes/font-ttf-inconsolata/meta.yaml |
+            tests/data/recipes/dependent/meta.yaml
           )
       # catch git merge/rebase problems
       - id: check-merge-conflict
@@ -46,6 +45,9 @@ repos:
             tests/requirements.*\.txt
           )
         args: [--unique]
+      - id: pretty-format-json
+        args: [--autofix]
+        files: tests/data/test-recipes/.+/repodata\.json
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
@@ -65,7 +67,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.1
+    rev: v0.11.2
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff
@@ -90,7 +92,7 @@ repos:
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.31.0
+    rev: 0.31.3
     hooks:
       # verify github syntaxes
       - id: check-github-workflows

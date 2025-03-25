@@ -2,13 +2,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Backported exports for conda-build."""
 
+from __future__ import annotations
+
 import errno
 import functools
 import os
 from builtins import input  # noqa: F401, UP029
 from io import StringIO  # noqa: F401, for conda-build
+from typing import TYPE_CHECKING
 
-from . import CondaError, plan  # noqa: F401
+from . import CondaError  # noqa: F401
 from .auxlib.entity import EntityEncoder  # noqa: F401
 from .base.constants import (  # noqa: F401
     DEFAULT_CHANNELS,
@@ -61,13 +64,6 @@ from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
 from .models.enums import FileMode, PathType  # noqa: F401
 from .models.version import VersionOrder, normalized_version  # noqa: F401
-from .plan import display_actions as _display_actions
-from .plan import (  # noqa: F401
-    execute_actions,
-    execute_instructions,
-    execute_plan,
-    install_actions,
-)
 from .resolve import (  # noqa: F401
     MatchSpec,
     Resolve,
@@ -75,6 +71,9 @@ from .resolve import (  # noqa: F401
     Unsatisfiable,
 )
 from .utils import human_bytes, unix_path_to_win, url_path  # noqa: F401
+
+if TYPE_CHECKING:
+    from typing import Any
 
 reset_context()  # initialize context when conda.exports is imported
 
@@ -107,6 +106,14 @@ CondaFileNotFoundError = PathNotFoundError
 PY3 = True
 string_types = str
 text_type = str
+
+
+def __getattr__(name: str) -> Any:
+    # lazy load the deprecated module
+    if name == "plan":
+        from . import plan
+
+        return plan
 
 
 deprecated.constant(
@@ -182,21 +189,6 @@ def hash_file(_):
 @deprecated("25.3", "25.9", addendum="Unused.")
 def verify(_):
     return False  # pragma: no cover
-
-
-def display_actions(
-    actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()
-):
-    if "FETCH" in actions:
-        actions["FETCH"] = [index[d] for d in actions["FETCH"]]
-    if "LINK" in actions:
-        actions["LINK"] = [index[d] for d in actions["LINK"]]
-    if "UNLINK" in actions:
-        actions["UNLINK"] = [index[d] for d in actions["UNLINK"]]
-    index = {prec: prec for prec in index.values()}
-    return _display_actions(
-        actions, index, show_channel_urls, specs_to_remove, specs_to_add
-    )
 
 
 def get_index(

@@ -16,12 +16,9 @@ from __future__ import annotations
 
 import os
 import sys
-import warnings
 from logging import getLogger
 from os.path import join
-from pathlib import Path
 
-from ..common.compat import on_win
 from ..deprecations import deprecated
 from .fixtures import (
     CondaCLIFixture,
@@ -38,37 +35,6 @@ from .fixtures import (
 )
 
 log = getLogger(__name__)
-
-
-@deprecated(
-    "24.9",
-    "25.3",
-    addendum="It don't matter which environment the test suite is run from.",
-)
-def conda_ensure_sys_python_is_base_env_python():
-    # Exit if we try to run tests from a non-base env. The tests end up installing
-    # menuinst into the env they are called with and that breaks non-base env activation
-    # as it emits a message to stderr:
-    # WARNING menuinst_win32:<module>(157): menuinst called from non-root env
-    # C:\opt\conda\envs\py27
-    # So lets just sys.exit on that.
-
-    if "CONDA_PYTHON_EXE" in os.environ:
-        if (
-            Path(os.environ["CONDA_PYTHON_EXE"]).resolve()
-            != Path(sys.executable).resolve()
-        ):
-            warnings.warn(
-                "ERROR :: Running tests from a non-base Python interpreter. "
-                " Tests requires installing menuinst and that causes stderr "
-                " output when activated.\n"
-                f"- CONDA_PYTHON_EXE={os.environ['CONDA_PYTHON_EXE']}\n"
-                f"- sys.executable={sys.executable}"
-            )
-
-            # menuinst only really matters on windows
-            if on_win:
-                sys.exit(-1)
 
 
 def conda_move_to_front_of_PATH():
