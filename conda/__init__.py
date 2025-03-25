@@ -7,8 +7,6 @@ import sys
 from json import JSONEncoder
 from os.path import abspath, dirname
 
-from frozendict import frozendict
-
 try:
     from ._version import __version__
 except ImportError:
@@ -158,9 +156,25 @@ def conda_signal_handler(signum, frame):
 
 
 def _default(self, obj):
+    from frozendict import frozendict
+
+    from .deprecations import deprecated
+
     if isinstance(obj, frozendict):
+        deprecated.topic(
+            "25.9",
+            "26.3",
+            "Monkey-patching `json.JSONEncoder` to support `frozendict`",
+            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+        )
         return dict(obj)
-    if hasattr(obj, "to_json"):
+    elif hasattr(obj, "to_json"):
+        deprecated.topic(
+            "25.9",
+            "26.3",
+            "Monkey-patching `json.JSONEncoder` to support `obj.to_json()`",
+            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+        )
         return obj.to_json()
     return _default.default(obj)
 

@@ -255,6 +255,7 @@ from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
 from .type_coercion import maybecall
+from ..common.serialize.json import CondaJSONEncoder
 
 if Enum not in _getFreezeConversionMap():
     # leave enums as is, deepfreeze will flatten it into a dict
@@ -972,19 +973,4 @@ class DictSafeMixin:
             self[k] = F[k]
 
 
-class EntityEncoder(JSONEncoder):
-    # json.dumps(obj, cls=SetEncoder)
-    def default(self, obj):
-        if hasattr(obj, 'dump'):
-            return obj.dump()
-        elif hasattr(obj, '__json__'):
-            return obj.__json__()
-        elif hasattr(obj, 'to_json'):
-            return obj.to_json()
-        elif hasattr(obj, 'as_json'):
-            return obj.as_json()
-        elif isinstance(obj, Enum):
-            return obj.value
-        elif isinstance(obj, Path):
-            return str(obj)
-        return JSONEncoder.default(self, obj)
+deprecated.constant("25.9", "26.3", "EntityEncoder", CondaJSONEncoder, addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",)
