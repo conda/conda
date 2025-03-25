@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
+        CondaEnvSpec,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -503,5 +504,44 @@ class CondaSpecs:
                     )
                 records.update(penguin_records)
                 return penguin_records
+    """
+        yield from ()
+
+    @_hookspec
+    def conda_env_specs(self) -> Iterable[CondaEnvSpec]:
+        """
+        Register new conda env spec type
+        The example below defines a new file type
+        **Example:**
+        .. code-block:: python
+            import json
+            import random
+            from pathlib import Path
+            from subprocess import run
+            from conda import plugins
+            from ...plugins.types import EnvSpecBase
+            from conda.env.env import Environment
+            packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
+            class RandomSpec(EnvSpecBase):
+                extensions = {".random"}
+
+                def __init__(self, filename: str):
+                    self.filename = filename
+
+                def can_handle(self):
+                    return random.random() < 0.5
+
+                def environment(self):
+                    return Environment(
+                        name="".join(random.choice("0123456789abcdef") for i in range(6)),
+                        dependencies=[random.choice(packages) for i in range(6)],
+                    )
+
+            @plugins.hookimpl
+            def conda_env_specs():
+                yield plugins.CondaEnvSpec(
+                    name="jpg",
+                    handler_class=RandomSpec,
+                )
         """
         yield from ()
