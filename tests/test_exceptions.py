@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from unittest.mock import patch
 import json
 import sys
-from unittest.mock import patch
 
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
