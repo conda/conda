@@ -23,7 +23,7 @@ deprecated.module("24.7", "25.9")
 
 deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
 
-
+@deprecated("24.7", "25.9")
 class BinstarSpec(EnvSpecBase):
     """
     spec = BinstarSpec('darth/deathstar')
