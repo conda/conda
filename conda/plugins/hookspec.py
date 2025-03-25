@@ -475,10 +475,10 @@ class CondaSpecs:
             from pathlib import Path
             from subprocess import run
             from conda import plugins
-            from conda.env.specs import BaseEnvSpec
+            from ...plugins.types import EnvSpecBase
             from conda.env.env import Environment
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
-            class RandomSpec(BaseEnvSpec):
+            class RandomSpec(EnvSpecBase):
                 extensions = {".random"}
 
                 def __init__(self, filename: str):
@@ -498,7 +498,6 @@ class CondaSpecs:
                 yield plugins.CondaEnvSpec(
                     name="jpg",
                     handler_class=RandomSpec,
-                    extensions=(".random",),
                 )
         """
         yield from ()
