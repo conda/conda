@@ -16,6 +16,14 @@ class YamlFileSpec(EnvSpecBase):
         self.msg = None
 
     def can_handle(self):
+        """
+        Validates loader can process environment definition.
+        This can handle if:
+            * the env file can be interpreted and transformed into
+              a `conda.env.env.Environment`
+
+        :return: True or False
+        """
         try:
             self._environment = env.from_file(self.filename)
             return True
