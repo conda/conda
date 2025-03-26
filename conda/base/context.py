@@ -224,7 +224,7 @@ class Context(Configuration):
     auto_activate = ParameterLoader(
         PrimitiveParameter(True), aliases=("auto_activate_base",)
     )
-    default_activation_env = ParameterLoader(PrimitiveParameter(ROOT_ENV_NAME))
+    _default_activation_env = ParameterLoader(PrimitiveParameter(ROOT_ENV_NAME))
     auto_stack = ParameterLoader(PrimitiveParameter(0))
     notify_outdated_conda = ParameterLoader(PrimitiveParameter(True))
     clobber = ParameterLoader(PrimitiveParameter(False))
@@ -1198,6 +1198,10 @@ class Context(Configuration):
     )
     def auto_activate_base(self) -> bool:
         return self.auto_activate
+
+    @property
+    def default_activation_env(self) -> str:
+        return self._default_activation_env or ROOT_ENV_NAME
 
     @property
     def category_map(self):
