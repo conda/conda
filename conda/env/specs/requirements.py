@@ -50,6 +50,14 @@ class RequirementsSpec(EnvSpecBase):
             return True
 
     def can_handle(self) -> bool:
+        """
+        Validates loader can process environment definition.
+        This can handle if:
+            * the provided file ends in the supported file extensions (.txt)
+            * the file exists
+
+        :return: True or False
+        """
         for ext in RequirementsSpec.extensions:
             if self.filename.endswith(ext) and os.path.exists(self.filename):
                 return True
