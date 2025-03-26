@@ -111,15 +111,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix
     from .common import validate_env_file_exists
     from ..core.prefix_data import PrefixData
-    from ..env.specs import detect
     from ..env.env import print_result
     from ..env.installers.base import get_installer
+    from ..env.specs import detect
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
+    from .common import validate_env_file_exists
 
     # validate incoming arguments
     validate_env_file_exists(args.file)
-    
+
     # detect the file format and get the env representation
     spec = detect(filename=args.file)
     env = spec.environment

@@ -23,6 +23,7 @@ deprecated.module("24.7", "25.9")
 
 deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
 
+
 @deprecated("24.7", "25.9")
 class BinstarSpec(EnvSpecBase):
     """
@@ -65,7 +66,7 @@ class BinstarSpec(EnvSpecBase):
         Validates name
         :return: True or False
         """
-        if re.match("^[a-z-]+\/[a-z-\/]*$", str(self.name)) is not None:
+        if re.match(r"^[a-z-]+\/[a-z-\/]*$", str(self.name)) is not None:
             return True
         elif self.name is None:
             self.msg = "Can't process without a name"

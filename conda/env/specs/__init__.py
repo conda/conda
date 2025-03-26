@@ -13,10 +13,11 @@ from ...exceptions import (
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from .requirements import RequirementsSpec
-from .yaml_file import YamlFileSpec
 
 if TYPE_CHECKING:
+    from .requirements import RequirementsSpec
+    from .yaml_file import YamlFileSpec
+
     FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec]
     SpecTypes = YamlFileSpec | RequirementsSpec
 

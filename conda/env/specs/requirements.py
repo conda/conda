@@ -5,8 +5,8 @@
 import os
 
 from ...deprecations import deprecated
-from ..env import Environment
 from ...plugins.types import EnvSpecBase
+from ..env import Environment
 
 
 class RequirementsSpec(EnvSpecBase):

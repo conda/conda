@@ -4,12 +4,10 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
-from unittest.mock import patch
 
 import pytest
 
 from conda.env.specs import binstar
-
 
 
 @pytest.mark.parametrize(

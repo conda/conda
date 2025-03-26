@@ -7,7 +7,15 @@ import sys
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normcase
 from os.path import (
-    abspath, dirname, exists, expanduser, expandvars, isdir, isfile, join, normcase
+    abspath,
+    dirname,
+    exists,
+    expanduser,
+    expandvars,
+    isdir,
+    isfile,
+    join,
+    normcase,
 )
 
 from ..auxlib.ish import dals
@@ -25,8 +33,8 @@ from ..exceptions import (
     EnvironmentNotWritableError,
     OperationNotAllowed,
 )
-from ..gateways.disk.test import file_path_is_writable
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
+from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
 
@@ -363,6 +371,6 @@ def validate_env_file_exists(filename: str):
         return
     else:
         filename = abspath(expanduser(expandvars(filename)))
-    
+
     if not exists(filename):
         raise EnvironmentFileNotFound(filename=filename)

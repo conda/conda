@@ -15,7 +15,6 @@ import logging
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
-from os.path import exists
 
 import pluggy
 
@@ -25,16 +24,14 @@ from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
-    EnvironmentFileNotFound,
     EnvSpecPluginNotDetected,
     PluginError,
 )
 from . import (
+    env_specs,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
-    env_specs,
-    post_solves,
     solvers,
     subcommands,
     virtual_packages,
@@ -488,9 +485,7 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
-    def get_env_spec_handler(
-        self, filename: str
-    ) -> CondaEnvSpec:
+    def get_env_spec_handler(self, filename: str) -> CondaEnvSpec:
         hooks = self.get_hook_results("env_specs")
         for hook in hooks:
             handler = hook.handler_class(filename)
@@ -499,9 +494,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         # raise error if no plugins found that can read the environment file
         hook_names = [h.name for h in hooks]
-        raise EnvSpecPluginNotDetected(
-            name=filename, plugin_names=hook_names
-        )
+        raise EnvSpecPluginNotDetected(name=filename, plugin_names=hook_names)
 
 
 @functools.cache
