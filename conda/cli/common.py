@@ -4,7 +4,9 @@
 
 import re
 import sys
-from os.path import dirname, isdir, isfile, join, normcase
+from os.path import (
+    abspath, dirname, exists, expanduser, expandvars, isdir, isfile, join, normcase
+)
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_MAGIC_FILE
@@ -16,10 +18,12 @@ from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
+    EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
 )
 from ..gateways.disk.test import file_path_is_writable
+from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..models.match_spec import MatchSpec
 from ..reporters import render
 
@@ -281,3 +285,14 @@ def validate_prefix_is_writable(prefix: str) -> str:
     if isdir(dirname(test_path)) and file_path_is_writable(test_path):
         return prefix
     raise EnvironmentNotWritableError(prefix)
+
+
+def validate_env_file_exists(filename: str):
+    url_scheme = filename.split("://", 1)[0]
+    if url_scheme in CONDA_SESSION_SCHEMES:
+        return
+    else:
+        filename = abspath(expanduser(expandvars(filename)))
+    
+    if not exists(filename):
+        raise EnvironmentFileNotFound(filename=filename)
