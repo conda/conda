@@ -26,8 +26,11 @@ from conda.common.path import (
 from conda.core.initialize import (
     Result,
     _get_python_info,
+    init_fish_user,
+    init_powershell_user,
     init_sh_system,
     init_sh_user,
+    init_xonsh_user,
     initialize_dev,
     install,
     install_conda_csh,
@@ -1115,3 +1118,30 @@ def test_init_all(conda_cli: CondaCLIFixture):
     assert stdout
     assert not stderr
     assert not err
+
+
+@pytest.mark.parametrize(
+    "init_func",
+    [
+        pytest.param(init_sh_system, id="init_sh_system"),
+        pytest.param(init_sh_user, id="init_sh_user"),
+        pytest.param(init_fish_user, id="init_fish_user"),
+        pytest.param(init_powershell_user, id="init_powershell_user"),
+        pytest.param(init_xonsh_user, id="init_xonsh_user"),
+    ],
+)
+def test_init_condabin(conda_cli: CondaCLIFixture, tmp_path, init_func):
+    shfile = tmp_path / "profile.sh"
+    prefix = tmp_path / "conda"
+    if init_func == init_sh_user:
+        kwargs_list = [{"shell": shell} for shell in ("bash", "zsh", "csh")]
+    else:
+        kwargs_list = [{}]
+    for kwargs in kwargs_list:
+        init_func(
+            shfile,
+            conda_prefix=tmp_path / "conda",
+            content_type="add_condabin_to_path",
+            **kwargs,
+        )
+        assert str(prefix / "condabin") in shfile.read_text()
