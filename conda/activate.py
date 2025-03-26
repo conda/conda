@@ -188,7 +188,7 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
 
-    @deprecated.argument("25.5", "26.1", "auto_activate_base", rename="auto_activate")
+    @deprecated.argument("25.9", "26.3", "auto_activate_base", rename="auto_activate")
     def hook(self, auto_activate: bool | None = None) -> str:
         builder: list[str] = []
         if preamble := self._hook_preamble():

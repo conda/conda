@@ -1192,8 +1192,8 @@ class Context(Configuration):
 
     @property
     @deprecated(
-        "25.5",
-        "26.1",
+        "25.9",
+        "26.3",
         addendum="Please use `conda.base.context.context.auto_activate` instead",
     )
     def auto_activate_base(self) -> bool:
