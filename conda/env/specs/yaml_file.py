@@ -3,8 +3,8 @@
 """Define YAML spec."""
 
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-from .. import env
 from ...plugins.types import EnvSpecBase
+from .. import env
 
 
 class YamlFileSpec(EnvSpecBase):

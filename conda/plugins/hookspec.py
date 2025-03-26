@@ -477,7 +477,10 @@ class CondaSpecs:
             from conda import plugins
             from ...plugins.types import EnvSpecBase
             from conda.env.env import Environment
+
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
+
+
             class RandomSpec(EnvSpecBase):
                 extensions = {".random"}
 
@@ -492,6 +495,7 @@ class CondaSpecs:
                         name="".join(random.choice("0123456789abcdef") for i in range(6)),
                         dependencies=[random.choice(packages) for i in range(6)],
                     )
+
 
             @plugins.hookimpl
             def conda_env_specs():

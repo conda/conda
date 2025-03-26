@@ -21,7 +21,7 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, Iterable
+    from typing import Any, Callable
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver

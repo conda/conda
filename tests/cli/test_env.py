@@ -14,12 +14,11 @@ from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.exceptions import (
     CondaEnvException,
     DryRunExit,
-    EnvSpecPluginNotDetected,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
+    EnvSpecPluginNotDetected,
     PackagesNotFoundError,
     ResolvePackageNotFound,
-    SpecNotFound,
 )
 from conda.gateways.disk.test import is_conda_environment
 from conda.testing.integration import package_is_installed
