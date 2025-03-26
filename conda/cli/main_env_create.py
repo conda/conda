@@ -109,13 +109,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
+    from .common import validate_env_file_exists
     from ..core.prefix_data import PrefixData
     from ..env.specs import detect
-    from ..env.env import get_filename, print_result
+    from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
 
+    # validate incoming arguments
+    validate_env_file_exists(args.file)
+    
+    # detect the file format and get the env representation
     spec = detect(filename=args.file)
     env = spec.environment
 

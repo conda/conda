@@ -88,14 +88,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
+    from .common import validate_env_file_exists
     from ..env import specs as install_specs
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
 
-    spec = install_specs.detect(
-        filename=args.file,
-    )
+    # validate incoming arguments
+    validate_env_file_exists(args.file)
+    
+    # detect the file format and get the env representation
+    spec = install_specs.detect(filename=args.file)
     env = spec.environment
 
     if not (args.name or args.prefix):
