@@ -42,6 +42,7 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, exists, expanduser, isdir, isfile, join
 from pathlib import Path
 from random import randint
+from typing import Literal
 
 from .. import CONDA_PACKAGE_ROOT, CondaError
 from .. import __version__ as CONDA_VERSION
@@ -106,6 +107,8 @@ class Result:
     MODIFIED = "modified"
     NO_CHANGE = "no change"
 
+
+ContentTypeOptions = Literal["initialize", "add_condabin_to_path"]
 
 # #####################################################
 # top-level functions
@@ -283,6 +286,21 @@ def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
     if context.auto_activate:
         yield f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"'
         yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
+
+
+def add_condabin_to_path(conda_prefix, shells, for_user, for_system, reverse=False):
+    plan = make_condabin_plan(
+        conda_prefix, shells, for_user, for_system, reverse=reverse
+    )
+    run_plan(plan)
+    if not context.dry_run:
+        run_plan_elevated(plan)
+
+    print_plan_results(plan)
+
+    if any(step["result"] == Result.NEEDS_SUDO for step in plan):
+        print("Operation failed.", file=sys.stderr)
+        return 1
 
 
 # #####################################################
@@ -602,6 +620,7 @@ def make_initialize_plan(
                         "target_path": "/etc/profile.d/conda.sh",
                         "conda_prefix": conda_prefix,
                         "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
                     },
                 }
             )
@@ -773,6 +792,213 @@ def make_initialize_plan(
                         "target_path": join(desktop_dir, "Anaconda Prompt.lnk"),
                         "conda_prefix": conda_prefix,
                         "reverse": reverse,
+                    },
+                }
+            )
+
+    return plan
+
+
+def make_condabin_plan(conda_prefix, shells, for_user, for_system, reverse=False):
+    """
+    Creates a plan to add $PREFIX/condabin to $PATH.
+    """
+    plan = []
+    shells = set(shells)
+    if shells & {"bash", "zsh"}:
+        if "bash" in shells and for_user:
+            bashrc_path = expand(
+                join("~", ".bash_profile" if (on_mac or on_win) else ".bashrc")
+            )
+            plan.append(
+                {
+                    "function": init_sh_user.__name__,
+                    "kwargs": {
+                        "target_path": bashrc_path,
+                        "conda_prefix": conda_prefix,
+                        "shell": "bash",
+                        "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
+                    },
+                }
+            )
+
+        if "zsh" in shells and for_user:
+            if "ZDOTDIR" in os.environ:
+                zshrc_path = expand(join("$ZDOTDIR", ".zshrc"))
+            else:
+                zshrc_path = expand(join("~", ".zshrc"))
+            plan.append(
+                {
+                    "function": init_sh_user.__name__,
+                    "kwargs": {
+                        "target_path": zshrc_path,
+                        "conda_prefix": conda_prefix,
+                        "shell": "zsh",
+                        "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
+                    },
+                }
+            )
+
+        if for_system:
+            plan.append(
+                {
+                    "function": init_sh_system.__name__,
+                    "kwargs": {
+                        "target_path": "/etc/profile.d/conda.sh",
+                        "conda_prefix": conda_prefix,
+                        "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
+                    },
+                }
+            )
+
+    if "fish" in shells:
+        if for_user:
+            config_fish_path = expand(join("~", ".config", "fish", "config.fish"))
+            plan.append(
+                {
+                    "function": init_fish_user.__name__,
+                    "kwargs": {
+                        "target_path": config_fish_path,
+                        "conda_prefix": conda_prefix,
+                        "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
+                    },
+                }
+            )
+
+        if for_system:
+            config_fish_path = expand(join("~", ".config", "fish", "config.fish"))
+            plan.append(
+                {
+                    "function": init_fish_user.__name__,
+                    "kwargs": {
+                        "target_path": config_fish_path,
+                        "conda_prefix": conda_prefix,
+                        "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
+                    },
+                }
+            )
+
+    if "xonsh" in shells:
+        if for_user:
+            config_xonsh_path = expand(join("~", ".xonshrc"))
+            plan.append(
+                {
+                    "function": init_xonsh_user.__name__,
+                    "kwargs": {
+                        "target_path": config_xonsh_path,
+                        "conda_prefix": conda_prefix,
+                        "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
+                    },
+                }
+            )
+
+        if for_system:
+            if on_win:
+                config_xonsh_path = expand(
+                    join("%ALLUSERSPROFILE%", "xonsh", "xonshrc")
+                )
+            else:
+                config_xonsh_path = "/etc/xonshrc"
+            plan.append(
+                {
+                    "function": init_xonsh_user.__name__,
+                    "kwargs": {
+                        "target_path": config_xonsh_path,
+                        "conda_prefix": conda_prefix,
+                        "reverse": reverse,
+                        "content_type": "add_condabin_to_path",
+                    },
+                }
+            )
+
+    if "tcsh" in shells and for_user:
+        tcshrc_path = expand(join("~", ".tcshrc"))
+        plan.append(
+            {
+                "function": init_sh_user.__name__,
+                "kwargs": {
+                    "target_path": tcshrc_path,
+                    "conda_prefix": conda_prefix,
+                    "shell": "tcsh",
+                    "reverse": reverse,
+                    "content_type": "add_condabin_to_path",
+                },
+            }
+        )
+
+    if "powershell" in shells:
+        if for_user:
+            profile = "$PROFILE.CurrentUserAllHosts"
+
+        if for_system:
+            profile = "$PROFILE.AllUsersAllHosts"
+
+        def find_powershell_paths(*exe_names):
+            for exe_name in exe_names:
+                try:
+                    yield subprocess_call(
+                        (exe_name, "-NoProfile", "-Command", profile)
+                    ).stdout.strip()
+                except Exception:
+                    pass
+
+        config_powershell_paths = set(
+            find_powershell_paths("powershell", "pwsh", "pwsh-preview")
+        )
+
+        for config_path in config_powershell_paths:
+            if config_path is not None:
+                plan.append(
+                    {
+                        "function": init_powershell_user.__name__,
+                        "kwargs": {
+                            "target_path": config_path,
+                            "conda_prefix": conda_prefix,
+                            "reverse": reverse,
+                            "content_type": "add_condabin_to_path",
+                        },
+                    }
+                )
+
+    if "cmd.exe" in shells:
+        if for_user:
+            plan.append(
+                {
+                    "function": init_cmd_exe_registry.__name__,
+                    "kwargs": {
+                        "target_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\"
+                        "Command Processor\\AutoRun",
+                        "conda_prefix": conda_prefix,
+                        "reverse": reverse,
+                    },
+                }
+            )
+        if for_system:
+            plan.append(
+                {
+                    "function": init_cmd_exe_registry.__name__,
+                    "kwargs": {
+                        "target_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\"
+                        "Command Processor\\AutoRun",
+                        "conda_prefix": conda_prefix,
+                        "reverse": reverse,
+                    },
+                }
+            )
+            # it would be nice to enable this on a user-level basis, but unfortunately, it is
+            #    a system-level key only.
+            plan.append(
+                {
+                    "function": init_long_path.__name__,
+                    "kwargs": {
+                        "target_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\"
+                        "FileSystem\\LongPathsEnabled"
                     },
                 }
             )
@@ -1201,7 +1427,31 @@ def _config_fish_content(conda_prefix):
     return conda_initialize_content
 
 
-def init_fish_user(target_path, conda_prefix, reverse):
+def _config_fish_content_to_add_condabin_to_path(conda_prefix):
+    condabin_dir = join(conda_prefix, "condabin")
+    if on_win:
+        from ..activate import native_path_to_unix
+
+        condabin_dir = native_path_to_unix(condabin_dir)
+    conda_initialize_content = dals(
+        f"""
+        # >>> conda initialize >>>
+        # !! Contents within this block are managed by 'conda init' !!
+        set -x PATH "{condabin_dir}" $PATH
+        # <<< conda initialize <<<
+        """
+    ) % {
+        "condabin_dir": condabin_dir,
+    }
+    return conda_initialize_content
+
+
+def init_fish_user(
+    target_path,
+    conda_prefix,
+    reverse=False,
+    content_type: ContentTypeOptions = "initialize",
+):
     # target_path: ~/.config/config.fish
     user_rc_path = target_path
 
@@ -1216,7 +1466,16 @@ def init_fish_user(target_path, conda_prefix, reverse):
     rc_original_content = rc_content
 
     conda_init_comment = "# commented out by conda initialize"
-    conda_initialize_content = _config_fish_content(conda_prefix)
+    if content_type == "initialize":
+        conda_initialize_content = _config_fish_content(conda_prefix)
+    elif content_type == "add_condabin_to_path":
+        conda_initialize_content = _config_fish_content_to_add_condabin_to_path(
+            conda_prefix
+        )
+    else:
+        raise ValueError(
+            f"Unknown content_type='{content_type}'. Use 'initialize' or 'add_condabin_to_path'."
+        )
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
@@ -1312,7 +1571,28 @@ def _config_xonsh_content(conda_prefix):
     return conda_initialize_content
 
 
-def init_xonsh_user(target_path, conda_prefix, reverse):
+def _config_xonsh_content_to_add_condabin_to_path(conda_prefix):
+    condabin_dir = join(conda_prefix, "condabin")
+    if on_win:
+        from ..activate import native_path_to_unix
+
+        condabin_dir = native_path_to_unix(condabin_dir)
+    return dals(
+        f"""
+        # >>> conda initialize >>>
+        # !! Contents within this block are managed by 'conda init' !!
+        $PATH.insert(0, "{condabin_dir}")
+        # <<< conda initialize <<<
+        """
+    )
+
+
+def init_xonsh_user(
+    target_path,
+    conda_prefix,
+    reverse=False,
+    content_type: ContentTypeOptions = "initialize",
+):
     # target_path: ~/.xonshrc
     user_rc_path = target_path
 
@@ -1327,7 +1607,16 @@ def init_xonsh_user(target_path, conda_prefix, reverse):
     rc_original_content = rc_content
 
     conda_init_comment = "# commented out by conda initialize"
-    conda_initialize_content = _config_xonsh_content(conda_prefix)
+    if content_type == "initialize":
+        conda_initialize_content = _config_xonsh_content(conda_prefix)
+    elif content_type == "add_condabin_to_path":
+        conda_initialize_content = _config_xonsh_content_to_add_condabin_to_path(
+            conda_prefix
+        )
+    else:
+        raise ValueError(
+            f"Unknown content_type='{content_type}'. Use 'initialize' or 'add_condabin_to_path'."
+        )
     if reverse:
         # uncomment any lines that were commented by prior conda init run
         rc_content = re.sub(
@@ -1439,7 +1728,50 @@ def _bashrc_content(conda_prefix, shell):
     return conda_initialize_content
 
 
-def init_sh_user(target_path, conda_prefix, shell, reverse=False):
+def _bashrc_content_to_add_condabin_to_path(conda_prefix, shell):
+    condabin_path = join(conda_prefix, "condabin")
+    if on_win:
+        from ..activate import native_path_to_unix
+
+        condabin_path = native_path_to_unix(condabin_path)
+        return dals(
+            f"""
+            # >>> conda initialize >>>
+            # !! Contents within this block are managed by 'conda init' !!
+            if [ -d '{condabin_path}' ]; then
+                export PATH="{condabin_path}:$PATH"
+            fi
+            # <<< conda initialize <<<
+            """
+        )
+    if shell in ("csh", "tcsh"):
+        return dals(
+            f"""
+            # >>> conda initialize >>>
+            # !! Contents within this block are managed by 'conda init' !!
+            if ( -d "{condabin_path}" ) then
+                setenv PATH "{condabin_path}:$PATH"
+            endif
+            # <<< conda initialize <<<
+            """
+        )
+    return dals(
+        f"""
+        # >>> conda initialize >>>
+        # !! Contents within this block are managed by 'conda init' !!
+        export PATH="{condabin_path}:$PATH"
+        # <<< conda initialize <<<
+        """
+    )
+
+
+def init_sh_user(
+    target_path,
+    conda_prefix,
+    shell,
+    reverse=False,
+    content_type: ContentTypeOptions = "initialize",
+):
     # target_path: ~/.bash_profile
     user_rc_path = target_path
 
@@ -1453,7 +1785,17 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
 
     rc_original_content = rc_content
 
-    conda_initialize_content = _bashrc_content(conda_prefix, shell)
+    if content_type == "initialize":
+        conda_initialize_content = _bashrc_content(conda_prefix, shell)
+    elif content_type == "add_condabin_to_path":
+        conda_initialize_content = _bashrc_content_to_add_condabin_to_path(
+            conda_prefix, shell
+        )
+    else:
+        raise ValueError(
+            f"Unknown content_type='{content_type}'. Use 'initialize' or 'add_condabin_to_path'."
+        )
+
     conda_init_comment = "# commented out by conda initialize"
 
     if reverse:
@@ -1537,7 +1879,12 @@ def init_sh_user(target_path, conda_prefix, shell, reverse=False):
         return Result.NO_CHANGE
 
 
-def init_sh_system(target_path, conda_prefix, reverse=False):
+def init_sh_system(
+    target_path,
+    conda_prefix,
+    reverse=False,
+    content_type: ContentTypeOptions = "initialize",
+):
     # target_path: '/etc/profile.d/conda.sh'
     conda_sh_system_path = target_path
 
@@ -1551,7 +1898,17 @@ def init_sh_system(target_path, conda_prefix, reverse=False):
             os.remove(conda_sh_system_path)
             return Result.MODIFIED
     else:
-        conda_sh_contents = _bashrc_content(conda_prefix, "posix")
+        if content_type == "initialize":
+            conda_sh_contents = _bashrc_content(conda_prefix, "posix")
+        elif content_type == "add_condabin_to_path":
+            conda_sh_contents = _bashrc_content_to_add_condabin_to_path(
+                conda_prefix, "posix"
+            )
+        else:
+            raise ValueError(
+                f"Unknown content_type='{content_type}'. "
+                "Use 'initialize' or 'add_condabin_to_path'."
+            )
         if conda_sh_system_contents != conda_sh_contents:
             if context.verbose:
                 print("\n")
@@ -1721,7 +2078,25 @@ def _powershell_profile_content(conda_prefix):
     return conda_powershell_module
 
 
-def init_powershell_user(target_path, conda_prefix, reverse):
+def _powershell_profile_content_to_add_condabin_to_path(conda_prefix):
+    condabin_dir = join(conda_prefix, "condabin")
+
+    return dals(
+        f"""
+        #region conda initialize
+        # !! Contents within this block are managed by 'conda init' !!
+        $Env:Path = "{condabin_dir}" + [IO.Path]::PathSeparator + $Env:Path
+        #endregion
+        """
+    )
+
+
+def init_powershell_user(
+    target_path,
+    conda_prefix,
+    reverse=False,
+    content_type: ContentTypeOptions = "initialize",
+):
     # target_path: $PROFILE
     profile_path = target_path
 
@@ -1747,7 +2122,16 @@ def init_powershell_user(target_path, conda_prefix, reverse):
         )
     else:
         # Find what content we need to add.
-        conda_initialize_content = _powershell_profile_content(conda_prefix)
+        if content_type == "initialize":
+            conda_initialize_content = _powershell_profile_content(conda_prefix)
+        elif content_type == "add_condabin_to_path":
+            conda_initialize_content = (
+                _powershell_profile_content_to_add_condabin_to_path(conda_prefix)
+            )
+        else:
+            raise ValueError(
+                f"Unknown content_type='{content_type}'. Use 'initialize' or 'add_condabin_to_path'."
+            )
 
         if "#region conda initialize" not in profile_content:
             profile_content += f"\n{conda_initialize_content}\n"
