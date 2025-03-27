@@ -188,18 +188,15 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
 
-    def hook(self, auto_activate_base: bool | None = None) -> str:
+    @deprecated.argument("25.9", "26.3", "auto_activate_base", rename="auto_activate")
+    def hook(self, auto_activate: bool | None = None) -> str:
         builder: list[str] = []
         if preamble := self._hook_preamble():
             builder.append(preamble)
         if self.hook_source_path:
             builder.append(self.hook_source_path.read_text())
-        if (
-            auto_activate_base is None
-            and context.auto_activate_base
-            or auto_activate_base
-        ):
-            builder.append("conda activate base\n")
+        if auto_activate is None and context.auto_activate or auto_activate:
+            builder.append(f"conda activate '{context.default_activation_env}'\n")
         postamble = self._hook_postamble()
         if postamble is not None:
             builder.append(postamble)
@@ -304,13 +301,14 @@ class _Activator(metaclass=abc.ABCMeta):
                     + str(remainder_args)
                     + "\n"
                 )
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or "base"
-
-        else:
             if remainder_args:
-                raise ArgumentError(
-                    f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
-                )
+                self.env_name_or_prefix = remainder_args[0]
+            else:
+                self.env_name_or_prefix = context.default_activation_env
+        elif remainder_args:
+            raise ArgumentError(
+                f"{command} does not accept arguments\nremainder_args: {remainder_args}\n"
+            )
 
         self.command = command
 

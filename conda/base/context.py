@@ -221,7 +221,12 @@ class Context(Configuration):
     auto_update_conda = ParameterLoader(
         PrimitiveParameter(True), aliases=("self_update",)
     )
-    auto_activate_base = ParameterLoader(PrimitiveParameter(True))
+    auto_activate = ParameterLoader(
+        PrimitiveParameter(True), aliases=("auto_activate_base",)
+    )
+    _default_activation_env = ParameterLoader(
+        PrimitiveParameter(ROOT_ENV_NAME), aliases=("default_activation_env",)
+    )
     auto_stack = ParameterLoader(PrimitiveParameter(0))
     notify_outdated_conda = ParameterLoader(PrimitiveParameter(True))
     clobber = ParameterLoader(PrimitiveParameter(False))
@@ -1188,6 +1193,19 @@ class Context(Configuration):
         return self._console
 
     @property
+    @deprecated(
+        "25.9",
+        "26.3",
+        addendum="Please use `conda.base.context.context.auto_activate` instead",
+    )
+    def auto_activate_base(self) -> bool:
+        return self.auto_activate
+
+    @property
+    def default_activation_env(self) -> str:
+        return self._default_activation_env or ROOT_ENV_NAME
+
+    @property
     def category_map(self):
         return {
             "Channel Configuration": (
@@ -1266,7 +1284,8 @@ class Context(Configuration):
             ),
             "Output, Prompt, and Flow Control Configuration": (
                 "always_yes",
-                "auto_activate_base",
+                "auto_activate",
+                "default_activation_env",
                 "auto_stack",
                 "changeps1",
                 "env_prompt",
@@ -1389,9 +1408,10 @@ class Context(Configuration):
                 Automatically upload packages built with conda build to anaconda.org.
                 """
             ),
-            auto_activate_base=dals(
+            auto_activate=dals(
                 """
-                Automatically activate the base environment during shell initialization.
+                Automatically activate the environment given at 'default_activation_env'
+                during shell initialization.
                 """
             ),
             auto_update_conda=dals(
@@ -1508,6 +1528,13 @@ class Context(Configuration):
                 successfully-built packages.  Other multichannels can be defined with
                 custom_multichannels, where the key is the multichannel name and the value is
                 a list of channel names and/or channel urls.
+                """
+            ),
+            default_activation_env=dals(
+                """
+                The environment to be automatically activated on startup if 'auto_activate'
+                is True. Also sets the default environment to activate when 'conda activate'
+                receives no arguments.
                 """
             ),
             default_channels=dals(
