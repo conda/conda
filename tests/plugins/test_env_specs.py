@@ -4,8 +4,9 @@ import pytest
 
 from conda import plugins
 from conda.env.env import Environment
-from conda.plugins.types import CondaEnvSpec, EnvSpecBase
 from conda.exceptions import EnvSpecPluginNotDetected
+from conda.plugins.types import CondaEnvSpec, EnvSpecBase
+
 
 class RandomSpec(EnvSpecBase):
     extensions = {".random"}
@@ -20,10 +21,7 @@ class RandomSpec(EnvSpecBase):
         return False
 
     def environment(self):
-        return Environment(
-            name="random-environment",
-            dependencies=["python", "numpy"]
-        )
+        return Environment(name="random-environment", dependencies=["python", "numpy"])
 
 
 class RandomSpecPlugin:
