@@ -28,6 +28,8 @@ Conda commands used to switch or move between installed
 environments. The ``conda activate`` command prepends the path of your
 current environment to the PATH environment variable so that you
 do not need to type it each time. ``deactivate`` removes it.
+These commands might also execute activation and deactivation
+logic specified by some installed packages in your environment.
 Even when an environment is deactivated, you can still execute
 programs in that environment by specifying their paths directly,
 as in ``~/anaconda/envs/envname/bin/program_name``. When an
