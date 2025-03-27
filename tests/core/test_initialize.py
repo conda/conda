@@ -22,6 +22,7 @@ from conda.common.path import (
     get_python_short_path,
     win_path_backout,
     win_path_ok,
+    win_path_to_unix,
 )
 from conda.core.initialize import (
     Result,
@@ -1133,6 +1134,9 @@ def test_init_all(conda_cli: CondaCLIFixture):
 def test_init_condabin(conda_cli: CondaCLIFixture, tmp_path, init_func):
     shfile = tmp_path / "profile.sh"
     prefix = tmp_path / "conda"
+    condabin_path = str(prefix / "condabin")
+    if on_win and init_func != init_powershell_user:
+        condabin_path = win_path_to_unix(condabin_path)
     if init_func == init_sh_user:
         kwargs_list = [{"shell": shell} for shell in ("bash", "zsh", "csh")]
     else:
@@ -1144,4 +1148,4 @@ def test_init_condabin(conda_cli: CondaCLIFixture, tmp_path, init_func):
             content_type="add_condabin_to_path",
             **kwargs,
         )
-        assert str(prefix / "condabin") in shfile.read_text()
+        assert condabin_path in shfile.read_text()
