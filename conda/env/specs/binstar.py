@@ -12,6 +12,7 @@ from ...deprecations import deprecated
 from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
+from ...plugins.types import EnvSpecBase
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -24,7 +25,7 @@ deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
 
 
 @deprecated("24.7", "25.9")
-class BinstarSpec:
+class BinstarSpec(EnvSpecBase):
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
@@ -41,6 +42,11 @@ class BinstarSpec:
     def can_handle(self) -> bool:
         """
         Validates loader can process environment definition.
+        This can handle if:
+            * the provided name is of the correct form (eg. word/word)
+            * conda is configured to connect to anaconda.org
+            * the environment exists on anaconda.org
+
         :return: True or False
         """
         # TODO: log information about trying to find the package in binstar.org
@@ -60,7 +66,7 @@ class BinstarSpec:
         Validates name
         :return: True or False
         """
-        if re.match("^(.+)/(.+)$", str(self.name)) is not None:
+        if re.match(r"^[a-z-]+\/[a-z-\/]*$", str(self.name)) is not None:
             return True
         elif self.name is None:
             self.msg = "Can't process without a name"

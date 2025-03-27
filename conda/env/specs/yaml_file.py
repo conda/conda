@@ -3,10 +3,11 @@
 """Define YAML spec."""
 
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from ...plugins.types import EnvSpecBase
 from .. import env
 
 
-class YamlFileSpec:
+class YamlFileSpec(EnvSpecBase):
     _environment = None
     extensions = {".yaml", ".yml"}
 
@@ -15,6 +16,14 @@ class YamlFileSpec:
         self.msg = None
 
     def can_handle(self):
+        """
+        Validates loader can process environment definition.
+        This can handle if:
+            * the env file can be interpreted and transformed into
+              a `conda.env.env.Environment`
+
+        :return: True or False
+        """
         try:
             self._environment = env.from_file(self.filename)
             return True
