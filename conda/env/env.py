@@ -300,10 +300,7 @@ class EnvironmentV2(EnvironmentBase):
         self.config = config if config else EnvironmentConfig()
 
     @classmethod
-    def from_file(cls, filename: os.PathLike[str]) -> EnvironmentV2:
-        with open(filename) as f:
-            data = yaml_safe_load(f.read())
-
+    def from_yaml(cls, data: str) -> EnvironmentV2:
         requirements = Requirements(
             raw_requirements=data.get("requirements"),
             raw_pypi_requirements=data.get("pypi-requirements"),
@@ -329,6 +326,13 @@ class EnvironmentV2(EnvironmentBase):
                 version=data.get("version", 2),
             ),
         )
+
+    @classmethod
+    def from_file(cls, filename: os.PathLike[str]) -> EnvironmentV2:
+        with open(filename) as f:
+            data = yaml_safe_load(f.read())
+
+        return EnvironmentV2.from_yaml(data)
 
     def to_dict(self) -> dict:
         result = {}

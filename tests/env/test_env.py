@@ -10,11 +10,13 @@ from unittest.mock import patch
 
 import pytest
 
+from conda.auxlib.ish import dals
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
     EnvironmentV1,
+    EnvironmentV2,
     from_environment,
     from_file,
 )
@@ -359,3 +361,53 @@ def test_from_history():
         assert len(out.to_dict()["dependencies"]) == 4
 
         m.assert_called()
+
+
+def test_parse_environment_v2():
+    yml_str = dals("""
+        # From https://gist.github.com/jaimergp/4209c4c90d51b1bb07fe7293095f7c70
+        #
+        # What we want
+        # - Everything the original environment.yml had
+        # - All necessary inputs for the solver (channels, priority, repodata fn, platforms)
+        # - Conditional dependencies based on virtual packages
+        # - Requirement groups that can be joined
+        # What we do NOT want
+        # - This to become a lockfile
+        name: data-science-something
+        version: 2
+        description: This environment provides data science packages
+        variables:
+            ENVVAR: value
+            ENVVAR2: value
+        channels:
+            - conda-forge
+        channel-priority: strict
+        repodata-fn: repodata.json
+        platforms:
+            - linux-64
+            - osx-64
+            - win-64
+        requirements:
+            - python
+            - numpy
+            - if: __win
+              then: pywin32
+        pypi-requirements:
+            - my-lab-dependency
+            - if: __cuda
+              then: my-lab-dependency-gpu
+        groups:
+            - group: py38
+              requirements:
+                - python=3.8
+            - group: test
+              requirements:
+                - pytest
+                - pytest-cov
+                - if: __win
+                  then: pytest-windows
+              pypi-requirements:
+                - some-test-dependency-only-on-pypi
+        """)
+    EnvironmentV2.from_yaml(yml_str)
