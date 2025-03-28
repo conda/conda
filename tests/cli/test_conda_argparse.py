@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import importlib
 import re
+import sys
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.cli.conda_argparse import generate_parser
+from conda.cli.conda_argparse import (
+    ArgumentParser,
+    _GreedySubParsersAction,
+    generate_parser,
+)
 from conda.exceptions import EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
@@ -70,6 +75,7 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.add_parser_networking", isfunction),
         ("conda.cli.conda_argparse.add_parser_package_install_options", isfunction),
         ("conda.cli.conda_argparse.add_parser_prefix", isfunction),
+        ("conda.cli.conda_argparse.add_parser_prefix_to_group", isfunction),
         ("conda.cli.conda_argparse.add_parser_prune", isfunction),
         ("conda.cli.conda_argparse.add_parser_pscheck", isfunction),
         ("conda.cli.conda_argparse.add_parser_show_channel_urls", isfunction),
@@ -113,3 +119,29 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
     module = importlib.import_module(path)
     assert hasattr(module, attr)
     assert validate(getattr(module, attr))
+
+
+def test_sorted_commands_in_error(capsys):
+    p = ArgumentParser()
+    sp = p.add_subparsers(
+        metavar="COMMAND",
+        dest="cmd",
+        action=_GreedySubParsersAction,
+        required=True,
+    )
+    # These are added in a non-alphabetical order...
+    sp.add_parser("c")
+    sp.add_parser("a")
+    sp.add_parser("b")
+    try:
+        p.parse_args(["d"])
+    except SystemExit:
+        stderr = capsys.readouterr().err
+        # ...but the suggestions here are sorted
+        if sys.version_info < (3, 12):
+            # FUTURE: Python 3.12+: remove this test case
+            assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in stderr
+        else:
+            assert "invalid choice: 'd' (choose from a, b, c)" in stderr
+    else:
+        pytest.fail("Did not raise")

@@ -31,6 +31,7 @@ def test_reorder_channel_priority(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     pinned_package: bool,
+    clear_conda_session_cache: None,
 ):
     # use "cheap" packages with no dependencies
     package1 = "zlib"
@@ -66,6 +67,6 @@ def test_reorder_channel_priority(
             # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
             # the request, so it stays in pkgs/main. Other transient deps do change, though.
             if on_linux:  # lazy, only check on linux
-                assert PrefixData(prefix).get("libgcc-ng").channel.name == "conda-forge"
+                assert PrefixData(prefix).get("libgcc").channel.name == "conda-forge"
         else:
             assert PrefixData(prefix).get(package2).channel.name == "conda-forge"

@@ -4,24 +4,31 @@
 
 import re
 import sys
-from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, normcase
+from os.path import dirname, isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
-from ..common.serialize import json_dump
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
+    EnvironmentNotWritableError,
 )
+from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
+from ..reporters import render
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
     assert default in choices, default
     if (dry_run is NULL and context.dry_run) or dry_run:
@@ -54,6 +61,11 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
             return choices[user_choice]
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
     if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
@@ -143,9 +155,9 @@ def spec_from_line(line):
         return name + cc.replace("=", " ")
     elif pc:
         if pc.startswith("~= "):
-            assert (
-                pc.count("~=") == 1
-            ), f"Overly complex 'Compatible release' spec not handled {line}"
+            assert pc.count("~=") == 1, (
+                f"Overly complex 'Compatible release' spec not handled {line}"
+            )
             assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
             ver = pc.replace("~= ", "")
             ver2 = ".".join(ver.split(".")[:-1]) + ".*"
@@ -198,7 +210,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    getLogger("conda.stdout").info(json_dump(d))
+    render(d)
 
 
 def stdout_json_success(success=True, **kwargs):
@@ -214,30 +226,13 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.render(style='env_list')` instead.",
+)
 def print_envs_list(known_conda_prefixes, output=True):
-    if output:
-        print("# conda environments:")
-        print("#")
-
-    def disp_env(prefix):
-        fmt = "%-20s  %s  %s"
-        active = "*" if prefix == context.active_prefix else " "
-        if prefix == context.root_prefix:
-            name = ROOT_ENV_NAME
-        elif any(
-            paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs
-        ):
-            name = basename(prefix)
-        else:
-            name = ""
-        if output:
-            print(fmt % (name, active, prefix))
-
-    for prefix in known_conda_prefixes:
-        disp_env(prefix)
-
-    if output:
-        print()
+    render(known_conda_prefixes, style="envs_list", output=output)
 
 
 def check_non_admin():
@@ -265,9 +260,24 @@ def validate_prefix(prefix):
     :rtype: str
     """
     if isdir(prefix):
-        if not isfile(join(prefix, "conda-meta", "history")):
+        if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
             raise DirectoryNotACondaEnvironmentError(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
 
     return prefix
+
+
+def validate_prefix_is_writable(prefix: str) -> str:
+    """Verifies the environment directory is writable by trying to access
+    the conda-meta/history file. If this file is not writable then we assume
+    the whole prefix is not writable and raise an exception.
+
+    :raises EnvironmentNotWritableError: Conda does not have permission to write to the prefix
+    :returns: Valid prefix.
+    :rtype: str
+    """
+    test_path = join(prefix, PREFIX_MAGIC_FILE)
+    if isdir(dirname(test_path)) and file_path_is_writable(test_path):
+        return prefix
+    raise EnvironmentNotWritableError(prefix)

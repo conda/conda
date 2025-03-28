@@ -10,6 +10,7 @@ import re
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..auxlib.exceptions import ValidationError
 from ..base.constants import (
@@ -40,6 +41,9 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
 
+if TYPE_CHECKING:
+    from typing import Any
+
 log = getLogger(__name__)
 
 
@@ -66,12 +70,12 @@ class PrefixData(metaclass=PrefixDataType):
 
     def __init__(
         self,
-        prefix_path: Path,
+        prefix_path: str | os.PathLike[str] | Path,
         pip_interop_enabled: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
-        self.prefix_path = prefix_path
+        self.prefix_path = Path(prefix_path)
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -79,6 +83,19 @@ class PrefixData(metaclass=PrefixDataType):
             if pip_interop_enabled is not None
             else context.pip_interop_enabled
         )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, PrefixData):
+            return False
+        if self.prefix_path.exists():
+            if other.prefix_path.exists():
+                return self.prefix_path.samefile(other.prefix_path)
+            return False  # only one prefix exists, cannot be the same
+        elif other.prefix_path.exists():
+            return False  # only one prefix exists, cannot be the same
+        else:
+            # neither prefix exists, raw comparison
+            return self.prefix_path.resolve() == other.prefix_path.resolve()
 
     @time_recorder(module_name=__name__)
     def load(self):
@@ -435,21 +452,38 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
     return conda_python_packages
 
 
-def get_python_version_for_prefix(prefix):
-    # returns a string e.g. "2.7", "3.4", "3.5" or None
-    py_record_iter = (
-        rcrd for rcrd in PrefixData(prefix).iter_records() if rcrd.name == "python"
+def python_record_for_prefix(prefix) -> PrefixRecord | None:
+    """
+    For the given conda prefix, return the PrefixRecord of the Python installed
+    in that prefix.
+    """
+    python_record_iterator = (
+        record
+        for record in PrefixData(prefix).iter_records()
+        if record.name == "python"
     )
-    record = next(py_record_iter, None)
-    if record is None:
-        return None
-    next_record = next(py_record_iter, None)
-    if next_record is not None:
-        raise CondaDependencyError(f"multiple python records found in prefix {prefix}")
-    elif record.version[3].isdigit():
-        return record.version[:4]
-    else:
-        return record.version[:3]
+    record = next(python_record_iterator, None)
+    if record is not None:
+        next_record = next(python_record_iterator, None)
+        if next_record is not None:
+            raise CondaDependencyError(
+                f"multiple python records found in prefix {prefix}"
+            )
+    return record
+
+
+def get_python_version_for_prefix(prefix) -> str | None:
+    """
+    For the given conda prefix, return the version of the Python installation
+    in that prefix.
+    """
+    # returns a string e.g. "2.7", "3.4", "3.5" or None
+    record = python_record_for_prefix(prefix)
+    if record is not None:
+        if record.version[3].isdigit():
+            return record.version[:4]
+        else:
+            return record.version[:3]
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

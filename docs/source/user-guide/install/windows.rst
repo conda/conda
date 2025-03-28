@@ -5,10 +5,10 @@ Installing on Windows
 #. Download the installer:
 
    * `Miniconda installer for
-     Windows <https://docs.anaconda.com/free/miniconda/>`_
+     Windows <https://docs.anaconda.com/miniconda/>`__
 
    * `Anaconda Distribution installer for
-     Windows <https://www.anaconda.com/download/>`_
+     Windows <https://www.anaconda.com/download/>`__
 
    * `Miniforge installer for Windows <https://conda-forge.org/download>`_
 
@@ -21,8 +21,9 @@ Installing on Windows
    If you are unsure about any setting, accept the defaults. You
    can change them later.
 
-   When installation is finished, from the **Start** menu, open either Command Prompt (cmd.exe) or
-   PowerShell
+   When installation is finished, from the **Start** menu, open either the Anaconda Command Prompt (cmd.exe)
+   if using Miniconda or Anaconda Distribution, and the Miniforge Command Prompt if using Miniforge. Powershell
+   prompts are also available.
 
 #. Test your installation. In your terminal window, run the command ``conda list``. A list of
    installed packages appears if it has been installed correctly.

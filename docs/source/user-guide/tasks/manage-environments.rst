@@ -248,9 +248,11 @@ For example, it may be the case that:
 
 If any of these occur, all you need to do is update the contents of
 your ``environment.yml`` file accordingly and then run the following
-command::
+command:
 
-conda env update --file environment.yml  --prune
+.. code::
+
+   conda env update --file environment.yml  --prune
 
 .. note::
    The ``--prune`` option causes conda to remove any dependencies
@@ -379,7 +381,7 @@ not global.
    for "All Users", we add it to the *system* PATH. In the former case,
    you can end up with system PATH values taking precedence over
    your entries. In the latter case, you do not. *We do not recommend*
-   `multi-user installs <https://docs.anaconda.com/free/anaconda/install/multi-user/>`_.
+   `multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`__.
 
 To activate an environment: ``conda activate myenv``
 

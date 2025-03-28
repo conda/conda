@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+from importlib.util import find_spec
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from requests import HTTPError
+from requests import HTTPError, Request
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context
@@ -30,10 +31,14 @@ from conda.testing.gateways.fixtures import MINIO_EXE
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import TmpEnvFixture
 
+BOTO3_AVAILABLE = bool(find_spec("boto3"))
 log = getLogger(__name__)
+
+pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
 
 
 def test_add_binstar_token():
@@ -99,6 +104,7 @@ def test_s3_server(
     inner_s3_test(tmp_env, monkeypatch, endpoint, bucket_name)
 
 
+@pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
 @pytest.mark.integration
 def test_s3_server_with_mock(
     package_server,
@@ -175,7 +181,6 @@ def test_get_session_returns_default():
     """
     url = "https://localhost/test"
     session_obj = get_session(url)
-    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -195,7 +200,6 @@ def test_get_session_with_channel_settings(mocker):
     url = "https://localhost/test1"
 
     session_obj = get_session(url)
-    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -255,13 +259,16 @@ def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match
         "conda.gateways.connection.session.get_channel_name_from_url",
         return_value=channel_url,
     )
-    mock_context = mocker.patch("conda.gateways.connection.session.context")
-    mock_context.channel_settings = (
-        {"channel": channel_settings_url, "auth": "dummy_one"},
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=[{"channel": channel_settings_url, "auth": "dummy_one"}],
+    )
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler"
     )
 
     session_obj = get_session(channel_url)
-    get_session.cache_clear()  # ensuring cleanup
 
     # In all cases, the returned type is CondaSession
     assert type(session_obj) is CondaSession
@@ -271,16 +278,13 @@ def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match
         assert type(session_obj.auth) is not CondaHttpAuth
 
         # Make sure we tried to retrieve our auth handler in this function
-        assert (
-            mocker.call("dummy_one")
-            in mock_context.plugin_manager.get_auth_handler.mock_calls
-        )
+        assert mocker.call("dummy_one") in get_auth_handler.mock_calls
     else:
         # If we do not match, then we default to CondaHttpAuth
         assert type(session_obj.auth) is CondaHttpAuth
 
         # We have not tried to retrieve our auth handler
-        assert not mock_context.plugin_manager.get_auth_handler.mock_calls
+        assert not get_auth_handler.mock_calls
 
 
 def test_get_session_with_channel_settings_multiple(mocker):
@@ -296,20 +300,24 @@ def test_get_session_with_channel_settings_multiple(mocker):
         "conda.gateways.connection.session.get_channel_name_from_url",
         side_effect=["channel_one", "channel_two"],
     )
-    mock_context = mocker.patch("conda.gateways.connection.session.context")
-    mock_context.channel_settings = (
-        {"channel": "channel_one", "auth": "dummy_one"},
-        {"channel": "channel_two", "auth": "dummy_one"},
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=[
+            {"channel": "channel_one", "auth": "dummy_one"},
+            {"channel": "channel_two", "auth": "dummy_one"},
+        ],
     )
-    mock_context.plugin_manager.get_auth_handler.return_value = ChannelAuthBase
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler",
+        return_value=ChannelAuthBase,
+    )
 
     url_one = "https://localhost/test1"
     url_two = "https://localhost/test2"
 
     session_obj_one = get_session(url_one)
     session_obj_two = get_session(url_two)
-
-    get_session.cache_clear()  # ensuring cleanup
 
     assert session_obj_one is not session_obj_two
 
@@ -327,10 +335,7 @@ def test_get_session_with_channel_settings_multiple(mocker):
     assert type(session_obj_two.auth) is not CondaHttpAuth
 
     # Make sure we tried to retrieve our auth handler in this function
-    assert (
-        mocker.call("dummy_one")
-        in mock_context.plugin_manager.get_auth_handler.mock_calls
-    )
+    assert mocker.call("dummy_one") in get_auth_handler.mock_calls
 
 
 def test_get_session_with_channel_settings_no_handler(mocker):
@@ -356,7 +361,6 @@ def test_get_session_with_channel_settings_no_handler(mocker):
     url = "https://localhost/test2"
 
     session_obj = get_session(url)
-    get_session.cache_clear()  # ensuring cleanup
 
     assert type(session_obj) is CondaSession
 
@@ -365,6 +369,36 @@ def test_get_session_with_channel_settings_no_handler(mocker):
 
     # Make sure we tried to retrieve our auth handler in this function
     assert mocker.call("dummy_two") in mock.mock_calls
+
+
+def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
+    """
+    Tests the code path for when custom request headers have been set by a plugin
+    """
+    session_header = "Session-Header"
+    session_value = "session-value"
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
+        return_value={session_header: session_value},
+    )
+    request_header = "Request-Header"
+    request_value = "request-value"
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
+        return_value={request_header: request_value},
+    )
+
+    url = "https://localhost/test"
+    session_obj = get_session(url)
+
+    override_header = "Override-Header"
+    override_value = "override-value"
+    request = Request(method="GET", url=url, headers={override_header: override_value})
+    prepared = session_obj.prepare_request(request)
+
+    assert prepared.headers[session_header] == session_value
+    assert prepared.headers[request_header] == request_value
+    assert prepared.headers[override_header] == override_value
 
 
 @pytest.mark.parametrize(

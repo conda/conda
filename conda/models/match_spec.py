@@ -97,9 +97,9 @@ class MatchSpec(metaclass=MatchSpecType):
     :class:`MatchSpec` can also be composed using a single positional argument, with optional
     keyword arguments.  Keyword arguments also override any conflicting information provided in
     the positional argument.  The positional argument can be either an existing :class:`MatchSpec`
-    instance or a string.  Conda has historically had several string representations for equivalent
-    :class:`MatchSpec`s.  This :class:`MatchSpec` should accept any existing valid spec string, and
-    correctly compose a :class:`MatchSpec` instance.
+    instance or a string.  Conda has historically supported more than one string representation
+    for equivalent :class:`MatchSpec` queries.  This :class:`MatchSpec` should accept any existing
+    valid spec string, and correctly compose a :class:`MatchSpec` instance.
 
     A series of rules are now followed for creating the canonical string representation of a
     :class:`MatchSpec` instance.  The canonical string representation can generically be
@@ -915,6 +915,72 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
     @property
     def matches_all(self):
         return self._raw_value == "*"
+
+    def merge(self, other):
+        # exact match
+        if self.raw_value == other.raw_value:
+            return self.raw_value
+
+        if not self._re_match and isinstance(other, GlobStrMatch) and other._re_match:
+            # swap order, so `self` always has an actual pattern if there is only one
+            other, self = self, other
+
+        # the other component might not have str 'raw_value' (e.g. Channel or MultiChannel)
+        other_as_str = str(other)
+
+        if "*" not in other_as_str:
+            # other is an exact literal,
+            # check our pattern against it
+            # if we match, other is more strict
+            if self._re_match and self._re_match(other_as_str):
+                return other.raw_value
+            else:
+                # Raise on incompatible pattern
+                return super().merge(other)
+
+        # Both are patterns!
+        # We distinguish four types of glob patterns
+        # - 'needle*' as "prefix glob"
+        # - '*needle*' as "infix glob"
+        # - '*needle' as "suffix glob"
+        # - '*ne*dle*' as "regex-required glob"
+        # The only combination of globs we can express with
+        # pure globs is prefix+prefix and suffix+suffix
+        # Every other combination requires computing their
+        # regular expression intersection
+        # Details in https://github.com/conda/conda/pull/11612#discussion_r954545863
+
+        # Check if we have suffix+suffix or prefix+prefix
+        # In these cases, we keep the longest one, since it's more restrictive
+        if (self.raw_value.count("*") == other_as_str.count("*") == 1) and (
+            (self.raw_value[0] == other_as_str[0] == "*")  # both prefixes
+            or (self.raw_value[-1] == other_as_str[-1] == "*")  # suffixes
+        ):
+            self_stripped = self.raw_value.strip("*")
+            other_stripped = other_as_str.strip("*")
+            if self_stripped in other_stripped:
+                return other.raw_value
+            if other_stripped in self_stripped:
+                return self.raw_value
+            # They are not substrings! Guaranteed incompatibility; raise
+            return super().merge(other)
+
+        # Generalized case: regular expression intersection
+        # We don't reject anything here! We just write the expression
+        # and will let the index filtering steps detect whether there's
+        # a package record that matches the expression
+        patterns = []
+        for value in (self.raw_value, other_as_str):
+            if value.startswith("^") and value.endswith("$"):
+                patterns.append(value[1:-1])
+            elif "*" in value:
+                value = re.escape(value).replace(r"\*", r".*")
+                patterns.append(value)
+            else:
+                patterns.append(value)
+
+        # lookahead assertion followed by non-capture group
+        return rf"^(?={patterns[0]})(?:{patterns[1]})$"
 
 
 class GlobLowerStrMatch(GlobStrMatch):

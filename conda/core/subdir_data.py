@@ -47,7 +47,7 @@ log = getLogger(__name__)
 
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 2
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 
 class SubdirDataType(type):
@@ -108,8 +108,6 @@ class SubdirData(metaclass=SubdirDataType):
     def query_all(
         package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN
     ):
-        from .index import check_allowlist  # TODO: fix in-line import
-
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
@@ -127,8 +125,6 @@ class SubdirData(metaclass=SubdirDataType):
                     dashlist(ignored_urls),
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-
-        check_allowlist(channel_urls)
 
         def subdir_query(url):
             return tuple(
@@ -483,7 +479,7 @@ class SubdirData(metaclass=SubdirDataType):
         ):
             for fn, info in group:
                 if copy_legacy_md5:
-                    counterpart = f"{fn[:-len('.conda')]}.tar.bz2"
+                    counterpart = f"{fn[: -len('.conda')]}.tar.bz2"
                     if counterpart in legacy_packages:
                         info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
                         info["legacy_bz2_size"] = legacy_packages[counterpart].get(
@@ -556,8 +552,8 @@ class SubdirData(metaclass=SubdirDataType):
 
 
 @deprecated(
-    "24.9",
     "25.3",
+    "25.9",
     addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
 )
 def make_feature_record(feature_name):

@@ -14,6 +14,7 @@ Authors are sorted alphabetically.
 * Alex Hall
 * Alex Liew
 * Alex Wiltschko
+* Ali Abbas Zaidi
 * Alisue
 * Almar Klein
 * Amelio Vazquez-Reina
@@ -23,6 +24,7 @@ Authors are sorted alphabetically.
 * Andrew Achkar
 * Andrew Arendt
 * Andrew M. Farrell
+* Andy Kipp
 * Andy R. Terrel
 * Angela Gloyna
 * Aniket Patil
@@ -269,6 +271,7 @@ Authors are sorted alphabetically.
 * Matthew Rocklin
 * Matthew Wardrop
 * Matthieu Guillaumin
+* Matthieu Muffato
 * MatthieuDartiailh
 * Matti Picus
 * Maurice Meyer
@@ -309,6 +312,7 @@ Authors are sorted alphabetically.
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
+* Nils Koch
 * Nir Ganani
 * Nitin Madnani
 * Nixon Kwok
@@ -394,6 +398,7 @@ Authors are sorted alphabetically.
 * Steven Engler
 * Stijn Verstraeten
 * Stuart Berg
+* Sylvain Corlay
 * Tadeu Manoel
 * Tarcisio
 * Teake Nutma

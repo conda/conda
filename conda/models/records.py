@@ -229,7 +229,7 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(str, required=False, nullable=True)
@@ -373,9 +373,9 @@ class PackageRecord(DictSafeMixin, Entity):
     def __eq__(self, other):
         return self._pkey == other._pkey
 
-    def dist_str(self):
+    def dist_str(self, canonical_name: bool = True) -> str:
         return "{}{}::{}-{}-{}".format(
-            self.channel.canonical_name,
+            self.channel.canonical_name if canonical_name else self.channel.name,
             ("/" + self.subdir) if self.subdir else "",
             self.name,
             self.version,
@@ -409,7 +409,9 @@ class PackageRecord(DictSafeMixin, Entity):
     preferred_env = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
-
+    python_site_packages_path = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
     license = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )

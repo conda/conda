@@ -9,8 +9,7 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import DirectoryNotACondaEnvironmentError, PackagesNotFoundError
-from conda.gateways.disk.delete import path_is_clean, rm_rf
+from conda.exceptions import PackagesNotFoundError
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -47,39 +46,6 @@ def test_install_freezes_env_by_default(
         prefix_data = PrefixData(prefix)
         for pkg in pkgs:
             assert prefix_data.get(pkg["name"]).version == pkg["version"]
-
-
-def test_install_mkdir(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
-        file = prefix / "tempfile.txt"
-        file.write_text("test")
-        dir = prefix / "conda-meta"
-        assert dir.is_dir()
-        assert file.exists()
-        with pytest.raises(
-            DirectoryNotACondaEnvironmentError,
-            match="The target directory exists, but it is not a conda environment.",
-        ):
-            conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
-
-        conda_cli("create", f"--prefix={dir}", "--yes")
-        conda_cli("install", f"--prefix={dir}", "python", "--mkdir", "--yes")
-        assert package_is_installed(dir, "python")
-
-        rm_rf(prefix, clean_empty_parents=True)
-        assert path_is_clean(dir)
-
-        # regression test for #4849
-        conda_cli(
-            "install",
-            f"--prefix={dir}",
-            "python-dateutil",
-            "python",
-            "--mkdir",
-            "--yes",
-        )
-        assert package_is_installed(dir, "python")
-        assert package_is_installed(dir, "python-dateutil")
 
 
 def test_conda_pip_interop_dependency_satisfied_by_pip(

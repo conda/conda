@@ -117,7 +117,7 @@
     @EXIT /B 1
 )
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base defaults::git > NUL
+@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base "defaults::git<2.45" > NUL
 :INSTALLED
 
 :: create empty env if it doesn't exist
@@ -171,7 +171,7 @@
 )
 
 :: copy latest shell scripts
-@ECHO Upate shell scripts...
+@ECHO Update shell scripts...
 @CALL :CONDA "%_ENVEXE%" init --install > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update shell scripts 1>&2

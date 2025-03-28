@@ -20,7 +20,6 @@ from textwrap import wrap
 from typing import TYPE_CHECKING
 
 from ..base.constants import DEFAULTS_CHANNEL_NAME
-from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -32,7 +31,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.constants import CONDA_HOMEPAGE_URL
     from ..base.context import context, sys_rc_path, user_rc_path
     from ..common.constants import NULL
-    from .helpers import add_parser_json
+    from .helpers import add_parser_json, add_parser_prefix_to_group
 
     escaped_user_rc_path = user_rc_path.replace("%", "%%")
     escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
@@ -121,6 +120,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         ),
     )
     location.add_argument("--file", action="store", help="Write to the given file.")
+    add_parser_prefix_to_group(location)
 
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
@@ -522,10 +522,17 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
 def execute_config(args, parser):
     from .. import CondaError
     from ..auxlib.entity import EntityEncoder
-    from ..base.context import context, sys_rc_path, user_rc_path
+    from ..base.context import (
+        _warn_defaults_deprecation,
+        context,
+        sys_rc_path,
+        user_rc_path,
+    )
     from ..common.io import timeout
     from ..common.iterators import groupby_to_dict as groupby
     from ..common.serialize import yaml_round_trip_load
+    from ..exceptions import EnvironmentLocationNotFound
+    from ..gateways.disk.test import is_conda_environment
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -672,6 +679,11 @@ def execute_config(args, parser):
             rc_path = user_rc_path
     elif args.file:
         rc_path = args.file
+    elif args.prefix or args.name:
+        if is_conda_environment(context.target_prefix):
+            rc_path = join(context.target_prefix, ".condarc")
+        else:
+            raise EnvironmentLocationNotFound(context.target_prefix)
     else:
         rc_path = user_rc_path
 
@@ -734,17 +746,16 @@ def execute_config(args, parser):
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
         for key, item in arg:
             key, subkey = key.split(".", 1) if "." in key else (key, None)
-            if key == "channels" and key not in rc_config:
-                deprecated.topic(
-                    "24.9",
-                    "25.3",
-                    topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly.",
-                    addendum=f"In the future, {DEFAULTS_CHANNEL_NAME} won't be added when "
-                    "'conda config --add/--append channels' is used. If you depend on that "
-                    "behavior, run 'conda config --append channels defaults'.",
-                    deprecation_type=FutureWarning,
-                )
+
+            channels_is_unpopulated = key == "channels" and key not in rc_config
+
+            if channels_is_unpopulated:
+                # don't warn if users are literally trying to remove the warning
+                # by explicitly adding the defaults channel to the channels list
+                if item != DEFAULTS_CHANNEL_NAME:
+                    _warn_defaults_deprecation()
                 rc_config[key] = [DEFAULTS_CHANNEL_NAME]
+
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key in map_parameters:
@@ -753,17 +764,21 @@ def execute_config(args, parser):
                 from ..exceptions import CondaValueError
 
                 raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
+
             if not (isinstance(arglist, Sequence) and not isinstance(arglist, str)):
                 from ..exceptions import CouldntParseError
 
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
+
             if item in arglist:
+                # don't warn if users are literally trying to remove the warning
+                if channels_is_unpopulated and item == DEFAULTS_CHANNEL_NAME:
+                    continue
                 message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates
-                message = "Warning: '{}' already in '{}' list, moving to the {}".format(
-                    item, message_key, "top" if prepend else "bottom"
-                )
+                location = "top" if prepend else "bottom"
+                message = f"Warning: '{item}' already in '{message_key}' list, moving to the {location}"
                 if subkey is None:
                     arglist = rc_config[key] = [p for p in arglist if p != item]
                 else:

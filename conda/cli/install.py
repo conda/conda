@@ -22,7 +22,6 @@ from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
-from ..common.io import Spinner
 from ..common.path import is_package_file, paths_equal
 from ..core.index import (
     _supplement_index_with_prefix,
@@ -37,7 +36,6 @@ from ..exceptions import (
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
-    CondaOSError,
     CondaSystemExit,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
@@ -53,14 +51,14 @@ from ..exceptions import (
     TooManyArgumentsError,
     UnsatisfiableError,
 )
-from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
 from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
+from ..reporters import confirm_yn, get_spinner
 from . import common
-from .common import check_non_admin
+from .common import check_non_admin, validate_prefix_is_writable
 from .main_config import set_keys
 
 log = getLogger(__name__)
@@ -251,14 +249,7 @@ def install(args, parser, command="install"):
                 if not path_is_clean(prefix):
                     raise DirectoryNotACondaEnvironmentError(prefix)
         else:
-            # fall-through expected under normal operation
-            pass
-    elif getattr(args, "mkdir", False):
-        # --mkdir is deprecated and marked for removal in conda 25.3
-        try:
-            mkdir_p(prefix)
-        except OSError as e:
-            raise CondaOSError(f"Could not create directory: {prefix}", caused_by=e)
+            validate_prefix_is_writable(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
 
@@ -272,11 +263,13 @@ def install(args, parser, command="install"):
 
     context_channels = context.channels
     index_args = {
-        "use_cache": args.use_index_cache,
+        # TODO: deprecate --use-index-cache
+        # "use_cache": args.use_index_cache,  # --use-index-cache
         "channel_urls": context_channels,
-        "unknown": args.unknown,
-        "prepend": not args.override_channels,
-        "use_local": args.use_local,
+        # TODO: deprecate --unknown
+        # "unknown": args.unknown,  # --unknown
+        "prepend": not args.override_channels,  # --override-channels
+        "use_local": args.use_local,  # --use-local
     }
 
     num_cp = sum(is_package_file(s) for s in args_packages)
@@ -303,7 +296,7 @@ def install(args, parser, command="install"):
                     " packages \nconda create --help for details"
                 )
         if "@EXPLICIT" in specs:
-            explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
+            explicit(specs, prefix, verbose=not context.quiet)
             if newenv:
                 touch_nonadmin(prefix)
                 print_activate(args.name or prefix)
@@ -371,27 +364,19 @@ def install(args, parser, command="install"):
     for repodata_fn in repodata_fns:
         try:
             if isinstall and args.revision:
-                with Spinner(
-                    f"Collecting package metadata ({repodata_fn})",
-                    not context.verbose and not context.quiet,
-                    context.json,
-                ):
+                with get_spinner(f"Collecting package metadata ({repodata_fn})"):
                     index = get_index(
                         channel_urls=index_args["channel_urls"],
-                        prepend=index_args["prepend"],
+                        prepend=index_args["prepend"],  # --override-channels
                         platform=None,
-                        use_local=index_args["use_local"],
-                        use_cache=index_args["use_cache"],
-                        unknown=index_args["unknown"],
+                        use_local=index_args["use_local"],  # --use-local
+                        # use_cache=index_args["use_cache"],  # --use-index-cache
+                        # unknown=index_args["unknown"],  # --unknown
                         prefix=prefix,
                         repodata_fn=repodata_fn,
                     )
                 revision_idx = get_revision(args.revision)
-                with Spinner(
-                    f"Reverting to revision {revision_idx}",
-                    not context.verbose and not context.quiet,
-                    context.json,
-                ):
+                with get_spinner(f"Reverting to revision {revision_idx}"):
                     unlink_link_transaction = revert_actions(
                         prefix, revision_idx, index
                     )
@@ -547,7 +532,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if not context.json:
         unlink_link_transaction.print_transaction_summary()
-        common.confirm_yn()
+        confirm_yn()
 
     elif context.dry_run:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]

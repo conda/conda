@@ -5,7 +5,7 @@
 import json
 import os
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import pytest
 
+from ..base.constants import REPODATA_FN
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
 from ..common.io import env_var
@@ -40,7 +41,7 @@ expected_error_prefix = "Using Anaconda Cloud api site https://api.anaconda.org"
 
 def strip_expected(stderr):
     if expected_error_prefix and stderr.startswith(expected_error_prefix):
-        stderr = stderr[len(expected_error_prefix) :].lstrip()  # noqa
+        stderr = stderr[len(expected_error_prefix) :].lstrip()
     return stderr
 
 
@@ -73,15 +74,15 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert (
-        a.lower() not in b.lower()
-    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
+    assert a.lower() not in b.lower(), (
+        f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
+    )
 
 
 def assert_in(a, b, output=""):
-    assert (
-        a.lower() in b.lower()
-    ), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
+    assert a.lower() in b.lower(), (
+        f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
+    )
 
 
 def add_subdir(dist_string):
@@ -263,10 +264,10 @@ def _get_index_r_base(
     else:
         raise ValueError("'json_filename_or_data' must be path-like or dict")
 
+    packages = {subdir: {}, "noarch": {}}
     if merge_noarch:
-        packages = {subdir: all_packages}
+        packages[subdir] = all_packages
     else:
-        packages = {subdir: {}, "noarch": {}}
         for key, pkg in all_packages.items():
             if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
                 packages["noarch"][key] = pkg
@@ -296,7 +297,7 @@ def _get_index_r_base(
         ):
             sd._process_raw_repodata_str(json.dumps(repodata))
         sd._loaded = True
-        SubdirData._cache_[channel.url(with_credentials=True)] = sd
+        SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
         _patch_for_local_exports(channel_name, sd)
 
     # this is for the classic solver only, which is fine with a single collapsed index
@@ -319,7 +320,7 @@ def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index2.json",
@@ -330,7 +331,7 @@ def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index4.json",
@@ -341,7 +342,7 @@ def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     return _get_index_r_base(
         "index5.json",
@@ -352,7 +353,7 @@ def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
     repodata = {
         "foobar-1.0-0.tar.bz2": {
@@ -531,12 +532,13 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with patch.object(
-        History, "get_requested_specs_map", return_value=spec_map
-    ), env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        str(add_pip).lower(),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    with (
+        patch.object(History, "get_requested_specs_map", return_value=spec_map),
+        env_var(
+            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+            str(add_pip).lower(),
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
     ):
         # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
         # get_index_r_*) to cover solver logics that need to load from disk instead of
@@ -727,15 +729,7 @@ def get_solver_cuda(
 
 
 def convert_to_dist_str(solution):
-    dist_str = []
-    for prec in solution:
-        # This is needed to remove the local path prefix in the
-        # dist_str() calls, otherwise we cannot compare them
-        canonical_name = prec.channel._Channel__canonical_name
-        prec.channel._Channel__canonical_name = prec.channel.name
-        dist_str.append(prec.dist_str())
-        prec.channel._Channel__canonical_name = canonical_name
-    return tuple(dist_str)
+    return tuple(prec.dist_str(canonical_name=False) for prec in solution)
 
 
 @pytest.fixture()
