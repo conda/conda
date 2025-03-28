@@ -10,7 +10,7 @@ from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normpath
 from typing import TYPE_CHECKING
 
-from platformdirs import user_config_dir
+from platformdirs import user_data_dir
 
 from ..base.constants import APP_NAME, ENVIRONMENTS_FN
 from ..base.context import context
@@ -31,8 +31,8 @@ def get_user_environments_txt_file():
     """Returns the path to the user's environments.txt file for writing."""
     search_path = (
         "$CONDA_ROOT",
-        "$XDG_CONFIG_HOME/conda",
-        "~/.config/conda",
+        "$XDG_DATA_HOME/conda",
+        "~/.local/share/conda",
         "~/.conda",
         "$CONDA_PREFIX",
     )
@@ -42,7 +42,7 @@ def get_user_environments_txt_file():
         if isfile(path):
             return path
 
-    return join(user_config_dir(APP_NAME, appauthor=APP_NAME), ENVIRONMENTS_FN)
+    return join(user_data_dir(APP_NAME, appauthor=APP_NAME, ensure_exists=True), ENVIRONMENTS_FN)
 
 def register_env(location: str) -> None:
     """
@@ -127,14 +127,12 @@ def unregister_env(location: str) -> None:
 
 def list_all_known_prefixes():
     """
-    Lists all known conda environment prefixes, including other users' if root. 
+    Lists all known conda environment prefixes, including other users' if root.
     """
     search_dirs = {
         "$CONDA_ROOT",
-        "$XDG_CONFIG_HOME/conda",
         "$CONDA_PREFIX",
-        user_config_dir(APP_NAME, appauthor=APP_NAME),
-        dirname(get_user_environments_txt_file()),
+        user_data_dir(APP_NAME, appauthor=APP_NAME),
     }
     if on_win:
         search_dirs.add("C:/ProgramData/conda")
@@ -155,10 +153,12 @@ def list_all_known_prefixes():
     else:
         home_dirs = (expand("~"),)
 
+    # cannot read XDG_DATA_DIR for other users, so default to .local/share
     for home_dir in filter(None, home_dirs):
-        search_dirs.update(
-            [join(home_dir, ".config", "conda"), join(home_dir, ".conda")]
-        )
+        search_dirs.update([
+            join(home_dir, ".local", "share", "conda"),
+            join(home_dir, ".conda")
+        ])
 
     all_env_paths = set()
     for search_dir in filter(None, search_dirs):
