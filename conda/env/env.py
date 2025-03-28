@@ -7,11 +7,11 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass, field
+import textwrap
 from functools import total_ordering
 from itertools import chain
 from os.path import abspath, expanduser, expandvars
-from typing import Any
+from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..cli import common, install
@@ -26,6 +26,9 @@ from ..history import History
 from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
+
+if TYPE_CHECKING:
+    from typing import Any
 
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
 
@@ -264,12 +267,15 @@ class Requirements:
         return "\n".join(lines)
 
 
-@dataclass
 class EnvironmentConfig:
-    channels: list[str] | None = field(default_factory=list)
-    channel_priority: str | None = None
-    repodata_fn: str | None = None
-    variables: dict[str, str] = field(default_factory=dict)
+    def __init__(self, **options):
+        self.options = options
+
+    def __repr__(self) -> str:
+        lines = []
+        for key, value in self.options.items():
+            lines.append(f"{key}: {value}")
+        return "\n".join(lines)
 
 
 class EnvironmentSpecV2:
@@ -277,37 +283,46 @@ class EnvironmentSpecV2:
 
     def __init__(
         self,
-        requirements: Requirements,
+        requirements: Requirements | None = None,
+        groups: dict[str, Requirements] | None = None,
         name: str | None = None,
+        config: EnvironmentConfig | None = None,
         **options,
     ):
         self.name = name
-        self.requirements = requirements
+        self.requirements = requirements if requirements else []
+        self.groups = groups if groups else {}
         self.options = options
+        self.config = config if config else EnvironmentConfig()
 
     @classmethod
     def from_file(cls, filename: os.PathLike[str]) -> EnvironmentSpecV2:
         with open(filename) as f:
             data = yaml_safe_load(f.read())
 
-        breakpoint()
         requirements = Requirements(
             raw_requirements=data.get("requirements"),
             raw_pypi_requirements=data.get("pypi-requirements"),
         )
 
-        groups = data.get("groups")
+        groups = {}
+        for group in data.get("groups", []):
+            groups[group["group"]] = Requirements(
+                raw_requirements=group.get("requirements", []),
+                raw_pypi_requirements=group.get("pypi-requirements", []),
+            )
 
         return cls(
             name=data.get("name"),
             requirements=requirements,
-            version=data.get("version", 2),
+            groups=groups,
             description=data.get("description"),
             config=EnvironmentConfig(
                 channels=data.get("channels"),
                 channel_priority=data.get("channel-priority"),
                 repodata_fn=data.get("repodata-fn"),
                 variables=data.get("variables", {}),
+                version=data.get("version", 2),
             ),
         )
 
@@ -320,6 +335,31 @@ class EnvironmentSpecV2:
     def to_file(self, filename: os.PathLike):
         with open(filename, "w") as f:
             yaml_safe_dump(self.to_dict(), stream=f)
+
+    def __repr__(self) -> str:
+        groups_lines = []
+        for name, group in self.groups.items():
+            groups_lines.append(f"{name}:")
+            groups_lines.append(textwrap.indent(repr(group), "  "))
+
+        lines = [
+            f"name: {self.name if self.name else '<none>'}",
+            "options:",
+            textwrap.indent(
+                "\n".join([f"{key}: {value}" for key, value in self.options.items()]),
+                prefix="  ",
+            ),
+            "configuration:",
+            textwrap.indent(repr(self.config), "  "),
+            "requirements:",
+            textwrap.indent(repr(self.requirements), "  "),
+            "groups:",
+            textwrap.indent(
+                "\n".join(groups_lines),
+                "  ",
+            ),
+        ]
+        return "\n".join(lines)
 
 
 class Environment:
