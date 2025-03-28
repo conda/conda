@@ -763,7 +763,7 @@ class Context(Configuration):
         if isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0:
             # Prefix location is in use; emit warning message.
             log.warning(
-                "conda is using the prefix location for the envs directory "
+                "conda is using the root prefix for the envs directory "
                 f"({prefix_dir}). To migrate all environments to use the new default "
                 "location, run `conda config --migrate-envs`. To silence "
                 "this message and continue using the current prefix locations, run "
@@ -792,7 +792,7 @@ class Context(Configuration):
         ):
             # Prefix location is in use and user data is not; emit warning message
             log.warning(
-                "conda is using the prefix location for the pkgs directory "
+                "conda is using the root prefix for the pkgs directory "
                 f"({prefix_dir}). To migrate all environments to use the new default "
                 "location, run `conda config --migrate-pkgs`. To silence "
                 "this message and continue using the current prefix locations, run "
