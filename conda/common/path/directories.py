@@ -4,10 +4,13 @@
 
 from __future__ import annotations
 
+import os
+import pathlib
 from functools import reduce
 from itertools import accumulate, chain
 from logging import getLogger
 from os.path import join
+from shutil import copy2, copytree
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -56,3 +59,47 @@ def explode_directories(child_directories: Iterable[tuple[str, ...]]) -> set[str
             accumulate(directory, join) for directory in child_directories if directory
         )
     )
+
+
+def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
+    """Recursively hardlink the contents of a directory to a destination.
+
+    Directories will be created as needed. Raises a NotImplementedError if
+    os.link is not supported on the platform, mimicking the behavior of
+    pathlib.Path.hardlink_to().
+
+    :param src: Source directory
+    :param dst: Destination where the contents of src are to be hardlinked
+    """
+    src = pathlib.Path(src)
+    dst = pathlib.Path(dst)
+
+    for src_fname in src.glob("**/*"):
+        if src_fname.is_file():
+            dst_fname = dst / src_fname.relative_to(src)
+            dst_fname.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                os.link(str(src_fname), str(dst_fname))
+            except AttributeError:
+                raise NotImplementedError
+
+
+def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
+    """Copy the contents of a directory to a destination.
+
+    Directories will be created as needed.
+
+    :param src: Source directory
+    :param dst: Destination where the contents of src are to be copied
+    """
+    src = pathlib.Path(src)
+    dst = pathlib.Path(dst)
+
+    for item in os.listdir(src):
+        src_path = src / item
+        dst_path = dst / item
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        if src_path.is_dir():
+            copytree(src_path, dst_path, symlinks=True)
+        else:
+            copy2(src_path, dst_path)
