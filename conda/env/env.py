@@ -2,11 +2,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Environment object describing the conda environment.yaml file."""
 
+from __future__ import annotations
+
 import json
 import os
 import re
+from dataclasses import dataclass, field
+from functools import total_ordering
 from itertools import chain
 from os.path import abspath, expanduser, expandvars
+from typing import Any
 
 from ..base.context import context
 from ..cli import common, install
@@ -205,6 +210,116 @@ class Dependencies(dict):
         """Add a package to the ``Environment``"""
         self.raw.append(package_name)
         self.parse()
+
+
+@total_ordering
+class Requirement:
+    def __init__(self, spec: str | dict[str, str]):
+        if isinstance(spec, str):
+            self.spec = spec
+            self.condition = None
+        elif isinstance(spec, dict):
+            for key in ["if", "then"]:
+                if key not in spec:
+                    raise ValueError(f"Conditional requirement missing an `{key}` key.")
+
+            self.spec = spec["then"]
+            self.condition = spec["if"]
+        else:
+            raise ValueError(f"Invalid requirement: {spec}")
+
+    def __repr__(self) -> str:
+        result = self.spec
+        if self.condition:
+            result = f"{result} (if {self.condition})"
+        return result
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Requirement):
+            return self.spec == other.spec
+
+        raise NotImplementedError
+
+    def __lt__(self, other: Requirement) -> bool:
+        return self.spec < other.spec
+
+
+class Requirements:
+    def __init__(
+        self,
+        raw_requirements: list[str | dict[str, str]],
+        raw_pypi_requirements: list[str],
+    ):
+        self.requirements: list[Requirement] = []
+        self.pypi_requirements: list[Requirement] = []
+
+        for raw_req in raw_requirements:
+            self.requirements.append(Requirement(raw_req))
+
+    def __repr__(self) -> str:
+        lines = []
+        for req in sorted(self.requirements):
+            lines.append(repr(req))
+
+        return "\n".join(lines)
+
+
+@dataclass
+class EnvironmentConfig:
+    channels: list[str] | None = field(default_factory=list)
+    channel_priority: str | None = None
+    repodata_fn: str | None = None
+    variables: dict[str, str] = field(default_factory=dict)
+
+
+class EnvironmentSpecV2:
+    """A class representing a V2 environment.yaml."""
+
+    def __init__(
+        self,
+        requirements: Requirements,
+        name: str | None = None,
+        **options,
+    ):
+        self.name = name
+        self.requirements = requirements
+        self.options = options
+
+    @classmethod
+    def from_file(cls, filename: os.PathLike[str]) -> EnvironmentSpecV2:
+        with open(filename) as f:
+            data = yaml_safe_load(f.read())
+
+        breakpoint()
+        requirements = Requirements(
+            raw_requirements=data.get("requirements"),
+            raw_pypi_requirements=data.get("pypi-requirements"),
+        )
+
+        groups = data.get("groups")
+
+        return cls(
+            name=data.get("name"),
+            requirements=requirements,
+            version=data.get("version", 2),
+            description=data.get("description"),
+            config=EnvironmentConfig(
+                channels=data.get("channels"),
+                channel_priority=data.get("channel-priority"),
+                repodata_fn=data.get("repodata-fn"),
+                variables=data.get("variables", {}),
+            ),
+        )
+
+    def to_dict(self) -> dict:
+        result = {}
+        result["name"] = self.name
+        result.update(self.options)
+        return result
+
+    def to_file(self, filename: os.PathLike):
+        with open(filename, "w") as f:
+            yaml_safe_dump(self.to_dict(), stream=f)
 
 
 class Environment:
