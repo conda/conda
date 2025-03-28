@@ -92,7 +92,7 @@ def from_environment(
     if from_history:
         history = History(prefix).get_requested_specs_map()
         deps = [str(package) for package in history.values()]
-        return Environment(
+        return EnvironmentV1(
             name=name,
             dependencies=deps,
             channels=list(context.channels),
@@ -133,7 +133,7 @@ def from_environment(
             canonical_name = prec.channel.canonical_name
             if canonical_name not in channels:
                 channels.insert(0, canonical_name)
-    return Environment(
+    return EnvironmentV1(
         name=name,
         dependencies=dependencies,
         channels=channels,
@@ -154,7 +154,7 @@ def from_yaml(yamlstr, **kwargs):
         for key, value in kwargs.items():
             data[key] = value
     _expand_channels(data)
-    return Environment(**data)
+    return EnvironmentV1(**data)
 
 
 def _expand_channels(data):
@@ -278,7 +278,11 @@ class EnvironmentConfig:
         return "\n".join(lines)
 
 
-class EnvironmentSpecV2:
+class EnvironmentBase:
+    """A class representing an ``environment.yaml`` file"""
+
+
+class EnvironmentV2(EnvironmentBase):
     """A class representing a V2 environment.yaml."""
 
     def __init__(
@@ -296,7 +300,7 @@ class EnvironmentSpecV2:
         self.config = config if config else EnvironmentConfig()
 
     @classmethod
-    def from_file(cls, filename: os.PathLike[str]) -> EnvironmentSpecV2:
+    def from_file(cls, filename: os.PathLike[str]) -> EnvironmentV2:
         with open(filename) as f:
             data = yaml_safe_load(f.read())
 
@@ -332,6 +336,11 @@ class EnvironmentSpecV2:
         result.update(self.options)
         return result
 
+    def to_yaml(self, stream=None) -> Any | None:
+        out = yaml_safe_dump(self.to_dict, stream)
+        if stream is None:
+            return out
+
     def to_file(self, filename: os.PathLike):
         with open(filename, "w") as f:
             yaml_safe_dump(self.to_dict(), stream=f)
@@ -362,7 +371,7 @@ class EnvironmentSpecV2:
         return "\n".join(lines)
 
 
-class Environment:
+class EnvironmentV1(EnvironmentBase):
     """A class representing an ``environment.yaml`` file"""
 
     def __init__(

@@ -14,7 +14,7 @@ from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
-    Environment,
+    EnvironmentV1,
     from_environment,
     from_file,
 )
@@ -58,7 +58,7 @@ def get_invalid_keys_environment():
 
 def test_returns_Environment():
     e = get_simple_environment()
-    assert isinstance(e, Environment)
+    assert isinstance(e, EnvironmentV1)
 
 
 def test_retains_full_filename():
@@ -120,30 +120,30 @@ def test_envvars():
 
 
 def test_has_empty_filename_by_default():
-    e = Environment()
+    e = EnvironmentV1()
     assert e.filename is None
 
 
 def test_has_filename_if_provided():
     r = random.randint(100, 200)
     random_filename = f"/path/to/random/environment-{r}.yml"
-    e = Environment(filename=random_filename)
+    e = EnvironmentV1(filename=random_filename)
     assert e.filename == random_filename
 
 
 def test_has_empty_name_by_default():
-    e = Environment()
+    e = EnvironmentV1()
     assert e.name is None
 
 
 def test_has_name_if_provided():
     random_name = f"random-{random.randint(100, 200)}"
-    e = Environment(name=random_name)
+    e = EnvironmentV1(name=random_name)
     assert e.name == random_name
 
 
 def test_dependencies_are_empty_by_default():
-    e = Environment()
+    e = EnvironmentV1()
     assert not e.dependencies
 
 
@@ -155,19 +155,19 @@ def test_parses_dependencies_from_raw_file():
 
 def test_builds_spec_from_line_raw_dependency():
     # TODO Refactor this inside conda to not be a raw string
-    e = Environment(dependencies=["nltk=3.0.0=np18py27_0"])
+    e = EnvironmentV1(dependencies=["nltk=3.0.0=np18py27_0"])
     expected = {"conda": ["nltk==3.0.0=np18py27_0"]}
     assert e.dependencies == expected
 
 
 def test_args_are_wildcarded():
-    e = Environment(dependencies=["python=2.7"])
+    e = EnvironmentV1(dependencies=["python=2.7"])
     expected = {"conda": ["python=2.7"]}
     assert e.dependencies == expected
 
 
 def test_other_tips_of_dependencies_are_supported():
-    e = Environment(dependencies=["nltk", {"pip": ["foo", "bar"]}])
+    e = EnvironmentV1(dependencies=["nltk", {"pip": ["foo", "bar"]}])
     expected = {
         "conda": ["nltk", "pip"],
         "pip": ["foo", "bar"],
@@ -176,32 +176,34 @@ def test_other_tips_of_dependencies_are_supported():
 
 
 def test_channels_default_to_empty_list():
-    e = Environment()
+    e = EnvironmentV1()
     assert isinstance(e.channels, list)
     assert not e.channels
 
 
 def test_add_channels():
-    e = Environment()
+    e = EnvironmentV1()
     e.add_channels(["dup", "dup", "unique"])
     assert e.channels == ["dup", "unique"]
 
 
 def test_remove_channels():
-    e = Environment(channels=["channel"])
+    e = EnvironmentV1(channels=["channel"])
     e.remove_channels()
     assert not e.channels
 
 
 def test_channels_are_provided_by_kwarg():
     random_channels = (random.randint(100, 200), random)
-    e = Environment(channels=random_channels)
+    e = EnvironmentV1(channels=random_channels)
     assert e.channels == random_channels
 
 
 def test_to_dict_returns_dictionary_of_data():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -212,14 +214,16 @@ def test_to_dict_returns_dictionary_of_data():
 
 
 def test_to_dict_returns_just_name_if_only_thing_present():
-    e = Environment(name="simple")
+    e = EnvironmentV1(name="simple")
     expected = {"name": "simple"}
     assert e.to_dict() == expected
 
 
 def test_to_yaml_returns_yaml_parseable_string():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -233,7 +237,9 @@ def test_to_yaml_returns_yaml_parseable_string():
 
 def test_to_yaml_returns_proper_yaml():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = "\n".join(
         [
@@ -252,7 +258,9 @@ def test_to_yaml_returns_proper_yaml():
 
 def test_to_yaml_takes_stream():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     s = FakeStream()
     e.to_yaml(stream=s)
@@ -307,7 +315,7 @@ def test_creates_file_on_save(tmp_path: Path):
 
     assert not tmp.exists()
 
-    env = Environment(filename=tmp, name="simple")
+    env = EnvironmentV1(filename=tmp, name="simple")
     env.save()
 
     assert tmp.exists()
