@@ -217,6 +217,18 @@ class Dependencies(dict):
 
 @total_ordering
 class Requirement:
+    """A single requirement for a package.
+
+    Can either be a single spec string (e.g. "flask"), or a dictionary containing
+    a conditionally present package, and a spec to include if that condition is present.
+    For example:
+
+    {
+        "if": "__linux",    # <-- if __linux is present, also include flask as a requirement
+        "then": "flask",
+    }
+    """
+
     def __init__(self, spec: str | dict[str, str]):
         if isinstance(spec, str):
             self.spec = spec
@@ -246,8 +258,15 @@ class Requirement:
     def __lt__(self, other: Requirement) -> bool:
         return self.spec < other.spec
 
+    def serialize(self) -> str | dict[str, str]:
+        if self.condition:
+            return {"if": self.condition, "then": self.spec}
+        return self.spec
+
 
 class Requirements:
+    """A set of requirements for a package."""
+
     def __init__(
         self,
         raw_requirements: list[str | dict[str, str]],
@@ -266,8 +285,19 @@ class Requirements:
 
         return "\n".join(lines)
 
+    def serialize(self) -> list[str | dict[str, str]]:
+        result = []
+        for req in self.requirements:
+            result.append(req.serialize())
+        return result
+
 
 class EnvironmentConfig:
+    """A class that contains configuration variables for an environment.
+
+    These variables override user configuration, e.g. settings in .condarc.
+    """
+
     def __init__(self, **options):
         self.options = options
 
@@ -277,9 +307,21 @@ class EnvironmentConfig:
             lines.append(f"{key}: {value}")
         return "\n".join(lines)
 
+    def serialize(self) -> dict[str, str]:
+        return self.options
+
 
 class EnvironmentBase:
     """A class representing an ``environment.yaml`` file"""
+
+    def to_dict(self) -> dict:
+        raise NotImplementedError
+
+    def to_yaml(self) -> str | None:
+        raise NotImplementedError
+
+    def save(self):
+        raise NotImplementedError
 
 
 class EnvironmentV2(EnvironmentBase):
@@ -300,7 +342,7 @@ class EnvironmentV2(EnvironmentBase):
         self.config = config if config else EnvironmentConfig()
 
     @classmethod
-    def from_yaml(cls, data: str) -> EnvironmentV2:
+    def from_dict(cls, data: dict[str, Any]) -> EnvironmentV2:
         requirements = Requirements(
             raw_requirements=data.get("requirements"),
             raw_pypi_requirements=data.get("pypi-requirements"),
@@ -330,24 +372,33 @@ class EnvironmentV2(EnvironmentBase):
     @classmethod
     def from_file(cls, filename: os.PathLike[str]) -> EnvironmentV2:
         with open(filename) as f:
-            data = yaml_safe_load(f.read())
+            data = f.read()
 
         return EnvironmentV2.from_yaml(data)
 
-    def to_dict(self) -> dict:
+    @classmethod
+    def from_yaml(cls, yaml_str: str) -> EnvironmentV2:
+        return EnvironmentV2.from_dict(yaml_safe_load(yaml_str))
+
+    def serialize(self) -> dict:
         result = {}
         result["name"] = self.name
-        result.update(self.options)
+        result["options"] = self.options
+        result["config"] = self.config.serialize()
+        result["requirements"] = [req.serialize() for req in self.requirements]
+        result["groups"] = {
+            name: group.serialize() for name, group in self.groups.items()
+        }
         return result
 
     def to_yaml(self, stream=None) -> Any | None:
-        out = yaml_safe_dump(self.to_dict, stream)
+        out = yaml_safe_dump(self.serialize, stream)
         if stream is None:
             return out
 
     def to_file(self, filename: os.PathLike):
         with open(filename, "w") as f:
-            yaml_safe_dump(self.to_dict(), stream=f)
+            yaml_safe_dump(self.serialize(), stream=f)
 
     def __repr__(self) -> str:
         groups_lines = []
