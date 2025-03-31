@@ -8,6 +8,7 @@ import sys
 from os.path import abspath, dirname, isfile, join, realpath, samefile
 from sysconfig import get_path
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
@@ -27,6 +28,7 @@ from conda.common.path import (
 from conda.core.initialize import (
     Result,
     _get_python_info,
+    add_condabin_to_path_registry,
     init_fish_user,
     init_powershell_user,
     init_sh_system,
@@ -1063,6 +1065,161 @@ def test_init_cmd_exe_registry(verbose):
     assert c.stdout.strip().splitlines()[-1][1:] == expected
 
 
+@pytest.mark.skipif(not on_win, reason="windows-only test")
+def test_add_condabin_to_path_registry(verbose):
+    conda_prefix = "C:\\Users\\test\\miniconda3"
+    condabin_path = "\\".join(conda_prefix, "condabin")
+    target_path = "HKEY_CURRENT_USER\\Environment\\PATH"
+
+    # Mock registry functions
+    mock_read_registry = patch("conda.core.initialize._read_windows_registry").start()
+    mock_write_registry = patch("conda.core.initialize._write_windows_registry").start()
+
+    # Use a list to store calls to the mocked write function
+    write_calls = []
+    mock_write_registry.side_effect = lambda path, value, type_: write_calls.append(
+        (path, value, type_)
+    )
+
+    # Case 1: Add to empty PATH
+    mock_read_registry.return_value = (None, None)  # Simulate non-existent key
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    assert write_calls[0][0] == target_path
+    assert write_calls[0][1] == condabin_path
+    assert write_calls[0][2] == 2  # winreg.REG_EXPAND_SZ
+
+    # Case 2: Add to existing PATH without condabin
+    mock_read_registry.return_value = ("C:\\Windows;C:\\Windows\\System32", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    assert write_calls[0][1] == f"{condabin_path};C:\\Windows;C:\\Windows\\System32"
+
+    # Case 3: Add when condabin already exists (case-sensitive match)
+    mock_read_registry.return_value = (f"{condabin_path};C:\\Windows", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+    assert result == Result.NO_CHANGE
+    assert len(write_calls) == 0
+
+    # Case 4: Add when condabin already exists (case-insensitive match)
+    mock_read_registry.return_value = (f"{condabin_path.upper()};C:\\Windows", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+    assert result == Result.NO_CHANGE
+    assert len(write_calls) == 0
+
+    # Case 5: Add when condabin exists later in PATH
+    mock_read_registry.return_value = (f"C:\\Windows;{condabin_path}", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+    assert result == Result.NO_CHANGE  # Should still be no change as it exists
+    assert len(write_calls) == 0
+
+    # Case 6: Remove when condabin exists at the beginning
+    mock_read_registry.return_value = (f"{condabin_path};C:\\Windows", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    assert write_calls[0][1] == "C:\\Windows"
+
+    # Case 7: Remove when condabin exists in the middle
+    mock_read_registry.return_value = (
+        f"C:\\Windows;{condabin_path};C:\\Program Files",
+        2,
+    )
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    assert write_calls[0][1] == "C:\\Windows;C:\\Program Files"
+
+    # Case 8: Remove when condabin exists at the end
+    mock_read_registry.return_value = (f"C:\\Windows;{condabin_path}", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    assert write_calls[0][1] == "C:\\Windows"
+
+    # Case 9: Remove when condabin doesn't exist
+    mock_read_registry.return_value = ("C:\\Windows;C:\\Program Files", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+    assert result == Result.NO_CHANGE
+    assert len(write_calls) == 0
+
+    # Case 10: Remove when condabin exists (case-insensitive match)
+    mock_read_registry.return_value = (f"C:\\Windows;{condabin_path.upper()}", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    assert write_calls[0][1] == "C:\\Windows"
+
+    # Case 11: Handle empty parts from double semicolons when adding
+    mock_read_registry.return_value = ("C:\\Windows;;C:\\Program Files", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    # Function cleans up empty parts
+    assert write_calls[0][1] == f"{condabin_path};C:\\Windows;C:\\Program Files"
+
+    # Case 12: Handle empty parts from double semicolons when removing
+    mock_read_registry.return_value = (
+        f"C:\\Windows;;{condabin_path};;C:\\Program Files",
+        2,
+    )
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    # Function cleans up empty parts
+    assert write_calls[0][1] == "C:\\Windows;C:\\Program Files"
+
+    # Case 13: Handle leading/trailing semicolons when adding
+    mock_read_registry.return_value = (";C:\\Windows;", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    # Function cleans up empty parts
+    assert write_calls[0][1] == f"{condabin_path};C:\\Windows"
+
+    # Case 14: Handle leading/trailing semicolons when removing
+    mock_read_registry.return_value = (f";{condabin_path};C:\\Windows;", 2)
+    write_calls.clear()
+    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+    assert result == Result.MODIFIED
+    assert len(write_calls) == 1
+    assert write_calls[0][1] == "C:\\Windows"  # Function cleans up empty parts
+
+    # Case 15: Dry run - Add
+    with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        mock_read_registry.return_value = ("C:\\Windows", 2)
+        write_calls.clear()
+        result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
+        assert result == Result.MODIFIED  # Still reports modified
+        assert len(write_calls) == 0  # But doesn't actually write
+
+    # Case 16: Dry run - Remove
+    with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
+        mock_read_registry.return_value = (f"{condabin_path};C:\\Windows", 2)
+        write_calls.clear()
+        result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
+        assert result == Result.MODIFIED  # Still reports modified
+        assert len(write_calls) == 0  # But doesn't actually write
+
+    # Cleanup mocks
+    patch.stopall()
+
+
 @pytest.mark.skipif(not on_win, reason="win-only test")
 def test_init_enable_long_path(verbose):
     dummy_value = 0
@@ -1132,7 +1289,9 @@ def test_init_all(conda_cli: CondaCLIFixture):
     ],
 )
 def test_init_condabin(conda_cli: CondaCLIFixture, tmp_path, init_func):
-    shfile = tmp_path / "profile.sh"
+    profile = (
+        tmp_path / f"profile.{'ps1' if init_func == init_powershell_user else 'sh'}"
+    )
     prefix = tmp_path / "conda"
     condabin_path = str(prefix / "condabin")
     if on_win and init_func != init_powershell_user:
@@ -1143,9 +1302,9 @@ def test_init_condabin(conda_cli: CondaCLIFixture, tmp_path, init_func):
         kwargs_list = [{}]
     for kwargs in kwargs_list:
         init_func(
-            shfile,
+            profile,
             conda_prefix=tmp_path / "conda",
             content_type="add_condabin_to_path",
             **kwargs,
         )
-        assert condabin_path in shfile.read_text()
+        assert condabin_path in profile.read_text()

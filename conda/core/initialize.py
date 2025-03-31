@@ -986,7 +986,7 @@ def make_condabin_plan(conda_prefix, shells, for_user, for_system, reverse=False
                     "function": add_condabin_to_path_registry.__name__,
                     "kwargs": {
                         "target_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\"
-                                       "Session Manager\\Environment\\PATH",
+                        "Session Manager\\Environment\\PATH",
                         "conda_prefix": conda_prefix,
                         "reverse": reverse,
                     },
@@ -998,7 +998,7 @@ def make_condabin_plan(conda_prefix, shells, for_user, for_system, reverse=False
                     "function": init_long_path.__name__,
                     "kwargs": {
                         "target_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\"
-                                       "FileSystem\\LongPathsEnabled"
+                        "FileSystem\\LongPathsEnabled"
                     },
                 }
             )
