@@ -19,14 +19,11 @@ from ruamel.yaml.scanner import ScannerError
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.base.constants import USER_DATA_ENVS
 from conda.base.context import (
     context,
     reset_context,
-    root_prefix_envs,
-    root_prefix_pkgs,
     sys_rc_path,
-    user_data_envs,
-    user_data_pkgs,
     user_rc_path,
 )
 from conda.common.configuration import ConfigurationLoadError, CustomValidationError
@@ -938,7 +935,7 @@ def test_migrate_pkgs(
 ):
     """Test that migrating pkgs works as intended."""
     # Ensure there are no packages at user_data_pkgs()
-    shutil.rmtree(user_data_pkgs(), ignore_errors=True)
+    shutil.rmtree(context.user_data_pkgs, ignore_errors=True)
 
     # Check that having pkgs in the root triggers a warning
     # We need this context manager because there's an autouse
@@ -959,8 +956,8 @@ def test_migrate_pkgs(
     # these get cleaned up with `conda clean`
     assert fake_root_pkgs.exists()
 
-    # Check that the packages have been migrated to the user_data_pkgs() directory
-    new_pkgs = Path(user_data_pkgs())
+    # Check that the packages have been migrated to the context.user_data_pkgs directory
+    new_pkgs = Path(context.user_data_pkgs)
     assert new_pkgs.exists()
     assert (new_pkgs / "testpkg1").exists()
     assert (new_pkgs / "testpkg2").exists()
@@ -983,11 +980,11 @@ def test_migrate_envs(
     unset_condarc_envs,
 ):
     """Test that migrating the environments works as intended."""
-    # Ensure there are no envs at user_data_envs()
-    shutil.rmtree(user_data_envs(), ignore_errors=True)
+    # Ensure there are no envs at USER_DATA_ENVS
+    shutil.rmtree(USER_DATA_ENVS, ignore_errors=True)
 
     # Create some simple envs in the root prefix
-    root_envs = Path(root_prefix_envs(context.root_prefix))
+    root_envs = Path(context.root_prefix_envs)
     shutil.rmtree(root_envs, ignore_errors=True)
 
     root_prefix_env_factory()
@@ -1015,7 +1012,7 @@ def test_migrate_envs(
     assert not root_envs.exists()
 
     # Check that the packages have been migrated to the user_data_envs() directory
-    new_envs = Path(user_data_envs())
+    new_envs = Path(USER_DATA_ENVS)
     assert new_envs.exists()
     assert len(list(new_envs.glob("*"))) == 3
 
@@ -1041,11 +1038,11 @@ def test_ignore_migrate_pkgs(
     fake_root_pkgs,
 ):
     """Test that warning messages about pkgs migration can be suppressed."""
-    # Ensure there are no packages at user_data_pkgs()
-    shutil.rmtree(user_data_pkgs(), ignore_errors=True)
+    # Ensure there are no packages at context.user_data_pkgs
+    shutil.rmtree(context.user_data_pkgs, ignore_errors=True)
 
     # Write to the .condarc to include <root prefix>/pkgs/
-    conda_cli("config", "--append", "pkgs_dirs", context._root_prefix_pkgs())
+    conda_cli("config", "--append", "pkgs_dirs", context.root_prefix_pkgs)
     reset_context()
     # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
     # things reinitializes the loggers, we need to manually reset the propagation
@@ -1076,11 +1073,11 @@ def test_ignore_migrate_envs(
     unset_condarc_envs,
 ):
     """Test that warning messages about envs migration can be suppressed."""
-    # Ensure there are no envs at user_data_envs()
-    shutil.rmtree(user_data_envs(), ignore_errors=True)
+    # Ensure there are no envs at USER_DATA_ENVS
+    shutil.rmtree(USER_DATA_ENVS, ignore_errors=True)
 
     # Write to the .condarc to include <root prefix>/envs/
-    conda_cli("config", "--append", "envs_dirs", context._root_prefix_envs())
+    conda_cli("config", "--append", "envs_dirs", context.root_prefix_envs)
     reset_context()
     # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
     # things reinitializes the loggers, we need to manually reset the propagation
@@ -1088,7 +1085,7 @@ def test_ignore_migrate_envs(
     logging.getLogger("conda").propagate = True
 
     # Create some simple envs in the root prefix
-    root_envs = Path(root_prefix_envs(context.root_prefix))
+    root_envs = Path(context.root_prefix_envs)
     shutil.rmtree(root_envs, ignore_errors=True)
 
     root_prefix_env_factory()
@@ -1126,7 +1123,7 @@ def test_migrate_pkgs_pointless(
 ):
     """Test --migrate-pkgs when there's no <root prefix>/pkgs directory."""
     # Ensure there are no packages at <root prefix>/pkgs
-    shutil.rmtree(context._root_prefix_pkgs(), ignore_errors=True)
+    shutil.rmtree(context.root_prefix_pkgs, ignore_errors=True)
 
     # Check that having no pkgs in the root doesn't raise a warning
     # We need this context manager because there's an autouse
@@ -1145,7 +1142,7 @@ def test_migrate_pkgs_pointless(
     logging.getLogger("conda").propagate = True
 
     # Post-migration, there should still be no pkgs in the root
-    root_pkgs = Path(root_prefix_pkgs(context.root_prefix, context.force_32bit))
+    root_pkgs = Path(context.root_prefix_pkgs)
     assert not root_pkgs.exists()
 
     # After migration, running the migration again should raise an error
@@ -1169,8 +1166,8 @@ def test_migrate_pkgs_always_copy(
     monkeypatch,
 ):
     """Test that migrating pkgs copies if the `always_copy` has been set."""
-    # Ensure there are no packages at user_data_pkgs()
-    shutil.rmtree(user_data_pkgs(), ignore_errors=True)
+    # Ensure there are no packages at context.user_data_pkgs
+    shutil.rmtree(context.user_data_pkgs, ignore_errors=True)
 
     monkeypatch.setenv("CONDA_ALWAYS_COPY", "true")
     reset_context()
@@ -1208,8 +1205,8 @@ def test_migrate_pkgs_always_copy(
     # these get cleaned up with `conda clean`
     assert fake_root_pkgs.exists()
 
-    # Check that the packages have been migrated to the user_data_pkgs() directory
-    new_pkgs = Path(user_data_pkgs())
+    # Check that the packages have been migrated to the context.user_data_pkgs directory
+    new_pkgs = Path(context.user_data_pkgs)
     assert new_pkgs.exists()
     assert (new_pkgs / "testpkg1").exists()
     assert (new_pkgs / "testpkg2").exists()
@@ -1241,8 +1238,8 @@ def test_migrate_pkgs_copy_fallback(
     monkeypatch,
 ):
     """Test that migrating pkgs falls back to copying if hardlinking fails."""
-    # Ensure there are no packages at user_data_pkgs()
-    shutil.rmtree(user_data_pkgs(), ignore_errors=True)
+    # Ensure there are no packages at context.user_data_pkgs
+    shutil.rmtree(context.user_data_pkgs, ignore_errors=True)
 
     # Check that having pkgs in the root triggers a warning
     # We need this context manager because there's an autouse
@@ -1296,8 +1293,8 @@ def test_migrate_pkgs_copy_fallback(
     # these get cleaned up with `conda clean`
     assert fake_root_pkgs.exists()
 
-    # Check that the packages have been migrated to the user_data_pkgs() directory
-    new_pkgs = Path(user_data_pkgs())
+    # Check that the packages have been migrated to the context.user_data_pkgs directory
+    new_pkgs = Path(context.user_data_pkgs)
     assert new_pkgs.exists()
     assert (new_pkgs / "testpkg1").exists()
     assert (new_pkgs / "testpkg2").exists()

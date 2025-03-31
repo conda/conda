@@ -32,7 +32,6 @@ from ..base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     context,
     reset_context,
-    root_prefix_pkgs,
 )
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
@@ -672,7 +671,7 @@ def unset_condarc_envs() -> None:
 @pytest.fixture
 def fake_root_pkgs():
     """Provide a fixture that temporarily creates fake packages in the root prefix."""
-    root_pkgs = Path(root_prefix_pkgs(context.root_prefix, context.force_32bit))
+    root_pkgs = Path(context.root_prefix_pkgs)
     root_pkgs.mkdir(parents=True, exist_ok=True)
     (root_pkgs / "testpkg1").touch()
     (root_pkgs / "testpkg2").touch()

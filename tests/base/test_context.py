@@ -24,12 +24,12 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
+    Context,
     channel_alias_validation,
     context,
     default_python_validation,
     get_plugin_config_data,
     reset_context,
-    user_data_pkgs,
     validate_channels,
     validate_prefix_name,
 )
@@ -954,26 +954,36 @@ def test_pkgs_envs_old_default_dirs(
     pkgs = Path(context.root_prefix) / "pkgs"
 
     with (
-        mock.patch.object(context, "_root_prefix_pkgs", return_value=str(pkgs)),
-        mock.patch.object(context, "_root_prefix_envs", return_value=str(envs)),
+        mock.patch.object(
+            Context,
+            "root_prefix_pkgs",
+            return_value=str(pkgs),
+            new_callable=mock.PropertyMock,
+        ),
+        mock.patch.object(
+            Context,
+            "root_prefix_envs",
+            return_value=str(envs),
+            new_callable=mock.PropertyMock,
+        ),
         mock.patch("conda.base.context.isdir") as mock_isdir,
         mock.patch("conda.base.context.os.listdir") as mock_listdir,
     ):
 
         def mock_isdir_ret(path):
-            if path == user_data_pkgs():
+            if path == context.user_data_pkgs:
                 return False
-            if path == context._root_prefix_pkgs():
+            if path == context.root_prefix_pkgs:
                 return True
-            if path == context._root_prefix_envs():
+            if path == context.root_prefix_envs:
                 return True
 
         def mock_listdir_ret(path):
-            if path == user_data_pkgs():
+            if path == context.user_data_pkgs:
                 return []
-            if path == context._root_prefix_pkgs():
+            if path == context.root_prefix_pkgs:
                 return ["a/", "b/", "c/"]
-            if path == context._root_prefix_envs():
+            if path == context.root_prefix_envs:
                 return ["a/", "b/", "c/"]
 
         mock_isdir.side_effect = mock_isdir_ret

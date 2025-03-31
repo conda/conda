@@ -12,7 +12,10 @@ import struct
 from enum import Enum, EnumMeta
 from os.path import join
 
+from platformdirs import user_data_dir
+
 from ..common.compat import on_win
+from ..common.path import expand
 
 PREFIX_PLACEHOLDER = (
     "/opt/anaconda1anaconda2"
@@ -334,3 +337,5 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
 NO_PLUGINS = False
+
+USER_DATA_ENVS = expand(join(user_data_dir(APP_NAME, APP_NAME), "envs"))

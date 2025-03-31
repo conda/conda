@@ -845,7 +845,6 @@ def migrate_pkgs(context, config: dict):
     :param config: Configuration dict read from `.condarc`
     """
     from .. import CondaError
-    from ..base.context import user_data_pkgs
     from ..common.path.directories import copy_dir_contents, hardlink_dir_contents
 
     key = "pkgs_dirs"
@@ -855,7 +854,7 @@ def migrate_pkgs(context, config: dict):
             "cannot be migrated."
         )
 
-    root_prefix_pkgs = context._root_prefix_pkgs()
+    root_prefix_pkgs = context.root_prefix_pkgs
     if not isdir(root_prefix_pkgs):
         raise CondaError(
             f"The root prefix ({context.root_prefix}) does not contain a `pkgs` "
@@ -866,7 +865,7 @@ def migrate_pkgs(context, config: dict):
     # be cleaned up with the next `conda clean`
     #
     # If the user wants to always copy, short-circuit hardlinking
-    dest = user_data_pkgs()
+    dest = context.user_data_pkgs
     if context.always_copy:
         copy_dir_contents(root_prefix_pkgs, dest)
         return
@@ -893,7 +892,7 @@ def migrate_envs(context, config: dict):
     :param config: Configuration dict read from `.condarc`
     """
     from .. import CondaError
-    from ..base.context import user_data_envs
+    from ..base.constants import USER_DATA_ENVS
     from ..cli.main_rename import rename
 
     logger = getLogger(__name__)
@@ -905,7 +904,7 @@ def migrate_envs(context, config: dict):
             "cannot be migrated."
         )
 
-    root_prefix_envs = context._root_prefix_envs()
+    root_prefix_envs = context.root_prefix_envs
     if not isdir(root_prefix_envs):
         raise CondaError(
             f"The root prefix ({context.root_prefix}) does not contain an `envs` "
@@ -913,8 +912,8 @@ def migrate_envs(context, config: dict):
         )
 
     failures = {}
-    dest = Path(user_data_envs())
-    root_prefix_envs = Path(context._root_prefix_envs())
+    dest = Path(USER_DATA_ENVS)
+    root_prefix_envs = Path(context.root_prefix_envs)
     for env in os.listdir(root_prefix_envs):
         try:
             rename(
