@@ -1068,7 +1068,7 @@ def test_init_cmd_exe_registry(verbose):
 @pytest.mark.skipif(not on_win, reason="windows-only test")
 def test_add_condabin_to_path_registry(verbose):
     conda_prefix = "C:\\Users\\test\\miniconda3"
-    condabin_path = "\\".join(conda_prefix, "condabin")
+    condabin_path = "\\".join([conda_prefix, "condabin"])
     target_path = "HKEY_CURRENT_USER\\Environment\\PATH"
 
     # Mock registry functions
