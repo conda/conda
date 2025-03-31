@@ -968,40 +968,42 @@ def make_condabin_plan(conda_prefix, shells, for_user, for_system, reverse=False
 
     if "cmd.exe" in shells:
         if for_user:
+            # Modify HKCU\Environment\PATH
             plan.append(
                 {
-                    "function": init_cmd_exe_registry.__name__,
+                    "function": add_condabin_to_path_registry.__name__,
                     "kwargs": {
-                        "target_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\"
-                        "Command Processor\\AutoRun",
+                        "target_path": "HKEY_CURRENT_USER\\Environment\\PATH",
                         "conda_prefix": conda_prefix,
                         "reverse": reverse,
                     },
                 }
             )
         if for_system:
+            # Modify HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PATH
             plan.append(
                 {
-                    "function": init_cmd_exe_registry.__name__,
+                    "function": add_condabin_to_path_registry.__name__,
                     "kwargs": {
-                        "target_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\"
-                        "Command Processor\\AutoRun",
+                        "target_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\"
+                                       "Session Manager\\Environment\\PATH",
                         "conda_prefix": conda_prefix,
                         "reverse": reverse,
                     },
                 }
             )
-            # it would be nice to enable this on a user-level basis, but unfortunately, it is
-            #    a system-level key only.
+            # Also ensure long paths are enabled if modifying system settings
             plan.append(
                 {
                     "function": init_long_path.__name__,
                     "kwargs": {
                         "target_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\"
-                        "FileSystem\\LongPathsEnabled"
+                                       "FileSystem\\LongPathsEnabled"
                     },
                 }
             )
+            # Note: We are *not* modifying AutoRun here for PATH changes,
+            # only the persistent PATH environment variable. AutoRun is for shell hooks.
 
     return plan
 
@@ -2031,6 +2033,56 @@ def init_cmd_exe_registry(target_path, conda_prefix, reverse=False):
             print(make_diff(prev_value, new_value))
         if not context.dry_run:
             _write_windows_registry(target_path, new_value, value_type)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
+
+
+def add_condabin_to_path_registry(target_path, conda_prefix, reverse=False):
+    # Modifies the PATH environment variable stored in the Windows registry.
+    # target_path examples:
+    #   - HKEY_CURRENT_USER\Environment\PATH
+    #   - HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PATH
+
+    prev_value, value_type = _read_windows_registry(target_path)
+    if prev_value is None:
+        prev_value = ""
+        # PATH is typically REG_EXPAND_SZ, allowing variables like %SystemRoot%
+        value_type = winreg.REG_EXPAND_SZ
+
+    condabin_path = join(conda_prefix, "condabin")
+    # Normalize for case-insensitive comparison, though registry might preserve case
+    normalized_condabin_path = condabin_path.lower()
+
+    # Split PATH, handling potential empty strings from leading/trailing/double semicolons
+    path_parts = [part for part in prev_value.split(";") if part.strip()]
+    normalized_path_parts = [part.lower() for part in path_parts]
+
+    if reverse:
+        # Remove condabin_path if present
+        new_path_parts = [
+            part
+            for part, normalized_part in zip(path_parts, normalized_path_parts)
+            if normalized_part != normalized_condabin_path
+        ]
+        new_value = ";".join(new_path_parts)
+    else:
+        # Add condabin_path if not already present (typically at the beginning)
+        if normalized_condabin_path not in normalized_path_parts:
+            # Prepend condabin_path
+            path_parts.insert(0, condabin_path)
+        new_value = ";".join(path_parts)
+
+    if prev_value != new_value:
+        if context.verbose:
+            print("\n")
+            print(target_path)
+            print(make_diff(prev_value, new_value))
+        if not context.dry_run:
+            _write_windows_registry(target_path, new_value, value_type)
+            # Notify the system about the environment change (requires user logoff/logon or restart for full effect)
+            # This part is complex and might require ctypes/pywin32 calls to SendMessageTimeout with HWND_BROADCAST
+            # For simplicity, we'll rely on the message printed by print_plan_results
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
