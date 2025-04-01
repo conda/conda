@@ -234,74 +234,6 @@ class Repodatas:
         self.success = True
 
 
-def retry_package_not_found(
-    repodata_fns: list[str],
-    index_args: dict[str, any],
-    retry_extra_errors: tuple[Exception] = (),
-):
-    """Decorator to retry running a (conda solving) function
-    The function being decorated should accept a repodata as an input 'repodata'.
-
-    :param repodata_fns: a list of the repodatas
-    :param index_args: a dict of arguments for describing the index
-    :param retry_extra_errors: a tuple of exceptions to catch and retry with the next repodata file
-    :raises Excption: if the package is not found in any of the provided repodata_fns, or one of the provided retry_extra_errors occurs
-    """
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            for repodata_fn in repodata_fns:
-                try:
-                    return func(repodata=repodata_fn, *args, **kwargs)
-                except (ResolvePackageNotFound, PackagesNotFoundError) as e:
-                    if not getattr(e, "allow_retry", True):
-                        # TODO: This is a temporary workaround to allow downstream libraries
-                        # to inject this attribute set to False and skip the retry logic
-                        # Other solvers might implement their own internal retry logic without
-                        # depending --freeze-install implicitly like conda classic does. Example
-                        # retry loop in conda-libmamba-solver:
-                        # https://github.com/conda-incubator/conda-libmamba-solver/blob/da5b1ba/conda_libmamba_solver/solver.py#L254-L299
-                        # If we end up raising UnsatisfiableError, we annotate it with `allow_retry`
-                        # so we don't have go through all the repodatas and freeze-installed logic
-                        # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
-                        # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
-                        raise e
-
-                    if repodata_fn == repodata_fns[-1]:
-                        # PackagesNotFoundError is the only exception type we want to raise.
-                        #    Over time, we should try to get rid of ResolvePackageNotFound
-                        if isinstance(e, PackagesNotFoundError):
-                            raise e
-                        else:
-                            channels_urls = tuple(
-                                calculate_channel_urls(
-                                    channel_urls=index_args["channel_urls"],
-                                    prepend=index_args["prepend"],
-                                    platform=None,
-                                    use_local=index_args["use_local"],
-                                )
-                            )
-                            # convert the ResolvePackageNotFound into PackagesNotFoundError
-                            raise PackagesNotFoundError(
-                                e._formatted_chains, channels_urls
-                            )
-                except Exception as e:
-                    # If the exception is:
-                    # 1. not in the list of exceptions that should be retried OR
-                    # 2. their are no more repodata files to try,
-                    # then we must raise the exception
-                    if (
-                        type(e) not in retry_extra_errors
-                        or repodata_fn == repodata_fns[-1]
-                    ):
-                        raise e
-
-        return wrapper
-
-    return decorator
-
-
 def validate_install_command(prefix: str, newenv: bool):
     """Executes a set of validations that are required before any installation
     command is executed.
@@ -534,24 +466,23 @@ def install_revision(args, parser):
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    @retry_package_not_found(repodata_fns=repodata_fns, index_args=index_args)
-    def get_revision_transactions(repodata):
-        with get_spinner(f"Collecting package metadata ({repodata})"):
-            index = get_index(
-                channel_urls=index_args["channel_urls"],
-                prepend=index_args["prepend"],  # --override-channels
-                platform=None,
-                use_local=index_args["use_local"],  # --use-local
-                # use_cache=index_args["use_cache"],  # --use-index-cache
-                # unknown=index_args["unknown"],  # --unknown
-                prefix=prefix,
-                repodata_fn=repodata,
-            )
-        revision_idx = get_revision(args.revision)
-        with get_spinner(f"Reverting to revision {revision_idx}"):
-            return revert_actions(prefix, revision_idx, index)
+    for repodata_fn in Repodatas(repodata_fns, index_args):
+        with repodata_fn as repodata:
+            with get_spinner(f"Collecting package metadata ({repodata})"):
+                index = get_index(
+                    channel_urls=index_args["channel_urls"],
+                    prepend=index_args["prepend"],  # --override-channels
+                    platform=None,
+                    use_local=index_args["use_local"],  # --use-local
+                    # use_cache=index_args["use_cache"],  # --use-index-cache
+                    # unknown=index_args["unknown"],  # --unknown
+                    prefix=prefix,
+                    repodata_fn=repodata,
+                )
+            revision_idx = get_revision(args.revision)
+            with get_spinner(f"Reverting to revision {revision_idx}"):
+                unlink_link_transaction = revert_actions(prefix, revision_idx, index)
 
-    unlink_link_transaction = get_revision_transactions()
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 
 
