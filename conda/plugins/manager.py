@@ -22,7 +22,7 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import CondaValueError, InvalidInstaller, PluginError
 from . import (
     post_solves,
     prefix_data_loaders,
@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaInstaller,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -231,6 +232,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["prefix_data_loaders"]
     ) -> list[CondaPrefixDataLoader]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["installers"]
+    ) -> list[CondaInstaller]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -475,6 +481,24 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
+
+    def get_installer(self, installer_name: str) -> CondaInstaller:
+        """
+        Returns the installer registered for the given installer name.
+        Raises PluginError if more than one installer is found for the same installer name.
+        Raises InvalidInstaller if no installer were found for that installer name.
+        """
+        found = []
+        for hook in self.get_hook_results("installers"):
+            if installer_name in hook.types:
+                found.append(hook)
+        if len(found) == 1:
+            return found[0]
+        if found:
+            names = ", ".join([hook.name for hook in found])
+            raise PluginError(f"Too many env installers registered for '{installer_name}': {names}")
+        raise InvalidInstaller(f"Could not find env installer for '{installer_name}'.")
+
 
 
 @functools.cache
