@@ -872,7 +872,7 @@ def migrate_pkgs(context, config: dict):
 
     try:
         hardlink_dir_contents(root_prefix_pkgs, dest)
-    except NotImplementedError:
+    except (NotImplementedError, OSError):
         # Hardlinks are not supported on all platforms, or between different
         # filesystems; fall back a simple recursive copy instead.
         copy_dir_contents(root_prefix_pkgs, dest)
