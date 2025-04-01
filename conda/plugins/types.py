@@ -21,7 +21,7 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, TypeAlias
+    from typing import Any, Callable, Iterable, TypeAlias
 
     from ..common.configuration import Parameter
     from ..common.path import PathType
@@ -371,3 +371,31 @@ class CondaPrefixDataLoader:
 
     name: str
     loader: CondaPrefixDataLoaderCallable
+
+
+class InstallerBase(ABC):
+    """
+    Base class for all conda installer plugins.
+    """
+
+    @abstractmethod
+    def install(self, prefix: str, specs: Iterable[str], **kwargs): ...
+
+    @abstractmethod
+    def dry_run(self, prefix: str, specs: Iterable[str], **kwargs): ...
+
+
+@dataclass
+class CondaInstaller:
+    """
+    Return type to use when defining a conda installer plugin hook.
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_installers`.
+    :param name: name of the installer (e.g., ``pip``)
+    :param types: the names of the types of packages it can install (e.g. conda, pip).
+    :param installer: InstallerBase subclass handler.
+    """
+
+    name: str
+    types: Iterable[str]
+    installer: type[InstallerBase]
