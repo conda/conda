@@ -41,8 +41,7 @@ class PluginConfig(Configuration):
     because ``CondaPluginManager`` has access to all registered plugin settings via the settings
     plugin hook.
     """
-
-parameter_names: tuple[str, ...] = ()
+    parameter_names: tuple[str, ...] = ()
 
     @classmethod
     def add_plugin_setting(
