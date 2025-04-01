@@ -171,7 +171,9 @@ def get_revision(arg, json=False):
 
 
 class TryRepodata:
-    def __init__(self, notify_success, repodata, last_repodata, index_args, allowed_errors):
+    def __init__(
+        self, notify_success, repodata, last_repodata, index_args, allowed_errors
+    ):
         self.notify_success = notify_success
         self.repodata = repodata
         self.last_repodata = last_repodata
@@ -200,8 +202,10 @@ class TryRepodata:
         # so we don't have go through all the repodatas and freeze-installed logic
         # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
         # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
-        if (exc_type in self.allowed_errors) and (self.repodata != self.last_repodata) and getattr(
-            exc_value, "allow_retry", True
+        if (
+            (exc_type in self.allowed_errors)
+            and (self.repodata != self.last_repodata)
+            and getattr(exc_value, "allow_retry", True)
         ):
             return True
         elif exc_type == ResolvePackageNotFound:
@@ -223,12 +227,19 @@ class Repodatas:
         self.repodata_fns = repodata_fns
         self.index_args = index_args
         self.success = False
-        self.allowed_errors = (ResolvePackageNotFound, PackagesNotFoundError) + allows_errors
+        self.allowed_errors = (
+            ResolvePackageNotFound,
+            PackagesNotFoundError,
+        ) + allows_errors
 
     def __iter__(self):
         for repodata in self.repodata_fns:
             yield TryRepodata(
-                self.succeed, repodata, self.repodata_fns[-1], self.index_args, self.allowed_errors
+                self.succeed,
+                repodata,
+                self.repodata_fns[-1],
+                self.index_args,
+                self.allowed_errors,
             )
             if self.success:
                 break
@@ -404,7 +415,11 @@ def install(args, parser, command="install"):
     if isupdate:
         deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
-    for repodata_fn in Repodatas(repodata_fns, index_args, (UnsatisfiableError, SpecsConfigurationConflictError, SystemExit)):
+    for repodata_fn in Repodatas(
+        repodata_fns,
+        index_args,
+        (UnsatisfiableError, SpecsConfigurationConflictError, SystemExit),
+    ):
         with repodata_fn as repodata:
             solver_backend = context.plugin_manager.get_cached_solver_backend()
             solver = solver_backend(
