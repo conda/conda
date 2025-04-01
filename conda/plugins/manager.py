@@ -28,6 +28,7 @@ from ..exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
+    InvalidInstaller,
     PluginError,
 )
 from . import (
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaInstaller,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -273,6 +275,9 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
+
+    @overload
+    def get_hook_results(self, name: Literal["installers"]) -> list[CondaInstaller]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -826,6 +831,24 @@ class CondaPluginManager(pluggy.PluginManager):
             )
             for hook in self.get_hook_results("post_transaction_actions")
         ]
+
+    def get_installer(self, installer_name: str) -> CondaInstaller:
+        """
+        Returns the installer registered for the given installer name.
+        Raises PluginError if more than one installer is found for the same installer name.
+        Raises InvalidInstaller if no installer were found for that installer name.
+        """
+        found = []
+        for hook in self.get_hook_results("installers"):
+            if installer_name in hook.types:
+                found.append(hook)
+        if len(found) == 1:
+            return found[0]
+        if found:
+            names = ", ".join([hook.name for hook in found])
+            raise PluginError(f"Too many env installers registered for '{installer_name}': {names}")
+        raise InvalidInstaller(f"Could not find env installer for '{installer_name}'.")
+
 
 
 @functools.cache
