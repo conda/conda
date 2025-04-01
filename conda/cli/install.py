@@ -11,7 +11,6 @@ conda.cli.main_remove for the entry points into this module.
 from __future__ import annotations
 
 import os
-from functools import wraps
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, isfile, join
 from pathlib import Path
@@ -199,7 +198,9 @@ class TryRepodata:
         # so we don't have go through all the repodatas and freeze-installed logic
         # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
         # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
-        if (self.repodata != self.last_repodata) and getattr(exc_value, "allow_retry", True):
+        if (self.repodata != self.last_repodata) and getattr(
+            exc_value, "allow_retry", True
+        ):
             return True
         elif exc_type == ResolvePackageNotFound:
             # transform a ResolvePackageNotFound into PackagesNotFoundError
@@ -212,10 +213,7 @@ class TryRepodata:
                 )
             )
             # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(
-                exc_value._formatted_chains, channels_urls
-            )
-
+            raise PackagesNotFoundError(exc_value._formatted_chains, channels_urls)
 
 
 class Repodatas:
@@ -226,7 +224,9 @@ class Repodatas:
 
     def __iter__(self):
         for repodata in self.repodata_fns:
-            yield TryRepodata(self.succeed, repodata, self.repodata_fns[-1], self.index_args)
+            yield TryRepodata(
+                self.succeed, repodata, self.repodata_fns[-1], self.index_args
+            )
             if self.success:
                 break
 
