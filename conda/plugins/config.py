@@ -42,6 +42,8 @@ class PluginConfig(Configuration):
     plugin hook.
     """
 
+parameter_names: tuple[str, ...] = ()
+
     @classmethod
     def add_plugin_setting(
         cls, name: str, parameter: Parameter, aliases: tuple[str, ...] = ()
@@ -49,7 +51,7 @@ class PluginConfig(Configuration):
         """
         Adds a setting to the :class:`PluginConfig` class
         """
-        cls.parameter_names = cls.parameter_names + (name,)
+        cls.parameter_names = (*cls.parameter_names, name)
         loader = ParameterLoader(parameter, aliases=aliases)
         name = loader._set_name(name)
         setattr(cls, name, loader)

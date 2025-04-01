@@ -2202,9 +2202,9 @@ def _first_writable_envs_dir():
 
 
 @deprecated(
-    "25.3",
     "25.9",
-    addendum="Use `conda.base.context.plugins.raw_data` instead.",
+    "26.3",
+    addendum="Use `conda.base.context.context.plugins.raw_data` instead.",
 )
 def get_plugin_config_data(
     data: dict[Path, dict[str, RawParameter]],
@@ -2215,8 +2215,8 @@ def get_plugin_config_data(
 
 
 @deprecated(
-    "25.3",
     "25.9",
+    "26.3",
     addendum="Use `conda.plugins.config.PluginConfig.add_plugin_setting` instead.",
 )
 def add_plugin_setting(
@@ -2230,8 +2230,8 @@ def add_plugin_setting(
 
 
 @deprecated(
-    "25.3",
     "25.9",
+    "26.3",
     addendum="Use `conda.plugins.config.PluginConfig.remove_all_plugin_settings` instead.",
 )
 def remove_all_plugin_settings() -> None:
