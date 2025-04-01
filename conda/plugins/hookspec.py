@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentSpecifier,
+        CondaInstaller,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -564,6 +565,44 @@ class CondaSpecs:
                 yield plugins.CondaEnvSpec(
                     name="random",
                     environment_spec=RandomSpec,
+                )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_installers(self) -> Iterable[CondaInstaller]:
+        """
+        Register new 'conda env' installer.
+        The example below defines a simple pip installer:
+        
+        **Example:**
+        
+        .. code-block:: python
+
+            import sys
+            from subprocess import run
+            from conda import plugins
+            from conda.plugins.types import CondaInstaller, InstallerBase
+            python = sys.executable
+
+
+            class MyPipInstaller(InstallerBase):
+                def __init__(self, **kwargs):
+                    pass
+
+                def install(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
+                    return ["installing {specs} into {prefix}"]
+
+                def dry_run(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
+                    return ["DRYRUN: installing {specs} into {prefix}"]
+
+
+            @plugins.hookimpl
+            def conda_installers():
+                yield CondaInstaller(
+                    name="pip",
+                    types=["pip"],
+                    installer=MyPipInstaller,
                 )
         """
         yield from ()
