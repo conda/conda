@@ -11,7 +11,7 @@ from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
-from os.path import basename, isdir
+from os.path import basename, dirname, isdir, join
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_call, check_output
@@ -2740,3 +2740,25 @@ def test_python_site_packages_path(
     with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
         sp_dir = "lib/python3.99t/site-packages"
         assert (prefix / sp_dir / "sample.py").is_file()
+
+
+def test_dont_allow_mixed_file_arguments(
+    tmp_path: Path,
+    conda_cli: CondaCLIFixture,
+):
+    """
+    Test that conda will return an error when multiple --file arguments of different
+    types are specified
+    """
+    explicit_file = join(dirname(__file__), "support", "explicit.txt")
+    simple_requirements = join(dirname(__file__), "support", "simple_requirements.txt") 
+
+    stdout, stderr, exc = conda_cli(
+        "create",
+        f"--prefix={tmp_path}",
+        f"--file {explicit_file}",
+        f"--file {simple_requirements}",
+        "--yes",
+        raises=CondaError,
+    )
+    assert exc.match("can not mix `file` types")
