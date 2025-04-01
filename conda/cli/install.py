@@ -171,11 +171,12 @@ def get_revision(arg, json=False):
 
 
 class TryRepodata:
-    def __init__(self, notify_success, repodata, last_repodata, index_args):
+    def __init__(self, notify_success, repodata, last_repodata, index_args, allowed_errors):
         self.notify_success = notify_success
         self.repodata = repodata
         self.last_repodata = last_repodata
         self.index_args = index_args
+        self.allowed_errors = allowed_errors
 
     def __enter__(self):
         return self.repodata
@@ -185,10 +186,11 @@ class TryRepodata:
             self.notify_success()
 
         # Swallow the error to allow for the next repodata to be tried if:
-        # 1. there are more repodatas to try AND
-        # 2. the error says it's okay to retry
+        # 1. the error is in the 'allowed_errors' type
+        # 2. there are more repodatas to try AND
+        # 3. the error says it's okay to retry
         #
-        # TODO: Regarding (2) This is a temporary workaround to allow downstream libraries
+        # TODO: Regarding (3) This is a temporary workaround to allow downstream libraries
         # to inject this attribute set to False and skip the retry logic
         # Other solvers might implement their own internal retry logic without
         # depending --freeze-install implicitly like conda classic does. Example
@@ -198,7 +200,7 @@ class TryRepodata:
         # so we don't have go through all the repodatas and freeze-installed logic
         # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
         # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
-        if (self.repodata != self.last_repodata) and getattr(
+        if (exc_type in self.allowed_errors) and (self.repodata != self.last_repodata) and getattr(
             exc_value, "allow_retry", True
         ):
             return True
@@ -217,15 +219,16 @@ class TryRepodata:
 
 
 class Repodatas:
-    def __init__(self, repodata_fns, index_args):
+    def __init__(self, repodata_fns, index_args, allows_errors=()):
         self.repodata_fns = repodata_fns
         self.index_args = index_args
         self.success = False
+        self.allowed_errors = (ResolvePackageNotFound, PackagesNotFoundError) + allows_errors
 
     def __iter__(self):
         for repodata in self.repodata_fns:
             yield TryRepodata(
-                self.succeed, repodata, self.repodata_fns[-1], self.index_args
+                self.succeed, repodata, self.repodata_fns[-1], self.index_args, self.allowed_errors
             )
             if self.success:
                 break
@@ -401,7 +404,7 @@ def install(args, parser, command="install"):
     if isupdate:
         deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
-    for repodata_fn in Repodatas(repodata_fns, index_args):
+    for repodata_fn in Repodatas(repodata_fns, index_args, (UnsatisfiableError, SpecsConfigurationConflictError, SystemExit)):
         with repodata_fn as repodata:
             solver_backend = context.plugin_manager.get_cached_solver_backend()
             solver = solver_backend(
