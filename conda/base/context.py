@@ -707,7 +707,14 @@ class Context(Configuration):
             return self._prefix_envs_dirs()
 
         prefix_dir = self.root_prefix_envs
-        if isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0:
+
+        # Look for subdirectories which could be conda environments; only those with a
+        # file located at "conda-meta/history" are real environments
+        found_envs = [
+            isfile(join(prefix_dir, subdir, PREFIX_MAGIC_FILE))
+            for subdir in os.listdir(prefix_dir)
+        ]
+        if isdir(prefix_dir) and len(found_envs) > 0:
             # Prefix location is in use; emit warning message.
             log.warning(
                 "conda is using the root prefix for the envs directory "

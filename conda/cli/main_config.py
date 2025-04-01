@@ -19,6 +19,8 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
+from conda.gateways.disk.test import is_conda_environment
+
 from ..base.constants import DEFAULTS_CHANNEL_NAME
 
 if TYPE_CHECKING:
@@ -915,20 +917,21 @@ def migrate_envs(context, config: dict):
     dest = Path(USER_DATA_ENVS)
     root_prefix_envs = Path(context.root_prefix_envs)
     for env in os.listdir(root_prefix_envs):
-        try:
-            rename(
-                source=str(root_prefix_envs / env),
-                destination=str(dest / env),
-                dry_run=False,
-                force=False,
-                quiet=True,
-                json=False,
-            )
-        except Exception as e:
-            logger.warning(
-                f"Failed to migrate environment at {env} to {dest}. Reason: {e}"
-            )
-            failures[env] = e
+        if is_conda_environment(env):
+            try:
+                rename(
+                    source=str(root_prefix_envs / env),
+                    destination=str(dest / env),
+                    dry_run=False,
+                    force=False,
+                    quiet=True,
+                    json=False,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to migrate environment at {env} to {dest}. Reason: {e}"
+                )
+                failures[env] = e
 
     if failures:
         raise CondaError(
