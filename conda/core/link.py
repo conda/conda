@@ -1386,6 +1386,18 @@ class UnlinkLinkTransaction:
                     left_str,
                     f"{right_str} {' '.join(link_prec.metadata)}",
                 )
+
+        if change_report.changed_precs:
+            builder.append("\nThe following packages will be CHANGED:\n")
+            for namekey in sorted(change_report.changed_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.changed_precs[namekey]
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {' '.join(link_prec.metadata)}",
+                )
+
         builder.append("")
         builder.append("")
         return "\n".join(builder)
