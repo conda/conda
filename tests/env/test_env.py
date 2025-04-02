@@ -411,3 +411,16 @@ def test_parse_environment_v2():
                 - some-test-dependency-only-on-pypi
         """)
     EnvironmentV2.from_yaml(yml_str)
+
+
+@pytest.mark.parametrize(
+    ("filename"),
+    [
+        "simple.yml",
+        "valid_keys.yml",
+        "invalid_keys.yml",
+    ],
+)
+def test_returns_environment_v2(filename):
+    env = EnvironmentV2.from_file(support_file(filename))
+    assert env

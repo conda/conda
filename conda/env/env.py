@@ -343,6 +343,20 @@ class EnvironmentV2(EnvironmentBase):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> EnvironmentV2:
+        """Create a new EnvironmentV2 instance from a dictionary.
+
+        Shell variables in channels are automatically expanded.
+
+        Parameters
+        ----------
+        data : dict[str, Any]
+            Serialized EnvironmentV2 object
+
+        Returns
+        -------
+        EnvironmentV2
+            A new EnvironmentV2 instance
+        """
         requirements = Requirements(
             raw_requirements=data.get("requirements"),
             raw_pypi_requirements=data.get("pypi-requirements"),
@@ -361,7 +375,7 @@ class EnvironmentV2(EnvironmentBase):
             groups=groups,
             description=data.get("description"),
             config=EnvironmentConfig(
-                channels=data.get("channels"),
+                channels=[os.path.expandvars(ch) for ch in data.get("channels", [])],
                 channel_priority=data.get("channel-priority"),
                 repodata_fn=data.get("repodata-fn"),
                 variables=data.get("variables", {}),
