@@ -1,0 +1,5 @@
+[tool.conda.environment]
+dependencies = [
+  "numpy",
+]
+name = "test"
