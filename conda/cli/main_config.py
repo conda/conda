@@ -7,7 +7,6 @@ Allows for programmatically interacting with conda's configuration files (e.g., 
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from argparse import SUPPRESS
@@ -263,16 +262,16 @@ def format_dict(d):
 
 
 def parameter_description_builder(name):
-    from ..auxlib.entity import EntityEncoder
     from ..base.context import context
     from ..common.serialize import yaml_round_trip_dump
+    from ..json import dumps, loads
 
     builder = []
     details = context.describe_parameter(name)
     aliases = details["aliases"]
     string_delimiter = details.get("string_delimiter")
     element_types = details["element_types"]
-    default_value_str = json.dumps(details["default_value"], cls=EntityEncoder)
+    default_value_str = dumps(details["default_value"])
 
     if details["parameter_type"] == "primitive":
         builder.append(
@@ -298,7 +297,7 @@ def parameter_description_builder(name):
     builder = ["# " + line for line in builder]
 
     builder.extend(
-        yaml_round_trip_dump({name: json.loads(default_value_str)}).strip().split("\n")
+        yaml_round_trip_dump({name: loads(default_value_str)}).strip().split("\n")
     )
 
     builder = ["# " + line for line in builder]
@@ -521,7 +520,6 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
 
 def execute_config(args, parser):
     from .. import CondaError
-    from ..auxlib.entity import EntityEncoder
     from ..base.context import (
         _warn_defaults_deprecation,
         context,
@@ -533,6 +531,7 @@ def execute_config(args, parser):
     from ..common.serialize import yaml_round_trip_load
     from ..exceptions import EnvironmentLocationNotFound
     from ..gateways.disk.test import is_conda_environment
+    from ..json import dumps
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -542,15 +541,12 @@ def execute_config(args, parser):
     if args.show_sources:
         if context.json:
             stdout_write(
-                json.dumps(
+                dumps(
                     {
                         str(source): values
                         for source, values in context.collect_all().items()
                     },
                     sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
-                    cls=EntityEncoder,
                 )
             )
         else:
@@ -579,15 +575,7 @@ def execute_config(args, parser):
 
         d = {key: getattr(context, key) for key in paramater_names}
         if context.json:
-            stdout_write(
-                json.dumps(
-                    d,
-                    sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
-                    cls=EntityEncoder,
-                )
-            )
+            stdout_write(dumps(d, sort_keys=True))
         else:
             # Add in custom formatting
             if "custom_channels" in d:
@@ -627,12 +615,9 @@ def execute_config(args, parser):
                 )
             if context.json:
                 stdout_write(
-                    json.dumps(
+                    dumps(
                         [context.describe_parameter(name) for name in paramater_names],
                         sort_keys=True,
-                        indent=2,
-                        separators=(",", ": "),
-                        cls=EntityEncoder,
                     )
                 )
             else:
@@ -654,12 +639,9 @@ def execute_config(args, parser):
                     )
                 )
                 stdout_write(
-                    json.dumps(
+                    dumps(
                         [context.describe_parameter(name) for name in paramater_names],
                         sort_keys=True,
-                        indent=2,
-                        separators=(",", ": "),
-                        cls=EntityEncoder,
                     )
                 )
             else:
