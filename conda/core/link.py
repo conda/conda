@@ -206,6 +206,7 @@ class ChangeReport(NamedTuple):
     downgraded_precs: Iterable[PackageRecord]
     superseded_precs: Iterable[PackageRecord]
     fetch_precs: Iterable[PackageRecord]
+    changed_precs: Iterable[PackageRecord]
 
 
 class UnlinkLinkTransaction:
@@ -1408,9 +1409,12 @@ class UnlinkLinkTransaction:
         # updated means a version increase, or a build number increase
         # downgraded means a version decrease, or build number decrease, but channel canonical_name
         #   has to be the same
-        # superseded then should be everything else left over
+        # changed means the version and channel canonical_name is the same, but the build variant
+        #   is different
+        # superseded then should be everything else left over (eg. changed channel)
         updated_precs = {}
         downgraded_precs = {}
+        changed_precs = {}
         superseded_precs = {}
 
         common_namekeys = link_namekeys & unlink_namekeys
@@ -1419,6 +1423,7 @@ class UnlinkLinkTransaction:
             unlink_vo = VersionOrder(unlink_prec.version)
             link_vo = VersionOrder(link_prec.version)
             build_number_increases = link_prec.build_number > unlink_prec.build_number
+
             if link_vo == unlink_vo and build_number_increases or link_vo > unlink_vo:
                 updated_precs[namekey] = (unlink_prec, link_prec)
             elif (
@@ -1429,7 +1434,10 @@ class UnlinkLinkTransaction:
                     # noarch: python packages are re-linked on a python version change
                     # just leave them out of the package report
                     continue
-                downgraded_precs[namekey] = (unlink_prec, link_prec)
+                if link_vo == unlink_vo and link_prec.build != unlink_prec.build:
+                    changed_precs[namekey] = (unlink_prec, link_prec)
+                else:
+                    downgraded_precs[namekey] = (unlink_prec, link_prec)
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)
 
@@ -1444,6 +1452,7 @@ class UnlinkLinkTransaction:
             downgraded_precs,
             superseded_precs,
             fetch_precs,
+            changed_precs,
         )
         return change_report
 
