@@ -206,7 +206,7 @@ class ChangeReport(NamedTuple):
     downgraded_precs: Iterable[PackageRecord]
     superseded_precs: Iterable[PackageRecord]
     fetch_precs: Iterable[PackageRecord]
-    changed_precs: Iterable[PackageRecord]
+    revised_precs: Iterable[PackageRecord]
 
 
 class UnlinkLinkTransaction:
@@ -1387,10 +1387,10 @@ class UnlinkLinkTransaction:
                     f"{right_str} {' '.join(link_prec.metadata)}",
                 )
 
-        if change_report.changed_precs:
-            builder.append("\nThe following packages will be CHANGED:\n")
-            for namekey in sorted(change_report.changed_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.changed_precs[namekey]
+        if change_report.revised_precs:
+            builder.append("\nThe following packages will be REVISED:\n")
+            for namekey in sorted(change_report.revised_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.revised_precs[namekey]
                 left_str, right_str = diff_strs(unlink_prec, link_prec)
                 add_double(
                     strip_global(namekey),
@@ -1426,7 +1426,7 @@ class UnlinkLinkTransaction:
         # superseded then should be everything else left over (eg. changed channel)
         updated_precs = {}
         downgraded_precs = {}
-        changed_precs = {}
+        revised_precs = {}
         superseded_precs = {}
 
         common_namekeys = link_namekeys & unlink_namekeys
@@ -1447,7 +1447,7 @@ class UnlinkLinkTransaction:
                     # just leave them out of the package report
                     continue
                 if link_vo == unlink_vo and link_prec.build != unlink_prec.build:
-                    changed_precs[namekey] = (unlink_prec, link_prec)
+                    revised_precs[namekey] = (unlink_prec, link_prec)
                 else:
                     downgraded_precs[namekey] = (unlink_prec, link_prec)
             else:
@@ -1464,7 +1464,7 @@ class UnlinkLinkTransaction:
             downgraded_precs,
             superseded_precs,
             fetch_precs,
-            changed_precs,
+            revised_precs,
         )
         return change_report
 

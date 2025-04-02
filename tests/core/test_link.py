@@ -5,10 +5,10 @@ from conda.core import link
 from conda.models.records import PackageRecord
 
 
-def test_calculate_change_report_changed_variant():
+def test_calculate_change_report_revised_variant():
     """
     Test to ensure that the change report will categorize a change in variant as
-    a "CHANGED" package.
+    a "REVISED" package.
     """
     unlink_precs = [
         PackageRecord(
@@ -39,7 +39,7 @@ def test_calculate_change_report_changed_variant():
         "notarealprefix", unlink_precs, link_precs, (), (), ()
     )
 
-    assert change_report.changed_precs.get("global:mypackage") is not None
+    assert change_report.revised_precs.get("global:mypackage") is not None
 
 
 def test_calculate_change_report_downgrade():
