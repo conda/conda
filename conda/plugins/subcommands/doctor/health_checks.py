@@ -16,7 +16,7 @@ from ....core.envs_manager import get_user_environments_txt_file
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
-from ... import CondaHealthCheck, hookimpl
+from ... import CondaHealthCheck, hookimpl, manager
 
 logger = getLogger(__name__)
 
@@ -175,6 +175,16 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
             )
 
 
+def consistent_env_check(prefix: str, verbose: bool) -> None:
+    pm = manager.CondaPluginManager()
+    pm.load_setuptools_entrypoints("conda")
+    print(
+        "Available plugins:", pm.get_plugins()
+    )  # print available plugins for debugging
+    solver = pm.get_solver_backend()
+    print("SOLVER:", solver)  # debugging print statement
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
@@ -182,4 +192,7 @@ def conda_health_checks():
     yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)
     yield CondaHealthCheck(
         name="REQUESTS_CA_BUNDLE Check", action=requests_ca_bundle_check
+    )
+    yield CondaHealthCheck(
+        name="Consistent Environment Check", action=consistent_env_check
     )
