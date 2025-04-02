@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import shutil
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -296,18 +297,30 @@ def test_rename_with_force_and_dry_run(
     assert not err
 
 
-def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: str):
+def test_protected_dirs_error_for_rename(
+    conda_cli: CondaCLIFixture, env_in_root_prefix: str
+):
     with pytest.raises(CondaEnvException) as error:
         conda_cli(
             "rename",
-            f"--prefix={context.root_prefix}/envs",
-            env_one,
+            f"--prefix={str(Path(context.root_prefix) / 'envs')}",
+            env_in_root_prefix,
         )
 
     assert (
         "appears to be a top level directory within an existing conda environment"
         in str(error.value)
     )
+
+    # Clean up: remove the environment and the envs directory
+    conda_cli(
+        "env",
+        "remove",
+        "-p",
+        str(Path(context.root_prefix) / "envs" / env_in_root_prefix),
+        "--yes",
+    )
+    shutil.rmtree(Path(context.root_prefix) / "envs")
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")

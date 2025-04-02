@@ -69,6 +69,7 @@ from .constants import (
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    USER_DATA_ENVS,
     ChannelPriority,
     DepsModifier,
     PathConflict,
@@ -135,22 +136,6 @@ def user_data_dir(  # noqa: F811
     from platformdirs import user_data_dir
 
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
-
-
-def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
-    if root_writable:
-        fixed_dirs = [
-            join(root_prefix, "envs"),
-            join("~", ".conda", "envs"),
-        ]
-    else:
-        fixed_dirs = [
-            join("~", ".conda", "envs"),
-            join(root_prefix, "envs"),
-        ]
-    if on_win:
-        fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
-    return tuple(IndexedSet(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
 
 
 def channel_alias_validation(value):
@@ -715,25 +700,101 @@ class Context(Configuration):
         return False
 
     @property
-    def envs_dirs(self):
-        return mockable_context_envs_dirs(
-            self.root_writable, self.root_prefix, self._envs_dirs
-        )
+    def envs_dirs(self) -> tuple[IndexedSet]:
+        """Get the env_dirs for the environment.
+
+        :return: Directories where envs are stored
+        """
+        if self._envs_dirs:
+            # User has already specified what directories to use. Use the legacy behavior
+            # (which in this case _doesn't_ mean just use the directories specified in
+            # the configuration)
+            return self._prefix_envs_dirs()
+
+        prefix_dir = self.root_prefix_envs
+
+        # Look for subdirectories which could be conda environments; only those with a
+        # file located at "conda-meta/history" are real environments
+        found_envs = [
+            isfile(join(prefix_dir, subdir, PREFIX_MAGIC_FILE))
+            for subdir in os.listdir(prefix_dir)
+        ]
+        if isdir(prefix_dir) and len(found_envs) > 0:
+            # Prefix location is in use; emit warning message.
+            log.warning(
+                "conda is using the root prefix for the envs directory "
+                f"({prefix_dir}). To migrate all environments to use the new default "
+                "location, run `conda config --migrate-envs`. To silence "
+                "this message and continue using the current prefix locations, run "
+                f"`conda config --append envs_dirs {prefix_dir}`"
+            )
+            return self._prefix_envs_dirs()
+
+        # User has not specified what directories to use, and the legacy
+        # directories are not in use. We can safely use the new directories.
+        return tuple(set((USER_DATA_ENVS,)))
 
     @property
-    def pkgs_dirs(self):
+    def pkgs_dirs(self) -> tuple[IndexedSet]:
+        """Get the pkgs_dirs for the environment.
+
+        :return: Directories where pkgs are stored
+        """
+        if self._pkgs_dirs:
+            # User has already specified what directories to use
+            return self._prefix_pkgs_dirs()
+
+        user_pkgs = self.user_data_pkgs
+        prefix_dir = self.root_prefix_pkgs
+        if (isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0) and not isdir(
+            user_pkgs
+        ):
+            # Prefix location is in use and user data is not; emit warning message
+            log.warning(
+                "conda is using the root prefix for the pkgs directory "
+                f"({prefix_dir}). To migrate all environments to use the new default "
+                "location, run `conda config --migrate-pkgs`. To silence "
+                "this message and continue using the current prefix locations, run "
+                f"`conda config --append pkgs_dirs {prefix_dir}`"
+            )
+            return self._prefix_pkgs_dirs()
+
+        # User has not specified what directories to use, and the legacy
+        # directories are not in use. We can safely use the new directories.
+        return tuple(set((self.user_data_pkgs,)))
+
+    def _prefix_envs_dirs(self) -> tuple[IndexedSet]:
+        if self.root_writable:
+            fixed_dirs = [
+                self.root_prefix_envs,
+                join("~", ".conda", "envs"),
+            ]
+        else:
+            fixed_dirs = [
+                join("~", ".conda", "envs"),
+                self.root_prefix_envs,
+            ]
+        if on_win:
+            fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+        return tuple(
+            IndexedSet(expand(path) for path in (*self._envs_dirs, *fixed_dirs))
+        )
+
+    def _prefix_pkgs_dirs(self):
         if self._pkgs_dirs:
             return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
             cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
-            fixed_dirs = (
-                self.root_prefix,
-                join("~", ".conda"),
-            )
+            fixed_dirs = (join("~", ".conda"),)
             if on_win:
                 fixed_dirs += (user_data_dir(APP_NAME, APP_NAME),)
             return tuple(
-                IndexedSet(expand(join(p, cache_dir_name)) for p in (fixed_dirs))
+                IndexedSet(
+                    (
+                        self.root_prefix_pkgs,
+                        *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
+                    )
+                )
             )
 
     @memoizedproperty
@@ -1936,6 +1997,23 @@ class Context(Configuration):
                 Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
                 """
             ),
+        )
+
+    @property
+    def root_prefix_envs(self) -> os.PathLike:
+        return expand(join(self.root_prefix, "envs"))
+
+    @property
+    def root_prefix_pkgs(self) -> os.PathLike:
+        return expand(join(self.root_prefix, "pkgs32" if self.force_32bit else "pkgs"))
+
+    @property
+    def user_data_pkgs(self) -> os.PathLike:
+        return expand(
+            join(
+                user_data_dir(APP_NAME, APP_NAME),
+                "pkgs32" if self.force_32bit else "pkgs",
+            )
         )
 
 

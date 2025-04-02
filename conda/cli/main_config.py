@@ -14,10 +14,12 @@ from argparse import SUPPRESS
 from collections.abc import Mapping, Sequence
 from itertools import chain
 from logging import getLogger
-from os.path import isfile, join
+from os.path import isdir, isfile, join
 from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
+
+from conda.gateways.disk.test import is_conda_environment
 
 from ..base.constants import DEFAULTS_CHANNEL_NAME
 
@@ -214,6 +216,24 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--stdin",
         action="store_true",
         help="Apply configuration information given in yaml format piped through stdin.",
+    )
+    config_modifiers.add_argument(
+        "--migrate-envs",
+        action="store_true",
+        help=(
+            "Migrate the contents of the default envs/ directory out from the base "
+            "environment to the user config directory. Migration can only be "
+            "completed if envs_dirs is unset in the conda configuration."
+        ),
+    )
+    config_modifiers.add_argument(
+        "--migrate-pkgs",
+        action="store_true",
+        help=(
+            "Migrate the contents of the default pkgs/ directory out from the base "
+            "environment to the user config directory. Migration can only be "
+            "completed if pkgs_dirs is unset in the conda configuration."
+        ),
     )
 
     p.add_argument(
@@ -801,6 +821,12 @@ def execute_config(args, parser):
     for key in args.remove_key:
         _remove_key(key, rc_config)
 
+    if args.migrate_pkgs:
+        migrate_pkgs(context, rc_config)
+
+    if args.migrate_envs:
+        migrate_envs(context, rc_config)
+
     # config.rc_keys
     if not args.get:
         _write_rc(rc_path, rc_config)
@@ -809,3 +835,108 @@ def execute_config(args, parser):
         from .common import stdout_json_success
 
         stdout_json_success(rc_path=rc_path, warnings=json_warnings, get=json_get)
+
+
+def migrate_pkgs(context, config: dict):
+    """Migrate the pkgs/ directory from the root prefix to the user data directory.
+
+    Uses hardlinks if they are supported, otherwise fall back to just copying
+    the directory contents instead.
+
+    :param context: Current execution context
+    :param config: Configuration dict read from `.condarc`
+    """
+    from .. import CondaError
+    from ..common.path.directories import copy_dir_contents, hardlink_dir_contents
+
+    key = "pkgs_dirs"
+    if key in config:
+        raise CondaError(
+            f"The conda configuration for {key} has been explicitly set and "
+            "cannot be migrated."
+        )
+
+    root_prefix_pkgs = context.root_prefix_pkgs
+    if not isdir(root_prefix_pkgs):
+        raise CondaError(
+            f"The root prefix ({context.root_prefix}) does not contain a `pkgs` "
+            "directory. No migration is necessary."
+        )
+
+    # After migration, there will be two copies of pkgs; the prefix directory will
+    # be cleaned up with the next `conda clean`
+    #
+    # If the user wants to always copy, short-circuit hardlinking
+    dest = context.user_data_pkgs
+    if context.always_copy:
+        copy_dir_contents(root_prefix_pkgs, dest)
+        return
+
+    try:
+        hardlink_dir_contents(root_prefix_pkgs, dest)
+    except (NotImplementedError, OSError):
+        # Hardlinks are not supported on all platforms, or between different
+        # filesystems; fall back a simple recursive copy instead.
+        copy_dir_contents(root_prefix_pkgs, dest)
+    except Exception as e:
+        raise CondaError(f"Failed to migrate {root_prefix_pkgs} to {dest}.") from e
+
+
+def migrate_envs(context, config: dict):
+    """Migrate the envs/ directory from the root prefix to the user data directory.
+
+    Uses hardlinks if they are supported, otherwise fall back to just copying
+    the directory contents instead.
+
+    The (empty) path at `<root prefix>/envs` will be removed if the move is successful.
+
+    :param context: Current execution context
+    :param config: Configuration dict read from `.condarc`
+    """
+    from .. import CondaError
+    from ..base.constants import USER_DATA_ENVS
+    from ..cli.main_rename import rename
+
+    logger = getLogger(__name__)
+
+    key = "envs_dirs"
+    if key in config:
+        raise CondaError(
+            f"The conda configuration for {key} has been explicitly set and "
+            "cannot be migrated."
+        )
+
+    root_prefix_envs = context.root_prefix_envs
+    if not isdir(root_prefix_envs):
+        raise CondaError(
+            f"The root prefix ({context.root_prefix}) does not contain an `envs` "
+            "directory. No migration is necessary."
+        )
+
+    failures = {}
+    dest = Path(USER_DATA_ENVS)
+    root_prefix_envs = Path(context.root_prefix_envs)
+    for env in os.listdir(root_prefix_envs):
+        if is_conda_environment(env):
+            try:
+                rename(
+                    source=str(root_prefix_envs / env),
+                    destination=str(dest / env),
+                    dry_run=False,
+                    force=False,
+                    quiet=True,
+                    json=False,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to migrate environment at {env} to {dest}. Reason: {e}"
+                )
+                failures[env] = e
+
+    if failures:
+        raise CondaError(
+            f"Errors migrating the following environments: {list(failures)}"
+        )
+    else:
+        # Directory should be emptied by the rename above
+        root_prefix_envs.rmdir()
