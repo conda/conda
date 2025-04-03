@@ -224,7 +224,9 @@ class Context(Configuration):
     auto_activate = ParameterLoader(
         PrimitiveParameter(True), aliases=("auto_activate_base",)
     )
-    default_activation_env = ParameterLoader(PrimitiveParameter(ROOT_ENV_NAME))
+    _default_activation_env = ParameterLoader(
+        PrimitiveParameter(ROOT_ENV_NAME), aliases=("default_activation_env",)
+    )
     auto_stack = ParameterLoader(PrimitiveParameter(0))
     notify_outdated_conda = ParameterLoader(PrimitiveParameter(True))
     clobber = ParameterLoader(PrimitiveParameter(False))
@@ -1192,8 +1194,8 @@ class Context(Configuration):
 
     @property
     @deprecated(
-        "25.5",
-        "26.1",
+        "25.9",
+        "26.3",
         addendum="Please use `conda.base.context.context.auto_activate` instead",
     )
     def auto_activate_base(self) -> bool:

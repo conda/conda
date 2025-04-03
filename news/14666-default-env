@@ -8,8 +8,7 @@
 
 ### Deprecations
 
-* Mark `context.auto_activate_base` as pending deprecation in favor of `context.auto_activate`.
-  It will be permanently removed in 26.1. (#14666)
+* Mark `conda.base.context.context.auto_activate_base` as pending deprecation. Use `conda.base.context.context.auto_activate` instead. It will be permanently removed in 26.3. (#14666)
 
 ### Docs
 
