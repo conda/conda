@@ -64,6 +64,7 @@ def test_cmd_exe_basic_integration(
 
         sh.sendline("chcp")
         sh.clear()
+        sh.assert_env_var("PROMPT", "(charizard).*")
         sh.assert_env_var("CONDA_SHLVL", "1")
 
         PATH1 = sh.get_env_var("PATH", "").split(os.pathsep)
@@ -87,6 +88,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_EXE", escape(sys.executable))
         sh.assert_env_var("CONDA_SHLVL", "2")
         sh.assert_env_var("CONDA_PREFIX", prefix, True)
+        sh.assert_env_var("PROMPT", f"({os.path.basename(prefix)}).*")
 
         # install local tests/test-recipes/small-executable
         sh.sendline(

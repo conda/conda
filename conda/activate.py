@@ -1040,6 +1040,13 @@ class CmdExeActivator(_Activator):
 
     hook_source_path = None
 
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        prompt = os.getenv("PROMPT", "")
+        current_prompt_modifier = os.getenv("CONDA_PROMPT_MODIFIER")
+        if current_prompt_modifier:
+            prompt = re.sub(re.escape(current_prompt_modifier), r"", prompt)
+        set_vars["PROMPT"] = conda_prompt_modifier + prompt
+
     def _hook_preamble(self) -> None:
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
         #       Like, for cmd.exe only, put a special directory containing only conda.bat on PATH?

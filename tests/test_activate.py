@@ -1472,6 +1472,7 @@ def test_cmd_exe_basic(
     )
     assert activate_data == (
         f"{unset_vars}\n"
+        f"PROMPT={get_prompt(shell_wrapper_unit)}\n"
         f"PATH={activator.pathsep_join(new_path_parts)}\n"
         f"CONDA_PREFIX={activator.path_conversion(shell_wrapper_unit)}\n"
         f"CONDA_SHLVL=1\n"
@@ -1519,6 +1520,7 @@ def test_cmd_exe_basic(
     assert reactivate_data == (
         f"_CONDA_SCRIPT={deactivate1}\n"
         f"{unset_vars}\n"
+        f"PROMPT={get_prompt(shell_wrapper_unit)}\n"
         f"PATH={activator.pathsep_join(new_path_parts)}\n"
         f"CONDA_SHLVL=1\n"
         f"CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}\n"
@@ -1553,6 +1555,7 @@ def test_cmd_exe_basic(
         f"CONDA_DEFAULT_ENV=\n"
         f"CONDA_PROMPT_MODIFIER=\n"
         f"{unset_vars}\n"
+        f"PROMPT={get_prompt()}\n"
         f"CONDA_SHLVL=0\n"
         f"{conda_exe_export}\n"
     )
