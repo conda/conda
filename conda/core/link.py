@@ -1334,6 +1334,16 @@ class UnlinkLinkTransaction:
                 left_str = left_str[:37] + "~"
             builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
 
+        def summarize_double(change_report_precs, key):
+            for namekey in sorted(change_report_precs, key=key):
+                unlink_prec, link_prec = change_report_precs[namekey]
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {' '.join(link_prec.metadata)}",
+                )
+
         if change_report.new_precs:
             builder.append("\nThe following NEW packages will be INSTALLED:\n")
             for namekey in sorted(change_report.new_precs, key=convert_namekey):
@@ -1353,50 +1363,22 @@ class UnlinkLinkTransaction:
 
         if change_report.updated_precs:
             builder.append("\nThe following packages will be UPDATED:\n")
-            for namekey in sorted(change_report.updated_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.updated_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.updated_precs, convert_namekey)
 
         if change_report.superseded_precs:
             builder.append(
                 "\nThe following packages will be SUPERSEDED "
                 "by a higher-priority channel:\n"
             )
-            for namekey in sorted(change_report.superseded_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.superseded_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.superseded_precs, convert_namekey)
 
         if change_report.downgraded_precs:
             builder.append("\nThe following packages will be DOWNGRADED:\n")
-            for namekey in sorted(change_report.downgraded_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.downgraded_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.downgraded_precs, convert_namekey)
 
         if change_report.revised_precs:
             builder.append("\nThe following packages will be REVISED:\n")
-            for namekey in sorted(change_report.revised_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.revised_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.revised_precs, convert_namekey)
 
         builder.append("")
         builder.append("")
