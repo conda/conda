@@ -1421,8 +1421,8 @@ class UnlinkLinkTransaction:
         # updated means a version increase, or a build number increase
         # downgraded means a version decrease, or build number decrease, but channel canonical_name
         #   has to be the same
-        # changed means the version and channel canonical_name is the same, but the build variant
-        #   is different
+        # revised means the version and channel canonical_name and build number is the same, but 
+        #   the build variant is different
         # superseded then should be everything else left over (eg. changed channel)
         updated_precs = {}
         downgraded_precs = {}
@@ -1446,7 +1446,7 @@ class UnlinkLinkTransaction:
                     # noarch: python packages are re-linked on a python version change
                     # just leave them out of the package report
                     continue
-                if link_vo == unlink_vo and link_prec.build != unlink_prec.build:
+                if link_vo == unlink_vo and unlink_prec.build_number == link_prec.build_number and link_prec.build != unlink_prec.build:
                     revised_precs[namekey] = (unlink_prec, link_prec)
                 else:
                     downgraded_precs[namekey] = (unlink_prec, link_prec)
