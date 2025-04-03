@@ -10,13 +10,15 @@ import re
 import textwrap
 from functools import total_ordering
 from itertools import chain
-from os.path import abspath, expanduser, expandvars
+from os.path import abspath, basename, dirname, expanduser, expandvars
 from typing import TYPE_CHECKING
 
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..cli import common, install
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
+from ..common.path import paths_equal
 from ..common.serialize import yaml_safe_dump, yaml_safe_load
 from ..core.prefix_data import PrefixData
 from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
@@ -28,6 +30,8 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 
 if TYPE_CHECKING:
+    import io
+    from collections.abc import Iterable, Iterator
     from typing import Any
 
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
@@ -263,20 +267,20 @@ class Requirement:
             return {"if": self.condition, "then": self.spec}
         return self.spec
 
+    def __str__(self) -> str:
+        return repr(self)
+
 
 class Requirements:
     """A set of requirements for a package."""
 
     def __init__(
         self,
-        raw_requirements: list[str | dict[str, str]],
-        raw_pypi_requirements: list[str],
+        requirements: Iterable[Requirement] | None = None,
+        pypi_requirements: Iterable[Requirement] | None = None,
     ):
-        self.requirements: list[Requirement] = []
-        self.pypi_requirements: list[Requirement] = []
-
-        for raw_req in raw_requirements:
-            self.requirements.append(Requirement(raw_req))
+        self.requirements = [] if requirements is None else requirements
+        self.pypi_requirements = [] if pypi_requirements is None else pypi_requirements
 
     def __repr__(self) -> str:
         lines = []
@@ -287,9 +291,37 @@ class Requirements:
 
     def serialize(self) -> list[str | dict[str, str]]:
         result = []
-        for req in self.requirements:
+        for req in self:
             result.append(req.serialize())
+
         return result
+
+    @classmethod
+    def from_strs(
+        cls,
+        raw_requirements: Iterable[str | dict[str, str]] | None = None,
+        raw_pypi_requirements: Iterable[str] | None = None,
+    ) -> Requirements:
+        requirements: list[Requirement] = []
+        pypi_requirements: list[Requirement] = []
+
+        if raw_requirements is None:
+            raw_requirements = []
+
+        if raw_pypi_requirements is None:
+            raw_pypi_requirements = []
+
+        for raw_req in raw_requirements:
+            requirements.append(Requirement(raw_req))
+
+        for raw_req in raw_pypi_requirements:
+            pypi_requirements.append(Requirement(raw_req))
+
+        return cls(requirements=requirements, pypi_requirements=pypi_requirements)
+
+    def __iter__(self) -> Iterator[Requirement]:
+        yield from self.requirements
+        yield from self.pypi_requirements
 
 
 class EnvironmentConfig:
@@ -312,7 +344,7 @@ class EnvironmentConfig:
 
 
 class EnvironmentBase:
-    """A class representing an ``environment.yaml`` file"""
+    """A base class representing an ``environment.yaml`` file"""
 
     def to_dict(self) -> dict:
         raise NotImplementedError
@@ -336,7 +368,7 @@ class EnvironmentV2(EnvironmentBase):
         **options,
     ):
         self.name = name
-        self.requirements = requirements if requirements else []
+        self.requirements = requirements if requirements else Requirements()
         self.groups = groups if groups else {}
         self.options = options
         self.config = config if config else EnvironmentConfig()
@@ -357,34 +389,39 @@ class EnvironmentV2(EnvironmentBase):
         EnvironmentV2
             A new EnvironmentV2 instance
         """
-        requirements = Requirements(
-            raw_requirements=data.get("requirements"),
-            raw_pypi_requirements=data.get("pypi-requirements"),
+        requirements = Requirements.from_strs(
+            raw_requirements=data.pop("requirements", None),
+            raw_pypi_requirements=data.pop("pypi-requirements", None),
         )
 
         groups = {}
-        for group in data.get("groups", []):
-            groups[group["group"]] = Requirements(
+        for group in data.pop("groups", []):
+            groups[group["group"]] = Requirements.from_strs(
                 raw_requirements=group.get("requirements", []),
                 raw_pypi_requirements=group.get("pypi-requirements", []),
             )
 
         return cls(
-            name=data.get("name"),
+            name=data.pop("name", None),
             requirements=requirements,
             groups=groups,
-            description=data.get("description"),
+            description=data.pop("description", None),
             config=EnvironmentConfig(
-                channels=[os.path.expandvars(ch) for ch in data.get("channels", [])],
-                channel_priority=data.get("channel-priority"),
-                repodata_fn=data.get("repodata-fn"),
-                variables=data.get("variables", {}),
-                version=data.get("version", 2),
+                channels=[os.path.expandvars(ch) for ch in data.pop("channels", [])],
+                channel_priority=data.pop("channel-priority", None),
+                repodata_fn=data.pop("repodata-fn", None),
+                variables=data.pop("variables", {}),
+                version=data.pop("version", 2),
             ),
         )
 
     @classmethod
     def from_file(cls, filename: os.PathLike[str]) -> EnvironmentV2:
+        """Create a new EnvironmentV2 instance from a file.
+
+        :param filename: Name of the file containing the v2 environment spec
+        :return: A new EnvironmentV2 instance
+        """
         with open(filename) as f:
             data = f.read()
 
@@ -392,10 +429,19 @@ class EnvironmentV2(EnvironmentBase):
 
     @classmethod
     def from_yaml(cls, yaml_str: str) -> EnvironmentV2:
+        """Create a new EnvironmentV2 instance from a yaml string.
+
+        :param yaml_str: String of valid YAML containing the environment spec
+        :return: A new EnvironmentV2 instance
+        """
         return EnvironmentV2.from_dict(yaml_safe_load(yaml_str))
 
-    def serialize(self) -> dict:
-        result = {}
+    def serialize(self) -> dict[str, Any]:
+        """Convert the environment into a dict.
+
+        :return: A dict representation of the environment
+        """
+        result: dict[str, Any] = {}
         result["name"] = self.name
         result["options"] = self.options
         result["config"] = self.config.serialize()
@@ -405,12 +451,18 @@ class EnvironmentV2(EnvironmentBase):
         }
         return result
 
-    def to_yaml(self, stream=None) -> Any | None:
-        out = yaml_safe_dump(self.serialize, stream)
+    def to_yaml(self, stream: io.TextIOBase | None = None) -> str | None:
+        """Write the environment as yaml to ``stream``, or return it as a string.
+
+        :param stream: Stream to write the yaml to
+        :return: YAML string (if no stream specified), otherwise None
+        """
+        out = yaml_safe_dump(self.serialize(), stream)
         if stream is None:
             return out
+        return None
 
-    def to_file(self, filename: os.PathLike):
+    def to_file(self, filename: os.PathLike) -> None:
         with open(filename, "w") as f:
             yaml_safe_dump(self.serialize(), stream=f)
 
@@ -438,6 +490,72 @@ class EnvironmentV2(EnvironmentBase):
             ),
         ]
         return "\n".join(lines)
+
+    def to_dict(self) -> dict:
+        """Return the environment as a dictionary.
+
+        :return: The environment as a dictionary
+        """
+        return self.serialize()
+
+    @classmethod
+    def from_history(cls, prefix: os.PathLike) -> EnvironmentV2:
+        """Create an Environment from the history of the requested packages in a prefix.
+
+        :param prefix: Prefix of the target conda environment
+        :return: EnvironmentV2 object containing all the user-requested conda packages;
+            note that pip installs are not tracked by conda, and won't be included
+        """
+        name = get_env_name(prefix)
+        return EnvironmentV2.from_dict(
+            {
+                "name": name if name else None,
+                "requirements": list(History(prefix).get_requested_specs_map().keys()),
+                "variables": PrefixData(
+                    prefix, pip_interop_enabled=True
+                ).get_environment_env_vars(),
+            }
+        )
+
+    @classmethod
+    def from_prefix(cls, prefix: os.PathLike) -> EnvironmentV2:
+        pfd = PrefixData(prefix, pip_interop_enabled=True)
+        variables = pfd.get_environment_env_vars()
+
+        precs = tuple(PrefixGraph(pfd.iter_records()).graph)
+        grouped_precs = groupby(lambda x: x.package_type, precs)
+        conda_precs = sorted(
+            (
+                *grouped_precs.get(None, ()),
+                *grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
+                *grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
+            ),
+            key=lambda x: x.name,
+        )
+
+        pip_precs = sorted(
+            (
+                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
+                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
+                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
+            ),
+            key=lambda x: x.name,
+        )
+
+        requirements = ["=".join((a.name, a.version)) for a in conda_precs]
+        pypi_requirements = [f"{a.name}=={a.version}" for a in pip_precs]
+
+        channels = [prec.channel.canonical_name for prec in conda_precs]
+        name = get_env_name(prefix)
+
+        return cls(
+            name=name if name else None,
+            requirements=Requirements.from_strs(requirements, pypi_requirements),
+            config=EnvironmentConfig(
+                channels=channels,
+                variables=variables,
+            ),
+        )
 
 
 class EnvironmentV1(EnvironmentBase):
@@ -524,3 +642,22 @@ def print_result(args, prefix, result):
             common.stdout_json_success(prefix=prefix, actions=actions)
     else:
         install.print_activate(args.name or prefix)
+
+
+def get_env_name(prefix: os.PathLike) -> str:
+    """Get the name of the environment at the given prefix.
+
+    :param prefix: Prefix for which the environment name should be retrieved
+    :return: Name of the environment; if the prefix lives outside of
+        ``context.envs_dirs``, it doesn't have a name. If it does, the name is
+        the basename of the prefix. If the prefix matches ``context.root_prefix``,
+        the name is ROOT_ENV_NAME.
+    """
+    if prefix == context.root_prefix:
+        return ROOT_ENV_NAME
+
+    for envs_dir in context.envs_dirs:
+        if paths_equal(envs_dir, dirname(prefix)):
+            return basename(prefix)
+
+    return ""
