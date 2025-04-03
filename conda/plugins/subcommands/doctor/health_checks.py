@@ -11,12 +11,15 @@ from pathlib import Path
 
 from requests.exceptions import RequestException
 
+from conda.history import History
+
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
+from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
-from ... import CondaHealthCheck, hookimpl, manager
+from ... import CondaHealthCheck, hookimpl
 
 logger = getLogger(__name__)
 
@@ -176,13 +179,22 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
 
 
 def consistent_env_check(prefix: str, verbose: bool) -> None:
-    pm = manager.CondaPluginManager()
-    pm.load_setuptools_entrypoints("conda")
-    print(
-        "Available plugins:", pm.get_plugins()
-    )  # print available plugins for debugging
-    solver = pm.get_solver_backend()
-    print("SOLVER:", solver)  # debugging print statement
+    pm = context.plugin_manager  # get the plugin manager from context
+    SolverClass = (
+        pm.get_solver_backend()
+    )  # get the solver backend from the plugin manager
+    pd = PrefixData(prefix)  # get prefix data
+    print("pd:", pd)
+    specs = History(prefix).get_requested_specs_map()  # get specs from the history file
+    solver = SolverClass(
+        prefix, specs_to_add=specs, channels=context.channels
+    )  # instantiate a solver object
+    final_state = solver.solve_final_state()  # get the final state from the solver
+    print("final_state", final_state)
+    if pd == final_state:  # compare final state with prefix data
+        print("The environment is consistent.\n")
+    else:
+        print("The environment is not consistent.\n")
 
 
 @hookimpl
