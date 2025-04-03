@@ -1202,6 +1202,10 @@ class Context(Configuration):
         return self.auto_activate
 
     @property
+    def default_activation_env(self) -> str:
+        return self._default_activation_env or ROOT_ENV_NAME
+
+    @property
     def category_map(self):
         return {
             "Channel Configuration": (
