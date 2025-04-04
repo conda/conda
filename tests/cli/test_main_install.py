@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import re
 from json import loads as json_loads
 from typing import TYPE_CHECKING
 

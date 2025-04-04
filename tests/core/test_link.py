@@ -43,7 +43,7 @@ def test_calculate_change_report_revised_variant():
                 "build_number": 0,
             }
         ),
-         PackageRecord(
+        PackageRecord(
             **{
                 "channel": "pkgs/main/linux-64",
                 "name": "mypackage",
@@ -58,7 +58,10 @@ def test_calculate_change_report_revised_variant():
         "notarealprefix", unlink_precs, link_precs, (), (), ()
     )
 
-    assert change_report.downgraded_precs.get("global:mypackage_downgrade_build") is not None
+    assert (
+        change_report.downgraded_precs.get("global:mypackage_downgrade_build")
+        is not None
+    )
     assert change_report.revised_precs.get("global:mypackage") is not None
 
 
