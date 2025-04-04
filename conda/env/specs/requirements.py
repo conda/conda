@@ -4,7 +4,7 @@
 
 import os
 
-from ..env import Environment
+from ..env import EnvironmentV1
 
 
 class RequirementsSpec:
@@ -47,4 +47,4 @@ class RequirementsSpec:
                 if not line or line.startswith("#"):
                     continue
                 dependencies.append(line)
-        return Environment(name=self.name, dependencies=dependencies)
+        return EnvironmentV1(name=self.name, dependencies=dependencies)

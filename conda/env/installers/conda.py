@@ -10,7 +10,7 @@ from boltons.setutils import IndexedSet
 from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
-from ...env.env import Environment
+from ...env.env import EnvironmentV1
 from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 
@@ -37,7 +37,7 @@ def dry_run(specs, args, env, *_, **kwargs):
     """Do a dry run of the environment solve"""
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
-    solved_env = Environment(
+    solved_env = EnvironmentV1(
         name=env.name, dependencies=[str(p) for p in pkgs], channels=env.channels
     )
     return solved_env

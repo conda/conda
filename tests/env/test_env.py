@@ -5,21 +5,26 @@ from __future__ import annotations
 import os
 import random
 from io import StringIO
+from os.path import dirname, join
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
-from conda.common.serialize import yaml_round_trip_load
+from conda.auxlib.ish import dals
+from conda.common.serialize import yaml_round_trip_load, yaml_safe_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
-    Environment,
+    EnvironmentV1,
+    EnvironmentV2,
     from_environment,
     from_file,
 )
 from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
+from conda.models.prefix_graph import PrefixGraph
+from conda.testing.helpers import get_solver_4
 from conda.testing.integration import package_is_installed
 
 from . import support_file
@@ -30,6 +35,23 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
+
+
+@pytest.fixture
+def simple_env_v2():
+    return join(dirname(__file__), "environment_v2_data", "simple.yml")
+
+
+@pytest.fixture()
+def prefix_graph(tmpdir):
+    specs = (
+        MatchSpec("conda"),
+        MatchSpec("conda-build"),
+        MatchSpec("intel-openmp"),
+    )
+    with get_solver_4(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+    return PrefixGraph(final_state, frozenset(specs))
 
 
 class FakeStream:
@@ -58,7 +80,7 @@ def get_invalid_keys_environment():
 
 def test_returns_Environment():
     e = get_simple_environment()
-    assert isinstance(e, Environment)
+    assert isinstance(e, EnvironmentV1)
 
 
 def test_retains_full_filename():
@@ -120,30 +142,30 @@ def test_envvars():
 
 
 def test_has_empty_filename_by_default():
-    e = Environment()
+    e = EnvironmentV1()
     assert e.filename is None
 
 
 def test_has_filename_if_provided():
     r = random.randint(100, 200)
     random_filename = f"/path/to/random/environment-{r}.yml"
-    e = Environment(filename=random_filename)
+    e = EnvironmentV1(filename=random_filename)
     assert e.filename == random_filename
 
 
 def test_has_empty_name_by_default():
-    e = Environment()
+    e = EnvironmentV1()
     assert e.name is None
 
 
 def test_has_name_if_provided():
     random_name = f"random-{random.randint(100, 200)}"
-    e = Environment(name=random_name)
+    e = EnvironmentV1(name=random_name)
     assert e.name == random_name
 
 
 def test_dependencies_are_empty_by_default():
-    e = Environment()
+    e = EnvironmentV1()
     assert not e.dependencies
 
 
@@ -155,19 +177,19 @@ def test_parses_dependencies_from_raw_file():
 
 def test_builds_spec_from_line_raw_dependency():
     # TODO Refactor this inside conda to not be a raw string
-    e = Environment(dependencies=["nltk=3.0.0=np18py27_0"])
+    e = EnvironmentV1(dependencies=["nltk=3.0.0=np18py27_0"])
     expected = {"conda": ["nltk==3.0.0=np18py27_0"]}
     assert e.dependencies == expected
 
 
 def test_args_are_wildcarded():
-    e = Environment(dependencies=["python=2.7"])
+    e = EnvironmentV1(dependencies=["python=2.7"])
     expected = {"conda": ["python=2.7"]}
     assert e.dependencies == expected
 
 
 def test_other_tips_of_dependencies_are_supported():
-    e = Environment(dependencies=["nltk", {"pip": ["foo", "bar"]}])
+    e = EnvironmentV1(dependencies=["nltk", {"pip": ["foo", "bar"]}])
     expected = {
         "conda": ["nltk", "pip"],
         "pip": ["foo", "bar"],
@@ -176,32 +198,34 @@ def test_other_tips_of_dependencies_are_supported():
 
 
 def test_channels_default_to_empty_list():
-    e = Environment()
+    e = EnvironmentV1()
     assert isinstance(e.channels, list)
     assert not e.channels
 
 
 def test_add_channels():
-    e = Environment()
+    e = EnvironmentV1()
     e.add_channels(["dup", "dup", "unique"])
     assert e.channels == ["dup", "unique"]
 
 
 def test_remove_channels():
-    e = Environment(channels=["channel"])
+    e = EnvironmentV1(channels=["channel"])
     e.remove_channels()
     assert not e.channels
 
 
 def test_channels_are_provided_by_kwarg():
     random_channels = (random.randint(100, 200), random)
-    e = Environment(channels=random_channels)
+    e = EnvironmentV1(channels=random_channels)
     assert e.channels == random_channels
 
 
 def test_to_dict_returns_dictionary_of_data():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -212,14 +236,16 @@ def test_to_dict_returns_dictionary_of_data():
 
 
 def test_to_dict_returns_just_name_if_only_thing_present():
-    e = Environment(name="simple")
+    e = EnvironmentV1(name="simple")
     expected = {"name": "simple"}
     assert e.to_dict() == expected
 
 
 def test_to_yaml_returns_yaml_parseable_string():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -233,7 +259,9 @@ def test_to_yaml_returns_yaml_parseable_string():
 
 def test_to_yaml_returns_proper_yaml():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = "\n".join(
         [
@@ -252,7 +280,9 @@ def test_to_yaml_returns_proper_yaml():
 
 def test_to_yaml_takes_stream():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentV1(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     s = FakeStream()
     e.to_yaml(stream=s)
@@ -307,7 +337,7 @@ def test_creates_file_on_save(tmp_path: Path):
 
     assert not tmp.exists()
 
-    env = Environment(filename=tmp, name="simple")
+    env = EnvironmentV1(filename=tmp, name="simple")
     env.save()
 
     assert tmp.exists()
@@ -351,3 +381,102 @@ def test_from_history():
         assert len(out.to_dict()["dependencies"]) == 4
 
         m.assert_called()
+
+
+def test_parse_environment_v2():
+    yml_str = dals("""
+        # From https://gist.github.com/jaimergp/4209c4c90d51b1bb07fe7293095f7c70
+        #
+        # What we want
+        # - Everything the original environment.yml had
+        # - All necessary inputs for the solver (channels, priority, repodata fn, platforms)
+        # - Conditional dependencies based on virtual packages
+        # - Requirement groups that can be joined
+        # What we do NOT want
+        # - This to become a lockfile
+        name: data-science-something
+        version: 2
+        description: This environment provides data science packages
+        variables:
+            ENVVAR: value
+            ENVVAR2: value
+        channels:
+            - conda-forge
+        channel-priority: strict
+        repodata-fn: repodata.json
+        platforms:
+            - linux-64
+            - osx-64
+            - win-64
+        requirements:
+            - python
+            - numpy
+            - if: __win
+              then: pywin32
+        pypi-requirements:
+            - my-lab-dependency
+            - if: __cuda
+              then: my-lab-dependency-gpu
+        groups:
+            - group: py38
+              requirements:
+                - python=3.8
+            - group: test
+              requirements:
+                - pytest
+                - pytest-cov
+                - if: __win
+                  then: pytest-windows
+              pypi-requirements:
+                - some-test-dependency-only-on-pypi
+        """)
+    EnvironmentV2.from_yaml(yml_str)
+
+
+def test_envv2_from_file(simple_env_v2):
+    env = EnvironmentV2.from_file(simple_env_v2)
+
+    with open(simple_env_v2) as f:
+        data = yaml_safe_load(f.read())
+    assert env.name == data["name"]
+    reqs = env.to_dict()["requirements"]
+    assert {"python", "numpy"} <= {req for req in reqs if isinstance(req, str)}
+
+
+@patch("conda.env.env.PrefixGraph")
+@patch("conda.env.env.get_env_name")
+@patch("conda.env.env.PrefixData")
+def test_envv2_from_prefix(
+    mock_prefix_data, mock_env_name, mock_prefix_graph, prefix_graph
+):
+    mock_env_name.return_value = None
+    mock_prefix_data.return_value.get_environment_env_vars.return_value = {}
+    mock_prefix_graph.return_value = prefix_graph
+    env = EnvironmentV2.from_prefix("/foo")
+    assert env.name is None
+
+    # Check a few of the packages that are in the mock prefix
+    for req in ["conda", "python", "zlib"]:
+        assert any([req in str(item) for item in env.requirements])
+
+
+@patch("conda.history.History.get_requested_specs_map")
+@patch("conda.env.env.PrefixData")
+def test_envv2_from_history(mock_prefix_data, mock_requested_specs_map):
+    mock_requested_specs_map.return_value = {
+        "python": MatchSpec("python=3"),
+        "pytest": MatchSpec("pytest!=3.7.3"),
+        "mock": MatchSpec("mock"),
+        "yaml": MatchSpec("yaml>=0.1"),
+    }
+    mock_prefix_data.return_value.get_environment_env_vars.return_value = {}
+
+    env = EnvironmentV2.from_history("/foo")
+    env_dict = env.to_dict()
+
+    assert "yaml[version='>=0.1']" in env_dict["requirements"]
+    assert "pytest!=3.7.3" in env_dict["requirements"]
+    assert len(env_dict["requirements"]) == 4
+
+    mock_requested_specs_map.assert_called_once()
+    mock_prefix_data.assert_called_once()
