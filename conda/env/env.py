@@ -263,6 +263,17 @@ class Requirement:
         return self.spec < other.spec
 
     def serialize(self) -> str | dict[str, str]:
+        """Serialize the package requirement.
+
+        Can be a conditional requirement of the form
+
+        {
+            "if": "__win",
+            "then": "flask"
+        }
+
+        :return: Serialized Requirement
+        """
         if self.condition:
             return {"if": self.condition, "then": self.spec}
         return self.spec
@@ -272,7 +283,7 @@ class Requirement:
 
 
 class Requirements:
-    """A set of requirements for a package."""
+    """A set of conda and PyPI requirements for a package."""
 
     def __init__(
         self,
@@ -290,6 +301,17 @@ class Requirements:
         return "\n".join(lines)
 
     def serialize(self) -> list[str | dict[str, str]]:
+        """Serialize the requested conda and PyPI packages.
+
+        Output can include conditional requirements of the form
+
+        {
+            "if": "__win",
+            "then": "flask"
+        }
+
+        :return: A list of conda or PyPI package specs
+        """
         result = []
         for req in self:
             result.append(req.serialize())
@@ -300,8 +322,19 @@ class Requirements:
     def from_strs(
         cls,
         raw_requirements: Iterable[str | dict[str, str]] | None = None,
-        raw_pypi_requirements: Iterable[str] | None = None,
+        raw_pypi_requirements: Iterable[str | dict[str, str]] | None = None,
     ) -> Requirements:
+        """Initialize a set of requirements from lists of string conda and PyPI requirements.
+
+        {
+            "if": "__win",
+            "then": "flask"
+        }
+
+        :param raw_requirements: A list of string conda requirements
+        :param raw_pypi_requirements: A list of string PyPI requirements
+        :return: A new Requirements instance containing the requested package specs
+        """
         requirements: list[Requirement] = []
         pypi_requirements: list[Requirement] = []
 
@@ -340,6 +373,14 @@ class EnvironmentConfig:
         return "\n".join(lines)
 
     def serialize(self) -> dict[str, str]:
+        """Serialize the environment configuration.
+
+        Since this is a thin wrapper around a dictionary, just return the underlying
+        dict.
+
+        :return: A dict of primitives containing configuration options for the
+            environment
+        """
         return self.options
 
 
@@ -463,6 +504,10 @@ class EnvironmentV2(EnvironmentBase):
         return None
 
     def to_file(self, filename: os.PathLike) -> None:
+        """Serialize the environment and dump it to a file as yaml.
+
+        :param filename: Name of the file to write the environment to
+        """
         with open(filename, "w") as f:
             yaml_safe_dump(self.serialize(), stream=f)
 
@@ -503,14 +548,18 @@ class EnvironmentV2(EnvironmentBase):
         """Create an Environment from the history of the requested packages in a prefix.
 
         :param prefix: Prefix of the target conda environment
-        :return: EnvironmentV2 object containing all the user-requested conda packages;
-            note that pip installs are not tracked by conda, and won't be included
+        :return: EnvironmentV2 object containing all the user-requested conda packages
         """
         name = get_env_name(prefix)
+
+        requirements = []
+        for spec in History(prefix).get_requested_specs_map().values():
+            requirements.append(str(spec))
+
         return EnvironmentV2.from_dict(
             {
                 "name": name if name else None,
-                "requirements": list(History(prefix).get_requested_specs_map().keys()),
+                "requirements": requirements,
                 "variables": PrefixData(
                     prefix, pip_interop_enabled=True
                 ).get_environment_env_vars(),
@@ -519,6 +568,11 @@ class EnvironmentV2(EnvironmentBase):
 
     @classmethod
     def from_prefix(cls, prefix: os.PathLike) -> EnvironmentV2:
+        """Create an Environment from the prefix of an environment on disk.
+
+        :param prefix: Prefix of the target conda environment
+        :return: EnvironmentV2 object containing all the conda packages in the prefix
+        """
         pfd = PrefixData(prefix, pip_interop_enabled=True)
         variables = pfd.get_environment_env_vars()
 

@@ -37,6 +37,11 @@ if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
 
+@pytest.fixture
+def simple_env_v2():
+    return join(dirname(__file__), "environment_v2_data", "simple.yml")
+
+
 @pytest.fixture()
 def prefix_graph(tmpdir):
     specs = (
@@ -428,11 +433,6 @@ def test_parse_environment_v2():
     EnvironmentV2.from_yaml(yml_str)
 
 
-@pytest.fixture
-def simple_env_v2():
-    return join(dirname(__file__), "environment_v2_data", "simple.yml")
-
-
 def test_envv2_from_file(simple_env_v2):
     env = EnvironmentV2.from_file(simple_env_v2)
 
@@ -461,7 +461,7 @@ def test_envv2_from_prefix(
 
 
 @patch("conda.history.History.get_requested_specs_map")
-@patch("conda.core.prefix_data.PrefixData")
+@patch("conda.env.env.PrefixData")
 def test_envv2_from_history(mock_prefix_data, mock_requested_specs_map):
     mock_requested_specs_map.return_value = {
         "python": MatchSpec("python=3"),
@@ -469,10 +469,9 @@ def test_envv2_from_history(mock_prefix_data, mock_requested_specs_map):
         "mock": MatchSpec("mock"),
         "yaml": MatchSpec("yaml>=0.1"),
     }
-    mock_prefix_data.get_environment_env_vars.return_value = {}
+    mock_prefix_data.return_value.get_environment_env_vars.return_value = {}
 
     env = EnvironmentV2.from_history("/foo")
-
     env_dict = env.to_dict()
 
     assert "yaml[version='>=0.1']" in env_dict["requirements"]
