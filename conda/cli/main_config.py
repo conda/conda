@@ -869,7 +869,10 @@ def migrate_pkgs(context, config: dict):
     # If the user wants to always copy, short-circuit hardlinking
     dest = context.user_data_pkgs
     if context.always_copy:
-        copy_dir_contents(root_prefix_pkgs, dest)
+        try:
+            copy_dir_contents(root_prefix_pkgs, dest)
+        except Exception as e:
+            raise CondaError(f"Failed to migrate {root_prefix_pkgs} to {dest}.") from e
         return
 
     try:
@@ -877,6 +880,10 @@ def migrate_pkgs(context, config: dict):
     except (NotImplementedError, OSError):
         # Hardlinks are not supported on all platforms, or between different
         # filesystems; fall back a simple recursive copy instead.
+        #
+        # If the hardlink already exists, it shouldn't point to the <root_prefix>/pkgs/
+        # unless that was done manually. However, it probably contains the same package
+        # as we want (again, unless something was done manually.)
         copy_dir_contents(root_prefix_pkgs, dest)
     except Exception as e:
         raise CondaError(f"Failed to migrate {root_prefix_pkgs} to {dest}.") from e

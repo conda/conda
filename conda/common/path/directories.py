@@ -82,6 +82,9 @@ def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
                 os.link(str(src_fname), str(dst_fname))
             except AttributeError:
                 raise NotImplementedError
+            except FileExistsError:
+                # If the file already exists, that's fine - no need to hardlink
+                continue
 
 
 def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
@@ -98,6 +101,11 @@ def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
     for item in os.listdir(src):
         src_path = src / item
         dst_path = dst / item
+
+        if dst_path.exists():
+            # If the directory already exists, that's fine - no need to copy
+            continue
+
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         if src_path.is_dir():
             copytree(src_path, dst_path, symlinks=True)
