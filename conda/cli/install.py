@@ -191,21 +191,19 @@ def install(args, parser, command="install"):
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
-    if newenv:
-        check_prefix(prefix, json=context.json)
-        validate_subdir_config()
-    elif isdir(prefix):
-        delete_trash(prefix)
-        if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
-            if paths_equal(prefix, context.conda_prefix):
-                raise NoBaseEnvironmentError()
+    if isupdate or isinstall or isremove:
+        if isdir(prefix):
+            delete_trash(prefix)
+            if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
+                if paths_equal(prefix, context.conda_prefix):
+                    raise NoBaseEnvironmentError()
+                else:
+                    if not path_is_clean(prefix):
+                        raise DirectoryNotACondaEnvironmentError(prefix)
             else:
-                if not path_is_clean(prefix):
-                    raise DirectoryNotACondaEnvironmentError(prefix)
+                validate_prefix_is_writable(prefix)
         else:
-            validate_prefix_is_writable(prefix)
-    else:
-        raise EnvironmentLocationNotFound(prefix)
+            raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:

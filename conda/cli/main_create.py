@@ -97,6 +97,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
     from ..reporters import confirm_yn
+    from .common import validate_subdir_config
     from .install import check_prefix, install
 
     # Ensure provided combination of command line argments are valid
@@ -142,8 +143,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
     elif isdir(context.target_prefix):
-        check_prefix(context.target_prefix)
-
         confirm_yn(
             f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
             "but it is not a conda environment.\n"
@@ -151,5 +150,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             default="no",
             dry_run=False,
         )
+
+    # Ensure the subdir config is valid
+    validate_subdir_config()
+
+    # Ensure the provided prefix is of the right form
+    check_prefix(context.target_prefix)
 
     return install(args, parser, "create")
