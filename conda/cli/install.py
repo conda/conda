@@ -172,6 +172,52 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
+def get_index_args(args) -> dict[str, any]:
+    """Returns a dict of args required for fetching an index
+    :param args: The args provided by the cli
+    :returns: dict of index args
+    """
+    return {
+        # TODO: deprecate --use-index-cache
+        # "use_cache": args.use_index_cache,  # --use-index-cache
+        "channel_urls": context.channels,
+        # TODO: deprecate --unknown
+        # "unknown": args.unknown,  # --unknown
+        "prepend": not args.override_channels,  # --override-channels
+        "use_local": args.use_local,  # --use-local
+    }
+
+
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning. Assumes
+    that the caller has already checked that the prefix does not exist (or
+    is ok to overwrite)
+    """
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    context.validate_configuration()
+    check_non_admin()
+    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
+    #    because it deduplicates records that exist as both formats.  Forcing this to
+    #    repodata.json ensures that .tar.bz2 files are available
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ("repodata.json",)
+    if context.force_32bit and prefix == context.root_prefix:
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
+    touch_nonadmin(prefix)
+    print_activate(args.name or prefix)
+    return
+
+
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
     context.validate_configuration()
@@ -262,16 +308,7 @@ def install(args, parser, command="install"):
                 args_packages.append(default_package)
 
     context_channels = context.channels
-    index_args = {
-        # TODO: deprecate --use-index-cache
-        # "use_cache": args.use_index_cache,  # --use-index-cache
-        "channel_urls": context_channels,
-        # TODO: deprecate --unknown
-        # "unknown": args.unknown,  # --unknown
-        "prepend": not args.override_channels,  # --override-channels
-        "use_local": args.use_local,  # --use-local
-    }
-
+    index_args = get_index_args(args)
     num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
@@ -323,26 +360,6 @@ def install(args, parser, command="install"):
                 )
             if not prefix_data.get(spec.name, None):
                 raise PackageNotInstalledError(prefix, spec.name)
-
-    if newenv and args.clone:
-        if args.packages:
-            raise TooManyArgumentsError(
-                0,
-                len(args.packages),
-                list(args.packages),
-                "did not expect any arguments for --clone",
-            )
-
-        clone(
-            args.clone,
-            prefix,
-            json=context.json,
-            quiet=context.quiet,
-            index_args=index_args,
-        )
-        touch_nonadmin(prefix)
-        print_activate(args.name or prefix)
-        return
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:

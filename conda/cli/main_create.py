@@ -97,7 +97,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.test import is_conda_environment
     from ..reporters import confirm_yn
-    from .install import check_prefix, install
+    from .install import check_prefix, install, install_clone
 
     if not args.name and not args.prefix:
         if context.dry_run:
@@ -139,4 +139,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             dry_run=False,
         )
 
-    return install(args, parser, "create")
+    # Run appropriate install
+    if args.clone:
+        install_clone(args, parser)
+    else:
+        install(args, parser, "create")
+
+    return
