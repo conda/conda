@@ -1403,8 +1403,8 @@ class UnlinkLinkTransaction:
         # updated means a version increase, or a build number increase
         # downgraded means a version decrease, or build number decrease, but channel canonical_name
         #   has to be the same
-        # changed means the version and channel canonical_name is the same, but the build variant
-        #   is different
+        # revised means the version and channel canonical_name is the same, but the build variant
+        #   is different. The build variant is the build string and build number.
         # superseded then should be everything else left over (eg. changed channel)
         updated_precs = {}
         downgraded_precs = {}

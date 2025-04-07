@@ -14,16 +14,35 @@ def test_calculate_change_report_revised_variant():
         PackageRecord(
             **{
                 "channel": "pkgs/main/linux-64",
-                "name": "mypackage",
+                "name": "mypackage_decrease_build",
                 "version": "2.3.9",
                 "build": "py35_0",
                 # notice the build number decrease between the unlink and link precs
-                "build_number": 1,
+                "build_number": 200,
+            }
+        ),
+        PackageRecord(
+            **{
+                "channel": "pkgs/main/linux-64",
+                "name": "mypackage",
+                "version": "2.3.9",
+                "build": "py35_0",
+                # notice the build number stay the same between the unlink and link precs
+                "build_number": 0,
             }
         ),
     ]
 
     link_precs = [
+        PackageRecord(
+            **{
+                "channel": "pkgs/main/linux-64",
+                "name": "mypackage_decrease_build",
+                "version": "2.3.9",
+                "build": "py36_0",
+                "build_number": 100,
+            }
+        ),
         PackageRecord(
             **{
                 "channel": "pkgs/main/linux-64",
@@ -39,6 +58,9 @@ def test_calculate_change_report_revised_variant():
         "notarealprefix", unlink_precs, link_precs, (), (), ()
     )
 
+    assert (
+        change_report.revised_precs.get("global:mypackage_decrease_build") is not None
+    )
     assert change_report.revised_precs.get("global:mypackage") is not None
 
 
@@ -119,6 +141,15 @@ def test_calculate_change_report_update():
                 "build_number": 0,
             }
         ),
+        PackageRecord(
+            **{
+                "channel": "pkgs/main/linux-64",
+                "name": "mypackage_upgrade_build",
+                "version": "2.3.9",
+                "build": "py36_0",
+                "build_number": 1,
+            }
+        ),
     ]
 
     link_precs = [
@@ -131,6 +162,15 @@ def test_calculate_change_report_update():
                 "build_number": 0,
             }
         ),
+        PackageRecord(
+            **{
+                "channel": "pkgs/main/linux-64",
+                "name": "mypackage_upgrade_build",
+                "version": "2.3.9",
+                "build": "py36_0",
+                "build_number": 2,
+            }
+        ),
     ]
 
     change_report = link.UnlinkLinkTransaction._calculate_change_report(
@@ -138,6 +178,7 @@ def test_calculate_change_report_update():
     )
 
     assert change_report.updated_precs.get("global:mypackage") is not None
+    assert change_report.updated_precs.get("global:mypackage_upgrade_build") is not None
 
 
 def test_calculate_change_report_superseded():
