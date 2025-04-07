@@ -55,6 +55,7 @@ from conda.exceptions import (
     PackagesNotFoundError,
     RemoveError,
     SpecsConfigurationConflictError,
+    TooManyArgumentsError,
     UnsatisfiableError,
 )
 from conda.gateways.disk.create import compile_multiple_pyc
@@ -2353,6 +2354,11 @@ def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFi
         conda_cli("install", "python", f"--prefix={tmp_path}", "--yes")
 
 
+def test_must_provide_args_to_install(tmp_path: Path, conda_cli: CondaCLIFixture):
+    with pytest.raises(CondaValueError):
+        conda_cli("install", f"--prefix={tmp_path}", "--yes")
+
+
 @pytest.mark.parametrize("style", ["cli", "env"])
 def test_create_env_different_platform(
     style: Literal["cli", "env"],
@@ -2670,6 +2676,20 @@ def test_create_dry_run_without_prefix(
 
 def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
+
+
+def test_create_without_clone_and_packages_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+):
+    conda_cli(
+        "create",
+        "--prefix",
+        "/tmp/idontexist",
+        "--clone",
+        "idontexist",
+        "ca-certificates",
+        raises=TooManyArgumentsError,
+    )
 
 
 def test_nonadmin_file_untouched(
