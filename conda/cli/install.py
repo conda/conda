@@ -48,7 +48,6 @@ from ..exceptions import (
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
-    TooManyArgumentsError,
     UnsatisfiableError,
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
@@ -187,6 +186,7 @@ def get_index_args(args) -> dict[str, any]:
         "use_local": args.use_local,  # --use-local
     }
 
+
 def validate_install_command(prefix: str):
     """Executes a set of validations that are required before any installation
     command is executed. This includes:
@@ -236,10 +236,10 @@ def install_clone(args, parser):
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
     prefix = context.target_prefix
-    
+
     # common validations for all types of installs
     validate_install_command(prefix=prefix)
-    
+
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
