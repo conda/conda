@@ -36,6 +36,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         They're therefore implemented in ways specific to each shell. Each shell must be configured
         to make use of them.
 
+        The --condabin option only adds this special directory to the PATH environment variable.
+        This directory only contains the conda executable and will not pollute your PATH so much.
+        On most shells, a small snippet is added to the shell profile. For CMD, the PATH environment
+        variable is modified directly in the registry.
+
         This command makes changes to your system that are specific and customized for each shell.
         To see the specific files and locations on your system that will be affected before, use
         the '--dry-run' flag.  To see the exact changes that are being or will be made to each
@@ -79,7 +84,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     setup_type_group.add_argument(
         "--condabin",
         action="store_true",
-        help="Add condabin/ to PATH only. Does not install the shell function.",
+        help="Add 'condabin/' directory to PATH only. Does not install the shell function.",
         default=NULL,
     )
     setup_type_group.add_argument(
