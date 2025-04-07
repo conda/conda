@@ -17,10 +17,15 @@ from pathlib import Path
 
 from boltons.setutils import IndexedSet
 
-from .common import validate_subdir_config
 from .. import CondaError
 from ..auxlib.ish import dals
-from ..base.constants import PREFIX_MAGIC_FILE, REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
+from ..base.constants import (
+    PREFIX_MAGIC_FILE,
+    REPODATA_FN,
+    ROOT_ENV_NAME,
+    DepsModifier,
+    UpdateModifier,
+)
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
@@ -185,9 +190,9 @@ def install(args, parser, command="install"):
     isupdate = bool(command == "update")
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
-   
+
     prefix = context.target_prefix
-   
+
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 

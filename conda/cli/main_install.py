@@ -138,7 +138,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
-     # Ensure provided combination of command line arguments are valid
+    # Ensure provided combination of command line arguments are valid
     if args.revision:
         get_revision(args.revision, json=context.json)
     elif not (args.file or args.packages):

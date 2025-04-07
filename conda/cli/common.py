@@ -19,7 +19,7 @@ from ..exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
-    OperationNotAllowed
+    OperationNotAllowed,
 )
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec

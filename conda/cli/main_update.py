@@ -110,11 +110,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         or context.update_modifier == UpdateModifier.UPDATE_ALL
     ):
         raise CondaValueError(
-             """no package names supplied
+            """no package names supplied
 # Example: conda update -n myenv scipy
 """
         )
-
 
     install(args, parser, "update")
     return 0
