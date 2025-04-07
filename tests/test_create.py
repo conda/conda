@@ -2350,7 +2350,7 @@ def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFi
     (tmp_path / "tempfile.txt").write_text("hello world")
 
     with pytest.raises(DirectoryNotACondaEnvironmentError):
-        conda_cli("install", f"--prefix={tmp_path}", "--yes")
+        conda_cli("install", "python", f"--prefix={tmp_path}", "--yes")
 
 
 @pytest.mark.parametrize("style", ["cli", "env"])
