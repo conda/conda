@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 25.3.1 (2025-04-03)
+
+### Bug fixes
+
+* Restore CMD prompt modifier. (#14711 via #14713)
+
+### Contributors
+
+* @kenodegard
+
+
+
 ## 25.3.0 (2025-03-17)
 
 ### Enhancements
