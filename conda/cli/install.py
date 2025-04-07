@@ -230,7 +230,8 @@ class Repodatas:
         self.allowed_errors = (
             ResolvePackageNotFound,
             PackagesNotFoundError,
-        ) + allows_errors
+            *allows_errors,
+        )
 
     def __iter__(self):
         for repodata in self.repodata_fns:
