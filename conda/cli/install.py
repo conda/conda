@@ -187,6 +187,21 @@ def get_index_args(args) -> dict[str, any]:
         "use_local": args.use_local,  # --use-local
     }
 
+def validate_install_command(prefix: str):
+    """Executes a set of validations that are required before any installation
+    command is executed. This includes:
+      * ensure the configuration is valid
+      * ensuring the user in not an admin
+      * ensure the user is not forcing 32bit installs in the root prefix
+
+    :param prefix: The prefix where the environment will be created
+    :raises: error if the configuration for the install is bad
+    """
+    context.validate_configuration()
+    check_non_admin()
+    if context.force_32bit and prefix == context.root_prefix:
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+
 
 def install_clone(args, parser):
     """Executes an install of a new conda environment by cloning. Assumes
@@ -194,17 +209,17 @@ def install_clone(args, parser):
     is ok to overwrite)
     """
     prefix = context.target_prefix
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix)
+
     index_args = get_index_args(args)
 
-    context.validate_configuration()
-    check_non_admin()
     # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
     #    because it deduplicates records that exist as both formats.  Forcing this to
     #    repodata.json ensures that .tar.bz2 files are available
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
-    if context.force_32bit and prefix == context.root_prefix:
-        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
     clone(
         args.clone,
@@ -220,11 +235,11 @@ def install_clone(args, parser):
 
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
-    context.validate_configuration()
-    check_non_admin()
-    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
-    #    because it deduplicates records that exist as both formats.  Forcing this to
-    #    repodata.json ensures that .tar.bz2 files are available
+    prefix = context.target_prefix
+    
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix)
+    
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
@@ -232,9 +247,7 @@ def install(args, parser, command="install"):
     isupdate = bool(command == "update")
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
-    prefix = context.target_prefix
-    if context.force_32bit and prefix == context.root_prefix:
-        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+
     if isupdate and not (
         args.file
         or args.packages
