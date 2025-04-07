@@ -186,19 +186,11 @@ def install(args, parser, command="install"):
     isupdate = bool(command == "update")
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
+   
     prefix = context.target_prefix
+   
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if isupdate and not (
-        args.file
-        or args.packages
-        or context.update_modifier == UpdateModifier.UPDATE_ALL
-    ):
-        raise CondaValueError(
-            """no package names supplied
-# Example: conda update -n myenv scipy
-"""
-        )
 
     if newenv:
         check_prefix(prefix, json=context.json)
