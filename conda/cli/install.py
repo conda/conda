@@ -48,7 +48,6 @@ from ..exceptions import (
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
-    TooManyArgumentsError,
     UnsatisfiableError,
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
@@ -280,14 +279,6 @@ def install(args, parser, command="install"):
                 raise PackageNotInstalledError(prefix, spec.name)
 
     if newenv and args.clone:
-        if args.packages:
-            raise TooManyArgumentsError(
-                0,
-                len(args.packages),
-                list(args.packages),
-                "did not expect any arguments for --clone",
-            )
-
         clone(
             args.clone,
             prefix,
