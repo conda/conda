@@ -329,7 +329,3 @@ def validate_subdir_config():
                     """
                 )
                 raise OperationNotAllowed(msg)
-        log.info(
-            "Creating new environment for a non-native platform %s",
-            context.subdir,
-        )
