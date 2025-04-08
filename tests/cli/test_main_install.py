@@ -112,3 +112,19 @@ def test_install_from_extracted_package(
         # appeared again, we decided to re-download the package for some reason.
         conda_cli("install", f"--prefix={prefix}", "openssl", "--offline", "--yes")
         assert not pkgs_dir_has_tarball("openssl-")
+
+
+def test_build_version_shows_as_changed(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    Test to make sure the changes in build version show up as "REVISED" in install plan.
+    To check this, start with an environment that has python and one other python package.
+    Then, the test should install another version python into the environment, forcing the
+    build variant of the other python package to be "REVISED".
+    """
+    with tmp_env("python=3.11", "numpy") as prefix:
+        out, err, _ = conda_cli("install", f"--prefix={prefix}", "python=3.12", "--yes")
+        assert "The following packages will be UPDATED" in out
+        assert "The following packages will be REVISED" in out
+        assert "The following packages will be DOWNGRADED" not in out
