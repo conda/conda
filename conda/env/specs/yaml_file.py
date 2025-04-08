@@ -35,7 +35,7 @@ class YamlFileSpec(EnvironmentSpecifierBase):
         except EnvironmentFileEmpty as e:
             self.msg = e.message
             return False
-        except TypeError:
+        except (TypeError, YAMLError):
             self.msg = f"{self.filename} is not a valid yaml file."
             return False
 
