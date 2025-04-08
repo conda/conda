@@ -4,6 +4,7 @@
 
 import re
 import sys
+from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normcase
 
 from ..auxlib.ish import dals
@@ -18,10 +19,13 @@ from ..exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
+    OperationNotAllowed,
 )
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
+
+log = getLogger(__name__)
 
 
 @deprecated(
@@ -251,7 +255,7 @@ def check_non_admin():
         )
 
 
-def validate_prefix(prefix):
+def validate_prefix(prefix) -> str:
     """Verifies the prefix is a valid conda environment.
 
     :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
@@ -281,3 +285,47 @@ def validate_prefix_is_writable(prefix: str) -> str:
     if isdir(dirname(test_path)) and file_path_is_writable(test_path):
         return prefix
     raise EnvironmentNotWritableError(prefix)
+
+
+def validate_subdir_config():
+    """Validates that the configured subdir is ok. A subdir that is different from
+    the native system is only allowed if it comes from the global configuration, or
+    from an environment variable.
+
+    :raises OperationNotAllowed: Active environment is not allowed to request
+                                 non-native platform packages
+    """
+    if context.subdir != context._native_subdir():
+        # We will only allow a different subdir if it's specified by global
+        # configuration, environment variable or command line argument. IOW,
+        # prevent a non-base env configured for a non-native subdir from leaking
+        # its subdir to a newer env.
+        context_sources = context.collect_all()
+        if context_sources.get("cmd_line", {}).get("subdir") == context.subdir:
+            pass  # this is ok
+        elif context_sources.get("envvars", {}).get("subdir") == context.subdir:
+            pass  # this is ok too
+        # config does not come from envvars or cmd_line, it must be a file
+        # that's ok as long as it's a base env or a global file
+        elif not paths_equal(context.active_prefix, context.root_prefix):
+            # this is only ok as long as it's NOT base environment
+            active_env_config = next(
+                (
+                    config
+                    for path, config in context_sources.items()
+                    if paths_equal(context.active_prefix, path.parent)
+                ),
+                None,
+            )
+            if active_env_config.get("subdir") == context.subdir:
+                # In practice this never happens; the subdir info is not even
+                # loaded from the active env for conda create :shrug:
+                msg = dals(
+                    f"""
+                    Active environment configuration ({context.active_prefix}) is
+                    implicitly requesting a non-native platform ({context.subdir}).
+                    Please deactivate first or explicitly request the platform via
+                    the --platform=[value] command line flag.
+                    """
+                )
+                raise OperationNotAllowed(msg)
