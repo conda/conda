@@ -16,4 +16,4 @@
 
 ### Other
 
-* Refactor install/create/update actions. Move command line argument validations from `conda.cli.install.install` to the relevant cli modules. (#14742)
+* Refactor command line argument validations from `conda.cli.install.install` to the relevant `cli` modules. (#14742)
