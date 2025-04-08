@@ -199,7 +199,7 @@ def validate_install_command(prefix: str):
     """
     context.validate_configuration()
     check_non_admin()
-    if context.force_32bit and prefix == context.root_prefix:
+    if context.force_32bit and paths_equal(prefix, context.root_prefix):
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
 
