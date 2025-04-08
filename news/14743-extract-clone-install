@@ -16,4 +16,4 @@
 
 ### Other
 
-* Refactor install/create/update actions. Start extracting installation forms from `conda.cli.install.install` into their own functions. And, push the responsibility of calling the right type of install to the caller. (#14743)
+* Refactor `conda create --clone` logic into a separate function. (#14743)
