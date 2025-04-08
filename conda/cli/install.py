@@ -31,6 +31,7 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaEnvException,
     CondaExitZero,
@@ -373,6 +374,15 @@ def install(args, parser, command="install"):
                 )
             if not prefix_data.get(spec.name, None):
                 raise PackageNotInstalledError(prefix, spec.name)
+
+    if newenv and args.clone:
+        deprecated.topic(
+            "25.9",
+            "26.3",
+            topic="This function will not handle clones anymore.",
+            addendum="Use `conda.cli.install.install_clone()` instead",
+        )
+        return install_clone(args, parser)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
