@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
-        CondaEnvSpec,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -508,7 +508,7 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_env_specs(self) -> Iterable[CondaEnvSpec]:
+    def conda_environment_specifiers(self) -> Iterable[CondaEnvironmentSpecifier]:
         """
         Register new conda env spec type
         The example below defines a new file type
@@ -542,7 +542,7 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_env_specs():
+            def conda_environment_specifiers():
                 yield plugins.CondaEnvSpec(
                     name="jpg",
                     handler_class=RandomSpec,

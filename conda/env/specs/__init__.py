@@ -23,9 +23,9 @@ if TYPE_CHECKING:
 
 
 @deprecated(
-    "24.7",
-    "25.6",
-    addendum="Use conda.base.context.plugin_manager.get_env_spec_handler.",
+    "25.9",
+    "26.3",
+    addendum="Use conda.base.context.plugin_manager.get_environment_specifer_handler.",
 )
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
@@ -57,9 +57,9 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     raise EnvironmentFileNotFound(filename=filename)
 
 
-@deprecated.argument("24.7", "26.3", "name")
+@deprecated.argument("25.9", "26.3", "name")
 @deprecated.argument(
-    "24.7", "26.3", "directory", addendum="Specify the full path in filename"
+    "25.9", "26.3", "directory", addendum="Specify the full path in filename"
 )
 def detect(
     name: str | None = None,
@@ -71,7 +71,7 @@ def detect(
 
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
-    spec_hook = context.plugin_manager.get_env_spec_handler(
+    spec_hook = context.plugin_manager.get_environment_specifier_handler(
         filename=filename,
     )
     spec = spec_hook.handler_class(filename)

@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
 
+from ruamel.yaml.error import YAMLError
+
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-from ...plugins.types import EnvSpecBase
+from ...plugins.types import EnvironmentSpecifierBase
 from .. import env
 
 
-class YamlFileSpec(EnvSpecBase):
+class YamlFileSpec(EnvironmentSpecifierBase):
     _environment = None
     extensions = {".yaml", ".yml"}
 

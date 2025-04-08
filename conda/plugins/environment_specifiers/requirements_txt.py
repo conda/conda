@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Register the conda env spec for requirements.txt files."""
 
-from .. import CondaEnvSpec, hookimpl
+from .. import CondaEnvironmentSpecifier, hookimpl
 
 
 @hookimpl
-def conda_env_specs():
+def conda_environment_specifiers():
     from ...env.specs.requirements import RequirementsSpec
 
-    yield CondaEnvSpec(
-        name="requirements",
+    yield CondaEnvironmentSpecifier(
+        name="requirements.txt",
         handler_class=RequirementsSpec,
     )
