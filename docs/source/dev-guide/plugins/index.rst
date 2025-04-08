@@ -98,12 +98,13 @@ For examples of how to use other plugin hooks, please read their respective docu
    :maxdepth: 1
 
    auth_handlers
+   environment_specifiers
    health_checks
-   request_headers
    post_commands
    pre_commands
    prefix_data_loaders
    reporter_backends
+   request_headers
    settings
    solvers
    subcommands
