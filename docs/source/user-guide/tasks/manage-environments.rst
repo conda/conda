@@ -429,9 +429,13 @@ behavior uniform across operating systems. Conda 4.4 allowed
 support so that conda works faster and less disruptively on
 a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
 Now these shells can use the ``conda activate`` command.
-Removing the need to modify PATH makes conda less disruptive to
-other software on your system. For more information, read the
-output from ``conda init --help``.
+
+Alternatively, ``conda init --condabin`` will not install a shell
+function in your profile. Instead, it will only add the ``condabin/``
+directory to ``PATH``. This directory only contains the ``conda``
+executable, so it should be minimally invasive.
+
+For more information, read the output from ``conda init --help``.
 
 One setting may be useful to you when using ``conda init`` is::
 
