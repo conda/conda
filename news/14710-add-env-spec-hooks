@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add hooks for env spec plugins. So, conda can support reading environment specs from plugins. (#14710)
+* Add `environment_specifiers` hooks to allow the creation of plugins to read different file formats and sources. (#14710)
 
 ### Bug fixes
 
