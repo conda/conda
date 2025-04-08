@@ -5,11 +5,11 @@
 import os
 
 from ...deprecations import deprecated
-from ...plugins.types import EnvSpecBase
+from ...plugins.types import EnvironmentSpecifierBase
 from ..env import Environment
 
 
-class RequirementsSpec(EnvSpecBase):
+class RequirementsSpec(EnvironmentSpecifierBase):
     """
     Reads dependencies from a requirements.txt file
     and returns an Environment object from it.
@@ -25,16 +25,16 @@ class RequirementsSpec(EnvSpecBase):
         self.msg = None
 
     @property
-    @deprecated("24.7", "26.3", addendum="This attribute is not used anymore.")
+    @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
     def name(self):
         return self._name
 
     @name.setter
-    @deprecated("24.7", "26.3", addendum="This attribute is not used anymore.")
+    @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
     def name(self, value):
         self._name = value
 
-    @deprecated("24.7", "26.3", addendum="This method is not used anymore.")
+    @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
     def _valid_file(self):
         if os.path.exists(self.filename):
             return True
@@ -42,7 +42,7 @@ class RequirementsSpec(EnvSpecBase):
             self.msg = "There is no requirements.txt"
             return False
 
-    @deprecated("24.7", "26.3", addendum="This method is not used anymore.")
+    @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
     def _valid_name(self):
         if self.name is None:
             return False

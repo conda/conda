@@ -28,7 +28,7 @@ from ..exceptions import (
     PluginError,
 )
 from . import (
-    env_specs,
+    environment_specifiers,
     post_solves,
     reporter_backends,
     solvers,
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
-        CondaEnvSpec,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -230,7 +230,9 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[CondaReporterBackend]: ...
 
     @overload
-    def get_hook_results(self, name: Literal["env_specs"]) -> list[CondaEnvSpec]: ...
+    def get_hook_results(
+        self, name: Literal["environment_specifiers"]
+    ) -> list[CondaEnvironmentSpecifier]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -472,8 +474,8 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
-    def get_env_spec_handler(self, filename: str) -> CondaEnvSpec:
-        hooks = self.get_hook_results("env_specs")
+    def get_environment_specifier_handler(self, filename: str) -> CondaEnvironmentSpecifier:
+        hooks = self.get_hook_results("environment_specifiers")
         for hook in hooks:
             handler = hook.handler_class(filename)
             if handler.can_handle():
@@ -499,7 +501,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
-        *env_specs.plugins,
+        *environment_specifiers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

@@ -350,7 +350,7 @@ class CondaRequestHeader:
     value: str
 
 
-class EnvSpecBase(ABC):
+class EnvironmentSpecifierBase(ABC):
     """
     Base class for all env specs.
     """
@@ -377,16 +377,16 @@ class EnvSpecBase(ABC):
 
 
 @dataclass
-class CondaEnvSpec:
+class CondaEnvironmentSpecifier:
     """
     Return type to use when defining a conda env spec plugin hook.
 
     For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_env_specs`.
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
 
     :param name: name of the spec (e.g., ``environment_yaml``)
     :param handler_class: EnvSpecBase subclass handler
     """
 
     name: str
-    handler_class: type[EnvSpecBase]
+    handler_class: type[EnvironmentSpecifierBase]
