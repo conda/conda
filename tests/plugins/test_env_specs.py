@@ -46,7 +46,9 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
     Ensures that our dummy random spec has been registered and can recognize .random files
     """
     filename = "test.random"
-    env_spec_backend = dummy_random_spec_plugin.get_environment_specifier_handler(filename)
+    env_spec_backend = dummy_random_spec_plugin.get_environment_specifier_handler(
+        filename
+    )
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.handler_class(filename).environment is not None
 

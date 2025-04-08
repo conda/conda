@@ -487,7 +487,9 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
-    def get_environment_specifier_handler(self, filename: str) -> CondaEnvironmentSpecifier:
+    def get_environment_specifier_handler(
+        self, filename: str
+    ) -> CondaEnvironmentSpecifier:
         hooks = self.get_hook_results("environment_specifiers")
         for hook in hooks:
             handler = hook.handler_class(filename)
