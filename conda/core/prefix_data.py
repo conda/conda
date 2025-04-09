@@ -115,7 +115,7 @@ class PrefixData(metaclass=PrefixDataType):
             # neither prefix exists, raw comparison
             return self.prefix_path.resolve() == other.prefix_path.resolve()
 
-    def is_dir(self):
+    def exists(self):
         return self.prefix_path.is_dir()
 
     def is_environment(self):
