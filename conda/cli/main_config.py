@@ -531,8 +531,7 @@ def execute_config(args, parser):
     from ..common.io import timeout
     from ..common.iterators import groupby_to_dict as groupby
     from ..common.serialize import yaml_round_trip_load
-    from ..exceptions import EnvironmentLocationNotFound
-    from ..gateways.disk.test import is_conda_environment
+    from ..core.prefix_data import PrefixData
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -680,10 +679,8 @@ def execute_config(args, parser):
     elif args.file:
         rc_path = args.file
     elif args.prefix or args.name:
-        if is_conda_environment(context.target_prefix):
-            rc_path = join(context.target_prefix, ".condarc")
-        else:
-            raise EnvironmentLocationNotFound(context.target_prefix)
+        PrefixData.from_context().assert_environment()
+        rc_path = join(context.target_prefix, ".condarc")
     else:
         rc_path = user_rc_path
 

@@ -283,15 +283,12 @@ def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from ..gateways.disk.test import is_conda_environment
+    from ..core.prefix_data import PrefixData
     from ..history import History
     from .common import stdout_json
 
+    PrefixData.from_context().assert_environment()
     prefix = context.target_prefix
-    if not is_conda_environment(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
-
-        raise EnvironmentLocationNotFound(prefix)
 
     if args.md5 and args.sha256:
         from ..exceptions import ArgumentError

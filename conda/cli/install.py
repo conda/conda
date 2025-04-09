@@ -42,7 +42,6 @@ from ..exceptions import (
     DirectoryNotACondaEnvironmentError,
     DirectoryNotFoundError,
     DryRunExit,
-    EnvironmentLocationNotFound,
     NoBaseEnvironmentError,
     OperationNotAllowed,
     PackageNotInstalledError,
@@ -54,12 +53,12 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
+from ..misc import _get_best_prec_match, clone_env, explicit
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
-from .common import check_non_admin, validate_prefix_is_writable
+from .common import check_non_admin
 from .main_config import set_keys
 
 log = getLogger(__name__)
@@ -196,9 +195,14 @@ def install(args, parser, command="install"):
     isupdate = bool(command == "update")
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
-    prefix = context.target_prefix
-    if context.force_32bit and prefix == context.root_prefix:
+
+    prefix_data = PrefixData.from_context()
+    prefix = str(prefix_data.prefix_path)
+    if context.force_32bit and prefix_data.is_base():
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+    prefix_data.validate_path()
+    prefix_data.validate_name()
+
     if isupdate and not (
         args.file
         or args.packages
@@ -211,7 +215,6 @@ def install(args, parser, command="install"):
         )
 
     if newenv:
-        check_prefix(prefix, json=context.json)
         if context.subdir != context._native_subdir():
             # We will only allow a different subdir if it's specified by global
             # configuration, environment variable or command line argument. IOW,
@@ -250,18 +253,15 @@ def install(args, parser, command="install"):
                 "Creating new environment for a non-native platform %s",
                 context.subdir,
             )
-    elif isdir(prefix):
-        delete_trash(prefix)
-        if not isfile(join(prefix, "conda-meta", "history")):
-            if paths_equal(prefix, context.conda_prefix):
-                raise NoBaseEnvironmentError()
-            else:
-                if not path_is_clean(prefix):
-                    raise DirectoryNotACondaEnvironmentError(prefix)
-        else:
-            validate_prefix_is_writable(prefix)
     else:
-        raise EnvironmentLocationNotFound(prefix)
+        try:
+            prefix_data.assert_writable()
+        except DirectoryNotACondaEnvironmentError as exc:
+            if prefix_data == PrefixData(context.conda_prefix):
+                raise NoBaseEnvironmentError() from exc
+            delete_trash(prefix)
+            if not path_is_clean(prefix):
+                raise
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
@@ -287,7 +287,7 @@ def install(args, parser, command="install"):
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)
             if newenv:
-                touch_nonadmin(prefix)
+                prefix_data.set_nonadmin()
                 print_activate(args.name or prefix)
             return
         else:
@@ -308,7 +308,7 @@ def install(args, parser, command="install"):
         if "@EXPLICIT" in specs:
             explicit(specs, prefix, verbose=not context.quiet)
             if newenv:
-                touch_nonadmin(prefix)
+                prefix_data.set_nonadmin()
                 print_activate(args.name or prefix)
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
@@ -323,7 +323,6 @@ def install(args, parser, command="install"):
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
-        prefix_data = PrefixData(prefix)
         for spec in specs:
             spec = MatchSpec(spec)
             if not spec.is_name_only_spec:
@@ -350,7 +349,7 @@ def install(args, parser, command="install"):
             quiet=context.quiet,
             index_args=index_args,
         )
-        touch_nonadmin(prefix)
+        prefix_data.set_nonadmin()
         print_activate(args.name or prefix)
         return
 
@@ -562,7 +561,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise CondaSystemExit("Exiting", e)
 
     if newenv:
-        touch_nonadmin(prefix)
+        PrefixData(prefix).set_nonadmin()
         if context.subdir != context._native_subdir():
             set_keys(
                 ("subdir", context.subdir),

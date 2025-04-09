@@ -91,13 +91,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
-    from ..cli.main_rename import check_protected_dirs
-    from ..common.path import paths_equal
+    from ..core.prefix_data import PrefixData
     from ..exceptions import ArgumentError, CondaValueError
     from ..gateways.disk.delete import rm_rf
-    from ..gateways.disk.test import is_conda_environment
     from ..reporters import confirm_yn
-    from .install import check_prefix, install
+    from .install import install
 
     if not args.name and not args.prefix:
         if context.dry_run:
@@ -108,11 +106,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
-    check_protected_dirs(context.target_prefix)
+    prefix_data = PrefixData.from_context(validate=True)
 
-    if is_conda_environment(context.target_prefix):
-        if paths_equal(context.target_prefix, context.root_prefix):
-            raise CondaValueError("The target prefix is the base prefix. Aborting.")
+    if prefix_data.is_environment():
         if context.dry_run:
             # Taking the "easy" way out, rather than trying to fake removing
             # the existing environment before creating a new one.
@@ -128,9 +124,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
         log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
-    elif isdir(context.target_prefix):
-        check_prefix(context.target_prefix)
-
+    elif prefix_data.exists():
         confirm_yn(
             f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
             "but it is not a conda environment.\n"

@@ -88,15 +88,16 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..common.compat import encode_environment
+    from ..core.prefix_data import PrefixData
     from ..gateways.disk.delete import rm_rf
     from ..gateways.subprocess import subprocess_call
     from ..utils import wrap_subprocess_call
-    from .common import validate_prefix
 
+    PrefixData.from_context().assert_environment()
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
-        validate_prefix(context.target_prefix),  # ensure prefix exists
+        context.target_prefix,
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
