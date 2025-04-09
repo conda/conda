@@ -135,12 +135,19 @@ class PrefixData(metaclass=PrefixDataType):
             self.__is_writable = is_writable
         return self.__is_writable
 
-    @classmethod
-    def validate_path(
-        cls, path: Path | str | None = None, expand_path: bool = False
-    ) -> Path:
-        path = path if path is not None else cls.prefix_path
-        prefix_str = str(path)
+    def assert_exists(self):
+        if not self.exists():
+            raise EnvironmentLocationNotFound(self.prefix_path)
+
+    def assert_environment(self):
+        self.assert_exists()
+        if not self.is_environment():
+            raise DirectoryNotACondaEnvironmentError(self.prefix_path)
+
+    def assert_writable(self):
+        self.assert_environment()
+        if not file_path_is_writable(self._magic_file):
+            raise EnvironmentNotWritableError(self.prefix_path)
         if expand_path:
             prefix_str = expand(prefix_str)
             path = Path(prefix_str)
