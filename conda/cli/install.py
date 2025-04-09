@@ -31,6 +31,7 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaEnvException,
     CondaExitZero,
@@ -65,6 +66,7 @@ log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.is_dir()")
 def validate_prefix_exists(prefix: str | Path) -> None:
     """
     Validate that we are receiving at least one valid value for --name or --prefix.
@@ -74,6 +76,9 @@ def validate_prefix_exists(prefix: str | Path) -> None:
         raise CondaEnvException("The environment you have specified does not exist.")
 
 
+@deprecated(
+    "25.9", "26.3", addendum="Use PrefixData.is_dir() + PrefixData.validate_prefix()"
+)
 def validate_new_prefix(dest: str, force: bool = False) -> str:
     """Ensure that the new prefix does not exist."""
     from ..base.context import context, validate_prefix_name
@@ -93,6 +98,11 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
     return dest
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use PrefixData.is_dir(), PrefixData.validate_prefix(), PrefixData.validate_name()",
+)
 def check_prefix(prefix: str, json=False):
     if os.pathsep in prefix:
         raise CondaValueError(

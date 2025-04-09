@@ -69,6 +69,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.validate_path()")
 def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
 

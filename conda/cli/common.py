@@ -251,6 +251,9 @@ def check_non_admin():
         )
 
 
+@deprecated(
+    "25.9", "26.3", addendum="Use PrefixData.is_dir() + PrefixData.is_environment()"
+)
 def validate_prefix(prefix):
     """Verifies the prefix is a valid conda environment.
 
@@ -268,6 +271,7 @@ def validate_prefix(prefix):
     return prefix
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.is_writable")
 def validate_prefix_is_writable(prefix: str) -> str:
     """Verifies the environment directory is writable by trying to access
     the conda-meta/history file. If this file is not writable then we assume
