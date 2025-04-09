@@ -21,7 +21,7 @@ from ..base.constants import (
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
-from ..base.context import context
+from ..base.context import _first_writable_envs_dir, context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import (
@@ -38,6 +38,7 @@ from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
     CorruptedEnvironmentError,
+    EnvironmentNameNotFound,
     maybe_raise,
 )
 from ..gateways.disk.create import write_as_json_to_file
@@ -90,6 +91,14 @@ class PrefixData(metaclass=PrefixDataType):
             if pip_interop_enabled is not None
             else context.pip_interop_enabled
         )
+
+    @classmethod
+    def from_name(cls, name: str, **kwargs):
+        try:
+            return cls(locate_prefix_by_name(name))
+        except EnvironmentNameNotFound:
+            name = cls.validate_name(name)
+            return cls(Path(_first_writable_envs_dir(), name), **kwargs)
 
     # region Checks
 
