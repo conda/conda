@@ -101,6 +101,18 @@ class PrefixData(metaclass=PrefixDataType):
             cls(name).validate_name()
             return cls(Path(_first_writable_envs_dir(), name), **kwargs)
 
+    @classmethod
+    def from_context(cls, validate: bool = False):
+        inst = cls(context.target_prefix)
+        if validate:
+            inst.validate_path()
+            inst.validate_name()
+        return inst
+
+    @property
+    def name(self):
+        return self.prefix_path.name
+
     # region Checks
 
     def __eq__(self, other: Any) -> bool:
