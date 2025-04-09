@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir, isfile, join
+from os.path import abspath, basename, exists, isdir
 from pathlib import Path
 
 from boltons.setutils import IndexedSet

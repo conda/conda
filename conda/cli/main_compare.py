@@ -110,7 +110,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     PrefixData.from_context().assert_environment()
     prefix = context.target_prefix
 
-
     try:
         url_scheme = args.file.split("://", 1)[0]
         if url_scheme in CONDA_SESSION_SCHEMES:

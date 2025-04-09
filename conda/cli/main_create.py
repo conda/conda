@@ -8,7 +8,6 @@ Creates new conda environments with the specified packages.
 from __future__ import annotations
 
 from logging import getLogger
-from os.path import isdir
 from typing import TYPE_CHECKING
 
 from ..notices import notices

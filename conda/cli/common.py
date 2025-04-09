@@ -251,9 +251,7 @@ def check_non_admin():
         )
 
 
-@deprecated(
-    "25.9", "26.3", addendum="Use PrefixData.assert_environment()"
-)
+@deprecated("25.9", "26.3", addendum="Use PrefixData.assert_environment()")
 def validate_prefix(prefix):
     """Verifies the prefix is a valid conda environment.
 
