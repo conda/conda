@@ -501,6 +501,12 @@ class PrefixData(metaclass=PrefixDataType):
             self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
+    def set_nonadmin(self):
+        """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
+        if on_win and Path(context.root_prefix, ".nonadmin").is_file():
+            self.prefix_path.mkdir(parents=True, exist_ok=True)
+            (self.prefix_path / ".nonadmin").touch()
+
     # endregion
 
 
