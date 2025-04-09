@@ -98,7 +98,7 @@ class PrefixData(metaclass=PrefixDataType):
         try:
             return cls(locate_prefix_by_name(name))
         except EnvironmentNameNotFound:
-            name = cls.validate_name(name)
+            cls(name).validate_name()
             return cls(Path(_first_writable_envs_dir(), name), **kwargs)
 
     # region Checks
@@ -148,12 +148,16 @@ class PrefixData(metaclass=PrefixDataType):
         self.assert_environment()
         if not file_path_is_writable(self._magic_file):
             raise EnvironmentNotWritableError(self.prefix_path)
+
+    def validate_path(self, expand_path: bool = False) -> Path:
+        prefix_path = self.prefix_path
+        prefix_str = str(self.prefix_path)
         if expand_path:
             prefix_str = expand(prefix_str)
-            path = Path(prefix_str)
+            prefix_path = Path(prefix_str)
 
         if os.pathsep in prefix_str:
-            raise ValueError(
+            raise CondaValueError(
                 f"Environment paths cannot contain '{os.pathsep}'. Prefix: '{prefix_str}'"
             )
 
@@ -163,25 +167,21 @@ class PrefixData(metaclass=PrefixDataType):
                 prefix_str,
             )
 
-        parent = cls(path.parent)
+        parent = self.__class__(prefix_path.parent)
         if parent.is_environment():
-            raise ValueError(
+            raise CondaValueError(
                 "Environment paths cannot be immediately nested under another conda environment."
             )
-        return path
 
-    @classmethod
-    def validate_name(cls, name: str | None = None, allow_base: bool = False) -> str:
-        name = name if name is not None else cls.prefix_path.name
-        if not allow_base and name in (ROOT_ENV_NAME, "base", "root"):
-            raise ValueError(f"'{name}' is a reserved environment name")
+    def validate_name(self, allow_base: bool = False):
+        if not allow_base and self.name in (ROOT_ENV_NAME, "base", "root"):
+            raise CondaValueError(f"'{self.name}' is a reserved environment name")
 
-        if PREFIX_NAME_DISALLOWED_CHARS.intersection(name):
-            raise ValueError(
+        if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.name):
+            raise CondaValueError(
                 "Environment names cannot contain any of these characters: "
                 f"{PREFIX_NAME_DISALLOWED_CHARS}"
             )
-        return name
 
     # endregion
     # region Records
