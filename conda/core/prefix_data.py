@@ -84,6 +84,7 @@ class PrefixData(metaclass=PrefixDataType):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = Path(prefix_path)
+        self._magic_file = self.prefix_path / PREFIX_MAGIC_FILE
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -119,7 +120,7 @@ class PrefixData(metaclass=PrefixDataType):
         return self.prefix_path.is_dir()
 
     def is_environment(self):
-        return (self.prefix_path / PREFIX_MAGIC_FILE).is_file()
+        return self._magic_file.is_file()
 
     def is_base(self):
         return paths_equal(str(self.prefix_path), context.root_prefix)
@@ -130,9 +131,7 @@ class PrefixData(metaclass=PrefixDataType):
             if not self.is_environment():
                 is_writable = None
             else:
-                is_writable = file_path_is_writable(
-                    self.prefix_path / PREFIX_MAGIC_FILE
-                )
+                is_writable = file_path_is_writable(self._magic_file)
             self.__is_writable = is_writable
         return self.__is_writable
 
