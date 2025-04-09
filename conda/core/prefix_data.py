@@ -22,6 +22,7 @@ from ..base.constants import (
     ROOT_ENV_NAME,
 )
 from ..base.context import _first_writable_envs_dir, context, locate_prefix_by_name
+from ..common.compat import on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import (
@@ -37,8 +38,12 @@ from ..common.url import remove_auth as url_remove_auth
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
+    CondaValueError,
     CorruptedEnvironmentError,
+    DirectoryNotACondaEnvironmentError,
+    EnvironmentLocationNotFound,
     EnvironmentNameNotFound,
+    EnvironmentNotWritableError,
     maybe_raise,
 )
 from ..gateways.disk.create import write_as_json_to_file
