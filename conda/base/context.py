@@ -2164,7 +2164,7 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
             return join(_first_writable_envs_dir(), prefix_name)
 
 
-def determine_target_prefix(ctx, args=None):
+def determine_target_prefix(ctx, args=None) -> str:
     """Get the prefix to operate in.  The prefix may not yet exist.
 
     Args:
@@ -2174,6 +2174,8 @@ def determine_target_prefix(ctx, args=None):
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
     """
+    from ..core.prefix_data import PrefixData
+
     argparse_args = args or ctx._argparse_args
     try:
         prefix_name = argparse_args.name
@@ -2197,9 +2199,9 @@ def determine_target_prefix(ctx, args=None):
     if prefix_name is None and prefix_path is None:
         return ctx.default_prefix
     elif prefix_path is not None:
-        return expand(prefix_path)
+        return str(PrefixData.validate_path(prefix_path, expand_path=True))
     else:
-        return validate_prefix_name(prefix_name, ctx=ctx)
+        return str(PrefixData.from_name(prefix_name, ctx=ctx).prefix_path)
 
 
 def _first_writable_envs_dir(create=True):
