@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -22,7 +22,7 @@ from conda.exceptions import (
 from conda.testing.fixtures import TmpEnvFixture
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
