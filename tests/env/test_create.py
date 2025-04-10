@@ -261,7 +261,7 @@ def test_fail_to_create_env_in_dir_with_colon(
 
     with pytest.raises(
         CondaValueError,
-        match="Cannot create a conda environment with ':' in the prefix.",
+        match="Environment paths cannot contain ':'.",
     ):
         conda_cli("create", f"--prefix={colon_dir}/tester")
 
