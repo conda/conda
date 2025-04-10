@@ -162,6 +162,7 @@ def list_packages(
     format="human",
     reverse=False,
     show_channel_urls=None,
+    reload_records=True,
 ):
     from ..base.constants import DEFAULTS_CHANNEL_NAME
     from ..base.context import context
@@ -170,8 +171,11 @@ def list_packages(
 
     res = 0
 
+    prefix_data = PrefixData(prefix, pip_interop_enabled=True)
+    if reload_records:
+        prefix_data.load()
     installed = sorted(
-        PrefixData(prefix, pip_interop_enabled=True).iter_records(),
+        prefix_data.iter_records(),
         key=lambda x: x.name,
     )
 
