@@ -134,10 +134,16 @@ class PrefixData(metaclass=PrefixDataType):
             return self.prefix_path.resolve() == other.prefix_path.resolve()
 
     def exists(self):
-        return self.prefix_path.is_dir()
+        try:
+            return self.prefix_path.is_dir()
+        except OSError:
+            return False
 
     def is_environment(self):
-        return self._magic_file.is_file()
+        try:
+            return self._magic_file.is_file()
+        except OSError:
+            return False
 
     def is_base(self):
         return paths_equal(str(self.prefix_path), context.root_prefix)
