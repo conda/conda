@@ -317,7 +317,10 @@ def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: st
 def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
     bad_env_name = "/" + env_one
 
-    with pytest.raises(CondaValueError, match="Invalid environment name"):
+    with pytest.raises(
+        CondaValueError,
+        match="Environment names cannot contain path separators",
+    ):
         conda_cli(
             "rename",
             f"--name={bad_env_name}",

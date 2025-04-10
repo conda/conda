@@ -102,6 +102,8 @@ class PrefixData(metaclass=PrefixDataType):
 
     @classmethod
     def from_name(cls, name: str, **kwargs):
+        if "/" in name or "\\" in name:
+            raise CondaValueError("Environment names cannot contain path separators")
         try:
             return cls(locate_prefix_by_name(name))
         except EnvironmentNameNotFound:
