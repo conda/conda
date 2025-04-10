@@ -167,11 +167,10 @@ class PrefixData(metaclass=PrefixDataType):
             raise EnvironmentNotWritableError(self.prefix_path)
 
     def validate_path(self, expand_path: bool = False) -> Path:
-        prefix_path = self.prefix_path
         prefix_str = str(self.prefix_path)
         if expand_path:
             prefix_str = expand(prefix_str)
-            prefix_path = Path(prefix_str)
+            self.prefix_path = Path(prefix_str)
 
         if os.pathsep in prefix_str:
             raise CondaValueError(
@@ -183,8 +182,7 @@ class PrefixData(metaclass=PrefixDataType):
                 "Environment paths should not contain spaces. Prefix: '%s'",
                 prefix_str,
             )
-
-        parent = self.__class__(prefix_path.parent)
+        parent = self.__class__(self.prefix_path.parent)
         if parent.is_environment():
             raise CondaValueError(
                 "Environment paths cannot be immediately nested under another conda environment."

@@ -146,18 +146,21 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     source_prefix_data = PrefixData.from_context()
     if source_prefix_data.is_base():
         raise CondaEnvException("The 'base' environment cannot be renamed")
+    source_prefix_data.validate_path()
+    source_prefix_data.validate_name()
+    source_prefix_data.assert_environment()
     if context.active_prefix and source_prefix_data.prefix_path.samefile(
         context.active_prefix
     ):
         raise CondaEnvException("Cannot rename the active environment")
-    source_prefix_data.validate_path()
-    source_prefix_data.validate_name()
     source = str(source_prefix_data.prefix_path)
 
     # Validate destination
-    dest_prefix_data = PrefixData(args.destination)
-    dest_prefix_data.validate_path()
-    dest_prefix_data.validate_name()
+    if os.sep in args.destination:
+        dest_prefix_data = PrefixData(args.destination)
+        dest_prefix_data.validate_path(expand_path=True)
+    else:
+        dest_prefix_data = PrefixData.from_name(args.destination)
     destination = str(dest_prefix_data.prefix_path)
     if not args.yes and dest_prefix_data.exists():
         raise CondaEnvException(
