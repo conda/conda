@@ -70,11 +70,13 @@ class PrefixDataType(type):
     ):
         if isinstance(prefix_path, PrefixData):
             return prefix_path
-        elif ((prefix_path := Path(prefix_path)), pip_interop_enabled) in PrefixData._cache_:
-            return PrefixData._cache_[(prefix_path, pip_interop_enabled)]
+        prefix_path = Path(prefix_path)
+        cache_key = prefix_path, pip_interop_enabled
+        if cache_key in PrefixData._cache_:
+            return PrefixData._cache_[cache_key]
         else:
             prefix_data_instance = super().__call__(prefix_path, pip_interop_enabled)
-            PrefixData._cache_[(prefix_path, pip_interop_enabled)] = prefix_data_instance
+            PrefixData._cache_[cache_key] = prefix_data_instance
             return prefix_data_instance
 
 
@@ -602,7 +604,9 @@ def get_python_version_for_prefix(prefix) -> str | None:
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:
     """Here, path may be a complete prefix or a dist inside a prefix"""
     path = Path(path)
-    for (prefix, pip_interop) in sorted(PrefixData._cache_, reverse=True, key=lambda key: key[0]):
+    for prefix, pip_interop in sorted(
+        PrefixData._cache_, reverse=True, key=lambda key: key[0]
+    ):
         try:
             path.relative_to(prefix)
             del PrefixData._cache_[(prefix, pip_interop)]

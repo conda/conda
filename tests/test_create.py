@@ -47,7 +47,6 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
-    EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
