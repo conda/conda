@@ -200,21 +200,18 @@ def install(args, parser, command="install"):
     prefix = str(prefix_data.prefix_path)
     if context.force_32bit and prefix_data.is_base():
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    prefix_data.validate_path()
-    prefix_data.validate_name()
-
     if isupdate and not (
         args.file
         or args.packages
         or context.update_modifier == UpdateModifier.UPDATE_ALL
     ):
         raise CondaValueError(
-            """no package names supplied
-# Example: conda update -n myenv scipy
-"""
+            "no package names supplied\n# Example: conda update -n myenv scipy",
         )
 
     if newenv:
+        prefix_data.validate_path()
+        prefix_data.validate_name()
         if context.subdir != context._native_subdir():
             # We will only allow a different subdir if it's specified by global
             # configuration, environment variable or command line argument. IOW,
