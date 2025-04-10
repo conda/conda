@@ -2128,6 +2128,9 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     return tuple(IndexedSet(channels))
 
 
+@deprecated(
+    "25.9", "26.3", addendum="Use PrefixData.validate_name() + PrefixData.from_name()"
+)
 def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str:
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
@@ -2161,7 +2164,7 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
             return join(_first_writable_envs_dir(), prefix_name)
 
 
-def determine_target_prefix(ctx, args=None):
+def determine_target_prefix(ctx, args=None) -> str:
     """Get the prefix to operate in.  The prefix may not yet exist.
 
     Args:
@@ -2196,10 +2199,12 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        return validate_prefix_name(prefix_name, ctx=ctx)
+        from ..core.prefix_data import PrefixData
+
+        return str(PrefixData.from_name(prefix_name).prefix_path)
 
 
-def _first_writable_envs_dir():
+def _first_writable_envs_dir(create=True):
     # Calling this function will *create* an envs directory if one does not already
     # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
     for envs_dir in context.envs_dirs:
@@ -2217,7 +2222,7 @@ def _first_writable_envs_dir():
                 return envs_dir
             except OSError:
                 log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
-        else:
+        elif create:
             from ..gateways.disk.create import create_envs_directory
 
             was_created = create_envs_directory(envs_dir)

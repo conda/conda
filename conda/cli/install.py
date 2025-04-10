@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir, isfile, join
+from os.path import abspath, basename, exists, isdir
 from pathlib import Path
 
 from boltons.setutils import IndexedSet
@@ -20,7 +20,7 @@ from boltons.setutils import IndexedSet
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
-from ..base.context import context, locate_prefix_by_name
+from ..base.context import context
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
 from ..core.index import (
@@ -31,6 +31,7 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaEnvException,
     CondaExitZero,
@@ -39,9 +40,7 @@ from ..exceptions import (
     CondaSystemExit,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
-    DirectoryNotFoundError,
     DryRunExit,
-    EnvironmentLocationNotFound,
     NoBaseEnvironmentError,
     OperationNotAllowed,
     PackageNotInstalledError,
@@ -53,18 +52,19 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, explicit, touch_nonadmin
+from ..misc import _get_best_prec_match, clone_env, explicit
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
-from .common import check_non_admin, validate_prefix_is_writable
+from .common import check_non_admin
 from .main_config import set_keys
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")
 def validate_prefix_exists(prefix: str | Path) -> None:
     """
     Validate that we are receiving at least one valid value for --name or --prefix.
@@ -74,6 +74,9 @@ def validate_prefix_exists(prefix: str | Path) -> None:
         raise CondaEnvException("The environment you have specified does not exist.")
 
 
+@deprecated(
+    "25.9", "26.3", addendum="Use PrefixData.exists() + PrefixData.validate_path()"
+)
 def validate_new_prefix(dest: str, force: bool = False) -> str:
     """Ensure that the new prefix does not exist."""
     from ..base.context import context, validate_prefix_name
@@ -93,6 +96,11 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
     return dest
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use PrefixData.exists(), PrefixData.validate_path(), PrefixData.validate_name()",
+)
 def check_prefix(prefix: str, json=False):
     if os.pathsep in prefix:
         raise CondaValueError(
@@ -122,12 +130,13 @@ def check_prefix(prefix: str, json=False):
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
+    # Validate source
     if os.sep in src_arg:
-        src_prefix = abspath(src_arg)
-        if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg)
+        source_prefix_data = PrefixData(abspath(src_arg))
     else:
-        src_prefix = locate_prefix_by_name(src_arg)
+        source_prefix_data = PrefixData.from_name(src_arg)
+    source_prefix_data.assert_environment()
+    src_prefix = str(source_prefix_data.prefix_path)
 
     if not json:
         print(f"Source:      {src_prefix}")
@@ -186,8 +195,10 @@ def install(args, parser, command="install"):
     isupdate = bool(command == "update")
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
-    prefix = context.target_prefix
-    if context.force_32bit and prefix == context.root_prefix:
+
+    prefix_data = PrefixData.from_context()
+    prefix = str(prefix_data.prefix_path)
+    if context.force_32bit and prefix_data.is_base():
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
     if isupdate and not (
         args.file
@@ -195,13 +206,12 @@ def install(args, parser, command="install"):
         or context.update_modifier == UpdateModifier.UPDATE_ALL
     ):
         raise CondaValueError(
-            """no package names supplied
-# Example: conda update -n myenv scipy
-"""
+            "no package names supplied\n# Example: conda update -n myenv scipy",
         )
 
     if newenv:
-        check_prefix(prefix, json=context.json)
+        prefix_data.validate_path()
+        prefix_data.validate_name()
         if context.subdir != context._native_subdir():
             # We will only allow a different subdir if it's specified by global
             # configuration, environment variable or command line argument. IOW,
@@ -240,18 +250,15 @@ def install(args, parser, command="install"):
                 "Creating new environment for a non-native platform %s",
                 context.subdir,
             )
-    elif isdir(prefix):
-        delete_trash(prefix)
-        if not isfile(join(prefix, "conda-meta", "history")):
-            if paths_equal(prefix, context.conda_prefix):
-                raise NoBaseEnvironmentError()
-            else:
-                if not path_is_clean(prefix):
-                    raise DirectoryNotACondaEnvironmentError(prefix)
-        else:
-            validate_prefix_is_writable(prefix)
     else:
-        raise EnvironmentLocationNotFound(prefix)
+        try:
+            prefix_data.assert_writable()
+        except DirectoryNotACondaEnvironmentError as exc:
+            if prefix_data == PrefixData(context.conda_prefix):
+                raise NoBaseEnvironmentError() from exc
+            delete_trash(prefix)
+            if not path_is_clean(prefix):
+                raise
 
     args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
@@ -277,7 +284,7 @@ def install(args, parser, command="install"):
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)
             if newenv:
-                touch_nonadmin(prefix)
+                prefix_data.set_nonadmin()
                 print_activate(args.name or prefix)
             return
         else:
@@ -298,7 +305,7 @@ def install(args, parser, command="install"):
         if "@EXPLICIT" in specs:
             explicit(specs, prefix, verbose=not context.quiet)
             if newenv:
-                touch_nonadmin(prefix)
+                prefix_data.set_nonadmin()
                 print_activate(args.name or prefix)
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
@@ -313,7 +320,6 @@ def install(args, parser, command="install"):
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
-        prefix_data = PrefixData(prefix)
         for spec in specs:
             spec = MatchSpec(spec)
             if not spec.is_name_only_spec:
@@ -340,7 +346,7 @@ def install(args, parser, command="install"):
             quiet=context.quiet,
             index_args=index_args,
         )
-        touch_nonadmin(prefix)
+        prefix_data.set_nonadmin()
         print_activate(args.name or prefix)
         return
 
@@ -552,7 +558,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise CondaSystemExit("Exiting", e)
 
     if newenv:
-        touch_nonadmin(prefix)
+        PrefixData(prefix).set_nonadmin()
         if context.subdir != context._native_subdir():
             set_keys(
                 ("subdir", context.subdir),
