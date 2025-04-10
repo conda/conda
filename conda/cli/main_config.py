@@ -679,8 +679,9 @@ def execute_config(args, parser):
     elif args.file:
         rc_path = args.file
     elif args.prefix or args.name:
-        PrefixData.from_context().assert_environment()
-        rc_path = join(context.target_prefix, ".condarc")
+        prefix_data = PrefixData.from_context()
+        prefix_data.assert_environment()
+        rc_path = str(prefix_data.prefix_path / ".condarc")
     else:
         rc_path = user_rc_path
 

@@ -20,7 +20,7 @@ from boltons.setutils import IndexedSet
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
-from ..base.context import context, locate_prefix_by_name
+from ..base.context import context
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
 from ..core.index import (
@@ -40,7 +40,6 @@ from ..exceptions import (
     CondaSystemExit,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
-    DirectoryNotFoundError,
     DryRunExit,
     NoBaseEnvironmentError,
     OperationNotAllowed,
@@ -131,12 +130,13 @@ def check_prefix(prefix: str, json=False):
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
+    # Validate source
     if os.sep in src_arg:
-        src_prefix = abspath(src_arg)
-        if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg)
+        source_prefix_data = PrefixData(abspath(src_arg))
     else:
-        src_prefix = locate_prefix_by_name(src_arg)
+        source_prefix_data = PrefixData.from_name(src_arg)
+    source_prefix_data.assert_environment()
+    src_prefix = str(source_prefix_data.prefix_path)
 
     if not json:
         print(f"Source:      {src_prefix}")

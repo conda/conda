@@ -96,18 +96,19 @@ def validate_src() -> str:
     to be renamed and that the "base" environment is not being renamed
     """
     from ..base.context import context
-    from ..core.prefix_data import PrefixData
+    from .install import validate_prefix_exists
 
-    prefix_data = PrefixData.from_context(validate=True)
+    prefix = Path(context.target_prefix)
+    validate_prefix_exists(prefix)
 
-    if prefix_data.is_base():
+    if prefix.samefile(context.root_prefix):
         raise CondaEnvException("The 'base' environment cannot be renamed")
-    if context.active_prefix and prefix_data.prefix_path.samefile(
-        context.active_prefix
-    ):
+    if context.active_prefix and prefix.samefile(context.active_prefix):
         raise CondaEnvException("Cannot rename the active environment")
+    else:
+        check_protected_dirs(prefix)
 
-    return str(prefix_data.prefix_path)
+    return str(prefix)
 
 
 @deprecated(
@@ -144,11 +145,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Validate source
     source_prefix_data = PrefixData.from_context()
+    source_prefix_data.assert_environment()
     if source_prefix_data.is_base():
         raise CondaEnvException("The 'base' environment cannot be renamed")
-    source_prefix_data.validate_path()
-    source_prefix_data.validate_name()
-    source_prefix_data.assert_environment()
     if context.active_prefix and source_prefix_data.prefix_path.samefile(
         context.active_prefix
     ):

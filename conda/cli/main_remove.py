@@ -160,7 +160,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
-    prefix = context.target_prefix
+    prefix = str(prefix_data.prefix_path)
     check_non_admin()
 
     if args.all and prefix == context.default_prefix:

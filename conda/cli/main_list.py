@@ -174,10 +174,7 @@ def list_packages(
     prefix_data = PrefixData(prefix, pip_interop_enabled=True)
     if reload_records:
         prefix_data.load()
-    installed = sorted(
-        prefix_data.iter_records(),
-        key=lambda x: x.name,
-    )
+    installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
 
     packages = []
     for prec in get_packages(installed, regex) if regex else installed:
@@ -291,8 +288,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..history import History
     from .common import stdout_json
 
-    PrefixData.from_context().assert_environment()
-    prefix = context.target_prefix
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    prefix = str(prefix_data.prefix_path)
 
     if args.md5 and args.sha256:
         from ..exceptions import ArgumentError

@@ -30,8 +30,9 @@ def configure_parser(parser: ArgumentParser):
 
 def execute(args: Namespace) -> None:
     """Run registered health_check plugins."""
-    prefix = context.target_prefix
-    PrefixData.from_context().assert_environment()
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    prefix = str(prefix_data.prefix_path)
     print(f"Environment Health Report for: {prefix}\n")
     context.plugin_manager.invoke_health_checks(prefix, context.verbose)
 

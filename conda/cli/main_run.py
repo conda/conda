@@ -93,11 +93,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.subprocess import subprocess_call
     from ..utils import wrap_subprocess_call
 
-    PrefixData.from_context().assert_environment()
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
-        context.target_prefix,
+        str(prefix_data.prefix_path),
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,

@@ -107,8 +107,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
     from .common import stdout_json
 
-    PrefixData.from_context().assert_environment()
-    prefix = context.target_prefix
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    prefix = str(prefix_data.prefix_path)
 
     try:
         url_scheme = args.file.split("://", 1)[0]
