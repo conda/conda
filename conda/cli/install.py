@@ -65,7 +65,7 @@ log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
-@deprecated("25.9", "26.3", addendum="Use PrefixData.is_dir()")
+@deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")
 def validate_prefix_exists(prefix: str | Path) -> None:
     """
     Validate that we are receiving at least one valid value for --name or --prefix.
@@ -76,7 +76,7 @@ def validate_prefix_exists(prefix: str | Path) -> None:
 
 
 @deprecated(
-    "25.9", "26.3", addendum="Use PrefixData.is_dir() + PrefixData.validate_prefix()"
+    "25.9", "26.3", addendum="Use PrefixData.exists() + PrefixData.validate_path()"
 )
 def validate_new_prefix(dest: str, force: bool = False) -> str:
     """Ensure that the new prefix does not exist."""
@@ -100,7 +100,7 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
 @deprecated(
     "25.9",
     "26.3",
-    addendum="Use PrefixData.is_dir(), PrefixData.validate_prefix(), PrefixData.validate_name()",
+    addendum="Use PrefixData.exists(), PrefixData.validate_path(), PrefixData.validate_name()",
 )
 def check_prefix(prefix: str, json=False):
     if os.pathsep in prefix:
