@@ -119,8 +119,13 @@ class PrefixData(metaclass=PrefixDataType):
         return inst
 
     @property
-    def name(self):
-        return self.prefix_path.name
+    def name(self) -> str:
+        if self == PrefixData(context.root_prefix):
+            return ROOT_ENV_NAME
+        for envs_dir in context.envs_dirs:
+            if paths_equal(envs_dir, self.prefix_path.parent):
+                return self.prefix_path.name
+        return ""
 
     # region Checks
 
@@ -199,10 +204,10 @@ class PrefixData(metaclass=PrefixDataType):
             )
 
     def validate_name(self, allow_base: bool = False):
-        if not allow_base and self.name in (ROOT_ENV_NAME, "base", "root"):
+        if not allow_base and self.name in (ROOT_ENV_NAME, "root"):
             raise CondaValueError(f"'{self.name}' is a reserved environment name")
 
-        if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.name):
+        if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.prefix_path.name):
             raise CondaValueError(
                 "Environment names cannot contain any of these characters: "
                 f"{PREFIX_NAME_DISALLOWED_CHARS}"
