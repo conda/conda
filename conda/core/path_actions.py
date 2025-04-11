@@ -93,8 +93,14 @@ class _Action(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def execute(self):
+    def run(self):
+        """Do not call ``run()`` directly - call ``execute()``."""
         raise NotImplementedError()
+
+    def execute(self):
+        result = self.run()
+        context.plugin_manager.run_post_transaction_hooks(self)
+        return result
 
     @abstractmethod
     def reverse(self):
@@ -155,7 +161,7 @@ class PrefixPathAction(PathAction, metaclass=ABCMeta):
 
 class CreateInPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
     # All CreatePathAction subclasses must create a SINGLE new path
-    #   the short/in-prefix version of that path must be returned by execute()
+    #   the short/in-prefix version of that path must be returned by run()
 
     def __init__(
         self,
@@ -442,7 +448,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
         self._verified = True
 
-    def execute(self):
+    def run(self):
         log.log(TRACE, "linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(
             self.source_full_path,
@@ -473,7 +479,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
         file_mode,
         source_path_data,
     ):
-        # This link_type used in execute(). Make sure we always respect LinkType.copy request.
+        # This link_type used in run(). Make sure we always respect LinkType.copy request.
         link_type = LinkType.copy if link_type == LinkType.copy else LinkType.hardlink
         super().__init__(
             transaction_context,
@@ -542,7 +548,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
         self._verified = True
 
-    def execute(self):
+    def run(self):
         if not self._verified:
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
@@ -582,7 +588,7 @@ class MakeMenuAction(CreateInPrefixPathAction):
         )
         self._execute_successful = False
 
-    def execute(self):
+    def run(self):
         log.log(TRACE, "making menu for %s", self.target_full_path)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
         self._execute_successful = True
@@ -676,7 +682,7 @@ class CompileMultiPycAction(MultiPathAction):
         # create actions typically won't need cleanup
         pass
 
-    def execute(self):
+    def run(self):
         # compile_pyc is sometimes expected to fail, for example a python 3.6 file
         #   installed into a python 2 environment, but no code paths actually importing it
         # technically then, this file should be removed from the manifest in conda-meta, but
@@ -801,7 +807,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
         self._execute_successful = False
 
-    def execute(self):
+    def run(self):
         log.log(TRACE, "creating python entry point %s", self.target_full_path)
         if on_win:
             python_full_path = None
@@ -876,7 +882,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         self.all_link_path_actions = list(all_link_path_actions)
         self._execute_successful = False
 
-    def execute(self):
+    def run(self):
         link = Link(
             source=self.package_info.extracted_package_dir,
             type=self.requested_link_type,
@@ -989,7 +995,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
 
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
-    def execute(self):
+    def run(self):
         log.log(TRACE, "updating environment history %s", self.target_full_path)
 
         if lexists(self.target_full_path):
@@ -1027,7 +1033,7 @@ class RegisterEnvironmentLocationAction(PathAction):
                 user_environments_txt_file,
             )
 
-    def execute(self):
+    def run(self):
         log.log(TRACE, "registering environment in catalog %s", self.target_prefix)
 
         register_env(self.target_prefix)
@@ -1078,7 +1084,7 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
         self.holding_full_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.link_type = link_type
 
-    def execute(self):
+    def run(self):
         if self.link_type != LinkType.directory:
             log.log(
                 TRACE,
@@ -1119,7 +1125,7 @@ class RemoveMenuAction(RemoveFromPrefixPathAction):
             transaction_context, linked_package_data, target_prefix, target_short_path
         )
 
-    def execute(self):
+    def run(self):
         log.log(TRACE, "removing menu for %s ", self.target_prefix)
         make_menu(self.target_prefix, self.target_short_path, remove=True)
 
@@ -1139,8 +1145,8 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
             transaction_context, linked_package_data, target_prefix, target_short_path
         )
 
-    def execute(self):
-        super().execute()
+    def run(self):
+        super().run()
         PrefixData(self.target_prefix).remove(self.linked_package_data.name)
 
     def reverse(self):
@@ -1158,7 +1164,7 @@ class UnregisterEnvironmentLocationAction(PathAction):
     def verify(self):
         self._verified = True
 
-    def execute(self):
+    def run(self):
         log.log(TRACE, "unregistering environment in catalog %s", self.target_prefix)
 
         unregister_env(self.target_prefix)
@@ -1202,7 +1208,7 @@ class CacheUrlAction(PathAction):
         assert "::" not in self.url
         self._verified = True
 
-    def execute(self, progress_update_callback=None):
+    def run(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the PackageCache class to CacheUrlAction __init__
         from .package_cache_data import PackageCacheData
@@ -1342,7 +1348,7 @@ class ExtractPackageAction(PathAction):
     def verify(self):
         self._verified = True
 
-    def execute(self, progress_update_callback=None):
+    def run(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache_data import PackageCacheData
