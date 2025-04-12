@@ -1711,8 +1711,12 @@ def _powershell_profile_content(conda_prefix):
         f"""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
-    If (Test-Path "{conda_exe}") {{
-        (& "{conda_exe}" "shell.powershell" "hook") | Out-String | ?{{$_}} | Invoke-Expression
+    try {{
+        if ((Get-ExecutionPolicy -Scope CurrentUser) -ne 'Restricted') {{
+            (& "{conda_exe}" "shell.powershell" "hook") | Out-String | ?{{$_}} | Invoke-Expression
+        }}
+    }} catch {{
+        Write-Verbose "Conda hook skipped due to execution policy."
     }}
     #endregion
     """
