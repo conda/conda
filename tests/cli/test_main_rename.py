@@ -110,7 +110,7 @@ def test_rename_by_name_name_already_exists_error(
     """Test to ensure that we do not rename if the name already exists"""
     with pytest.raises(
         CondaEnvException,
-        match=f"The environment '.*/{env_one}' already exists. Override with --yes",
+        match=rf"The environment '.*[/\]{env_one}' already exists. Override with --yes.",
     ):
         conda_cli("rename", "--name", env_one, env_one)
 
@@ -125,7 +125,7 @@ def test_rename_by_path_path_already_exists_error(
     """Test to ensure that we do not rename if the path already exists"""
     with pytest.raises(
         CondaEnvException,
-        match=f"The environment '{tmp_path}' already exists. Override with --yes",
+        match=rf"The environment '{tmp_path}' already exists. Override with --yes.",
     ):
         conda_cli("rename", "--name", env_one, tmp_path)
 
