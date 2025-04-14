@@ -31,7 +31,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.constants import CONDA_HOMEPAGE_URL
     from ..base.context import context, sys_rc_path, user_rc_path
     from ..common.constants import NULL
-    from .helpers import add_parser_json
+    from .helpers import add_parser_json, add_parser_prefix_to_group
 
     escaped_user_rc_path = user_rc_path.replace("%", "%%")
     escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
@@ -120,6 +120,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         ),
     )
     location.add_argument("--file", action="store", help="Write to the given file.")
+    add_parser_prefix_to_group(location)
 
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
@@ -597,6 +598,8 @@ def execute_config(args, parser):
     from ..common.io import timeout
     from ..common.iterators import groupby_to_dict as groupby
     from ..common.serialize import yaml_round_trip_load
+    from ..exceptions import EnvironmentLocationNotFound
+    from ..gateways.disk.test import is_conda_environment
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -810,6 +813,11 @@ def execute_config(args, parser):
             rc_path = user_rc_path
     elif args.file:
         rc_path = args.file
+    elif args.prefix or args.name:
+        if is_conda_environment(context.target_prefix):
+            rc_path = join(context.target_prefix, ".condarc")
+        else:
+            raise EnvironmentLocationNotFound(context.target_prefix)
     else:
         rc_path = user_rc_path
 

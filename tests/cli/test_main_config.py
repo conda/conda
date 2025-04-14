@@ -18,7 +18,7 @@ from conda.cli.main_config import (
     _write_rc,
     set_keys,
 )
-from conda.exceptions import CondaKeyError
+from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -26,7 +26,11 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
-    from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 @pytest.mark.parametrize(
@@ -246,3 +250,34 @@ def test_config_set_keys(tmp_path: Path) -> None:
 
     set_keys(("auto_stack", 5), path=condarc)
     assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
+
+
+def test_config_set_and_get_key_for_env(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
+    test_channel_name = "my-super-special-channel"
+    with tmp_env() as prefix:
+        # add config to prefix
+        conda_cli(
+            "config", "--append", "channels", test_channel_name, "--prefix", prefix
+        )
+
+        # check config is added to the prefix config
+        stdout, _, _ = conda_cli("config", "--show", "--prefix", prefix, "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name in parsed["channels"]
+
+        # check config is not added to the config of the base environment
+        stdout, _, _ = conda_cli("config", "--show", "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name not in parsed["channels"]
+
+
+def test_config_env_does_not_exist(
+    conda_cli: CondaCLIFixture,
+) -> None:
+    with pytest.raises(EnvironmentLocationNotFound):
+        conda_cli(
+            "config", "--get", "channels", "--prefix", "ireallydontexist", "--json"
+        )

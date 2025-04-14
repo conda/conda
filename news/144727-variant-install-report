@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix variable deletion in xonsh. (#14543 via #14550)
+* Report package variant installation as "REVISED" opposed to "DOWNGRADED". (#13797 via #14727)
 
 ### Deprecations
 
