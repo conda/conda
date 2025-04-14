@@ -163,7 +163,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     destination = str(dest_prefix_data.prefix_path)
     if not args.yes and dest_prefix_data.exists():
         raise CondaEnvException(
-            f"The environment '{dest_prefix_data.name}' already exists. Override with --yes."
+            f"The environment '{dest_prefix_data.prefix_path}' already exists. Override with --yes."
         )
 
     def clone_and_remove() -> None:
