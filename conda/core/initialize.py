@@ -620,7 +620,6 @@ def make_initialize_plan(
                         "target_path": "/etc/profile.d/conda.sh",
                         "conda_prefix": conda_prefix,
                         "reverse": reverse,
-                        "content_type": "add_condabin_to_path",
                     },
                 }
             )
