@@ -1432,9 +1432,9 @@ def _config_fish_content(conda_prefix):
 def _config_fish_content_to_add_condabin_to_path(conda_prefix):
     condabin_dir = join(conda_prefix, "condabin")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        condabin_dir = native_path_to_unix(condabin_dir)
+        condabin_dir = win_path_to_unix(condabin_dir)
     conda_initialize_content = dals(
         f"""
         # >>> conda initialize >>>
@@ -1442,9 +1442,7 @@ def _config_fish_content_to_add_condabin_to_path(conda_prefix):
         set -x PATH "{condabin_dir}" $PATH
         # <<< conda initialize <<<
         """
-    ) % {
-        "condabin_dir": condabin_dir,
-    }
+    )
     return conda_initialize_content
 
 

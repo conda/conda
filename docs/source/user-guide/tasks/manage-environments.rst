@@ -431,7 +431,7 @@ a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
 Now these shells can use the ``conda activate`` command.
 
 Alternatively, ``conda init --condabin`` will not install a shell
-function in your profile. Instead, it will only add the ``condabin/``
+function in your profile. Instead, it will only add the ``$CONDA_PREFIX/condabin/``
 directory to ``PATH``. This directory only contains the ``conda``
 executable, so it should be minimally invasive.
 

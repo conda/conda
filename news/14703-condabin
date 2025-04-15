@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Provide `conda init --condabin`, which only adds the `condabin/` directory to the PATH environment variable instead of installing a shell function. (#14703)
+* Provide `conda init --condabin`, which only adds the `$CONDA_PREFIX/condabin` directory to the PATH environment variable instead of installing a shell function. (#14703)
 
 ### Bug fixes
 
