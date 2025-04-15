@@ -5,10 +5,10 @@ from __future__ import annotations
 import ntpath
 import os
 import sys
+from collections import namedtuple
 from os.path import abspath, dirname, isfile, join, realpath, samefile
 from sysconfig import get_path
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 
@@ -1065,15 +1065,254 @@ def test_init_cmd_exe_registry(verbose):
     assert c.stdout.strip().splitlines()[-1][1:] == expected
 
 
-@pytest.mark.skipif(not on_win, reason="windows-only test")
-def test_add_condabin_to_path_registry(verbose):
+REG_EXPAND_SZ = 2
+# Define a namedtuple for test case parameters; helps with readability
+RegistryTestCase = namedtuple(
+    "RegistryTestCase",
+    [
+        "initial_path_value",
+        "initial_path_type",
+        "reverse",
+        "dry_run",
+        "expected_result",
+        "expected_write_calls_count",
+        "expected_written_path",
+        "expected_written_type",
+    ],
+)
+
+
+@pytest.mark.parametrize(
+    "initial_path_value, initial_path_type, reverse, dry_run, "
+    "expected_result, expected_write_calls_count, expected_written_path, expected_written_type",
+    [
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value=None,
+                initial_path_type=None,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_to_empty_path",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Windows\\System32",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows;C:\\Windows\\System32",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_to_existing_path_without_condabin",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="add_when_condabin_exists_case_sensitive",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\USERS\\TEST\\MINICONDA3\\CONDABIN;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="add_when_condabin_exists_case_insensitive",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Users\\test\\miniconda3\\condabin",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="add_when_condabin_exists_later_in_path",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_at_beginning",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Users\\test\\miniconda3\\condabin;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows;C:\\Program Files",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_in_middle",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Users\\test\\miniconda3\\condabin",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_at_end",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="remove_when_condabin_does_not_exist",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\USERS\\TEST\\MINICONDA3\\CONDABIN",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_case_insensitive",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows;C:\\Program Files",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_handle_double_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;;C:\\Users\\test\\miniconda3\\condabin;;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows;C:\\Program Files",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_handle_double_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value=";C:\\Windows;",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_handle_leading_trailing_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value=";C:\\Users\\test\\miniconda3\\condabin;C:\\Windows;",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_handle_leading_trailing_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=True,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="dry_run_add",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=True,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="dry_run_remove",
+        ),
+    ],
+)
+def test_add_condabin_to_path_registry(
+    mocker,
+    initial_path_value,
+    initial_path_type,
+    reverse,
+    dry_run,
+    expected_result,
+    expected_write_calls_count,
+    expected_written_path,
+    expected_written_type,
+):
     conda_prefix = "C:\\Users\\test\\miniconda3"
-    condabin_path = "\\".join([conda_prefix, "condabin"])
     target_path = "HKEY_CURRENT_USER\\Environment\\PATH"
 
-    # Mock registry functions
-    mock_read_registry = patch("conda.core.initialize._read_windows_registry").start()
-    mock_write_registry = patch("conda.core.initialize._write_windows_registry").start()
+    # Mock registry functions using mocker
+    mock_read_registry = mocker.patch("conda.core.initialize._read_windows_registry")
+    mock_write_registry = mocker.patch("conda.core.initialize._write_windows_registry")
 
     # Use a list to store calls to the mocked write function
     write_calls = []
@@ -1081,143 +1320,34 @@ def test_add_condabin_to_path_registry(verbose):
         (path, value, type_)
     )
 
-    # Case 1: Add to empty PATH
-    mock_read_registry.return_value = (None, None)  # Simulate non-existent key
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    assert write_calls[0][0] == target_path
-    assert write_calls[0][1] == condabin_path
-    assert write_calls[0][2] == 2  # winreg.REG_EXPAND_SZ
+    # Set the return value for the read mock for this specific case
+    mock_read_registry.return_value = (initial_path_value, initial_path_type)
 
-    # Case 2: Add to existing PATH without condabin
-    mock_read_registry.return_value = ("C:\\Windows;C:\\Windows\\System32", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    assert write_calls[0][1] == f"{condabin_path};C:\\Windows;C:\\Windows\\System32"
+    # --- Execute the function under test ---
+    if dry_run:
+        with env_var(
+            "CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
+            result = add_condabin_to_path_registry(
+                target_path, conda_prefix, reverse=reverse
+            )
+    else:
+        # Ensure CONDA_DRY_RUN is not set or false for non-dry-run cases
+        with env_var(
+            "CONDA_DRY_RUN", None, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
+            result = add_condabin_to_path_registry(
+                target_path, conda_prefix, reverse=reverse
+            )
 
-    # Case 3: Add when condabin already exists (case-sensitive match)
-    mock_read_registry.return_value = (f"{condabin_path};C:\\Windows", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-    assert result == Result.NO_CHANGE
-    assert len(write_calls) == 0
+    # --- Assertions ---
+    assert result == expected_result
+    assert len(write_calls) == expected_write_calls_count
 
-    # Case 4: Add when condabin already exists (case-insensitive match)
-    mock_read_registry.return_value = (f"{condabin_path.upper()};C:\\Windows", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-    assert result == Result.NO_CHANGE
-    assert len(write_calls) == 0
-
-    # Case 5: Add when condabin exists later in PATH
-    mock_read_registry.return_value = (f"C:\\Windows;{condabin_path}", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-    assert result == Result.NO_CHANGE  # Should still be no change as it exists
-    assert len(write_calls) == 0
-
-    # Case 6: Remove when condabin exists at the beginning
-    mock_read_registry.return_value = (f"{condabin_path};C:\\Windows", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    assert write_calls[0][1] == "C:\\Windows"
-
-    # Case 7: Remove when condabin exists in the middle
-    mock_read_registry.return_value = (
-        f"C:\\Windows;{condabin_path};C:\\Program Files",
-        2,
-    )
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    assert write_calls[0][1] == "C:\\Windows;C:\\Program Files"
-
-    # Case 8: Remove when condabin exists at the end
-    mock_read_registry.return_value = (f"C:\\Windows;{condabin_path}", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    assert write_calls[0][1] == "C:\\Windows"
-
-    # Case 9: Remove when condabin doesn't exist
-    mock_read_registry.return_value = ("C:\\Windows;C:\\Program Files", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-    assert result == Result.NO_CHANGE
-    assert len(write_calls) == 0
-
-    # Case 10: Remove when condabin exists (case-insensitive match)
-    mock_read_registry.return_value = (f"C:\\Windows;{condabin_path.upper()}", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    assert write_calls[0][1] == "C:\\Windows"
-
-    # Case 11: Handle empty parts from double semicolons when adding
-    mock_read_registry.return_value = ("C:\\Windows;;C:\\Program Files", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    # Function cleans up empty parts
-    assert write_calls[0][1] == f"{condabin_path};C:\\Windows;C:\\Program Files"
-
-    # Case 12: Handle empty parts from double semicolons when removing
-    mock_read_registry.return_value = (
-        f"C:\\Windows;;{condabin_path};;C:\\Program Files",
-        2,
-    )
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    # Function cleans up empty parts
-    assert write_calls[0][1] == "C:\\Windows;C:\\Program Files"
-
-    # Case 13: Handle leading/trailing semicolons when adding
-    mock_read_registry.return_value = (";C:\\Windows;", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    # Function cleans up empty parts
-    assert write_calls[0][1] == f"{condabin_path};C:\\Windows"
-
-    # Case 14: Handle leading/trailing semicolons when removing
-    mock_read_registry.return_value = (f";{condabin_path};C:\\Windows;", 2)
-    write_calls.clear()
-    result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-    assert result == Result.MODIFIED
-    assert len(write_calls) == 1
-    assert write_calls[0][1] == "C:\\Windows"  # Function cleans up empty parts
-
-    # Case 15: Dry run - Add
-    with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        mock_read_registry.return_value = ("C:\\Windows", 2)
-        write_calls.clear()
-        result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=False)
-        assert result == Result.MODIFIED  # Still reports modified
-        assert len(write_calls) == 0  # But doesn't actually write
-
-    # Case 16: Dry run - Remove
-    with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        mock_read_registry.return_value = (f"{condabin_path};C:\\Windows", 2)
-        write_calls.clear()
-        result = add_condabin_to_path_registry(target_path, conda_prefix, reverse=True)
-        assert result == Result.MODIFIED  # Still reports modified
-        assert len(write_calls) == 0  # But doesn't actually write
-
-    # Cleanup mocks
-    patch.stopall()
+    if expected_write_calls_count > 0:
+        assert write_calls[0][0] == target_path
+        assert write_calls[0][1] == expected_written_path
+        assert write_calls[0][2] == expected_written_type
 
 
 @pytest.mark.skipif(not on_win, reason="win-only test")
