@@ -2045,7 +2045,7 @@ def add_condabin_to_path_registry(target_path, conda_prefix, reverse=False):
     if prev_value is None:
         prev_value = ""
         # PATH is typically REG_EXPAND_SZ, allowing variables like %SystemRoot%
-        value_type = 2 # winreg.REG_EXPAND_SZ
+        value_type = 2  # winreg.REG_EXPAND_SZ
 
     # The Windows registry always wants backslashes!
     condabin_path = join(conda_prefix, "condabin").replace("/", "\\")
