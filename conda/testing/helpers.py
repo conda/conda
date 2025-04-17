@@ -742,34 +742,45 @@ def solver_class():
 
 
 def forward_to_subprocess(
-    request_node, reruns: int = 0, *cli_args, **subprocess_kwargs
+    request, reruns: int = 0, *cli_args, **subprocess_kwargs
 ) -> subprocess.CompletedProcess | None:
-    if not os.getenv("RERUN_IN_SUBPROCESS"):
-        args = cli_args or (
-            "--no-header",
-            "--no-summary",
-            "--disable-warnings",
-            "--capture=no",
-            "-vvv",
+    if os.getenv("_RERUN_IN_SUBPROCESS"):
+        return
+    subprocess_kwargs.pop("check", None)
+    subprocess_kwargs.pop("capture_output", None)
+    subprocess_kwargs.pop("text", None)
+    subprocess_kwargs.pop("env", None)
+    subprocess_kwargs.pop("stdout", None)
+    subprocess_kwargs.pop("stderr", None)
+    args = list(cli_args) or [
+        "--no-header",
+        "--disable-warnings",
+        "--color=no",
+        "-vvv",
+    ]
+    env = os.environ.copy()
+    env["_RERUN_IN_SUBPROCESS"] = "1"
+    process = None
+    for _ in range(reruns + 1):
+        process = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                *args,
+                f"{request.node.path}::{request.node.name}",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=env,
+            **subprocess_kwargs,
         )
-        env = os.environ.copy()
-        env["RERUN_IN_SUBPROCESS"] = "1"
-        process = None
-        for _ in range(reruns + 1):
-            process = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "pytest",
-                    *args,
-                    f"{request_node.path}::{request_node.name}",
-                ],
-                check=False,
-                env=env,
-                **subprocess_kwargs,
-            )
-            if not process.returncode:
-                return process
-        if process is not None:
-            process.check_returncode()
+        if not process.returncode:
             return process
+    if process is not None:
+        if process.returncode:
+            print(process.stdout)
+            print(process.stderr, file=sys.stderr)
+            process.check_returncode()
+        return process
