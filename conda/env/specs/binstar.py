@@ -16,7 +16,7 @@ from ...models.version import normalized_version
 if TYPE_CHECKING:
     from types import ModuleType
 
-    from ...env.env import EnvironmentV1
+    from ...env.env import Environment
 
 deprecated.module("24.7", "25.9")
 
@@ -89,7 +89,7 @@ class BinstarSpec:
         return [data for data in self.package["files"] if data["type"] == "env"]
 
     @cached_property
-    def environment(self) -> EnvironmentV1:
+    def environment(self) -> Environment:
         versions = [
             {"normalized": normalized_version(d["version"]), "original": d["version"]}
             for d in self.file_data

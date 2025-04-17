@@ -96,7 +96,7 @@ def from_environment(
     if from_history:
         history = History(prefix).get_requested_specs_map()
         deps = [str(package) for package in history.values()]
-        return EnvironmentV1(
+        return Environment(
             name=name,
             dependencies=deps,
             channels=list(context.channels),
@@ -137,7 +137,7 @@ def from_environment(
             canonical_name = prec.channel.canonical_name
             if canonical_name not in channels:
                 channels.insert(0, canonical_name)
-    return EnvironmentV1(
+    return Environment(
         name=name,
         dependencies=dependencies,
         channels=channels,
@@ -158,7 +158,7 @@ def from_yaml(yamlstr, **kwargs):
         for key, value in kwargs.items():
             data[key] = value
     _expand_channels(data)
-    return EnvironmentV1(**data)
+    return Environment(**data)
 
 
 def _expand_channels(data):
@@ -612,7 +612,7 @@ class EnvironmentV2(EnvironmentBase):
         )
 
 
-class EnvironmentV1(EnvironmentBase):
+class Environment(EnvironmentBase):
     """A class representing an ``environment.yaml`` file"""
 
     def __init__(
