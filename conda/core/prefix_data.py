@@ -67,7 +67,7 @@ class PrefixDataType(type):
         cls,
         prefix_path: str | os.PathLike | Path,
         pip_interop_enabled: bool | None = None,
-    ):
+    ) -> PrefixData:
         if isinstance(prefix_path, PrefixData):
             return prefix_path
         prefix_path = Path(prefix_path)
@@ -81,7 +81,7 @@ class PrefixDataType(type):
 
 
 class PrefixData(metaclass=PrefixDataType):
-    _cache_: dict[Path, PrefixData] = {}
+    _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
 
     def __init__(
         self,
@@ -101,7 +101,7 @@ class PrefixData(metaclass=PrefixDataType):
         )
 
     @classmethod
-    def from_name(cls, name: str, **kwargs):
+    def from_name(cls, name: str, **kwargs) -> PrefixData:
         if "/" in name or "\\" in name:
             raise CondaValueError("Environment names cannot contain path separators")
         try:
@@ -111,7 +111,7 @@ class PrefixData(metaclass=PrefixDataType):
             return cls(Path(_first_writable_envs_dir(), name), **kwargs)
 
     @classmethod
-    def from_context(cls, validate: bool = False):
+    def from_context(cls, validate: bool = False) -> PrefixData:
         inst = cls(context.target_prefix)
         if validate:
             inst.validate_path()
@@ -142,23 +142,23 @@ class PrefixData(metaclass=PrefixDataType):
             # neither prefix exists, raw comparison
             return self.prefix_path.resolve() == other.prefix_path.resolve()
 
-    def exists(self):
+    def exists(self) -> bool:
         try:
             return self.prefix_path.is_dir()
         except OSError:
             return False
 
-    def is_environment(self):
+    def is_environment(self) -> bool:
         try:
             return self._magic_file.is_file()
         except OSError:
             return False
 
-    def is_base(self):
+    def is_base(self) -> bool:
         return paths_equal(str(self.prefix_path), context.root_prefix)
 
     @property
-    def is_writable(self):
+    def is_writable(self) -> bool:
         if self.__is_writable == NULL:
             if not self.is_environment():
                 is_writable = None
@@ -181,7 +181,7 @@ class PrefixData(metaclass=PrefixDataType):
         if not file_path_is_writable(self._magic_file):
             raise EnvironmentNotWritableError(self.prefix_path)
 
-    def validate_path(self, expand_path: bool = False) -> Path:
+    def validate_path(self, expand_path: bool = False):
         prefix_str = str(self.prefix_path)
         if expand_path:
             prefix_str = expand(prefix_str)

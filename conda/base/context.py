@@ -2164,7 +2164,7 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
             return join(_first_writable_envs_dir(), prefix_name)
 
 
-def determine_target_prefix(ctx, args=None) -> str:
+def determine_target_prefix(ctx, args=None) -> os.PathLike:
     """Get the prefix to operate in.  The prefix may not yet exist.
 
     Args:
