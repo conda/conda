@@ -68,7 +68,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
-from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess
+from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
 from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
@@ -171,16 +171,13 @@ def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         assert not code
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_create_install_update_remove_smoketest(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
 ):
-    if (
-        context.solver == "libmamba"
-        and on_win
-        and forward_to_subprocess(request, reruns=2)
-    ):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
     with tmp_env("python=3") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
@@ -360,17 +357,14 @@ def test_safety_checks_disabled(
         assert package_is_installed(prefix, "spiffy-test-app=0.5")
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_json_create_install_update_remove(
     tmp_path: Path,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
 ):
     # regression test for #5384
-    if (
-        context.solver == "libmamba"
-        and on_win
-        and forward_to_subprocess(request, reruns=2)
-    ):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
     def is_json_parsable(content: str) -> bool:
@@ -588,6 +582,7 @@ def test_noarch_python_package_without_entry_points(
         assert not (prefix / pyc_file).is_file()
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_noarch_python_package_reinstall_on_pyver_change(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
 ):
@@ -595,11 +590,7 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     When Python changes versions (e.g. from 3.10 to 3.11) it is important to verify that all the previous
     dependencies were transferred over to the new version in ``lib/python3.x/site-packages/*``.
     """
-    if (
-        context.solver == "libmamba"
-        and on_win
-        and forward_to_subprocess(request, reruns=2)
-    ):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
     with tmp_env("itsdangerous", "python=3.10") as prefix:
@@ -853,14 +844,11 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         assert prefix not in PrefixData._cache_
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_list_with_pip_wheel(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
 ):
-    if (
-        context.solver == "libmamba"
-        and on_win
-        and forward_to_subprocess(request, reruns=2)
-    ):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
     with tmp_env("python=3.10", "pip") as prefix:
