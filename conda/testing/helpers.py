@@ -78,15 +78,15 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), (
-        f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
-    )
+    assert (
+        a.lower() not in b.lower()
+    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), (
-        f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
-    )
+    assert (
+        a.lower() in b.lower()
+    ), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
 
 
 def add_subdir(dist_string):
@@ -745,6 +745,13 @@ def forward_to_subprocess(
     request_node, *cli_args, **subprocess_kwargs
 ) -> subprocess.CompletedProcess | None:
     if not os.getenv("RERUN_IN_SUBPROCESS"):
+        args = cli_args or (
+            "--no-header",
+            "--no-summary",
+            "--disable-warnings",
+            "--capture=no",
+            "-vvv",
+        )
         env = os.environ.copy()
         env["RERUN_IN_SUBPROCESS"] = "1"
         return subprocess.run(
@@ -752,11 +759,7 @@ def forward_to_subprocess(
                 sys.executable,
                 "-m",
                 "pytest",
-                "--no-header",
-                "--no-summary",
-                "--quiet",
-                "--disable-warnings",
-                *cli_args,
+                *args,
                 f"{request_node.path}::{request_node.name}",
             ],
             check=subprocess_kwargs.pop("check", True),
