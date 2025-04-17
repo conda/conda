@@ -408,6 +408,16 @@ class EnvironmentV2(EnvironmentBase):
         config: EnvironmentConfig | None = None,
         **options,
     ):
+        """Instantiate an EnvironmentV2.
+
+        :param requirements: The packages contained in the environment
+        :param groups: Groups of packages contained in the environment; these can
+            represent optional dependencies, e.g. 'dev'
+        :param name: Name of the environment
+        :param config: Variables which override conda settings in `.condarc`
+        :param options: Environment-specific options which are not configuration
+            overrides, e.g. `description`
+        """
         self.name = name
         self.requirements = requirements if requirements else Requirements()
         self.groups = groups if groups else {}
@@ -420,15 +430,8 @@ class EnvironmentV2(EnvironmentBase):
 
         Shell variables in channels are automatically expanded.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Serialized EnvironmentV2 object
-
-        Returns
-        -------
-        EnvironmentV2
-            A new EnvironmentV2 instance
+        :param data: Serialized EnvironmentV2 object
+        :return:  A new EnvironmentV2 instance
         """
         requirements = Requirements.from_strs(
             raw_requirements=data.pop("requirements", None),
@@ -577,26 +580,23 @@ class EnvironmentV2(EnvironmentBase):
         variables = pfd.get_environment_env_vars()
 
         precs = tuple(PrefixGraph(pfd.iter_records()).graph)
-        grouped_precs = groupby(lambda x: x.package_type, precs)
-        conda_precs = sorted(
-            (
-                *grouped_precs.get(None, ()),
-                *grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
-                *grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
-            ),
-            key=lambda x: x.name,
-        )
 
-        pip_precs = sorted(
-            (
-                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
-                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
-                *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-            ),
-            key=lambda x: x.name,
-        )
+        conda_precs, pip_precs = [], []
+        for prec in precs:
+            if prec.package_type in [
+                None,
+                PackageType.NOARCH_GENERIC,
+                PackageType.NOARCH_PYTHON,
+            ]:
+                conda_precs.append(prec)
+            elif prec.package_type in [
+                PackageType.VIRTUAL_PYTHON_WHEEL,
+                PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            ]:
+                pip_precs.append(prec)
 
-        requirements = ["=".join((a.name, a.version)) for a in conda_precs]
+        requirements = ["=".join((a.name, a.version, a.build)) for a in conda_precs]
         pypi_requirements = [f"{a.name}=={a.version}" for a in pip_precs]
 
         channels = [prec.channel.canonical_name for prec in conda_precs]
