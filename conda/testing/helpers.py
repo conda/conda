@@ -2,8 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of helper functions used in conda tests."""
 
+from __future__ import annotations
+
 import json
 import os
+import subprocess
+import sys
 from contextlib import contextmanager
 from functools import cache
 from os.path import abspath, dirname, join
@@ -735,3 +739,27 @@ def convert_to_dist_str(solution):
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_solver_backend()
+
+
+def forward_to_subprocess(
+    request_node, *cli_args, **subprocess_kwargs
+) -> subprocess.CompletedProcess | None:
+    if not os.getenv("RERUN_IN_SUBPROCESS"):
+        env = os.environ.copy()
+        env["RERUN_IN_SUBPROCESS"] = "1"
+        return subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "--no-header",
+                "--no-summary",
+                "--quiet",
+                "--disable-warnings",
+                *cli_args,
+                f"{request_node.path}::{request_node.name}",
+            ],
+            check=subprocess_kwargs.pop("check", True),
+            env=env,
+            **subprocess_kwargs,
+        )

@@ -34,6 +34,7 @@ from conda.testing.helpers import (
     add_subdir,
     add_subdir_to_iter,
     convert_to_dist_str,
+    forward_to_subprocess,
     get_solver,
     get_solver_2,
     get_solver_4,
@@ -53,7 +54,10 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
 @pytest.mark.benchmark
-def test_solve_1(tmpdir):
+def test_solve_1(tmpdir, request):
+    if context.solver == "libmamba" and forward_to_subprocess(request.node):
+        return
+
     specs = (MatchSpec("numpy"),)
 
     with get_solver(tmpdir, specs) as solver:
