@@ -9,6 +9,7 @@
 
 ### Deprecations
 
+* Mark `conda.base.context._first_writable_envs_dir` as pending deprecation. Use `conda.gateways.disk.create.first_writable_envs_dir()` and `PrefixData.from_name()` instead. It will be permanently removed in 26.3. (#14750)
 * Mark `conda.base.context.validate_prefix_name` as pending deprecation. Use `PrefixData.validate_name()` and `PrefixData.from_name()` instead. It will be permanently removed in 26.3. (#14750)
 * Mark `conda.cli.common.validate_prefix_is_writable` as pending deprecation. Use `PrefixData.assert_writable()` instead. It will be permanently removed in 26.3. (#14750)
 * Mark `conda.cli.common.validate_prefix` as pending deprecation. Use `PrefixData.assert_environment()` instead. It will be permanently removed in 26.3. (#14750)

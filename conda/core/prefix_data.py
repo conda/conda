@@ -21,7 +21,7 @@ from ..base.constants import (
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
-from ..base.context import _first_writable_envs_dir, context, locate_prefix_by_name
+from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
@@ -46,7 +46,7 @@ from ..exceptions import (
     EnvironmentNotWritableError,
     maybe_raise,
 )
-from ..gateways.disk.create import write_as_json_to_file
+from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import read_python_record
 from ..gateways.disk.test import file_path_is_writable
@@ -130,7 +130,7 @@ class PrefixData(metaclass=PrefixDataType):
             return cls(locate_prefix_by_name(name))
         except EnvironmentNameNotFound:
             cls(name).validate_name()
-            return cls(Path(_first_writable_envs_dir(), name), **kwargs)
+            return cls(Path(first_writable_envs_dir(), name), **kwargs)
 
     @classmethod
     def from_context(cls, validate: bool = False) -> PrefixData:

@@ -2157,11 +2157,12 @@ def validate_prefix_name(prefix_name: str, ctx: Context, allow_base=True) -> str
 
     else:
         from ..exceptions import EnvironmentNameNotFound
+        from ..gateways.disk.create import first_writable_envs_dir
 
         try:
             return locate_prefix_by_name(prefix_name)
         except EnvironmentNameNotFound:
-            return join(_first_writable_envs_dir(), prefix_name)
+            return join(first_writable_envs_dir(), prefix_name)
 
 
 def determine_target_prefix(ctx, args=None) -> os.PathLike:
@@ -2204,34 +2205,13 @@ def determine_target_prefix(ctx, args=None) -> os.PathLike:
         return str(PrefixData.from_name(prefix_name).prefix_path)
 
 
-def _first_writable_envs_dir(create=True):
-    # Calling this function will *create* an envs directory if one does not already
-    # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
-    for envs_dir in context.envs_dirs:
-        if envs_dir == os.devnull:
-            continue
+@deprecated(
+    "25.9", "26.3", addendum="Use conda.gateways.disk.create.first_writable_envs_dir"
+)
+def _first_writable_envs_dir():
+    from conda.gateways.disk.create import first_writable_envs_dir
 
-        # The magic file being used here could change in the future.  Don't write programs
-        # outside this code base that rely on the presence of this file.
-        # This value is duplicated in conda.gateways.disk.create.create_envs_directory().
-        envs_dir_magic_file = join(envs_dir, ".conda_envs_dir_test")
-
-        if isfile(envs_dir_magic_file):
-            try:
-                open(envs_dir_magic_file, "a").close()
-                return envs_dir
-            except OSError:
-                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
-        elif create:
-            from ..gateways.disk.create import create_envs_directory
-
-            was_created = create_envs_directory(envs_dir)
-            if was_created:
-                return envs_dir
-
-    from ..exceptions import NoWritableEnvsDirError
-
-    raise NoWritableEnvsDirError(context.envs_dirs)
+    first_writable_envs_dir()
 
 
 def get_plugin_config_data(
