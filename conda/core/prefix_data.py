@@ -94,6 +94,7 @@ class PrefixData(metaclass=PrefixDataType):
       nonadmin markers, etc)
     - Existence checks and validations of name, path, and magic files / markers
     """
+
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
 
     def __init__(
