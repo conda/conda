@@ -77,8 +77,6 @@ def test_rename_by_name_success(
     env_one: str,
     env_rename: str,
 ):
-    import sys
-
     out, err, rc = conda_cli("rename", "--name", env_one, env_rename)
     assert not rc
     assert locate_prefix_by_name(env_rename)
