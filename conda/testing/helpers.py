@@ -742,7 +742,7 @@ def solver_class():
 
 
 def forward_to_subprocess(
-    request_node, *cli_args, **subprocess_kwargs
+    request_node, reruns: int = 0, *cli_args, **subprocess_kwargs
 ) -> subprocess.CompletedProcess | None:
     if not os.getenv("RERUN_IN_SUBPROCESS"):
         args = cli_args or (
@@ -754,15 +754,22 @@ def forward_to_subprocess(
         )
         env = os.environ.copy()
         env["RERUN_IN_SUBPROCESS"] = "1"
-        return subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pytest",
-                *args,
-                f"{request_node.path}::{request_node.name}",
-            ],
-            check=subprocess_kwargs.pop("check", True),
-            env=env,
-            **subprocess_kwargs,
-        )
+        process = None
+        for _ in range(reruns + 1):
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    *args,
+                    f"{request_node.path}::{request_node.name}",
+                ],
+                check=False,
+                env=env,
+                **subprocess_kwargs,
+            )
+            if not process.returncode:
+                return process
+        if process is not None:
+            process.check_returncode()
+            return process
