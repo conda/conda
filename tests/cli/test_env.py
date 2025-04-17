@@ -397,7 +397,11 @@ def test_update_env_only_pip_json_output(
     Update an environment by adding only a pip package
     Check the json output
     """
-    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
+    if (
+        context.solver == "libmamba"
+        and on_win
+        and forward_to_subprocess(request, reruns=2)
+    ):
         return
 
     request.applymarker(
@@ -430,7 +434,11 @@ def test_update_env_no_action_json_output(
     Update an already up-to-date environment
     Check the json output
     """
-    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
+    if (
+        context.solver == "libmamba"
+        and on_win
+        and forward_to_subprocess(request, reruns=2)
+    ):
         return
     prefix = path_factory()
     request.applymarker(
