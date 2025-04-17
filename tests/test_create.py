@@ -176,7 +176,7 @@ def test_create_install_update_remove_smoketest(
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
 ):
-    if context.solver == "libmamba" and forward_to_subprocess(request.node, reruns=2):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
         return
     with tmp_env("python=3") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
@@ -362,7 +362,7 @@ def test_json_create_install_update_remove(
     request: pytest.FixtureRequest,
 ):
     # regression test for #5384
-    if context.solver == "libmamba" and forward_to_subprocess(request.node, reruns=2):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
         return
 
     def is_json_parsable(content: str) -> bool:
@@ -587,7 +587,7 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     When Python changes versions (e.g. from 3.10 to 3.11) it is important to verify that all the previous
     dependencies were transferred over to the new version in ``lib/python3.x/site-packages/*``.
     """
-    if context.solver == "libmamba" and forward_to_subprocess(request.node, reruns=2):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
         return
 
     with tmp_env("itsdangerous", "python=3.10") as prefix:
@@ -844,7 +844,7 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
 def test_list_with_pip_wheel(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
 ):
-    if context.solver == "libmamba" and forward_to_subprocess(request.node, reruns=2):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
         return
 
     with tmp_env("python=3.10", "pip") as prefix:

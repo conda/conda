@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 from conda.base.context import context
+from conda.common.compat import on_win
 from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.exceptions import (
     CondaEnvException,
@@ -396,7 +397,7 @@ def test_update_env_only_pip_json_output(
     Update an environment by adding only a pip package
     Check the json output
     """
-    if context.solver == "libmamba" and forward_to_subprocess(request.node, reruns=2):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
         return
 
     request.applymarker(
@@ -429,7 +430,7 @@ def test_update_env_no_action_json_output(
     Update an already up-to-date environment
     Check the json output
     """
-    if context.solver == "libmamba" and forward_to_subprocess(request.node, reruns=2):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request, reruns=2):
         return
     prefix = path_factory()
     request.applymarker(

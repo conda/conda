@@ -55,7 +55,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 @pytest.mark.benchmark
 def test_solve_1(tmpdir, request):
-    if context.solver == "libmamba" and forward_to_subprocess(request.node):
+    if context.solver == "libmamba" and forward_to_subprocess(request):
         return
 
     specs = (MatchSpec("numpy"),)
