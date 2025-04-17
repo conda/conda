@@ -81,6 +81,19 @@ class PrefixDataType(type):
 
 
 class PrefixData(metaclass=PrefixDataType):
+    """
+    The PrefixData class aims to be the representation of the state
+    of a conda environment on disk. The directory where the environment
+    lives is called prefix.
+
+    This class supports different types of tasks:
+
+    - Reading and querying `conda-meta/*.json` files as `PackageRecord` objects
+    - Reading PyPI-only packages, installed next to conda packages
+    - Reading and writing environment-specific configuration (env vars, state file,
+      nonadmin markers, etc)
+    - Existence checks and validations of name, path, and magic files / markers
+    """
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
 
     def __init__(
@@ -102,6 +115,14 @@ class PrefixData(metaclass=PrefixDataType):
 
     @classmethod
     def from_name(cls, name: str, **kwargs) -> PrefixData:
+        """
+        Creates a PrefixData instance from an environment name.
+
+        The name will be validated with `PrefixData.validate_name()` if it does not exist.
+
+        :param name: The name of the environment. Must not contain path separators (/, \\).
+        :raises CondaValueError: If `name` contains a path separator.
+        """
         if "/" in name or "\\" in name:
             raise CondaValueError("Environment names cannot contain path separators")
         try:
@@ -112,6 +133,15 @@ class PrefixData(metaclass=PrefixDataType):
 
     @classmethod
     def from_context(cls, validate: bool = False) -> PrefixData:
+        """
+        Creates a PrefixData instance from the path specified by `context.target_prefix`.
+
+        The path and name will be validated with `PrefixData.validate_path()` and
+        `PrefixData.validate_name()`, respectively, if `validate` is `True`.
+
+        :param validate: Whether the path and name should be validated. Useful for environments
+            about to be created.
+        """
         inst = cls(context.target_prefix)
         if validate:
             inst.validate_path()
@@ -120,6 +150,13 @@ class PrefixData(metaclass=PrefixDataType):
 
     @property
     def name(self) -> str:
+        """
+        Returns the name of the environment, if available.
+
+        If the environment doesn't live in one the configured `envs_dirs`, an empty
+        string is returned. The construct `prefix_data.name or prefix_data.prefix_path` can
+        be helpful in those cases.
+        """
         if self == PrefixData(context.root_prefix):
             return ROOT_ENV_NAME
         for envs_dir in context.envs_dirs:
@@ -143,22 +180,41 @@ class PrefixData(metaclass=PrefixDataType):
             return self.prefix_path.resolve() == other.prefix_path.resolve()
 
     def exists(self) -> bool:
+        """
+        Check whether the PrefixData path exists and is a directory.
+        """
         try:
             return self.prefix_path.is_dir()
         except OSError:
             return False
 
     def is_environment(self) -> bool:
+        """
+        Check whether the PrefixData path is a valida conda environment.
+
+        This is assessed by checking if `conda-meta/history` marker file exists.
+        """
         try:
             return self._magic_file.is_file()
         except OSError:
             return False
 
     def is_base(self) -> bool:
+        """
+        Check whether the configured path refers to the `base` environment.
+        """
         return paths_equal(str(self.prefix_path), context.root_prefix)
 
     @property
     def is_writable(self) -> bool:
+        """
+        Check whether the configured path is writable. This is assessed by checking
+        whether `conda-meta/history` is writable. It if is, it is assumed that the rest
+        of the directory tree is writable too.
+
+        Note: The value is cached in the instance. Use `.assert_writable()` for a non-
+        cached check.
+        """
         if self.__is_writable == NULL:
             if not self.is_environment():
                 is_writable = None
@@ -168,20 +224,48 @@ class PrefixData(metaclass=PrefixDataType):
         return self.__is_writable
 
     def assert_exists(self):
+        """
+        Check whether the environment path exists.
+
+        :raises EnvironmentLocationNotFound: If the check returns False.
+        """
         if not self.exists():
             raise EnvironmentLocationNotFound(self.prefix_path)
 
     def assert_environment(self):
+        """
+        Check whether the environment path exists and is a valid conda environment.
+
+        :raises DirectoryNotACondaEnvironmentError: If the check returns False.
+        """
         self.assert_exists()
         if not self.is_environment():
             raise DirectoryNotACondaEnvironmentError(self.prefix_path)
 
     def assert_writable(self):
+        """
+        Check whether the environment path is a valid conda environment and is writable.
+
+        :raises EnvironmentNotWritableError: If the check returns False.
+        """
         self.assert_environment()
         if not file_path_is_writable(self._magic_file):
             raise EnvironmentNotWritableError(self.prefix_path)
 
     def validate_path(self, expand_path: bool = False):
+        """
+        Validate the path of the environment.
+
+        It runs the following checks:
+
+        - Make sure the path does not contain `:` or `;` (OS-dependent).
+        - Disallow immediately nested environments (e.g. `$CONDA_ROOT` and `$CONDA_ROOT/my-env`).
+        - Warn if there are spaces in the path.
+
+        :param expand_path: Whether to process `~` and environment variables in the string.
+            The expanded value will replace `.prefix_path`.
+        :raises CondaValueError: If the environment contains `:`, `;`, or is nested.
+        """
         prefix_str = str(self.prefix_path)
         if expand_path:
             prefix_str = expand(prefix_str)
@@ -204,6 +288,13 @@ class PrefixData(metaclass=PrefixDataType):
             )
 
     def validate_name(self, allow_base: bool = False):
+        """
+        Validate the name of the environment.
+
+        :param allow_base: Whether to allow `base` as a valid name.
+        :raises CondaValueError: If the name is protected, or if it contains disallowed characters
+            (`/`, ` `, `:`, `#`).
+        """
         if not allow_base and self.name in (ROOT_ENV_NAME, "root"):
             raise CondaValueError(f"'{self.name}' is a reserved environment name")
 
