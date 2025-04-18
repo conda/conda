@@ -120,17 +120,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             list(args.packages),
             "did not expect any arguments for --clone",
         )
-
-    prefix = context.target_prefix
-
+    
     # Validate configuration
     # Ensure no protected dirs are getting overwritten
-    check_protected_dirs(prefix)
+    check_protected_dirs(context.target_prefix)
 
     # Ensure the user wants to update the provided prefix if there is already
     # an installed conda environment or other files in the target
-    if is_conda_environment(prefix):
-        if paths_equal(prefix, context.root_prefix):
+    if is_conda_environment(context.target_prefix):
+        if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
         if context.dry_run:
             # Taking the "easy" way out, rather than trying to fake removing
@@ -139,17 +137,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "Cannot `create --dry-run` with an existing conda environment"
             )
         confirm_yn(
-            f"WARNING: A conda environment already exists at '{prefix}'\n\n"
+            f"WARNING: A conda environment already exists at '{context.target_prefix}'\n\n"
             "Remove existing environment?\nThis will remove ALL directories contained within "
             "this specified prefix directory, including any other conda environments.\n\n",
             default="no",
             dry_run=False,
         )
-        log.info("Removing existing environment %s", prefix)
-        rm_rf(prefix)
-    elif isdir(prefix):
+        log.info("Removing existing environment %s", context.target_prefix)
+        rm_rf(context.target_prefix)
+    elif isdir(context.target_prefix):
         confirm_yn(
-            f"WARNING: A directory already exists at the target location '{prefix}'\n"
+            f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
             "but it is not a conda environment.\n"
             "Continue creating environment",
             default="no",
@@ -160,7 +158,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_subdir_config()
 
     # Ensure the provided prefix is of the right form
-    check_prefix(prefix)
+    check_prefix(context.target_prefix)
 
     # Run appropriate install
     if args.clone:
@@ -168,7 +166,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         install(args, parser, "create")
     # Run post-install steps applicable to all new environments
-    touch_nonadmin(prefix)
-    print_activate(args.name or prefix)
+    touch_nonadmin(context.target_prefix)
+    print_activate(args.name or context.target_prefix)
 
     return 0

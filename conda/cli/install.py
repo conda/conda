@@ -166,7 +166,6 @@ def get_revision(arg, json=False):
 
 def get_index_args(args) -> dict[str, any]:
     """Returns a dict of args required for fetching an index
-
     :param args: The args provided by the cli
     :returns: dict of index args
     """
@@ -374,6 +373,9 @@ def install(args, parser, command="install"):
             if MatchSpec(default_package).name not in names:
                 args_packages.append(default_package)
 
+    index_args = get_index_args(args=args)
+    context_channels = context.channels
+
     # short circuit to installing explicit if explicit specs are provided
     num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
@@ -401,9 +403,6 @@ def install(args, parser, command="install"):
             explicit(specs, prefix, verbose=not context.quiet)
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
-
-    index_args = get_index_args(args=args)
-    context_channels = context.channels
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
