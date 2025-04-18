@@ -63,7 +63,6 @@ from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin, validate_prefix_is_writable
-from .common import print_activate as _print_activate
 from .main_config import set_keys
 
 log = getLogger(__name__)
@@ -153,6 +152,8 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 @deprecated("25.9", "26.3", addendum="Use conda.cli.common.print_activate()")
 def print_activate(env_name_or_prefix):  # pragma: no cover
+    from .common import print_activate as _print_activate
+
     _print_activate(env_name_or_prefix)
 
 
@@ -161,6 +162,23 @@ def get_revision(arg, json=False):
         return int(arg)
     except ValueError:
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
+
+
+def get_index_args(args) -> dict[str, any]:
+    """Returns a dict of args required for fetching an index
+
+    :param args: The args provided by the cli
+    :returns: dict of index args
+    """
+    return {
+        # TODO: deprecate --use-index-cache
+        # "use_cache": args.use_index_cache,  # --use-index-cache
+        "channel_urls": context.channels,
+        # TODO: deprecate --unknown
+        # "unknown": args.unknown,  # --unknown
+        "prepend": not args.override_channels,  # --override-channels
+        "use_local": args.use_local,  # --use-local
+    }
 
 
 class TryRepodata:
@@ -282,23 +300,6 @@ def validate_install_command(prefix: str, command: str = "install"):
         raise EnvironmentLocationNotFound(prefix)
 
 
-def get_index_args(args) -> dict[str, any]:
-    """Returns a dict of args required for fetching an index
-
-    :param args: The args provided by the cli
-    :returns: dict of index args
-    """
-    return {
-        # TODO: deprecate --use-index-cache
-        # "use_cache": args.use_index_cache,  # --use-index-cache
-        "channel_urls": context.channels,
-        # TODO: deprecate --unknown
-        # "unknown": args.unknown,  # --unknown
-        "prepend": not args.override_channels,  # --override-channels
-        "use_local": args.use_local,  # --use-local
-    }
-
-
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
     """Checks that each spec that is requested as an update exists in the prefix
 
@@ -316,6 +317,23 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
             )
         if not prefix_data.get(spec.name, None):
             raise PackageNotInstalledError(prefix, spec.name)
+
+
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning."""
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command="create")
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
 
 
 def install(args, parser, command="install"):
@@ -511,23 +529,6 @@ def install_revision(args, parser):
                 unlink_link_transaction = revert_actions(prefix, revision_idx, index)
 
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
-
-
-def install_clone(args, parser):
-    """Executes an install of a new conda environment by cloning."""
-    prefix = context.target_prefix
-    index_args = get_index_args(args)
-
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, command="create")
-
-    clone(
-        args.clone,
-        prefix,
-        json=context.json,
-        quiet=context.quiet,
-        index_args=index_args,
-    )
 
 
 def revert_actions(prefix, revision=-1, index=None):
