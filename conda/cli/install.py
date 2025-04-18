@@ -56,6 +56,7 @@ from ..exceptions import (
     UnsatisfiableError,
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
+from ..gateways.disk.test import is_conda_environment
 from ..history import History
 from ..misc import _get_best_prec_match, clone_env, explicit
 from ..models.match_spec import MatchSpec
@@ -284,7 +285,7 @@ def validate_install_command(prefix: str, command: str = "install"):
         # if the prefix exists (and this is not a new environment)
         # the conda-meta/history file must also exist - if it does not
         # then this is not a valid conda environment
-        if isfile(join(prefix, "conda-meta", "history")):
+        if is_conda_environment(prefix):
             # if the prefix exists, ensure that it is writable
             validate_prefix_is_writable(prefix)
         else:
