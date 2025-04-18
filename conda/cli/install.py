@@ -494,7 +494,7 @@ def install_revision(args, parser):
     index_args = get_index_args(args)
 
     # common validations for all types of installs
-    validate_install_command(prefix=prefix, newenv=False)
+    validate_install_command(prefix=prefix, command="install")
 
     # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
     #    because it deduplicates records that exist as both formats.  Forcing this to
