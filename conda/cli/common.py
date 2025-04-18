@@ -339,14 +339,14 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
             env_name_or_prefix = f'"{env_name_or_prefix}"'
         message = dals(
             f"""
-        #
-        # To activate this environment, use
-        #
-        #     $ conda activate {env_name_or_prefix}
-        #
-        # To deactivate an active environment, use
-        #
-        #     $ conda deactivate
-        """
+            #
+            # To activate this environment, use
+            #
+            #     $ conda activate {env_name_or_prefix}
+            #
+            # To deactivate an active environment, use
+            #
+            #     $ conda deactivate
+            """
         )
         print(message)  # TODO: use logger
