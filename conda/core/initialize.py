@@ -1573,9 +1573,9 @@ def _config_xonsh_content(conda_prefix):
 def _config_xonsh_content_to_add_condabin_to_path(conda_prefix):
     condabin_dir = join(conda_prefix, "condabin")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        condabin_dir = native_path_to_unix(condabin_dir)
+        condabin_dir = win_path_to_unix(
     return dals(
         f"""
         # >>> conda initialize >>>
@@ -1730,9 +1730,9 @@ def _bashrc_content(conda_prefix, shell):
 def _bashrc_content_to_add_condabin_to_path(conda_prefix, shell):
     condabin_path = join(conda_prefix, "condabin")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        condabin_path = native_path_to_unix(condabin_path)
+        condabin_dir = win_path_to_unix(
         return dals(
             f"""
             # >>> conda initialize >>>
