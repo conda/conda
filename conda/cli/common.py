@@ -329,3 +329,22 @@ def validate_subdir_config():
                     """
                 )
                 raise OperationNotAllowed(msg)
+
+
+def print_activate(env_name_or_prefix):  # pragma: no cover
+    if not context.quiet and not context.json:
+        if " " in env_name_or_prefix:
+            env_name_or_prefix = f'"{env_name_or_prefix}"'
+        message = dals(
+            f"""
+        #
+        # To activate this environment, use
+        #
+        #     $ conda activate {env_name_or_prefix}
+        #
+        # To deactivate an active environment, use
+        #
+        #     $ conda deactivate
+        """
+        )
+        print(message)  # TODO: use logger

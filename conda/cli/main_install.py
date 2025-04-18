@@ -126,7 +126,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..exceptions import CondaValueError
-    from .install import get_revision, install
+    from .common import validate_prefix
+    from .install import get_revision, install, install_revision
 
     if context.force:
         print(
@@ -146,4 +147,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             "too few arguments, must supply command line packages, --file or --revision"
         )
 
-    return install(args, parser, "install")
+    # Ensure the target prefix is a valid conda environment
+    validate_prefix(context.target_prefix)
+
+    if args.revision:
+        install_revision(args, parser)
+    else:
+        install(args, parser, "install")
+
+    return 0
