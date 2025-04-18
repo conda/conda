@@ -98,7 +98,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.test import is_conda_environment
     from ..reporters import confirm_yn
     from .common import validate_subdir_config
-    from .install import check_prefix, install
+    from .install import check_prefix, install, install_clone
 
     # Ensure provided combination of command line argments are valid
     # At least one of the arguments -n/--name -p/--prefix is required
@@ -157,4 +157,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # Ensure the provided prefix is of the right form
     check_prefix(context.target_prefix)
 
-    return install(args, parser, "create")
+    # Run appropriate install
+    if args.clone:
+        install_clone(args, parser)
+    else:
+        install(args, parser, "create")
+
+    return 0

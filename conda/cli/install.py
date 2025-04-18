@@ -37,6 +37,7 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaEnvException,
     CondaExitZero,
@@ -176,13 +177,75 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, and `conda create`."""
+def get_index_args(args) -> dict[str, any]:
+    """Returns a dict of args required for fetching an index
+    :param args: The args provided by the cli
+    :returns: dict of index args
+    """
+    return {
+        # TODO: deprecate --use-index-cache
+        # "use_cache": args.use_index_cache,  # --use-index-cache
+        "channel_urls": context.channels,
+        # TODO: deprecate --unknown
+        # "unknown": args.unknown,  # --unknown
+        "prepend": not args.override_channels,  # --override-channels
+        "use_local": args.use_local,  # --use-local
+    }
+
+
+def validate_install_command(prefix: str):
+    """Executes a set of validations that are required before any installation
+    command is executed. This includes:
+      * ensure the configuration is valid
+      * ensuring the user in not an admin
+      * ensure the user is not forcing 32bit installs in the root prefix
+
+    :param prefix: The prefix where the environment will be created
+    :raises: error if the configuration for the install is bad
+    """
     context.validate_configuration()
     check_non_admin()
+    if context.force_32bit and paths_equal(prefix, context.root_prefix):
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
+
+
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning. Assumes
+    that the caller has already checked that the prefix does not exist (or
+    is ok to overwrite)
+    """
+    prefix = context.target_prefix
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix)
+
+    index_args = get_index_args(args)
+
     # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
     #    because it deduplicates records that exist as both formats.  Forcing this to
     #    repodata.json ensures that .tar.bz2 files are available
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ("repodata.json",)
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
+    touch_nonadmin(prefix)
+    print_activate(args.name or prefix)
+    return
+
+
+def install(args, parser, command="install"):
+    """Logic for `conda install`, `conda update`, and `conda create`."""
+    prefix = context.target_prefix
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix)
+
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
@@ -190,11 +253,6 @@ def install(args, parser, command="install"):
     isupdate = bool(command == "update")
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
-
-    prefix = context.target_prefix
-
-    if context.force_32bit and prefix == context.root_prefix:
-        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
     if isupdate or isinstall or isremove:
         if isdir(prefix):
@@ -219,16 +277,7 @@ def install(args, parser, command="install"):
                 args_packages.append(default_package)
 
     context_channels = context.channels
-    index_args = {
-        # TODO: deprecate --use-index-cache
-        # "use_cache": args.use_index_cache,  # --use-index-cache
-        "channel_urls": context_channels,
-        # TODO: deprecate --unknown
-        # "unknown": args.unknown,  # --unknown
-        "prepend": not args.override_channels,  # --override-channels
-        "use_local": args.use_local,  # --use-local
-    }
-
+    index_args = get_index_args(args)
     num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
@@ -275,16 +324,13 @@ def install(args, parser, command="install"):
                 raise PackageNotInstalledError(prefix, spec.name)
 
     if newenv and args.clone:
-        clone(
-            args.clone,
-            prefix,
-            json=context.json,
-            quiet=context.quiet,
-            index_args=index_args,
+        deprecated.topic(
+            "25.9",
+            "26.3",
+            topic="This function will not handle clones anymore.",
+            addendum="Use `conda.cli.install.install_clone()` instead",
         )
-        touch_nonadmin(prefix)
-        print_activate(args.name or prefix)
-        return
+        return install_clone(args, parser)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
