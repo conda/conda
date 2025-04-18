@@ -163,7 +163,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = str(prefix_data.prefix_path)
     check_non_admin()
 
-    if args.all and prefix == context.default_prefix:
+    if args.all and prefix_data == PrefixData(context.default_prefix):
         msg = "Cannot remove current environment. Deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
 
@@ -199,7 +199,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             if not args.keep_env:
                 if not args.json:
                     confirm_yn(
-                        f"Everything found within the environment ({prefix}), including any conda environment configurations and any non-conda files, will be deleted. Do you wish to continue?\n",
+                        f"Everything found within the environment ({prefix}), including "
+                        "any conda environment configurations and any non-conda files, will "
+                        "be deleted. Do you wish to continue?\n",
                         default="no",
                         dry_run=False,
                     )

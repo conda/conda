@@ -91,11 +91,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import ArgumentError, CondaValueError
+    from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
+    from ..misc import touch_nonadmin
     from ..reporters import confirm_yn
-    from .install import install
+    from .common import print_activate, validate_subdir_config
+    from .install import install, install_clone
 
+    # Ensure provided combination of command line argments are valid
+    # At least one of the arguments -n/--name -p/--prefix is required
     if not args.name and not args.prefix:
         if context.dry_run:
             args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
@@ -105,6 +109,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
+    # Only one of the arguments --clone and packages is allowed
+    if args.clone and args.packages:
+        raise TooManyArgumentsError(
+            0,
+            len(args.packages),
+            list(args.packages),
+            "did not expect any arguments for --clone",
+        )
     prefix_data = PrefixData.from_context(validate=True)
 
     if prefix_data.is_environment():
@@ -132,4 +144,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             dry_run=False,
         )
 
-    return install(args, parser, "create")
+    # Ensure the subdir config is valid
+    validate_subdir_config()
+
+    # Run appropriate install
+    if args.clone:
+        install_clone(args, parser)
+    else:
+        install(args, parser, "create")
+    # Run post-install steps applicable to all new environments
+    touch_nonadmin(context.target_prefix)
+    print_activate(args.name or context.target_prefix)
+
+    return 0
