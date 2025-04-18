@@ -120,7 +120,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             list(args.packages),
             "did not expect any arguments for --clone",
         )
-    
+
     # Validate configuration
     # Ensure no protected dirs are getting overwritten
     check_protected_dirs(context.target_prefix)
