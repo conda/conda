@@ -291,7 +291,10 @@ def test_protected_dirs_error_for_env_create(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
 ):
     with tmp_env() as prefix:
-        with pytest.raises(CondaEnvException) as error:
+        with pytest.raises(
+            CondaValueError,
+            match="Environment paths cannot be immediately nested under another conda environment",
+        ):
             conda_cli(
                 "env",
                 "create",
@@ -299,8 +302,3 @@ def test_protected_dirs_error_for_env_create(
                 "--file",
                 support_file("example/environment_pinned.yml"),
             )
-
-        assert (
-            "appears to be a top level directory within an existing conda environment"
-            in str(error.value)
-        )
