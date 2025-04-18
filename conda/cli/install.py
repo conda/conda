@@ -214,12 +214,12 @@ class TryRepodata:
         # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
         # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
         if (
-            isinstance(exc_type, self.allowed_errors)
+            isinstance(exc_value, self.allowed_errors)
             and (self.repodata != self.last_repodata)
             and getattr(exc_value, "allow_retry", True)
         ):
             return True
-        elif isinstance(exc_type, ResolvePackageNotFound):
+        elif isinstance(exc_value, ResolvePackageNotFound):
             # transform a ResolvePackageNotFound into PackagesNotFoundError
             channels_urls = tuple(
                 calculate_channel_urls(
