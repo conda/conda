@@ -22,8 +22,13 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import (
+    CondaValueError,
+    EnvSpecPluginNotDetected,
+    PluginError,
+)
 from . import (
+    environment_specifiers,
     post_solves,
     reporter_backends,
     solvers,
@@ -44,6 +49,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -222,6 +228,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["environment_specifiers"]
+    ) -> list[CondaEnvironmentSpecifier]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -463,6 +474,19 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
+    def get_environment_specifier_handler(
+        self, filename: str
+    ) -> CondaEnvironmentSpecifier:
+        hooks = self.get_hook_results("environment_specifiers")
+        for hook in hooks:
+            handler = hook.handler_class(filename)
+            if handler.can_handle():
+                return hook
+
+        # raise error if no plugins found that can read the environment file
+        hook_names = [h.name for h in hooks]
+        raise EnvSpecPluginNotDetected(name=filename, plugin_names=hook_names)
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -479,6 +503,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *environment_specifiers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

@@ -21,3 +21,16 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(binstar, function)()
+
+
+def test_cannot_handle_file_path():
+    spec = binstar.BinstarSpec("/file/path/doesnt/exist")
+    assert spec.valid_name() is False
+
+
+def test_can_handle_binstar_name():
+    spec = binstar.BinstarSpec("conda-test/test")
+    assert spec.valid_name()
+
+    spec = binstar.BinstarSpec("conda-test/test/label")
+    assert spec.valid_name()
