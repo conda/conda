@@ -18,8 +18,13 @@ from pathlib import Path
 from boltons.setutils import IndexedSet
 
 from .. import CondaError
-from ..auxlib.ish import dals
-from ..base.constants import REPODATA_FN, ROOT_ENV_NAME, DepsModifier, UpdateModifier
+from ..base.constants import (
+    PREFIX_MAGIC_FILE,
+    REPODATA_FN,
+    ROOT_ENV_NAME,
+    DepsModifier,
+    UpdateModifier,
+)
 from ..base.context import context, locate_prefix_by_name
 from ..common.constants import NULL
 from ..common.path import is_package_file, paths_equal
@@ -31,6 +36,7 @@ from ..core.index import (
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaEnvException,
     CondaExitZero,
@@ -57,6 +63,7 @@ from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin, validate_prefix_is_writable
+from .common import print_activate as _print_activate
 from .main_config import set_keys
 
 log = getLogger(__name__)
@@ -144,23 +151,9 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
+@deprecated("25.9", "26.3", addendum="Use conda.cli.common.print_activate()")
 def print_activate(env_name_or_prefix):  # pragma: no cover
-    if not context.quiet and not context.json:
-        if " " in env_name_or_prefix:
-            env_name_or_prefix = f'"{env_name_or_prefix}"'
-        message = dals(
-            f"""
-        #
-        # To activate this environment, use
-        #
-        #     $ conda activate {env_name_or_prefix}
-        #
-        # To deactivate an active environment, use
-        #
-        #     $ conda deactivate
-        """
-        )
-        print(message)  # TODO: use logger
+    _print_activate(env_name_or_prefix)
 
 
 def get_revision(arg, json=False):
@@ -249,22 +242,25 @@ class Repodatas:
         self.success = True
 
 
-def validate_install_command(prefix: str, newenv: bool):
+def validate_install_command(prefix: str, command: str = "install"):
     """Executes a set of validations that are required before any installation
-    command is executed.
+    command is executed. This includes:
+      * ensure the configuration is valid
+      * ensuring the user in not an admin
+      * ensure the user is not forcing 32bit installs in the root prefix
 
     :param prefix: The prefix where the environment will be created
-    :param newenv: Boolean indicating the command is a request for a new environment
+    :param command: Type of operation being performed
     :raises: error if the configuration for the install is bad
     """
     context.validate_configuration()
     check_non_admin()
 
-    if context.force_32bit and prefix == context.root_prefix:
+    if context.force_32bit and paths_equal(prefix, context.root_prefix):
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
     # Ensure the prefix exists if it is meant to
-    if newenv:
+    if command == "create":
         # new environments should not have a prefix that exists
         pass
     elif isdir(prefix):
@@ -325,23 +321,31 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
     prefix = context.target_prefix
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command=command)
+
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ("repodata.json",)
+
     newenv = bool(command == "create")
     isupdate = bool(command == "update")
     isinstall = bool(command == "install")
     isremove = bool(command == "remove")
 
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, newenv=newenv)
-
-    # this is sort of a hack.  current_repodata.json may not have any .tar.bz2 files,
-    #    because it deduplicates records that exist as both formats.  Forcing this to
-    #    repodata.json ensures that .tar.bz2 files are available
-    if context.use_only_tar_bz2:
-        args.repodata_fns = ("repodata.json",)
-
-    # ensure trash is cleared from existing prefix
-    if isdir(prefix):
-        delete_trash(prefix)
+    if isupdate or isinstall or isremove:
+        if isdir(prefix):
+            delete_trash(prefix)
+            if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
+                if paths_equal(prefix, context.conda_prefix):
+                    raise NoBaseEnvironmentError()
+                else:
+                    if not path_is_clean(prefix):
+                        raise DirectoryNotACondaEnvironmentError(prefix)
+            else:
+                validate_prefix_is_writable(prefix)
+        else:
+            raise EnvironmentLocationNotFound(prefix)
 
     # collect packages provided from the command line
     args_packages = [s.strip("\"'") for s in args.packages]
@@ -357,8 +361,6 @@ def install(args, parser, command="install"):
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not context.quiet)
-            if newenv:
-                print_activate(args.name or prefix)
             return
         else:
             raise CondaValueError(
@@ -379,8 +381,6 @@ def install(args, parser, command="install"):
         if "@EXPLICIT" in specs:
             # short circuit to installing explicit if explicit specs are provided
             explicit(specs, prefix, verbose=not context.quiet)
-            if newenv:
-                print_activate(args.name or prefix)
             return
     specs.extend(common.specs_from_args(args_packages, json=context.json))
 
@@ -391,6 +391,14 @@ def install(args, parser, command="install"):
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         ensure_update_specs_exist(prefix=prefix, specs=specs)
+    if newenv and args.clone:
+        deprecated.topic(
+            "25.9",
+            "26.3",
+            topic="This function will not handle clones anymore.",
+            addendum="Use `conda.cli.install.install_clone()` instead",
+        )
+        return install_clone(args, parser)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
@@ -511,7 +519,7 @@ def install_clone(args, parser):
     index_args = get_index_args(args)
 
     # common validations for all types of installs
-    validate_install_command(prefix=prefix, newenv=True)
+    validate_install_command(prefix=prefix, command="create")
 
     clone(
         args.clone,
@@ -520,9 +528,6 @@ def install_clone(args, parser):
         quiet=context.quiet,
         index_args=index_args,
     )
-
-    print_activate(args.name or prefix)
-    return
 
 
 def revert_actions(prefix, revision=-1, index=None):
@@ -604,7 +609,6 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
                 ("subdir", context.subdir),
                 path=Path(prefix, ".condarc"),
             )
-        print_activate(args.name or prefix)
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]

@@ -87,6 +87,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..auxlib.ish import dals
     from ..base.constants import UpdateModifier
     from ..base.context import context
     from ..exceptions import CondaValueError
@@ -110,9 +111,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         or context.update_modifier == UpdateModifier.UPDATE_ALL
     ):
         raise CondaValueError(
-            """no package names supplied
-# Example: conda update -n myenv scipy
-"""
+            dals(
+                """
+                no package names supplied
+                # Example: conda update -n myenv scipy
+                """
+            )
         )
 
     install(args, parser, "update")

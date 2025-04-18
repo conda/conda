@@ -139,7 +139,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
-    # Ensure provided combination of command line argments are valid
+    # Ensure provided combination of command line arguments are valid
     if args.revision:
         get_revision(args.revision, json=context.json)
     elif not (args.file or args.packages):
@@ -151,6 +151,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_prefix(context.target_prefix)
 
     if args.revision:
-        return install_revision(args, parser)
+        install_revision(args, parser)
     else:
-        return install(args, parser, "install")
+        install(args, parser, "install")
+
+    return 0

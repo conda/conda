@@ -206,6 +206,7 @@ class ChangeReport(NamedTuple):
     downgraded_precs: Iterable[PackageRecord]
     superseded_precs: Iterable[PackageRecord]
     fetch_precs: Iterable[PackageRecord]
+    revised_precs: Iterable[PackageRecord]
 
 
 class UnlinkLinkTransaction:
@@ -1333,6 +1334,16 @@ class UnlinkLinkTransaction:
                 left_str = left_str[:37] + "~"
             builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
 
+        def summarize_double(change_report_precs, key):
+            for namekey in sorted(change_report_precs, key=key):
+                unlink_prec, link_prec = change_report_precs[namekey]
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {' '.join(link_prec.metadata)}",
+                )
+
         if change_report.new_precs:
             builder.append("\nThe following NEW packages will be INSTALLED:\n")
             for namekey in sorted(change_report.new_precs, key=convert_namekey):
@@ -1352,39 +1363,23 @@ class UnlinkLinkTransaction:
 
         if change_report.updated_precs:
             builder.append("\nThe following packages will be UPDATED:\n")
-            for namekey in sorted(change_report.updated_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.updated_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.updated_precs, convert_namekey)
 
         if change_report.superseded_precs:
             builder.append(
                 "\nThe following packages will be SUPERSEDED "
                 "by a higher-priority channel:\n"
             )
-            for namekey in sorted(change_report.superseded_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.superseded_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.superseded_precs, convert_namekey)
 
         if change_report.downgraded_precs:
             builder.append("\nThe following packages will be DOWNGRADED:\n")
-            for namekey in sorted(change_report.downgraded_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.downgraded_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.downgraded_precs, convert_namekey)
+
+        if change_report.revised_precs:
+            builder.append("\nThe following packages will be REVISED:\n")
+            summarize_double(change_report.revised_precs, convert_namekey)
+
         builder.append("")
         builder.append("")
         return "\n".join(builder)
@@ -1408,9 +1403,12 @@ class UnlinkLinkTransaction:
         # updated means a version increase, or a build number increase
         # downgraded means a version decrease, or build number decrease, but channel canonical_name
         #   has to be the same
-        # superseded then should be everything else left over
+        # revised means the version and channel canonical_name is the same, but the build variant
+        #   is different. The build variant is the build string and build number.
+        # superseded then should be everything else left over (eg. changed channel)
         updated_precs = {}
         downgraded_precs = {}
+        revised_precs = {}
         superseded_precs = {}
 
         common_namekeys = link_namekeys & unlink_namekeys
@@ -1419,6 +1417,7 @@ class UnlinkLinkTransaction:
             unlink_vo = VersionOrder(unlink_prec.version)
             link_vo = VersionOrder(link_prec.version)
             build_number_increases = link_prec.build_number > unlink_prec.build_number
+
             if link_vo == unlink_vo and build_number_increases or link_vo > unlink_vo:
                 updated_precs[namekey] = (unlink_prec, link_prec)
             elif (
@@ -1429,7 +1428,10 @@ class UnlinkLinkTransaction:
                     # noarch: python packages are re-linked on a python version change
                     # just leave them out of the package report
                     continue
-                downgraded_precs[namekey] = (unlink_prec, link_prec)
+                if link_vo == unlink_vo and link_prec.build != unlink_prec.build:
+                    revised_precs[namekey] = (unlink_prec, link_prec)
+                else:
+                    downgraded_precs[namekey] = (unlink_prec, link_prec)
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)
 
@@ -1444,6 +1446,7 @@ class UnlinkLinkTransaction:
             downgraded_precs,
             superseded_precs,
             fetch_precs,
+            revised_precs,
         )
         return change_report
 
