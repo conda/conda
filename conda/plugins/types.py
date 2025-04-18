@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from typing import Any, Callable
 
     from ..common.configuration import Parameter
+    from ..core.path_actions import _Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
 
@@ -347,3 +348,20 @@ class CondaRequestHeader:
 
     name: str
     value: str
+
+
+@dataclass
+class CondaPostTransaction:
+    """
+    Return type to use when defining a post-transaction hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_transactions`.
+
+    :param name: Post transaction name (this is just a label).
+    :param run: Function to run after each transaction; accepts a single parameter which
+        is the action that has just been executed
+    """
+
+    name: str
+    run: Callable[[_Action], None]

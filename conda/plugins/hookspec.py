@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
+        CondaPostTransaction,
         CondaPreCommand,
         CondaPreSolve,
         CondaReporterBackend,
@@ -251,6 +252,42 @@ class CondaSpecs:
                     name="example-health-check",
                     action=example_health_check,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_post_transactions(self) -> Iterable[CondaPostTransaction]:
+        """Register post-transaction hooks.
+
+        Post-transaction hooks run after a UnlinkLinkTransaction builds up
+        a list of actions to carry out. Hooks accept any subclass of _Action.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import logging
+            from conda import plugins
+
+            logger = logging.getLogger(__name__)
+
+
+            class PrintActionPlugin:
+                def print_action(self, action: _Action) -> None:
+                    if isinstance(action, LinkPathAction):
+                        logger.warning(
+                            "LinkPathAction encountered! "
+                            f"Target full path: {action.target_full_path}"
+                        )
+                    else:
+                        logger.warning(f"Other action type encountered: {type(action)}")
+
+                @plugins.hookimpl
+                def conda_post_transactions(self):
+                    yield plugins.CondaPostTransaction(
+                        name="example-post-transaction",
+                        run=self.print_action,
+                    )
         """
         yield from ()
 

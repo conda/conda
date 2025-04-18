@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from requests.auth import AuthBase
 
     from ..common.configuration import ParameterLoader
+    from ..core.path_actions import _Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
+        CondaPostTransaction,
         CondaPreCommand,
         CondaPreSolve,
         CondaReporterBackend,
@@ -223,6 +225,11 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["post_transactions"]
+    ) -> list[CondaPostTransaction]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -366,6 +373,14 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    def run_post_transaction_hooks(self, action: _Action) -> None:
+        """Run the post transaction hooks for the given action.
+
+        :param action: Action for which post transaction hooks are to be run.
+        """
+        for hook in self.get_hook_results("post_transactions"):
+            hook.run(action)
+
     @deprecated(
         "25.3",
         "25.9",
@@ -472,6 +487,7 @@ def get_plugin_manager() -> CondaPluginManager:
     """
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
+
     plugin_manager.load_plugins(
         solvers,
         *virtual_packages.plugins,
