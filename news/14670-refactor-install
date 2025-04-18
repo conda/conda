@@ -16,4 +16,4 @@
 
 ### Other
 
-* Refactor install/create/update actions. Reduce the responsibility of `conda.cli.install.install` (#14670)
+* Refactor `--repodata-fn` iteration in `conda.cli.install` and other smaller cleanups. (#14670)
