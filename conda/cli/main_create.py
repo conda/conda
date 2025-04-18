@@ -93,7 +93,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
-    from ..misc import touch_nonadmin
     from ..reporters import confirm_yn
     from .common import print_activate, validate_subdir_config
     from .install import install, install_clone
@@ -153,7 +152,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         install(args, parser, "create")
     # Run post-install steps applicable to all new environments
-    touch_nonadmin(context.target_prefix)
+    prefix_data.set_nonadmin()
     print_activate(args.name or context.target_prefix)
 
     return 0

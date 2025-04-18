@@ -109,15 +109,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
-    from ..cli.main_rename import check_protected_dirs
     from ..core.prefix_data import PrefixData
     from ..env import specs
     from ..env.env import get_filename, print_result
     from ..env.installers.base import get_installer
     from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
-    from ..misc import touch_nonadmin
-    from . import install as cli_install
 
     spec = specs.detect(
         name=args.name,
@@ -132,11 +129,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)
+    prefix_data = PrefixData(prefix)
 
-    if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
+    if args.yes and not prefix_data.is_base() and prefix_data.exists():
         rm_rf(prefix)
-    cli_install.check_prefix(prefix, json=args.json)
-    check_protected_dirs(prefix)
+
+    prefix_data.validate_path()
+    prefix_data.validate_name()
 
     # TODO, add capability
     # common.ensure_override_channels_requires_channel(args)
@@ -194,10 +193,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     )
 
         if env.variables:
-            pd = PrefixData(prefix)
-            pd.set_environment_env_vars(env.variables)
+            prefix_data.set_environment_env_vars(env.variables)
 
-        touch_nonadmin(prefix)
+        prefix_data.set_nonadmin(prefix)
         print_result(args, prefix, result)
 
     return 0

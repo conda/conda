@@ -90,7 +90,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.env import get_filename, print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
-    from ..misc import touch_nonadmin
 
     spec = install_specs.detect(
         name=args.name,
@@ -101,7 +100,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if not (args.name or args.prefix):
         if not env.name:
-            # Note, this is a hack fofr get_prefix that assumes argparse results
+            # Note, this is a hack for get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
             name = os.environ.get("CONDA_DEFAULT_ENV", False)
             if not name:
@@ -124,6 +123,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)
+    prefix_data = PrefixData(prefix)
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
@@ -161,10 +161,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         result[installer_type] = installer.install(prefix, specs, args, env)
 
     if env.variables:
-        pd = PrefixData(prefix)
-        pd.set_environment_env_vars(env.variables)
+        prefix_data.set_environment_env_vars(env.variables)
 
-    touch_nonadmin(prefix)
+    prefix_data.set_nonadmin(prefix)
     print_result(args, prefix, result)
 
     return 0
