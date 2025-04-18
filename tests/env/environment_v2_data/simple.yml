@@ -1,0 +1,35 @@
+name: test-env-v2
+version: 2
+description: This is an v2 env spec
+variables:
+    ENVVAR: value
+    ENVVAR2: value
+channels:
+    - conda-forge
+channel-priority: strict
+repodata-fn: repodata.json
+platforms:
+    - linux-64
+    - osx-64
+    - win-64
+requirements:
+    - python
+    - numpy
+    - if: __win
+      then: pywin32
+pypi-requirements:
+    - my-lab-dependency
+    - if: __cuda
+      then: my-lab-dependency-gpu
+groups:
+    - group: py38
+      requirements:
+        - python=3.8
+    - group: test
+      requirements:
+        - pytest
+        - pytest-cov
+        - if: __win
+          then: pytest-windows
+      pypi-requirements:
+        - some-test-dependency-only-on-pypi
