@@ -195,7 +195,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if env.variables:
             prefix_data.set_environment_env_vars(env.variables)
 
-        prefix_data.set_nonadmin(prefix)
+        prefix_data.set_nonadmin()
         print_result(args, prefix, result)
 
     return 0
