@@ -45,3 +45,8 @@ rever/
 
 # setuptools-scm
 conda/_version.py
+
+# Development/testing files
+hook_test.ipynb
+test_profile.ps1
+.vscode/
