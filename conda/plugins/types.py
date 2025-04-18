@@ -21,10 +21,11 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable
+    from typing import Any, Callable, Iterable
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
+    from ..env.env import Environment
     from ..models.match_spec import MatchSpec
 
 
@@ -347,3 +348,45 @@ class CondaRequestHeader:
 
     name: str
     value: str
+
+
+class EnvSpecBase(ABC):
+    """
+    Base class for all env specs.
+    """
+
+    def __init__(self, file: str):
+        self.file = file
+
+    @abstractmethod
+    def can_handle(self) -> bool:
+        """
+        Determines if the EnvSpec plugin can read and operate on the
+        environment described by the `filename`.
+
+        :returns bool: returns True, if the plugin can interpret the file.
+        """
+
+    @abstractmethod
+    def environment(self) -> Environment:
+        """
+        Express the provided environment file as a conda environment object.
+
+        :returns Environment: the conda environment represented by the file.
+        """
+
+
+@dataclass
+class CondaEnvSpec:
+    """
+    Return type to use when defining a conda env spec plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_env_specs`.
+
+    :param name: name of the spec (e.g., ``environment_yaml``)
+    :param handler_class: EnvSpecBase subclass handler
+    """
+
+    name: str
+    handler_class: type[EnvSpecBase]

@@ -18,6 +18,7 @@ from conda.exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
+    EnvSpecPluginNotDetected,
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecNotFound,
@@ -125,7 +126,7 @@ def test_conda_env_create_no_file(conda_cli: CondaCLIFixture):
     Test `conda env create` without an environment.yml file
     Should fail
     """
-    with pytest.raises(EnvironmentFileNotFound):
+    with pytest.raises(EnvSpecPluginNotDetected):
         conda_cli("env", "create")
 
 
@@ -135,7 +136,7 @@ def test_conda_env_create_no_existent_file(conda_cli: CondaCLIFixture):
     Test `conda env create --file=not_a_file.txt` with a file that does not
     exist.
     """
-    with pytest.raises(EnvironmentFileNotFound):
+    with pytest.raises(EnvSpecPluginNotDetected):
         conda_cli("env", "create", "--file=not_a_file.txt")
 
 
@@ -286,7 +287,7 @@ def test_conda_env_create_empty_file(
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
-    with pytest.raises(SpecNotFound):
+    with pytest.raises(EnvSpecPluginNotDetected):
         conda_cli("env", "create", f"--file={tmp_file}")
 
 
@@ -682,7 +683,7 @@ def test_export_multi_channel(
 
 @pytest.mark.integration
 def test_non_existent_file(conda_cli: CondaCLIFixture):
-    with pytest.raises(EnvironmentFileNotFound):
+    with pytest.raises(EnvSpecPluginNotDetected):
         conda_cli("env", "create", "--file", "i_do_not_exist.yml", "--yes")
 
 
