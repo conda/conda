@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.cli.install.print_activate` as pending deprecation. Use `conda.cli.common.print_activate` instead. It will be permanently removed in 26.3. (#14670)
 
 ### Docs
 
