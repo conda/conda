@@ -422,7 +422,7 @@ def test_notices_does_not_interrupt_command_on_failure(
         "--override-channels",
     )
 
-    assert exit_code is None
+    assert exit_code == 0
 
     assert mock_logger.call_args == mocker.call(
         f"Unable to open cache file: {error_message}"
