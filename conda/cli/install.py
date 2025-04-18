@@ -213,12 +213,12 @@ class TryRepodata:
         # unnecessarily (see https://github.com/conda/conda/issues/11294). see also:
         # https://github.com/conda-incubator/conda-libmamba-solver/blob/7c698209/conda_libmamba_solver/solver.py#L617
         if (
-            (exc_type in self.allowed_errors)
+            isinstance(exc_type, self.allowed_errors)
             and (self.repodata != self.last_repodata)
             and getattr(exc_value, "allow_retry", True)
         ):
             return True
-        elif exc_type == ResolvePackageNotFound:
+        elif isinstance(exc_type, ResolvePackageNotFound):
             # transform a ResolvePackageNotFound into PackagesNotFoundError
             channels_urls = tuple(
                 calculate_channel_urls(
@@ -376,10 +376,10 @@ def install(args, parser, command="install"):
     index_args = get_index_args(args=args)
     context_channels = context.channels
 
-    # short circuit to installing explicit if explicit specs are provided
     num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
+            # short circuit to installing explicit if all specs are direct files
             explicit(args_packages, prefix, verbose=not context.quiet)
             return
         else:
