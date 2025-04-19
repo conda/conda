@@ -53,7 +53,6 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import (
     hardlink_supported,
-    is_conda_environment,
     softlink_supported,
 )
 from ..gateways.subprocess import subprocess_call
@@ -248,7 +247,7 @@ class UnlinkLinkTransaction:
         return not any(
             (stp.unlink_precs or stp.link_precs) for stp in self.prefix_setups.values()
         ) and all(
-            is_conda_environment(stp.target_prefix)
+            PrefixData(stp.target_prefix).is_environment()
             for stp in self.prefix_setups.values()
         )
 

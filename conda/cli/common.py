@@ -255,6 +255,7 @@ def check_non_admin():
         )
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.assert_environment()")
 def validate_prefix(prefix) -> str:
     """Verifies the prefix is a valid conda environment.
 
@@ -272,6 +273,7 @@ def validate_prefix(prefix) -> str:
     return prefix
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.assert_writable()")
 def validate_prefix_is_writable(prefix: str) -> str:
     """Verifies the environment directory is writable by trying to access
     the conda-meta/history file. If this file is not writable then we assume
@@ -337,14 +339,14 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
             env_name_or_prefix = f'"{env_name_or_prefix}"'
         message = dals(
             f"""
-        #
-        # To activate this environment, use
-        #
-        #     $ conda activate {env_name_or_prefix}
-        #
-        # To deactivate an active environment, use
-        #
-        #     $ conda deactivate
-        """
+            #
+            # To activate this environment, use
+            #
+            #     $ conda activate {env_name_or_prefix}
+            #
+            # To deactivate an active environment, use
+            #
+            #     $ conda deactivate
+            """
         )
         print(message)  # TODO: use logger

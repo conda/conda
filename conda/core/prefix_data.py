@@ -17,12 +17,20 @@ from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     CONDA_PACKAGE_EXTENSIONS,
     PREFIX_MAGIC_FILE,
+    PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_STATE_FILE,
+    ROOT_ENV_NAME,
 )
-from ..base.context import context
+from ..base.context import context, locate_prefix_by_name
+from ..common.compat import on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
-from ..common.path import get_python_site_packages_short_path, win_path_ok
+from ..common.path import (
+    expand,
+    get_python_site_packages_short_path,
+    paths_equal,
+    win_path_ok,
+)
 from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
 from ..common.url import mask_anaconda_token
@@ -30,10 +38,15 @@ from ..common.url import remove_auth as url_remove_auth
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
+    CondaValueError,
     CorruptedEnvironmentError,
+    DirectoryNotACondaEnvironmentError,
+    EnvironmentLocationNotFound,
+    EnvironmentNameNotFound,
+    EnvironmentNotWritableError,
     maybe_raise,
 )
-from ..gateways.disk.create import write_as_json_to_file
+from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import read_python_record
 from ..gateways.disk.test import file_path_is_writable
@@ -54,19 +67,35 @@ class PrefixDataType(type):
         cls,
         prefix_path: str | os.PathLike | Path,
         pip_interop_enabled: bool | None = None,
-    ):
+    ) -> PrefixData:
         if isinstance(prefix_path, PrefixData):
             return prefix_path
-        elif (prefix_path := Path(prefix_path)) in PrefixData._cache_:
-            return PrefixData._cache_[prefix_path]
+        prefix_path = Path(prefix_path)
+        cache_key = prefix_path, pip_interop_enabled
+        if cache_key in PrefixData._cache_:
+            return PrefixData._cache_[cache_key]
         else:
             prefix_data_instance = super().__call__(prefix_path, pip_interop_enabled)
-            PrefixData._cache_[prefix_path] = prefix_data_instance
+            PrefixData._cache_[cache_key] = prefix_data_instance
             return prefix_data_instance
 
 
 class PrefixData(metaclass=PrefixDataType):
-    _cache_: dict[Path, PrefixData] = {}
+    """
+    The PrefixData class aims to be the representation of the state
+    of a conda environment on disk. The directory where the environment
+    lives is called prefix.
+
+    This class supports different types of tasks:
+
+    - Reading and querying `conda-meta/*.json` files as `PackageRecord` objects
+    - Reading PyPI-only packages, installed next to conda packages
+    - Reading and writing environment-specific configuration (env vars, state file,
+      nonadmin markers, etc)
+    - Existence checks and validations of name, path, and magic files / markers
+    """
+
+    _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
 
     def __init__(
         self,
@@ -76,6 +105,7 @@ class PrefixData(metaclass=PrefixDataType):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = Path(prefix_path)
+        self._magic_file = self.prefix_path / PREFIX_MAGIC_FILE
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -83,6 +113,59 @@ class PrefixData(metaclass=PrefixDataType):
             if pip_interop_enabled is not None
             else context.pip_interop_enabled
         )
+
+    @classmethod
+    def from_name(cls, name: str, **kwargs) -> PrefixData:
+        """
+        Creates a PrefixData instance from an environment name.
+
+        The name will be validated with `PrefixData.validate_name()` if it does not exist.
+
+        :param name: The name of the environment. Must not contain path separators (/, \\).
+        :raises CondaValueError: If `name` contains a path separator.
+        """
+        if "/" in name or "\\" in name:
+            raise CondaValueError("Environment names cannot contain path separators")
+        try:
+            return cls(locate_prefix_by_name(name))
+        except EnvironmentNameNotFound:
+            cls(name).validate_name()
+            return cls(Path(first_writable_envs_dir(), name), **kwargs)
+
+    @classmethod
+    def from_context(cls, validate: bool = False) -> PrefixData:
+        """
+        Creates a PrefixData instance from the path specified by `context.target_prefix`.
+
+        The path and name will be validated with `PrefixData.validate_path()` and
+        `PrefixData.validate_name()`, respectively, if `validate` is `True`.
+
+        :param validate: Whether the path and name should be validated. Useful for environments
+            about to be created.
+        """
+        inst = cls(context.target_prefix)
+        if validate:
+            inst.validate_path()
+            inst.validate_name()
+        return inst
+
+    @property
+    def name(self) -> str:
+        """
+        Returns the name of the environment, if available.
+
+        If the environment doesn't live in one the configured `envs_dirs`, an empty
+        string is returned. The construct `prefix_data.name or prefix_data.prefix_path` can
+        be helpful in those cases.
+        """
+        if self == PrefixData(context.root_prefix):
+            return ROOT_ENV_NAME
+        for envs_dir in context.envs_dirs:
+            if paths_equal(envs_dir, self.prefix_path.parent):
+                return self.prefix_path.name
+        return ""
+
+    # region Checks
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, PrefixData):
@@ -96,6 +179,134 @@ class PrefixData(metaclass=PrefixDataType):
         else:
             # neither prefix exists, raw comparison
             return self.prefix_path.resolve() == other.prefix_path.resolve()
+
+    def exists(self) -> bool:
+        """
+        Check whether the PrefixData path exists and is a directory.
+        """
+        try:
+            return self.prefix_path.is_dir()
+        except OSError:
+            return False
+
+    def is_environment(self) -> bool:
+        """
+        Check whether the PrefixData path is a valida conda environment.
+
+        This is assessed by checking if `conda-meta/history` marker file exists.
+        """
+        try:
+            return self._magic_file.is_file()
+        except OSError:
+            return False
+
+    def is_base(self) -> bool:
+        """
+        Check whether the configured path refers to the `base` environment.
+        """
+        return paths_equal(str(self.prefix_path), context.root_prefix)
+
+    @property
+    def is_writable(self) -> bool:
+        """
+        Check whether the configured path is writable. This is assessed by checking
+        whether `conda-meta/history` is writable. It if is, it is assumed that the rest
+        of the directory tree is writable too.
+
+        Note: The value is cached in the instance. Use `.assert_writable()` for a non-
+        cached check.
+        """
+        if self.__is_writable == NULL:
+            if not self.is_environment():
+                is_writable = None
+            else:
+                is_writable = file_path_is_writable(self._magic_file)
+            self.__is_writable = is_writable
+        return self.__is_writable
+
+    def assert_exists(self):
+        """
+        Check whether the environment path exists.
+
+        :raises EnvironmentLocationNotFound: If the check returns False.
+        """
+        if not self.exists():
+            raise EnvironmentLocationNotFound(self.prefix_path)
+
+    def assert_environment(self):
+        """
+        Check whether the environment path exists and is a valid conda environment.
+
+        :raises DirectoryNotACondaEnvironmentError: If the check returns False.
+        """
+        self.assert_exists()
+        if not self.is_environment():
+            raise DirectoryNotACondaEnvironmentError(self.prefix_path)
+
+    def assert_writable(self):
+        """
+        Check whether the environment path is a valid conda environment and is writable.
+
+        :raises EnvironmentNotWritableError: If the check returns False.
+        """
+        self.assert_environment()
+        if not file_path_is_writable(self._magic_file):
+            raise EnvironmentNotWritableError(self.prefix_path)
+
+    def validate_path(self, expand_path: bool = False):
+        """
+        Validate the path of the environment.
+
+        It runs the following checks:
+
+        - Make sure the path does not contain `:` or `;` (OS-dependent).
+        - Disallow immediately nested environments (e.g. `$CONDA_ROOT` and `$CONDA_ROOT/my-env`).
+        - Warn if there are spaces in the path.
+
+        :param expand_path: Whether to process `~` and environment variables in the string.
+            The expanded value will replace `.prefix_path`.
+        :raises CondaValueError: If the environment contains `:`, `;`, or is nested.
+        """
+        prefix_str = str(self.prefix_path)
+        if expand_path:
+            prefix_str = expand(prefix_str)
+            self.prefix_path = Path(prefix_str)
+
+        if os.pathsep in prefix_str:
+            raise CondaValueError(
+                f"Environment paths cannot contain '{os.pathsep}'. Prefix: '{prefix_str}'"
+            )
+
+        if " " in prefix_str:
+            log.warning(
+                "Environment paths should not contain spaces. Prefix: '%s'",
+                prefix_str,
+            )
+        parent = self.__class__(self.prefix_path.parent)
+        if parent.is_environment():
+            raise CondaValueError(
+                "Environment paths cannot be immediately nested under another conda environment."
+            )
+
+    def validate_name(self, allow_base: bool = False):
+        """
+        Validate the name of the environment.
+
+        :param allow_base: Whether to allow `base` as a valid name.
+        :raises CondaValueError: If the name is protected, or if it contains disallowed characters
+            (`/`, ` `, `:`, `#`).
+        """
+        if not allow_base and self.name in (ROOT_ENV_NAME, "root"):
+            raise CondaValueError(f"'{self.name}' is a reserved environment name")
+
+        if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.prefix_path.name):
+            raise CondaValueError(
+                "Environment names cannot contain any of these characters: "
+                f"{PREFIX_NAME_DISALLOWED_CHARS}"
+            )
+
+    # endregion
+    # region Records
 
     @time_recorder(module_name=__name__)
     def load(self):
@@ -255,16 +466,8 @@ class PrefixData(metaclass=PrefixDataType):
 
             self.__prefix_records[prefix_record.name] = prefix_record
 
-    @property
-    def is_writable(self):
-        if self.__is_writable == NULL:
-            test_path = self.prefix_path / PREFIX_MAGIC_FILE
-            if not test_path.is_file():
-                is_writable = None
-            else:
-                is_writable = file_path_is_writable(test_path)
-            self.__is_writable = is_writable
-        return self.__is_writable
+    # endregion
+    # region Python records
 
     @property
     def _python_pkg_record(self):
@@ -380,6 +583,9 @@ class PrefixData(metaclass=PrefixDataType):
 
         return new_packages
 
+    # endregion
+    # region State and environment variables
+
     def _get_environment_state_file(self):
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         if lexists(env_vars_file):
@@ -422,6 +628,14 @@ class PrefixData(metaclass=PrefixDataType):
                     current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
             self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
+
+    def set_nonadmin(self):
+        """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
+        if on_win and Path(context.root_prefix, ".nonadmin").is_file():
+            self.prefix_path.mkdir(parents=True, exist_ok=True)
+            (self.prefix_path / ".nonadmin").touch()
+
+    # endregion
 
 
 def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
@@ -489,10 +703,12 @@ def get_python_version_for_prefix(prefix) -> str | None:
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:
     """Here, path may be a complete prefix or a dist inside a prefix"""
     path = Path(path)
-    for prefix in sorted(PrefixData._cache_, reverse=True):
+    for prefix, pip_interop in sorted(
+        PrefixData._cache_, reverse=True, key=lambda key: key[0]
+    ):
         try:
             path.relative_to(prefix)
-            del PrefixData._cache_[prefix]
+            del PrefixData._cache_[(prefix, pip_interop)]
             return True
         except ValueError:
             # ValueError: path is not relative to prefix

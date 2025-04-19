@@ -47,7 +47,6 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
-    EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
@@ -185,9 +184,8 @@ def test_create_install_update_remove_smoketest(
         assert package_is_installed(prefix, "python=3")
 
         conda_cli("install", f"--prefix={prefix}", "flask=2.0.1", "--yes")
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         conda_cli(
             "install",
@@ -196,20 +194,17 @@ def test_create_install_update_remove_smoketest(
             "flask=2.0.1",
             "--yes",
         )
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         conda_cli("update", f"--prefix={prefix}", "flask", "--yes")
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "flask", reload_records=False)
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}", "--revisions")
         assert not stderr
@@ -217,9 +212,8 @@ def test_create_install_update_remove_smoketest(
         assert " (rev 5)\n" not in stdout
 
         conda_cli("install", f"--prefix={prefix}", "--revision", "0", "--yes")
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
 
 def test_install_broken_post_install_keeps_existing_folders(
@@ -840,7 +834,8 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
 
         # regression test for #5847
         #   when using rm_rf on a directory
-        assert prefix in PrefixData._cache_
+        # cache key is prefix, pip_interop_enabled, which is default=True on conda list
+        assert (prefix, True) in PrefixData._cache_
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver))
         assert prefix not in PrefixData._cache_
 
@@ -882,21 +877,21 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
     with tmp_env(f"python={py_ver}") as prefix:
         # regression test for #5847
         #   when using rm_rf on a file
-        assert prefix in PrefixData._cache_
+        assert any(prefix in key for key in PrefixData._cache_)
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
         assert prefix not in PrefixData._cache_
 
     with tmp_env() as prefix:
         assert isdir(prefix)
-        assert prefix in PrefixData._cache_
+        assert any(prefix in key for key in PrefixData._cache_)
 
         rmtree(prefix)
         assert not isdir(prefix)
-        assert prefix in PrefixData._cache_
+        assert any(prefix in key for key in PrefixData._cache_)
 
         _rm_rf(prefix)
         assert not isdir(prefix)
-        assert prefix not in PrefixData._cache_
+        assert all(prefix not in key for key in PrefixData._cache_)
 
 
 def test_install_tarball_from_file_based_channel(
@@ -2634,7 +2629,7 @@ def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
     filename = tmp_path / "file.dat"
     filename.touch()
 
-    with pytest.raises(EnvironmentLocationNotFound):
+    with pytest.raises(DirectoryNotACondaEnvironmentError):
         conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
     assert filename.exists()
