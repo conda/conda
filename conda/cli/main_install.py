@@ -22,6 +22,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
+        add_parser_frozen_env,
         add_parser_prune,
         add_parser_solver,
         add_parser_update_modifiers,
@@ -86,6 +87,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Revert to the specified REVISION.",
         metavar="REVISION",
     )
+    add_parser_frozen_env(p)
 
     solver_mode_options, package_install_options, _ = add_parser_create_install_update(
         p

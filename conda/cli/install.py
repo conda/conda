@@ -294,6 +294,8 @@ def validate_install_command(prefix: str, command: str = "install"):
             delete_trash(prefix)
             if not path_is_clean(prefix):
                 raise
+        if context.protect_frozen_envs:
+            prefix_data.assert_not_frozen()
 
 
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
