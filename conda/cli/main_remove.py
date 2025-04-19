@@ -162,7 +162,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
-    prefix_data.assert_not_frozen()
+    if context.protect_frozen_envs:
+        prefix_data.assert_not_frozen()
     prefix = str(prefix_data.prefix_path)
     check_non_admin()
 

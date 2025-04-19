@@ -280,7 +280,7 @@ class PrefixData(metaclass=PrefixDataType):
         message = ""
         contents = self._frozen_file.read_text()
         if contents:
-            message = json.loads(contents).get("message")
+            message = json.loads(contents).get("message", "")
         raise EnvironmentIsFrozenError(self.prefix_path, message)
 
     def validate_path(self, expand_path: bool = False):
