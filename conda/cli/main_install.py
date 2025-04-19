@@ -22,6 +22,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
+        add_parser_frozen_env,
         add_parser_prune,
         add_parser_solver,
         add_parser_update_modifiers,
@@ -86,6 +87,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Revert to the specified REVISION.",
         metavar="REVISION",
     )
+    add_parser_frozen_env(p)
 
     solver_mode_options, package_install_options, _ = add_parser_create_install_update(
         p
@@ -126,7 +128,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..exceptions import CondaValueError
-    from .common import validate_prefix
     from .install import get_revision, install, install_revision
 
     if context.force:
@@ -146,9 +147,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         raise CondaValueError(
             "too few arguments, must supply command line packages, --file or --revision"
         )
-
-    # Ensure the target prefix is a valid conda environment
-    validate_prefix(context.target_prefix)
 
     if args.revision:
         install_revision(args, parser)
