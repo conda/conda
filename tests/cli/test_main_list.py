@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 
+from conda.base.context import context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
@@ -24,9 +24,10 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def tmp_envs_dirs(mocker: MockerFixture, tmp_path: Path) -> Path:
-    mocker.patch(
-        "conda.base.context.mockable_context_envs_dirs",
+def tmp_envs_dirs(tmp_path: Path) -> Path:
+    mock.patch.object(
+        context,
+        "envs_dirs",
         return_value=(str(tmp_path),),
     )
     return tmp_path

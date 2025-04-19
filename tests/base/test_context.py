@@ -12,16 +12,19 @@ from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
+from platformdirs import user_data_dir
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
     ChannelPriority,
     PathConflict,
 )
 from conda.base.context import (
+    Context,
     channel_alias_validation,
     context,
     default_python_validation,
@@ -881,3 +884,137 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+
+def test_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs):
+    """Test that the default envs/pkgs directories are not in the base environment."""
+    user_data = Path(user_data_dir(APP_NAME, APP_NAME, None, False))
+    envs = user_data / "envs"
+    pkgs = user_data / "pkgs"
+
+    # The pkgs and envs should exist in the user data dir
+    assert str(envs) in set(context.envs_dirs)
+    assert str(pkgs) in set(context.pkgs_dirs)
+
+    # They should not be in the prefix
+    prefix = Path(context.conda_prefix)
+    assert not envs.is_relative_to(prefix)
+    assert not pkgs.is_relative_to(prefix)
+
+
+def test_set_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs):
+    """Test that the envs/pkgs directories revert to legacy behavior if set."""
+    envs = "/usr/local/foo/envs"
+    pkgs = "/usr/local/foo/pkgs"
+
+    additional_settings = dals(
+        f"""
+        envs_dirs:
+          - {envs}
+        pkgs_dirs:
+          - {pkgs}
+        """
+    )
+
+    # Set up the context
+    reset_context()
+    condarc = yaml_round_trip_load(TEST_CONDARC + additional_settings)
+    context._set_raw_data(
+        {"testdata": YamlRawParameter.make_raw_parameters("testdata", condarc)}
+    )
+
+    # Track the calls to the context methods that get the old prefix
+    # locations of the pkgs and envs
+    with (
+        mock.patch.object(
+            context, "_prefix_pkgs_dirs", wraps=context._prefix_pkgs_dirs
+        ) as mock_prefix_pkgs,
+        mock.patch.object(
+            context, "_prefix_envs_dirs", wraps=context._prefix_envs_dirs
+        ) as mock_prefix_envs,
+    ):
+        context_envs_dirs = context.envs_dirs
+        context_pkgs_dirs = context.pkgs_dirs
+
+    # The prefix pkgs and envs methods should have been called
+    mock_prefix_pkgs.assert_called_once()
+    mock_prefix_envs.assert_called_once()
+
+    # The prefix paths should match the context.pkgs_dirs and
+    # context.envs_dirs
+    assert set(context_envs_dirs) == set(context._prefix_envs_dirs())
+    assert set(context_pkgs_dirs) == set(context._prefix_pkgs_dirs())
+
+
+def test_pkgs_envs_old_default_dirs(
+    testdata, propagate_conda_logger, caplog, unset_condarc_pkgs, unset_condarc_envs
+):
+    """Test that the old locations of envs/pkgs directories generate a log warning."""
+    envs = Path(context.root_prefix) / "envs"
+    pkgs = Path(context.root_prefix) / "pkgs"
+
+    with (
+        mock.patch.object(
+            Context,
+            "root_prefix_pkgs",
+            return_value=str(pkgs),
+            new_callable=mock.PropertyMock,
+        ),
+        mock.patch.object(
+            Context,
+            "root_prefix_envs",
+            return_value=str(envs),
+            new_callable=mock.PropertyMock,
+        ),
+        mock.patch("conda.base.context.isdir") as mock_isdir,
+        mock.patch("conda.base.context.os.listdir") as mock_listdir,
+    ):
+
+        def mock_isdir_ret(path):
+            if path == context.user_data_pkgs:
+                return False
+            if path == context.root_prefix_pkgs:
+                return True
+            if path == context.root_prefix_envs:
+                return True
+
+        def mock_listdir_ret(path):
+            if path == context.user_data_pkgs:
+                return []
+            if path == context.root_prefix_pkgs:
+                return ["a/", "b/", "c/"]
+            if path == context.root_prefix_envs:
+                return ["a/", "b/", "c/"]
+
+        mock_isdir.side_effect = mock_isdir_ret
+        mock_listdir.side_effect = mock_listdir_ret
+
+        _context_envs_dirs = context.envs_dirs
+        _context_pkgs_dirs = context.pkgs_dirs
+
+    assert len(caplog.records) == 2
+    assert any([str(envs) in record.message for record in caplog.records])
+    assert any([str(pkgs) in record.message for record in caplog.records])
+
+
+def test_pkgs_envs_configured(
+    testdata, propagate_conda_logger, caplog, unset_condarc_pkgs, monkeypatch, tmp_path
+):
+    """Test that the context uses legacy paths when `pkgs_dirs`/`envs_dirs` are set."""
+    pkgs = str(tmp_path / "pkgs")
+    envs = str(tmp_path / "envs")
+
+    monkeypatch.setenv("CONDA_PKGS_DIRS", pkgs)
+    monkeypatch.setenv("CONDA_ENVS_DIRS", envs)
+    reset_context()
+
+    assert set(context.pkgs_dirs) == set((pkgs,))
+    assert set(context._pkgs_dirs) == set(context.pkgs_dirs)
+
+    # When setting `envs_dirs`, the legacy behavior is to use
+    # ~/.conda/envs, <root prefix>/envs,
+    # and if running on windows, <user data dir>/conda/conda/envs.
+    # Here we just check that the requested envs are a subset
+    # of the actual envs returned.
+    assert envs in set(context.envs_dirs)
+    assert set(context._envs_dirs) <= set(context.envs_dirs)
