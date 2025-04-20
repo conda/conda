@@ -241,10 +241,10 @@ if ($CondaModuleArgs.ChangePs1) {
     }
 
     function global:prompt() {
-        if ($Env:CONDA_PROMPT_MODIFIER) {
-            $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
+        if ($Env:CONDA_PROMPT_MODIFIER -match '^\(.*\)\s*$') {
+            Write-Host $Env:CONDA_PROMPT_MODIFIER -NoNewline
         }
-        CondaPromptBackup;
+        CondaPromptBackup
     }
 }
 
