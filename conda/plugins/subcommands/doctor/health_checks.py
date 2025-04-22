@@ -8,6 +8,7 @@ import json
 import os
 from logging import getLogger
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from requests.exceptions import RequestException
 
@@ -181,23 +182,39 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
 
 def consistent_env_check(prefix: str, verbose: bool) -> None:
     pm = context.plugin_manager  # get the plugin manager from context
+
     SolverClass = (
         pm.get_solver_backend()
     )  # get the solver backend from the plugin manager
+
     pd = PrefixData(prefix)  # get prefix data
-    repodata = {"packages": {}, "packages.conda": {}}
+
+    repodata = {"packages": {}, "packages.conda": {}}  # create a repodata dict
+
     for record in pd.iter_records():
         record_data = dict(record.dump())
+        # f= open(Path("conda/plugins/subcommands/doctor/DELETE"), "a").write(str(record_data))
+        # print(record_data, "\n")
         if record.fn.endswith(".conda"):
             repodata["packages.conda"][record.fn] = record_data
         else:
             repodata["packages"][record.fn] = record_data
 
-    # TODO create fake channel with package records from pd
-    tmp_path = Path("tmp_repodata.json")
-    tmp_path.write_text(json.dumps(repodata))
+    # create fake channel with package records from pd
 
-    fake_channel = Channel(str(tmp_path.resolve()))
+    with TemporaryDirectory() as tmp_dir:
+        noarch_path = Path(tmp_dir) / "noarch"
+        non_noarch_path = Path(tmp_dir) / "subdir"
+
+        noarch_path.mkdir(parents=True, exist_ok=True)
+        non_noarch_path.mkdir(parents=True, exist_ok=True)
+
+        noarch_repodata = noarch_path / "repodata.json"
+        # non_noarch_repodata = non_noarch_path / "repodata.json"
+
+        noarch_repodata.write_text(json.dumps(repodata))
+
+    fake_channel = Channel(str(noarch_repodata.resolve()))
 
     specs = History(prefix).get_requested_specs_map()  # get specs from the history file
 
@@ -206,7 +223,9 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
     )  # instantiate a solver object
     final_state = solver.solve_final_state()  # get the final state from the solver
 
-    if pd == final_state:  # compare final state with prefix data
+    if sorted(pd.iter_records()) == sorted(
+        final_state
+    ):  # compare final state with prefix data
         print("The environment is consistent.\n")
     else:
         print("The environment is not consistent.\n")
