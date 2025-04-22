@@ -333,7 +333,7 @@ def install_clone(args, parser):
 
 
 def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
+    """Logic for `conda install`, `conda update`, and `conda create`."""
     prefix = context.target_prefix
 
     # common validations for all types of installs
