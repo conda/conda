@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Error handling and error reporting."""
+from __future__ import annotations
 
 import os
 import sys
@@ -11,8 +12,8 @@ from typing import TYPE_CHECKING
 from .common.compat import ensure_text_type, on_win
 
 if TYPE_CHECKING:
-    from types import TracebackType  # noqa: TC004
-    from typing import Any  # noqa: TC004
+    from types import TracebackType
+    from typing import Any
 
 log = getLogger(__name__)
 
