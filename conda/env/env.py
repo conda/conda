@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import re
@@ -372,10 +373,11 @@ class EnvironmentV2(EnvironmentBase):
         :param data: Serialized EnvironmentV2 object
         :return:  A new EnvironmentV2 instance
         """
+        data = copy.deepcopy(data)
 
         requirements = cls.parse_requirements(
-            str_requirements_conda=data.pop("requirements"),
-            str_requirements_pypi=data.pop("pypi-requirements"),
+            str_requirements_conda=data.pop("requirements", None),
+            str_requirements_pypi=data.pop("pypi-requirements", None),
         )
 
         groups = {}
@@ -392,11 +394,15 @@ class EnvironmentV2(EnvironmentBase):
             groups=groups,
             description=data.pop("description", None),
             config=EnvironmentConfig(
-                channels=[os.path.expandvars(ch) for ch in data.pop("channels", [])],
-                channel_priority=data.pop("channel-priority", None),
-                repodata_fn=data.pop("repodata-fn", None),
-                variables=data.pop("variables", {}),
-                version=data.pop("version", 2),
+                **{
+                    "channels": [
+                        os.path.expandvars(ch) for ch in data.pop("channels", [])
+                    ],
+                    "channel-priority": data.pop("channel-priority", None),
+                    "repodata-fn": data.pop("repodata-fn", None),
+                    "variables": data.pop("variables", {}),
+                    "version": data.pop("version", 2),
+                }
             ),
         )
 
@@ -463,8 +469,11 @@ class EnvironmentV2(EnvironmentBase):
         """
         result: dict[str, Any] = {}
         result["name"] = self.name
-        result["options"] = self.options
-        result["config"] = self.config.serialize()
+
+        config = self.config.serialize()
+        result.update(config)
+        result.update(self.options)
+
         result["requirements"] = [
             req.serialize()
             for req in self.requirements
@@ -476,9 +485,9 @@ class EnvironmentV2(EnvironmentBase):
             if isinstance(req, PypiRequirement)
         ]
 
-        groups = []
+        groups: list[dict[str, str | StringRequirements]] = []
         for name, group in self.groups.items():
-            group_dict: dict[str, str | Iterable[str | dict[str, str]]] = {
+            group_dict: dict[str, StringRequirements] = {
                 "group": name,
             }
 
@@ -494,7 +503,7 @@ class EnvironmentV2(EnvironmentBase):
             if group_reqs_pypi:
                 group_dict["pypi-requirements"] = group_reqs_pypi
 
-            groups[name] = [req.serialize() for req in group]
+            groups.append(group_dict)
         result["groups"] = groups
 
         return result
@@ -617,6 +626,14 @@ class EnvironmentV2(EnvironmentBase):
                 variables=variables,
             ),
         )
+
+    def __eq__(self, other: Any) -> bool:
+        """Check for equality between this and another object.
+
+        :param other: Any other python object
+        :return: True if the other object is an environment and has the same dict representation.
+        """
+        return isinstance(other, EnvironmentV2) and self.to_dict() == other.to_dict()
 
 
 class Environment(EnvironmentBase):

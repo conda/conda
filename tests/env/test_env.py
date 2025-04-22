@@ -376,6 +376,7 @@ def test_from_history():
 
 
 def test_parse_environment_v2():
+    """Test that a V2 env can be parsed from a yaml string."""
     yml_str = dals("""
         # From https://gist.github.com/jaimergp/4209c4c90d51b1bb07fe7293095f7c70
         #
@@ -426,6 +427,7 @@ def test_parse_environment_v2():
 
 
 def test_envv2_from_file(simple_env_v2):
+    """Test that an EnvironmentV2 can be parsed from a file."""
     env = EnvironmentV2.from_file(simple_env_v2)
 
     with open(simple_env_v2) as f:
@@ -441,6 +443,7 @@ def test_envv2_from_file(simple_env_v2):
 def test_envv2_from_prefix(
     mock_prefix_data, mock_env_name, mock_prefix_graph, prefix_graph
 ):
+    """Test that an EnvironmentV2 can be created from a prefix."""
     mock_env_name.return_value = None
     mock_prefix_data.return_value.get_environment_env_vars.return_value = {}
     mock_prefix_graph.return_value = prefix_graph
@@ -455,6 +458,7 @@ def test_envv2_from_prefix(
 @patch("conda.history.History.get_requested_specs_map")
 @patch("conda.env.env.PrefixData")
 def test_envv2_from_history(mock_prefix_data, mock_requested_specs_map):
+    """Test that an EnvironmentV2 can be parsed from a history file."""
     mock_requested_specs_map.return_value = {
         "python": MatchSpec("python=3"),
         "pytest": MatchSpec("pytest!=3.7.3"),
@@ -477,4 +481,4 @@ def test_envv2_from_history(mock_prefix_data, mock_requested_specs_map):
 def test_envv2_serialize_deserialize(simple_env_v2):
     """Test that environments can be serialized and deserialized and still parse."""
     env = EnvironmentV2.from_file(simple_env_v2)
-    assert env == env.from_dict(env.to_dict())
+    assert env == EnvironmentV2.from_dict(env.to_dict())
