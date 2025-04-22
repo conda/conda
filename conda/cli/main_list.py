@@ -71,7 +71,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         type=lambda s: s.split(","),
         dest="list_fields",
         default="name,version,build,features,schannel",
-        help="Comma-separated list of PrefixRecord fields to print."
+        help="Comma-separated list of PrefixRecord fields to print.",
     )
     p.add_argument(
         "--reverse",

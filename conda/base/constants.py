@@ -274,6 +274,7 @@ DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
 #: The default `conda list` columns
 DEFAULT_CONDA_LIST_FIELDS = ("name", "version", "build", "features", "schannel")
 
+
 class NoticeLevel(ValueEnum):
     CRITICAL = "critical"
     WARNING = "warning"
