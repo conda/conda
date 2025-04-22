@@ -1067,7 +1067,7 @@ class NoWritablePkgsDirError(CondaError):
 
 
 class EnvironmentIsFrozenError(CondaError):
-    def __init__(self, prefix, message, **kwargs):
+    def __init__(self, prefix: os.PathLike, message: str = "", **kwargs):
         error = f"Cannot not modify '{prefix}'. The environment is marked as frozen. "
         if message:
             error += "Reason:\n\n"
