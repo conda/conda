@@ -37,9 +37,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         to make use of them.
 
         The --condabin option adds the "$CONDA_PREFIX/condabin" directory to the PATH environment variable.
-        This directory only contains the conda executable and will not pollute your PATH so much.
-        On most shells, a small snippet is added to the shell profile. For CMD, the PATH environment
-        variable is modified directly in the registry.
+        This directory only contains the conda executable and does not contain other executables from other
+        packages installed in the base environment. On most shells, a small snippet is added to the
+        shell profile. For CMD, the PATH environment variable is modified directly in the registry.
 
         This command makes changes to your system that are specific and customized for each shell.
         To see the specific files and locations on your system that will be affected before, use
