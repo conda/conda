@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from datetime import timedelta
@@ -17,7 +16,6 @@ from typing import TYPE_CHECKING
 from requests.exceptions import JSONDecodeError
 
 from . import CondaError, CondaExitZero, CondaMultiError
-from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
@@ -1260,6 +1258,7 @@ def maybe_raise(error, context):
 
 def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
+    from .common.serialize.json import dumps
 
     rc = getattr(exc_val, "return_code", None)
     if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
@@ -1268,9 +1267,7 @@ def print_conda_exception(exc_val, exc_tb=None):
         if isinstance(exc_val, DryRunExit):
             return
         logger = getLogger("conda.stdout" if rc else "conda.stderr")
-        exc_json = json.dumps(
-            exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder
-        )
+        exc_json = dumps(exc_val.dump_map(), sort_keys=True)
         logger.info(f"{exc_json}\n")
     else:
         stderrlog = getLogger("conda.stderr")
