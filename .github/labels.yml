@@ -65,6 +65,10 @@
     description: pertains to the CLI in Xonsh
     color: '#91e4e5'
     aliases: [type-shell-xonsh]
+  - name: cli::windows-bash
+    description: pertains to the CLI for Windows Bash (e.g. Git BASH on Windows)
+    color: '#91e4e5'
+    aliases: [type-shell-windows-bash]
 
 # Plugins
   - name: plugins
