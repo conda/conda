@@ -53,7 +53,33 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
 @pytest.mark.benchmark
-def test_solve_1(tmpdir):
+@pytest.mark.flaky(reruns=5)
+def test_solve_1(tmpdir, request):
+    """
+    This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
+
+    ```
+    File "/home/runner/work/conda/conda/tests/core/test_solve.py", line 101, in test_solve_1
+        assert convert_to_dist_str(final_state) == order
+    AssertionError:
+        (
+            'channel-1/linux-64::openssl-1.0.1c-0',
+            'channel-1/linux-64::readline-6.2-0',
+            'channel-1/linux-64::sqlite-3.7.13-0',
+            'channel-1/linux-64::system-5.8-1',
+            'channel-1/linux-64::tk-8.5.13-0',
+            'channel-1/linux-64::zlib-1.2.7-0',
+      -     'channel-1/linux-64::python-2.7.5-0',
+      ?                                   ^ ^ ^
+      +     'channel-1/linux-64::python-2.6.8-6',
+      ?                                   ^ ^ ^
+      -     'channel-1/linux-64::numpy-1.7.1-py27_0',
+      ?                                         ^
+      +     'channel-1/linux-64::numpy-1.7.1-py26_0',
+      ?                                         ^
+          )
+    ```
+    """
     specs = (MatchSpec("numpy"),)
 
     with get_solver(tmpdir, specs) as solver:

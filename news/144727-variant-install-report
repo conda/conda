@@ -4,11 +4,11 @@
 
 ### Bug fixes
 
-* <news item>
+* Report package variant installation as "REVISED" opposed to "DOWNGRADED". (#13797 via #14727)
 
 ### Deprecations
 
-* Mark `conda.common.io._logger_lock` as pending deprecation. Use `logging._lock` instead. (#14584)
+* <news item>
 
 ### Docs
 

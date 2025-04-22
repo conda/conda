@@ -21,6 +21,7 @@ from ..notices import notices
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..common.constants import NULL
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -91,7 +92,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             _StoreAction,
             addendum="Use `conda env create --file=URL` instead.",
         ),
-        default=None,
+        default=NULL,
         nargs="?",
     )
     add_parser_default_packages(p)

@@ -55,11 +55,11 @@ jobs:
           git config --global user.name 'Conda Bot'
           git config --global user.email '18747875+conda-bot@users.noreply.github.com'
 
-      - uses: conda/actions/combine-durations@a46e86a61fbca7dec20c0df4c6b95ce3b4ea2263 # v25.2.0
+      - uses: conda/actions/combine-durations@eb545bb8ab48d499b31c057a6df3cf46753fdbcb # v25.3.1
         id: durations
         continue-on-error: true
 
-      - uses: conda/actions/template-files@a46e86a61fbca7dec20c0df4c6b95ce3b4ea2263 # v25.2.0
+      - uses: conda/actions/template-files@eb545bb8ab48d499b31c057a6df3cf46753fdbcb # v25.3.1
         id: templates
         continue-on-error: true
 
@@ -80,7 +80,7 @@ jobs:
       - if: github.event.comment.body != '@conda-bot render'
         id: create
         # no-op if no commits were made
-        uses: peter-evans/create-pull-request@dd2324fc52d5d43c699a5636bcf19fceaa70c284 # v7.0.7
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
           push-to-fork: ${{ env.FORK }}
           token: ${{ secrets.SYNC_TOKEN }}
