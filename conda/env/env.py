@@ -345,8 +345,9 @@ class EnvironmentV2(EnvironmentBase):
         requirements: Iterable[Requirement] | None = None,
         groups: Mapping[str, Iterable[Requirement]] | None = None,
         name: str | None = None,
+        description: str | None = None,
         config: EnvironmentConfig | None = None,
-        **options,
+        **metadata,
     ):
         """Instantiate an EnvironmentV2.
 
@@ -354,14 +355,15 @@ class EnvironmentV2(EnvironmentBase):
         :param groups: Groups of packages contained in the environment; these can
             represent optional dependencies, e.g. 'dev'
         :param name: Name of the environment
+        :param description: Description of the environment
         :param config: Variables which override conda settings in `.condarc`
-        :param options: Environment-specific options which are not configuration
-            overrides, e.g. `description`
+        :param options: Environment-specific metadata which is not configuration
         """
         self.name = name
+        self.description = description
         self.requirements = requirements if requirements else []
         self.groups = groups if groups else {}
-        self.options = options
+        self.metadata = metadata
         self.config = config if config else EnvironmentConfig()
 
     @classmethod
@@ -469,10 +471,11 @@ class EnvironmentV2(EnvironmentBase):
         """
         result: dict[str, Any] = {}
         result["name"] = self.name
+        result["description"] = self.description
 
         config = self.config.serialize()
         result.update(config)
-        result.update(self.options)
+        result.update(self.metadata)
 
         result["requirements"] = [
             req.serialize()
@@ -535,9 +538,10 @@ class EnvironmentV2(EnvironmentBase):
 
         lines = [
             f"name: {self.name if self.name else '<none>'}",
+            f"description: {self.description if self.description else '<none>'}",
             "options:",
             textwrap.indent(
-                "\n".join([f"{key}: {value}" for key, value in self.options.items()]),
+                "\n".join([f"{key}: {value}" for key, value in self.metadata.items()]),
                 prefix="  ",
             ),
             "configuration:",
