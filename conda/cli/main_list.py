@@ -218,10 +218,10 @@ def list_packages(
                     value = str(schannel_value)
             else:
                 titles[idx] = field.title()
-                value = prec.get(field, None) or ""
+                value = str(prec.get(field, None) or "").strip()
                 if value == "None":
                     value = ""
-            row.append(value.strip())
+            row.append(value)
             if (value_length := len(value)) > widths[idx]:
                 widths[idx] = value_length
 
