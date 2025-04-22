@@ -12,6 +12,7 @@ from pathlib import Path
 from requests.exceptions import RequestException
 
 from conda.history import History
+from conda.models.channel import Channel
 
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
@@ -184,13 +185,27 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         pm.get_solver_backend()
     )  # get the solver backend from the plugin manager
     pd = PrefixData(prefix)  # get prefix data
-    print("pd:", pd)
+    repodata = {"packages": {}, "packages.conda": {}}
+    for record in pd.iter_records():
+        record_data = dict(record.dump())
+        if record.fn.endswith(".conda"):
+            repodata["packages.conda"][record.fn] = record_data
+        else:
+            repodata["packages"][record.fn] = record_data
+
+    # TODO create fake channel with package records from pd
+    tmp_path = Path("tmp_repodata.json")
+    tmp_path.write_text(json.dumps(repodata))
+
+    fake_channel = Channel(str(tmp_path.resolve()))
+
     specs = History(prefix).get_requested_specs_map()  # get specs from the history file
+
     solver = SolverClass(
-        prefix, specs_to_add=specs, channels=context.channels
+        prefix, specs_to_add=specs, channels=[fake_channel]
     )  # instantiate a solver object
     final_state = solver.solve_final_state()  # get the final state from the solver
-    print("final_state", final_state)
+
     if pd == final_state:  # compare final state with prefix data
         print("The environment is consistent.\n")
     else:
