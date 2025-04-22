@@ -472,3 +472,9 @@ def test_envv2_from_history(mock_prefix_data, mock_requested_specs_map):
 
     mock_requested_specs_map.assert_called_once()
     mock_prefix_data.assert_called_once()
+
+
+def test_envv2_serialize_deserialize(simple_env_v2):
+    """Test that environments can be serialized and deserialized and still parse."""
+    env = EnvironmentV2.from_file(simple_env_v2)
+    assert env == env.from_dict(env.to_dict())

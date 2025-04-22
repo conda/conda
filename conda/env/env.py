@@ -8,6 +8,8 @@ import json
 import os
 import re
 import textwrap
+from abc import ABC
+from collections.abc import Iterable
 from functools import total_ordering
 from itertools import chain
 from os.path import abspath, basename, dirname, expanduser, expandvars
@@ -31,7 +33,7 @@ from ..models.prefix_graph import PrefixGraph
 
 if TYPE_CHECKING:
     import io
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Mapping
     from typing import Any
 
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
@@ -220,7 +222,7 @@ class Dependencies(dict):
 
 
 @total_ordering
-class Requirement:
+class Requirement(ABC):
     """A single requirement for a package.
 
     Can either be a single spec string (e.g. "flask"), or a dictionary containing
@@ -282,79 +284,16 @@ class Requirement:
         return repr(self)
 
 
-class Requirements:
-    """A set of conda and PyPI requirements for a package."""
+class PypiRequirement(Requirement):
+    pass
 
-    def __init__(
-        self,
-        requirements: Iterable[Requirement] | None = None,
-        pypi_requirements: Iterable[Requirement] | None = None,
-    ):
-        self.requirements = [] if requirements is None else requirements
-        self.pypi_requirements = [] if pypi_requirements is None else pypi_requirements
 
-    def __repr__(self) -> str:
-        lines = []
-        for req in sorted(self.requirements):
-            lines.append(repr(req))
+class CondaRequirement(Requirement):
+    pass
 
-        return "\n".join(lines)
 
-    def serialize(self) -> list[str | dict[str, str]]:
-        """Serialize the requested conda and PyPI packages.
-
-        Output can include conditional requirements of the form
-
-        {
-            "if": "__win",
-            "then": "flask"
-        }
-
-        :return: A list of conda or PyPI package specs
-        """
-        result = []
-        for req in self:
-            result.append(req.serialize())
-
-        return result
-
-    @classmethod
-    def from_strs(
-        cls,
-        raw_requirements: Iterable[str | dict[str, str]] | None = None,
-        raw_pypi_requirements: Iterable[str | dict[str, str]] | None = None,
-    ) -> Requirements:
-        """Initialize a set of requirements from lists of string conda and PyPI requirements.
-
-        {
-            "if": "__win",
-            "then": "flask"
-        }
-
-        :param raw_requirements: A list of string conda requirements
-        :param raw_pypi_requirements: A list of string PyPI requirements
-        :return: A new Requirements instance containing the requested package specs
-        """
-        requirements: list[Requirement] = []
-        pypi_requirements: list[Requirement] = []
-
-        if raw_requirements is None:
-            raw_requirements = []
-
-        if raw_pypi_requirements is None:
-            raw_pypi_requirements = []
-
-        for raw_req in raw_requirements:
-            requirements.append(Requirement(raw_req))
-
-        for raw_req in raw_pypi_requirements:
-            pypi_requirements.append(Requirement(raw_req))
-
-        return cls(requirements=requirements, pypi_requirements=pypi_requirements)
-
-    def __iter__(self) -> Iterator[Requirement]:
-        yield from self.requirements
-        yield from self.pypi_requirements
+StringConditionalRequirement = dict[str, str]
+StringRequirements = Iterable[str | StringConditionalRequirement]
 
 
 class EnvironmentConfig:
@@ -402,8 +341,8 @@ class EnvironmentV2(EnvironmentBase):
 
     def __init__(
         self,
-        requirements: Requirements | None = None,
-        groups: dict[str, Requirements] | None = None,
+        requirements: Iterable[Requirement] | None = None,
+        groups: Mapping[str, Iterable[Requirement]] | None = None,
         name: str | None = None,
         config: EnvironmentConfig | None = None,
         **options,
@@ -419,7 +358,7 @@ class EnvironmentV2(EnvironmentBase):
             overrides, e.g. `description`
         """
         self.name = name
-        self.requirements = requirements if requirements else Requirements()
+        self.requirements = requirements if requirements else []
         self.groups = groups if groups else {}
         self.options = options
         self.config = config if config else EnvironmentConfig()
@@ -433,16 +372,18 @@ class EnvironmentV2(EnvironmentBase):
         :param data: Serialized EnvironmentV2 object
         :return:  A new EnvironmentV2 instance
         """
-        requirements = Requirements.from_strs(
-            raw_requirements=data.pop("requirements", None),
-            raw_pypi_requirements=data.pop("pypi-requirements", None),
+
+        requirements = cls.parse_requirements(
+            str_requirements_conda=data.pop("requirements"),
+            str_requirements_pypi=data.pop("pypi-requirements"),
         )
 
         groups = {}
         for group in data.pop("groups", []):
-            groups[group["group"]] = Requirements.from_strs(
-                raw_requirements=group.get("requirements", []),
-                raw_pypi_requirements=group.get("pypi-requirements", []),
+            group_name: str = group["group"]
+            groups[group_name] = cls.parse_requirements(
+                str_requirements_conda=group.get("requirements"),
+                str_requirements_pypi=group.get("pypi-requirements"),
             )
 
         return cls(
@@ -458,6 +399,41 @@ class EnvironmentV2(EnvironmentBase):
                 version=data.pop("version", 2),
             ),
         )
+
+    @staticmethod
+    def parse_requirements(
+        str_requirements_conda: StringRequirements | None = None,
+        str_requirements_pypi: StringRequirements | None = None,
+    ) -> list[Requirement]:
+        """Parse the string requirements for an environment.
+
+        :param str_requirements_conda: A list of either strings representing conda requirements,
+            e.g. 'foo=1.2.3', or dictionaries of conditional conda requirements, e.g.
+
+            {
+                "if": "__win",
+                "then": "flask"
+            }
+
+        :param str_requirements_pypi: PyPI requirements for the environment; can include conditional
+            requirements just like str_requirements_conda
+        :return: A list of Requirement objects, one for each input requirement
+        """
+        if str_requirements_conda is None:
+            str_requirements_conda = []
+
+        if str_requirements_pypi is None:
+            str_requirements_pypi = []
+
+        requirements_conda: list[Requirement] = []
+        for req in str_requirements_conda:
+            requirements_conda.append(CondaRequirement(req))
+
+        requirements_pypi: list[Requirement] = []
+        for req in str_requirements_pypi:
+            requirements_pypi.append(PypiRequirement(req))
+
+        return [*requirements_conda, *requirements_pypi]
 
     @classmethod
     def from_file(cls, filename: os.PathLike[str]) -> EnvironmentV2:
@@ -489,10 +465,38 @@ class EnvironmentV2(EnvironmentBase):
         result["name"] = self.name
         result["options"] = self.options
         result["config"] = self.config.serialize()
-        result["requirements"] = [req.serialize() for req in self.requirements]
-        result["groups"] = {
-            name: group.serialize() for name, group in self.groups.items()
-        }
+        result["requirements"] = [
+            req.serialize()
+            for req in self.requirements
+            if isinstance(req, CondaRequirement)
+        ]
+        result["pypi-requirements"] = [
+            req.serialize()
+            for req in self.requirements
+            if isinstance(req, PypiRequirement)
+        ]
+
+        groups = []
+        for name, group in self.groups.items():
+            group_dict: dict[str, str | Iterable[str | dict[str, str]]] = {
+                "group": name,
+            }
+
+            group_reqs_conda = [
+                req.serialize() for req in group if isinstance(req, CondaRequirement)
+            ]
+            if group_reqs_conda:
+                group_dict["requirements"] = group_reqs_conda
+
+            group_reqs_pypi = [
+                req.serialize() for req in group if isinstance(req, PypiRequirement)
+            ]
+            if group_reqs_pypi:
+                group_dict["pypi-requirements"] = group_reqs_pypi
+
+            groups[name] = [req.serialize() for req in group]
+        result["groups"] = groups
+
         return result
 
     def to_yaml(self, stream: io.TextIOBase | None = None) -> str | None:
@@ -604,7 +608,10 @@ class EnvironmentV2(EnvironmentBase):
 
         return cls(
             name=name if name else None,
-            requirements=Requirements.from_strs(requirements, pypi_requirements),
+            requirements=cls.parse_requirements(
+                str_requirements_conda=requirements,
+                str_requirements_pypi=pypi_requirements,
+            ),
             config=EnvironmentConfig(
                 channels=channels,
                 variables=variables,
