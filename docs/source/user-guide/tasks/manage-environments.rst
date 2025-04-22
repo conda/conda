@@ -258,6 +258,25 @@ command:
    The ``--prune`` option causes conda to remove any dependencies
    that are no longer required from the environment.
 
+.. _frozen-env:
+
+Freezing or locking an environment
+==================================
+
+`CEP 22 <>`__ introduced an environment marker file that will
+instruct ``conda`` not to allow modifications in the given environment.
+When attempting to add, update or remove a package, users will receive
+an error by default::
+
+   EnvironmentIsFrozenError: Cannot not modify '~/.conda/envs/my-env'.
+   The environment is marked as frozen. You can ignore this error with
+   the `--ignore-frozen-env` flag, at your own risk.
+
+As mentioned above, users can pass the ``--ignore-frozen-env`` flag, but
+this is really not recommended and should only be done by advanced users
+who are aware of the risks and would have the knowledge to fix potential
+complications derived from that operation.
+
 
 Cloning an environment
 ======================
