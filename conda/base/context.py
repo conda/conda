@@ -56,6 +56,7 @@ from .constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,
+    DEFAULT_CONDA_LIST_FIELDS,
     DEFAULT_CONSOLE_REPORTER_BACKEND,
     DEFAULT_CUSTOM_CHANNELS,
     DEFAULT_JSON_REPORTER_BACKEND,
@@ -447,6 +448,12 @@ class Context(Configuration):
     _console = ParameterLoader(
         PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str),
         aliases=["console"],
+    )
+    list_fields = ParameterLoader(
+        SequenceParameter(
+            PrimitiveParameter("", element_type=str),
+            default=DEFAULT_CONDA_LIST_FIELDS,
+        )
     )
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
@@ -1626,6 +1633,11 @@ class Context(Configuration):
             json=dals(
                 """
                 Ensure all output written to stdout is structured json.
+                """
+            ),
+            list_fields=dals(
+                """
+                PrefixRecord fields to report as columns in the output of `conda list`.
                 """
             ),
             local_repodata_ttl=dals(
