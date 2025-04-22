@@ -2045,7 +2045,7 @@ class ContextStack:
         self._stack_idx -= 1
         self._stack[self._stack_idx].apply()
 
-    def replace(self, search_path: Iterable[str], argparse_args, Namespace):
+    def replace(self, search_path: Iterable[str], argparse_args: Namespace):
         self._stack[self._stack_idx].set_value(search_path, argparse_args)
         self._stack[self._stack_idx].apply()
 
