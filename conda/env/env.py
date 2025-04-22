@@ -14,7 +14,7 @@ from collections.abc import Iterable
 from functools import total_ordering
 from itertools import chain
 from os.path import abspath, basename, dirname, expanduser, expandvars
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
@@ -294,7 +294,7 @@ class CondaRequirement(Requirement):
 
 
 StringConditionalRequirement = dict[str, str]
-StringRequirements = Iterable[str | StringConditionalRequirement]
+StringRequirements = Iterable[Union[str, StringConditionalRequirement]]
 
 
 class EnvironmentConfig:
