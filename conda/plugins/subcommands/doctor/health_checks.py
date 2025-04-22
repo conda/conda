@@ -182,53 +182,52 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
 
 def consistent_env_check(prefix: str, verbose: bool) -> None:
     pm = context.plugin_manager  # get the plugin manager from context
-
     SolverClass = (
         pm.get_solver_backend()
     )  # get the solver backend from the plugin manager
-
     pd = PrefixData(prefix)  # get prefix data
+    repodatas = {}  # create a repodatas dict
 
-    repodata = {"packages": {}, "packages.conda": {}}  # create a repodata dict
-
+    # segregate the package records based on subdir/architecture and package type
     for record in pd.iter_records():
         record_data = dict(record.dump())
-        # f= open(Path("conda/plugins/subcommands/doctor/DELETE"), "a").write(str(record_data))
-        # print(record_data, "\n")
         if record.fn.endswith(".conda"):
-            repodata["packages.conda"][record.fn] = record_data
+            pkg_type = "packages.conda"
         else:
-            repodata["packages"][record.fn] = record_data
+            pkg_type = "packages"
+
+        if record_data["subdir"] not in repodatas:
+            repodatas[record_data["subdir"]] = {}
+        if pkg_type not in repodatas[record_data["subdir"]]:
+            repodatas[record_data["subdir"]][pkg_type] = {}
+        repodatas[record_data["subdir"]][pkg_type][record.fn] = record_data
 
     # create fake channel with package records from pd
-
     with TemporaryDirectory() as tmp_dir:
-        noarch_path = Path(tmp_dir) / "noarch"
-        non_noarch_path = Path(tmp_dir) / "subdir"
+        for subdir in repodatas:
+            path = Path(tmp_dir) / subdir
+            path.mkdir(parents=True, exist_ok=True)
+            repodata = path / "repodata.json"
+            if repodatas[subdir]["packages.conda"]:
+                repodata.write_text(json.dumps(repodatas[subdir]["packages.conda"]))
+            if repodatas[subdir]["packages"]:
+                repodata.write_text(json.dumps(repodatas[subdir]["packages"]))
 
-        noarch_path.mkdir(parents=True, exist_ok=True)
-        non_noarch_path.mkdir(parents=True, exist_ok=True)
+        fake_channel = Channel(tmp_dir)
+        specs = History(
+            prefix
+        ).get_requested_specs_map()  # get specs from the history file
+        solver = SolverClass(
+            prefix, specs_to_add=specs, channels=[fake_channel]
+        )  # instantiate a solver object
+        final_state = solver.solve_final_state()  # get the final state from the solver
 
-        noarch_repodata = noarch_path / "repodata.json"
-        # non_noarch_repodata = non_noarch_path / "repodata.json"
-
-        noarch_repodata.write_text(json.dumps(repodata))
-
-    fake_channel = Channel(str(noarch_repodata.resolve()))
-
-    specs = History(prefix).get_requested_specs_map()  # get specs from the history file
-
-    solver = SolverClass(
-        prefix, specs_to_add=specs, channels=[fake_channel]
-    )  # instantiate a solver object
-    final_state = solver.solve_final_state()  # get the final state from the solver
-
-    if sorted(pd.iter_records()) == sorted(
-        final_state
-    ):  # compare final state with prefix data
-        print("The environment is consistent.\n")
-    else:
-        print("The environment is not consistent.\n")
+        if sorted(pd.iter_records()) == sorted(
+            final_state
+        ):  # compare final state with prefix data
+            print("The environment is consistent.\n")
+        else:
+            print("The environment is not consistent.\n")
 
 
 @hookimpl
