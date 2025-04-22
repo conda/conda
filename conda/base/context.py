@@ -236,6 +236,7 @@ class Context(Configuration):
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
     register_envs = ParameterLoader(PrimitiveParameter(True))
+    protect_frozen_envs = ParameterLoader(PrimitiveParameter(True))
     default_python = ParameterLoader(
         PrimitiveParameter(
             default_python_default(),
@@ -1335,6 +1336,8 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
+                "protect_frozen_envs",
+                # prevent modifications to envs marked with conda-meta/frozen
             ),
             "Plugin Configuration": ("no_plugins",),
         }

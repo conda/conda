@@ -205,6 +205,15 @@ def add_output_and_prompt_options(p: ArgumentParser) -> _ArgumentGroup:
     return output_and_prompt_options
 
 
+def add_parser_frozen_env(p: ArgumentParser):
+    p.add_argument(
+        "--ignore-frozen-env",
+        action="store_false",
+        help="DANGEROUS. Use at your own risk. Ignore protections if the environment is frozen.",
+        dest="protect_frozen_envs",
+    )
+
+
 def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
 

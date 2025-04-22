@@ -16,6 +16,7 @@ from ..auxlib.exceptions import ValidationError
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     CONDA_PACKAGE_EXTENSIONS,
+    PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_STATE_FILE,
@@ -41,6 +42,7 @@ from ..exceptions import (
     CondaValueError,
     CorruptedEnvironmentError,
     DirectoryNotACondaEnvironmentError,
+    EnvironmentIsFrozenError,
     EnvironmentLocationNotFound,
     EnvironmentNameNotFound,
     EnvironmentNotWritableError,
@@ -106,6 +108,7 @@ class PrefixData(metaclass=PrefixDataType):
         # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = Path(prefix_path)
         self._magic_file = self.prefix_path / PREFIX_MAGIC_FILE
+        self._frozen_file = self.prefix_path / PREFIX_FROZEN_FILE
         self.__prefix_records = None
         self.__is_writable = NULL
         self._pip_interop_enabled = (
@@ -200,6 +203,17 @@ class PrefixData(metaclass=PrefixDataType):
         except OSError:
             return False
 
+    def is_frozen(self) -> bool:
+        """
+        Check whether the environment is marked as frozen, as per CEP 22.
+
+        This is assessed by checking if `conda-meta/frozen` marker file exists.
+        """
+        try:
+            return self._frozen_file.is_file()
+        except OSError:
+            return False
+
     def is_base(self) -> bool:
         """
         Check whether the configured path refers to the `base` environment.
@@ -252,6 +266,22 @@ class PrefixData(metaclass=PrefixDataType):
         self.assert_environment()
         if not file_path_is_writable(self._magic_file):
             raise EnvironmentNotWritableError(self.prefix_path)
+
+    def assert_not_frozen(self):
+        """
+        Check whether the environment path is a valid conda environment and is not marked
+        as frozen (as per CEP 22).
+
+        :raises EnvironmentIsFrozenError: If the environment is marked as frozen.
+        """
+        self.assert_environment()
+        if not self.is_frozen():
+            return
+        message = ""
+        contents = self._frozen_file.read_text()
+        if contents:
+            message = json.loads(contents).get("message", "")
+        raise EnvironmentIsFrozenError(self.prefix_path, message)
 
     def validate_path(self, expand_path: bool = False):
         """

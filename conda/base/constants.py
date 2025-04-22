@@ -281,6 +281,7 @@ class NoticeLevel(ValueEnum):
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = "urls.txt"
 PREFIX_MAGIC_FILE = join("conda-meta", "history")
+PREFIX_FROZEN_FILE = join("conda-meta", "frozen")
 
 PREFIX_STATE_FILE = join("conda-meta", "state")
 PACKAGE_ENV_VARS_DIR = join("etc", "conda", "env_vars.d")

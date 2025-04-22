@@ -10,7 +10,7 @@ import sys
 from datetime import timedelta
 from logging import getLogger
 from os.path import join
-from textwrap import dedent
+from textwrap import dedent, indent
 from traceback import format_exception, format_exception_only
 from typing import TYPE_CHECKING
 
@@ -1064,6 +1064,17 @@ class NoWritablePkgsDirError(CondaError):
     def __init__(self, pkgs_dirs, **kwargs):
         message = f"No writeable pkgs directories configured.{dashlist(pkgs_dirs)}"
         super().__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
+
+
+class EnvironmentIsFrozenError(CondaError):
+    def __init__(self, prefix, message, **kwargs):
+        error = f"Cannot not modify '{prefix}'. The environment is marked as frozen. "
+        if message:
+            error += "Reason:\n\n"
+            error += indent(message, "    ")
+            error += "\n\n"
+        error += "You can ignore this error with the `--ignore-frozen-env` flag, at your own risk."
+        super().__init__(error, **kwargs)
 
 
 class EnvironmentNotWritableError(CondaError):
