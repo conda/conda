@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 from .common.compat import ensure_text_type, on_win
 
 if TYPE_CHECKING:
-    from types import TracebackType
-    from typing import Any
+    from types import TracebackType  # noqa: TC004
+    from typing import Any  # noqa: TC004
 
 log = getLogger(__name__)
 
