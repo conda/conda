@@ -357,7 +357,7 @@ class EnvironmentV2(EnvironmentBase):
         :param name: Name of the environment
         :param description: Description of the environment
         :param config: Variables which override conda settings in `.condarc`
-        :param options: Environment-specific metadata which is not configuration
+        :param metadata: Environment-specific metadata which is not configuration
         """
         self.name = name
         self.description = description
@@ -390,6 +390,7 @@ class EnvironmentV2(EnvironmentBase):
                 str_requirements_pypi=group.get("pypi-requirements"),
             )
 
+        config = data.pop("config", {})
         return cls(
             name=data.pop("name", None),
             requirements=requirements,
@@ -398,14 +399,15 @@ class EnvironmentV2(EnvironmentBase):
             config=EnvironmentConfig(
                 **{
                     "channels": [
-                        os.path.expandvars(ch) for ch in data.pop("channels", [])
+                        os.path.expandvars(ch) for ch in config.pop("channels", [])
                     ],
-                    "channel-priority": data.pop("channel-priority", None),
-                    "repodata-fn": data.pop("repodata-fn", None),
-                    "variables": data.pop("variables", {}),
-                    "version": data.pop("version", 2),
+                    "channel-priority": config.pop("channel-priority", None),
+                    "repodata-fn": config.pop("repodata-fn", None),
+                    "variables": config.pop("variables", {}),
+                    "version": config.pop("version", 2),
                 }
             ),
+            **data,  # Anything else is added to the class as metadata
         )
 
     @staticmethod
@@ -473,8 +475,7 @@ class EnvironmentV2(EnvironmentBase):
         result["name"] = self.name
         result["description"] = self.description
 
-        config = self.config.serialize()
-        result.update(config)
+        result["config"] = self.config.serialize()
         result.update(self.metadata)
 
         result["requirements"] = [
@@ -534,26 +535,30 @@ class EnvironmentV2(EnvironmentBase):
         groups_lines = []
         for name, group in self.groups.items():
             groups_lines.append(f"{name}:")
-            groups_lines.append(textwrap.indent(repr(group), "  "))
+            groups_lines.append(
+                textwrap.indent("\n".join(str(req) for req in group), "  ")
+            )
+
+        metadata_lines: list[str] = []
+        for key, value in self.metadata.items():
+            metadata_lines.append(textwrap.indent(f"{key}: {value}", "  "))
 
         lines = [
             f"name: {self.name if self.name else '<none>'}",
             f"description: {self.description if self.description else '<none>'}",
-            "options:",
-            textwrap.indent(
-                "\n".join([f"{key}: {value}" for key, value in self.metadata.items()]),
-                prefix="  ",
-            ),
+            "metadata:",
+            *metadata_lines,
             "configuration:",
             textwrap.indent(repr(self.config), "  "),
             "requirements:",
-            textwrap.indent(repr(self.requirements), "  "),
+            textwrap.indent("\n".join(str(req) for req in self.requirements), "  "),
             "groups:",
             textwrap.indent(
                 "\n".join(groups_lines),
                 "  ",
             ),
         ]
+
         return "\n".join(lines)
 
     def to_dict(self) -> dict:

@@ -1,13 +1,14 @@
 name: test-env-v2
-version: 2
 description: This is an v2 env spec
-variables:
-    ENVVAR: value
-    ENVVAR2: value
-channels:
-    - conda-forge
-channel-priority: strict
-repodata-fn: repodata.json
+config:
+    version: 2
+    variables:
+        ENVVAR: value
+        ENVVAR2: value
+    channels:
+        - conda-forge
+    channel-priority: strict
+    repodata-fn: repodata.json
 platforms:
     - linux-64
     - osx-64

@@ -388,15 +388,16 @@ def test_parse_environment_v2():
         # What we do NOT want
         # - This to become a lockfile
         name: data-science-something
-        version: 2
         description: This environment provides data science packages
-        variables:
-            ENVVAR: value
-            ENVVAR2: value
-        channels:
-            - conda-forge
-        channel-priority: strict
-        repodata-fn: repodata.json
+        config:
+            version: 2
+            variables:
+                ENVVAR: value
+                ENVVAR2: value
+            channels:
+              - conda-forge
+            channel-priority: strict
+            repodata-fn: repodata.json
         platforms:
             - linux-64
             - osx-64
