@@ -34,6 +34,7 @@ from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from typing import Literal
 
     from requests.auth import AuthBase
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
+        CondaPrefixDataLoader,
         CondaPreSolve,
         CondaReporterBackend,
         CondaRequestHeader,
@@ -416,6 +418,10 @@ class CondaPluginManager(pluggy.PluginManager):
             hook.name: hook.value
             for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
+
+    def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoader]:
+        for hook in self.get_hook_results("prefix_data_loaders"):
+            yield hook.backend
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):

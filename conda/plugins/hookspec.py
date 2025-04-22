@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
+        CondaPrefixDataLoader,
         CondaPreSolve,
         CondaReporterBackend,
         CondaRequestHeader,
@@ -459,5 +460,11 @@ class CondaSpecs:
                        name="Example-Header",
                        value="example",
                    )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_prefix_data_loaders() -> Iterable[CondaPrefixDataLoader]:
+        """
         """
         yield from ()
