@@ -87,7 +87,7 @@ if TYPE_CHECKING:
 
     from ..models.package_info import PackageInfo
     from ..models.records import PackageRecord
-    from .path_actions import _Action
+    from .path_actions import Action
 
 log = getLogger(__name__)
 
@@ -180,7 +180,7 @@ class PrefixSetup(NamedTuple):
 class ActionGroup(NamedTuple):
     type: str
     pkg_data: PackageInfo | None
-    actions: Iterable[_Action]
+    actions: Iterable[Action]
     target_prefix: str
 
 

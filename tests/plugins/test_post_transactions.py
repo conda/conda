@@ -8,24 +8,14 @@ from unittest import mock
 import pytest
 
 from conda import plugins
-from conda.core.path_actions import _Action
-
-# Attempt to load libmamba solver plugin since it's much faster;
-# fall back if it's not available
-try:
-    from conda_libmamba_solver import plugin as solver_plugin
-
-    env_flags: tuple = tuple()
-except:
-    solver_plugin = plugins.solvers
-    env_flags = ("--solver=classic",)
+from conda.core.path_actions import Action, PathAction
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
 
 class DummyActionPlugin:
-    def dummy_hook(self, action: _Action) -> None:
+    def dummy_hook(self, action: Action) -> None:
         pass
 
     @plugins.hookimpl
@@ -33,13 +23,14 @@ class DummyActionPlugin:
         yield plugins.CondaPostTransaction(
             name="foo",
             run=self.dummy_hook,
+            action_type=PathAction,
         )
 
 
 @pytest.fixture()
 def post_transaction_plugin(plugin_manager_with_reporter_backends):
     # Explicitly load the solver, since this is a dummy plugin manager and not the default
-    plugin_manager_with_reporter_backends.load_plugins(solver_plugin)
+    plugin_manager_with_reporter_backends.load_plugins(plugins.solvers)
 
     plugin = DummyActionPlugin()
     with mock.patch.object(
@@ -52,11 +43,11 @@ def post_transaction_plugin(plugin_manager_with_reporter_backends):
 
 def test_post_transaction_invoked(tmp_env, post_transaction_plugin):
     """Test that the post transaction hooks get invoked."""
-    with tmp_env("python=3", *env_flags):
+    with tmp_env("python=3", "--solver=classic"):
         pass
 
     post_transaction_plugin.assert_called()
-    assert isinstance(post_transaction_plugin.call_args_list[0].args[0], _Action)
+    assert isinstance(post_transaction_plugin.call_args_list[0].args[0], Action)
 
 
 def test_post_transaction_raises_exception(tmp_env, post_transaction_plugin):
@@ -65,8 +56,8 @@ def test_post_transaction_raises_exception(tmp_env, post_transaction_plugin):
     post_transaction_plugin.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env("python=3", *env_flags):
+        with tmp_env("python=3", "--solver=classic"):
             pass
 
     post_transaction_plugin.assert_called()
-    assert isinstance(post_transaction_plugin.call_args_list[0].args[0], _Action)
+    assert isinstance(post_transaction_plugin.call_args_list[0].args[0], Action)

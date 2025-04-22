@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from requests.auth import AuthBase
 
+from ..core.path_actions import Action
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
@@ -24,7 +25,6 @@ if TYPE_CHECKING:
     from typing import Any, Callable
 
     from ..common.configuration import Parameter
-    from ..core.path_actions import _Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
 
@@ -361,7 +361,9 @@ class CondaPostTransaction:
     :param name: Post transaction name (this is just a label).
     :param run: Function to run after each transaction; accepts a single parameter which
         is the action that has just been executed
+    :param action_type: Types of actions for which the hook should be run
     """
 
     name: str
-    run: Callable[[_Action], None]
+    run: Callable[[Action], None]
+    action_type: type[Action] | tuple[type[Action]] = Action

@@ -102,7 +102,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    request_headers
    post_commands
    pre_commands
-   post_transaction
+   post_transactions
    reporter_backends
    settings
    solvers

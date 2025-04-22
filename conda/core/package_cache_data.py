@@ -968,7 +968,7 @@ def do_cache_action(prec, cache_action, progress_bar, download_total=1.0, *, can
         download_total = 0
         progress_update_cache_action = None
 
-    cache_action.run(progress_update_cache_action)
+    cache_action.execute(progress_update_cache_action)
     return prec
 
 
@@ -980,7 +980,7 @@ def do_extract_action(prec, extract_action, progress_bar):
     extract_action.verify()
     # currently unable to do updates on extract;
     # likely too fast to bother
-    extract_action.run(None)
+    extract_action.execute(None)
     progress_bar.update_to(1.0)
     return prec
 

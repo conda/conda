@@ -260,7 +260,7 @@ class CondaSpecs:
         """Register post-transaction hooks.
 
         Post-transaction hooks run after a UnlinkLinkTransaction builds up
-        a list of actions to carry out. Hooks accept any subclass of _Action.
+        a list of actions to carry out. Hooks accept any subclass of Action.
 
         **Example:**
 
@@ -273,7 +273,7 @@ class CondaSpecs:
 
 
             class PrintActionPlugin:
-                def print_action(self, action: _Action) -> None:
+                def print_action(self, action: Action) -> None:
                     if isinstance(action, LinkPathAction):
                         logger.warning(
                             "LinkPathAction encountered! "

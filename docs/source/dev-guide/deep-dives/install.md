@@ -321,7 +321,7 @@ can be changed through the following `context` settings:
 ```
 
 There's only one class of transaction in `conda`:
-[`LinkUnlinkTransaction`][conda.core.link:UnlinkLinkTransaction]. It only accepts one input parameter:
+[`UnlinkLinkTransaction`][conda.core.link:UnlinkLinkTransaction]. It only accepts one input parameter:
 a list of `PrefixSetup` objects, which are just `namedtuple` objects with the following fields.
 These are populated by `Solver.solve_for_transaction` after running `Solver.solve_for_diff`:
 
