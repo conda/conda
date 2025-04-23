@@ -64,7 +64,7 @@ def get_python_site_packages_short_path(python_version):
         return "Lib/site-packages"
     else:
         py_ver = get_major_minor_version(python_version)
-        return "lib/python%s/site-packages" % py_ver
+        return f"lib/python{py_ver}/site-packages"
 
 
 _VERSION_REGEX = re.compile(r"[0-9]+\.[0-9]+")
@@ -111,7 +111,8 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         sp_dir = target_site_packages_short_path
         return source_short_path.replace("site-packages", sp_dir, 1)
     elif source_short_path.startswith("python-scripts/"):
-        bin_dir = get_bin_directory_short_path()
-        return source_short_path.replace("python-scripts", bin_dir, 1)
+        from . import BIN_DIRECTORY
+
+        return source_short_path.replace("python-scripts", BIN_DIRECTORY, 1)
     else:
         return source_short_path
