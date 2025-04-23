@@ -32,7 +32,9 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-def load_site_packages(prefix: os.PathLike, records: dict[str, PrefixRecord]) -> dict[str, PrefixRecord]:
+def load_site_packages(
+    prefix: os.PathLike, records: dict[str, PrefixRecord]
+) -> dict[str, PrefixRecord]:
     """
     Load non-conda-installed python packages in the site-packages of the prefix.
 
@@ -51,9 +53,7 @@ def load_site_packages(prefix: os.PathLike, records: dict[str, PrefixRecord]) ->
 
     prefix_path = Path(prefix)
 
-    site_packages_dir = get_python_site_packages_short_path(
-        python_pkg_record.version
-    )
+    site_packages_dir = get_python_site_packages_short_path(python_pkg_record.version)
     site_packages_path = prefix_path / win_path_ok(site_packages_dir)
 
     if not site_packages_path.is_dir():
@@ -80,9 +80,7 @@ def load_site_packages(prefix: os.PathLike, records: dict[str, PrefixRecord]) ->
     # the in-memory record for the conda package.  In the future, we should consider
     # also deleting the record on disk in the conda-meta/ directory.
     for conda_anchor_file in clobbered_conda_anchor_files:
-        prefix_rec = records.pop(
-            conda_python_packages[conda_anchor_file].name
-        )
+        prefix_rec = records.pop(conda_python_packages[conda_anchor_file].name)
         try:
             extracted_package_dir = basename(prefix_rec.extracted_package_dir)
         except AttributeError:
@@ -109,12 +107,9 @@ def load_site_packages(prefix: os.PathLike, records: dict[str, PrefixRecord]) ->
                 prefix_path, af, python_pkg_record.version
             )
         except OSError as e:
-            log.info(
-                "Python record ignored for anchor path '%s'\n  due to %s", af, e
-            )
+            log.info("Python record ignored for anchor path '%s'\n  due to %s", af, e)
             continue
         except ValidationError:
-
             exc_type, exc_value, exc_traceback = sys.exc_info()
 
             tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
