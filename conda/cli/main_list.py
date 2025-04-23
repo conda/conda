@@ -162,6 +162,7 @@ def list_packages(
     format="human",
     reverse=False,
     show_channel_urls=None,
+    reload_records=True,
 ):
     from ..base.constants import DEFAULTS_CHANNEL_NAME
     from ..base.context import context
@@ -170,10 +171,10 @@ def list_packages(
 
     res = 0
 
-    installed = sorted(
-        PrefixData(prefix, pip_interop_enabled=True).iter_records(),
-        key=lambda x: x.name,
-    )
+    prefix_data = PrefixData(prefix, pip_interop_enabled=True)
+    if reload_records:
+        prefix_data.load()
+    installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
 
     packages = []
     for prec in get_packages(installed, regex) if regex else installed:
@@ -283,15 +284,13 @@ def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from ..gateways.disk.test import is_conda_environment
+    from ..core.prefix_data import PrefixData
     from ..history import History
     from .common import stdout_json
 
-    prefix = context.target_prefix
-    if not is_conda_environment(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
-
-        raise EnvironmentLocationNotFound(prefix)
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    prefix = str(prefix_data.prefix_path)
 
     if args.md5 and args.sha256:
         from ..exceptions import ArgumentError

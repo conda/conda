@@ -670,7 +670,7 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
     ctx = mock.MagicMock()
 
     with (
-        mock.patch("conda.base.context._first_writable_envs_dir") as mock_one,
+        mock.patch("conda.gateways.disk.create.first_writable_envs_dir") as mock_one,
         mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
     ):
         mock_one.side_effect = [mock_return_values[0]]
