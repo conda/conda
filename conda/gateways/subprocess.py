@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Helpler functions for subprocess."""
+
 from __future__ import annotations
 
 import os
@@ -16,13 +17,13 @@ from ..auxlib.compat import shlex_split_unicode
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import encode_environment, isiterable
+from ..common.constants import TRACE
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
-from .logging import TRACE
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
-    from typing import Sequence
 
 log = getLogger(__name__)
 Response = namedtuple("Response", ("stdout", "stderr", "rc"))
@@ -127,7 +128,7 @@ def subprocess_call(
         log.info(formatted_output)
         raise CalledProcessError(rc, command, output=formatted_output)
     if log.isEnabledFor(TRACE):
-        log.trace(formatted_output)
+        log.log(TRACE, formatted_output)
 
     return Response(stdout, stderr, int(rc))
 

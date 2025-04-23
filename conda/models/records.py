@@ -12,6 +12,7 @@ Object inheritance:
    :top-classes: conda.models.records.PackageRecord
    :parts: 1
 """
+
 from __future__ import annotations
 
 from os.path import basename, join
@@ -228,7 +229,7 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(str, required=False, nullable=True)
@@ -243,38 +244,108 @@ class PathsData(Entity):
 
 
 class PackageRecord(DictSafeMixin, Entity):
+    """Representation of a concrete package archive (tarball or .conda file).
+
+    It captures all the relevant information about a given package archive, including its source,
+    in the following attributes.
+
+    Note that there are two subclasses, :class:`PrefixRecord` and
+    :class:`PackageCacheRecord`. These capture the same information, but are augmented with
+    additional information relevant for these two sources of packages.
+
+    Further note that :class:`PackageRecord` makes use of its :attr:`_pkey`
+    for comparison and hash generation.
+    This means that for common operations, like comparisons between :class:`PackageRecord` s
+    and reference of :class:`PackageRecord` s in mappings, _different_ objects appear identical.
+    The fields taken into account are marked in the following list of attributes.
+    The subclasses do not add further attributes to the :attr:`_pkey`.
+    """
+
+    #: str: The name of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     name = StringField()
+
+    #: str: The version of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     version = StringField()
+
+    #: str: The build string of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     build = StringField(aliases=("build_string",))
+
+    #: int: The build number of the package.
+    #:
+    #: Part of the :attr:`_pkey`.
     build_number = IntegerField()
 
     # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
+    #: :class:`conda.models.channel.Channel`: The channel where the package can be found.
     channel = ChannelField(aliases=("schannel",))
+
+    #: str: The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
+    #:
+    #: Part of the :attr:`_pkey`.
     subdir = SubdirField()
+
+    #: str: The filename of the package.
+    #:
+    #: Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>` is ``true`` (default: ``false``).
     fn = FilenameField(aliases=("filename",))
 
+    #: str: The md5 checksum of the package.
     md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+
+    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package.
     legacy_bz2_md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+
+    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package.
     legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
+
+    #: str: The download url of the package.
     url = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+
+    #: str: The sha256 checksum of the package.
     sha256 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
 
     @property
     def schannel(self):
+        """str: The canonical name of the channel of this package.
+
+        Part of the :attr:`_pkey`.
+        """
         return self.channel.canonical_name
 
     @property
     def _pkey(self):
+        """tuple: The components of the PackageRecord that are used for comparison and hashing.
+
+        The :attr:`_pkey` is a tuple made up of the following fields of the :class:`PackageRecord`.
+        Two :class:`PackageRecord` s test equal if their respective :attr:`_pkey` s are equal.
+        The hash of the :class:`PackageRecord` (important for dictionary access) is the hash of the :attr:`_pkey`.
+
+        The included fields are:
+
+        * :attr:`schannel`
+        * :attr:`subdir`
+        * :attr:`name`
+        * :attr:`version`
+        * :attr:`build_number`
+        * :attr:`build`
+        * :attr:`fn` only if :ref:`separate_format_cache <auto-config-reference>` is set to true (default: false)
+        """
         try:
             return self.__pkey
         except AttributeError:
@@ -302,9 +373,9 @@ class PackageRecord(DictSafeMixin, Entity):
     def __eq__(self, other):
         return self._pkey == other._pkey
 
-    def dist_str(self):
+    def dist_str(self, canonical_name: bool = True) -> str:
         return "{}{}::{}-{}-{}".format(
-            self.channel.canonical_name,
+            self.channel.canonical_name if canonical_name else self.channel.name,
             ("/" + self.subdir) if self.subdir else "",
             self.name,
             self.version,
@@ -338,7 +409,9 @@ class PackageRecord(DictSafeMixin, Entity):
     preferred_env = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
-
+    python_site_packages_path = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
     license = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
@@ -376,13 +449,7 @@ class PackageRecord(DictSafeMixin, Entity):
     size = IntegerField(required=False)
 
     def __str__(self):
-        return "{}/{}::{}=={}={}".format(
-            self.channel.canonical_name,
-            self.subdir,
-            self.name,
-            self.version,
-            self.build,
-        )
+        return f"{self.channel.canonical_name}/{self.subdir}::{self.name}=={self.version}={self.build}"
 
     def to_match_spec(self):
         return MatchSpec(
@@ -408,15 +475,53 @@ class PackageRecord(DictSafeMixin, Entity):
         #          the official record_id / uid until it gets namespace.  Even then, we might
         #          make the format different.  Probably something like
         #              channel_name/subdir:namespace:name-version-build_number-build_string
-        return "{}/{}::{}-{}-{}".format(
-            self.channel.name, self.subdir, self.name, self.version, self.build
-        )
+        return f"{self.channel.name}/{self.subdir}::{self.name}-{self.version}-{self.build}"
 
     metadata: set[str]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.metadata = set()
+
+    @classmethod
+    def feature(cls, feature_name) -> PackageRecord:
+        # necessary for the SAT solver to do the right thing with features
+        pkg_name = f"{feature_name}@"
+        return cls(
+            name=pkg_name,
+            version="0",
+            build="0",
+            channel="@",
+            subdir=context.subdir,
+            md5="12345678901234567890123456789012",
+            track_features=(feature_name,),
+            build_number=0,
+            fn=pkg_name,
+        )
+
+    @classmethod
+    def virtual_package(
+        cls, name: str, version: str | None = None, build_string: str | None = None
+    ) -> PackageRecord:
+        """
+        Create a virtual package record.
+
+        :param name: The name of the virtual package.
+        :param version: The version of the virtual package, defaults to "0".
+        :param build_string: The build string of the virtual package, defaults to "0".
+        :return: A PackageRecord representing the virtual package.
+        """
+        return cls(
+            package_type=PackageType.VIRTUAL_SYSTEM,
+            name=name,
+            version=version or "0",
+            build_string=build_string or "0",
+            channel="@",
+            subdir=context.subdir,
+            md5="12345678901234567890123456789012",
+            build_number=0,
+            fn=name,
+        )
 
 
 class Md5Field(StringField):
@@ -434,19 +539,39 @@ class Md5Field(StringField):
 
 
 class PackageCacheRecord(PackageRecord):
+    """Representation of a package that has been downloaded or unpacked in the local package cache.
+
+    Specialization of :class:`PackageRecord` that adds information for packages that exist in the
+    local package cache, either as the downloaded package file, or unpacked in its own package dir,
+    or both.
+
+    Note that this class does not add new fields to the :attr:`PackageRecord._pkey` so that a pure
+    :class:`PackageRecord` object that has the same ``_pkey`` fields as a different
+    :class:`PackageCacheRecord` object (or, indeed, a :class:`PrefixRecord` object) will be considered
+    equal and will produce the same hash.
+    """
+
+    #: str: Full path to the local package file.
     package_tarball_full_path = StringField()
+
+    #: str: Full path to the local extracted package.
     extracted_package_dir = StringField()
 
+    #: str: The md5 checksum of the package.
+    #:
+    #: If the package file exists locally, this class can calculate a missing checksum on-the-fly.
     md5 = Md5Field()
 
     @property
     def is_fetched(self):
+        """bool: Whether the package file exists locally."""
         from ..gateways.disk.read import isfile
 
         return isfile(self.package_tarball_full_path)
 
     @property
     def is_extracted(self):
+        """bool: Whether the package has been extracted locally."""
         from ..gateways.disk.read import isdir, isfile
 
         epd = self.extracted_package_dir
@@ -454,6 +579,7 @@ class PackageCacheRecord(PackageRecord):
 
     @property
     def tarball_basename(self):
+        """str: The basename of the local package file."""
         return basename(self.package_tarball_full_path)
 
     def _calculate_md5sum(self):
@@ -472,20 +598,44 @@ class PackageCacheRecord(PackageRecord):
 
 
 class PrefixRecord(PackageRecord):
+    """Representation of a package that is installed in a local conda environmnet.
+
+    Specialization of :class:`PackageRecord` that adds information for packages that are installed
+    in a local conda environment or prefix.
+
+    Note that this class does not add new fields to the :attr:`PackageRecord._pkey` so that a pure
+    :class:`PackageRecord` object that has the same ``_pkey`` fields as a different
+    :class:`PrefixRecord` object (or, indeed, a :class:`PackageCacheRecord` object) will be considered
+    equal and will produce the same hash.
+
+    Objects of this class are generally constructed from metadata in json files inside `$prefix/conda-meta`.
+    """
+
+    #: str: The path to the originating package file, usually in the local cache.
     package_tarball_full_path = StringField(required=False)
+
+    #: str: The path to the extracted package directory, usually in the local cache.
     extracted_package_dir = StringField(required=False)
 
+    #: list(str): The list of all files comprising the package as relative paths from the prefix root.
     files = ListField(str, default=(), required=False)
+
+    #: list(str): List with additional information about the files, e.g. checksums and link type.
     paths_data = ComposableField(
         PathsData, required=False, nullable=True, default_in_dump=False
     )
+
+    #: :class:`Link`: Information about how the package was linked into the prefix.
     link = ComposableField(Link, required=False)
+
     # app = ComposableField(App, required=False)
 
+    #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
     requested_spec = StringField(required=False)
 
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.
+    #: str: Authentication information.
     auth = StringField(required=False, nullable=True)
 
     # @classmethod

@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
+
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from .. import env
 

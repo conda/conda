@@ -1,19 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Entry point for all conda-env subcommands."""
+
 from __future__ import annotations
 
-from argparse import ArgumentParser
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
 from . import main_export
 
 if TYPE_CHECKING:
-    from argparse import Namespace, _SubParsersAction
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
-def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> ArgumentParser:
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from . import (
         main_env_config,
         main_env_create,
@@ -22,20 +21,10 @@ def configure_parser(sub_parsers: _SubParsersAction | None, **kwargs) -> Argumen
         main_env_update,
     )
 
-    # This is a backport for the deprecated `conda_env`, see `conda_env.cli.main`
-    if sub_parsers is None:
-        deprecated.topic(
-            "24.9",
-            "25.3",
-            topic="'conda_env'",
-        )
-        p = ArgumentParser()
-
-    else:
-        p = sub_parsers.add_parser(
-            "env",
-            **kwargs,
-        )
+    p = sub_parsers.add_parser(
+        "env",
+        **kwargs,
+    )
 
     env_parsers = p.add_subparsers(
         metavar="command",

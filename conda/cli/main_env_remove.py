@@ -4,11 +4,14 @@
 
 Removes the specified conda environment.
 """
+
 from argparse import (
     ArgumentParser,
     Namespace,
     _SubParsersAction,
 )
+
+from ..deprecations import deprecated
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -51,33 +54,27 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_solver(p)
     add_output_and_prompt_options(p)
 
-    p.set_defaults(func="conda.cli.main_env_remove.execute")
+    p.set_defaults(
+        func="conda.cli.main_remove.execute",
+        all=True,
+        channel=None,
+        features=None,
+        override_channels=None,
+        use_local=None,
+        use_cache=None,
+        offline=None,
+        package_names=[],
+        force=True,
+        pinned=None,
+        keep_env=False,
+    )
 
     return p
 
 
+@deprecated("25.3", "25.9", addendum="Use `conda.cli.main_remove.execute` instead.")
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context
     from ..cli.main_remove import execute as remove
-
-    args = vars(args)
-    args.update(
-        {
-            "all": True,
-            "channel": None,
-            "features": None,
-            "override_channels": None,
-            "use_local": None,
-            "use_cache": None,
-            "offline": None,
-            "force": True,
-            "pinned": None,
-            "keep_env": False,
-        }
-    )
-    args = Namespace(**args)
-
-    context.__init__(argparse_args=args)
 
     remove(args, parser)
 

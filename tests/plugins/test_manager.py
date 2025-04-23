@@ -10,6 +10,7 @@ from packaging.version import Version
 from pytest_mock import MockerFixture
 
 from conda import plugins
+from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
@@ -18,8 +19,9 @@ from conda.plugins.manager import CondaPluginManager
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
 
-# detect if this is an older pluggy
+# detect if this is an older/newer pluggy
 pluggy_v100 = Version(pluggy.__version__) <= Version("1.0.0")
+pluggy_v150 = Version(pluggy.__version__) >= Version("1.5.0")
 
 
 class VerboseSolver(solve.Solver):
@@ -131,7 +133,7 @@ def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
@@ -193,7 +195,7 @@ def test_disable_external_plugins(plugin_manager: CondaPluginManager, plugin: ob
     assert plugin_manager.load_plugins(plugin) == 1
     assert plugin_manager.get_plugins() == {plugin}
     plugin_manager.disable_external_plugins()
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
@@ -214,3 +216,21 @@ def test_get_solvers(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
     assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
+
+
+def test_get_session_headers(plugin_manager: CondaPluginManager):
+    """
+    Ensure that an empty dict is returned when no ``conda_request_headers`` plugin
+    hooks have been defined.
+    """
+    url = urlparse("https://example.com")
+    assert plugin_manager.get_session_headers(host=url.netloc) == {}
+
+
+def test_get_request_headers(plugin_manager: CondaPluginManager):
+    """
+    Ensure that an empty dict is returned when no ``conda_request_headers`` plugin
+    hooks have been defined.
+    """
+    url = urlparse("https://example.com")
+    assert plugin_manager.get_request_headers(host=url.netloc, path=url.path) == {}

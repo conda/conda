@@ -6,7 +6,7 @@ import json
 import os
 import platform
 import sys
-from functools import lru_cache
+from functools import cache
 from itertools import chain
 from logging import getLogger
 from os.path import dirname, join
@@ -53,7 +53,8 @@ from conda.testing.integration import SPACER_CHARACTER
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterable
+    from collections.abc import Iterable
+    from typing import Callable
 
     from pytest import MonkeyPatch
 
@@ -86,7 +87,7 @@ else:
 HDF5_VERSION = "1.12.1"
 
 
-@lru_cache(maxsize=None)
+@cache
 def bash_unsupported() -> str | None:
     if not (bash := which("bash")):
         return "bash: was not found on PATH"
@@ -2877,9 +2878,10 @@ def test_activate_deactivate_modify_path(
     uuid_hex = uuid4().hex
     prefix = path_factory(name=f"{uuid_hex[:4]} {uuid_hex[-4:]}")
 
-    with tmp_env("activate_deactivate_package", prefix=prefix), InteractiveShell(
-        shell
-    ) as sh:
+    with (
+        tmp_env("activate_deactivate_package", prefix=prefix),
+        InteractiveShell(shell) as sh,
+    ):
         sh.sendline('conda activate "%s"' % prefix)
         activated_env_path = sh.get_env_var("PATH")
         sh.sendline("conda deactivate")

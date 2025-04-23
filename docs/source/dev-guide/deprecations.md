@@ -4,6 +4,23 @@
 
 Conda abides by the Deprecation Schedule defined in [CEP-9][cep9]. To help make deprecations as much of a no-brainer as possible we provide several helper decorators and functions to facilitate the correct deprecation process.
 
+:::{tip}
+
+The `conda` pending/deprecation versions abide by the following formula:
+
+```{code-block}
+pending_dep = (the next release + 4 months) round up to nearest .3 or .9
+deprecation = pending_dep + 6 months
+```
+
+Example:
+
+```{code-block}
+pending_dep = (25.1 + 4 months) round up to nearest .3 or .9 = 25.9
+deprecation = 25.9 + 6 months = 26.3
+```
+:::
+
 ## Functions, Methods, Properties, and Classes
 
 :::{warning}

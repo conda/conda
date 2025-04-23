@@ -1,17 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""CLI implementation for `conda-env list`.
+"""CLI implementation for `conda-env list`, now aliased to `conda info --envs`.
 
 Lists available conda environments.
 """
-from argparse import ArgumentParser, Namespace, _SubParsersAction
+
+from argparse import ArgumentParser, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import add_parser_json
 
-    summary = "List the Conda environments."
+    summary = "An alias for `conda info --envs`. Lists all conda environments."
     description = summary
     epilog = dals(
         """
@@ -32,19 +33,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     add_parser_json(p)
 
-    p.set_defaults(func="conda.cli.main_env_list.execute")
+    p.set_defaults(
+        func="conda.cli.main_info.execute",
+        # The following are the necessary default args for the `conda info` command
+        envs=True,
+        base=False,
+        unsafe_channels=False,
+        system=False,
+        all=False,
+    )
 
     return p
-
-
-def execute(args: Namespace, parser: ArgumentParser):
-    from ..core.envs_manager import list_all_known_prefixes
-    from . import common
-
-    info_dict = {"envs": list_all_known_prefixes()}
-    common.print_envs_list(info_dict["envs"], not args.json)
-
-    if args.json:
-        common.stdout_json(info_dict)
-
-    return 0

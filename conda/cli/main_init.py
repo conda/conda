@@ -4,6 +4,7 @@
 
 Prepares the user's profile for running conda, and sets up the conda shell interface.
 """
+
 from __future__ import annotations
 
 from argparse import SUPPRESS
@@ -34,6 +35,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         `conda create` and `conda install`, also necessarily interact with the shell environment.
         They're therefore implemented in ways specific to each shell. Each shell must be configured
         to make use of them.
+
+        The --condabin option adds the "$CONDA_PREFIX/condabin" directory to the PATH environment variable.
+        This directory only contains the conda executable and does not contain other executables from other
+        packages installed in the base environment. On most shells, a small snippet is added to the
+        shell profile. For CMD, the PATH environment variable is modified directly in the registry.
 
         This command makes changes to your system that are specific and customized for each shell.
         To see the specific files and locations on your system that will be affected before, use
@@ -73,6 +79,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--install",
         action="store_true",
         help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--condabin",
+        action="store_true",
+        help="Add 'condabin/' directory to PATH only. Does not install the shell function.",
         default=NULL,
     )
     setup_type_group.add_argument(
@@ -138,7 +150,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.constants import COMPATIBLE_SHELLS
     from ..base.context import context
     from ..common.compat import on_win
-    from ..core.initialize import initialize, initialize_dev, install
+    from ..core.initialize import (
+        add_condabin_to_path,
+        initialize,
+        initialize_dev,
+        install,
+    )
     from ..exceptions import ArgumentError
 
     if args.install:
@@ -154,7 +171,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if len(selected_shells) != 1:
             raise ArgumentError("--dev can only handle one shell at a time right now")
         return initialize_dev(selected_shells[0])
-
+    elif args.condabin:
+        for_user = args.user and not args.system
+        anaconda_prompt = on_win and args.anaconda_prompt
+        return add_condabin_to_path(
+            context.conda_prefix, selected_shells, for_user, args.system, args.reverse
+        )
     else:
         for_user = args.user and not args.system
         anaconda_prompt = on_win and args.anaconda_prompt

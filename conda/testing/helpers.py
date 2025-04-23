@@ -1,10 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of helper functions used in conda tests."""
+
+from __future__ import annotations
+
 import json
 import os
+import subprocess
+import sys
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
@@ -13,12 +18,12 @@ from uuid import uuid4
 
 import pytest
 
+from ..base.constants import REPODATA_FN
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
 from ..common.io import env_var
 from ..core.prefix_data import PrefixData
-from ..core.subdir_data import SubdirData, make_feature_record
-from ..deprecations import deprecated
+from ..core.subdir_data import SubdirData
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..history import History
@@ -30,7 +35,8 @@ from ..resolve import Resolve
 TEST_DATA_DIR = os.environ.get(
     "CONDA_TEST_DATA_DIR", abspath(join(dirname(__file__), "..", "..", "tests", "data"))
 )
-CHANNEL_DIR = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR = CHANNEL_DIR_V1 = abspath(join(TEST_DATA_DIR, "conda_format_repo"))
+CHANNEL_DIR_V2 = abspath(join(TEST_DATA_DIR, "base_url_channel"))
 EXPORTED_CHANNELS_DIR = mkdtemp(suffix="-test-conda-channels")
 
 
@@ -39,7 +45,7 @@ expected_error_prefix = "Using Anaconda Cloud api site https://api.anaconda.org"
 
 def strip_expected(stderr):
     if expected_error_prefix and stderr.startswith(expected_error_prefix):
-        stderr = stderr[len(expected_error_prefix) :].lstrip()  # noqa
+        stderr = stderr[len(expected_error_prefix) :].lstrip()
     return stderr
 
 
@@ -51,7 +57,7 @@ def raises(exception, func, string=None):
             assert string in e.args[0]
         print(e)
         return True
-    raise Exception("did not raise, gave %s" % a)
+    raise Exception(f"did not raise, gave {a}")
 
 
 @contextmanager
@@ -63,23 +69,7 @@ def captured(disallow_stderr=True):
     finally:
         c.stderr = strip_expected(c.stderr)
         if disallow_stderr and c.stderr:
-            raise Exception("Got stderr output: %s" % c.stderr)
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `mocker.patch('conda.base.context.Context.active_prefix')` instead.",
-)
-@contextmanager
-def set_active_prefix(prefix: str) -> None:
-    old_prefix = os.environ["CONDA_PREFIX"]
-
-    try:
-        os.environ["CONDA_PREFIX"] = prefix
-        yield
-    finally:
-        os.environ["CONDA_PREFIX"] = old_prefix
+            raise Exception(f"Got stderr output: {c.stderr}")
 
 
 def assert_equals(a, b, output=""):
@@ -88,16 +78,14 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert a.lower() not in b.lower(), "{} {!r} should not be found in {!r}".format(
-        output,
-        a.lower(),
-        b.lower(),
+    assert a.lower() not in b.lower(), (
+        f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
     )
 
 
 def assert_in(a, b, output=""):
-    assert a.lower() in b.lower(), "{} {!r} cannot be found in {!r}".format(
-        output, a.lower(), b.lower()
+    assert a.lower() in b.lower(), (
+        f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
     )
 
 
@@ -164,7 +152,7 @@ def add_feature_records_legacy(index):
             all_features.update(rec.track_features)
 
     for feature_name in all_features:
-        rec = make_feature_record(feature_name)
+        rec = PackageRecord.feature(feature_name)
         index[rec] = rec
 
 
@@ -280,10 +268,10 @@ def _get_index_r_base(
     else:
         raise ValueError("'json_filename_or_data' must be path-like or dict")
 
+    packages = {subdir: {}, "noarch": {}}
     if merge_noarch:
-        packages = {subdir: all_packages}
+        packages[subdir] = all_packages
     else:
-        packages = {subdir: {}, "noarch": {}}
         for key, pkg in all_packages.items():
             if pkg.get("subdir") == "noarch" or pkg.get("noarch"):
                 packages["noarch"][key] = pkg
@@ -313,7 +301,7 @@ def _get_index_r_base(
         ):
             sd._process_raw_repodata_str(json.dumps(repodata))
         sd._loaded = True
-        SubdirData._cache_[channel.url(with_credentials=True)] = sd
+        SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
         _patch_for_local_exports(channel_name, sd)
 
     # this is for the classic solver only, which is fine with a single collapsed index
@@ -336,7 +324,7 @@ def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index2.json",
@@ -347,7 +335,7 @@ def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index4.json",
@@ -358,7 +346,7 @@ def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     return _get_index_r_base(
         "index5.json",
@@ -369,7 +357,7 @@ def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
     repodata = {
         "foobar-1.0-0.tar.bz2": {
@@ -548,12 +536,13 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with patch.object(
-        History, "get_requested_specs_map", return_value=spec_map
-    ), env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        str(add_pip).lower(),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    with (
+        patch.object(History, "get_requested_specs_map", return_value=spec_map),
+        env_var(
+            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+            str(add_pip).lower(),
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
     ):
         # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
         # get_index_r_*) to cover solver logics that need to load from disk instead of
@@ -744,17 +733,41 @@ def get_solver_cuda(
 
 
 def convert_to_dist_str(solution):
-    dist_str = []
-    for prec in solution:
-        # This is needed to remove the local path prefix in the
-        # dist_str() calls, otherwise we cannot compare them
-        canonical_name = prec.channel._Channel__canonical_name
-        prec.channel._Channel__canonical_name = prec.channel.name
-        dist_str.append(prec.dist_str())
-        prec.channel._Channel__canonical_name = canonical_name
-    return tuple(dist_str)
+    return tuple(prec.dist_str(canonical_name=False) for prec in solution)
 
 
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_solver_backend()
+
+
+def in_subprocess():
+    return bool(os.getenv("_RERUN_IN_SUBPROCESS"))
+
+
+def forward_to_subprocess(
+    request, *cli_args, **subprocess_kwargs
+) -> subprocess.CompletedProcess | None:
+    if in_subprocess():
+        return
+    args = cli_args or (
+        "--no-header",
+        "--disable-warnings",
+        "--color=no",
+        "-vvv",
+    )
+    env = os.environ.copy()
+    env["_RERUN_IN_SUBPROCESS"] = "1"
+    env.update(subprocess_kwargs.pop("env", {}))
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            *args,
+            f"{request.node.path}::{request.node.name}",
+        ],
+        check=subprocess_kwargs.pop("check", True),
+        env=env,
+        **subprocess_kwargs,
+    )

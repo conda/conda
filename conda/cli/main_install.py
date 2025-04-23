@@ -4,10 +4,16 @@
 
 Installs the specified packages into an existing environment.
 """
+
+from __future__ import annotations
+
 import sys
-from argparse import ArgumentParser, Namespace, _SubParsersAction
+from typing import TYPE_CHECKING
 
 from ..notices import notices
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -96,12 +102,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     add_parser_update_modifiers(solver_mode_options)
     package_install_options.add_argument(
-        "-m",
-        "--mkdir",
-        action="store_true",
-        help="Create the environment directory, if necessary.",
-    )
-    package_install_options.add_argument(
         "--clobber",
         action="store_true",
         default=NULL,
@@ -125,7 +125,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from .install import install
+    from ..exceptions import CondaValueError
+    from .install import get_revision, install, install_revision
 
     if context.force:
         print(
@@ -137,4 +138,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
-    return install(args, parser, "install")
+    # Ensure provided combination of command line arguments are valid
+    if args.revision:
+        get_revision(args.revision, json=context.json)
+    elif not (args.file or args.packages):
+        raise CondaValueError(
+            "too few arguments, must supply command line packages, --file or --revision"
+        )
+
+    if args.revision:
+        install_revision(args, parser)
+    else:
+        install(args, parser, "install")
+
+    return 0

@@ -6,21 +6,26 @@ Definition of specific return types for use when defining a conda plugin hook.
 Each type corresponds to the plugin hook for which it is used.
 
 """
+
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, NamedTuple
 
 from requests.auth import AuthBase
 
+from ..models.records import PackageRecord
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Callable
+    from contextlib import AbstractContextManager
+    from typing import Any, Callable
 
     from ..common.configuration import Parameter
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
-    from ..models.records import PackageRecord
 
 
 @dataclass
@@ -61,6 +66,9 @@ class CondaVirtualPackage(NamedTuple):
     name: str
     version: str | None
     build: str | None
+
+    def to_virtual_package(self) -> PackageRecord:
+        return PackageRecord.virtual_package(f"__{self.name}", self.version, self.build)
 
 
 class CondaSolver(NamedTuple):
@@ -209,3 +217,133 @@ class CondaSetting:
     description: str
     parameter: Parameter
     aliases: tuple[str, ...] = tuple()
+
+
+class ProgressBarBase(ABC):
+    def __init__(
+        self,
+        description: str,
+        **kwargs,
+    ):
+        self.description = description
+
+    @abstractmethod
+    def update_to(self, fraction) -> None: ...
+
+    @abstractmethod
+    def refresh(self) -> None: ...
+
+    @abstractmethod
+    def close(self) -> None: ...
+
+    def finish(self):
+        self.update_to(1)
+
+    @classmethod
+    def get_lock(cls):
+        pass
+
+
+class SpinnerBase(ABC):
+    def __init__(self, message: str, fail_message: str = "failed\n"):
+        self.message = message
+        self.fail_message = fail_message
+
+    @abstractmethod
+    def __enter__(self): ...
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb): ...
+
+
+class ReporterRendererBase(ABC):
+    """
+    Base class for all reporter renderers.
+    """
+
+    def render(self, data: Any, **kwargs) -> str:
+        return str(data)
+
+    @abstractmethod
+    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
+        """
+        Render the output in a "tabular" format.
+        """
+
+    @abstractmethod
+    def envs_list(self, data, **kwargs) -> str:
+        """
+        Render a list of environments
+        """
+
+    @abstractmethod
+    def progress_bar(
+        self,
+        description: str,
+        **kwargs,
+    ) -> ProgressBarBase:
+        """
+        Return a :class:`~conda.plugins.types.ProgressBarBase~` object to use as a progress bar
+        """
+
+    @classmethod
+    def progress_bar_context_manager(cls) -> AbstractContextManager:
+        """
+        Returns a null context by default but allows plugins to define their own if necessary
+        """
+        return nullcontext()
+
+    @abstractmethod
+    def spinner(self, message, failed_message) -> SpinnerBase:
+        """
+        Return a :class:`~conda.plugins.types.SpinnerBase~` object to use as a spinner (i.e.
+        loading dialog)
+        """
+
+    @abstractmethod
+    def prompt(
+        self,
+        message: str = "Proceed",
+        choices=("yes", "no"),
+        default: str = "yes",
+    ) -> str:
+        """
+        Allows for defining an implementation of a "yes/no" confirmation function
+        """
+
+
+@dataclass
+class CondaReporterBackend:
+    """
+    Return type to use when defining a conda reporter backend plugin hook.
+
+    For details on how this is used, see:
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_reporter_backends`.
+
+    :param name: name of the reporter backend (e.g., ``email_reporter``)
+                 This is how the reporter backend with be references in configuration files.
+    :param description: short description of what the reporter handler does
+    :param renderer: implementation of ``ReporterRendererBase`` that will be used as the
+                     reporter renderer
+    """
+
+    name: str
+    description: str
+    renderer: type[ReporterRendererBase]
+
+
+@dataclass
+class CondaRequestHeader:
+    """
+    Define vendor specific headers to include HTTP requests
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_request_headers` and
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_session_headers`.
+
+    :param name: name of the header used in the HTTP request
+    :param value: value of the header used in the HTTP request
+    """
+
+    name: str
+    value: str

@@ -53,6 +53,17 @@ def download_file(subdir, name):
     return flask.send_from_directory(Path(base, subdir), name)
 
 
+@app.route("/none-accept-ranges/")
+def none_accept_ranges():
+    """
+    Returns an empty request with "Accept-Ranges" set to "none"
+    """
+    response = flask.Response("test content test content test content")
+    response.headers["Accept-Ranges"] = "none"
+
+    return response
+
+
 class NoLoggingWSGIRequestHandler(WSGIRequestHandler):
     def log(self, format, *args):
         pass

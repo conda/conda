@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Download logic for conda indices and packages."""
+
 from __future__ import annotations
 
 import hashlib
@@ -23,6 +24,7 @@ from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
     CondaSSLError,
+    CondaValueError,
     ProxyError,
     maybe_raise,
 )
@@ -63,9 +65,18 @@ def download(
         disable_ssl_verify_warning()
 
     with download_http_errors(url):
-        download_inner(
-            url, target_full_path, md5, sha256, size, progress_update_callback
-        )
+        try:
+            download_inner(
+                url, target_full_path, md5, sha256, size, progress_update_callback
+            )
+        except ChecksumMismatchError as e:
+            if not e._kwargs["partial_download"]:
+                raise
+
+            log.warning("Retry failed partial download %s", target_full_path)
+            download_inner(
+                url, target_full_path, md5, sha256, size, progress_update_callback
+            )
 
 
 def download_inner(url, target_full_path, md5, sha256, size, progress_update_callback):
@@ -91,6 +102,7 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
         headers = {}
         if partial and stat_result.st_size > 0:
             headers = {"Range": f"bytes={stat_result.st_size}-"}
+            target.seek(stat_result.st_size)
 
         resp = session.get(
             url, stream=True, headers=headers, proxies=session.proxies, timeout=timeout
@@ -171,19 +183,27 @@ def download_partial_file(
     partial_name = f"{name}.partial"
     partial_path = parent / partial_name
 
+    # read+ to open file, not truncate existing, or write+ to create file,
+    # truncate existing.
+    partial_download = partial_path.exists()
+    mode = "r+b" if partial_download else "w+b"
+
     def check(target):
         target.seek(0)
         if md5 or sha256:
             checksum_type = "sha256" if sha256 else "md5"
             checksum = sha256 if sha256 else md5
+            try:
+                checksum_bytes = bytes.fromhex(checksum)
+            except (ValueError, TypeError) as exc:
+                raise CondaValueError(exc) from exc
             hasher = hashlib.new(checksum_type)
             target.seek(0)
             while read := target.read(CHUNK_SIZE):
                 hasher.update(read)
 
-            actual_checksum = hasher.hexdigest()
-
-            if actual_checksum != checksum:
+            if hasher.digest() != checksum_bytes:
+                actual_checksum = hasher.hexdigest()
                 log.debug(
                     "%s mismatch for download: %s (%s != %s)",
                     checksum_type,
@@ -192,7 +212,12 @@ def download_partial_file(
                     checksum,
                 )
                 raise ChecksumMismatchError(
-                    url, target_full_path, checksum_type, checksum, actual_checksum
+                    url,
+                    target_full_path,
+                    checksum_type,
+                    checksum,
+                    actual_checksum,
+                    partial_download=partial_download,
                 )
         if size is not None:
             actual_size = os.fstat(target.fileno()).st_size
@@ -204,11 +229,16 @@ def download_partial_file(
                     size,
                 )
                 raise ChecksumMismatchError(
-                    url, target_full_path, "size", size, actual_size
+                    url,
+                    target_full_path,
+                    "size",
+                    size,
+                    actual_size,
+                    partial_download=partial_download,
                 )
 
     try:
-        with partial_path.open(mode="a+b") as partial, lock(partial):
+        with partial_path.open(mode=mode) as partial, lock(partial):
             yield partial
             check(partial)
     except HTTPError as e:  # before conda error handler wrapper
@@ -242,7 +272,7 @@ def download_http_errors(url: str):
         yield
 
     except ConnectionResetError as e:
-        log.debug("%s, trying again" % e)
+        log.debug(f"{e}, trying again")
         # where does retry happen?
         raise
 

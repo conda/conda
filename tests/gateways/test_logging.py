@@ -1,9 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import os
+import sys
 from logging import getLogger
+from pathlib import Path
+from subprocess import run
+
+import pytest
 
 from conda.auxlib.ish import dals
-from conda.gateways.logging import TokenURLFilter
+from conda.gateways.logging import TokenURLFilter, initialize_logging
 
 log = getLogger(__name__)
 
@@ -71,3 +77,32 @@ def test_token_replace_individual_strings():
         TR("/t/tk-abkdehc1n38cCBDHN-cje/more/stuf/like/this.html?q=bar")
         == "/t/<TOKEN>/more/stuf/like/this.html?q=bar"
     )
+
+
+@pytest.mark.integration
+def test_token_not_present_in_conda_create(tmp_path: Path):
+    initialize_logging()
+    env = os.environ.copy()
+    env["CONDA_CHANNELS"] = (
+        "https://conda.anaconda.org/t/xx-00000000-0000-0000-0000-000000000000/conda-test"
+    )
+    p = run(
+        [
+            sys.executable,
+            "-mconda",
+            "-vvvv",
+            "create",
+            "--dry-run",
+            "--prefix",
+            tmp_path / "env",
+            "ca-certificates",
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    print(p.stdout)
+    print(p.stderr, file=sys.stderr)
+    all_output = p.stdout + "\n" + p.stderr
+    assert "/t/xx-00000000-0000-0000-0000-000000000000" not in all_output
+    assert "/t/<TOKEN>/" in all_output

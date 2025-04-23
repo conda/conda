@@ -1,12 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Helpers for testing the solver."""
+
 from __future__ import annotations
 
 import collections
 import functools
 import json
 import pathlib
+import time
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -24,7 +26,7 @@ from ..models.records import PackageRecord
 from . import helpers
 
 
-@functools.lru_cache
+@functools.cache
 def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
@@ -706,6 +708,9 @@ class SolverTests:
             "test::pip-1.3.1-py33_1",
         }
 
+        # Add 1s to make sure the new repodata.jsons have different mod times
+        time.sleep(1)
+
         # This time, the latest version is messed up
         env.repo_packages = index_packages(1) + [
             helpers.record(
@@ -1224,13 +1229,13 @@ class SolverTests:
         ]
         for record in env.install("top", as_specs=True):
             if record.name == "top":
-                assert (
-                    record.version == "2.0"
-                ), f"top version should be 2.0, but is {record.version}"
+                assert record.version == "2.0", (
+                    f"top version should be 2.0, but is {record.version}"
+                )
             elif record.name == "bottom":
-                assert (
-                    record.version == "2.5"
-                ), f"bottom version should be 2.5, but is {record.version}"
+                assert record.version == "2.5", (
+                    f"bottom version should be 2.5, but is {record.version}"
+                )
 
     def test_arch_preferred_over_noarch_when_otherwise_equal(self, env):
         env.repo_packages += [

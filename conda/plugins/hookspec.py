@@ -7,6 +7,7 @@ Each hookspec defined in :class:`~conda.plugins.hookspec.CondaSpecs` contains
 an example of how to use it.
 
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPreSolve,
+        CondaReporterBackend,
+        CondaRequestHeader,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -78,6 +81,7 @@ class CondaSpecs:
 
         :return: An iterable of solver entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_subcommands(self) -> Iterable[CondaSubcommand]:
@@ -105,6 +109,7 @@ class CondaSpecs:
 
         :return: An iterable of subcommand entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_virtual_packages(self) -> Iterable[CondaVirtualPackage]:
@@ -128,6 +133,7 @@ class CondaSpecs:
 
         :return: An iterable of virtual package entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
@@ -153,6 +159,7 @@ class CondaSpecs:
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
@@ -178,6 +185,7 @@ class CondaSpecs:
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_auth_handlers(self) -> Iterable[CondaAuthHandler]:
@@ -212,9 +220,10 @@ class CondaSpecs:
             def conda_auth_handlers():
                 yield plugins.CondaAuthHandler(
                     name="environment-header-auth",
-                    auth_handler=EnvironmentHeaderAuth,
+                    handler=EnvironmentHeaderAuth,
                 )
         """
+        yield from ()
 
     @_hookspec
     def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
@@ -228,20 +237,22 @@ class CondaSpecs:
         **Example:**
 
         .. code-block:: python
-                from conda import plugins
+
+            from conda import plugins
 
 
-                def example_health_check(prefix: str, verbose: bool):
-                    print("This is an example health check!")
+            def example_health_check(prefix: str, verbose: bool):
+                print("This is an example health check!")
 
 
-                @plugins.hookimpl
-                def conda_health_checks():
-                    yield plugins.CondaHealthCheck(
-                        name="example-health-check",
-                        action=example_health_check,
-                    )
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="example-health-check",
+                    action=example_health_check,
+                )
         """
+        yield from ()
 
     @_hookspec
     def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
@@ -273,6 +284,7 @@ class CondaSpecs:
                    action=example_pre_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_solves(self) -> Iterable[CondaPostSolve]:
@@ -305,6 +317,7 @@ class CondaSpecs:
                    action=example_post_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_settings(self) -> Iterable[CondaSetting]:
@@ -330,3 +343,121 @@ class CondaSpecs:
                    aliases=("example_option_alias",),
                )
         """
+        yield from ()
+
+    @_hookspec
+    def conda_reporter_backends(self) -> Iterable[CondaReporterBackend]:
+        """
+        Register new reporter backend
+
+        The example below defines a reporter backend that uses the ``pprint`` module in Python.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from pprint import pformat
+
+           from conda import plugins
+           from conda.plugins.types import (
+               CondaReporterBackend,
+               ReporterRendererBase,
+               ProgressBarBase,
+           )
+
+
+           class PprintReporterRenderer(ReporterRendererBase):
+               "Implementation of the ReporterRendererBase"
+
+               def detail_view(self, data):
+                   return pformat(data)
+
+               def envs_list(self, data):
+                   formatted_data = pformat(data)
+                   return f"Environments: {formatted_data}"
+
+               def progress_bar(self, description, io_context_manager) -> ProgressBarBase:
+                   "Returns our custom progress bar implementation"
+                   return PprintProgressBar(description, io_context_manager)
+
+
+           class PprintProgressBar(ProgressBarBase):
+               "Blank implementation of ProgressBarBase which does nothing"
+
+               def update_to(self, fraction) -> None:
+                   pass
+
+               def refresh(self) -> None:
+                   pass
+
+               def close(self) -> None:
+                   pass
+
+
+           @plugins.hookimpl
+           def conda_reporter_backends():
+               yield CondaReporterBackend(
+                   name="pprint",
+                   description="Reporter backend based on the pprint module",
+                   renderer=PprintReporterRenderer,
+               )
+
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_session_headers(self, host: str) -> Iterable[CondaRequestHeader]:
+        """
+        Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com``.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+           HOSTS = {"example.com", "sub.example.com"}
+
+
+           @plugins.hookimpl
+           def conda_session_headers(host: str):
+               if host in HOSTS:
+                   yield plugins.CondaRequestHeader(
+                       name="Example-Header",
+                       value="example",
+                   )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_request_headers(
+        self, host: str, path: str
+    ) -> Iterable[CondaRequestHeader]:
+        """
+        Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com`` and a ``path/to/endpoint.json`` path.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+           HOSTS = {"example.com", "sub.example.com"}
+           ENDPOINT = "/path/to/endpoint.json"
+
+
+           @plugins.hookimpl
+           def conda_request_headers(host: str, path: str):
+               if host in HOSTS and path == ENDPOINT:
+                   yield plugins.CondaRequestHeader(
+                       name="Example-Header",
+                       value="example",
+                   )
+        """
+        yield from ()

@@ -4,14 +4,17 @@
 
 Updates the conda environments with the specified packages.
 """
+
 import os
 from argparse import (
     ArgumentParser,
     Namespace,
+    _StoreAction,
     _SubParsersAction,
 )
 
 from .. import CondaError
+from ..deprecations import deprecated
 from ..notices import notices
 
 
@@ -62,7 +65,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "remote_definition",
         help="remote environment definition / IPython notebook",
-        action="store",
+        action=deprecated.action(
+            "24.7",
+            "25.9",
+            _StoreAction,
+            addendum="Use `conda env create --file=URL` instead.",
+        ),
         default=None,
         nargs="?",
     )
@@ -82,19 +90,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.env import get_filename, print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
-    from ..misc import touch_nonadmin
 
     spec = install_specs.detect(
         name=args.name,
         filename=get_filename(args.file),
         directory=os.getcwd(),
-        remote_definition=args.remote_definition,
     )
     env = spec.environment
 
     if not (args.name or args.prefix):
         if not env.name:
-            # Note, this is a hack fofr get_prefix that assumes argparse results
+            # Note, this is a hack for get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
             name = os.environ.get("CONDA_DEFAULT_ENV", False)
             if not name:
@@ -117,6 +123,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)
+    prefix_data = PrefixData(prefix)
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
@@ -154,10 +161,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         result[installer_type] = installer.install(prefix, specs, args, env)
 
     if env.variables:
-        pd = PrefixData(prefix)
-        pd.set_environment_env_vars(env.variables)
+        prefix_data.set_environment_env_vars(env.variables)
 
-    touch_nonadmin(prefix)
+    prefix_data.set_nonadmin()
     print_result(args, prefix, result)
 
     return 0

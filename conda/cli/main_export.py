@@ -4,6 +4,7 @@
 
 Dumps specified environment package specifications to the screen.
 """
+
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -114,9 +115,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.channel is not None:
         env.add_channels(args.channel)
 
-    if args.file is None:
-        stdout_json(env.to_dict()) if args.json else print(env.to_yaml(), end="")
-    else:
+    if args.file:
         filename = args.file
         # check for the proper file extension; otherwise when the export file is used later,
         # the user will get a file parsing error
@@ -124,8 +123,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise CondaValueError(
                 f"Export files must have a valid extension {YAML_EXTENSIONS}: {filename}"
             )
-        fp = open(args.file, "wb")
-        env.to_dict(stream=fp) if args.json else env.to_yaml(stream=fp)
-        fp.close()
+        with open(args.file, "w") as fp:
+            env.to_yaml(stream=fp)
+    if args.json:
+        stdout_json(env.to_dict())
+    else:
+        print(env.to_yaml(), end="")
 
     return 0

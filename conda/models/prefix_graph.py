@@ -8,6 +8,7 @@ Object inheritance:
    :top-classes: conda.models.prefix_graph.PrefixGraph
    :parts: 1
 """
+
 from collections import defaultdict
 from logging import getLogger
 
@@ -182,7 +183,7 @@ class PrefixGraph:
         """Removes this node and all edges referencing it."""
         graph = self.graph
         if node not in graph:
-            raise KeyError("node %s does not exist" % node)
+            raise KeyError(f"node {node} does not exist")
         graph.pop(node)
         self.spec_matches.pop(node, None)
 

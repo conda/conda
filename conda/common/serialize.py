@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """YAML and JSON serialization and deserialization functions."""
+
 import functools
 import json
 from io import StringIO
@@ -13,16 +14,14 @@ from ..auxlib.entity import EntityEncoder
 log = getLogger(__name__)
 
 
-# FUTURE: Python 3.9+, replace with functools.cache
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _yaml_round_trip():
     parser = yaml.YAML(typ="rt")
     parser.indent(mapping=2, offset=2, sequence=4)
     return parser
 
 
-# FUTURE: Python 3.9+, replace with functools.cache
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _yaml_safe():
     parser = yaml.YAML(typ="safe", pure=True)
     parser.indent(mapping=2, offset=2, sequence=4)
