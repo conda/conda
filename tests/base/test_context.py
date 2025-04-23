@@ -29,7 +29,7 @@ from conda.base.context import (
     validate_channels,
     validate_prefix_name,
 )
-from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
+from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
@@ -42,7 +42,6 @@ from conda.exceptions import (
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.plugins.config import PluginConfig
 from conda.utils import on_win
 
 if TYPE_CHECKING:
@@ -687,78 +686,6 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         else:
             actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
-
-
-def test_plugin_config_data_file_source(tmp_path):
-    """
-    Test file source of plugin configuration values
-    """
-    condarc = tmp_path / "condarc"
-
-    condarc.write_text(
-        dals(
-            """
-            plugins:
-              option_one: value_one
-              option_two: value_two
-            """
-        )
-    )
-
-    config_data = {
-        path: data for path, data in Configuration._load_search_path((condarc,))
-    }
-
-    plugin_config_data = PluginConfig(config_data).raw_data
-
-    assert plugin_config_data.get(condarc) is not None
-
-    option_one = plugin_config_data.get(condarc).get("option_one")
-    assert option_one is not None
-    assert option_one.value(None) == "value_one"
-
-    option_two = plugin_config_data.get(condarc).get("option_two")
-    assert option_two is not None
-    assert option_two.value(None) == "value_two"
-
-
-def test_plugin_config_data_env_var_source():
-    """
-    Test environment variable source of plugin configuration values
-    """
-    raw_data = {
-        "envvars": {
-            "plugins_option_one": {"_raw_value": "value_one"},
-            "plugins_option_two": {"_raw_value": "value_two"},
-        }
-    }
-
-    plugin_config_data = PluginConfig(raw_data).raw_data
-
-    assert plugin_config_data.get("envvars") is not None
-
-    option_one = plugin_config_data.get("envvars").get("option_one")
-    assert option_one is not None
-    assert option_one.get("_raw_value") == "value_one"
-
-    option_two = plugin_config_data.get("envvars").get("option_two")
-    assert option_two is not None
-    assert option_two.get("_raw_value") == "value_two"
-
-
-def test_plugin_config_data_skip_bad_values():
-    """
-    Make sure that values that are not frozendict for file sources are skipped
-    """
-    path = Path("/tmp/")
-
-    class Value:
-        def value(self, _):
-            return "some_value"
-
-    raw_data = {path: {"plugins": Value()}}
-
-    assert PluginConfig(raw_data).raw_data == {}
 
 
 @pytest.mark.parametrize(

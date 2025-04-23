@@ -11,6 +11,7 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.cli.main_config import (
     _get_key,
+    _key_exists,
     _read_rc,
     _remove_item,
     _remove_key,
@@ -281,3 +282,27 @@ def test_config_env_does_not_exist(
         conda_cli(
             "config", "--get", "channels", "--prefix", "ireallydontexist", "--json"
         )
+
+
+@pytest.mark.parametrize("is_json", [True, False], ids=["json_true", "json_false"])
+def test_key_exists(monkeypatch, plugin_config, is_json):
+    """
+    Ensure that key_exists works as expected, testing both when key is present and
+    when it is not. We also use "is_json" as a parameter to get complete branch coverage.
+    """
+    MockContext, app_name = plugin_config
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+    monkeypatch.setenv(f"{app_name}_FOO", "another_value")
+    monkeypatch.setenv(f"{app_name}_JSON", "1" if is_json else "0")
+
+    mock_context = MockContext(search_path=())
+
+    assert mock_context.json == is_json
+
+    assert _key_exists("json", [], mock_context)
+    assert _key_exists("foo", [], mock_context)
+    assert _key_exists("plugins.bar", [], mock_context)
+
+    assert not _key_exists("baz", [], mock_context)
+    assert not _key_exists("plugins.baz", [], mock_context)

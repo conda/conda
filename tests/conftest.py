@@ -10,8 +10,14 @@ import pytest
 
 import conda
 from conda.base.context import context, reset_context
+from conda.common.configuration import (
+    Configuration,
+    ParameterLoader,
+    PrimitiveParameter,
+)
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
+from conda.plugins.config import PluginConfig
 from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
@@ -143,3 +149,30 @@ def clear_package_cache() -> Iterable[None]:
     yield
 
     PackageCacheData.clear()
+
+
+@pytest.fixture(scope="function")
+def plugin_config() -> tuple[type[Configuration], str]:
+    """
+    Fixture to create a plugin configuration class that can be created and used in tests
+    """
+    app_name = "TEST_APP_NAME"
+
+    class PluginTest(PluginConfig):
+        pass
+
+    PluginTest.add_plugin_setting("bar", PrimitiveParameter(""))
+
+    class MockContext(Configuration):
+        foo = ParameterLoader(PrimitiveParameter(""))
+        json = ParameterLoader(PrimitiveParameter(False))
+
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self._set_env_vars(app_name)
+
+        @property
+        def plugins(self):
+            return PluginTest(self.raw_data)
+
+    return MockContext, app_name
