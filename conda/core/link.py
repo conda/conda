@@ -993,7 +993,7 @@ class UnlinkLinkTransaction:
                 )
 
             for action in axngroup.actions:
-                action.execute()
+                action._execute()
         except Exception as e:  # this won't be a multi error
             # reverse this package
             reverse_excs = ()
