@@ -9,6 +9,7 @@ import pytest
 
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
+from conda.models.records import PrefixRecord
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -206,3 +207,18 @@ def test_explicit(
             *([checksum_flag] if checksum_flag else ()),
         )
         assert output == output2
+
+
+def test_fields(test_recipes_channel: Path, conda_cli, tmp_env):
+    pkg = "dependent=1.0"
+    with tmp_env(pkg) as prefix:
+        assert package_is_installed(prefix, pkg)
+
+        output, _, rc = conda_cli(
+            "list",
+            f"--prefix={prefix}",
+            "--fields",
+            ",".join(PrefixRecord.__fields__.keys()),
+        )
+        assert not rc
+        assert "dependent" in output
