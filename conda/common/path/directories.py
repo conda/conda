@@ -20,8 +20,8 @@ def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
 
 
-def get_all_directories(files: Iterable[str]) -> list[tuple[str]]:
-    return sorted({tuple(f.split("/")[:-1]) for f in files} - {()})
+def get_all_directories(files: Iterable[str]) -> list[tuple[str, ...]]:
+    return sorted(filter(None, {tuple(f.split("/")[:-1]) for f in files}))
 
 
 def get_leaf_directories(files: Iterable[str]) -> Sequence[str]:
