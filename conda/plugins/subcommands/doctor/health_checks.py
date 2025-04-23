@@ -204,14 +204,10 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
 
     # create fake channel with package records from pd
     with TemporaryDirectory() as tmp_dir:
-        for subdir in repodatas:
+        for subdir, repodata in repodatas.items():
             path = Path(tmp_dir) / subdir
             path.mkdir(parents=True, exist_ok=True)
-            repodata = path / "repodata.json"
-            if repodatas[subdir]["packages.conda"]:
-                repodata.write_text(json.dumps(repodatas[subdir]["packages.conda"]))
-            if repodatas[subdir]["packages"]:
-                repodata.write_text(json.dumps(repodatas[subdir]["packages"]))
+            (path / "repodata.json").write_text(json.dumps(repodata))
 
         fake_channel = Channel(tmp_dir)
 
