@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add a `--fields` flag to `conda list` that allows to customize the content of the `human` output
+ format. (#14781)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
