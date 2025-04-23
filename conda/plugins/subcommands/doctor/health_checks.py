@@ -222,7 +222,9 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         )  # instantiate a solver object
         final_state = solver.solve_final_state()  # get the final state from the solver
 
-        if pd.iter_records() == final_state:  # compare final state with prefix data
+        if sorted(pd.iter_records(), key=str) == sorted(
+            final_state, key=str
+        ):  # compare final state with prefix data
             print(f"{OK_MARK} The environment is consistent.\n")
         else:
             print(f"{X_MARK} The environment is not consistent.\n")

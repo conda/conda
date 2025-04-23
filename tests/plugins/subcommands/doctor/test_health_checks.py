@@ -326,3 +326,9 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     prefix, _, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(prefix) == {}
+
+
+def test_env_consistency_check_pass(env_ok: tuple[Path, str, str, str, str]):
+    """Test that runs for the case when the environment is consistent"""
+
+    ...
