@@ -21,7 +21,6 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     import os
     from argparse import ArgumentParser, Namespace
-    from collections.abc import Iterable
     from contextlib import AbstractContextManager
     from typing import Any, Callable
 
@@ -353,7 +352,7 @@ class CondaRequestHeader:
 
 @dataclass
 class CondaPrefixDataLoader:
-    """
-    """
+    """ """
+
     name: str
-    backend: Callable[[os.PathLike, dict[str, PackageRecord]], dict[str, PackageRecord]]
+    loader: Callable[[os.PathLike, dict[str, PackageRecord]], dict[str, PackageRecord]]

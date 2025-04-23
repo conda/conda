@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Tools for managing the packages installed within an environment."""
+"""Reads PyPI packages in a conda prefix that have been installed with non-conda tools."""
 
 from __future__ import annotations
 
@@ -21,26 +21,16 @@ from ...common.pkg_formats.python import get_site_packages_anchor_files
 from ...gateways.disk.delete import rm_rf
 from ...gateways.disk.read import read_python_record
 from ...models.prefix_graph import PrefixGraph
+from .. import hookimpl
+from ..types import CondaPrefixDataLoader
 
 if TYPE_CHECKING:
     import os
-    from collections.abc import Iterable
 
     from ...models.records import PrefixRecord
 
 log = getLogger(__name__)
 
-
-def get_python_pkg_record(records: Iterable[PrefixRecord]) -> PrefixRecord | None:
-    """Return the prefix record for the package python."""
-    return next(
-        (
-            prefix_record
-            for prefix_record in records
-            if prefix_record.name == "python"
-        ),
-        None,
-    )
 
 def load_site_packages(prefix: os.PathLike, records: dict[str, PrefixRecord]) -> dict[str, PrefixRecord]:
     """
@@ -55,11 +45,11 @@ def load_site_packages(prefix: os.PathLike, records: dict[str, PrefixRecord]) ->
     Packages clobbering conda packages (i.e. the conda-meta record) are
     removed from the in memory representation.
     """
-    python_pkg_record = get_python_pkg_record(records)
-    prefix_path = Path(prefix)
-
+    python_pkg_record = records.get("python")
     if not python_pkg_record:
         return {}
+
+    prefix_path = Path(prefix)
 
     site_packages_dir = get_python_site_packages_short_path(
         python_pkg_record.version
@@ -170,3 +160,8 @@ def get_conda_anchor_files_and_records(site_packages_short_path, python_records)
             conda_python_packages[anchor_paths[0]] = prefix_record
 
     return conda_python_packages
+
+
+@hookimpl(tryfirst=True)
+def conda_prefix_data_loaders():
+    yield CondaPrefixDataLoader("pypi", load_site_packages)

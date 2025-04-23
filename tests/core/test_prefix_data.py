@@ -14,6 +14,7 @@ from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CorruptedEnvironmentError
+from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
 if TYPE_CHECKING:
@@ -264,7 +265,7 @@ def test_pip_interop(
 
     prefixdata = PrefixData(path, pip_interop_enabled=True)
     prefixdata.load()
-    records = prefixdata._load_site_packages()
+    records = load_site_packages(prefixdata.prefix_path, prefixdata._prefix_records)
 
     assert set(records) == expected_output
 

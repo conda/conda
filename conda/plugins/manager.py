@@ -25,6 +25,7 @@ from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import (
     post_solves,
+    prefix_data_loaders,
     reporter_backends,
     solvers,
     subcommands,
@@ -224,6 +225,10 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
+    @overload
+    def get_hook_results(
+        self, name: Literal["prefix_data_loaders"]
+    ) -> list[CondaPrefixDataLoader]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -421,7 +426,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoader]:
         for hook in self.get_hook_results("prefix_data_loaders"):
-            yield hook.backend
+            yield hook.loader
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
@@ -485,6 +490,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *prefix_data_loaders.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

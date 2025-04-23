@@ -465,6 +465,5 @@ class CondaSpecs:
 
     @_hookspec
     def conda_prefix_data_loaders() -> Iterable[CondaPrefixDataLoader]:
-        """
-        """
+        """ """
         yield from ()
