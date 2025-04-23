@@ -41,7 +41,6 @@ from .base.constants import (
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, on_win
 from .common.path import paths_equal
-from .deprecations import deprecated
 
 if TYPE_CHECKING:
     from typing import (
@@ -49,7 +48,6 @@ if TYPE_CHECKING:
         Callable,
         Iterable,
         Iterator,
-        Mapping,
         NoReturn,
         NotRequired,
         Sequence,
@@ -171,30 +169,6 @@ class _Activator(metaclass=abc.ABCMeta):
             unset_vars.extend(context.conda_exe_vars_dict)
 
         return export_vars, unset_vars
-
-    @deprecated(
-        "24.9",
-        "25.3",
-        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
-    )
-    def add_export_unset_vars(
-        self, export_vars: Mapping[str, str], unset_vars: Iterable[str], **kwargs: str
-    ) -> tuple[dict[str, str], list[str]]:
-        new_export_vars, new_unset_vars = self.get_export_unset_vars(**kwargs)
-        return (
-            {**(export_vars or {}), **new_export_vars},
-            [*(unset_vars or []), *new_unset_vars],
-        )
-
-    @deprecated("24.9", "25.3", addendum="For testing only. Moved to test suite.")
-    def get_scripts_export_unset_vars(self, **kwargs: str) -> tuple[str, str]:
-        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        return (
-            self.command_join(
-                self.export_var_tmpl % (k, v) for k, v in (export_vars or {}).items()
-            ),
-            self.command_join(self.unset_var_tmpl % (k) for k in (unset_vars or [])),
-        )
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
@@ -655,7 +629,6 @@ class _Activator(metaclass=abc.ABCMeta):
         path = os.getenv("PATH", fallback)
         return tuple(path.split(os.pathsep))
 
-    @deprecated.argument("24.9", "25.3", "extra_library_bin")
     def _get_path_dirs(self, prefix: str | os.PathLike | Path) -> Iterator[str]:
         prefix = str(prefix)
         if on_win:  # pragma: unix no cover
@@ -1290,20 +1263,6 @@ class JSONFormatMixin(_Activator):
                 "_CONDA_ROOT": context.conda_prefix,
                 "_CONDA_EXE": context.conda_exe,
             }
-
-    @deprecated(
-        "24.9",
-        "25.3",
-        addendum="Use `conda.activate._Activator.get_export_unset_vars` instead.",
-    )
-    def get_scripts_export_unset_vars(self, **kwargs):
-        export_vars, unset_vars = self.get_export_unset_vars(**kwargs)
-        script_export_vars = script_unset_vars = None
-        if export_vars:
-            script_export_vars = dict(export_vars.items())
-        if unset_vars:
-            script_unset_vars = unset_vars
-        return script_export_vars or {}, script_unset_vars or []
 
     def _finalize(self, commands, ext: str | None) -> Any:
         merged = {}
