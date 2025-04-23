@@ -12,8 +12,8 @@ from tempfile import TemporaryDirectory
 
 from requests.exceptions import RequestException
 
-from conda.history import History
 from conda.models.channel import Channel
+from conda.models.match_spec import MatchSpec
 
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
@@ -214,9 +214,12 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
                 repodata.write_text(json.dumps(repodatas[subdir]["packages"]))
 
         fake_channel = Channel(tmp_dir)
-        specs = History(
-            prefix
-        ).get_requested_specs_map()  # get specs from the history file
+
+        specs = [
+            MatchSpec(name=record.name, version=record.version, build=record.build)
+            for record in pd.iter_records()
+        ]
+
         solver = SolverClass(
             prefix, specs_to_add=specs, channels=[fake_channel]
         )  # instantiate a solver object
