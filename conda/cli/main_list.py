@@ -201,6 +201,7 @@ def list_packages(
             packages.append("=".join((prec.name, prec.version, prec.build)))
             continue
 
+        # this is for format == "human"
         row = []
         for idx, field in enumerate(fields):
             if field == "features":
@@ -230,7 +231,6 @@ def list_packages(
     if reverse:
         packages = reversed(packages)
 
-    result = []
     if format == "human":
         template_line = " ".join([f"%-{width}s" for width in widths])
         result = [
@@ -240,8 +240,9 @@ def list_packages(
         ]
         widths[0] += 2  # account for the '# ' prefix in the header line
         template_line = " ".join([f"%-{width}s" for width in widths])
-    result.extend([template_line % tuple(package) for package in packages])
-
+        result.extend([template_line % tuple(package) for package in packages])
+    else:
+        result = list(packages)
     return res, result
 
 
