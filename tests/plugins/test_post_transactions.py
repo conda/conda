@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import logging
 import random
 import signal
 import time
@@ -12,6 +13,7 @@ from unittest import mock
 import pytest
 
 from conda import plugins
+from conda.core.link import UnlinkLinkTransaction
 from conda.core.path_actions import Action, CreatePrefixRecordAction
 
 if TYPE_CHECKING:
@@ -69,6 +71,7 @@ class DummyActionPlugin:
         yield plugins.CondaPostTransaction(
             name="foo",
             run=self.dummy_hook,
+            action_type=CreatePrefixRecordAction,
         )
 
 
@@ -100,10 +103,25 @@ def post_transaction_plugin(plugin_manager_with_reporter_backends):
         yield mock_dummy_hook
 
 
-def test_post_transaction_invoked(tmp_env, post_transaction_plugin):
-    """Test that the post transaction hooks get invoked."""
-    with tmp_env("python=3", "--solver=classic"):
-        pass
+def test_post_transaction_invoked(tmp_env, post_transaction_plugin, caplog):
+    root_logger = logging.getLogger()
+    with caplog.at_level(logging.INFO):
+        original_execute = UnlinkLinkTransaction.execute
+
+        def measure_time_execute(self):
+            t0 = time.time()
+            original_execute(self)
+            root_logger.critical(f"elapsed time: {time.time() - t0}")
+
+        with mock.patch(
+            "conda.core.link.UnlinkLinkTransaction.execute", new=measure_time_execute
+        ):
+            with tmp_env("python=3", "--solver=classic"):
+                pass
+
+    for record in caplog.records:
+        if "elapsed time:" in record.msg:
+            print(f"UnlinkLinkTransaction [no overhead] {record.msg}")
 
     post_transaction_plugin.assert_called()
     assert isinstance(post_transaction_plugin.call_args_list[0].args[0], Action)
@@ -122,14 +140,30 @@ def test_post_transaction_raises_exception(tmp_env, post_transaction_plugin):
     assert isinstance(post_transaction_plugin.call_args_list[0].args[0], Action)
 
 
-def test_post_transaction_overhead(tmp_env, post_transaction_plugin_overhead):
+def test_post_transaction_overhead(tmp_env, post_transaction_plugin_overhead, caplog):
     """Test that the post transaction hooks don't cause too much overhead."""
     with limit_time(400):
-        with tmp_env("python=3", "--solver=classic"):
-            pass
+        root_logger = logging.getLogger()
+        with caplog.at_level(logging.INFO):
+            original_execute = UnlinkLinkTransaction.execute
 
-        post_transaction_plugin_overhead.assert_called()
-        assert isinstance(
-            post_transaction_plugin_overhead.call_args_list[0].args[0],
-            Action,
-        )
+            def measure_time_execute(self):
+                t0 = time.time()
+                original_execute(self)
+                root_logger.critical(f"elapsed time: {time.time() - t0}")
+
+            with mock.patch(
+                "conda.core.link.UnlinkLinkTransaction.execute",
+                new=measure_time_execute,
+            ):
+                with tmp_env("python=3", "--solver=classic"):
+                    pass
+
+    for record in caplog.records:
+        if "elapsed time:" in record.msg:
+            print(f"UnlinkLinkTransaction [random overhead] {record.msg}")
+
+    post_transaction_plugin_overhead.assert_called()
+    assert isinstance(
+        post_transaction_plugin_overhead.call_args_list[0].args[0], Action
+    )
