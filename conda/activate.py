@@ -106,7 +106,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
     hook_source_path: Path | None
 
-    def __init__(self, arguments=None):
+    def __init__(self, arguments: Iterable[str] | None = None) -> None:
         self._raw_arguments = arguments
 
     def get_export_unset_vars(
@@ -165,7 +165,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
         return export_vars, unset_vars
 
-    def _finalize(self, commands, ext):
+    def _finalize(self, commands: Iterable[str], ext: str | None) -> str:
         commands = (*commands, "")  # add terminating newline
         if ext is None:
             return self.command_join.join(commands)
@@ -178,7 +178,7 @@ class _Activator(metaclass=abc.ABCMeta):
         else:
             raise NotImplementedError()
 
-    def activate(self):
+    def activate(self) -> str:
         if self.stack:
             builder_result = self.build_stack(self.env_name_or_prefix)
         else:
@@ -187,12 +187,12 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(builder_result), self.tempfile_extension
         )
 
-    def deactivate(self):
+    def deactivate(self) -> str:
         return self._finalize(
             self._yield_commands(self.build_deactivate()), self.tempfile_extension
         )
 
-    def reactivate(self):
+    def reactivate(self) -> str:
         return self._finalize(
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
@@ -211,7 +211,7 @@ class _Activator(metaclass=abc.ABCMeta):
             builder.append(postamble)
         return "\n".join(builder)
 
-    def execute(self):
+    def execute(self) -> str:
         # return value meant to be written to stdout
         self._parse_and_set_args()
 
@@ -229,7 +229,7 @@ class _Activator(metaclass=abc.ABCMeta):
         # so we opt to not warn end users that this is going away, we only need to notify tab-completion devs
         # deprecation_type=FutureWarning,
     )
-    def commands(self):
+    def commands(self) -> str:
         """
         Returns a list of possible subcommands that are valid
         immediately following `conda` at the command line.
