@@ -466,8 +466,8 @@ class PrefixData(metaclass=PrefixDataType):
     # endregion
     # region Python records
 
-    @deprecated("25.9", "26.3", addendum="Use PrefixData.get('python').")
     @property
+    @deprecated("25.9", "26.3", addendum="Use PrefixData.get('python').")
     def _python_pkg_record(self):
         """Return the prefix record for the package python."""
         return next(
