@@ -107,7 +107,7 @@ class _Activator(metaclass=abc.ABCMeta):
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
     tempfile_extension: str | None
-    command_join: Callable[[Iterable[str]], Any]
+    command_join: str
 
     unset_var_tmpl: str
     export_var_tmpl: str
@@ -196,12 +196,12 @@ class _Activator(metaclass=abc.ABCMeta):
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
         if ext is None:
-            return self.command_join(commands)
+            return self.command_join.join(commands)
         elif ext:
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
                 # command_join should account for that
-                tf.write(self.command_join(commands))
+                tf.write(self.command_join.join(commands))
             return tf.name
         else:
             raise NotImplementedError()
@@ -986,7 +986,7 @@ class PosixActivator(_NativeToUnixActivator):
     path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
-    command_join = "\n".join
+    command_join = "\n"
 
     unset_var_tmpl = "unset %s"
     export_var_tmpl = "export %s='%s'"
@@ -1041,7 +1041,7 @@ class CshActivator(_NativeToUnixActivator):
     path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
-    command_join = ";\n".join
+    command_join = ";\n"
 
     unset_var_tmpl = "unsetenv %s"
     export_var_tmpl = 'setenv %s "%s"'
@@ -1101,7 +1101,7 @@ class XonshActivator(_BackslashToForwardslashActivator):
     # xonsh can piggy-back activation scripts from other languages depending on the platform
     script_extension = ".bat" if on_win else ".sh"
     tempfile_extension = None  # output to stdout
-    command_join = "\n".join
+    command_join = "\n"
 
     unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
@@ -1131,7 +1131,7 @@ class CmdExeActivator(_Activator):
     path_conversion = staticmethod(_path_identity)
     script_extension = ".bat"
     tempfile_extension = ".env"
-    command_join = "\n".join
+    command_join = "\n"
 
     # we are not generating a script to run but rather an INI style file
     # with key=value pairs to set environment variables, key= to unset them,
@@ -1161,7 +1161,7 @@ class FishActivator(_NativeToUnixActivator):
     path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
-    command_join = ";\n".join
+    command_join = ";\n"
 
     unset_var_tmpl = "set -e %s"
     export_var_tmpl = 'set -gx %s "%s"'
@@ -1204,7 +1204,7 @@ class PowerShellActivator(_Activator):
     path_conversion = staticmethod(_path_identity)
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
-    command_join = "\n".join
+    command_join = "\n"
 
     unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'
