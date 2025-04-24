@@ -10,6 +10,8 @@ from .compat import isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
+from typing import Any
+
 __all__ = ["boolify", "typify", "maybecall", "numberify"]
 
 BOOLISH_TRUE = ("true", "yes", "on", "y")
@@ -263,3 +265,23 @@ def typify_data_structure(value, type_hint=None):
 
 def maybecall(value):
     return value() if callable(value) else value
+
+
+def is_only_subclass(obj_class: Any | tuple[Any], base_class: type) -> bool:
+    """Check whether ``obj_class`` is purely a subclass of ``base_class``.
+
+    :param obj_class: Class to check; if this is a tuple, all classes in the tuple are checked
+    :param base_class: Base class to compare obj_class to
+    :return: True if ``obj_class`` is purely a subclass of ``base_class`` (not equal to
+        base_class itself). If ``obj_class`` is a tuple, True is returned only if all elements
+        of the tuple are base classes; False otherwise
+    """
+
+    if isinstance(obj_class, tuple):
+        classes = obj_class
+    else:
+        classes = (obj_class,)
+
+    return all(
+        issubclass(item, base_class) and item != base_class for item in classes
+    )

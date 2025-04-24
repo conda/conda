@@ -378,6 +378,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         :param action: Action for which post transaction hooks are to be run.
         """
+
         for hook in self.get_hook_results("post_transactions"):
             if isinstance(action, hook.action_type):
                 hook.run(action)

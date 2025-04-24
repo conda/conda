@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from requests.auth import AuthBase
 
+from ..auxlib.type_coercion import is_only_subclass
 from ..core.path_actions import Action
 from ..models.records import PackageRecord
 
@@ -361,9 +362,18 @@ class CondaPostTransaction:
     :param name: Post transaction name (this is just a label).
     :param run: Function to run after each transaction; accepts a single parameter which
         is the action that has just been executed
-    :param action_type: Types of actions for which the hook should be run
+    :param action_type: Types of actions for which the hook should be run. Can either
+        be an Action subclass, or a tuple of Action subclasses
     """
 
     name: str
     run: Callable[[Action], None]
-    action_type: type[Action] | tuple[type[Action]] = Action
+    action_type: type[Action] | tuple[type[Action]]
+
+    def __post_init__(self):
+        """Validate that the action_type is an Action subclass."""
+        if not is_only_subclass(self.action_type, Action):
+            raise TypeError(
+                "Post-transaction action types must be subclasses "
+                "of conda.core.path_actions.Action."
+            )
