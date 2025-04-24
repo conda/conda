@@ -465,5 +465,43 @@ class CondaSpecs:
 
     @_hookspec
     def conda_prefix_data_loaders() -> Iterable[CondaPrefixDataLoader]:
-        """ """
+        """
+        Register new loaders for PrefixData
+
+        The example below defines how to expose the packages installed
+        by a hypothetical 'penguin' tool as conda packages.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from pathlib import Path
+
+            from conda import plugins
+            from conda.common.path import PathType
+            from conda.models.records import PrefixRecord
+            from conda.plugins.types import CondaPrefixDataLoader
+
+
+            @plugins.hookimpl
+            def conda_prefix_data_loaders():
+                yield CondaPrefixDataLoader(
+                    "hypothetical",
+                    load_hypothetical_packages,
+                )
+
+
+            def load_hypothetical_packages(
+                prefix: PathType, records: dict[str, PrefixRecord]
+            ) -> dict[str, PrefixRecord]:
+                penguin_records = {}
+                for info in Path(prefix).glob("lib/penguin/*.penguin-info"):
+                    name, version = info.name.rsplit("-", 1)
+                    kwargs = {}  # retrieve extra fields here
+                    penguin_records[name] = PrefixRecord(
+                        name=name, version=version, build_number=0, build="0", **kwargs
+                    )
+                records.update(penguin_records)
+                return penguin_records
+        """
         yield from ()

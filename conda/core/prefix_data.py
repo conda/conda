@@ -487,7 +487,7 @@ class PrefixData(metaclass=PrefixDataType):
     def _load_site_packages(self):
         from ..plugins.prefix_data_loaders.pypi import load_site_packages
 
-        return load_site_packages(self.prefix_path, self._prefix_records)
+        return load_site_packages(self.prefix_path, self.__prefix_records)
 
     # endregion
     # region State and environment variables

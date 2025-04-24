@@ -25,15 +25,14 @@ from .. import hookimpl
 from ..types import CondaPrefixDataLoader
 
 if TYPE_CHECKING:
-    import os
-
+    from ...common.path import PathType
     from ...models.records import PrefixRecord
 
 log = getLogger(__name__)
 
 
 def load_site_packages(
-    prefix: os.PathLike, records: dict[str, PrefixRecord]
+    prefix: PathType, records: dict[str, PrefixRecord]
 ) -> dict[str, PrefixRecord]:
     """
     Load non-conda-installed python packages in the site-packages of the prefix.
@@ -48,7 +47,7 @@ def load_site_packages(
     removed from the in memory representation.
     """
     python_pkg_record = records.get("python")
-    if not python_pkg_record:
+    if not python_pkg_record or not python_pkg_record.version:
         return {}
 
     prefix_path = Path(prefix)
@@ -85,7 +84,7 @@ def load_site_packages(
             extracted_package_dir = basename(prefix_rec.extracted_package_dir)
         except AttributeError:
             extracted_package_dir = "-".join(
-                (prefix_rec.name, prefix_rec.version, prefix_rec.build)
+                map(str, (prefix_rec.name, prefix_rec.version, prefix_rec.build))
             )
         prefix_rec_json_path = (
             prefix_path / "conda-meta" / f"{extracted_package_dir}.json"

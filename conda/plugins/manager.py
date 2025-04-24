@@ -51,6 +51,7 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPreCommand,
         CondaPrefixDataLoader,
+        CondaPrefixDataLoaderCallable,
         CondaPreSolve,
         CondaReporterBackend,
         CondaRequestHeader,
@@ -225,6 +226,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
+
     @overload
     def get_hook_results(
         self, name: Literal["prefix_data_loaders"]
@@ -424,7 +426,7 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
 
-    def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoader]:
+    def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
         for hook in self.get_hook_results("prefix_data_loaders"):
             yield hook.loader
 
