@@ -280,7 +280,7 @@ def print_packages(
         stdout_json(output)
 
     else:
-        print("\n".join(map(str, output)))
+        print("\n".join([str(line).rstrip() for line in output]))
 
     return exitcode
 
