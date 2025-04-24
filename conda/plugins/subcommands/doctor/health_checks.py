@@ -206,6 +206,13 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
             path.mkdir(parents=True, exist_ok=True)
             (path / "repodata.json").write_text(json.dumps(repodata))
 
+        # a channel must always contain a "noarch/repodata.json" even if it's empty
+        # create a noarch directory and a populate it with an empty repodata.json in case it doesn't exist.
+        noarch_path = Path(tmp_dir) / "noarch" / "repodata.json"
+        noarch_path.parent.mkdir(parents=True, exist_ok=True)
+        if not noarch_path.exists():
+            noarch_path.write_text(json.dumps({}))
+
         fake_channel = Channel(tmp_dir)
 
         specs = [

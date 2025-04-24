@@ -14,6 +14,7 @@ from conda.plugins.subcommands.doctor.health_checks import (
     X_MARK,
     altered_files,
     check_envs_txt_file,
+    consistent_env_check,
     env_txt_check,
     find_altered_packages,
     find_packages_with_missing_files,
@@ -76,6 +77,70 @@ def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]
             ],
             "paths_version": 1,
         },
+    }
+
+    (tmp_path / "conda-meta" / f"{package}.json").write_text(json.dumps(PACKAGE_JSON))
+
+    yield tmp_path, bin_doctor, lib_doctor, ignored_doctor, package
+
+
+@pytest.fixture(params=[".pyo", ".pyc"])
+def env_consistent(
+    tmp_path: Path, request
+) -> Iterable[tuple[Path, str, str, str, str]]:
+    """Fixture that returns a testing environment with no missing files"""
+    package = uuid.uuid4().hex
+
+    (tmp_path / "bin").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "lib").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "pycache").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
+
+    bin_doctor = f"bin/{package}"
+    (tmp_path / bin_doctor).touch()
+
+    lib_doctor = f"lib/{package}.py"
+    (tmp_path / lib_doctor).touch()
+
+    ignored_doctor = f"pycache/{package}.{request.param}"
+    (tmp_path / ignored_doctor).touch()
+
+    # A template json file mimicking a json file in conda-meta
+    # the "sha256" and "sha256_in_prefix" values are sha256 checksum generated for an empty file
+    PACKAGE_JSON = {
+        "build": "py310abc",
+        "build_number": 100,
+        "files": [
+            bin_doctor,
+            lib_doctor,
+            ignored_doctor,
+        ],
+        "fn": "package_a-0.1.1-py310abc.conda",
+        "name": "package_a",
+        "paths_data": {
+            "paths": [
+                {
+                    "_path": bin_doctor,
+                    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "path_type": "hardlink",
+                },
+                {
+                    "_path": lib_doctor,
+                    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "path_type": "hardlink",
+                },
+                {
+                    "_path": ignored_doctor,
+                    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "path_type": "hardlink",
+                },
+            ],
+            "paths_version": 1,
+        },
+        "version": "0.1.0",
     }
 
     (tmp_path / "conda-meta" / f"{package}.json").write_text(json.dumps(PACKAGE_JSON))
@@ -328,7 +393,14 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     assert find_altered_packages(prefix) == {}
 
 
-def test_env_consistency_check_pass(env_ok: tuple[Path, str, str, str, str]):
+def test_env_consistency_check_pass(
+    env_consistent: tuple[Path, str, str, str, str],
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    tmp_path: Path,
+):
     """Test that runs for the case when the environment is consistent"""
-
-    ...
+    prefix, _, _, _, package = env_consistent
+    consistent_env_check(prefix=prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert f"{OK_MARK} The environment is consistent.\n" in captured.out
