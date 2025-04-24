@@ -17,4 +17,3 @@
 ### Other
 
 * Add type hints to `conda.core.prefix_data`. (#14779)
-*

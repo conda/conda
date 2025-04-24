@@ -342,7 +342,7 @@ class PrefixData(metaclass=PrefixDataType):
             )
         return fn + ".json"
 
-    def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True):
+    def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
         assert prefix_record.name not in self._prefix_records, (
             f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
             "in the prefix. This is a bug in conda. Please report it at "
@@ -373,7 +373,7 @@ class PrefixData(metaclass=PrefixDataType):
 
         self._prefix_records[prefix_record.name] = prefix_record
 
-    def remove(self, package_name: str):
+    def remove(self, package_name: str) -> None:
         assert package_name in self._prefix_records
 
         prefix_record = self._prefix_records[package_name]
@@ -386,7 +386,8 @@ class PrefixData(metaclass=PrefixDataType):
 
         del self._prefix_records[package_name]
 
-    def get(self, package_name: str, default: Any = NULL) -> PackageRecord | Any:
+    T = TypeVar("T")  # this should be defined above in the `if TYPE_CHECKING` clause
+    def get(self, package_name: str, default: T = NULL) -> PackageRecord | T:
         try:
             return self._prefix_records[package_name]
         except KeyError:
@@ -411,7 +412,7 @@ class PrefixData(metaclass=PrefixDataType):
                 subdir_urls.add(subdir_url)
         return subdir_urls
 
-    def query(self, package_ref_or_match_spec: PackageRecord | MatchSpec | str):
+    def query(self, package_ref_or_match_spec: PackageRecord | MatchSpec | str) -> Iterable[PrefixRecord]:
         # returns a generator
         param = package_ref_or_match_spec
         if isinstance(param, str):
@@ -432,7 +433,7 @@ class PrefixData(metaclass=PrefixDataType):
     def _prefix_records(self) -> Iterable[PrefixRecord]:
         return self.__prefix_records or self.load() or self.__prefix_records
 
-    def _load_single_record(self, prefix_record_json_path: os.PathLike):
+    def _load_single_record(self, prefix_record_json_path: os.PathLike) -> None:
         log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
@@ -596,7 +597,7 @@ class PrefixData(metaclass=PrefixDataType):
             prefix_state = {}
         return prefix_state
 
-    def _write_environment_state_file(self, state: dict[str, str]):
+    def _write_environment_state_file(self, state: dict[str, str]) -> None:
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         env_vars_file.write_text(
             json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__)
