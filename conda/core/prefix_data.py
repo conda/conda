@@ -56,7 +56,9 @@ from ..models.records import PackageRecord, PrefixRecord
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Any
+    from typing import Any, TypeVar
+
+    T = TypeVar("T")
 
 log = getLogger(__name__)
 
@@ -386,7 +388,6 @@ class PrefixData(metaclass=PrefixDataType):
 
         del self._prefix_records[package_name]
 
-    T = TypeVar("T")  # this should be defined above in the `if TYPE_CHECKING` clause
     def get(self, package_name: str, default: T = NULL) -> PackageRecord | T:
         try:
             return self._prefix_records[package_name]
@@ -412,7 +413,9 @@ class PrefixData(metaclass=PrefixDataType):
                 subdir_urls.add(subdir_url)
         return subdir_urls
 
-    def query(self, package_ref_or_match_spec: PackageRecord | MatchSpec | str) -> Iterable[PrefixRecord]:
+    def query(
+        self, package_ref_or_match_spec: PackageRecord | MatchSpec | str
+    ) -> Iterable[PrefixRecord]:
         # returns a generator
         param = package_ref_or_match_spec
         if isinstance(param, str):
