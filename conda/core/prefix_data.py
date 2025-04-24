@@ -464,6 +464,32 @@ class PrefixData(metaclass=PrefixDataType):
             self.__prefix_records[prefix_record.name] = prefix_record
 
     # endregion
+    # region Python records
+
+    @deprecated("25.9", "26.3", addendum="Use PrefixData.get('python').")
+    @property
+    def _python_pkg_record(self):
+        """Return the prefix record for the package python."""
+        return next(
+            (
+                prefix_record
+                for prefix_record in self.__prefix_records.values()
+                if prefix_record.name == "python"
+            ),
+            None,
+        )
+
+    @deprecated(
+        "25.9",
+        "26.3",
+        addendum="Use 'conda.plugins.prefix_data_loaders.pypi.load_site_packages' instead.",
+    )
+    def _load_site_packages(self):
+        from ..plugins.prefix_data_loaders.pypi import load_site_packages
+
+        return load_site_packages(self.prefix_path, self._prefix_records)
+
+    # endregion
     # region State and environment variables
 
     def _get_environment_state_file(self):
