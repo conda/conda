@@ -14,7 +14,7 @@ from .common.compat import ensure_text_type, on_win
 
 if TYPE_CHECKING:
     from types import TracebackType
-    from typing import Any, TypeVar
+    from typing import Any, Callable, TypeVar
 
     T = TypeVar("T")
 
