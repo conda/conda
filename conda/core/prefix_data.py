@@ -58,6 +58,9 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import Any, TypeVar
 
+    from ..auxlib import _Null
+    from ..common.path import PathType
+
     T = TypeVar("T")
 
 log = getLogger(__name__)
@@ -107,11 +110,11 @@ class PrefixData(metaclass=PrefixDataType):
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
         # TODO: when removing pip_interop_enabled, also remove from meta class
-        self.prefix_path = Path(prefix_path)
-        self._magic_file = self.prefix_path / PREFIX_MAGIC_FILE
-        self.__prefix_records = None
-        self.__is_writable = NULL
-        self._pip_interop_enabled = (
+        self.prefix_path: Path = Path(prefix_path)
+        self._magic_file: Path = self.prefix_path / PREFIX_MAGIC_FILE
+        self.__prefix_records: dict[str, PrefixRecord] | None = None
+        self.__is_writable: bool | None | _Null = NULL
+        self._pip_interop_enabled: bool = (
             pip_interop_enabled
             if pip_interop_enabled is not None
             else context.pip_interop_enabled
@@ -210,7 +213,7 @@ class PrefixData(metaclass=PrefixDataType):
         return paths_equal(str(self.prefix_path), context.root_prefix)
 
     @property
-    def is_writable(self) -> bool:
+    def is_writable(self) -> bool | None | _Null:
         """
         Check whether the configured path is writable. This is assessed by checking
         whether `conda-meta/history` is writable. It if is, it is assumed that the rest
@@ -227,7 +230,7 @@ class PrefixData(metaclass=PrefixDataType):
             self.__is_writable = is_writable
         return self.__is_writable
 
-    def assert_exists(self):
+    def assert_exists(self) -> None:
         """
         Check whether the environment path exists.
 
@@ -236,7 +239,7 @@ class PrefixData(metaclass=PrefixDataType):
         if not self.exists():
             raise EnvironmentLocationNotFound(self.prefix_path)
 
-    def assert_environment(self):
+    def assert_environment(self) -> None:
         """
         Check whether the environment path exists and is a valid conda environment.
 
@@ -246,7 +249,7 @@ class PrefixData(metaclass=PrefixDataType):
         if not self.is_environment():
             raise DirectoryNotACondaEnvironmentError(self.prefix_path)
 
-    def assert_writable(self):
+    def assert_writable(self) -> None:
         """
         Check whether the environment path is a valid conda environment and is writable.
 
@@ -256,7 +259,7 @@ class PrefixData(metaclass=PrefixDataType):
         if not file_path_is_writable(self._magic_file):
             raise EnvironmentNotWritableError(self.prefix_path)
 
-    def validate_path(self, expand_path: bool = False):
+    def validate_path(self, expand_path: bool = False) -> None:
         """
         Validate the path of the environment.
 
@@ -291,7 +294,7 @@ class PrefixData(metaclass=PrefixDataType):
                 "Environment paths cannot be immediately nested under another conda environment."
             )
 
-    def validate_name(self, allow_base: bool = False):
+    def validate_name(self, allow_base: bool = False) -> None:
         """
         Validate the name of the environment.
 
@@ -312,7 +315,7 @@ class PrefixData(metaclass=PrefixDataType):
     # region Records
 
     @time_recorder(module_name=__name__)
-    def load(self):
+    def load(self) -> None:
         self.__prefix_records = {}
         _conda_meta_dir = self.prefix_path / "conda-meta"
         if lexists(_conda_meta_dir):
@@ -433,10 +436,10 @@ class PrefixData(metaclass=PrefixDataType):
             )
 
     @property
-    def _prefix_records(self) -> Iterable[PrefixRecord]:
+    def _prefix_records(self) -> dict[str, PrefixRecord] | None:
         return self.__prefix_records or self.load() or self.__prefix_records
 
-    def _load_single_record(self, prefix_record_json_path: os.PathLike) -> None:
+    def _load_single_record(self, prefix_record_json_path: PathType) -> None:
         log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
@@ -591,7 +594,7 @@ class PrefixData(metaclass=PrefixDataType):
     # endregion
     # region State and environment variables
 
-    def _get_environment_state_file(self) -> dict[str, str]:
+    def _get_environment_state_file(self) -> dict[str, dict[str, str]]:
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         if lexists(env_vars_file):
             with open(env_vars_file) as f:
@@ -600,13 +603,13 @@ class PrefixData(metaclass=PrefixDataType):
             prefix_state = {}
         return prefix_state
 
-    def _write_environment_state_file(self, state: dict[str, str]) -> None:
+    def _write_environment_state_file(self, state: dict[str, dict[str, str]]) -> None:
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         env_vars_file.write_text(
             json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__)
         )
 
-    def get_environment_env_vars(self) -> dict[str, str]:
+    def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
         prefix_state = self._get_environment_state_file()
         env_vars_all = dict(prefix_state.get("env_vars", {}))
         env_vars = {
@@ -614,9 +617,9 @@ class PrefixData(metaclass=PrefixDataType):
         }
         return env_vars
 
-    def set_environment_env_vars(self, env_vars: dict[str, str]) -> dict[str, str]:
+    def set_environment_env_vars(self, env_vars: dict[str, str]) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
-        current_env_vars = env_state_file.get("env_vars")
+        current_env_vars = env_state_file.get("env_vars", {})
         if current_env_vars:
             current_env_vars.update(env_vars)
         else:
@@ -624,7 +627,7 @@ class PrefixData(metaclass=PrefixDataType):
         self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def unset_environment_env_vars(self, env_vars: dict[str, str]) -> dict[str, str]:
+    def unset_environment_env_vars(self, env_vars: dict[str, str]) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
@@ -634,7 +637,7 @@ class PrefixData(metaclass=PrefixDataType):
             self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def set_nonadmin(self):
+    def set_nonadmin(self) -> None:
         """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
         if on_win and Path(context.root_prefix, ".nonadmin").is_file():
             self.prefix_path.mkdir(parents=True, exist_ok=True)
@@ -644,15 +647,15 @@ class PrefixData(metaclass=PrefixDataType):
 
 
 def get_conda_anchor_files_and_records(
-    site_packages_short_path: os.PathLike, python_records: Iterable[PrefixRecord]
-) -> dict[os.PathLike, PrefixRecord]:
+    site_packages_short_path: PathType, python_records: Iterable[PrefixRecord]
+) -> dict[PathType, PrefixRecord]:
     """Return the anchor files for the conda records of python packages."""
     anchor_file_endings = (".egg-info/PKG-INFO", ".dist-info/RECORD", ".egg-info")
     conda_python_packages = {}
 
     matcher = re.compile(
         r"^{}/[^/]+(?:{})$".format(
-            re.escape(site_packages_short_path),
+            re.escape(str(site_packages_short_path)),
             r"|".join(re.escape(fn) for fn in anchor_file_endings),
         )
     ).match
