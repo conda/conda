@@ -1302,6 +1302,7 @@ class Context(Configuration):
                 "quiet",
                 "report_errors",
                 "show_channel_urls",
+                "list_fields",
                 "verbosity",
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
