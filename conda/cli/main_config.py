@@ -282,7 +282,8 @@ def parameter_description_builder(name, context=None, plugins=False):
     if details["parameter_type"] == "primitive":
         builder.append(
             "{} ({})".format(
-                f"{name_prefix}{name}", ", ".join(sorted({et for et in element_types}))
+                f"{name_prefix}{name}",
+                ", ".join(sorted(set(element_types))),
             )
         )
     else:
@@ -290,7 +291,7 @@ def parameter_description_builder(name, context=None, plugins=False):
             "{} ({}: {})".format(
                 f"{name_prefix}{name}",
                 details["parameter_type"],
-                ", ".join(sorted({et for et in element_types})),
+                ", ".join(sorted(set(element_types))),
             )
         )
 
@@ -441,8 +442,7 @@ def _set_key(key: str, item: Any, config: dict) -> None:
     if first == "plugins":
         base_context = context.plugins
         base_config = config.setdefault("plugins", {})
-        parameter_name = rest[0]
-        rest = rest[1:]
+        parameter_name, *rest = rest
     else:
         base_context = context
         base_config = config
