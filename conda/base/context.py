@@ -84,6 +84,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     from ..common.configuration import Parameter, RawParameter
+    from ..common.path import PathsType, PathType
     from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..plugins.manager import CondaPluginManager
@@ -123,8 +124,8 @@ _arch_names = {
     64: "x86_64",
 }
 
-user_rc_path: os.PathLike = abspath(expanduser("~/.condarc"))
-sys_rc_path: os.PathLike = join(sys.prefix, ".condarc")
+user_rc_path: PathType = abspath(expanduser("~/.condarc"))
+sys_rc_path: PathType = join(sys.prefix, ".condarc")
 
 
 def user_data_dir(  # noqa: F811
@@ -132,7 +133,7 @@ def user_data_dir(  # noqa: F811
     appauthor: str | None | Literal[False] = None,
     version: str | None = None,
     roaming: bool = False,
-) -> os.PathLike:
+) -> PathType:
     # Defer platformdirs import to reduce import time for conda activate.
     global user_data_dir
     from platformdirs import user_data_dir
@@ -141,8 +142,8 @@ def user_data_dir(  # noqa: F811
 
 
 def mockable_context_envs_dirs(
-    root_writable: bool, root_prefix: os.PathLike, _envs_dirs: Iterable[os.PathLike]
-) -> tuple[os.PathLike, ...]:
+    root_writable: bool, root_prefix: PathType, _envs_dirs: PathsType
+) -> tuple[PathType, ...]:
     if root_writable:
         fixed_dirs = [
             join(root_prefix, "envs"),
@@ -523,7 +524,7 @@ class Context(Configuration):
 
     def __init__(
         self,
-        search_path: Iterable[os.PathLike] | None = None,
+        search_path: PathsType | None = None,
         argparse_args: Namespace | None = None,
         **kwargs,
     ) -> None:
@@ -577,7 +578,7 @@ class Context(Configuration):
         return PluginConfig(self.raw_data)
 
     @property
-    def conda_build_local_paths(self) -> tuple[os.PathLike, ...]:
+    def conda_build_local_paths(self) -> tuple[PathType, ...]:
         # does file system reads to make sure paths actually exist
         return tuple(
             unique(
@@ -602,7 +603,7 @@ class Context(Configuration):
         return tuple(path_to_url(p) for p in self.conda_build_local_paths)
 
     @property
-    def croot(self) -> os.PathLike:
+    def croot(self) -> PathType:
         """This is where source caches and work folders live"""
         if self._croot:
             return abspath(expanduser(self._croot))
@@ -616,7 +617,7 @@ class Context(Configuration):
             return expand("~/conda-bld")
 
     @property
-    def local_build_root(self) -> os.PathLike:
+    def local_build_root(self) -> PathType:
         return self.croot
 
     @property
@@ -725,13 +726,13 @@ class Context(Configuration):
         return False
 
     @property
-    def envs_dirs(self) -> tuple[os.PathLike, ...]:
+    def envs_dirs(self) -> tuple[PathType, ...]:
         return mockable_context_envs_dirs(
             self.root_writable, self.root_prefix, self._envs_dirs
         )
 
     @property
-    def pkgs_dirs(self) -> tuple[os.PathLike, ...]:
+    def pkgs_dirs(self) -> tuple[PathType, ...]:
         if self._pkgs_dirs:
             return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
@@ -747,7 +748,7 @@ class Context(Configuration):
             )
 
     @memoizedproperty
-    def trash_dir(self) -> os.PathLike:
+    def trash_dir(self) -> PathType:
         # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
         from ..core.package_cache_data import PackageCacheData
 
@@ -759,7 +760,7 @@ class Context(Configuration):
         return trash_dir
 
     @property
-    def default_prefix(self) -> os.PathLike:
+    def default_prefix(self) -> PathType:
         if self.active_prefix:
             return self.active_prefix
         _default_env = os.getenv("CONDA_DEFAULT_ENV")
@@ -775,7 +776,7 @@ class Context(Configuration):
         return join(self.envs_dirs[0], _default_env)
 
     @property
-    def active_prefix(self) -> os.PathLike:
+    def active_prefix(self) -> PathType:
         return os.getenv("CONDA_PREFIX")
 
     @property
@@ -789,20 +790,20 @@ class Context(Configuration):
         return tuple(MatchSpec(s) for s in self._aggressive_update_packages)
 
     @property
-    def target_prefix(self) -> os.PathLike:
+    def target_prefix(self) -> PathType:
         # used for the prefix that is the target of the command currently being executed
         # different from the active prefix, which is sometimes given by -p or -n command line flags
         return determine_target_prefix(self)
 
     @memoizedproperty
-    def root_prefix(self) -> os.PathLike:
+    def root_prefix(self) -> PathType:
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
         else:
             return self.conda_prefix
 
     @property
-    def conda_prefix(self) -> os.PathLike:
+    def conda_prefix(self) -> PathType:
         return abspath(sys.prefix)
 
     @property
@@ -811,12 +812,12 @@ class Context(Configuration):
         "26.3",
         addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
     )
-    def conda_exe(self) -> os.PathLike:
+    def conda_exe(self) -> PathType:
         exe = "conda.exe" if on_win else "conda"
         return join(self.conda_prefix, BIN_DIRECTORY, exe)
 
     @property
-    def av_data_dir(self) -> os.PathLike:
+    def av_data_dir(self) -> PathType:
         """Where critical artifact verification data (e.g., various public keys) can be found."""
         # TODO (AV): Find ways to make this user configurable?
         return join(self.conda_prefix, "etc", "conda")
@@ -1011,7 +1012,7 @@ class Context(Configuration):
         return validate_channels((*local_channels, *channels))
 
     @property
-    def config_files(self) -> tuple[os.PathLike, ...]:
+    def config_files(self) -> tuple[PathType, ...]:
         return tuple(
             path
             for path in context.collect_all()
@@ -1190,7 +1191,7 @@ class Context(Configuration):
         return distribution_name, distribution_version
 
     @memoizedproperty
-    def libc_family_version(self) -> tuple[str, str]:
+    def libc_family_version(self) -> tuple[str | None, str | None]:
         # tuple of lic_family and libc_version
         # None, None if not on Linux
         libc_family, libc_version = linux_get_libc_version()
@@ -1950,7 +1951,7 @@ class Context(Configuration):
 
 
 def reset_context(
-    search_path: Iterable[str] = SEARCH_PATH,
+    search_path: PathsType = SEARCH_PATH,
     argparse_args: Namespace | None = None,
 ) -> Context:
     global context
@@ -1981,8 +1982,8 @@ def reset_context(
 @contextmanager
 def fresh_context(
     env: dict[str, str] | None = None,
-    search_path: Iterable[str] = SEARCH_PATH,
-    argparse_args: Namespace = None,
+    search_path: PathsType = SEARCH_PATH,
+    argparse_args: Namespace | None = None,
     **kwargs,
 ) -> Iterator[Context]:
     if env or kwargs:
@@ -1999,14 +2000,14 @@ def fresh_context(
 class ContextStackObject:
     def __init__(
         self,
-        search_path: Iterable[str] = SEARCH_PATH,
+        search_path: PathsType = SEARCH_PATH,
         argparse_args: Namespace | None = None,
     ) -> None:
         self.set_value(search_path, argparse_args)
 
     def set_value(
         self,
-        search_path: Iterable[str] = SEARCH_PATH,
+        search_path: PathsType = SEARCH_PATH,
         argparse_args: Namespace | None = None,
     ) -> None:
         self.search_path = search_path
@@ -2023,7 +2024,7 @@ class ContextStack:
         self._last_search_path = None
         self._last_argparse_args = None
 
-    def push(self, search_path: Iterable[str], argparse_args: Namespace) -> None:
+    def push(self, search_path: PathsType, argparse_args: Namespace | None) -> None:
         self._stack_idx += 1
         old_len = len(self._stack)
         if self._stack_idx >= old_len:
@@ -2045,7 +2046,7 @@ class ContextStack:
         self._stack_idx -= 1
         self._stack[self._stack_idx].apply()
 
-    def replace(self, search_path: Iterable[str], argparse_args: Namespace) -> None:
+    def replace(self, search_path: PathsType, argparse_args: Namespace | None) -> None:
         self._stack[self._stack_idx].set_value(search_path, argparse_args)
         self._stack[self._stack_idx].apply()
 
@@ -2055,7 +2056,7 @@ context_stack = ContextStack()
 
 def stack_context(
     pushing: bool,
-    search_path: Iterable[str] = SEARCH_PATH,
+    search_path: PathsType = SEARCH_PATH,
     argparse_args: Namespace | None = None,
 ) -> None:
     if pushing:
@@ -2101,7 +2102,7 @@ def replace_context_default(
 conda_tests_ctxt_mgmt_def_pol = replace_context_default
 
 
-def env_name(prefix: os.PathLike) -> str:
+def env_name(prefix: PathType) -> PathType | str | None:
     # counter part to `locate_prefix_by_name()` below
     if not prefix:
         return None
@@ -2114,9 +2115,7 @@ def env_name(prefix: os.PathLike) -> str:
     return prefix
 
 
-def locate_prefix_by_name(
-    name: str, envs_dirs: Iterable[os.PathLike] = None
-) -> os.PathLike:
+def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> PathType:
     """Find the location of a prefix given a conda env name.  If the location does not exist, an
     error is raised.
     """
@@ -2175,7 +2174,7 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
 )
 def validate_prefix_name(
     prefix_name: str, ctx: Context, allow_base: bool = True
-) -> os.PathLike:
+) -> PathType:
     """Run various validations to make sure prefix_name is valid"""
     from ..exceptions import CondaValueError
 
@@ -2209,7 +2208,7 @@ def validate_prefix_name(
             return join(first_writable_envs_dir(), prefix_name)
 
 
-def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> os.PathLike:
+def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> PathType:
     """Get the prefix to operate in.  The prefix may not yet exist.
 
     Args:
@@ -2252,7 +2251,7 @@ def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> os.P
 @deprecated(
     "25.9", "26.3", addendum="Use conda.gateways.disk.create.first_writable_envs_dir"
 )
-def _first_writable_envs_dir() -> os.PathLike:
+def _first_writable_envs_dir() -> PathType:
     from conda.gateways.disk.create import first_writable_envs_dir
 
     return first_writable_envs_dir()
