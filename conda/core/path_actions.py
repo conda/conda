@@ -28,6 +28,7 @@ from ..common.path import (
     win_path_ok,
 )
 from ..common.url import has_platform, path_to_url
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaUpgradeError,
     CondaVerificationError,
@@ -82,7 +83,7 @@ REPR_IGNORE_KWARGS = (
 )
 
 
-class Action(metaclass=ABCMeta):
+class Action:
     """Base class for path manipulation actions, including linking, unlinking, and others."""
 
     _verified = False
@@ -124,6 +125,12 @@ class Action(metaclass=ABCMeta):
             if key not in REPR_IGNORE_KWARGS
         )
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
+
+
+class _Action(Action):
+    @deprecated("25.9", "26.3", addendum="Use `Action` instead.")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class PathAction(Action, metaclass=ABCMeta):
