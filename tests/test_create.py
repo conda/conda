@@ -825,9 +825,9 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         PrefixData._cache_.clear()
         stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
         assert any(
-            line.endswith("pypi")
+            line.strip().endswith("pypi")
             for line in stdout.split("\n")
-            if line.lower().startswith("flask")
+            if line.strip().lower().startswith("flask")
         )
         assert not stderr
         assert not err
