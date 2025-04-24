@@ -196,11 +196,8 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         else:
             pkg_type = "packages"
 
-        if record_data["subdir"] not in repodatas:
-            repodatas[record_data["subdir"]] = {}
-        if pkg_type not in repodatas[record_data["subdir"]]:
-            repodatas[record_data["subdir"]][pkg_type] = {}
-        repodatas[record_data["subdir"]][pkg_type][record.fn] = record_data
+        repodata = repodatas.setdefault(record_data["subdir"], {})
+        repodata.setdefault(pkg_type, {})[record.fn] = record_data
 
     # create fake channel with package records from pd
     with TemporaryDirectory() as tmp_dir:
