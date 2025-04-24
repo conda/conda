@@ -90,7 +90,11 @@ class ExceptionHandler:
         self._print_conda_exception(exc_val, exc_tb)
         return exc_val.return_code
 
-    def _print_conda_exception(self, exc_val: BaseException, exc_tb: TracebackType) -> None:
+    def _print_conda_exception(
+        self,
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+    ) -> None:
         from .exceptions import print_conda_exception
 
         print_conda_exception(exc_val, exc_tb)
@@ -116,7 +120,11 @@ class ExceptionHandler:
         self._upload(error_report)
         return exc_val.return_code
 
-    def get_error_report(self, exc_val: BaseException, exc_tb: TracebackType) -> dict[str, str]:
+    def get_error_report(
+        self,
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+    ) -> dict[str, str]:
         from .exceptions import CondaError, _format_exc
 
         command = " ".join(ensure_text_type(s) for s in sys.argv)
