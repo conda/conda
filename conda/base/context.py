@@ -68,6 +68,7 @@ from .constants import (
     REPODATA_FN,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    USER_DATA_DIR,
     USER_DATA_ENVS,
     ChannelPriority,
     DepsModifier,
@@ -303,6 +304,7 @@ class Context(Configuration):
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
+    pkg_env_layout = ParameterLoader(PrimitiveParameter("conda_root", element_type=str))
     _root_prefix = ParameterLoader(
         PrimitiveParameter(""), aliases=("root_dir", "root_prefix")
     )
@@ -721,33 +723,42 @@ class Context(Configuration):
         :return: Directories where envs are stored
         """
         if self._envs_dirs:
-            # User has already specified what directories to use. Use the legacy behavior
-            # (which in this case _doesn't_ mean just use the directories specified in
-            # the configuration)
-            return self._prefix_envs_dirs()
-
-        prefix_dir = self.root_prefix_envs
-
-        # Look for subdirectories which could be conda environments; only those with a
-        # file located at "conda-meta/history" are real environments
-        found_envs = [
-            isfile(join(prefix_dir, subdir, PREFIX_MAGIC_FILE))
-            for subdir in os.listdir(prefix_dir)
-        ]
-        if isdir(prefix_dir) and len(found_envs) > 0:
-            # Prefix location is in use; emit warning message.
-            log.warning(
-                "conda is using the root prefix for the envs directory "
-                f"({prefix_dir}). To migrate all environments to use the new default "
-                "location, run `conda config --migrate-envs`. To silence "
-                "this message and continue using the current prefix locations, run "
-                f"`conda config --append envs_dirs {prefix_dir}`"
+            # User has already specified what directories to use. However,
+            # legacy behavior is to _also_ include other directories, see below;
+            # that behavior is kept here.
+            if self.root_writable:
+                fixed_dirs = [
+                    self.root_prefix_envs,
+                    join("~", ".conda", "envs"),
+                ]
+            else:
+                fixed_dirs = [
+                    join("~", ".conda", "envs"),
+                    self.root_prefix_envs,
+                ]
+            if on_win:
+                fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+            return tuple(
+                dict.fromkeys(expand(path) for path in (*self._envs_dirs, *fixed_dirs))
             )
-            return self._prefix_envs_dirs()
 
-        # User has not specified what directories to use, and the legacy
-        # directories are not in use. We can safely use the new directories.
-        return tuple(set((USER_DATA_ENVS,)))
+        if self.pkg_env_layout == "user":
+            return (USER_DATA_ENVS,)
+
+        # Otherwise fall back on root prefix location
+        if self.root_writable:
+            fixed_dirs = [
+                self.root_prefix_envs,
+                join("~", ".conda", "envs"),
+            ]
+        else:
+            fixed_dirs = [
+                join("~", ".conda", "envs"),
+                self.root_prefix_envs,
+            ]
+        if on_win:
+            fixed_dirs.append(USER_DATA_ENVS)
+        return tuple(dict.fromkeys(expand(path) for path in fixed_dirs))
 
     @property
     def pkgs_dirs(self) -> tuple[os.PathLike, ...]:
@@ -757,26 +768,27 @@ class Context(Configuration):
         """
         if self._pkgs_dirs:
             # User has already specified what directories to use
-            return self._prefix_pkgs_dirs()
+            return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
 
-        user_pkgs = self.user_data_pkgs
-        prefix_dir = self.root_prefix_pkgs
-        if (isdir(prefix_dir) and len(os.listdir(prefix_dir)) > 0) and not isdir(
-            user_pkgs
-        ):
-            # Prefix location is in use and user data is not; emit warning message
-            log.warning(
-                "conda is using the root prefix for the pkgs directory "
-                f"({prefix_dir}). To migrate all environments to use the new default "
-                "location, run `conda config --migrate-pkgs`. To silence "
-                "this message and continue using the current prefix locations, run "
-                f"`conda config --append pkgs_dirs {prefix_dir}`"
+        if self.pkg_env_layout == "user":
+            # User has not specified directories, but wants to use user data directory
+            return (self.user_data_pkgs,)
+
+        # Otherwise, fall back on the root prefix location
+        cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
+        fixed_dirs = [
+            join("~", ".conda"),
+        ]
+        if on_win:
+            fixed_dirs.append(USER_DATA_DIR)
+        return tuple(
+            dict.fromkeys(
+                (
+                    self.root_prefix_pkgs,
+                    *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
+                )
             )
-            return self._prefix_pkgs_dirs()
-
-        # User has not specified what directories to use, and the legacy
-        # directories are not in use. We can safely use the new directories.
-        return tuple(set((self.user_data_pkgs,)))
+        )
 
     def _prefix_envs_dirs(self) -> tuple[os.PathLike, ...]:
         if self.root_writable:
@@ -794,21 +806,6 @@ class Context(Configuration):
         return tuple(
             dict.fromkeys(expand(path) for path in (*self._envs_dirs, *fixed_dirs))
         )
-
-    def _prefix_pkgs_dirs(self):
-        if self._pkgs_dirs:
-            return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
-        else:
-            cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
-            fixed_dirs = (join("~", ".conda"),)
-            if on_win:
-                fixed_dirs += (user_data_dir(APP_NAME, APP_NAME),)
-            return tuple(
-                dict.fromkeys(
-                    self.root_prefix_pkgs,
-                    *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
-                )
-            )
 
     @memoizedproperty
     def trash_dir(self):

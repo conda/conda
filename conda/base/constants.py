@@ -338,4 +338,5 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 # with conda) are enabled
 NO_PLUGINS = False
 
-USER_DATA_ENVS = expand(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+USER_DATA_DIR = user_data_dir(APP_NAME, APP_NAME)
+USER_DATA_ENVS = expand(join(USER_DATA_DIR, "envs"))
