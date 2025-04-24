@@ -74,7 +74,7 @@ class CondaError(Exception):
     reportable: bool = False  # Exception may be reported to core maintainers
 
     def __init__(self, message: str | None, caused_by: Any = None, **kwargs) -> None:
-        self.message = message
+        self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
         super().__init__(message)
@@ -84,7 +84,7 @@ class CondaError(Exception):
 
     def __str__(self) -> str:
         try:
-            return str(self.message % self._kwargs)
+            return str(self.message) % self._kwargs
         except Exception:
             debug_message = "\n".join(
                 (
@@ -113,7 +113,7 @@ class CondaError(Exception):
 
 
 class CondaMultiError(CondaError):
-    def __init__(self, errors: Iterable[BaseException]) -> None:
+    def __init__(self, errors: Iterable[CondaError]) -> None:
         self.errors = errors
         super().__init__(None)
 
@@ -141,7 +141,7 @@ class CondaMultiError(CondaError):
             error="Multiple Errors Encountered.",
         )
 
-    def contains(self, exception_class: BaseException) -> bool:
+    def contains(self, exception_class: BaseException | tuple[BaseException]) -> bool:
         return any(isinstance(e, exception_class) for e in self.errors)
 
 

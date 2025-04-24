@@ -145,8 +145,8 @@ class CondaSignalInterrupt(CondaError):
 class TooManyArgumentsError(ArgumentError):
     def __init__(
         self,
-        expected: str,
-        received: str,
+        expected: int,
+        received: int,
         offending_arguments: Iterable[str],
         optional_message: str = "",
         *args,
@@ -541,7 +541,7 @@ class UnavailableInvalidChannel(ChannelError):
     def __init__(
         self,
         channel: Channel | str,
-        status_code: int,
+        status_code: str | int,
         response: requests.models.Response | None = None,
     ):
         # parse channel
@@ -670,7 +670,7 @@ class CondaHTTPError(CondaError):
         self,
         message: str,
         url: str,
-        status_code: int,
+        status_code: int | str,
         reason: str,
         elapsed_time: timedelta | str,
         response: requests.Response | None = None,
@@ -1311,7 +1311,7 @@ def maybe_raise(error: BaseException, context: Context):
         raise error
 
 
-def print_conda_exception(exc_val: BaseException, exc_tb: TracebackType | None = None):
+def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
 
     rc = getattr(exc_val, "return_code", None)
@@ -1334,7 +1334,7 @@ def print_conda_exception(exc_val: BaseException, exc_tb: TracebackType | None =
         # stderrlog.error("\n" + exc_val.__repr__() + \n")
 
 
-def _format_exc(exc_val: BaseException = None, exc_tb: TracebackType | None = None):
+def _format_exc(exc_val: BaseException | None = None, exc_tb: TracebackType | None = None):
     if exc_val is None:
         exc_type, exc_val, exc_tb = sys.exc_info()
     else:
