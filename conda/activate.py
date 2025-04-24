@@ -17,18 +17,10 @@ import os
 import re
 import sys
 from logging import getLogger
-from os.path import (
-    abspath,
-    basename,
-    exists,
-    expanduser,
-    expandvars,
-    isdir,
-    join,
-)
+from os.path import basename, exists, isdir, join
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -47,12 +39,8 @@ from .deprecations import deprecated
 from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
-    from typing import (
-        Any,
-        NotRequired,
-        TypedDict,
-    )
+    from collections.abc import Callable, Iterable, Iterator
+    from typing import Any, NotRequired, TypedDict
 
     class BuilderExportPath(TypedDict):
         PATH: str
@@ -103,6 +91,9 @@ class _Activator(metaclass=abc.ABCMeta):
     # The following instance variables must be defined by each implementation.
     pathsep_join: str
     sep: str
+    path_conversion: Callable[
+        [str | Iterable[str] | None], str | tuple[str, ...] | None
+    ]
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
     tempfile_extension: str | None
@@ -117,24 +108,6 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
-
-    @overload
-    @staticmethod
-    def path_conversion(paths: None) -> None: ...
-
-    @overload
-    @staticmethod
-    def path_conversion(paths: str) -> str: ...
-
-    @overload
-    @staticmethod
-    def path_conversion(paths: Iterable[str]) -> list[str]: ...
-
-    @staticmethod
-    def path_conversion(
-        paths: None | str | Iterable[str],
-    ) -> None | str | list[str]:
-        return path_identity(paths)
 
     def get_export_unset_vars(
         self,
@@ -376,6 +349,8 @@ class _Activator(metaclass=abc.ABCMeta):
     def _build_activate_stack(self, env_name_or_prefix: str, stack: bool) -> Builder:
         # get environment prefix
         if re.search(r"\\|/", env_name_or_prefix):
+            from .common.path import expand
+
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, "conda-meta")):
                 from .exceptions import EnvironmentLocationNotFound
@@ -461,7 +436,7 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
-        set_vars: dict[str, str] = {}
+        set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
@@ -493,9 +468,7 @@ class _Activator(metaclass=abc.ABCMeta):
         )
 
         new_conda_shlvl = old_conda_shlvl - 1
-        set_vars: dict[str, str] = {}
-        unset_vars: list[str]
-        activate_scripts: list[str]
+        set_vars = {}
         if old_conda_shlvl == 1:
             new_path = self.pathsep_join(
                 self._remove_prefix_from_path(old_conda_prefix)
@@ -515,7 +488,7 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             conda_prompt_modifier = ""
             activate_scripts = []
-            export_path = new_path
+            export_path = {"PATH": new_path}
         else:
             assert old_conda_shlvl > 1
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
@@ -545,7 +518,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 **new_conda_environment_env_vars,
             )
             unset_vars += unset_vars2
-            export_path = new_path
+            export_path = {"PATH": new_path}
             activate_scripts = self._get_activate_scripts(new_prefix)
 
         if context.changeps1:
@@ -560,7 +533,7 @@ class _Activator(metaclass=abc.ABCMeta):
             "unset_vars": unset_vars,
             "set_vars": set_vars,
             "export_vars": export_vars,
-            "export_path": {"PATH": export_path},
+            "export_path": export_path,
             "deactivate_scripts": deactivate_scripts,
             "activate_scripts": activate_scripts,
         }
@@ -584,7 +557,7 @@ class _Activator(metaclass=abc.ABCMeta):
         new_path = self.pathsep_join(
             self._replace_prefix_in_path(conda_prefix, conda_prefix)
         )
-        set_vars: dict[str, str] = {}
+        set_vars = {}
         conda_prompt_modifier = self._prompt_modifier(conda_prefix, conda_default_env)
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
@@ -623,7 +596,7 @@ class _Activator(metaclass=abc.ABCMeta):
         path = os.getenv("PATH", fallback)
         return tuple(path.split(os.pathsep))
 
-    def _get_path_dirs(self, prefix: str | os.PathLike | Path) -> Iterator[str]:
+    def _get_path_dirs(self, prefix: os.PathLike) -> Iterator[str]:
         prefix = str(prefix)
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip(self.sep)
@@ -669,7 +642,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _add_prefix_to_path(
         self,
-        prefix: str | os.PathLike | Path,
+        prefix: os.PathLike,
         starting_path_dirs: Iterable[str] | None = None,
     ) -> list[str]:
         prefix = self.path_conversion(str(prefix))
@@ -690,19 +663,19 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _remove_prefix_from_path(
         self,
-        prefix: str | os.PathLike | Path,
+        prefix: os.PathLike,
         starting_path_dirs: Iterable[str] | None = None,
     ) -> list[str]:
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(
         self,
-        old_prefix: str | os.PathLike | Path,
-        new_prefix: str | os.PathLike | Path | None,
+        old_prefix: os.PathLike,
+        new_prefix: os.PathLike | None,
         starting_path_dirs: Iterable[str] | None = None,
     ) -> list[str]:
-        old_prefix = self.path_conversion(str(old_prefix))
-        new_prefix = self.path_conversion(str(new_prefix) if new_prefix else None)
+        old_prefix = self.path_conversion(old_prefix)
+        new_prefix = self.path_conversion(new_prefix if new_prefix else None)
         starting_path_dirs = starting_path_dirs or self._get_starting_path_list()
         path_list = list(self.path_conversion(starting_path_dirs))
 
@@ -719,7 +692,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 first_idx = 0
             else:
                 prefix_dirs_idx = len(prefix_dirs) - 1
-                last_idx: int | None = None
+                last_idx = None
                 while last_idx is None and prefix_dirs_idx > -1:
                     last_idx = index_of_path(path_list, prefix_dirs[prefix_dirs_idx])
                     if last_idx is None:
@@ -749,7 +722,7 @@ class _Activator(metaclass=abc.ABCMeta):
     ) -> None:
         pass
 
-    def _default_env(self, prefix: str | os.PathLike | Path) -> str:
+    def _default_env(self, prefix: os.PathLike) -> str:
         if paths_equal(prefix, context.root_prefix):
             return "base"
         prefix = Path(prefix)
@@ -757,13 +730,13 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _prompt_modifier(
         self,
-        prefix: str | os.PathLike | Path,
+        prefix: os.PathLike,
         conda_default_env: str,
     ) -> str:
         if context.changeps1:
             # Get current environment and prompt stack
-            env_stack: list[str] = []
-            prompt_stack: list[str] = []
+            env_stack = []
+            prompt_stack = []
             old_shlvl = int(os.getenv("CONDA_SHLVL", "0").rstrip())
             for i in range(1, old_shlvl + 1):
                 if i == old_shlvl:
@@ -806,7 +779,7 @@ class _Activator(metaclass=abc.ABCMeta):
         else:
             return ""
 
-    def _get_activate_scripts(self, prefix: str | os.PathLike | Path) -> list[str]:
+    def _get_activate_scripts(self, prefix: os.PathLike) -> list[str]:
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
@@ -820,7 +793,7 @@ class _Activator(metaclass=abc.ABCMeta):
             sorted(p for p in paths if p[se_len:] == _script_extension)
         )
 
-    def _get_deactivate_scripts(self, prefix: str | os.PathLike | Path) -> list[str]:
+    def _get_deactivate_scripts(self, prefix: os.PathLike) -> list[str]:
         _script_extension = self.script_extension
         se_len = -len(_script_extension)
         try:
@@ -836,7 +809,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _get_environment_env_vars(
         self,
-        prefix: str | os.PathLike | Path,
+        prefix: os.PathLike,
     ) -> dict[str, str]:
         env_vars_file = join(prefix, PREFIX_STATE_FILE)
         pkg_env_var_dir = join(prefix, PACKAGE_ENV_VARS_DIR)
@@ -870,8 +843,11 @@ class _Activator(metaclass=abc.ABCMeta):
         return env_vars
 
 
-def expand(path):
-    return abspath(expanduser(expandvars(path)))
+@deprecated("25.9", "26.3", addendum="Use `conda.common.path.expand` instead.")
+def expand(path: os.PathLike) -> str:
+    from .common.path import expand
+
+    return expand(path)
 
 
 @deprecated("25.3", "25.9", addendum="Use `conda.common.compat.ensure_binary` instead.")
@@ -937,49 +913,7 @@ def backslash_to_forwardslash(
         return [path.replace("\\", "/") for path in paths]
 
 
-class _NativeToUnixActivator(_Activator):
-    @overload
-    @staticmethod
-    def path_conversion(paths: None) -> None: ...
-
-    @overload
-    @staticmethod
-    def path_conversion(paths: str) -> str: ...
-
-    @overload
-    @staticmethod
-    def path_conversion(paths: Iterable[str]) -> list[str]: ...
-
-    @staticmethod
-    def path_conversion(
-        paths: None | str | Iterable[str],
-    ) -> None | str | list[str]:
-        return native_path_to_unix(paths)
-
-
-class _BackslashToForwardslashActivator(_Activator):
-    if on_win:
-
-        @overload
-        @staticmethod
-        def path_conversion(paths: None) -> None: ...
-
-        @overload
-        @staticmethod
-        def path_conversion(paths: str) -> str: ...
-
-        @overload
-        @staticmethod
-        def path_conversion(paths: Iterable[str]) -> list[str]: ...
-
-        @staticmethod
-        def path_conversion(
-            paths: None | str | Iterable[str],
-        ) -> None | str | list[str]:
-            return backslash_to_forwardslash(paths)
-
-
-class PosixActivator(_NativeToUnixActivator):
+class PosixActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
     path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
@@ -1034,7 +968,7 @@ class PosixActivator(_NativeToUnixActivator):
         return "\n".join(result) + "\n"
 
 
-class CshActivator(_NativeToUnixActivator):
+class CshActivator(_Activator):
     pathsep_join = ":".join
     sep = "/"
     path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
@@ -1090,7 +1024,7 @@ class CshActivator(_NativeToUnixActivator):
             )
 
 
-class XonshActivator(_BackslashToForwardslashActivator):
+class XonshActivator(_Activator):
     pathsep_join = ";".join if on_win else ":".join
     sep = "/"
     path_conversion = staticmethod(
@@ -1154,7 +1088,7 @@ class CmdExeActivator(_Activator):
         pass
 
 
-class FishActivator(_NativeToUnixActivator):
+class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
     path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
