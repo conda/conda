@@ -617,7 +617,9 @@ class PrefixData(metaclass=PrefixDataType):
         }
         return env_vars
 
-    def set_environment_env_vars(self, env_vars: dict[str, str]) -> dict[str, str] | None:
+    def set_environment_env_vars(
+        self, env_vars: dict[str, str]
+    ) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars", {})
         if current_env_vars:
@@ -627,7 +629,9 @@ class PrefixData(metaclass=PrefixDataType):
         self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def unset_environment_env_vars(self, env_vars: dict[str, str]) -> dict[str, str] | None:
+    def unset_environment_env_vars(
+        self, env_vars: dict[str, str]
+    ) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
