@@ -526,7 +526,7 @@ class Context(Configuration):
         search_path: Iterable[os.PathLike] | None = None,
         argparse_args: Namespace | None = None,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(argparse_args=argparse_args)
 
         self._set_search_path(
@@ -899,7 +899,7 @@ class Context(Configuration):
         return self._restore_free_channel
 
     @memoizedproperty
-    def custom_multichannels(self) -> dict[str, Iterable[Channel]]:
+    def custom_multichannels(self) -> dict[str, tuple[Channel, ...]]:
         from ..models.channel import Channel
 
         if (
@@ -1117,7 +1117,7 @@ class Context(Configuration):
         return " ".join(builder)
 
     @contextmanager
-    def _override(self, key: str, value: Any):
+    def _override(self, key: str, value: Any) -> Iterator[None]:
         """
         TODO: This might be broken in some ways. Unsure what happens if the `old`
         value is a property and gets set to a new value. Or if the new value
@@ -2001,14 +2001,14 @@ class ContextStackObject:
         self,
         search_path: Iterable[str] = SEARCH_PATH,
         argparse_args: Namespace | None = None,
-    ):
+    ) -> None:
         self.set_value(search_path, argparse_args)
 
     def set_value(
         self,
         search_path: Iterable[str] = SEARCH_PATH,
         argparse_args: Namespace | None = None,
-    ):
+    ) -> None:
         self.search_path = search_path
         self.argparse_args = argparse_args
 
@@ -2023,7 +2023,7 @@ class ContextStack:
         self._last_search_path = None
         self._last_argparse_args = None
 
-    def push(self, search_path: Iterable[str], argparse_args: Namespace):
+    def push(self, search_path: Iterable[str], argparse_args: Namespace) -> None:
         self._stack_idx += 1
         old_len = len(self._stack)
         if self._stack_idx >= old_len:
@@ -2045,7 +2045,7 @@ class ContextStack:
         self._stack_idx -= 1
         self._stack[self._stack_idx].apply()
 
-    def replace(self, search_path: Iterable[str], argparse_args: Namespace):
+    def replace(self, search_path: Iterable[str], argparse_args: Namespace) -> None:
         self._stack[self._stack_idx].set_value(search_path, argparse_args)
         self._stack[self._stack_idx].apply()
 
@@ -2057,7 +2057,7 @@ def stack_context(
     pushing: bool,
     search_path: Iterable[str] = SEARCH_PATH,
     argparse_args: Namespace | None = None,
-):
+) -> None:
     if pushing:
         # Fast
         context_stack.push(search_path, argparse_args)
@@ -2069,7 +2069,7 @@ def stack_context(
 # Default means "The configuration when there are no condarc files present". It is
 # all the settings and defaults that are built in to the code and *not* the default
 # value of search_path=SEARCH_PATH. It means search_path=().
-def stack_context_default(pushing: bool, argparse_args: Namespace | None = None):
+def stack_context_default(pushing: bool, argparse_args: Namespace | None = None) -> None:
     return stack_context(pushing, search_path=(), argparse_args=argparse_args)
 
 
@@ -2077,7 +2077,7 @@ def replace_context(
     pushing: bool | None = None,
     search_path: Iterable[str] = SEARCH_PATH,
     argparse_args: Namespace | None = None,
-):
+) -> None:
     # pushing arg intentionally not used here, but kept for API compatibility
     return context_stack.replace(search_path, argparse_args)
 
@@ -2085,7 +2085,7 @@ def replace_context(
 def replace_context_default(
     pushing: bool | None = None,
     argparse_args: Namespace | None = None,
-):
+) -> None:
     # pushing arg intentionally not used here, but kept for API compatibility
     return context_stack.replace(search_path=(), argparse_args=argparse_args)
 
