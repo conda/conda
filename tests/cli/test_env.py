@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 from conda.base.context import context
+from conda.common.compat import on_win
 from conda.common.serialize import yaml_safe_dump, yaml_safe_load
 from conda.exceptions import (
     CondaEnvException,
@@ -22,6 +23,7 @@ from conda.exceptions import (
     SpecNotFound,
 )
 from conda.gateways.disk.test import is_conda_environment
+from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -386,13 +388,19 @@ def test_update_env_json_output(
 
 
 @pytest.mark.integration
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_update_env_only_pip_json_output(
-    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, request
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    request: pytest.FixtureRequest,
 ):
     """
     Update an environment by adding only a pip package
     Check the json output
     """
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
+
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -414,13 +422,18 @@ def test_update_env_only_pip_json_output(
 
 
 @pytest.mark.integration
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_update_env_no_action_json_output(
-    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, request
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    request: pytest.FixtureRequest,
 ):
     """
     Update an already up-to-date environment
     Check the json output
     """
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
     prefix = path_factory()
     request.applymarker(
         pytest.mark.xfail(

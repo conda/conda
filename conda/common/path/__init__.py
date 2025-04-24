@@ -105,7 +105,7 @@ def is_path(value):
     return re.match(PATH_MATCH_REGEX, value)
 
 
-def expand(path):
+def expand(path) -> os.PathLike:
     return abspath(expanduser(expandvars(path)))
 
 
