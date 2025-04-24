@@ -141,7 +141,7 @@ def user_data_dir(  # noqa: F811
 
 
 def mockable_context_envs_dirs(
-    root_writable: bool, root_prefix: os.PathLike, _envs_dirs: Iterable[os.PathLikes]
+    root_writable: bool, root_prefix: os.PathLike, _envs_dirs: Iterable[os.PathLike]
 ) -> tuple[os.PathLike, ...]:
     if root_writable:
         fixed_dirs = [
@@ -1950,7 +1950,7 @@ class Context(Configuration):
 
 
 def reset_context(
-    search_path: Iterable[str,] = SEARCH_PATH,
+    search_path: Iterable[str] = SEARCH_PATH,
     argparse_args: Namespace | None = None,
 ) -> Context:
     global context
