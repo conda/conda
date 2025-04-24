@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+import conda.exceptions
 from conda.base.context import context, reset_context
 from conda.cli.main_config import (
     _get_key,
@@ -26,7 +27,9 @@ if TYPE_CHECKING:
     from typing import Any
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
+    from conda.common.configuration import Configuration
     from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
@@ -306,3 +309,47 @@ def test_key_exists(monkeypatch, plugin_config, is_json):
 
     assert not _key_exists("baz", [], mock_context)
     assert not _key_exists("plugins.baz", [], mock_context)
+
+
+def test_config_show(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    plugin_config: tuple[type[Configuration], str],
+):
+    """
+    Ensure that the config show command works as expected, testing when plugin and non-plugin
+    parameters are present.
+    """
+    mock_context, app_name = plugin_config
+    mock_context = mock_context(search_path=())
+    mocker.patch("conda.base.context.context", mock_context)
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+    monkeypatch.setenv(f"{app_name}_FOO", "test")
+
+    out, err, rc = conda_cli("config", "--show", "foo")
+
+    assert out == "foo: test\n"
+
+    out, err, rc = conda_cli("config", "--show", "plugins.bar")
+
+    assert out == ("plugins:\n  bar: test_value\n")
+
+
+def test_config_show_errors(conda_cli: CondaCLIFixture):
+    """
+    Ensure that the correct message is displayed when we attempt to show configuration
+    parameters that don't actually exist.
+    """
+    with pytest.raises(
+        conda.exceptions.ArgumentError,
+        match="Invalid configuration parameters: \n  - foo",
+    ):
+        conda_cli("config", "--show", "foo")
+
+    with pytest.raises(
+        conda.exceptions.ArgumentError,
+        match="Invalid configuration parameters: \n  - plugins.foo",
+    ):
+        conda_cli("config", "--show", "plugins.foo")

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -152,7 +153,7 @@ def clear_package_cache() -> Iterable[None]:
 
 
 @pytest.fixture(scope="function")
-def plugin_config() -> tuple[type[Configuration], str]:
+def plugin_config(mocker) -> tuple[type[Configuration], str]:
     """
     Fixture to create a plugin configuration class that can be created and used in tests
     """
@@ -167,9 +168,21 @@ def plugin_config() -> tuple[type[Configuration], str]:
         foo = ParameterLoader(PrimitiveParameter(""))
         json = ParameterLoader(PrimitiveParameter(False))
 
-        def __init__(self, **kwargs):
+        def __init__(self, *args, **kwargs):
+            """
+            Defines the bare minimum of context object properties to be compatible with the
+            rest of conda.
+
+            TODO: Depending on how this fixture is used, we may need to add more properties
+            """
             super().__init__(**kwargs)
             self._set_env_vars(app_name)
+            self.no_plugins = False
+            self.log_level = logging.WARNING
+            self.active_prefix = ""
+            self.plugin_manager = mocker.MagicMock()
+            self.repodata_fns = ["repodata.json", "current_repodata.json"]
+            self.subdir = mocker.MagicMock()
 
         @property
         def plugins(self):

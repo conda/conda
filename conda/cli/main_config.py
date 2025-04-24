@@ -386,7 +386,7 @@ def _key_exists(key: str, warnings: list[str], context=None) -> bool:
     if (
         first == "plugins"
         and len(rest) > 0
-        and rest[0] in context.plugins.parameter_names
+        and rest[0] in context.plugins.list_parameters()
     ):
         return True
 
@@ -647,6 +647,7 @@ def execute_config(args, parser):
                 from ..common.io import dashlist
                 from ..exceptions import ArgumentError
 
+                not_plugin_params = {f"plugins.{name}" for name in not_plugin_params}
                 error_params = not_params | not_plugin_params
                 raise ArgumentError(
                     f"Invalid configuration parameters: {dashlist(error_params)}"
@@ -656,6 +657,7 @@ def execute_config(args, parser):
             provided_plugin_parameters = context.plugins.list_parameters()
 
         d = {key: getattr(context, key) for key in provided_parameters}
+
         d["plugins"] = {}
 
         # sort to make sure "plugins" appears in the right spot
@@ -669,6 +671,9 @@ def execute_config(args, parser):
                 d["plugins"][key] = []
             else:
                 d["plugins"][key] = value
+
+        if not d["plugins"]:
+            del d["plugins"]
 
         if context.json:
             stdout_write(
