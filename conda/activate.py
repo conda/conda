@@ -50,7 +50,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
     from typing import (
         Any,
-        Callable,
         NotRequired,
         TypedDict,
     )
@@ -102,7 +101,7 @@ class _Activator(metaclass=abc.ABCMeta):
     # information to the __init__ method of this class.
 
     # The following instance variables must be defined by each implementation.
-    pathsep_join: Callable[[Iterable[str]], Any]
+    pathsep_join: str
     sep: str
     script_extension: str
     #: temporary file's extension, None writes to stdout instead
