@@ -10,7 +10,7 @@ from .compat import isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
-from typing import Any
+from typing import Any, Union
 
 __all__ = ["boolify", "typify", "maybecall", "numberify"]
 
@@ -267,7 +267,7 @@ def maybecall(value):
     return value() if callable(value) else value
 
 
-def is_only_subclass(obj_class: Any | tuple[Any], base_class: type) -> bool:
+def is_only_subclass(obj_class: Union[Any, tuple[Any]], base_class: type) -> bool:
     """Check whether ``obj_class`` is purely a subclass of ``base_class``.
 
     :param obj_class: Class to check; if this is a tuple, all classes in the tuple are checked
