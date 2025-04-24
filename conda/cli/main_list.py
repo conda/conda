@@ -184,13 +184,30 @@ def list_packages(
         prefix_data.load()
     installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
-
-    if fields is None:
-        fields = context.list_fields
+    fields = fields or context.list_fields
 
     packages = []
-    titles = [f.title() for f in fields]
-    widths = [len(f) for f in fields]
+    titles = []
+    widths = []
+    for f in fields:
+        if f == "features":
+            title = ""
+            width = 0
+        elif f == "schannel":
+            title = "Channel"
+            width = 1
+        elif f == "name":
+            title = "Name"
+            width = 23
+        elif f in ("version", "build"):
+            title = f.title()
+            width = 15
+        else:
+            title = f.title()
+            width = len(title)
+        titles.append(title)
+        widths.append(width)
+
     for prec in get_packages(installed, regex) if regex else installed:
         if format == "canonical":
             packages.append(
@@ -205,11 +222,9 @@ def list_packages(
         row = []
         for idx, field in enumerate(fields):
             if field == "features":
-                titles[idx] = " "
                 features = set(prec.get("features") or ())
                 value = disp_features(features)
             elif field == "schannel":
-                titles[idx] = "Channel"
                 schannel_value = prec.get("schannel")
                 if (
                     show_channel_urls
@@ -218,7 +233,6 @@ def list_packages(
                 ):
                     value = str(schannel_value)
             else:
-                titles[idx] = field.title()
                 value = str(prec.get(field, None) or "").strip()
                 if value == "None":
                     value = ""
