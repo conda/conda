@@ -2069,7 +2069,10 @@ def stack_context(
 # Default means "The configuration when there are no condarc files present". It is
 # all the settings and defaults that are built in to the code and *not* the default
 # value of search_path=SEARCH_PATH. It means search_path=().
-def stack_context_default(pushing: bool, argparse_args: Namespace | None = None) -> None:
+def stack_context_default(
+    pushing: bool,
+    argparse_args: Namespace | None = None,
+) -> None:
     return stack_context(pushing, search_path=(), argparse_args=argparse_args)
 
 
