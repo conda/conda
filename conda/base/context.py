@@ -1262,7 +1262,7 @@ class Context(Configuration):
                 "disallowed_packages",
                 "force_reinstall",
                 "pinned_packages",
-                "pip_interop_enabled",
+                "prefix_data_interoperability",
                 "track_features",
                 "solver",
             ),
