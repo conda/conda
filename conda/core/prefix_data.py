@@ -625,12 +625,12 @@ def get_python_version_for_prefix(prefix) -> str | None:
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:
     """Here, path may be a complete prefix or a dist inside a prefix"""
     path = Path(path)
-    for prefix, pip_interop in sorted(
+    for prefix, interoperability in sorted(
         PrefixData._cache_, reverse=True, key=lambda key: key[0]
     ):
         try:
             path.relative_to(prefix)
-            del PrefixData._cache_[(prefix, pip_interop)]
+            del PrefixData._cache_[(prefix, interoperability)]
             return True
         except ValueError:
             # ValueError: path is not relative to prefix
