@@ -102,7 +102,7 @@ repos:
     hooks:
       - id: pyright
         entry: pyright || true --
-        additional_dependencies: ["pyright[nodejs]"]
+        additional_dependencies: ['pyright[nodejs]']
 
   - repo: meta
     # see https://pre-commit.com/#meta-hooks

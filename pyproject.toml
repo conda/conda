@@ -104,6 +104,14 @@ source = "vcs"
 [tool.hatch.version.raw-options]
 local_scheme = "dirty-tag"
 
+[tool.pyright]
+exclude = [
+  "**/__pycache__",
+]
+include = ["conda"]
+reportMissingImports = "error"
+reportMissingTypeStubs = false
+
 [tool.pytest.ini_options]
 addopts = [
   "--color=yes",
@@ -186,11 +194,3 @@ select = [
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
 ]
-
-[tool.pyright]
-exclude = [
-  "**/__pycache__",
-]
-include = ["conda"]
-reportMissingImports = "error"
-reportMissingTypeStubs = false
