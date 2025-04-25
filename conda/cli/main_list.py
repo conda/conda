@@ -5,22 +5,31 @@
 Lists all packages installed into an environment.
 """
 
+from __future__ import annotations
+
 import logging
 import re
-from argparse import ArgumentParser, Namespace, _SubParsersAction
+from functools import cache
 from os.path import isdir, isfile
+from typing import TYPE_CHECKING
 
 from .. import __version__
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any
 
 log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..base.constants import DEFAULT_CONDA_LIST_FIELDS
     from .helpers import (
         add_parser_json,
         add_parser_prefix,
         add_parser_show_channel_urls,
+        comma_separated_stripped,
     )
 
     summary = "List installed packages in a conda environment."
@@ -68,10 +77,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_show_channel_urls(p)
     p.add_argument(
         "--fields",
-        type=lambda s: s.split(","),
+        type=comma_separated_stripped,
         dest="list_fields",
-        default="name,version,build,features,schannel",
-        help="Comma-separated list of PrefixRecord fields to print.",
+        default=",".join(DEFAULT_CONDA_LIST_FIELDS),
+        help="Comma-separated list of fields to print. "
+        f"Valid values: {", ".join(sorted(valid_fields()))}",
     )
     p.add_argument(
         "--reverse",
@@ -155,6 +165,14 @@ def print_export_header(subdir):
     print(f"# created-by: conda {__version__}")
 
 
+@cache
+def valid_fields() -> set[str]:
+    """Accepted values for 'conda list --fields'"""
+    from ..models.records import PrefixRecord
+
+    return {*PrefixRecord.fields, "schannel", "dist_str", "record_id"}
+
+
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
     for prefix_rec in sorted(installed, key=lambda x: x.name.lower()):
@@ -171,13 +189,14 @@ def list_packages(
     show_channel_urls=None,
     reload_records=True,
     fields=None,
-):
+) -> tuple[int, list[str] | list[dict[str, Any]]]:
     from ..base.constants import DEFAULTS_CHANNEL_NAME
     from ..base.context import context
     from ..core.prefix_data import PrefixData
+    from ..exceptions import CondaValueError
     from .common import disp_features
 
-    res = 0
+    exitcode = 0
 
     prefix_data = PrefixData(prefix, pip_interop_enabled=True)
     if reload_records:
@@ -185,25 +204,29 @@ def list_packages(
     installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
     fields = fields or context.list_fields
-
+    if invalid_fields := set(fields).difference(valid_fields()):
+        raise CondaValueError(
+            f"Invalid fields passed: {sorted(invalid_fields)}. "
+            f"Valid options are {sorted(valid_fields())}."
+        )
     packages = []
     titles = []
     widths = []
-    for f in fields:
-        if f == "features":
+    for field in fields:
+        if field == "features":
             title = ""
             width = 0
-        elif f == "schannel":
+        elif field == "schannel":
             title = "Channel"
             width = 1
-        elif f == "name":
+        elif field == "name":
             title = "Name"
             width = 23
-        elif f in ("version", "build"):
-            title = f.title()
+        elif field in ("version", "build"):
+            title = field.title()
             width = 15
         else:
-            title = f.title()
+            title = field.title()
             width = len(title)
         titles.append(title)
         widths.append(width)
@@ -232,6 +255,8 @@ def list_packages(
                     and schannel_value != DEFAULTS_CHANNEL_NAME
                 ):
                     value = str(schannel_value)
+                else:
+                    value = ""
             else:
                 value = str(prec.get(field, None) or "").strip()
                 if value == "None":
@@ -257,7 +282,7 @@ def list_packages(
         result.extend([template_line % tuple(package) for package in packages])
     else:
         result = list(packages)
-    return res, result
+    return exitcode, result
 
 
 def print_packages(
@@ -269,7 +294,7 @@ def print_packages(
     json=False,
     show_channel_urls=None,
     fields=None,
-):
+) -> int:
     from ..base.context import context
     from .common import stdout_json
 
