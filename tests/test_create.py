@@ -727,7 +727,7 @@ def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
             f"""
             # packages in environment at {prefix}:
             #
-            # Name                    Version         Build            Channel
+            # Name                     Version          Build            Channel
             """
         )
         assert not stderr

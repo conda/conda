@@ -205,8 +205,8 @@ def list_packages(
         )
     packages = []
     titles = [CONDA_LIST_FIELDS[field] for field in fields]
-    if fields == DEFAULT_CONDA_LIST_FIELDS and len(fields) == 5:
-        widths = [23, 15, 15, 0, 1]
+    if fields == DEFAULT_CONDA_LIST_FIELDS and len(fields) == 4:
+        widths = [23, 15, 15, 1]
     else:
         widths = [len(title) for title in titles]
     for prec in get_packages(installed, regex) if regex else installed:
