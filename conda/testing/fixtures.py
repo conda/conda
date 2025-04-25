@@ -586,7 +586,7 @@ def root_prefix_env_factory(env_in_root_prefix, conda_cli) -> Callable:
 
 
 @pytest.fixture
-def unset_condarc_pkgs() -> None:
+def unset_condarc_pkgs() -> Iterator:
     """Fixture which rewrites all `.condarc` temporarily to remove the `pkgs_dirs` entry.
 
     Necessary in CI, where the `setup-miniconda` action writes `pkgs_dirs` to ~/.condarc.

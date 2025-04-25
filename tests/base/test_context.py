@@ -12,14 +12,13 @@ from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
-from platformdirs import user_data_dir
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import (
-    APP_NAME,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
+    USER_DATA_DIR,
     ChannelPriority,
     PathConflict,
 )
@@ -886,64 +885,62 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
-def test_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs):
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        "user",
+        "conda_root",
+        None,
+    ],
+)
+def test_pkg_env_layout(testdata, unset_condarc_pkgs, pkg_env_layout):
     """Test that the default envs/pkgs directories are not in the base environment."""
-    user_data = Path(user_data_dir(APP_NAME, APP_NAME, None, False))
-    envs = user_data / "envs"
-    pkgs = user_data / "pkgs"
+    with mock.patch.dict(
+        os.environ, {"CONDA_PKG_ENV_LAYOUT": pkg_env_layout} if pkg_env_layout else {}
+    ):
+        reset_context()
+        if pkg_env_layout == "user":
+            basename = Path(USER_DATA_DIR)
+        else:
+            basename = Path(context.root_prefix)
 
-    # The pkgs and envs should exist in the user data dir
-    assert str(envs) in set(context.envs_dirs)
-    assert str(pkgs) in set(context.pkgs_dirs)
+        pkgs = basename / "pkgs"
+        envs = basename / "envs"
 
-    # They should not be in the prefix
-    prefix = Path(context.conda_prefix)
-    assert not envs.is_relative_to(prefix)
-    assert not pkgs.is_relative_to(prefix)
+        assert str(envs) in set(context.envs_dirs)
+        assert str(pkgs) in set(context.pkgs_dirs)
 
 
-def test_set_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs):
-    """Test that the envs/pkgs directories revert to legacy behavior if set."""
+@pytest.mark.parametrize("pkg_env_layout", ["user", "conda_root", "None"])
+def test_set_pkgs_envs_default_dirs(testdata, unset_condarc_pkgs, pkg_env_layout):
+    """Test that the default locations aren't used if pkgs_dirs and envs_dirs are set."""
     envs = "/usr/local/foo/envs"
     pkgs = "/usr/local/foo/pkgs"
 
-    additional_settings = dals(
-        f"""
-        envs_dirs:
-          - {envs}
-        pkgs_dirs:
-          - {pkgs}
-        """
-    )
+    new_environ = {
+        "CONDA_PKGS_DIRS": pkgs,
+        "CONDA_ENVS_DIRS": envs,
+    }
+    if pkg_env_layout:
+        new_environ["CONDA_PKG_ENV_LAYOUT"] = pkg_env_layout
 
-    # Set up the context
-    reset_context()
-    condarc = yaml_round_trip_load(TEST_CONDARC + additional_settings)
-    context._set_raw_data(
-        {"testdata": YamlRawParameter.make_raw_parameters("testdata", condarc)}
-    )
+    with mock.patch.dict(os.environ, new_environ):
+        reset_context()
 
-    # Track the calls to the context methods that get the old prefix
-    # locations of the pkgs and envs
-    with (
-        mock.patch.object(
-            context, "_prefix_pkgs_dirs", wraps=context._prefix_pkgs_dirs
-        ) as mock_prefix_pkgs,
-        mock.patch.object(
-            context, "_prefix_envs_dirs", wraps=context._prefix_envs_dirs
-        ) as mock_prefix_envs,
-    ):
-        context_envs_dirs = context.envs_dirs
-        context_pkgs_dirs = context.pkgs_dirs
+        if pkg_env_layout == "user":
+            basename = Path(USER_DATA_DIR)
+        else:
+            basename = Path(context.root_prefix)
 
-    # The prefix pkgs and envs methods should have been called
-    mock_prefix_pkgs.assert_called_once()
-    mock_prefix_envs.assert_called_once()
+        default_pkgs = str(basename / "pkgs")
+        root_prefix_envs = str(Path(context.root_prefix) / "envs")
 
-    # The prefix paths should match the context.pkgs_dirs and
-    # context.envs_dirs
-    assert set(context_envs_dirs) == set(context._prefix_envs_dirs())
-    assert set(context_pkgs_dirs) == set(context._prefix_pkgs_dirs())
+        assert {pkgs} == set(context.pkgs_dirs)
+        assert default_pkgs not in set(context.pkgs_dirs)
+
+        # Legacy behavior includes other directories regardless
+        # of whether the user has set CONDA_ENVS_DIRS or not
+        assert {envs, root_prefix_envs} <= set(context.envs_dirs)
 
 
 def test_pkgs_envs_old_default_dirs(

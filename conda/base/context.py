@@ -304,7 +304,7 @@ class Context(Configuration):
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
-    pkg_env_layout = ParameterLoader(PrimitiveParameter("conda_root", element_type=str))
+    pkg_env_layout = ParameterLoader(PrimitiveParameter("", element_type=str))
     _root_prefix = ParameterLoader(
         PrimitiveParameter(""), aliases=("root_dir", "root_prefix")
     )
@@ -746,6 +746,15 @@ class Context(Configuration):
             return (USER_DATA_ENVS,)
 
         # Otherwise fall back on root prefix location
+        if self.pkg_env_layout != "conda_root":
+            log.warning(
+                "The current location of `envs_dirs` resides in the root prefix. "
+                "This location is deprecated in 25.9, and will be switched to "
+                f"{USER_DATA_ENVS} by default in 26.3. To keep the current default "
+                f"locations for `envs_dirs` and `pkgs_dirs`, and silence this "
+                "warning run `conda config set pkg_env_layout conda_root`. "
+            )
+
         if self.root_writable:
             fixed_dirs = [
                 self.root_prefix_envs,
@@ -775,6 +784,15 @@ class Context(Configuration):
             return (self.user_data_pkgs,)
 
         # Otherwise, fall back on the root prefix location
+        if self.pkg_env_layout != "conda_root":
+            log.warning(
+                "The current location of `envs_dirs` resides in the root prefix. "
+                "This location is deprecated in 25.9, and will be switched to "
+                f"{self.user_data_pkgs} by default in 26.3. To keep the current default "
+                f"locations for `envs_dirs` and `pkgs_dirs`, and silence this "
+                "warning run `conda config set pkg_env_layout conda_root`. "
+            )
+
         cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
         fixed_dirs = [
             join("~", ".conda"),
@@ -788,23 +806,6 @@ class Context(Configuration):
                     *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
                 )
             )
-        )
-
-    def _prefix_envs_dirs(self) -> tuple[os.PathLike, ...]:
-        if self.root_writable:
-            fixed_dirs = [
-                self.root_prefix_envs,
-                join("~", ".conda", "envs"),
-            ]
-        else:
-            fixed_dirs = [
-                join("~", ".conda", "envs"),
-                self.root_prefix_envs,
-            ]
-        if on_win:
-            fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
-        return tuple(
-            dict.fromkeys(expand(path) for path in (*self._envs_dirs, *fixed_dirs))
         )
 
     @memoizedproperty
@@ -856,7 +857,7 @@ class Context(Configuration):
         return determine_target_prefix(self)
 
     @memoizedproperty
-    def root_prefix(self):
+    def root_prefix(self) -> os.PathLike[str]:
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
         else:
@@ -1305,6 +1306,7 @@ class Context(Configuration):
             "Basic Conda Configuration": (  # TODO: Is there a better category name here?
                 "envs_dirs",
                 "pkgs_dirs",
+                "pkg_env_layout",
                 "default_threads",
             ),
             "Network Configuration": (
@@ -1771,6 +1773,13 @@ class Context(Configuration):
                 Allow the conda solver to interact with non-conda-installed python packages.
                 """
             ),
+            pkg_env_layout=dals(
+                """
+                Where to store the pkgs and envs by default. If "user", ``pkgs/`` and ``envs/``
+                are stored in the user data directory by default. If ``pkgs_dirs`` or
+                ``envs_dirs`` are set, those directories take precedence over this.
+                """
+            ),
             pkgs_dirs=dals(
                 """
                 The list of directories where locally-available packages are linked from at
@@ -2010,21 +2019,16 @@ class Context(Configuration):
         )
 
     @property
-    def root_prefix_envs(self) -> os.PathLike:
+    def root_prefix_envs(self) -> os.PathLike[str]:
         return expand(join(self.root_prefix, "envs"))
 
     @property
-    def root_prefix_pkgs(self) -> os.PathLike:
+    def root_prefix_pkgs(self) -> os.PathLike[str]:
         return expand(join(self.root_prefix, "pkgs32" if self.force_32bit else "pkgs"))
 
     @property
-    def user_data_pkgs(self) -> os.PathLike:
-        return expand(
-            join(
-                user_data_dir(APP_NAME, APP_NAME),
-                "pkgs32" if self.force_32bit else "pkgs",
-            )
-        )
+    def user_data_pkgs(self) -> os.PathLike[str]:
+        return expand(join(USER_DATA_DIR, "pkgs32" if self.force_32bit else "pkgs"))
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
