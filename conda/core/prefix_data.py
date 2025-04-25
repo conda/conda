@@ -621,7 +621,7 @@ class PrefixData(metaclass=PrefixDataType):
         self, env_vars: dict[str, str]
     ) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
-        current_env_vars = env_state_file.get("env_vars", {})
+        current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
             current_env_vars.update(env_vars)
         else:
@@ -659,7 +659,7 @@ def get_conda_anchor_files_and_records(
 
     matcher = re.compile(
         r"^{}/[^/]+(?:{})$".format(
-            re.escape(str(site_packages_short_path)),
+            re.escape(site_packages_short_path),
             r"|".join(re.escape(fn) for fn in anchor_file_endings),
         )
     ).match
