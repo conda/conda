@@ -263,7 +263,7 @@ def test_pip_interop(
     # `python setup.py install`
     mocker.patch("conda.core.prefix_data.rm_rf")
 
-    prefixdata = PrefixData(path, pip_interop_enabled=True)
+    prefixdata = PrefixData(path, interoperability=True)
     prefixdata.load()
     records = load_site_packages(prefixdata.prefix_path, prefixdata._prefix_records)
 

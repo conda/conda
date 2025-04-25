@@ -59,19 +59,27 @@ log = getLogger(__name__)
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
+    @deprecated.argument(
+        "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
+    )
     def __call__(
         cls,
         prefix_path: str | os.PathLike | Path,
-        pip_interop_enabled: bool | None = None,
+        interoperability: bool | None = None,
     ) -> PrefixData:
         if isinstance(prefix_path, PrefixData):
             return prefix_path
         prefix_path = Path(prefix_path)
-        cache_key = prefix_path, pip_interop_enabled
+        interoperability = (
+            interoperability
+            if interoperability is not None
+            else context.prefix_data_interoperability
+        )
+        cache_key = prefix_path, interoperability
         if cache_key in PrefixData._cache_:
             return PrefixData._cache_[cache_key]
         else:
-            prefix_data_instance = super().__call__(prefix_path, pip_interop_enabled)
+            prefix_data_instance = super().__call__(prefix_path, interoperability)
             PrefixData._cache_[cache_key] = prefix_data_instance
             return prefix_data_instance
 
@@ -84,30 +92,31 @@ class PrefixData(metaclass=PrefixDataType):
 
     This class supports different types of tasks:
 
-    - Reading and querying `conda-meta/*.json` files as `PackageRecord` objects
-    - Reading PyPI-only packages, installed next to conda packages
+    - Reading and querying `conda-meta/*.json` files as `PrefixRecord` objects
     - Reading and writing environment-specific configuration (env vars, state file,
       nonadmin markers, etc)
     - Existence checks and validations of name, path, and magic files / markers
+    - Exposing non-conda packages installed in prefix as `PrefixRecord`, via the plugin system
     """
 
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
 
+    @deprecated.argument(
+        "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
+    )
     def __init__(
         self,
         prefix_path: str | os.PathLike[str] | Path,
-        pip_interop_enabled: bool | None = None,
+        interoperability: bool | None = None,
     ):
-        # pip_interop_enabled is a temporary parameter; DO NOT USE
-        # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = Path(prefix_path)
         self._magic_file = self.prefix_path / PREFIX_MAGIC_FILE
         self.__prefix_records = None
         self.__is_writable = NULL
-        self._pip_interop_enabled = (
-            pip_interop_enabled
-            if pip_interop_enabled is not None
-            else context.pip_interop_enabled
+        self.interoperability = (
+            interoperability
+            if interoperability is not None
+            else context.prefix_data_interoperability
         )
 
     @classmethod
@@ -316,13 +325,18 @@ class PrefixData(metaclass=PrefixDataType):
             )
             for meta_file in conda_meta_json_paths:
                 self._load_single_record(meta_file)
-        if self._pip_interop_enabled:  # TODO: Rename as general interop
+        if self.interoperability:
             for loader in context.plugin_manager.get_prefix_data_loaders():
                 loader(self.prefix_path, self.__prefix_records)
 
     def reload(self):
         self.load()
         return self
+
+    @property
+    @deprecated("25.9", "26.3", addendum="Use PrefixData.interoperability.")
+    def _pip_interop_enabled(self):
+        return self.interoperability
 
     def _get_json_fn(self, prefix_record):
         fn = prefix_record.fn
