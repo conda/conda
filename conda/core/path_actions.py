@@ -100,7 +100,7 @@ class Action:
         """Execute the action."""
         raise NotImplementedError()
 
-    def _execute(self):
+    def __call__(self):
         """Execute the action and call any post transaction hooks."""
         result = self.execute()
         context.plugin_manager.run_post_transaction_hooks(self)
@@ -127,10 +127,13 @@ class Action:
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
-class _Action(Action):
-    @deprecated("25.9", "26.3", addendum="Use `Action` instead.")
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "_Action",
+    Action,
+    addendum="Use `conda.core.path_actions.Action` instead.",
+)
 
 
 class PathAction(Action, metaclass=ABCMeta):
