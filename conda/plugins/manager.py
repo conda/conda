@@ -423,6 +423,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 hook.action(prefix, verbose)
             except Exception as err:
                 log.warning(f"Error running health check: {hook.name} ({err})")
+                raise
                 continue
 
     def invoke_pre_solves(

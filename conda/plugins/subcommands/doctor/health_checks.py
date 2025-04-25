@@ -186,7 +186,11 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         pm.get_solver_backend()
     )  # get the solver backend from the plugin manager
     pd = PrefixData(prefix)  # get prefix data
-    repodatas = {}  # create a repodatas dict
+    repodatas = {
+        "noarch": {}
+    }  # create a repodatas dict with noarch subdir already created as it is pre-requisite for creating a channel
+
+    # TODO create a list using iter_records and check its length, if 0 exit
 
     # segregate the package records based on subdir/architecture and package type
     for record in pd.iter_records():
@@ -206,30 +210,30 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
             path.mkdir(parents=True, exist_ok=True)
             (path / "repodata.json").write_text(json.dumps(repodata))
 
-        # a channel must always contain a "noarch/repodata.json" even if it's empty
-        # create a noarch directory and a populate it with an empty repodata.json in case it doesn't exist.
-        noarch_path = Path(tmp_dir) / "noarch" / "repodata.json"
-        noarch_path.parent.mkdir(parents=True, exist_ok=True)
-        if not noarch_path.exists():
-            noarch_path.write_text(json.dumps({}))
-
+        new_env_path = (
+            Path(tmp_dir) / "environment"
+        )  # a new environment to run the solver in
         fake_channel = Channel(tmp_dir)
-
         specs = [
             MatchSpec(name=record.name, version=record.version, build=record.build)
             for record in pd.iter_records()
         ]
 
         solver = SolverClass(
-            prefix, specs_to_add=specs, channels=[fake_channel]
+            prefix=new_env_path, specs_to_add=specs, channels=[fake_channel]
         )  # instantiate a solver object
-        final_state = solver.solve_final_state()  # get the final state from the solver
 
-        if sorted(pd.iter_records(), key=str) == sorted(
-            final_state, key=str
-        ):  # compare final state with prefix data
-            print(f"{OK_MARK} The environment is consistent.\n")
-        else:
+        try:
+            final_state = (
+                solver.solve_final_state()
+            )  # get the final state from the solver
+            if sorted(pd.iter_records(), key=str) == sorted(
+                final_state, key=str
+            ):  # compare final state with prefix data
+                print(f"{OK_MARK} The environment is consistent.\n")
+            else:
+                print(f"{X_MARK} The environment is not consistent.\n")
+        except Exception:
             print(f"{X_MARK} The environment is not consistent.\n")
 
 
