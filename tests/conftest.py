@@ -96,6 +96,12 @@ def do_not_notify_outdated_conda(monkeypatch):
     monkeypatch.setenv("CONDA_NOTIFY_OUTDATED_CONDA", "false")
 
 
+@pytest.fixture(autouse=True)
+def automatically_use_conda_root_pkgs_envs(monkeypatch):
+    """Do not notify about pkgs/ and envs/ in the root prefix during tests."""
+    monkeypatch.setenv("CONDA_PKG_ENV_LAYOUT", "conda_root")
+
+
 @pytest.fixture
 def plugin_manager(mocker) -> CondaPluginManager:
     pm = CondaPluginManager()

@@ -630,7 +630,7 @@ def unset_condarc_pkgs() -> Iterator:
 
 
 @pytest.fixture
-def unset_condarc_envs() -> None:
+def unset_condarc_envs() -> Iterator:
     """Fixture which rewrites all `.condarc` temporarily to remove the `envs_dirs` entry.
 
     If no .condarc is found in the context, this fixture is a noop.
