@@ -97,12 +97,6 @@ repos:
       # verify github syntaxes
       - id: check-github-workflows
       - id: check-dependabot
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.400
-    hooks:
-      - id: pyright
-        entry: pyright || true --
-        additional_dependencies: ['pyright[nodejs]']
 
   - repo: meta
     # see https://pre-commit.com/#meta-hooks
