@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.core.prefix_data.get_python_version_for_prefix()` as pending deprecation. Use `conda.core.prefix_data.PrefixData(prefix).get("python").version` instead. It will be permanently removed in 26.3. (#14750)
+* Mark `conda.core.prefix_data.get_python_version_for_prefix()` as pending deprecation, to be removed in 26.3. Use `conda.core.prefix_data.PrefixData(prefix).get("python").version` instead. (#14750)
 * Mark `conda.core.prefix_data.PrefixData._load_site_packages()` as pending deprecation. Use `conda.plugins.prefix_data_loaders.pypi.load_site_packages()` instead. It will be permanently removed in 26.3. (#14750)
 * Mark `conda.core.prefix_data.PrefixData._python_pkg_record` as pending deprecation. Use `PrefixData.get("python")` instead. It will be permanently removed in 26.3. (#14750)
 * Mark `conda.core.prefix_data.python_record_for_prefix()` as pending deprecation. Use `conda.core.prefix_data.PrefixData(prefix).get("python")` instead. It will be permanently removed in 26.3. (#14750)
