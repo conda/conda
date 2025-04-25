@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import re
-from functools import cache
 from os.path import isdir, isfile
 from typing import TYPE_CHECKING
 
@@ -24,7 +23,7 @@ log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..base.constants import DEFAULT_CONDA_LIST_FIELDS
+    from ..base.constants import CONDA_LIST_FIELDS
     from .helpers import (
         add_parser_json,
         add_parser_prefix,
@@ -79,9 +78,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--fields",
         type=comma_separated_stripped,
         dest="list_fields",
-        default=",".join(DEFAULT_CONDA_LIST_FIELDS),
         help="Comma-separated list of fields to print. "
-        f"Valid values: {', '.join(sorted(valid_fields()))}",
+        f"Valid values: {', '.join(sorted(CONDA_LIST_FIELDS))}",
     )
     p.add_argument(
         "--reverse",
@@ -165,14 +163,6 @@ def print_export_header(subdir):
     print(f"# created-by: conda {__version__}")
 
 
-@cache
-def valid_fields() -> set[str]:
-    """Accepted values for 'conda list --fields'"""
-    from ..models.records import PrefixRecord
-
-    return {*PrefixRecord.fields, "channel_name", "dist_str", "record_id"}
-
-
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
     for prefix_rec in sorted(installed, key=lambda x: x.name.lower()):
@@ -190,7 +180,11 @@ def list_packages(
     reload_records=True,
     fields=None,
 ) -> tuple[int, list[str] | list[dict[str, Any]]]:
-    from ..base.constants import DEFAULTS_CHANNEL_NAME
+    from ..base.constants import (
+        CONDA_LIST_FIELDS,
+        DEFAULT_CONDA_LIST_FIELDS,
+        DEFAULTS_CHANNEL_NAME,
+    )
     from ..base.context import context
     from ..core.prefix_data import PrefixData
     from ..exceptions import CondaValueError
@@ -204,33 +198,17 @@ def list_packages(
     installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
     fields = fields or context.list_fields
-    if invalid_fields := set(fields).difference(valid_fields()):
+    if invalid_fields := set(fields).difference(CONDA_LIST_FIELDS):
         raise CondaValueError(
             f"Invalid fields passed: {sorted(invalid_fields)}. "
-            f"Valid options are {sorted(valid_fields())}."
+            f"Valid options are {list(CONDA_LIST_FIELDS)}."
         )
     packages = []
-    titles = []
-    widths = []
-    for field in fields:
-        if field == "features":
-            title = ""
-            width = 0
-        elif field == "channel_name":
-            title = "Channel"
-            width = 1
-        elif field == "name":
-            title = "Name"
-            width = 23
-        elif field in ("version", "build"):
-            title = field.title()
-            width = 15
-        else:
-            title = field.title()
-            width = len(title)
-        titles.append(title)
-        widths.append(width)
-
+    titles = [CONDA_LIST_FIELDS[field] for field in fields]
+    if fields == DEFAULT_CONDA_LIST_FIELDS and len(fields) == 5:
+        widths = [23, 15, 15, 0, 1]
+    else:
+        widths = [len(title) for title in titles]
     for prec in get_packages(installed, regex) if regex else installed:
         if format == "canonical":
             packages.append(
@@ -271,14 +249,14 @@ def list_packages(
         packages = reversed(packages)
 
     if format == "human":
-        template_line = " ".join([f"%-{width}s" for width in widths])
+        template_line = "  ".join([f"%-{width}s" for width in widths])
         result = [
             f"# packages in environment at {prefix}:",
             "#",
             f"# {template_line}" % tuple(titles),
         ]
         widths[0] += 2  # account for the '# ' prefix in the header line
-        template_line = " ".join([f"%-{width}s" for width in widths])
+        template_line = "  ".join([f"%-{width}s" for width in widths])
         result.extend([template_line % tuple(package) for package in packages])
     else:
         result = list(packages)

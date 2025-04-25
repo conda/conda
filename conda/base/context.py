@@ -51,6 +51,7 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
 from .constants import (
     APP_NAME,
+    CONDA_LIST_FIELDS,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNEL_ALIAS,
     DEFAULT_CHANNELS,
@@ -179,6 +180,15 @@ def default_python_validation(value):
         return True
 
     return f"default_python value '{value}' not of the form '[23].[0-9][0-9]?' or ''"
+
+
+def list_fields_validation(value):
+    if invalid := set(value).difference(CONDA_LIST_FIELDS):
+        return (
+            f"Invalid value(s): {sorted(invalid)}. "
+            f"Valid values are: {sorted(CONDA_LIST_FIELDS)}"
+        )
+    return True
 
 
 def ssl_verify_validation(value):
@@ -453,6 +463,7 @@ class Context(Configuration):
         SequenceParameter(
             PrimitiveParameter("", element_type=str),
             default=DEFAULT_CONDA_LIST_FIELDS,
+            validation=list_fields_validation,
         )
     )
     offline = ParameterLoader(PrimitiveParameter(False))
@@ -1638,7 +1649,7 @@ class Context(Configuration):
             ),
             list_fields=dals(
                 """
-                PrefixRecord fields to report as columns in the output of `conda list`.
+                Default fields to report as columns in the output of `conda list`.
                 """
             ),
             local_repodata_ttl=dals(
