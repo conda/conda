@@ -181,14 +181,17 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
 
 
 def consistent_env_check(prefix: str, verbose: bool) -> None:
-    pm = context.plugin_manager  # get the plugin manager from context
-    SolverClass = (
-        pm.get_solver_backend()
-    )  # get the solver backend from the plugin manager
-    pd = PrefixData(prefix)  # get prefix data
-    repodatas = {
-        "noarch": {}
-    }  # create a repodatas dict with noarch subdir already created as it is pre-requisite for creating a channel
+    # get the plugin manager from context
+    pm = context.plugin_manager
+
+    # get the solver backend from the plugin manager
+    SolverClass = pm.get_solver_backend()
+
+    # get prefix data
+    pd = PrefixData(prefix)
+
+    # create a repodatas dict with noarch subdir already created as it is pre-requisite for creating a channel
+    repodatas = {"noarch": {}}
 
     # TODO create a list using iter_records and check its length, if 0 exit
 
@@ -216,19 +219,18 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
             for record in pd.iter_records()
         ]
 
+        # instantiate a solver object
         solver = SolverClass(
             prefix=Path(tmp_dir) / "environment",
             specs_to_add=specs,
             channels=[fake_channel],
-        )  # instantiate a solver object
+        )
 
         try:
-            final_state = (
-                solver.solve_final_state()
-            )  # get the final state from the solver
-            if sorted(pd.iter_records(), key=str) == sorted(
-                final_state, key=str
-            ):  # compare final state with prefix data
+            # get the final state from the solver
+            final_state = solver.solve_final_state()
+            # compare final state with prefix data
+            if sorted(pd.iter_records(), key=str) == sorted(final_state, key=str):
                 print(f"{OK_MARK} The environment is consistent.\n")
             else:
                 print(f"{X_MARK} The environment is not consistent.\n")
