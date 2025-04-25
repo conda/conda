@@ -1334,7 +1334,9 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
         # stderrlog.error("\n" + exc_val.__repr__() + \n")
 
 
-def _format_exc(exc_val: BaseException | None = None, exc_tb: TracebackType | None = None):
+def _format_exc(
+    exc_val: BaseException | None = None, exc_tb: TracebackType | None = None
+):
     if exc_val is None:
         exc_type, exc_val, exc_tb = sys.exc_info()
     else:
