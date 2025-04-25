@@ -73,7 +73,7 @@ class CondaError(Exception):
     return_code: int = 1
     reportable: bool = False  # Exception may be reported to core maintainers
 
-    def __init__(self, message: str | None, caused_by: Any = None, **kwargs) -> None:
+    def __init__(self, message: str | None, caused_by: Any = None, **kwargs):
         self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
@@ -113,7 +113,7 @@ class CondaError(Exception):
 
 
 class CondaMultiError(CondaError):
-    def __init__(self, errors: Iterable[CondaError]) -> None:
+    def __init__(self, errors: Iterable[CondaError]):
         self.errors = errors
         super().__init__(None)
 
