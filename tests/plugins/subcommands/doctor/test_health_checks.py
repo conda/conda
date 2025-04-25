@@ -29,6 +29,9 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
 
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from tests.conftest import test_recipes_channel
+
 
 @pytest.fixture(params=[".pyo", ".pyc"])
 def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]:
@@ -395,12 +398,22 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
 
 def test_env_consistency_check_pass(
     env_consistent: tuple[Path, str, str, str, str],
-    monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
-    tmp_path: Path,
 ):
     """Test that runs for the case when the environment is consistent"""
     prefix, _, _, _, package = env_consistent
     consistent_env_check(prefix=prefix, verbose=True)
     captured = capsys.readouterr()
     assert f"{OK_MARK} The environment is consistent.\n" in captured.out
+
+
+def test_env_consistency_check_fails(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
