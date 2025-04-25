@@ -329,7 +329,7 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-typechecking-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
@@ -686,7 +686,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
+    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, linux-typechecking, macos]
     if: >-
       !cancelled()
       && (
@@ -715,7 +715,7 @@ jobs:
 
   # required check
   analyze:
-    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
+    needs: [windows, linux, linux-benchmarks, linux-qemu, linux-typechecking, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-latest
