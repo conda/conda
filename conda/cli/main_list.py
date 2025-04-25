@@ -79,7 +79,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         type=comma_separated_stripped,
         dest="list_fields",
         help="Comma-separated list of fields to print. "
-        f"Valid values: {', '.join(sorted(CONDA_LIST_FIELDS))}",
+        f"Valid values: {sorted(CONDA_LIST_FIELDS)}.",
     )
     p.add_argument(
         "--reverse",
