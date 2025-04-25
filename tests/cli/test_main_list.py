@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.constants import CONDA_LIST_FIELDS
+from conda.common.configuration import CustomValidationError
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
-from conda.models.records import PrefixRecord
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -209,7 +211,7 @@ def test_explicit(
         assert output == output2
 
 
-def test_fields(test_recipes_channel: Path, conda_cli, tmp_env):
+def test_fields_dependent(test_recipes_channel: Path, conda_cli, tmp_env):
     pkg = "dependent=1.0"
     with tmp_env(pkg) as prefix:
         assert package_is_installed(prefix, pkg)
@@ -218,7 +220,32 @@ def test_fields(test_recipes_channel: Path, conda_cli, tmp_env):
             "list",
             f"--prefix={prefix}",
             "--fields",
-            ",".join(PrefixRecord.__fields__.keys()),
+            "name",
         )
         assert not rc
-        assert "dependent" in output
+        assert "dependent" in output.splitlines()
+
+        output, _, rc = conda_cli(
+            "list", f"--prefix={prefix}", "--fields", "version", "dependent"
+        )
+        assert not rc
+        assert "1.0" in output.splitlines()
+
+
+def test_fields_all(conda_cli):
+    output, _, rc = conda_cli(
+        "list", f"--prefix={sys.prefix}", "--fields", ",".join(CONDA_LIST_FIELDS)
+    )
+    assert not rc
+
+
+def test_fields_invalid(conda_cli):
+    out, err, exc = conda_cli(
+        "list",
+        f"--prefix={sys.prefix}",
+        "--fields",
+        "invalid-field",
+        raises=CustomValidationError,
+    )
+    assert "list_fields" in str(exc)
+    assert "invalid-field" in str(exc)
