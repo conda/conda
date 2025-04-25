@@ -186,3 +186,11 @@ select = [
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
 ]
+
+[tool.pyright]
+exclude = [
+  "**/__pycache__",
+]
+include = ["conda"]
+reportMissingImports = "error"
+reportMissingTypeStubs = false
