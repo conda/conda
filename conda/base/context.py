@@ -527,7 +527,7 @@ class Context(Configuration):
         search_path: PathsType | None = None,
         argparse_args: Namespace | None = None,
         **kwargs,
-    ) -> None:
+    ):
         super().__init__(argparse_args=argparse_args)
 
         self._set_search_path(
@@ -2002,7 +2002,7 @@ class ContextStackObject:
         self,
         search_path: PathsType = SEARCH_PATH,
         argparse_args: Namespace | None = None,
-    ) -> None:
+    ):
         self.set_value(search_path, argparse_args)
 
     def set_value(
