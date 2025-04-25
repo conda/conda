@@ -210,9 +210,6 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
             path.mkdir(parents=True, exist_ok=True)
             (path / "repodata.json").write_text(json.dumps(repodata))
 
-        new_env_path = (
-            Path(tmp_dir) / "environment"
-        )  # a new environment to run the solver in
         fake_channel = Channel(tmp_dir)
         specs = [
             MatchSpec(name=record.name, version=record.version, build=record.build)
@@ -220,7 +217,9 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         ]
 
         solver = SolverClass(
-            prefix=new_env_path, specs_to_add=specs, channels=[fake_channel]
+            prefix=Path(tmp_dir) / "environment",
+            specs_to_add=specs,
+            channels=[fake_channel],
         )  # instantiate a solver object
 
         try:
