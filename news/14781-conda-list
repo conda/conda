@@ -9,7 +9,7 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.models.records.PackageRecord.schannel` as pending deprecation. Use `conda.models.records.PackageRecord.channel_name` instead. It will be permanently removed in 26.3. (#14781)
 
 ### Docs
 

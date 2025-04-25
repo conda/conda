@@ -272,7 +272,7 @@ DEFAULT_JSON_REPORTER_BACKEND = "json"
 DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
 
 #: The default `conda list` columns
-DEFAULT_CONDA_LIST_FIELDS = ("name", "version", "build", "features", "schannel")
+DEFAULT_CONDA_LIST_FIELDS = ("name", "version", "build", "features", "channel_name")
 
 
 class NoticeLevel(ValueEnum):

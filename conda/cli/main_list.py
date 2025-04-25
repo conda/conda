@@ -81,7 +81,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         dest="list_fields",
         default=",".join(DEFAULT_CONDA_LIST_FIELDS),
         help="Comma-separated list of fields to print. "
-        f"Valid values: {", ".join(sorted(valid_fields()))}",
+        f"Valid values: {', '.join(sorted(valid_fields()))}",
     )
     p.add_argument(
         "--reverse",
@@ -170,7 +170,7 @@ def valid_fields() -> set[str]:
     """Accepted values for 'conda list --fields'"""
     from ..models.records import PrefixRecord
 
-    return {*PrefixRecord.fields, "schannel", "dist_str", "record_id"}
+    return {*PrefixRecord.fields, "channel_name", "dist_str", "record_id"}
 
 
 def get_packages(installed, regex):
@@ -216,7 +216,7 @@ def list_packages(
         if field == "features":
             title = ""
             width = 0
-        elif field == "schannel":
+        elif field == "channel_name":
             title = "Channel"
             width = 1
         elif field == "name":
@@ -247,14 +247,14 @@ def list_packages(
             if field == "features":
                 features = set(prec.get("features") or ())
                 value = disp_features(features)
-            elif field == "schannel":
-                schannel_value = prec.get("schannel")
+            elif field == "channel_name":
+                channel_name = prec.get("channel_name")
                 if (
                     show_channel_urls
                     or show_channel_urls is None
-                    and schannel_value != DEFAULTS_CHANNEL_NAME
+                    and channel_name != DEFAULTS_CHANNEL_NAME
                 ):
-                    value = str(schannel_value)
+                    value = str(channel_name)
                 else:
                     value = ""
             else:
