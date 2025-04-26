@@ -15,6 +15,7 @@ from logging import getLogger
 from pathlib import Path
 from shutil import copyfile, rmtree
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
+from unittest import mock
 
 import py
 import pytest
@@ -692,3 +693,20 @@ def unset_condarc_envs() -> Iterator:
     else:
         # This fixture is a noop if a .condarc isn't found
         yield
+
+
+@pytest.fixture
+def set_context_pkg_env_layout_root() -> Iterator:
+    string = dals(
+        """
+        pkg_env_layout: conda_root
+        """
+    )
+    reset_context()
+    rd = {
+        "testdata": YamlRawParameter.make_raw_parameters(
+            "testdata", yaml_round_trip_load(string)
+        )
+    }
+    context._set_raw_data(rd)
+    yield context

@@ -104,17 +104,6 @@ def automatically_use_conda_root_pkgs_envs(monkeypatch):
 
 
 @pytest.fixture
-def mock_pkg_env_layout_conda_root() -> Iterator:
-    # Start by resetting the context to ensure the all config files are targeted
-    with mock.patch(
-        "conda.base.context.Context.pkg_env_layout",
-        new_callable=mock.PropertyMock,
-    ) as mock_pkg_env_layout:
-        mock_pkg_env_layout.return_value = 'conda_root'
-        yield mock_pkg_env_layout
-
-
-@pytest.fixture
 def plugin_manager(mocker) -> CondaPluginManager:
     pm = CondaPluginManager()
     pm.add_hookspecs(CondaSpecs)
