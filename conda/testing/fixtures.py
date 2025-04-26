@@ -15,10 +15,12 @@ from logging import getLogger
 from pathlib import Path
 from shutil import copyfile, rmtree
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
+from unittest import mock
 
 import py
 import pytest
 
+from conda.common.configuration import ParameterLoader, PrimitiveParameter
 from conda.common.serialize import yaml_round_trip_load, yaml_safe_dump, yaml_safe_load
 from conda.deprecations import deprecated
 from conda.gateways.disk.test import is_conda_environment
@@ -696,17 +698,10 @@ def unset_condarc_envs() -> Iterator:
 
 @pytest.fixture
 def set_context_pkg_env_layout_root() -> Iterator:
-    string = dals(
-        """
-        pkg_env_layout: conda_root
-        """
+    mock_pkg_env_layout = ParameterLoader(
+        PrimitiveParameter("conda_root", element_type=str)
     )
-    reset_context()
-    rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
-    }
-    context._set_raw_data(rd)
-    reset_context()
-    yield context
+    with mock.patch(
+        "conda.base.context.Context.pkg_env_layout", new=mock_pkg_env_layout
+    ):
+        yield mock_pkg_env_layout
