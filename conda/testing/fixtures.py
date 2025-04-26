@@ -15,7 +15,6 @@ from logging import getLogger
 from pathlib import Path
 from shutil import copyfile, rmtree
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
-from unittest import mock
 
 import py
 import pytest
@@ -709,4 +708,5 @@ def set_context_pkg_env_layout_root() -> Iterator:
         )
     }
     context._set_raw_data(rd)
+    reset_context()
     yield context
