@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 
@@ -20,7 +21,7 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
 
     from pytest_mock import MockerFixture
 
@@ -100,6 +101,17 @@ def do_not_notify_outdated_conda(monkeypatch):
 def automatically_use_conda_root_pkgs_envs(monkeypatch):
     """Do not notify about pkgs/ and envs/ in the root prefix during tests."""
     monkeypatch.setenv("CONDA_PKG_ENV_LAYOUT", "conda_root")
+
+
+@pytest.fixture
+def mock_pkg_env_layout_conda_root() -> Iterator:
+    # Start by resetting the context to ensure the all config files are targeted
+    with mock.patch(
+        "conda.base.context.Context.pkg_env_layout",
+        new_callable=mock.PropertyMock,
+    ) as mock_pkg_env_layout:
+        mock_pkg_env_layout.return_value = 'conda_root'
+        yield mock_pkg_env_layout
 
 
 @pytest.fixture

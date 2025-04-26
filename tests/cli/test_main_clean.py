@@ -102,6 +102,7 @@ def test_clean_and_packages(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     tmp_pkgs_dir: Path,
+    mock_pkg_env_layout_conda_root,
 ):
     pkg = "small-executable"
 
@@ -282,6 +283,7 @@ def test_clean_all(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     tmp_pkgs_dir: Path,
+    mock_pkg_env_layout_conda_root,
 ):
     pkg = "small-executable"
     args = ("--yes", "--json")

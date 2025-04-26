@@ -280,6 +280,7 @@ def test_rename_with_force_and_dry_run(
     conda_cli: CondaCLIFixture,
     env_one: str,
     env_rename: str,
+    mock_pkg_env_layout_conda_root,
 ):
     """
     Runs a test where we specify the --yes and --dry-run flags to forcefully rename
