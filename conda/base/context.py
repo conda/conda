@@ -521,12 +521,12 @@ class Context(Configuration):
     def __init__(self, search_path=None, argparse_args=None, **kwargs):
         super().__init__(argparse_args=argparse_args)
 
+        self._set_env_vars(APP_NAME)
         self._set_search_path(
             SEARCH_PATH if search_path is None else search_path,
             # for proper search_path templating when --name/--prefix is used
             CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
-        self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
 
     def post_build_validation(self):
