@@ -701,6 +701,7 @@ def set_context_pkg_env_layout_root() -> Iterator:
     mock_pkg_env_layout = ParameterLoader(
         PrimitiveParameter("conda_root", element_type=str)
     )
+    mock_pkg_env_layout._set_name("pkg_env_layout")
     with mock.patch(
         "conda.base.context.Context.pkg_env_layout", new=mock_pkg_env_layout
     ):
