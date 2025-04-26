@@ -899,7 +899,11 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     ],
 )
 def test_pkg_env_layout(
-    testdata, unset_condarc_pkgs, unset_condarc_envs, pkg_env_layout
+    testdata,
+    unset_condarc_pkgs,
+    unset_condarc_envs,
+    pkg_env_layout,
+    unset_condarc_pkg_env_layout,
 ):
     """Test that the default envs/pkgs directories are not in the base environment."""
     with mock.patch.dict(os.environ):
@@ -923,7 +927,11 @@ def test_pkg_env_layout(
 
 @pytest.mark.parametrize("pkg_env_layout", ["user", "conda_root", None])
 def test_set_pkgs_envs_default_dirs(
-    testdata, unset_condarc_pkgs, unset_condarc_envs, pkg_env_layout
+    testdata,
+    unset_condarc_pkgs,
+    unset_condarc_envs,
+    pkg_env_layout,
+    unset_condarc_pkg_env_layout,
 ):
     """Test that the default locations aren't used if pkgs_dirs and envs_dirs are set."""
     envs = "/usr/local/foo/envs"
@@ -961,7 +969,12 @@ def test_set_pkgs_envs_default_dirs(
 
 @mock.patch.dict(os.environ)
 def test_pkgs_envs_old_default_dirs(
-    testdata, propagate_conda_logger, caplog, unset_condarc_pkgs, unset_condarc_envs
+    testdata,
+    propagate_conda_logger,
+    caplog,
+    unset_condarc_pkgs,
+    unset_condarc_envs,
+    unset_condarc_pkg_env_layout,
 ):
     """Test that the old locations of envs/pkgs directories generate a log warning."""
     del os.environ["CONDA_PKG_ENV_LAYOUT"]
@@ -985,7 +998,11 @@ def test_pkgs_envs_old_default_dirs(
 
 @pytest.mark.parametrize("pkg_env_layout", ["user", "conda_root", None])
 def test_pkgs_envs_configured(
-    testdata, unset_condarc_pkgs, unset_condarc_envs, pkg_env_layout
+    testdata,
+    unset_condarc_pkgs,
+    unset_condarc_envs,
+    pkg_env_layout,
+    unset_condarc_pkg_env_layout,
 ):
     """Test that the context uses the requested paths when `pkgs_dirs`/`envs_dirs` are set."""
     envs = "/usr/local/foo/envs"

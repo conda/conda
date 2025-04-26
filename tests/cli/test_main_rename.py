@@ -22,7 +22,7 @@ from conda.exceptions import (
 from conda.testing.fixtures import TmpEnvFixture
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
@@ -299,10 +299,10 @@ def test_rename_with_force_and_dry_run(
 
 
 def test_protected_dirs_error_for_rename(
-    conda_cli: CondaCLIFixture, env_one: str, tmp_env: TmpEnvFixture
+    conda_cli: CondaCLIFixture, env_one: str, tmp_env: Iterator[TmpEnvFixture]
 ):
     with (
-        tmp_env(),
+        tmp_env() as source,
         pytest.raises(
             CondaValueError,
             match="Environment paths cannot be immediately nested under another conda environment.",
@@ -310,7 +310,7 @@ def test_protected_dirs_error_for_rename(
     ):
         conda_cli(
             "rename",
-            f"--prefix={tmp_env}",
+            f"--prefix={source}",
             f"{context.root_prefix}/{env_one}",
         )
 

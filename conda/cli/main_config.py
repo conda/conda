@@ -19,8 +19,6 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
-from conda.gateways.disk.test import is_conda_environment
-
 from ..base.constants import DEFAULTS_CHANNEL_NAME
 
 if TYPE_CHECKING:
@@ -835,7 +833,7 @@ def execute_config(args, parser):
         stdout_json_success(rc_path=rc_path, warnings=json_warnings, get=json_get)
 
 
-def migrate_pkgs(context, config: dict):
+def migrate_pkgs(context, _config: dict):
     """Migrate the pkgs/ directory from the root prefix to the user data directory.
 
     Uses hardlinks if they are supported, otherwise fall back to just copying
@@ -847,11 +845,18 @@ def migrate_pkgs(context, config: dict):
     from .. import CondaError
     from ..common.path.directories import copy_dir_contents, hardlink_dir_contents
 
-    key = "pkgs_dirs"
-    if key in config:
+    if context._pkgs_dirs:
         raise CondaError(
-            f"The conda configuration for {key} has been explicitly set and "
+            "The conda configuration for pkgs_dirs has been explicitly set and "
             "cannot be migrated."
+        )
+
+    layout = context.pkg_env_layout
+    if layout != "user":
+        raise CondaError(
+            f"The conda configuration for pkg_env_layout is set to {layout}; "
+            "Unless this setting is changed with `conda config set pkg_env_layout user` "
+            "conda will continue to store packages in the root prefix by default."
         )
 
     root_prefix_pkgs = context.root_prefix_pkgs
@@ -887,7 +892,7 @@ def migrate_pkgs(context, config: dict):
         raise CondaError(f"Failed to migrate {root_prefix_pkgs} to {dest}.") from e
 
 
-def migrate_envs(context, config: dict):
+def migrate_envs(context, _config: dict):
     """Migrate the envs/ directory from the root prefix to the user data directory.
 
     Uses hardlinks if they are supported, otherwise fall back to just copying
@@ -901,18 +906,26 @@ def migrate_envs(context, config: dict):
     from .. import CondaError
     from ..base.constants import USER_DATA_ENVS
     from ..cli.main_rename import rename
+    from ..core.prefix_data import PrefixData
 
     logger = getLogger(__name__)
 
-    key = "envs_dirs"
-    if key in config:
+    if context._envs_dirs:
         raise CondaError(
-            f"The conda configuration for {key} has been explicitly set and "
+            "The conda configuration for 'envs_dirs' has been explicitly set and "
             "cannot be migrated."
         )
 
-    root_prefix_envs = context.root_prefix_envs
-    if not isdir(root_prefix_envs):
+    layout = context.pkg_env_layout
+    if layout != "user":
+        raise CondaError(
+            f"The conda configuration for pkg_env_layout is set to {layout}; "
+            "Unless this setting is changed with `conda config set pkg_env_layout user` "
+            "conda will continue to store environments in the root prefix by default."
+        )
+
+    root_prefix_envs = Path(context.root_prefix_envs)
+    if not root_prefix_envs.is_dir():
         raise CondaError(
             f"The root prefix ({context.root_prefix}) does not contain an `envs` "
             "directory. No migration is necessary."
@@ -920,12 +933,12 @@ def migrate_envs(context, config: dict):
 
     failures = {}
     dest = Path(USER_DATA_ENVS)
-    root_prefix_envs = Path(context.root_prefix_envs)
     for env in os.listdir(root_prefix_envs):
-        if is_conda_environment(env):
+        prefix = root_prefix_envs / env
+        if PrefixData(prefix).is_environment():
             try:
                 rename(
-                    source=str(root_prefix_envs / env),
+                    source=str(prefix),
                     destination=str(dest / env),
                     dry_run=False,
                     force=False,
