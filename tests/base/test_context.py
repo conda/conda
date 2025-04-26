@@ -927,6 +927,7 @@ def test_pkg_env_layout(
 
 @pytest.mark.parametrize("pkg_env_layout", ["user", "conda_root", None])
 def test_set_pkgs_envs_default_dirs(
+    tmpdir,
     testdata,
     unset_condarc_pkgs,
     unset_condarc_envs,
@@ -934,8 +935,8 @@ def test_set_pkgs_envs_default_dirs(
     unset_condarc_pkg_env_layout,
 ):
     """Test that the default locations aren't used if pkgs_dirs and envs_dirs are set."""
-    envs = "/usr/local/foo/envs"
-    pkgs = "/usr/local/foo/pkgs"
+    pkgs = str(tmpdir / "pkgs")
+    envs = str(tmpdir / "envs")
 
     with mock.patch.dict(
         os.environ,
@@ -998,6 +999,7 @@ def test_pkgs_envs_old_default_dirs(
 
 @pytest.mark.parametrize("pkg_env_layout", ["user", "conda_root", None])
 def test_pkgs_envs_configured(
+    tmpdir,
     testdata,
     unset_condarc_pkgs,
     unset_condarc_envs,
@@ -1005,8 +1007,8 @@ def test_pkgs_envs_configured(
     unset_condarc_pkg_env_layout,
 ):
     """Test that the context uses the requested paths when `pkgs_dirs`/`envs_dirs` are set."""
-    envs = "/usr/local/foo/envs"
-    pkgs = "/usr/local/foo/pkgs"
+    pkgs = str(tmpdir / "pkgs")
+    envs = str(tmpdir / "envs")
 
     with mock.patch.dict(
         os.environ,
