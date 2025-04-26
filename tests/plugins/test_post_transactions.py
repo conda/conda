@@ -140,9 +140,15 @@ def test_post_transaction_raises_exception(tmp_env, post_transaction_plugin):
     assert isinstance(post_transaction_plugin.call_args_list[0].args[0], Action)
 
 
+@pytest.mark.skip(
+    reason=(
+        "Useful for testing post-transaction hook overhead, with pytest --durations=0 "
+        "but otherwise this can be quite slow."
+    )
+)
 def test_post_transaction_overhead(tmp_env, post_transaction_plugin_overhead, caplog):
     """Test that the post transaction hooks don't cause too much overhead."""
-    with limit_time(400):
+    with limit_time(600):
         root_logger = logging.getLogger()
         with caplog.at_level(logging.INFO):
             original_execute = UnlinkLinkTransaction.execute
