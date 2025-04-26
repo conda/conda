@@ -5,10 +5,14 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 
-from conda.base.context import context, locate_prefix_by_name
+from conda.base.context import (
+    context,
+    locate_prefix_by_name,
+)
 from conda.common.compat import on_win
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
@@ -249,12 +253,18 @@ def test_rename_with_dry_run(conda_cli: CondaCLIFixture, env_one: str, env_renam
     Runs a test where we specify the --dry-run flag to remove an existing directory.
     Without this flag, it would actually execute all the actions.
     """
-    stdout, stderr, err = conda_cli(
-        "rename",
-        *("--name", env_one),
-        env_rename,
-        "--dry-run",
-    )
+
+    with mock.patch(
+        "conda.base.context.Context.pkg_env_layout",
+        new_callable=mock.PropertyMock,
+    ) as mock_envs:
+        mock_envs.return_value = "conda_root"
+        stdout, stderr, err = conda_cli(
+            "rename",
+            *("--name", env_one),
+            env_rename,
+            "--dry-run",
+        )
 
     assert locate_prefix_by_name(env_one)
     with pytest.raises(EnvironmentNameNotFound):
