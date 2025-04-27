@@ -6,7 +6,6 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import pytest
 
@@ -21,7 +20,7 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Iterable
 
     from pytest_mock import MockerFixture
 
