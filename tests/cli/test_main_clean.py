@@ -106,6 +106,8 @@ def test_clean_and_packages(
     unset_condarc_pkgs,
     unset_condarc_envs,
 ):
+    out, err, _ = conda_cli("config", "--show-sources")
+    print(out, err)
     pkg = "small-executable"
 
     # pkg doesn't exist ahead of time
@@ -118,6 +120,9 @@ def test_clean_and_packages(
         # --json flag is regression test for #5451
         stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
         json.loads(stdout)  # assert valid json
+
+        out, err, _ = conda_cli("config", "--show-sources")
+        print(out, err)
 
         # pkg still exists since its in use by temp env
         assert has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))

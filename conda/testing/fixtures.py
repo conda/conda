@@ -705,4 +705,5 @@ def set_context_pkg_env_layout_root() -> Iterator:
     with mock.patch(
         "conda.base.context.Context.pkg_env_layout", new=mock_pkg_env_layout
     ):
+        reset_context()
         yield mock_pkg_env_layout
