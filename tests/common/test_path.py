@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import ntpath
+import os
 import re
 from logging import getLogger
-from pathlib import PureWindowsPath
+from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 
@@ -22,14 +24,48 @@ from conda.common.path import (
     win_path_backout,
     win_path_to_unix,
 )
+from conda.common.path.directories import copy_dir_contents, hardlink_dir_contents
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from pathlib import Path
 
     from pytest_mock import MockerFixture
 
 log = getLogger(__name__)
+
+
+@pytest.fixture
+def test_dirs(tmpdir) -> Iterable[tuple[Path, Path]]:
+    """Create temporary source and destination directories for testing.
+
+    foo/
+    ├── src/
+    │   ├── file1.txt
+    │   ├── symlink -> file1.txt
+    │   └── subdir/
+    │       ├── file2.txt
+    │       └── nested/
+    │           └── file3.txt
+    └── dst/
+    """
+    test_dir = Path(tmpdir) / "foo"
+    src_dir = test_dir / "src"
+    dst_dir = test_dir / "dst"
+
+    test_dir.mkdir()
+    src_dir.mkdir()
+    dst_dir.mkdir()
+
+    (src_dir / "file1.txt").write_text("test content 1")
+    (src_dir / "subdir").mkdir()
+    (src_dir / "subdir" / "file2.txt").write_text("test content 2")
+    (src_dir / "subdir" / "nested").mkdir()
+    (src_dir / "subdir" / "nested" / "file3.txt").write_text("test content 3")
+
+    if hasattr(os, "symlink"):
+        (src_dir / "symlink").symlink_to("file1.txt")
+
+    yield src_dir, dst_dir
 
 
 def test_url_to_path_unix():
@@ -407,3 +443,55 @@ def test_path_conversion(
             cygdrive = f"/cygdrive{roundtrip}"
             path = win_path_to_unix(win, prefix=win_prefix, cygdrive=True)
             assert path == cygdrive, f"{win} → {path} ≠ {cygdrive}"
+
+
+def test_hardlink_dir_contents_creates_identical_structure(test_dirs):
+    """Test that hardlinking works as intended."""
+    src_dir, dst_dir = test_dirs
+
+    try:
+        hardlink_dir_contents(src_dir, dst_dir)
+    except NotImplementedError:
+        pytest.skip(reason="Hardlinks not supported on this platform.")
+
+    # Verify structure is preserved
+    assert (dst_dir / "file1.txt").exists()
+    assert (dst_dir / "subdir" / "file2.txt").exists()
+    assert (dst_dir / "subdir" / "nested" / "file3.txt").exists()
+
+    # Verify hardlinks are created (same inodes)
+    assert (src_dir / "file1.txt").stat().st_ino == (
+        dst_dir / "file1.txt"
+    ).stat().st_ino
+    assert (src_dir / "subdir" / "file2.txt").stat().st_ino == (
+        dst_dir / "subdir" / "file2.txt"
+    ).stat().st_ino
+
+
+@mock.patch("os.link")
+def test_hardlink_dir_contents_unsupported(mock_link, test_dirs):
+    """Test hardlinking raises NotImplementedError on unsupported platform."""
+    src_dir, dst_dir = test_dirs
+
+    mock_link.side_effect = AttributeError
+    with pytest.raises(NotImplementedError):
+        hardlink_dir_contents(src_dir, dst_dir)
+
+    mock_link.side_effect = NotImplementedError
+    with pytest.raises(NotImplementedError):
+        hardlink_dir_contents(src_dir, dst_dir)
+
+
+def test_copy_dir_contents_preserves_structure_and_content(test_dirs):
+    """Test that copying preserves directory structure, content, and symlinks."""
+    src_dir, dst_dir = test_dirs
+
+    copy_dir_contents(src_dir, dst_dir)
+
+    assert (dst_dir / "file1.txt").read_text() == "test content 1"
+    assert (dst_dir / "subdir" / "file2.txt").read_text() == "test content 2"
+    assert (dst_dir / "subdir" / "nested" / "file3.txt").read_text() == "test content 3"
+
+    if hasattr(os, "symlink"):
+        assert (dst_dir / "symlink").is_symlink()
+        assert (dst_dir / "symlink").read_text() == "test content 1"

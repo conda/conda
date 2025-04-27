@@ -90,7 +90,7 @@ def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
 def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
     """Copy the contents of a directory to a destination.
 
-    Directories will be created as needed.
+    Directories will be created as needed. Symlinks are preserved.
 
     :param src: Source directory
     :param dst: Destination where the contents of src are to be copied
@@ -109,5 +109,8 @@ def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         if src_path.is_dir():
             copytree(src_path, dst_path, symlinks=True)
+        elif src_path.is_symlink():
+            link_target = src_path.readlink()
+            dst_path.symlink_to(link_target)
         else:
             copy2(src_path, dst_path)
