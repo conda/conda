@@ -276,8 +276,6 @@ jobs:
         if: matrix.test-type == 'integration'
         run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
 
-      - uses: mxschmitt/action-tmate@v3
-
       - name: Run Tests
         run: >
           python -m pytest
