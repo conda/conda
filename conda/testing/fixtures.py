@@ -13,7 +13,7 @@ from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
-from shutil import copyfile, rmtree
+from shutil import copyfile
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
 from unittest import mock
 
@@ -23,7 +23,6 @@ import pytest
 from conda.common.configuration import ParameterLoader, PrimitiveParameter
 from conda.common.serialize import yaml_round_trip_load, yaml_safe_dump, yaml_safe_load
 from conda.deprecations import deprecated
-from conda.gateways.disk.test import is_conda_environment
 
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
@@ -46,7 +45,6 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
-    from typing import Callable
 
     from _pytest.capture import MultiCapture
     from pytest import (
@@ -532,46 +530,6 @@ def PYTHONPATH():
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
             yield
-
-
-class RootPrefixEnvFactory:
-    """A factory which produces environments in the root prefix."""
-
-    def __init__(self, cli):
-        self.envs = []
-        self.cli = cli
-
-    def __call__(self) -> str:
-        env = uuid.uuid4().hex
-        self.cli(
-            "create",
-            "--prefix",
-            str(Path(context.root_prefix) / "envs" / env),
-            "--yes",
-        )
-        self.envs.append(env)
-        return env
-
-    def cleanup(self):
-        envs_dir = Path(context.root_prefix) / "envs"
-        for env_name in self.envs:
-            env = str(envs_dir / env_name)
-            if is_conda_environment(env):
-                self.cli("remove", "--all", "--yes", "--prefix", env)
-        del self.envs[:]
-        rmtree(envs_dir, ignore_errors=True)
-
-
-@pytest.fixture
-def root_prefix_env_factory(conda_cli) -> Iterator[Callable]:
-    """A fixture for a factory which generates environments in the root prefix.
-
-    This is one of the default locations that environments have historically been
-    created in, so this fixture is for tests which require such configurations.
-    """
-    factory = RootPrefixEnvFactory(conda_cli)
-    yield factory
-    factory.cleanup()
 
 
 @pytest.fixture

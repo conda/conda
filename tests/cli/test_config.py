@@ -1008,6 +1008,7 @@ def test_migrate_pkgs(
 @mock.patch.dict(os.environ)
 def test_migrate_envs(
     tmpdir,
+    tmp_env,
     conda_cli: CondaCLIFixture,
     propagate_conda_logger,
     caplog,
@@ -1027,42 +1028,54 @@ def test_migrate_envs(
         "conda.base.context.Context.root_prefix_envs",
         new_callable=mock.PropertyMock,
     ) as mock_envs:
-        # Create a dummy envs directory
+        # Create a mock root prefix
         envs_dir = os.path.join(tmpdir, "envs")
         os.makedirs(envs_dir, exist_ok=True)
 
         mock_envs.return_value = envs_dir
 
-        # Check that having envs in the root triggers a warning
-        with caplog.at_level(logging.WARNING):
-            context.envs_dirs
-        assert len(caplog.records) == 1
+        with (
+            tmp_env("python", prefix=os.path.join(envs_dir, "foo")),
+            tmp_env("python", prefix=os.path.join(envs_dir, "bar")),
+        ):
+            # Because the tmp_env calls the conda_cli fixture which calls
+            # conda.cli.main.main_subshell which among other things reinitializes
+            # the loggers, we need to manually reset the propagation
+            # state of the conda logger here in order to capture messages below
+            logging.getLogger("conda").propagate = True
 
-        # This should raise a warning indicating that the user should
-        # set `conda config set pkg_env_layout user` before failing out
-        with pytest.raises(CondaError, match="`conda config set pkg_env_layout user`"):
+            # Check that having envs in the root triggers a warning
+            with caplog.at_level(logging.WARNING):
+                context.envs_dirs
+            assert len(caplog.records) == 1
+
+            # This should raise a warning indicating that the user should
+            # set `conda config set pkg_env_layout user` before failing out
+            with pytest.raises(
+                CondaError, match="`conda config set pkg_env_layout user`"
+            ):
+                conda_cli("config", "--migrate-envs")
+
+            # Okay, now the user sets `conda config set pkg_env_layout user`
+            os.environ["CONDA_PKG_ENV_LAYOUT"] = "user"
+            reset_context()
+
             conda_cli("config", "--migrate-envs")
 
-        # Okay, now the user sets `conda config set pkg_env_layout user`
-        os.environ["CONDA_PKG_ENV_LAYOUT"] = "user"
-        reset_context()
+            # Post-migration, running the migration again should raise an error
+            with pytest.raises(CondaError):
+                conda_cli("config", "--migrate-envs")
 
-        conda_cli("config", "--migrate-envs")
+            # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
+            # things reinitializes the loggers, we need to manually reset the propagation
+            # state of the conda logger here in order to capture messages below
+            logging.getLogger("conda").propagate = True
 
-        # Post-migration, running the migration again should raise an error
-        with pytest.raises(CondaError):
-            conda_cli("config", "--migrate-envs")
-
-        # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
-        # things reinitializes the loggers, we need to manually reset the propagation
-        # state of the conda logger here in order to capture messages below
-        logging.getLogger("conda").propagate = True
-
-        # After migration, accessing `envs_dirs` should not produce warnings
-        caplog.clear()
-        with caplog.at_level(logging.WARNING):
-            context.envs_dirs
-        assert len(caplog.records) == 0
+            # After migration, accessing `envs_dirs` should not produce warnings
+            caplog.clear()
+            with caplog.at_level(logging.WARNING):
+                context.envs_dirs
+            assert len(caplog.records) == 0
 
 
 @mock.patch.dict(os.environ)
@@ -1092,8 +1105,7 @@ def test_ignore_migrate_pkgs(
 
     conda_cli("config", "--append", "pkgs_dirs", context.root_prefix_pkgs)
 
-    # Because root_prefix_env_factory uses the conda_cli fixture, and because the
-    # conda_cli fixture calls conda.cli.main.main_subshell which among other
+    # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
     # things reinitializes the loggers, we need to manually reset the propagation
     # state of the conda logger here in order to capture messages below
     logging.getLogger("conda").propagate = True
@@ -1145,10 +1157,8 @@ def test_ignore_migrate_envs(
 
         # Write to the .condarc to include <root prefix>/envs/
         conda_cli("config", "--append", "envs_dirs", context.root_prefix_envs)
-        reset_context()
 
-        # Because root_prefix_env_factory uses the conda_cli fixture, and because the
-        # conda_cli fixture calls conda.cli.main.main_subshell which among other
+        # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
         # things reinitializes the loggers, we need to manually reset the propagation
         # state of the conda logger here in order to capture messages below
         logging.getLogger("conda").propagate = True
