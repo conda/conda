@@ -1169,6 +1169,7 @@ def test_ignore_migrate_envs(
         conda_cli("config", "--remove", "envs_dirs", context.root_prefix_envs)
 
 
+@mock.patch.dict(os.environ)
 def test_migrate_pkgs_pointless(
     tmp_env,
     conda_cli: CondaCLIFixture,
