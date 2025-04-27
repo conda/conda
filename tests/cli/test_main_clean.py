@@ -103,6 +103,8 @@ def test_clean_and_packages(
     tmp_env: TmpEnvFixture,
     tmp_pkgs_dir: Path,
     set_context_pkg_env_layout_root,
+    unset_condarc_pkgs,
+    unset_condarc_envs,
 ):
     pkg = "small-executable"
 
