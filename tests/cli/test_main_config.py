@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda.exceptions
-from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.main_config import (
     _get_key,
@@ -376,38 +375,44 @@ def test_config_describe(
 
     out, err, rc = conda_cli("config", "--describe", "foo")
 
-    assert out == dals("""
-        # # foo (str)
-        # #   Test foo
-        # #
-        # foo: ''
-
-    """)
+    expected = (
+        "# # foo (str)",
+        "# #   Test foo",
+        "# # ",
+        "# foo: ''",
+        "",
+        "",
+    )
+    assert out == "\n".join(expected)
 
     out, err, rc = conda_cli("config", "--describe", "plugins.bar")
 
-    assert out == dals("""
-        # # plugins.bar (str)
-        # #   Test plugins.bar
-        # #
-        # plugins.bar: ''
-
-    """)
+    expected = (
+        "# # plugins.bar (str)",
+        "# #   Test plugins.bar",
+        "# # ",
+        "# plugins.bar: ''",
+        "",
+        "",
+    )
+    assert out == "\n".join(expected)
 
     out, err, rc = conda_cli("config", "--describe", "foo", "plugins.bar")
 
-    assert out == dals("""
-        # # foo (str)
-        # #   Test foo
-        # #
-        # foo: ''
-
-        # # plugins.bar (str)
-        # #   Test plugins.bar
-        # #
-        # plugins.bar: ''
-
-    """)
+    expected = (
+        "# # foo (str)",
+        "# #   Test foo",
+        "# # ",
+        "# foo: ''",
+        "",
+        "# # plugins.bar (str)",
+        "# #   Test plugins.bar",
+        "# # ",
+        "# plugins.bar: ''",
+        "",
+        "",
+    )
+    assert out == "\n".join(expected)
 
 
 def test_config_describe_json(
