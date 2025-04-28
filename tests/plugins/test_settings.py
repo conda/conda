@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 import logging
+from contextlib import nullcontext
 
 import pytest
 from pytest import MonkeyPatch
@@ -423,10 +424,11 @@ def test_conda_config_show_for_individual_settings(
         "value_one",
     )
 
-    if isinstance(expected_output, Exception):
-        with pytest.raises(ArgumentError, match=expected_output.message):
-            out, err, _ = conda_cli("config", "--show", f"plugins.{parameter_name}")
-    else:
+    with (
+        pytest.raises(ArgumentError, match=expected_output.message)
+        if isinstance(expected_output, Exception)
+        else nullcontext()
+    ):
         out, err, _ = conda_cli("config", "--show", f"plugins.{parameter_name}")
         assert not err
         assert out == expected_output
