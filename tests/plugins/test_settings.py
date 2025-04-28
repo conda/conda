@@ -17,7 +17,7 @@ from conda.common.configuration import (
     YamlRawParameter,
     yaml_round_trip_load,
 )
-from conda.exceptions import ArgumentError
+from conda.exceptions import ArgumentError, CondaKeyError
 from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
@@ -291,17 +291,18 @@ def test_conda_config_with_invalid_setting(condarc_plugin_manager, tmp_path, con
     Ensure that an error is raised when an invalid setting is passed to the config command
     """
     condarc = tmp_path / "condarc"
-    out, err, _ = conda_cli(
-        "config",
-        "--file",
-        condarc,
-        "--set",
-        "plugins.invalid_setting",
-        "value_one",
-    )
 
-    assert not out
-    assert "Unknown key: 'plugins.invalid_setting'\n" in err
+    with pytest.raises(
+        CondaKeyError, match=r"'plugins.invalid_setting': unknown parameter"
+    ):
+        out, err, _ = conda_cli(
+            "config",
+            "--file",
+            condarc,
+            "--set",
+            "plugins.invalid_setting",
+            "value_one",
+        )
 
 
 def test_conda_config_describe_includes_plugin_settings(
