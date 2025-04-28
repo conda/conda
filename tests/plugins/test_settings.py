@@ -348,7 +348,8 @@ def test_conda_config_describe_unknown_plugin_setting(
     Ensure that the correct error message is displayed when an unknown plugin setting is used
     """
     with pytest.raises(
-        ArgumentError, match="Invalid configuration parameters: \n  - invalid_setting"
+        ArgumentError,
+        match="Invalid configuration parameters: \n  - plugins.invalid_setting",
     ):
         conda_cli("config", "--describe", "plugins.invalid_setting")
 
@@ -395,7 +396,7 @@ def test_conda_config_show_includes_plugin_settings(
         (
             "non_existent_parameter",
             ArgumentError(
-                "Invalid configuration parameters: \n  - non_existent_parameter"
+                "Invalid configuration parameters: \n  - plugins.non_existent_parameter"
             ),
         ),
     ],
