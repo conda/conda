@@ -464,8 +464,8 @@ def test_set_unconfigured_key(conda_cli: CondaCLIFixture):
 def test_set_invalid_key(conda_cli: CondaCLIFixture):
     key, to_val = "invalid_key", "a_bogus_value"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        out, err, _ = conda_cli("config", "--file", rc, "--set", key, to_val)
-        assert err == f"Unknown key: '{key}'\n"
+        with pytest.raises(CondaKeyError, match=r"'invalid_key': unknown parameter"):
+            conda_cli("config", "--file", rc, "--set", key, to_val)
 
         assert _read_test_condarc(rc) == CONDARC_BASE
 

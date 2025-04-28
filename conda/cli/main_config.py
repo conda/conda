@@ -437,7 +437,9 @@ def _set_key(key: str, item: Any, config: dict) -> None:
     from ..base.context import context
 
     if not _key_exists(key, [], context):
-        return
+        from ..exceptions import CondaKeyError
+
+        raise CondaKeyError(key, "unknown parameter")
 
     first, *rest = key.split(".")
 

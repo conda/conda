@@ -137,9 +137,8 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
 def test_config_set_key(capsys) -> None:
     config: dict[str, Any] = {}
 
-    _set_key("unknown", None, config)
-    out, err = capsys.readouterr()  # clear output
-    assert "Unknown key: 'unknown'" in err
+    with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
+        _set_key("unknown", None, config)
 
     # undefined
     _set_key("changeps1", True, config)
@@ -288,7 +287,7 @@ def test_config_env_does_not_exist(
         )
 
 
-@pytest.mark.parametrize("is_json", [True, False], ids=["json_true", "json_false"])
+@pytest.mark.parametrize("is_json", [True, False])
 def test_key_exists(monkeypatch, plugin_config, is_json):
     """
     Ensure that key_exists works as expected, testing both when key is present and
