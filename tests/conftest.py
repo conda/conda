@@ -160,7 +160,8 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
     app_name = "TEST_APP_NAME"
 
     class PluginTest(PluginConfig):
-        pass
+        def get_descriptions(self) -> dict[str, str]:
+            return {"bar": "Test plugins.bar"}
 
     PluginTest.add_plugin_setting("bar", PrimitiveParameter(""))
 
@@ -185,7 +186,26 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             self.subdir = mocker.MagicMock()
 
         @property
-        def plugins(self):
+        def plugins(self) -> PluginConfig:
             return PluginTest(self.raw_data)
 
+        def get_descriptions(self) -> dict[str, str]:
+            return {
+                "foo": "Test foo",
+                "json": "Test json",
+            }
+
     return MockContext, app_name
+
+
+@pytest.fixture(scope="function")
+def minimal_env(tmp_path: Path) -> Path:
+    """
+    Provides a minimal environment that only contains the "magic" file identifying it as a
+    conda environment.
+    """
+    meta_dir = tmp_path.joinpath("conda-meta")
+    meta_dir.mkdir()
+    (meta_dir / "history").touch()
+
+    return tmp_path

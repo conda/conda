@@ -128,3 +128,23 @@ def test_plugin_config_from_file(tmp_path, plugin_config):
 
     assert context.plugins.bar == "test_value"
     assert context.foo == "another_value"
+
+
+def test_plugin_describe_parameters(plugin_config: PluginConfig):
+    """
+    Ensure that the ``describe_parameters`` method returns the correct values, specifically
+    that it prepends "plugins." to the parameter name.
+    """
+    MockContext, app_name = plugin_config
+
+    mock_context = MockContext(search_path=())
+
+    # Check that the parameter names are correct
+    assert mock_context.plugins.describe_parameter("bar") == {
+        "aliases": (),
+        "default_value": "",
+        "description": "Test plugins.bar",
+        "element_types": ("str",),
+        "name": "plugins.bar",
+        "parameter_type": "primitive",
+    }

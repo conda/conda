@@ -22,6 +22,7 @@ from ..common.configuration import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Any
 
     from ..common.configuration import Parameter, RawParameter
 
@@ -111,3 +112,15 @@ class PluginConfig(Configuration):
             name: setting.description
             for name, setting in context.plugin_manager.get_settings().items()
         }
+
+    def describe_parameter(self, parameter_name) -> dict[str, Any]:
+        """
+        Returns the description of a parameter.
+
+        We add to this method in order to change the "name" key that is returned to prepend "plugins."
+        to it.
+        """
+        description = super().describe_parameter(parameter_name)
+        description["name"] = f"plugins.{description['name']}"
+
+        return description

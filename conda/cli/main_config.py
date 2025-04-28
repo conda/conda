@@ -25,6 +25,8 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any
 
+    from conda.base.context import Context
+
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -579,6 +581,32 @@ def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
         raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
 
 
+def _validate_provided_parameters(
+    parameters: Sequence[str], plugin_parameters: Sequence[str], context: Context
+) -> None:
+    """
+    Compares the provided parameters with the available parameters.
+
+    :raises:
+        ArgumentError: If the provided parameters are not valid.
+    """
+    from ..common.io import dashlist
+    from ..exceptions import ArgumentError
+
+    all_names = context.list_parameters()
+    all_plugin_names = context.plugins.list_parameters()
+
+    not_params = set(parameters) - set(all_names)
+    not_plugin_params = set(plugin_parameters) - set(all_plugin_names)
+
+    if not_params or not_plugin_params:
+        not_plugin_params = {f"plugins.{name}" for name in not_plugin_params}
+        error_params = not_params | not_plugin_params
+        raise ArgumentError(
+            f"Invalid configuration parameters: {dashlist(error_params)}"
+        )
+
+
 def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
     config = _read_rc(path)
     for key, value in args:
@@ -638,20 +666,11 @@ def execute_config(args, parser):
                 for name in args.show
                 if name.startswith("plugins.")
             )
-            all_names = context.list_parameters()
-            all_plugin_names = context.plugins.list_parameters()
-            not_params = set(provided_parameters) - set(all_names)
-            not_plugin_params = set(provided_plugin_parameters) - set(all_plugin_names)
 
-            if not_params or not_plugin_params:
-                from ..common.io import dashlist
-                from ..exceptions import ArgumentError
+            _validate_provided_parameters(
+                provided_parameters, provided_plugin_parameters, context
+            )
 
-                not_plugin_params = {f"plugins.{name}" for name in not_plugin_params}
-                error_params = not_params | not_plugin_params
-                raise ArgumentError(
-                    f"Invalid configuration parameters: {dashlist(error_params)}"
-                )
         else:
             provided_parameters = context.list_parameters()
             provided_plugin_parameters = context.plugins.list_parameters()
@@ -721,39 +740,20 @@ def execute_config(args, parser):
                 for name in args.describe
                 if name.startswith("plugins.")
             )
-            all_names = context.list_parameters()
-            all_plugin_names = context.plugins.list_parameters()
-            not_params = set(provided_parameters) - set(all_names)
-            not_plugin_params = set(provided_plugin_parameters) - set(all_plugin_names)
-
-            if not_params or not_plugin_params:
-                from ..common.io import dashlist
-                from ..exceptions import ArgumentError
-
-                error_params = not_params | not_plugin_params
-                raise ArgumentError(
-                    f"Invalid configuration parameters: {dashlist(error_params)}"
-                )
+            _validate_provided_parameters(
+                provided_parameters, provided_plugin_parameters, context
+            )
 
             if context.json:
+                json_descriptions = [
+                    context.describe_parameter(name) for name in provided_parameters
+                ] + [
+                    context.plugins.describe_parameter(name)
+                    for name in provided_plugin_parameters
+                ]
                 stdout_write(
                     json.dumps(
-                        [
-                            context.describe_parameter(name)
-                            for name in provided_parameters
-                        ],
-                        sort_keys=True,
-                        indent=2,
-                        separators=(",", ": "),
-                        cls=EntityEncoder,
-                    )
-                )
-                stdout_write(
-                    json.dumps(
-                        [
-                            context.plugins.describe_parameter(name)
-                            for name in provided_plugin_parameters
-                        ],
+                        json_descriptions,
                         sort_keys=True,
                         indent=2,
                         separators=(",", ": "),
