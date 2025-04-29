@@ -20,7 +20,7 @@ from .link import islink, lexists
 log = getLogger(__name__)
 
 
-def file_path_is_writable(path):
+def file_path_is_writable(path) -> bool:
     path = expand(path)
     log.log(TRACE, "checking path is writable %s", path)
     if isdir(dirname(path)):
