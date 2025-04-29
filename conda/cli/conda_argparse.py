@@ -65,6 +65,7 @@ from .main_remove import configure_parser as configure_parser_remove
 from .main_rename import configure_parser as configure_parser_rename
 from .main_run import configure_parser as configure_parser_run
 from .main_search import configure_parser as configure_parser_search
+from .main_solve import configure_parser as configure_parser_solve
 from .main_update import configure_parser as configure_parser_update
 
 log = getLogger(__name__)
@@ -163,6 +164,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_rename(sub_parsers)
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
+    configure_parser_solve(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
 
     return parser
