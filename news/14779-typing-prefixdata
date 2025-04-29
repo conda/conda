@@ -8,8 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.testing.fixtures.session_capsys` as pending deprecation. (#14575)
-
+* <news item>
 
 ### Docs
 
@@ -17,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add type hints to `conda.core.prefix_data`. (#14779)

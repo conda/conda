@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Remove `conda.auxlib.collection.make_immutable`. Use `frozendict.deepfreeze` instead. (#14586)
+* <news item>
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Add type hints to `conda.__init__`, `conda.exceptions` and `conda.exception_handler`. (#14776)

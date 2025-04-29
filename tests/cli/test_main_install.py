@@ -8,8 +8,10 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import PackagesNotFoundError
+from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -112,3 +114,25 @@ def test_install_from_extracted_package(
         # appeared again, we decided to re-download the package for some reason.
         conda_cli("install", f"--prefix={prefix}", "openssl", "--offline", "--yes")
         assert not pkgs_dir_has_tarball("openssl-")
+
+
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+def test_build_version_shows_as_changed(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    request: pytest.FixtureRequest,
+):
+    """
+    Test to make sure the changes in build version show up as "REVISED" in install plan.
+    To check this, start with an environment that has python and one other python package.
+    Then, the test should install another version python into the environment, forcing the
+    build variant of the other python package to be "REVISED".
+    """
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
+
+    with tmp_env("python=3.11", "numpy") as prefix:
+        out, err, _ = conda_cli("install", f"--prefix={prefix}", "python=3.12", "--yes")
+        assert "The following packages will be UPDATED" in out
+        assert "The following packages will be REVISED" in out
+        assert "The following packages will be DOWNGRADED" not in out

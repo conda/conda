@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Make `conda.gateways.logging.TokenURLFilter.TOKEN_REPLACE` a staticmethod for future Python compatibility. (#14590)
+* Report package variant installation as "REVISED" opposed to "DOWNGRADED". (#13797 via #14727)
 
 ### Deprecations
 

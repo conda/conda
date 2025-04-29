@@ -101,15 +101,15 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
+    from ..core.prefix_data import PrefixData
     from ..env import specs
-    from ..exceptions import EnvironmentLocationNotFound, SpecNotFound
+    from ..exceptions import SpecNotFound
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
-    from ..gateways.disk.test import is_conda_environment
     from .common import stdout_json
 
-    prefix = context.target_prefix
-    if not is_conda_environment(prefix):
-        raise EnvironmentLocationNotFound(prefix)
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    prefix = str(prefix_data.prefix_path)
 
     try:
         url_scheme = args.file.split("://", 1)[0]

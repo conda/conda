@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix variable deletion in xonsh. (#14543 via #14550)
+*  <news item>
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Refactor `conda create --clone` logic into a separate function. (#14743)

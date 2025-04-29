@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.common.io._logger_lock` as pending deprecation. Use `logging._lock` instead. (#14584)
+* <news item>
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Use `dict.fromkeys` for sequence deduplication, instead of `IndexedSet()`. (#14777)
