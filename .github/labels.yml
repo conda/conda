@@ -65,10 +65,14 @@
     description: pertains to the CLI in Xonsh
     color: '#91e4e5'
     aliases: [type-shell-xonsh]
-  - name: cli::windows-bash
-    description: pertains to the CLI for Windows Bash (e.g. Git BASH on Windows)
-    color: '#91e4e5'
-    aliases: [type-shell-windows-bash]
+
+# OS
+  - name: os::cygwin
+    description: pertains to Cygwin, commonly run on Windows
+    color: '#d0e0e3'
+  - name: os::msys2
+    description: pertains to MSYS2, commonly run on Windows
+    color: '#d0e0e3'
 
 # Plugins
   - name: plugins
