@@ -73,6 +73,7 @@ from .constants import (
     ChannelPriority,
     DepsModifier,
     PathConflict,
+    PkgEnvLayout,
     SafetyChecks,
     SatSolverChoice,
     UpdateModifier,
@@ -138,6 +139,11 @@ def user_data_dir(  # noqa: F811
     return user_data_dir(appname, appauthor=appauthor, version=version, roaming=roaming)
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.base.context.context.envs_dirs` instead.",
+)
 def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
     if root_writable:
         fixed_dirs = [
@@ -304,7 +310,13 @@ class Context(Configuration):
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
-    pkg_env_layout = ParameterLoader(PrimitiveParameter("", element_type=str))
+    pkg_env_layout = ParameterLoader(
+        PrimitiveParameter(
+            PkgEnvLayout.UNSET.value,
+            element_type=str,
+            validation=lambda x: x in PkgEnvLayout,
+        )
+    )
     _root_prefix = ParameterLoader(
         PrimitiveParameter(""), aliases=("root_dir", "root_prefix")
     )
@@ -737,16 +749,16 @@ class Context(Configuration):
                     self.root_prefix_envs,
                 ]
             if on_win:
-                fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
+                fixed_dirs.append(USER_DATA_ENVS)
             return tuple(
                 dict.fromkeys(expand(path) for path in (*self._envs_dirs, *fixed_dirs))
             )
 
-        if self.pkg_env_layout == "user":
+        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
             return (USER_DATA_ENVS,)
 
         # Otherwise fall back on root prefix location
-        if self.pkg_env_layout != "conda_root":
+        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
             log.warning(
                 "The current location of `envs_dirs` resides in the root prefix. "
                 "This location is deprecated in 25.9, and will be switched to "
@@ -779,12 +791,12 @@ class Context(Configuration):
             # User has already specified what directories to use
             return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
 
-        if self.pkg_env_layout == "user":
+        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
             # User has not specified directories, but wants to use user data directory
             return (self.user_data_pkgs,)
 
         # Otherwise, fall back on the root prefix location
-        if self.pkg_env_layout != "conda_root":
+        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
             log.warning(
                 "The current location of `envs_dirs` resides in the root prefix. "
                 "This location is deprecated in 25.9, and will be switched to "

@@ -23,6 +23,7 @@ from conda.base.constants import (
     USER_DATA_ENVS,
     ChannelPriority,
     PathConflict,
+    PkgEnvLayout,
 )
 from conda.base.context import (
     channel_alias_validation,
@@ -893,8 +894,9 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 @pytest.mark.parametrize(
     "pkg_env_layout",
     [
-        "user",
-        "conda_root",
+        PkgEnvLayout.USER.value,
+        PkgEnvLayout.CONDA_ROOT.value,
+        PkgEnvLayout.UNSET.value,
         None,
     ],
 )
@@ -913,7 +915,7 @@ def test_pkg_env_layout(
             del os.environ["CONDA_PKG_ENV_LAYOUT"]
 
         reset_context()
-        if pkg_env_layout == "user":
+        if pkg_env_layout == PkgEnvLayout.USER.value:
             basename = Path(USER_DATA_DIR)
         else:
             basename = Path(context.root_prefix)
@@ -925,7 +927,15 @@ def test_pkg_env_layout(
         assert str(pkgs) in set(context.pkgs_dirs)
 
 
-@pytest.mark.parametrize("pkg_env_layout", ["user", "conda_root", None])
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER.value,
+        PkgEnvLayout.CONDA_ROOT.value,
+        PkgEnvLayout.UNSET.value,
+        None,
+    ],
+)
 def test_set_pkgs_envs_default_dirs(
     tmpdir,
     testdata,
@@ -952,7 +962,7 @@ def test_set_pkgs_envs_default_dirs(
 
         reset_context()
 
-        if pkg_env_layout == "user":
+        if pkg_env_layout == PkgEnvLayout.USER.value:
             basename = Path(USER_DATA_DIR)
         else:
             basename = Path(context.root_prefix)
@@ -997,7 +1007,15 @@ def test_pkgs_envs_old_default_dirs(
         )
 
 
-@pytest.mark.parametrize("pkg_env_layout", ["user", "conda_root", None])
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER.value,
+        PkgEnvLayout.CONDA_ROOT.value,
+        PkgEnvLayout.UNSET.value,
+        None,
+    ],
+)
 def test_pkgs_envs_configured(
     tmpdir,
     testdata,

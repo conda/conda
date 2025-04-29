@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda
+from conda.base.constants import PkgEnvLayout
 from conda.base.context import context, reset_context
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
@@ -99,7 +100,7 @@ def do_not_notify_outdated_conda(monkeypatch):
 @pytest.fixture(autouse=True)
 def automatically_use_conda_root_pkgs_envs(monkeypatch):
     """Do not notify about pkgs/ and envs/ in the root prefix during tests."""
-    monkeypatch.setenv("CONDA_PKG_ENV_LAYOUT", "conda_root")
+    monkeypatch.setenv("CONDA_PKG_ENV_LAYOUT", PkgEnvLayout.CONDA_ROOT.value)
 
 
 @pytest.fixture

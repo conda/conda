@@ -27,7 +27,7 @@ from conda.deprecations import deprecated
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
-from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
+from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PkgEnvLayout
 from ..base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     context,
@@ -657,7 +657,7 @@ def unset_condarc_envs() -> Iterator:
 @pytest.fixture
 def set_context_pkg_env_layout_root() -> Iterator:
     mock_pkg_env_layout = ParameterLoader(
-        PrimitiveParameter("conda_root", element_type=str)
+        PrimitiveParameter(PkgEnvLayout.CONDA_ROOT.value, element_type=str)
     )
     mock_pkg_env_layout._set_name("pkg_env_layout")
     with mock.patch(

@@ -19,7 +19,7 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
-from ..base.constants import DEFAULTS_CHANNEL_NAME
+from ..base.constants import DEFAULTS_CHANNEL_NAME, PkgEnvLayout
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -852,7 +852,7 @@ def migrate_pkgs(context, _config: dict):
         )
 
     layout = context.pkg_env_layout
-    if layout != "user":
+    if layout != PkgEnvLayout.USER.value:
         raise CondaError(
             f"The conda configuration for pkg_env_layout is set to {layout}; "
             "Unless this setting is changed with `conda config set pkg_env_layout user` "
@@ -917,7 +917,7 @@ def migrate_envs(context, _config: dict):
         )
 
     layout = context.pkg_env_layout
-    if layout != "user":
+    if layout != PkgEnvLayout.USER.value:
         raise CondaError(
             f"The conda configuration for pkg_env_layout is set to {layout}; "
             "Unless this setting is changed with `conda config set pkg_env_layout user` "

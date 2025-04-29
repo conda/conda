@@ -18,7 +18,7 @@ from ruamel.yaml.scanner import ScannerError
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.constants import USER_DATA_ENVS
+from conda.base.constants import USER_DATA_ENVS, PkgEnvLayout
 from conda.base.context import (
     context,
     reset_context,
@@ -988,7 +988,7 @@ def test_migrate_pkgs(
         mock_hardlink.assert_not_called()
 
         # Okay, now the user sets `conda config set pkg_env_layout user`
-        os.environ["CONDA_PKG_ENV_LAYOUT"] = "user"
+        os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
         reset_context()
 
         conda_cli("config", "--migrate-pkgs")
@@ -1057,7 +1057,7 @@ def test_migrate_envs(
                 conda_cli("config", "--migrate-envs")
 
             # Okay, now the user sets `conda config set pkg_env_layout user`
-            os.environ["CONDA_PKG_ENV_LAYOUT"] = "user"
+            os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
             reset_context()
 
             conda_cli("config", "--migrate-envs")
@@ -1188,7 +1188,7 @@ def test_migrate_pkgs_pointless(
 ):
     """Test --migrate-pkgs when there's no <root prefix>/pkgs directory."""
     # Set the pkg_env_layout to user, which enables --migrate-pkgs
-    os.environ["CONDA_PKG_ENV_LAYOUT"] = "user"
+    os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
     os.environ["CONDA_ALWAYS_COPY"] = "1"
     reset_context()
 
@@ -1222,7 +1222,7 @@ def test_migrate_pkgs_always_copy(
 ):
     """Test that migrating pkgs copies if the `always_copy` has been set."""
     # Set the pkg_env_layout to user, which enables --migrate-pkgs
-    os.environ["CONDA_PKG_ENV_LAYOUT"] = "user"
+    os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
     os.environ["CONDA_ALWAYS_COPY"] = "1"
     reset_context()
 
