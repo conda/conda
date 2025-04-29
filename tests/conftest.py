@@ -77,7 +77,7 @@ def support_file_server_port(support_file_server):
 
 
 @pytest.fixture
-def clear_cuda_version():
+def clear_cuda_version() -> None:
     from conda.plugins.virtual_packages import cuda
 
     cuda.cached_cuda_version.cache_clear()

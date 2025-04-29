@@ -12,7 +12,6 @@ import pytest
 import conda
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.common.io import env_vars
 from conda.core.index import (
     Index,
     _make_virtual_package,
@@ -40,7 +39,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-    from pytest import FixtureRequest
+    from pytest import FixtureRequest, MonkeyPatch
 
     from conda.core.index import ReducedIndex
 
@@ -147,9 +146,15 @@ def patch_pkg_cache(mocker, pkg_cache_entries):
     mocker.patch("conda.base.context.context.track_features", ("test_feature",))
 
 
-def test_supplement_index_with_system():
-    index = {}
-    _supplement_index_with_system(index)
+def test_deprecated_supplement_index_with_system() -> None:
+    index: dict[PackageRecord, PackageRecord] = {}
+    with pytest.deprecated_call():
+        _supplement_index_with_system(index)
+    assert index == Index().system_packages
+
+
+def test_supplement_index_with_system() -> None:
+    index = Index().system_packages
 
     has_virtual_pkgs = {
         rec.name for rec in index if rec.package_type == PackageType.VIRTUAL_SYSTEM
@@ -166,19 +171,19 @@ def test_supplement_index_with_system():
     context.subdir.split("-", 1)[1] not in {"32", "64", *non_x86_machines},
     reason=f"archspec not available for subdir {context.subdir}",
 )
-def test_supplement_index_with_system_archspec():
-    index = {}
-    _supplement_index_with_system(index)
+def test_supplement_index_with_system_archspec() -> None:
+    index = Index().system_packages
     assert any(
         rec.package_type == PackageType.VIRTUAL_SYSTEM and rec.name == "__archspec"
         for rec in index
     )
 
 
-def test_supplement_index_with_system_cuda(clear_cuda_version):
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_CUDA": "3.2"}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_cuda(
+    clear_cuda_version: None, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "3.2")
+    index = Index().system_packages
 
     cuda_pkg = next(iter(_ for _ in index if _.name == "__cuda"))
     assert cuda_pkg.version == "3.2"
@@ -186,10 +191,9 @@ def test_supplement_index_with_system_cuda(clear_cuda_version):
 
 
 @pytest.mark.skipif(not on_mac, reason="osx-only test")
-def test_supplement_index_with_system_osx():
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_OSX": "0.15"}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_osx(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_OSX", "0.15")
+    index = Index().system_packages
 
     osx_pkg = next(iter(_ for _ in index if _.name == "__osx"))
     assert osx_pkg.version == "0.15"
@@ -211,10 +215,11 @@ def test_supplement_index_with_system_osx():
         ("9.a.1", "0"),
     ],
 )
-def test_supplement_index_with_system_linux(release_str, version):
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_LINUX": release_str}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_linux(
+    release_str: str, version: str, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_LINUX", release_str)
+    index = Index().system_packages
 
     linux_pkg = next(iter(_ for _ in index if _.name == "__linux"))
     assert linux_pkg.version == version
@@ -222,10 +227,9 @@ def test_supplement_index_with_system_linux(release_str, version):
 
 
 @pytest.mark.skipif(on_win or on_mac, reason="linux-only test")
-def test_supplement_index_with_system_glibc():
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_GLIBC": "2.10"}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_glibc(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.10")
+    index = Index().system_packages
 
     glibc_pkg = next(iter(_ for _ in index if _.name == "__glibc"))
     assert glibc_pkg.version == "2.10"
