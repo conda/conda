@@ -24,6 +24,7 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.url import join_url
+from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
@@ -46,7 +47,7 @@ log = getLogger(__name__)
 
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 2
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 
 class SubdirDataType(type):
@@ -107,12 +108,11 @@ class SubdirData(metaclass=SubdirDataType):
     def query_all(
         package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN
     ):
-        from .index import check_allowlist  # TODO: fix in-line import
-
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
             channels = context.channels
+            # TODO: Raise if 'channels' is empty?
         if subdirs is None:
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
@@ -125,8 +125,6 @@ class SubdirData(metaclass=SubdirDataType):
                     dashlist(ignored_urls),
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-
-        check_allowlist(channel_urls)
 
         def subdir_query(url):
             return tuple(
@@ -481,7 +479,7 @@ class SubdirData(metaclass=SubdirDataType):
         ):
             for fn, info in group:
                 if copy_legacy_md5:
-                    counterpart = fn.replace(".conda", ".tar.bz2")
+                    counterpart = f"{fn[: -len('.conda')]}.tar.bz2"
                     if counterpart in legacy_packages:
                         info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
                         info["legacy_bz2_size"] = legacy_packages[counterpart].get(
@@ -553,17 +551,11 @@ class SubdirData(metaclass=SubdirDataType):
         return self.url_w_subdir
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
+)
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = f"{feature_name}@"
-    return PackageRecord(
-        name=pkg_name,
-        version="0",
-        build="0",
-        channel="@",
-        subdir=context.subdir,
-        md5="12345678901234567890123456789012",
-        track_features=(feature_name,),
-        build_number=0,
-        fn=pkg_name,
-    )
+    return PackageRecord.feature(feature_name)

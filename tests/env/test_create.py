@@ -1,20 +1,31 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaEnvException, CondaValueError
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+from conda.exceptions import CondaValueError
 from conda.testing.integration import package_is_installed
 
 from . import support_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 def get_env_vars(prefix):
@@ -250,7 +261,7 @@ def test_fail_to_create_env_in_dir_with_colon(
 
     with pytest.raises(
         CondaValueError,
-        match="Cannot create a conda environment with ':' in the prefix.",
+        match="Environment paths cannot contain ':'.",
     ):
         conda_cli("create", f"--prefix={colon_dir}/tester")
 
@@ -280,7 +291,10 @@ def test_protected_dirs_error_for_env_create(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
 ):
     with tmp_env() as prefix:
-        with pytest.raises(CondaEnvException) as error:
+        with pytest.raises(
+            CondaValueError,
+            match="Environment paths cannot be immediately nested under another conda environment",
+        ):
             conda_cli(
                 "env",
                 "create",
@@ -288,8 +302,3 @@ def test_protected_dirs_error_for_env_create(
                 "--file",
                 support_file("example/environment_pinned.yml"),
             )
-
-        assert (
-            "appears to be a top level directory within an existing conda environment"
-            in str(error.value)
-        )

@@ -926,16 +926,8 @@ so they can be downloaded again."""
             raise CondaError(message)
 
 
-try:
-    hashlib.md5(b"", usedforsecurity=False)
-
-    def _md5_not_for_security(data):
-        return hashlib.md5(data, usedforsecurity=False)
-
-except TypeError:  # pragma: no cover
-    # Python < 3.9
-    def _md5_not_for_security(data):
-        return hashlib.md5(data)
+def _md5_not_for_security(data):
+    return hashlib.md5(data, usedforsecurity=False)
 
 
 def cache_fn_url(url, repodata_fn=REPODATA_FN):

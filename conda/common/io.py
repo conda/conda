@@ -24,6 +24,7 @@ from time import sleep, time
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
+from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
@@ -77,7 +78,7 @@ class ContextDecorator:
     makes it a decorator.
     """
 
-    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated  # NOQA
+    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated
 
     def __call__(self, f):
         @wraps(f)
@@ -264,6 +265,7 @@ def argv(args_list):
         sys.argv = saved_args
 
 
+@deprecated("25.9", "26.3", addendum="Use `logging._lock` instead.")
 @contextmanager
 def _logger_lock():
     logging._acquireLock()
@@ -278,14 +280,14 @@ def disable_logger(logger_name):
     logr = getLogger(logger_name)
     _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
     null_handler = NullHandler()
-    with _logger_lock():
+    with logging._lock:
         logr.addHandler(null_handler)
         logr.setLevel(CRITICAL + 1)
         logr.disabled, logr.propagate = True, False
     try:
         yield
     finally:
-        with _logger_lock():
+        with logging._lock:
             logr.removeHandler(null_handler)  # restore list logr.handlers
             logr.level, logr.disabled = _lvl, _dsbld
             logr.propagate = _prpgt
@@ -304,7 +306,7 @@ def stderr_log_level(level, logger_name=None):
     handler.name = "stderr"
     handler.setLevel(level)
     handler.setFormatter(_FORMATTER)
-    with _logger_lock():
+    with logging._lock:
         logr.setLevel(level)
         logr.handlers, logr.disabled, logr.propagate = [], False, False
         logr.addHandler(handler)
@@ -312,7 +314,7 @@ def stderr_log_level(level, logger_name=None):
     try:
         yield
     finally:
-        with _logger_lock():
+        with logging._lock:
             logr.handlers, logr.level, logr.disabled = _hndlrs, _lvl, _dsbld
             logr.propagate = _prpgt
 
@@ -353,7 +355,7 @@ def attach_stderr_handler(
         new_stderr_handler.addFilter(filter_)
 
     # do the switch
-    with _logger_lock():
+    with logging._lock:
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
@@ -392,6 +394,11 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             return default_return
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.get_spinner` instead.",
+)
 class Spinner:
     """
     Args:
@@ -463,6 +470,11 @@ class Spinner:
                 sys.stdout.flush()
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.get_progress_bar` instead.",
+)
 class ProgressBar:
     @classmethod
     def get_lock(cls):

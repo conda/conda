@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
@@ -16,10 +15,8 @@ from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
 if TYPE_CHECKING:
-    from typing import Type, Union
-
-    FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
-    SpecTypes = Union[YamlFileSpec, RequirementsSpec]
+    FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec]
+    SpecTypes = YamlFileSpec | RequirementsSpec
 
 
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
@@ -46,7 +43,6 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     raise EnvironmentFileNotFound(filename=filename)
 
 
-@deprecated.argument("24.7", "25.3", "remote_definition")
 def detect(
     name: str | None = None,
     filename: str | None = None,

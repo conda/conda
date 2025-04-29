@@ -19,7 +19,7 @@ from ..gateways.disk.test import is_conda_environment
 from .prefix_data import PrefixData
 
 if TYPE_CHECKING:
-    from typing import Iterator
+    from collections.abc import Iterator
 
 log = getLogger(__name__)
 
@@ -156,7 +156,7 @@ def list_all_known_prefixes() -> list[str]:
         for path in (
             entry.path for envs_dir in envs_dirs for entry in os.scandir(envs_dir)
         )
-        if path not in all_env_paths and is_conda_environment(path)
+        if path not in all_env_paths and PrefixData(path).is_environment()
     )
 
     all_env_paths.add(context.root_prefix)

@@ -1,11 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import random
 import subprocess
 import sys
 import tempfile
 from os import chdir, getcwd, makedirs
 from os.path import exists, join, relpath
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -17,7 +20,9 @@ from conda.gateways.connection.download import download
 from conda.gateways.disk.delete import move_path_to_trash
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
-from conda.testing import PathFactoryFixture
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import PathFactoryFixture
 
 patch = mock.patch if mock else None
 
@@ -166,6 +171,8 @@ def test_windows_entry_point():
         output, error = process.communicate()
         output = output.decode("utf-8")
         error = error.decode("utf-8")
+        print(output)
+        print(error, file=sys.stderr)
         assert (
             "conda is a tool for managing and deploying applications, "
             "environments and packages."
