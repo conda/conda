@@ -23,7 +23,6 @@ from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
 from frozendict import frozendict
 
 from .. import CONDA_SOURCE_ROOT
@@ -150,7 +149,7 @@ def mockable_context_envs_dirs(root_writable, root_prefix, _envs_dirs):
         ]
     if on_win:
         fixed_dirs.append(join(user_data_dir(APP_NAME, APP_NAME), "envs"))
-    return tuple(IndexedSet(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
+    return tuple(dict.fromkeys(expand(path) for path in (*_envs_dirs, *fixed_dirs)))
 
 
 def channel_alias_validation(value):
@@ -724,7 +723,7 @@ class Context(Configuration):
     @property
     def pkgs_dirs(self):
         if self._pkgs_dirs:
-            return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
+            return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
         else:
             cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
             fixed_dirs = (
@@ -734,7 +733,7 @@ class Context(Configuration):
             if on_win:
                 fixed_dirs += (user_data_dir(APP_NAME, APP_NAME),)
             return tuple(
-                IndexedSet(expand(join(p, cache_dir_name)) for p in (fixed_dirs))
+                dict.fromkeys(expand(join(p, cache_dir_name)) for p in (fixed_dirs))
             )
 
     @memoizedproperty
@@ -2128,7 +2127,7 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
                 if allowlist and url not in allowlist:
                     raise ChannelNotAllowed(channel)
 
-    return tuple(IndexedSet(channels))
+    return tuple(dict.fromkeys(channels))
 
 
 @deprecated(
