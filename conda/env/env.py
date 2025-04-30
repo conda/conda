@@ -9,7 +9,7 @@ from itertools import chain
 from os.path import abspath, expanduser, expandvars
 
 from ..base.context import context
-from ..cli import common, install
+from ..cli import common
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.serialize import yaml_safe_dump, yaml_safe_load
@@ -290,4 +290,4 @@ def print_result(args, prefix, result):
                 actions["PIP"] = result["pip"]
             common.stdout_json_success(prefix=prefix, actions=actions)
     else:
-        install.print_activate(args.name or prefix)
+        common.print_activate(args.name or prefix)
