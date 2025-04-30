@@ -76,6 +76,6 @@ def detect(
             filename=filename,
         )
     except EnvSpecPluginNotDetected as e:
-        raise SpecNotFound(e.msg)
+        raise SpecNotFound(e.message)
 
     return spec_hook.env_spec(filename)

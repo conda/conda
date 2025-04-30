@@ -17,9 +17,9 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
-    EnvSpecPluginNotDetected,
     PackagesNotFoundError,
     ResolvePackageNotFound,
+    SpecNotFound,
 )
 from conda.gateways.disk.test import is_conda_environment
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
@@ -285,7 +285,7 @@ def test_conda_env_create_empty_file(
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
-    with pytest.raises(EnvSpecPluginNotDetected):
+    with pytest.raises(SpecNotFound):
         conda_cli("env", "create", f"--file={tmp_file}")
 
 
@@ -693,5 +693,5 @@ def test_invalid_extensions(
     env_yml = path_factory(suffix=".ymla")
     env_yml.touch()
 
-    with pytest.raises(EnvSpecPluginNotDetected):
+    with pytest.raises(SpecNotFound):
         conda_cli("env", "create", f"--file={env_yml}", "--yes")

@@ -21,6 +21,7 @@ class RequirementsSpec(EnvironmentSpecBase):
     @deprecated.argument("24.7", "26.3", "name")
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
+        self._name = None
         self.msg = None
 
     @property
