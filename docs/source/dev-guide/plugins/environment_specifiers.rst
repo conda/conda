@@ -55,7 +55,7 @@ our plugin which returns our class wrapped in a
    def conda_environment_specifiers():
        yield plugins.CondaEnvSpec(
            name="random",
-           handler_class=RandomSpec,
+           env_spec=RandomSpec,
        )
 
 Using the Plugin

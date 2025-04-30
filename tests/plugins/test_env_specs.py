@@ -29,7 +29,7 @@ class RandomSpecPlugin:
     def conda_environment_specifiers(self):
         yield CondaEnvironmentSpecifier(
             name="rand-spec",
-            handler_class=RandomSpec,
+            env_spec=RandomSpec,
         )
 
 
@@ -50,7 +50,7 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
         filename
     )
     assert env_spec_backend.name == "rand-spec"
-    assert env_spec_backend.handler_class(filename).environment is not None
+    assert env_spec_backend.env_spec(filename).environment is not None
 
 
 def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):

@@ -11,5 +11,5 @@ def conda_environment_specifiers():
 
     yield CondaEnvironmentSpecifier(
         name="binstar",
-        handler_class=BinstarSpec,
+        env_spec=BinstarSpec,
     )
