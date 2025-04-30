@@ -5,7 +5,6 @@
 import re
 import sys
 from logging import getLogger
-from os.path import dirname, isdir, isfile, join, normcase
 from os.path import (
     dirname,
     exists,
@@ -20,7 +19,7 @@ from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
-from ..common.path import paths_equal, expand
+from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,

@@ -14,7 +14,7 @@ Example plugin
 ==============
 
 The available readers can be extended with additional plugins via the ``conda_environment_specifiers``
-hook. 
+hook.
 
 .. hint::
 
@@ -29,17 +29,17 @@ hook.
 
 Defining ``EnvSpecBase``
 ------------------------
-The first class we define is a subclass of :class:`~conda.plugins.types.EnvSpecBase`. The 
-base class is an abstract base class which requires us to define our own implementations 
+The first class we define is a subclass of :class:`~conda.plugins.types.EnvSpecBase`. The
+base class is an abstract base class which requires us to define our own implementations
 of its abstract methods:
 
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
 * ``environment`` Expresses the provided environment file as a conda environment object.
 
 .. hint::
-   
+
    Be sure to be very specific when implementing the ``can_handle`` method. It should only
-   return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle`` 
+   return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle``
    method too permissive in the types of files it handles may lead to conflicts with other plugins.
 
 Registering the plugin hook
@@ -53,14 +53,14 @@ our plugin which returns our class wrapped in a
 
    @plugins.hookimpl
    def conda_environment_specifiers():
-         yield plugins.CondaEnvSpec(
-            name="random",
-            handler_class=RandomSpec,
-         )
+       yield plugins.CondaEnvSpec(
+           name="random",
+           handler_class=RandomSpec,
+       )
 
 Using the Plugin
 ----------------
-Once this plugin is registered, users will be able to create environments from the 
+Once this plugin is registered, users will be able to create environments from the
 types of files specified by the plugin. For example to create a `random` environment
 using the plugin defined above:
 

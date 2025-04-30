@@ -6,7 +6,6 @@ Creates new conda environments with the specified packages.
 """
 
 import json
-import os
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -109,7 +108,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
-    from .common import validate_env_file_exists
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
     from ..env.installers.base import get_installer

@@ -512,11 +512,11 @@ class CondaSpecs:
         """
         Register new conda env spec type
 
-        The example below defines a type of conda env file called "random". It 
+        The example below defines a type of conda env file called "random". It
         can parse a file with the file extension `.random`. This plugin will ignore
         whatever is in the input environment file and produce an environment with a
         random name and with random packages.
-        
+
         **Example:**
 
         .. code-block:: python
