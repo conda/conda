@@ -111,8 +111,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
     from ..env import specs
-    from ..env.env import get_filename, print_result
-    from ..env.installers.base import get_installer
+    from ..env.env import get_filename, print_result, Environment
     from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
 
@@ -122,6 +121,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         directory=os.getcwd(),
     )
     env = spec.environment
+    context.add_environment_file_config_source(args.file, env.get_configuration())
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
@@ -149,36 +149,40 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if args.dry_run:
         installer_type = "conda"
-        installer = get_installer(installer_type)
+        installer = context.plugin_manager.get_env_installer(installer_type)
 
         pkg_specs = env.dependencies.get(installer_type, [])
         pkg_specs.extend(args_packages)
 
-        solved_env = installer.dry_run(pkg_specs, args, env)
-        if args.json:
-            print(json.dumps(solved_env.to_dict(), indent=2))
-        else:
-            print(solved_env.to_yaml(), end="")
+        solved_packages = installer.dry_run(pkg_specs)
+        solved_env = Environment(
+            name=env.name, dependencies=solved_packages, channels=context.channels
+        )
+        if solved_env is not None:
+            if args.json:
+                print(json.dumps(solved_env.to_dict(), indent=2))
+            else:
+                print(solved_env.to_yaml(), end="")
 
     else:
         if args_packages:
             installer_type = "conda"
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, args_packages, args, env)
+            installer = context.plugin_manager.get_env_installer(installer_type)
+            result[installer_type] = installer.install(prefix, args_packages)
 
         if len(env.dependencies.items()) == 0:
             installer_type = "conda"
             pkg_specs = []
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+            installer = context.plugin_manager.get_env_installer(installer_type)
+            result[installer_type] = installer.install(prefix, pkg_specs)
         else:
             for installer_type, pkg_specs in env.dependencies.items():
                 try:
-                    installer = get_installer(installer_type)
+                    installer = context.plugin_manager.get_env_installer(installer_type)
                     result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
+                        prefix, pkg_specs
                     )
-                except InvalidInstaller:
+                except InvalidInstaller as exc:
                     raise CondaError(
                         dals(
                             f"""
@@ -186,11 +190,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
                             Please double check and ensure your dependencies file has
                             the correct spelling. You might also try installing the
-                            conda-env-{installer_type} package to see if provides
-                            the required installer.
+                            corresponding conda plugin for this type (e.g. conda-pypi
+                            for 'pip').
                             """
                         )
-                    )
+                    ) from exc
 
         if env.variables:
             prefix_data.set_environment_env_vars(env.variables)

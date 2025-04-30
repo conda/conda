@@ -88,7 +88,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env import specs as install_specs
     from ..env.env import get_filename, print_result
-    from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
 
     spec = install_specs.detect(
@@ -97,6 +96,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         directory=os.getcwd(),
     )
     env = spec.environment
+    context.add_environment_file_config_source(args.file, env.get_configuration())
 
     if not (args.name or args.prefix):
         if not env.name:
@@ -138,27 +138,25 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     for installer_type in env.dependencies:
         try:
-            installers[installer_type] = get_installer(installer_type)
+            installers[installer_type] = context.plugin_manager.get_env_installer(installer_type)
         except InvalidInstaller:
             raise CondaError(
                 dals(
                     f"""
-                    Unable to install package for {0}.
+                    Unable to install package for {installer_type}.
 
-                    Please double check and ensure you dependencies file has
-                    the correct spelling.  You might also try installing the
-                    conda-env-{0} package to see if provides the required
-                    installer.
+                    Please double check and ensure your dependencies file has
+                    the correct spelling. You might also try installing the
+                    corresponding conda plugin for this type (e.g. conda-pypi
+                    for 'pip').
                     """
                 )
             )
 
-            return -1
-
     result = {"conda": None, "pip": None}
     for installer_type, specs in env.dependencies.items():
         installer = installers[installer_type]
-        result[installer_type] = installer.install(prefix, specs, args, env)
+        result[installer_type] = installer.install(prefix, specs)
 
     if env.variables:
         prefix_data.set_environment_env_vars(env.variables)
