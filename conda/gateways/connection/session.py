@@ -20,7 +20,7 @@ from ...common.url import (
     split_anaconda_token,
     urlparse,
 )
-from ...exceptions import ProxyError
+from ...exceptions import OfflineError, ProxyError
 from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
@@ -58,14 +58,11 @@ CONDA_SESSION_SCHEMES = frozenset(
 
 
 class EnforceUnusedAdapter(BaseAdapter):
-    def send(self, request, *args, **kwargs):
-        message = dals(
-            f"""
-        EnforceUnusedAdapter called with url {request.url}
-        This command is using a remote connection in offline mode.
-        """
+    def send(self, request: Request, *args, **kwargs):
+        raise OfflineError(
+            f"EnforceUnusedAdapter called with url {request.url}.\n"
+            "This command is using a remote connection in offline mode."
         )
-        raise RuntimeError(message)
 
     def close(self):
         raise NotImplementedError()
