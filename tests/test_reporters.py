@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 
 def test_render(
     capsys: CaptureFixture,
-    set_context_pkg_env_layout_root,
 ):
     """
     Ensure basic coverage of the :func:`~conda.reporters.render` function.

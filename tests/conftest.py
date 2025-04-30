@@ -4,14 +4,20 @@
 from __future__ import annotations
 
 import logging
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 
 import conda
-from conda.base.constants import PkgEnvLayout
 from conda.base.context import context, reset_context
+from conda.common.configuration import (
+    ParameterLoader,
+    PrimitiveParameter,
+    SequenceParameter,
+)
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
 from conda.plugins.hookspec import CondaSpecs
@@ -21,7 +27,8 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
+    from typing import Callable
 
     from pytest_mock import MockerFixture
 
@@ -98,9 +105,10 @@ def do_not_notify_outdated_conda(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def automatically_use_conda_root_pkgs_envs(monkeypatch):
+def automatically_use_conda_root_pkgs_envs(mock_context_attributes):
     """Do not notify about pkgs/ and envs/ in the root prefix during tests."""
-    monkeypatch.setenv("CONDA_PKG_ENV_LAYOUT", PkgEnvLayout.CONDA_ROOT.value)
+    with mock_context_attributes(pkg_env_layout="conda_root"):
+        yield
 
 
 @pytest.fixture
@@ -164,3 +172,59 @@ def propagate_conda_logger():
     logger.propagate = True
     yield
     logger.propagate = False
+
+
+@pytest.fixture
+def mock_context_attributes() -> Callable:
+    """A fixture that returns a context manager for mocking the context.
+
+    This can be used to mock attributes quickly:
+
+        with mock_context_attributes(
+            pkg_env_layout=pkg_env_layout,
+            _pkgs_dirs=(pkgs,),
+            _envs_dirs=(envs,),
+        ):
+            ...
+
+    This context manager will iterate through each kwarg, patching each
+    of the keys with the given value, and then resetting the context.
+    Most simple ``Context`` attributes are handled automatically.
+    """
+
+    @contextmanager
+    def mock_attribute(**kwargs) -> Iterator:
+        with ExitStack() as stack:
+            for key, value in kwargs.items():
+                if isinstance(value, ParameterLoader):
+                    param = value
+                elif isinstance(value, str):
+                    param = ParameterLoader(PrimitiveParameter(value, element_type=str))
+                elif isinstance(value, tuple):
+                    param = ParameterLoader(
+                        SequenceParameter(
+                            PrimitiveParameter("", element_type=str),
+                            value,
+                        )
+                    )
+                elif isinstance(value, bool):
+                    param = ParameterLoader(PrimitiveParameter(value))
+                else:
+                    raise NotImplementedError
+
+                param._set_name(key)
+                stack.enter_context(
+                    mock.patch(
+                        f"conda.base.context.Context.{key}",
+                        new=param,
+                    )
+                )
+
+            # Reset the context because conda uses the singleton
+            # conda.base.context.context, rather than new instances
+            # of Context.
+            reset_context()
+            yield
+            reset_context()
+
+    return mock_attribute

@@ -50,8 +50,6 @@ from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-
     from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
@@ -355,31 +353,30 @@ def test_default_target_is_root_prefix(testdata: None):
 def test_target_prefix(
     path_factory: PathFactoryFixture,
     monkeypatch: MonkeyPatch,
-    unset_condarc_pkgs: Iterator,
-    unset_condarc_envs: Iterator,
+    mock_context_attributes,
 ) -> None:
     (envs1 := path_factory()).mkdir()
     (envs2 := path_factory()).mkdir()
     envs_dirs = (str(envs1), str(envs2))
 
-    monkeypatch.setenv("CONDA_ENVS_DIRS", os.pathsep.join(envs_dirs))
-    reset_context()
-    assert context._envs_dirs == envs_dirs
-    assert context.envs_dirs[:2] == envs_dirs
+    with mock_context_attributes(_envs_dirs=envs_dirs):
+        reset_context()
+        assert context._envs_dirs == envs_dirs
+        assert context.envs_dirs[:2] == envs_dirs
 
-    # with both dirs writable, choose first
-    reset_context(argparse_args=SimpleNamespace(name="blarg"))
-    assert context.target_prefix == str(envs1 / "blarg")
+        # with both dirs writable, choose first
+        reset_context(argparse_args=SimpleNamespace(name="blarg"))
+        assert context.target_prefix == str(envs1 / "blarg")
 
-    # with first dir read-only, choose second
-    make_read_only(envs1 / ".conda_envs_dir_test")
-    reset_context(argparse_args=SimpleNamespace(name="blarg"))
-    assert context.target_prefix == str(envs2 / "blarg")
+        # with first dir read-only, choose second
+        make_read_only(envs1 / ".conda_envs_dir_test")
+        reset_context(argparse_args=SimpleNamespace(name="blarg"))
+        assert context.target_prefix == str(envs2 / "blarg")
 
-    # if first dir is read-only but environment exists, choose first
-    (envs1 / "blarg").mkdir()
-    reset_context(argparse_args=SimpleNamespace(name="blarg"))
-    assert context.target_prefix == str(envs1 / "blarg")
+        # if first dir is read-only but environment exists, choose first
+        (envs1 / "blarg").mkdir()
+        reset_context(argparse_args=SimpleNamespace(name="blarg"))
+        assert context.target_prefix == str(envs1 / "blarg")
 
 
 def test_aggressive_update_packages(monkeypatch: MonkeyPatch) -> None:
@@ -897,24 +894,19 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
         PkgEnvLayout.USER.value,
         PkgEnvLayout.CONDA_ROOT.value,
         PkgEnvLayout.UNSET.value,
-        None,
     ],
 )
 def test_pkg_env_layout(
     testdata,
-    unset_condarc_pkgs,
-    unset_condarc_envs,
     pkg_env_layout,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that the default envs/pkgs directories are not in the base environment."""
-    with mock.patch.dict(os.environ):
-        if pkg_env_layout:
-            os.environ["CONDA_PKG_ENV_LAYOUT"] = pkg_env_layout
-        else:
-            del os.environ["CONDA_PKG_ENV_LAYOUT"]
-
-        reset_context()
+    with mock_context_attributes(
+        pkg_env_layout=pkg_env_layout,
+        _pkgs_dirs=(),
+        _envs_dirs=(),
+    ):
         if pkg_env_layout == PkgEnvLayout.USER.value:
             basename = Path(USER_DATA_DIR)
         else:
@@ -933,35 +925,23 @@ def test_pkg_env_layout(
         PkgEnvLayout.USER.value,
         PkgEnvLayout.CONDA_ROOT.value,
         PkgEnvLayout.UNSET.value,
-        None,
     ],
 )
 def test_set_pkgs_envs_default_dirs(
     tmpdir,
     testdata,
-    unset_condarc_pkgs,
-    unset_condarc_envs,
     pkg_env_layout,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that the default locations aren't used if pkgs_dirs and envs_dirs are set."""
     pkgs = str(tmpdir / "pkgs")
     envs = str(tmpdir / "envs")
 
-    with mock.patch.dict(
-        os.environ,
-        {
-            "CONDA_PKGS_DIRS": pkgs,
-            "CONDA_ENVS_DIRS": envs,
-        },
+    with mock_context_attributes(
+        pkg_env_layout=pkg_env_layout,
+        _pkgs_dirs=(pkgs,),
+        _envs_dirs=(envs,),
     ):
-        if pkg_env_layout:
-            os.environ["CONDA_PKG_ENV_LAYOUT"] = pkg_env_layout
-        else:
-            del os.environ["CONDA_PKG_ENV_LAYOUT"]
-
-        reset_context()
-
         if pkg_env_layout == PkgEnvLayout.USER.value:
             basename = Path(USER_DATA_DIR)
         else:
@@ -978,33 +958,32 @@ def test_set_pkgs_envs_default_dirs(
         assert {envs, root_prefix_envs} <= set(context.envs_dirs)
 
 
-@mock.patch.dict(os.environ)
 def test_pkgs_envs_old_default_dirs(
     testdata,
     propagate_conda_logger,
     caplog,
-    unset_condarc_pkgs,
-    unset_condarc_envs,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that the old locations of envs/pkgs directories generate a log warning."""
-    del os.environ["CONDA_PKG_ENV_LAYOUT"]
-    reset_context()
+    with mock_context_attributes(
+        pkg_env_layout="unset",
+        _pkgs_dirs=(),
+        _envs_dirs=(),
+    ):
+        envs = context.root_prefix_envs
+        pkgs = context.root_prefix_pkgs
 
-    envs = context.root_prefix_envs
-    pkgs = context.root_prefix_pkgs
+        with caplog.at_level(logging.INFO):
+            # Fetch these properties, which should trigger the warning-level log messages
+            assert envs in context.envs_dirs
+            assert len(caplog.records) == 1
+            assert any([USER_DATA_ENVS in record.message for record in caplog.records])
 
-    with caplog.at_level(logging.INFO):
-        # Fetch these properties, which should trigger the warning-level log messages
-        assert envs in context.envs_dirs
-        assert len(caplog.records) == 1
-        assert any([USER_DATA_ENVS in record.message for record in caplog.records])
-
-        assert pkgs in context.pkgs_dirs
-        assert len(caplog.records) == 2
-        assert any(
-            [context.user_data_pkgs in record.message for record in caplog.records]
-        )
+            assert pkgs in context.pkgs_dirs
+            assert len(caplog.records) == 2
+            assert any(
+                [context.user_data_pkgs in record.message for record in caplog.records]
+            )
 
 
 @pytest.mark.parametrize(
@@ -1013,35 +992,23 @@ def test_pkgs_envs_old_default_dirs(
         PkgEnvLayout.USER.value,
         PkgEnvLayout.CONDA_ROOT.value,
         PkgEnvLayout.UNSET.value,
-        None,
     ],
 )
 def test_pkgs_envs_configured(
     tmpdir,
     testdata,
-    unset_condarc_pkgs,
-    unset_condarc_envs,
     pkg_env_layout,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that the context uses the requested paths when `pkgs_dirs`/`envs_dirs` are set."""
     pkgs = str(tmpdir / "pkgs")
     envs = str(tmpdir / "envs")
 
-    with mock.patch.dict(
-        os.environ,
-        {
-            "CONDA_PKGS_DIRS": pkgs,
-            "CONDA_ENVS_DIRS": envs,
-        },
+    with mock_context_attributes(
+        pkg_env_layout=pkg_env_layout,
+        _pkgs_dirs=(pkgs,),
+        _envs_dirs=(envs,),
     ):
-        if pkg_env_layout:
-            os.environ["CONDA_PKG_ENV_LAYOUT"] = pkg_env_layout
-        else:
-            del os.environ["CONDA_PKG_ENV_LAYOUT"]
-
-        reset_context()
-
         assert set(context._pkgs_dirs) == set(context.pkgs_dirs) == set((pkgs,))
 
         # When setting `envs_dirs`, the legacy behavior is to use

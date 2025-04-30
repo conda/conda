@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import copy
 import json
 import os
 import uuid
@@ -15,19 +14,17 @@ from logging import getLogger
 from pathlib import Path
 from shutil import copyfile
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
-from unittest import mock
 
 import py
 import pytest
 
-from conda.common.configuration import ParameterLoader, PrimitiveParameter
-from conda.common.serialize import yaml_round_trip_load, yaml_safe_dump, yaml_safe_load
+from conda.common.serialize import yaml_round_trip_load
 from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
-from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PkgEnvLayout
+from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import (
     conda_tests_ctxt_mgmt_def_pol,
     context,
@@ -530,138 +527,3 @@ def PYTHONPATH():
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
             yield
-
-
-@pytest.fixture
-def unset_condarc_pkg_env_layout() -> Iterator:
-    """Fixture which rewrites all `.condarc` temporarily to remove the `pkg_env_layout` entry.
-
-    If no .condarc is found in the context, this fixture is a noop.
-    """
-    # Start by resetting the context to ensure the all config files are targeted
-    reset_context()
-
-    old_condarcs = {}
-    for path in context.config_files:
-        if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
-            with open(path) as f:
-                old_condarc = yaml_safe_load(f.read())
-
-            if "pkg_env_layout" not in old_condarc:
-                # If the condarc that was found has no 'pkgs_dirs' entry,
-                # don't do anything
-                continue
-
-            old_condarcs[path] = old_condarc
-            new_condarc = copy.deepcopy(old_condarc)
-            del new_condarc["pkg_env_layout"]
-
-            with open(path, "w") as f:
-                yaml_safe_dump(new_condarc, f)
-
-    if old_condarcs:
-        reset_context()
-        yield
-
-        for path, old_condarc in old_condarcs.items():
-            with open(path, "w") as f:
-                yaml_safe_dump(old_condarc, f)
-    else:
-        # This fixture is a noop if a .condarc isn't found
-        yield
-
-
-@pytest.fixture
-def unset_condarc_pkgs() -> Iterator:
-    """Fixture which rewrites all `.condarc` temporarily to remove the `pkgs_dirs` entry.
-
-    Necessary in CI, where the `setup-miniconda` action writes `pkgs_dirs` to ~/.condarc.
-    For some reason, the `testdata` fixture doesn't override this, meaning we don't get
-    a clean conda installation during tests, which can break tests which rely on not
-    having this setting configured.
-
-    If no .condarc is found in the context, this fixture is a noop.
-    """
-    # Start by resetting the context to ensure the all config files are targeted
-    reset_context()
-
-    old_condarcs = {}
-    for path in context.config_files:
-        if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
-            with open(path) as f:
-                old_condarc = yaml_safe_load(f.read())
-
-            if "pkgs_dirs" not in old_condarc:
-                # If the condarc that was found has no 'pkgs_dirs' entry,
-                # don't do anything
-                continue
-
-            old_condarcs[path] = old_condarc
-            new_condarc = copy.deepcopy(old_condarc)
-            del new_condarc["pkgs_dirs"]
-
-            with open(path, "w") as f:
-                yaml_safe_dump(new_condarc, f)
-
-    if old_condarcs:
-        reset_context()
-        yield
-
-        for path, old_condarc in old_condarcs.items():
-            with open(path, "w") as f:
-                yaml_safe_dump(old_condarc, f)
-    else:
-        # This fixture is a noop if a .condarc isn't found
-        yield
-
-
-@pytest.fixture
-def unset_condarc_envs() -> Iterator:
-    """Fixture which rewrites all `.condarc` temporarily to remove the `envs_dirs` entry.
-
-    If no .condarc is found in the context, this fixture is a noop.
-    """
-    # Start by resetting the context to ensure the all config files are targeted
-    reset_context()
-
-    old_condarcs = {}
-    for path in context.config_files:
-        if isinstance(path, Path) and ".condarc" in str(path) and path.exists():
-            with open(path) as f:
-                old_condarc = yaml_safe_load(f.read())
-
-            if "envs_dirs" not in old_condarc:
-                # If the condarc that was found has no 'envs_dirs' entry,
-                # don't do anything
-                continue
-
-            old_condarcs[path] = old_condarc
-            new_condarc = copy.deepcopy(old_condarc)
-            del new_condarc["envs_dirs"]
-
-            with open(path, "w") as f:
-                yaml_safe_dump(new_condarc, f)
-
-    if old_condarcs:
-        reset_context()
-        yield
-
-        for path, old_condarc in old_condarcs.items():
-            with open(path, "w") as f:
-                yaml_safe_dump(old_condarc, f)
-    else:
-        # This fixture is a noop if a .condarc isn't found
-        yield
-
-
-@pytest.fixture
-def set_context_pkg_env_layout_root() -> Iterator:
-    mock_pkg_env_layout = ParameterLoader(
-        PrimitiveParameter(PkgEnvLayout.CONDA_ROOT.value, element_type=str)
-    )
-    mock_pkg_env_layout._set_name("pkg_env_layout")
-    with mock.patch(
-        "conda.base.context.Context.pkg_env_layout", new=mock_pkg_env_layout
-    ):
-        reset_context()
-        yield mock_pkg_env_layout

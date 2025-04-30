@@ -937,72 +937,69 @@ def test_migrate_pkgs(
     conda_cli: CondaCLIFixture,
     propagate_conda_logger,
     caplog,
-    unset_condarc_pkgs,
-    unset_condarc_pkg_env_layout,
     hardlink_possible,
+    mock_context_attributes,
 ):
     """Test that migrating pkgs works as intended."""
-    # Delete this setting in case this is set in the condarc
-    if "CONDA_PKG_ENV_LAYOUT" in os.environ:
-        del os.environ["CONDA_PKG_ENV_LAYOUT"]
-    if "CONDA_ALWAYS_COPY" in os.environ:
-        del os.environ["CONDA_ALWAYS_COPY"]
-    reset_context()
-
-    # Check that having pkgs in the root triggers a warning
-    # We need this context manager because there's an autouse
-    # fixture which calls caplog.set_level in tests.cli.conftest
-    # which affects this; more background info can be found at
-    # https://github.com/pytest-dev/pytest/issues/7656
-    with caplog.at_level(logging.WARNING):
-        context.pkgs_dirs
-    assert len(caplog.records) == 1
-
-    with (
-        mock.patch(
-            "conda.base.context.Context.root_prefix_pkgs",
-            new_callable=mock.PropertyMock,
-        ) as mock_pkgs,
-        mock.patch("conda.common.path.directories.copy_dir_contents") as mock_copy,
-        mock.patch(
-            "conda.common.path.directories.hardlink_dir_contents"
-        ) as mock_hardlink,
+    with mock_context_attributes(
+        _pkgs_dirs=(),
+        pkg_env_layout=PkgEnvLayout.UNSET.value,
+        always_copy=False,
     ):
-        # Create a dummy packages directory
-        pkgs_dir = os.path.join(tmpdir, "pkgs")
-        os.makedirs(pkgs_dir, exist_ok=True)
+        # Check that having pkgs in the root triggers a warning
+        # We need this context manager because there's an autouse
+        # fixture which calls caplog.set_level in tests.cli.conftest
+        # which affects this; more background info can be found at
+        # https://github.com/pytest-dev/pytest/issues/7656
+        with caplog.at_level(logging.WARNING):
+            context.pkgs_dirs
+        assert len(caplog.records) == 1
 
-        mock_pkgs.return_value = pkgs_dir
+        with (
+            mock.patch(
+                "conda.base.context.Context.root_prefix_pkgs",
+                new_callable=mock.PropertyMock,
+            ) as mock_pkgs,
+            mock.patch("conda.common.path.directories.copy_dir_contents") as mock_copy,
+            mock.patch(
+                "conda.common.path.directories.hardlink_dir_contents"
+            ) as mock_hardlink,
+        ):
+            # Create a dummy packages directory
+            pkgs_dir = os.path.join(tmpdir, "pkgs")
+            os.makedirs(pkgs_dir, exist_ok=True)
 
-        # Check that on systems where hardlinks are impossible,
-        # we fall back to copying
-        if not hardlink_possible:
-            mock_hardlink.side_effect = NotImplementedError
+            mock_pkgs.return_value = pkgs_dir
 
-        # This should raise a warning indicating that the user should
-        # set `conda config set pkg_env_layout user` before failing out
-        with pytest.raises(CondaError, match="`conda config set pkg_env_layout user`"):
-            conda_cli("config", "--migrate-pkgs")
+            # Check that on systems where hardlinks are impossible,
+            # we fall back to copying
+            if not hardlink_possible:
+                mock_hardlink.side_effect = NotImplementedError
 
-        mock_copy.assert_not_called()
-        mock_hardlink.assert_not_called()
+            # This should raise a warning indicating that the user should
+            # set `conda config set pkg_env_layout user` before failing out
+            with pytest.raises(
+                CondaError, match="`conda config set pkg_env_layout user`"
+            ):
+                conda_cli("config", "--migrate-pkgs")
 
-        # Okay, now the user sets `conda config set pkg_env_layout user`
-        os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
-        reset_context()
+            mock_copy.assert_not_called()
+            mock_hardlink.assert_not_called()
 
-        conda_cli("config", "--migrate-pkgs")
+            # Okay, now the user sets `conda config set pkg_env_layout user`
+            with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER.value):
+                conda_cli("config", "--migrate-pkgs")
 
-        mock_hardlink.assert_called_once_with(
-            context.root_prefix_pkgs,
-            context.user_data_pkgs,
-        )
+                mock_hardlink.assert_called_once_with(
+                    context.root_prefix_pkgs,
+                    context.user_data_pkgs,
+                )
 
-        if not hardlink_possible:
-            mock_copy.assert_called_once_with(
-                context.root_prefix_pkgs,
-                context.user_data_pkgs,
-            )
+                if not hardlink_possible:
+                    mock_copy.assert_called_once_with(
+                        context.root_prefix_pkgs,
+                        context.user_data_pkgs,
+                    )
 
 
 @mock.patch.dict(os.environ)
@@ -1012,119 +1009,108 @@ def test_migrate_envs(
     conda_cli: CondaCLIFixture,
     propagate_conda_logger,
     caplog,
-    unset_condarc_envs,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that migrating the environments works as intended."""
-    # Delete this setting in case this is set in the condarc
-    if "CONDA_PKG_ENV_LAYOUT" in os.environ:
-        del os.environ["CONDA_PKG_ENV_LAYOUT"]
-    reset_context()
+    with mock_context_attributes(
+        _envs_dirs=(),
+        pkg_env_layout=PkgEnvLayout.UNSET.value,
+    ):
+        # Ensure there are no envs at USER_DATA_ENVS
+        shutil.rmtree(USER_DATA_ENVS, ignore_errors=True)
 
-    # Ensure there are no envs at USER_DATA_ENVS
-    shutil.rmtree(USER_DATA_ENVS, ignore_errors=True)
+        with mock.patch(
+            "conda.base.context.Context.root_prefix_envs",
+            new_callable=mock.PropertyMock,
+        ) as mock_envs:
+            # Create a mock root prefix
+            envs_dir = os.path.join(tmpdir, "envs")
+            os.makedirs(envs_dir, exist_ok=True)
 
-    with mock.patch(
-        "conda.base.context.Context.root_prefix_envs",
-        new_callable=mock.PropertyMock,
-    ) as mock_envs:
-        # Create a mock root prefix
-        envs_dir = os.path.join(tmpdir, "envs")
-        os.makedirs(envs_dir, exist_ok=True)
+            mock_envs.return_value = envs_dir
 
-        mock_envs.return_value = envs_dir
-
-        with (
-            tmp_env("python", prefix=os.path.join(envs_dir, "foo")),
-            tmp_env("python", prefix=os.path.join(envs_dir, "bar")),
-        ):
-            # Because the tmp_env calls the conda_cli fixture which calls
-            # conda.cli.main.main_subshell which among other things reinitializes
-            # the loggers, we need to manually reset the propagation
-            # state of the conda logger here in order to capture messages below
-            logging.getLogger("conda").propagate = True
-
-            # Check that having envs in the root triggers a warning
-            with caplog.at_level(logging.WARNING):
-                context.envs_dirs
-            assert len(caplog.records) == 1
-
-            # This should raise a warning indicating that the user should
-            # set `conda config set pkg_env_layout user` before failing out
-            with pytest.raises(
-                CondaError, match="`conda config set pkg_env_layout user`"
+            with (
+                tmp_env("python", prefix=os.path.join(envs_dir, "foo")),
+                tmp_env("python", prefix=os.path.join(envs_dir, "bar")),
             ):
-                conda_cli("config", "--migrate-envs")
+                # Because the tmp_env calls the conda_cli fixture which calls
+                # conda.cli.main.main_subshell which among other things reinitializes
+                # the loggers, we need to manually reset the propagation
+                # state of the conda logger here in order to capture messages below
+                logging.getLogger("conda").propagate = True
 
-            # Okay, now the user sets `conda config set pkg_env_layout user`
-            os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
-            reset_context()
+                # Check that having envs in the root triggers a warning
+                with caplog.at_level(logging.WARNING):
+                    context.envs_dirs
+                assert len(caplog.records) == 1
 
-            conda_cli("config", "--migrate-envs")
+                # This should raise a warning indicating that the user should
+                # set `conda config set pkg_env_layout user` before failing out
+                with pytest.raises(
+                    CondaError, match="`conda config set pkg_env_layout user`"
+                ):
+                    conda_cli("config", "--migrate-envs")
 
-            # Post-migration, running the migration again should raise an error
-            with pytest.raises(CondaError):
-                conda_cli("config", "--migrate-envs")
+                # Okay, now the user sets `conda config set pkg_env_layout user`
+                with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER.value):
+                    conda_cli("config", "--migrate-envs")
 
-            # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
-            # things reinitializes the loggers, we need to manually reset the propagation
-            # state of the conda logger here in order to capture messages below
-            logging.getLogger("conda").propagate = True
+                    # Post-migration, running the migration again should raise an error
+                    with pytest.raises(CondaError):
+                        conda_cli("config", "--migrate-envs")
 
-            # After migration, accessing `envs_dirs` should not produce warnings
-            caplog.clear()
-            with caplog.at_level(logging.WARNING):
-                context.envs_dirs
-            assert len(caplog.records) == 0
+                    # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
+                    # things reinitializes the loggers, we need to manually reset the propagation
+                    # state of the conda logger here in order to capture messages below
+                    logging.getLogger("conda").propagate = True
+
+                    # After migration, accessing `envs_dirs` should not produce warnings
+                    caplog.clear()
+                    with caplog.at_level(logging.WARNING):
+                        context.envs_dirs
+                    assert len(caplog.records) == 0
 
 
-@mock.patch.dict(os.environ)
 def test_ignore_migrate_pkgs(
     tmpdir,
     tmp_env,
     conda_cli: CondaCLIFixture,
     propagate_conda_logger,
     caplog,
-    unset_condarc_pkgs,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that migrating pkgs works as intended."""
-    # Delete this setting in case this is set in the condarc
-    if "CONDA_PKG_ENV_LAYOUT" in os.environ:
-        del os.environ["CONDA_PKG_ENV_LAYOUT"]
-    reset_context()
-
-    # Check that having pkgs in the root triggers a warning
-    # We need this context manager because there's an autouse
-    # fixture which calls caplog.set_level in tests.cli.conftest
-    # which affects this; more background info can be found at
-    # https://github.com/pytest-dev/pytest/issues/7656
-    with caplog.at_level(logging.WARNING):
-        context.pkgs_dirs
-    assert len(caplog.records) == 1
-
-    conda_cli("config", "--append", "pkgs_dirs", context.root_prefix_pkgs)
-
-    # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
-    # things reinitializes the loggers, we need to manually reset the propagation
-    # state of the conda logger here in order to capture messages below
-    logging.getLogger("conda").propagate = True
-
-    # Should no longer produce a warning
-    with caplog.at_level(logging.WARNING):
-        context.pkgs_dirs
-    assert len(caplog.records) == 1
-
-    # This should raise a warning indicating that the user should
-    # set `conda config set pkg_env_layout user` before failing out
-    with pytest.raises(
-        CondaError,
-        match="The conda configuration for pkgs_dirs has been explicitly set",
+    with mock_context_attributes(
+        _pkgs_dirs=(),
+        pkg_env_layout=PkgEnvLayout.UNSET.value,
     ):
-        conda_cli("config", "--migrate-pkgs")
+        # Check that having pkgs in the root triggers a warning
+        # We need this context manager because there's an autouse
+        # fixture which calls caplog.set_level in tests.cli.conftest
+        # which affects this; more background info can be found at
+        # https://github.com/pytest-dev/pytest/issues/7656
+        with caplog.at_level(logging.WARNING):
+            context.pkgs_dirs
+        assert len(caplog.records) == 1
 
-    # Clean up conda config
-    conda_cli("config", "--remove", "pkgs_dirs", context.root_prefix_pkgs)
+    # Equivalent to running
+    # conda_cli("config", "--append", "pkgs_dirs", context.root_prefix_pkgs)
+    with mock_context_attributes(
+        _pkgs_dirs=(context.root_prefix_pkgs,),
+    ):
+        # Should no longer produce a warning
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            context.pkgs_dirs
+        assert len(caplog.records) == 0
+
+        # This should raise a warning indicating that the user should
+        # set `conda config set pkg_env_layout user` before failing out
+        with pytest.raises(
+            CondaError,
+            match="The conda configuration for pkgs_dirs has been explicitly set",
+        ):
+            conda_cli("config", "--migrate-pkgs")
 
 
 @mock.patch.dict(os.environ)
@@ -1133,17 +1119,21 @@ def test_ignore_migrate_envs(
     conda_cli: CondaCLIFixture,
     propagate_conda_logger,
     caplog,
-    unset_condarc_envs,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that warning messages about envs migration can be suppressed."""
-    # Delete this setting in case this is set in the condarc
-    if "CONDA_PKG_ENV_LAYOUT" in os.environ:
-        del os.environ["CONDA_PKG_ENV_LAYOUT"]
-    reset_context()
-
-    # Ensure there are no envs at USER_DATA_ENVS
-    shutil.rmtree(USER_DATA_ENVS, ignore_errors=True)
+    with mock_context_attributes(
+        _envs_dirs=(),
+        pkg_env_layout=PkgEnvLayout.UNSET.value,
+    ):
+        # Check that having envs in the root triggers a warning
+        # We need this context manager because there's an autouse
+        # fixture which calls caplog.set_level in tests.cli.conftest
+        # which affects this; more background info can be found at
+        # https://github.com/pytest-dev/pytest/issues/7656
+        with caplog.at_level(logging.WARNING):
+            context.envs_dirs
+        assert len(caplog.records) == 1
 
     with mock.patch(
         "conda.base.context.Context.root_prefix_envs",
@@ -1155,44 +1145,32 @@ def test_ignore_migrate_envs(
 
         mock_envs.return_value = envs_dir
 
-        # Write to the .condarc to include <root prefix>/envs/
-        conda_cli("config", "--append", "envs_dirs", context.root_prefix_envs)
+        # Equivalent to running
+        # conda_cli("config", "--append", "envs_dirs", context.root_prefix_envs)
+        with mock_context_attributes(_envs_dirs=(context.root_prefix_envs,)):
+            # Should no longer produce a warning
+            caplog.clear()
+            with caplog.at_level(logging.WARNING):
+                context.envs_dirs
+            assert len(caplog.records) == 0
 
-        # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
-        # things reinitializes the loggers, we need to manually reset the propagation
-        # state of the conda logger here in order to capture messages below
-        logging.getLogger("conda").propagate = True
-
-        # Check that having envs in the root does not trigger a warning
-        # We need this context manager because there's an autouse
-        # fixture which calls caplog.set_level in tests.cli.conftest
-        # which affects this; more background info can be found at
-        # https://github.com/pytest-dev/pytest/issues/7656
-        with caplog.at_level(logging.WARNING):
-            context.envs_dirs
-        assert len(caplog.records) == 0
-
-        # This should fail because the config is set
-        with pytest.raises(CondaError, match="has been explicitly set"):
-            conda_cli("config", "--migrate-envs")
-
-        conda_cli("config", "--remove", "envs_dirs", context.root_prefix_envs)
+            # This should fail because the config is set
+            with pytest.raises(CondaError, match="has been explicitly set"):
+                conda_cli("config", "--migrate-envs")
 
 
-@mock.patch.dict(os.environ)
 def test_migrate_pkgs_pointless(
     tmp_env,
     conda_cli: CondaCLIFixture,
-    unset_condarc_pkgs,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test --migrate-pkgs when there's no <root prefix>/pkgs directory."""
     # Set the pkg_env_layout to user, which enables --migrate-pkgs
-    os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
-    os.environ["CONDA_ALWAYS_COPY"] = "1"
-    reset_context()
-
     with (
+        mock_context_attributes(
+            _pkgs_dirs=(),
+            pkg_env_layout=PkgEnvLayout.USER.value,
+        ),
         mock.patch(
             "conda.base.context.Context.root_prefix_pkgs",
             new_callable=mock.PropertyMock,
@@ -1212,21 +1190,19 @@ def test_migrate_pkgs_pointless(
         mock_hardlink.assert_not_called()
 
 
-@mock.patch.dict(os.environ)
 def test_migrate_pkgs_always_copy(
     tmpdir,
     tmp_env,
     conda_cli: CondaCLIFixture,
-    unset_condarc_pkgs,
-    unset_condarc_pkg_env_layout,
+    mock_context_attributes,
 ):
     """Test that migrating pkgs copies if the `always_copy` has been set."""
-    # Set the pkg_env_layout to user, which enables --migrate-pkgs
-    os.environ["CONDA_PKG_ENV_LAYOUT"] = PkgEnvLayout.USER.value
-    os.environ["CONDA_ALWAYS_COPY"] = "1"
-    reset_context()
-
     with (
+        mock_context_attributes(
+            _pkgs_dirs=(),
+            pkg_env_layout=PkgEnvLayout.USER.value,
+            always_copy=True,
+        ),
         mock.patch(
             "conda.base.context.Context.root_prefix_pkgs",
             new_callable=mock.PropertyMock,
