@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import nullcontext, redirect_stdout
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -227,8 +228,9 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         )
 
         try:
-            # get the final state from the solver
-            solver.solve_final_state()
+            with nullcontext() if verbose else redirect_stdout(open(os.devnull, "w")):
+                # get the final state from the solver
+                solver.solve_final_state()
             print(f"{OK_MARK} The environment is consistent.\n")
         except Exception as exc:
             print(
