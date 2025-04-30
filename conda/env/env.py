@@ -11,6 +11,7 @@ from ..base.context import context
 from ..cli import common, install
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
+from ..common.path import expand
 from ..common.serialize import yaml_safe_dump, yaml_safe_load
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
@@ -268,13 +269,11 @@ class Environment:
 @deprecated("25.9", "26.3")
 def get_filename(filename):
     """Expand filename if local path or return the ``url``"""
-    from os.path import abspath, expanduser, expandvars
-
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         return filename
     else:
-        return abspath(expanduser(expandvars(filename)))
+        return expand(filename)
 
 
 def print_result(args, prefix, result):

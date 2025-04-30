@@ -7,11 +7,8 @@ import sys
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, normcase
 from os.path import (
-    abspath,
     dirname,
     exists,
-    expanduser,
-    expandvars,
     isdir,
     isfile,
     join,
@@ -23,7 +20,7 @@ from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
-from ..common.path import paths_equal
+from ..common.path import paths_equal, expand
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
@@ -370,7 +367,7 @@ def validate_env_file_exists(filename: str):
     if url_scheme in CONDA_SESSION_SCHEMES:
         return
     else:
-        filename = abspath(expanduser(expandvars(filename)))
+        filename = expand(filename)
 
     if not exists(filename):
         raise EnvironmentFileNotFound(filename=filename)

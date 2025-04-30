@@ -1284,13 +1284,7 @@ class PluginError(CondaError):
 class EnvSpecPluginNotDetected(CondaError):
     def __init__(self, name, plugin_names, *args, **kwargs):
         self.name = name
-        msg = dals(
-            """
-            Environment at {name} is not readable by any installed EnvSpec plugins.
-            Available plugins:
-              {plugin_names_formatted}
-            """
-        ).format(name=name, plugin_names_formatted=dashlist(plugin_names, 4))
+        msg = f"Environment at {name} is not readable by any installed EnvSpec plugins.\nAvailable plugins: {dashlist(plugin_names, 4)}"
         super().__init__(msg, *args, **kwargs)
 
 
