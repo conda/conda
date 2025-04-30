@@ -107,7 +107,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             # TODO Refactor common.get_prefix
             name = os.environ.get("CONDA_DEFAULT_ENV", False)
             if not name:
-                msg = "Unable to determine environment\n\n"
                 msg = dals(
                     """
                     Unable to determine environment

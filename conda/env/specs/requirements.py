@@ -19,7 +19,7 @@ class RequirementsSpec(EnvironmentSpecifierBase):
     extensions = {".txt"}
 
     @deprecated.argument("24.7", "26.3", "name")
-    def __init__(self, filename=None, name=None, **kwargs):
+    def __init__(self, filename=None, **kwargs):
         self.filename = filename
         self._name = name  # UNUSED
         self.msg = None
@@ -56,7 +56,7 @@ class RequirementsSpec(EnvironmentSpecifierBase):
             * the provided file ends in the supported file extensions (.txt)
             * the file exists
 
-        :return: True or False
+        :return: True if the file can be parsed and handled, False otherwise
         """
         for ext in RequirementsSpec.extensions:
             if self.filename.endswith(ext) and os.path.exists(self.filename):
