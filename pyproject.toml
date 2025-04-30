@@ -131,6 +131,8 @@ filterwarnings = [
   # elevate conda's deprecated warning to an error
   "error::PendingDeprecationWarning:conda",
   "error::DeprecationWarning:conda",
+  "ignore:restore_free_channel:PendingDeprecationWarning:conda_libmamba_solver",
+  "ignore:restore_free_channel:DeprecationWarning:conda_libmamba_solver",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
