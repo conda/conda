@@ -409,8 +409,8 @@ class CondaEnvironmentSpecifier:
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
 
     :param name: name of the spec (e.g., ``environment_yaml``)
-    :param handler_class: EnvSpecBase subclass handler
+    :param env_spec: EnvSpecBase subclass handler
     """
 
     name: str
-    handler_class: type[EnvironmentSpecBase]
+    env_spec: type[EnvironmentSpecBase]

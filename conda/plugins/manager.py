@@ -492,8 +492,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> CondaEnvironmentSpecifier:
         hooks = self.get_hook_results("environment_specifiers")
         for hook in hooks:
-            handler = hook.handler_class(filename)
-            if handler.can_handle():
+            if hook.env_spec(filename).can_handle():
                 return hook
 
         # raise error if no plugins found that can read the environment file
