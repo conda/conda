@@ -5,11 +5,11 @@
 from ruamel.yaml.error import YAMLError
 
 from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
-from ...plugins.types import EnvironmentSpecifierBase
+from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
 
-class YamlFileSpec(EnvironmentSpecifierBase):
+class YamlFileSpec(EnvironmentSpecBase):
     _environment = None
     extensions = {".yaml", ".yml"}
 

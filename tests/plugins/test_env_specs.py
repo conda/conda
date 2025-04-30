@@ -5,10 +5,10 @@ import pytest
 from conda import plugins
 from conda.env.env import Environment
 from conda.exceptions import EnvSpecPluginNotDetected
-from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecifierBase
+from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
-class RandomSpec(EnvironmentSpecifierBase):
+class RandomSpec(EnvironmentSpecBase):
     extensions = {".random"}
 
     def __init__(self, filename: str):

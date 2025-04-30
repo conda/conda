@@ -374,7 +374,7 @@ class CondaPrefixDataLoader:
     loader: CondaPrefixDataLoaderCallable
 
 
-class EnvironmentSpecifierBase(ABC):
+class EnvironmentSpecBase(ABC):
     """
     Base class for all env specs.
     """
@@ -413,4 +413,4 @@ class CondaEnvironmentSpecifier:
     """
 
     name: str
-    handler_class: type[EnvironmentSpecifierBase]
+    handler_class: type[EnvironmentSpecBase]

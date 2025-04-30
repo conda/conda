@@ -5,11 +5,11 @@
 import os
 
 from ...deprecations import deprecated
-from ...plugins.types import EnvironmentSpecifierBase
+from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
 
 
-class RequirementsSpec(EnvironmentSpecifierBase):
+class RequirementsSpec(EnvironmentSpecBase):
     """
     Reads dependencies from a requirements.txt file
     and returns an Environment object from it.
