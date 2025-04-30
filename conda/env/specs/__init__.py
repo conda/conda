@@ -62,9 +62,8 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     "25.9", "26.3", "directory", addendum="Specify the full path in filename"
 )
 def detect(
-    name: str | None = None,
     filename: str | None = None,
-    directory: str | None = None,
+    **kwargs,
 ) -> SpecTypes:
     """
     Return the appropriate spec type to use.
