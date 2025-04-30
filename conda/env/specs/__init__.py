@@ -10,6 +10,7 @@ from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
+    EnvSpecPluginNotDetected,
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -70,10 +71,11 @@ def detect(
 
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
-    spec_hook = context.plugin_manager.get_environment_specifier_handler(
-        filename=filename,
-    )
-    spec = spec_hook.handler_class(filename)
-    if spec.can_handle():
-        return spec
-    raise SpecNotFound(spec.msg)
+    try:
+        spec_hook = context.plugin_manager.get_environment_specifier_handler(
+            filename=filename,
+        )
+    except EnvSpecPluginNotDetected as e:
+        raise SpecNotFound(e.msg)
+
+    return spec_hook.handler_class(filename)
