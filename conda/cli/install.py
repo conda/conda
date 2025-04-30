@@ -12,22 +12,21 @@ from __future__ import annotations
 
 import os
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir, isfile, join
+from os.path import abspath, basename, exists, isdir
 from pathlib import Path
 
 from boltons.setutils import IndexedSet
 
 from .. import CondaError
 from ..base.constants import (
-    PREFIX_MAGIC_FILE,
     REPODATA_FN,
     ROOT_ENV_NAME,
     DepsModifier,
     UpdateModifier,
 )
-from ..base.context import context, locate_prefix_by_name
+from ..base.context import context
 from ..common.constants import NULL
-from ..common.path import is_package_file, paths_equal
+from ..common.path import is_package_file
 from ..core.index import (
     _supplement_index_with_prefix,
     calculate_channel_urls,
@@ -45,9 +44,7 @@ from ..exceptions import (
     CondaSystemExit,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
-    DirectoryNotFoundError,
     DryRunExit,
-    EnvironmentLocationNotFound,
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -56,20 +53,20 @@ from ..exceptions import (
     UnsatisfiableError,
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
-from ..gateways.disk.test import is_conda_environment
 from ..history import History
 from ..misc import _get_best_prec_match, clone_env, explicit
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
-from .common import check_non_admin, validate_prefix_is_writable
+from .common import check_non_admin
 from .main_config import set_keys
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")
 def validate_prefix_exists(prefix: str | Path) -> None:
     """
     Validate that we are receiving at least one valid value for --name or --prefix.
@@ -79,6 +76,9 @@ def validate_prefix_exists(prefix: str | Path) -> None:
         raise CondaEnvException("The environment you have specified does not exist.")
 
 
+@deprecated(
+    "25.9", "26.3", addendum="Use PrefixData.exists() + PrefixData.validate_path()"
+)
 def validate_new_prefix(dest: str, force: bool = False) -> str:
     """Ensure that the new prefix does not exist."""
     from ..base.context import context, validate_prefix_name
@@ -98,6 +98,11 @@ def validate_new_prefix(dest: str, force: bool = False) -> str:
     return dest
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use PrefixData.exists(), PrefixData.validate_path(), PrefixData.validate_name()",
+)
 def check_prefix(prefix: str, json=False):
     if os.pathsep in prefix:
         raise CondaValueError(
@@ -127,12 +132,13 @@ def check_prefix(prefix: str, json=False):
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
+    # Validate source
     if os.sep in src_arg:
-        src_prefix = abspath(src_arg)
-        if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg)
+        source_prefix_data = PrefixData(abspath(src_arg))
     else:
-        src_prefix = locate_prefix_by_name(src_arg)
+        source_prefix_data = PrefixData.from_name(src_arg)
+    source_prefix_data.assert_environment()
+    src_prefix = str(source_prefix_data.prefix_path)
 
     if not json:
         print(f"Source:      {src_prefix}")
@@ -274,30 +280,20 @@ def validate_install_command(prefix: str, command: str = "install"):
     context.validate_configuration()
     check_non_admin()
 
-    if context.force_32bit and paths_equal(prefix, context.root_prefix):
+    prefix_data = PrefixData(prefix)
+
+    if context.force_32bit and prefix_data.is_base():
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
-    # Ensure the prefix exists if it is meant to
-    if command == "create":
-        # new environments should not have a prefix that exists
-        pass
-    elif isdir(prefix):
-        # if the prefix exists (and this is not a new environment)
-        # the conda-meta/history file must also exist - if it does not
-        # then this is not a valid conda environment
-        if is_conda_environment(prefix):
-            # if the prefix exists, ensure that it is writable
-            validate_prefix_is_writable(prefix)
-        else:
-            if paths_equal(prefix, context.conda_prefix):
-                raise NoBaseEnvironmentError()
-            else:
-                if not path_is_clean(prefix):
-                    raise DirectoryNotACondaEnvironmentError(prefix)
-    else:
-        # if this is not a new env and the prefix does not exist, then
-        # there is no existing environment - this is an error
-        raise EnvironmentLocationNotFound(prefix)
+    if command in ("install", "update", "remove"):
+        try:
+            prefix_data.assert_writable()
+        except DirectoryNotACondaEnvironmentError as exc:
+            if prefix_data == PrefixData(context.conda_prefix):
+                raise NoBaseEnvironmentError() from exc
+            delete_trash(prefix)
+            if not path_is_clean(prefix):
+                raise
 
 
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
@@ -346,24 +342,10 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    newenv = bool(command == "create")
-    isupdate = bool(command == "update")
-    isinstall = bool(command == "install")
-    isremove = bool(command == "remove")
-
-    if isupdate or isinstall or isremove:
-        if isdir(prefix):
-            delete_trash(prefix)
-            if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
-                if paths_equal(prefix, context.conda_prefix):
-                    raise NoBaseEnvironmentError()
-                else:
-                    if not path_is_clean(prefix):
-                        raise DirectoryNotACondaEnvironmentError(prefix)
-            else:
-                validate_prefix_is_writable(prefix)
-        else:
-            raise EnvironmentLocationNotFound(prefix)
+    newenv = command == "create"
+    isupdate = command == "update"
+    isinstall = command == "install"
+    isremove = command == "remove"
 
     # collect packages provided from the command line
     args_packages = [s.strip("\"'") for s in args.packages]
@@ -424,9 +406,7 @@ def install(args, parser, command="install"):
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    args_set_update_modifier = (
-        hasattr(args, "update_modifier") and args.update_modifier != NULL
-    )
+    args_set_update_modifier = getattr(args, "update_modifier", NULL) != NULL
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
     _should_retry_unfrozen = (

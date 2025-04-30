@@ -19,6 +19,7 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
+    import http.server
     from collections.abc import Iterable
 
     from pytest_mock import MockerFixture
@@ -61,7 +62,7 @@ def clear_cache():
 
 
 @pytest.fixture(scope="session")
-def support_file_server():
+def support_file_server() -> Iterable[http.server.ThreadingHTTPServer]:
     """Open a local web server to test remote support files."""
     base = Path(__file__).parents[0] / "env" / "support"
     http = http_test_server.run_test_server(str(base))
@@ -72,7 +73,9 @@ def support_file_server():
 
 
 @pytest.fixture
-def support_file_server_port(support_file_server):
+def support_file_server_port(
+    support_file_server: http.server.ThreadingHTTPServer,
+) -> int:
     return support_file_server.socket.getsockname()[1]
 
 
