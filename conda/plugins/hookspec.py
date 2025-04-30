@@ -511,9 +511,16 @@ class CondaSpecs:
     def conda_environment_specifiers(self) -> Iterable[CondaEnvironmentSpecifier]:
         """
         Register new conda env spec type
-        The example below defines a new file type
+
+        The example below defines a type of conda env file called "random". It 
+        can parse a file with the file extension `.random`. This plugin will ignore
+        whatever is in the input environment file and produce an environment with a
+        random name and with random packages.
+        
         **Example:**
+
         .. code-block:: python
+
             import json
             import random
             from pathlib import Path
@@ -532,7 +539,9 @@ class CondaSpecs:
                     self.filename = filename
 
                 def can_handle(self):
-                    return random.random() < 0.5
+                    for ext in RandomSpec.extensions:
+                        if self.filename.endswith(ext):
+                            return True
 
                 def environment(self):
                     return Environment(
@@ -544,7 +553,7 @@ class CondaSpecs:
             @plugins.hookimpl
             def conda_environment_specifiers():
                 yield plugins.CondaEnvSpec(
-                    name="jpg",
+                    name="random",
                     handler_class=RandomSpec,
                 )
         """
