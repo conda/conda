@@ -1098,6 +1098,7 @@ def test_ignore_migrate_pkgs(
     with mock_context_attributes(
         _pkgs_dirs=(context.root_prefix_pkgs,),
     ):
+        reset_context()
         # Should no longer produce a warning
         caplog.clear()
         with caplog.at_level(logging.WARNING):
@@ -1148,6 +1149,7 @@ def test_ignore_migrate_envs(
         # Equivalent to running
         # conda_cli("config", "--append", "envs_dirs", context.root_prefix_envs)
         with mock_context_attributes(_envs_dirs=(context.root_prefix_envs,)):
+            reset_context()
             # Should no longer produce a warning
             caplog.clear()
             with caplog.at_level(logging.WARNING):

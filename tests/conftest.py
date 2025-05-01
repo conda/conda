@@ -222,12 +222,6 @@ def mock_context_attributes() -> Callable:
                         new=param,
                     )
                 )
-
-            # Reset the context because conda uses the singleton
-            # conda.base.context.context, rather than new instances
-            # of Context.
-            reset_context()
             yield
-            reset_context()
 
     return mock_attribute
