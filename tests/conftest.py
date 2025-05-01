@@ -13,6 +13,7 @@ import pytest
 
 import conda
 from conda.base.context import context, reset_context
+from conda.common.compat import NoneType
 from conda.common.configuration import (
     ParameterLoader,
     PrimitiveParameter,
@@ -201,8 +202,10 @@ def mock_context_attributes() -> Callable:
             for key, value in kwargs.items():
                 if isinstance(value, ParameterLoader):
                     param = value
-                elif isinstance(value, str):
-                    param = ParameterLoader(PrimitiveParameter(value, element_type=str))
+                elif isinstance(value, (str, NoneType)):
+                    param = ParameterLoader(
+                        PrimitiveParameter(value, element_type=(str, NoneType))
+                    )
                 elif isinstance(value, tuple):
                     param = ParameterLoader(
                         SequenceParameter(

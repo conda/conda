@@ -365,7 +365,7 @@ class ContainsMeta(EnumMeta):
 
         # Otherwise try testing against member values
         for item in self:
-            if member is None or item.value == member:
+            if item.value == member:
                 return True
         return False
 
