@@ -350,3 +350,11 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
             """
         )
         print(message)  # TODO: use logger
+
+
+def validate_file_args_types(files: list[str]) -> None:
+    """Validates that all the files provided are of the same type.
+
+    :raises CondaError: The files are found to be of different types
+    """
+    # TODO
