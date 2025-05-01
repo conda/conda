@@ -347,7 +347,7 @@ class ContainsMeta(EnumMeta):
 
     Allows for member values to be used for checking membership, e.g.
 
-        >>> "unset" in PkgEnvLayout
+        >>> "conda_root" in PkgEnvLayout
         True
         >>> PkgEnvLayout.UNSET in PkgEnvLayout
         True
@@ -365,12 +365,12 @@ class ContainsMeta(EnumMeta):
 
         # Otherwise try testing against member values
         for item in self:
-            if item.value == member:
+            if member is None or item.value == member:
                 return True
         return False
 
 
 class PkgEnvLayout(Enum, metaclass=ContainsMeta):
-    UNSET = "unset"
+    UNSET = None
     CONDA_ROOT = "conda_root"
     USER = "user"

@@ -966,7 +966,7 @@ def test_pkgs_envs_old_default_dirs(
 ):
     """Test that the old locations of envs/pkgs directories generate a log warning."""
     with mock_context_attributes(
-        pkg_env_layout="unset",
+        pkg_env_layout=PkgEnvLayout.UNSET.value,
         _pkgs_dirs=(),
         _envs_dirs=(),
     ):

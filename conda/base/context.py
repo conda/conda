@@ -319,7 +319,7 @@ class Context(Configuration):
     pkg_env_layout = ParameterLoader(
         PrimitiveParameter(
             PkgEnvLayout.UNSET.value,
-            element_type=str,
+            element_type=(str, NoneType),
             validation=lambda x: x in PkgEnvLayout,
         )
     )
