@@ -263,10 +263,10 @@ command:
 Freezing or locking an environment
 ==================================
 
-`CEP 22 <>`__ introduced an environment marker file that will
-instruct ``conda`` not to allow modifications in the given environment.
-When attempting to add, update or remove a package, users will receive
-an error by default::
+`CEP 22 <https://conda.org/learn/ceps/cep-0022>`__ introduced an
+environment marker file that will instruct ``conda`` not to allow
+modifications in the given environment. When attempting to add,
+update or remove a package, users will receive an error by default::
 
    EnvironmentIsFrozenError: Cannot not modify '~/.conda/envs/my-env'.
    The environment is marked as frozen. You can ignore this error with
