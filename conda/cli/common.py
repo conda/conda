@@ -387,3 +387,11 @@ def validate_file_exists(filename: str):
 
     if not exists(filename):
         raise EnvironmentFileNotFound(filename=filename)
+
+
+def validate_file_args_types(files: list[str]) -> None:
+    """Validates that all the files provided are of the same type.
+
+    :raises CondaError: The files are found to be of different types
+    """
+    # TODO

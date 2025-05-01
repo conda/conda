@@ -94,7 +94,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
     from ..reporters import confirm_yn
-    from .common import print_activate, validate_subdir_config
+    from .common import print_activate, validate_file_args_types, validate_subdir_config
     from .install import install, install_clone
 
     # Ensure provided combination of command line argments are valid
@@ -145,6 +145,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Ensure the subdir config is valid
     validate_subdir_config()
+
+    # Validate that input files are of the same type
+    validate_file_args_types(args.file)
 
     # Run appropriate install
     if args.clone:
