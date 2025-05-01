@@ -187,6 +187,15 @@ def default_python_validation(value: str) -> str | Literal[True]:
     return f"default_python value '{value}' not of the form '[23].[0-9][0-9]?' or ''"
 
 
+def list_fields_validation(value: Iterable[str]) -> str | Literal[True]:
+    if invalid := set(value).difference(CONDA_LIST_FIELDS):
+        return (
+            f"Invalid value(s): {sorted(invalid)}. "
+            f"Valid values are: {sorted(CONDA_LIST_FIELDS)}"
+        )
+    return True
+
+
 def ssl_verify_validation(value: str) -> str | Literal[True]:
     if isinstance(value, str):
         if sys.version_info < (3, 10) and value == "truststore":
