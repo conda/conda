@@ -341,9 +341,6 @@ def install(args, parser, command="install"):
     # common validations for all types of installs
     validate_install_command(prefix=prefix, command=command)
 
-    if context.use_only_tar_bz2:
-        args.repodata_fns = ("repodata.json",)
-
     newenv = command == "create"
     isupdate = command == "update"
     isinstall = command == "install"
@@ -402,8 +399,10 @@ def install(args, parser, command="install"):
         )
         return install_clone(args, parser)
 
-    repodata_fns = args.repodata_fns
-    if not repodata_fns:
+    # use right repodata
+    if context.use_only_tar_bz2:
+        repodata_fns = ("repodata.json",)
+    else: 
         repodata_fns = list(context.repodata_fns)
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
