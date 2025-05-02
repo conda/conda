@@ -30,6 +30,7 @@ from .types import (  # noqa: F401
     CondaEnvironmentSpecifier,
     CondaInstaller,
     CondaHealthCheck,
+    CondaInstaller,
     CondaPostCommand,
     CondaPostSolve,
     CondaPreCommand,

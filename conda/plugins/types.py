@@ -20,6 +20,7 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Iterable
     from contextlib import AbstractContextManager
     from typing import Any, Callable, Iterable, TypeAlias
 

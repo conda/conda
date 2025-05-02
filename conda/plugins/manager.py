@@ -55,6 +55,7 @@ if TYPE_CHECKING:
         CondaEnvironmentSpecifier,
         CondaInstaller,
         CondaHealthCheck,
+        CondaInstaller,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
@@ -548,9 +549,10 @@ class CondaPluginManager(pluggy.PluginManager):
             return found[0]
         if found:
             names = ", ".join([hook.name for hook in found])
-            raise PluginError(f"Too many env installers registered for '{installer_name}': {names}")
+            raise PluginError(
+                f"Too many env installers registered for '{installer_name}': {names}"
+            )
         raise InvalidInstaller(f"Could not find env installer for '{installer_name}'.")
-
 
 
 @functools.cache

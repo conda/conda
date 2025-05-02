@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         CondaEnvironmentSpecifier,
         CondaInstaller,
         CondaHealthCheck,
+        CondaInstaller,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,

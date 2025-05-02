@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import pytest
-
 from collections.abc import Iterable
+
+import pytest
 
 from conda import plugins
 from conda.exceptions import InvalidInstaller, PluginError
@@ -15,7 +15,6 @@ class MyInstaller(InstallerBase):
 
     def install(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
         return "installing {specs} into {prefix}"
-
 
     def dry_run(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
         return "DRYRUN: installing {specs} into {prefix}"
@@ -68,14 +67,16 @@ def test_installer_is_registered(dummy_test_installer_plugin):
 
 def test_installer_returns_correct_type(dummy_test_installer_plugin):
     """
-    Ensures that our dummy random installer plugin does not get returned for 
+    Ensures that our dummy random installer plugin does not get returned for
     types it is not registered for.
     """
     with pytest.raises(InvalidInstaller):
         dummy_test_installer_plugin.get_installer("idontexist")
 
 
-def test_raise_error_for_multiple_registered_installers(dummy_test_installer_plugin, dummy_second_test_installer_plugin):
+def test_raise_error_for_multiple_registered_installers(
+    dummy_test_installer_plugin, dummy_second_test_installer_plugin
+):
     """
     Ensures that we raise an error when more than one env installer is found
     for the same section.
