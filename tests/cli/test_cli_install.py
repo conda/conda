@@ -152,7 +152,7 @@ def test_frozen_env_cep22(tmp_env, conda_cli):
             prefix,
             "zlib",
             "--dry-run",
-            "--ignore-frozen-env",
+            "--override-frozen",
             raises=DryRunExit,
         )
         conda_cli(
@@ -161,7 +161,7 @@ def test_frozen_env_cep22(tmp_env, conda_cli):
             prefix,
             "ca-certificates",
             "--dry-run",
-            "--ignore-frozen-env",
+            "--override-frozen",
             raises=DryRunExit,
         )
         out, err, rc = conda_cli(
@@ -170,7 +170,7 @@ def test_frozen_env_cep22(tmp_env, conda_cli):
             prefix,
             "ca-certificates",
             "--dry-run",
-            "--ignore-frozen-env",
+            "--override-frozen",
         )
         assert rc == 0
 

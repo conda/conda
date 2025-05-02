@@ -270,7 +270,7 @@ update or remove a package, users will receive an error by default::
 
    EnvironmentIsFrozenError: Cannot not modify '~/.conda/envs/my-env'.
    The environment is marked as frozen. You can ignore this error with
-   the `--ignore-frozen-env` flag, at your own risk.
+   the `--override-frozen` flag, at your own risk.
 
 As mentioned above, users can pass the ``--ignore-frozen-env`` flag, but
 this is really not recommended and should only be done by advanced users

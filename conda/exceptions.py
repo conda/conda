@@ -1121,7 +1121,7 @@ class EnvironmentIsFrozenError(CondaError):
             error += "Reason:\n\n"
             error += indent(message, "    ")
             error += "\n\n"
-        error += "You can ignore this error with the `--ignore-frozen-env` flag, at your own risk."
+        error += "You can ignore this error with the `--override-frozen` flag, at your own risk."
         super().__init__(error, **kwargs)
 
 
