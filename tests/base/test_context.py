@@ -269,9 +269,11 @@ def test_restore_free_channel(monkeypatch: MonkeyPatch) -> None:
 
     monkeypatch.setenv("CONDA_RESTORE_FREE_CHANNEL", "true")
     reset_context()
-    assert context.restore_free_channel
+    with pytest.deprecated_call():
+        assert context.restore_free_channel
 
-    assert context.default_channels[1] == free_channel
+    with pytest.deprecated_call():
+        assert context.default_channels[1] == free_channel
 
 
 def test_proxy_servers(testdata: None):
