@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import os.path
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,7 +15,11 @@ import pytest
 from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CorruptedEnvironmentError
+from conda.exceptions import (
+    CondaValueError,
+    CorruptedEnvironmentError,
+    EnvironmentNameNotFound,
+)
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
@@ -408,3 +414,57 @@ def test_prefix_data_equality(
     prefix_data1 = PrefixData(prefix1.format(path=tmp_path))
     prefix_data2 = PrefixData(prefix2.format(path=tmp_path)) if prefix2 else prefix2
     assert (prefix_data1 == prefix_data2) is equals
+
+
+@pytest.mark.parametrize(
+    "name,allow_base,mock_locate_prefix,expected,raises",
+    (
+        # First scenario which triggers an Environment not found error
+        (
+            ENV_NAME := "env-name",
+            False,
+            EnvironmentNameNotFound(ENV_NAME),
+            os.path.join("{tmp_path}", ENV_NAME),
+            None,
+        ),
+        # Passing in not allowed characters as the prefix name
+        (
+            "not/allow#characters:in-path",
+            False,
+            None,
+            None,
+            CondaValueError("Environment names cannot contain path separators"),
+        ),
+        # Passing in "base" as the prefix name
+        (
+            "base",
+            False,
+            None,
+            None,
+            CondaValueError("'base' is a reserved environment name"),
+        ),
+    ),
+)
+def test_validate_prefix_name(
+    name: str,
+    allow_base: bool,
+    mock_locate_prefix: EnvironmentNameNotFound | None,
+    expected: str | None,
+    raises: CondaValueError | None,
+    mocker: MockerFixture,
+    tmp_path: Path,
+):
+    mocker.patch(
+        "conda.core.prefix_data.first_writable_envs_dir",
+        return_value=tmp_path,
+    )
+    if mock_locate_prefix:
+        mocker.patch(
+            "conda.core.prefix_data.locate_prefix_by_name",
+            side_effect=mock_locate_prefix,
+        )
+
+    with pytest.raises(type(raises), match=str(raises)) if raises else nullcontext():
+        prefix_data = PrefixData.from_name(name)
+        prefix_data.validate_name(allow_base)
+        assert str(prefix_data.prefix_path) == expected.format(tmp_path=tmp_path)

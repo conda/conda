@@ -680,14 +680,15 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         mock_two.side_effect = [mock_return_values[1]]
 
         if isinstance(expected, CondaValueError):
-            with pytest.raises(CondaValueError) as exc:
+            with pytest.raises(CondaValueError) as exc, pytest.deprecated_call():
                 validate_prefix_name(prefix, ctx, allow_base=allow_base)
 
             # We fuzzy match the error message here. Doing this exactly is not important
             assert str(expected) in str(exc)
 
         else:
-            actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
+            with pytest.deprecated_call():
+                actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
 
 
