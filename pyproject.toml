@@ -132,6 +132,8 @@ filterwarnings = [
   "error::PendingDeprecationWarning",
   "error::DeprecationWarning",
   "error::FutureWarning",
+  # temporary ignores
+  "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:boltons.timeutils",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
