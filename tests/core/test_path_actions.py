@@ -1,11 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import importlib.util
 import os
 import sys
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, lexists
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -16,7 +18,7 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_python_noarch_target_path,
     get_python_short_path,
     get_python_site_packages_short_path,
@@ -39,7 +41,11 @@ from conda.models.channel import Channel
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathData, PathDataV1, PathsData
-from conda.testing import PathFactoryFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import PathFactoryFixture
 
 log = getLogger(__name__)
 
@@ -240,9 +246,9 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
     command, module, func = parse_entry_point_def("command1=some.module:main")
     assert command == "command1"
     if on_win:
-        target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
+        target_short_path = f"{BIN_DIRECTORY}\\{command}-script.py"
     else:
-        target_short_path = f"{get_bin_directory_short_path()}/{command}"
+        target_short_path = f"{BIN_DIRECTORY}/{command}"
     assert py_ep_axn.target_full_path == join(prefix, target_short_path)
     assert py_ep_axn.module == module == "some.module"
     assert py_ep_axn.func == func == "main"
@@ -270,14 +276,14 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
             )
         else:
             assert lines.startswith(f"#!{python_full_path}\n")
-    assert last_line == "sys.exit(%s())" % func
+    assert last_line == f"sys.exit({func}())"
 
     py_ep_axn.reverse()
     assert not isfile(py_ep_axn.target_full_path)
 
     if on_win:
         windows_exe_axn = windows_exe_axns[0]
-        target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
+        target_short_path = f"{BIN_DIRECTORY}\\{command}.exe"
         assert windows_exe_axn.target_full_path == join(prefix, target_short_path)
 
         mkdir_p(dirname(windows_exe_axn.target_full_path))

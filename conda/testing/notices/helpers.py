@@ -18,7 +18,7 @@ from ...notices.core import get_channel_name_and_urls
 from ...notices.types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
-    from typing import Sequence
+    from collections.abc import Sequence
     from unittest import mock
 
     from ...base.context import Context

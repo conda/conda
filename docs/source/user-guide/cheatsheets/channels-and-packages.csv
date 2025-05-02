@@ -1,0 +1,13 @@
+list installed packages,``conda list``
+list installed packages with source info,``conda list --show-channel-urls``
+update all packages,``conda update --all``
+install a package from specific channel,"``conda install -c CHANNELNAME PKGNAME``
+
+``conda install CHANNELNAME::PKGNAME``"
+install specific version of package,``conda install PKGNAME=3.1.4``
+install package with AND logic,"``conda install “PKGNAME>2.5, <3.2”``"
+install package with OR logic,``conda install “PKGNAME [version=’2.5|3.2’]”``
+uninstall package,``conda uninstall PKGNAME``
+view channel sources,``conda config --show-sources``
+add channel,``conda config --add channels CHANNELNAME``
+set default channel for pkg fetching (targets first channel in channel sources),``conda config --set channel_priority strict``

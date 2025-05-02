@@ -10,6 +10,8 @@ import re
 from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isdir, isfile
 
+from .. import __version__
+
 log = logging.getLogger(__name__)
 
 
@@ -95,6 +97,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Add MD5 hashsum when using --explicit.",
     )
     p.add_argument(
+        "--sha256",
+        action="store_true",
+        help="Add SHA256 hashsum when using --explicit.",
+    )
+    p.add_argument(
         "-e",
         "--export",
         action="store_true",
@@ -116,6 +123,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Do not include pip-only installed packages.",
     )
     p.add_argument(
+        "--auth",
+        action="store_false",
+        default=True,
+        dest="remove_auth",
+        help="In explicit mode, leave authentication details in package URLs. "
+        "They are removed by default otherwise.",
+    )
+    p.add_argument(
         "regex",
         action="store",
         nargs="?",
@@ -129,7 +144,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def print_export_header(subdir):
     print("# This file may be used to create an environment using:")
     print("# $ conda create --name <env> --file <this file>")
-    print("# platform: %s" % subdir)
+    print(f"# platform: {subdir}")
+    print(f"# created-by: conda {__version__}")
 
 
 def get_packages(installed, regex):
@@ -146,6 +162,7 @@ def list_packages(
     format="human",
     reverse=False,
     show_channel_urls=None,
+    reload_records=True,
 ):
     from ..base.constants import DEFAULTS_CHANNEL_NAME
     from ..base.context import context
@@ -154,10 +171,10 @@ def list_packages(
 
     res = 0
 
-    installed = sorted(
-        PrefixData(prefix, pip_interop_enabled=True).iter_records(),
-        key=lambda x: x.name,
-    )
+    prefix_data = PrefixData(prefix, pip_interop_enabled=True)
+    if reload_records:
+        prefix_data.load()
+    installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
 
     packages = []
     for prec in get_packages(installed, regex) if regex else installed:
@@ -172,7 +189,7 @@ def list_packages(
 
         features = set(prec.get("features") or ())
         disp = "%(name)-25s %(version)-15s %(build)15s" % prec
-        disp += "  %s" % disp_features(features)
+        disp += f"  {disp_features(features)}"
         schannel = prec.get("schannel")
         show_channel_urls = show_channel_urls or context.show_channel_urls
         if (
@@ -180,7 +197,7 @@ def list_packages(
             or show_channel_urls is None
             and schannel != DEFAULTS_CHANNEL_NAME
         ):
-            disp += "  %s" % schannel
+            disp += f"  {schannel}"
 
         packages.append(disp)
 
@@ -190,7 +207,7 @@ def list_packages(
     result = []
     if format == "human":
         result = [
-            "# packages in environment at %s:" % prefix,
+            f"# packages in environment at {prefix}:",
             "#",
             "# %-23s %-15s %15s  Channel" % ("Name", "Version", "Build"),
         ]
@@ -236,11 +253,14 @@ def print_packages(
     return exitcode
 
 
-def print_explicit(prefix, add_md5=False):
+def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
     from ..base.constants import UNKNOWN_CHANNEL
     from ..base.context import context
+    from ..common import url as common_url
     from ..core.prefix_data import PrefixData
 
+    if add_md5 and add_sha256:
+        raise ValueError("Only one of add_md5 and add_sha256 can be chosen")
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
 
@@ -250,27 +270,38 @@ def print_explicit(prefix, add_md5=False):
     for prefix_record in PrefixData(prefix).iter_records_sorted():
         url = prefix_record.get("url")
         if not url or url.startswith(UNKNOWN_CHANNEL):
-            print("# no URL for: %s" % prefix_record["fn"])
+            print("# no URL for: {}".format(prefix_record["fn"]))
             continue
-        md5 = prefix_record.get("md5")
-        print(url + ("#%s" % md5 if add_md5 and md5 else ""))
+        if remove_auth:
+            url = common_url.remove_auth(common_url.split_anaconda_token(url)[0])
+        if add_md5 or add_sha256:
+            hash_key = "md5" if add_md5 else "sha256"
+            hash_value = prefix_record.get(hash_key)
+            print(url + (f"#{hash_value}" if hash_value else ""))
+        else:
+            print(url)
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from ..gateways.disk.test import is_conda_environment
+    from ..core.prefix_data import PrefixData
     from ..history import History
     from .common import stdout_json
 
-    prefix = context.target_prefix
-    if not is_conda_environment(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    prefix = str(prefix_data.prefix_path)
 
-        raise EnvironmentLocationNotFound(prefix)
+    if args.md5 and args.sha256:
+        from ..exceptions import ArgumentError
+
+        raise ArgumentError(
+            "Only one of --md5 and --sha256 can be specified at the same time"
+        )
 
     regex = args.regex
     if args.full_name:
-        regex = r"^%s$" % regex
+        regex = rf"^{regex}$"
 
     if args.revisions:
         h = History(prefix)
@@ -286,7 +317,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         return 0
 
     if args.explicit:
-        print_explicit(prefix, args.md5)
+        print_explicit(prefix, args.md5, args.remove_auth, args.sha256)
         return 0
 
     if args.canonical:

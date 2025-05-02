@@ -14,7 +14,6 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -26,9 +25,11 @@ dependencies = [
   "archspec >=0.2.3",
   "boltons >=23.0.0",
   "charset-normalizer",
-  "conda-libmamba-solver >=23.11.0",
+  # Disabled due to conda-libmamba-solver not being available on PyPI
+  # "conda-libmamba-solver >=24.11.0",
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
+  "frozendict >=2.4.2",
   "jsonpatch >=1.32",
   "menuinst >=2",
   "packaging >=23.0",
@@ -47,50 +48,17 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 name = "conda"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+
+[project.scripts]
+conda = "conda.cli.main_pip:main"
 
 [project.urls]
 changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
 documentation = "https://docs.conda.io/projects/conda/en/stable/"
 repository = "https://github.com/conda/conda"
 
-[project.scripts]
-conda = "conda.cli.main_pip:main"
-
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.version.raw-options]
-local_scheme = "dirty-tag"
-
-[tool.hatch.build]
-include = ["conda", "conda_env"]
-
-[tool.hatch.build.hooks.vcs]
-version-file = "conda/__version__.py"
-
-[tool.coverage.run]
-# store relative paths in coverage information
-relative_files = true
-
 [tool.coverage.report]
-show_missing = true
-sort = "Miss"
-skip_covered = true
-omit = [
-  "*/site-packages/*",
-  '*\site-packages\*',
-  "conda/_vendor/*",
-  "conda/console.py",
-  "conda/cli/activate.py",
-  "conda/cli/main_package.py",
-  "conda/exports.py",
-  "conda/gateways/connection/adapters/ftp.py",
-  "conda/gateways/connection/adapters/s3.py",
-  "conda_env/*",
-  "tests/*",
-  "utils/*",
-]
 exclude_lines = [
   "pragma: no cover",
   "pragma: py$PYTHON_MAJOR_VERSION no cover",
@@ -102,48 +70,41 @@ exclude_lines = [
   '\s*\.\.\.$',
   "if TYPE_CHECKING:",  # ignoring type checking imports
 ]
+omit = [
+  "*/site-packages/*",
+  '*\site-packages\*',
+  "conda/_vendor.py",
+  "conda/console.py",
+  "conda/cli/activate.py",
+  "conda/cli/main_package.py",
+  "conda/exports.py",
+  "conda/gateways/connection/adapters/ftp.py",
+  "conda/gateways/connection/adapters/s3.py",
+  "conda_env/*",
+  "tests/*",
+  "utils/*",
+]
+show_missing = true
+skip_covered = true
+sort = "Miss"
 
-[tool.ruff]
-exclude = ["conda/_vendor", "conda/auxlib", "tests/data/conda_format_repo", "tests/data/env_metadata", "tools/vendoring"]
-target-version = "py38"
+[tool.coverage.run]
+# store relative paths in coverage information
+relative_files = true
 
-[tool.ruff.lint]
-# E, W = pycodestyle errors and warnings
-# F = pyflakes
-# I = isort
-# D = pydocstyle
-# UP = pyupgrade
-# ISC = flake8-implicit-str-concat
-# TCH = flake8-type-checking
-# T10 = flake8-debugger
-# FA = flake8-future-annotations
-# see also https://docs.astral.sh/ruff/rules/
-select = ["E", "W", "F", "I", "D1", "UP", "ISC", "TCH", "T10", "FA"]
-# E402 module level import not at top of file
-# E501 line too long
-# E722 do not use bare 'except'
-# E731 do not assign a lambda expression, use a def
-# D101 Missing docstring in public class
-# D102 Missing docstring in public method
-# D103 Missing docstring in public function
-# D104 Missing docstring in public package
-# D105 Missing docstring in magic method
-# D107 Missing docstring in `__init__`
-ignore = ["E402", "E501", "E722", "E731", "D101", "D102", "D103", "D104", "D105", "D107"]
-extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
-pydocstyle = {convention = "pep257"}
-flake8-type-checking = {exempt-modules = [], strict = true}
+[tool.hatch.build]
+include = ["conda", "conda_env"]
+
+[tool.hatch.build.hooks.vcs]
+version-file = "conda/_version.py"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "dirty-tag"
 
 [tool.pytest.ini_options]
-minversion = 3.0
-testpaths = ["tests"]
-norecursedirs = [
-  "tests/data/*",
-  "tests/integration/*",
-  "tests/plugins/data/*",
-  "docs",
-  ".git",
-]
 addopts = [
   "--color=yes",
   # "--cov=conda",   # passed in test runner scripts instead (avoid debugger)
@@ -154,11 +115,10 @@ addopts = [
   "--durations=16",
   "--junitxml=test-report.xml",
   "--splitting-algorithm=least_duration",
-  "--store-durations",
+  "--store-durations",  # pytest-split, update duration cache
+  "--clean-durations",  # pytest-split, remove duration for tests no longer present
   "--strict-markers",
   "--tb=native",
-  "--xdoctest-modules",
-  "--xdoctest-style=google",
   "-vv",
 ]
 doctest_optionflags = [
@@ -171,6 +131,15 @@ markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",
   "benchmark: benchmark tests",
+  "memray: memory use tests",
+]
+minversion = 3.0
+norecursedirs = [
+  "tests/data/*",
+  "tests/integration/*",
+  "tests/plugins/data/*",
+  "docs",
+  ".git",
 ]
 pythonpath = [
   # faking a test-plugin to test ImportError handling
@@ -181,33 +150,44 @@ filterwarnings = [
   # Python <= 3.11
   "ignore:sys.monitoring isn't available, using default core:coverage.exceptions.CoverageWarning",
 ]
+testpaths = ["tests"]
 
-[tool.vendoring]
-destination = "conda/_vendor/"
-namespace = "conda._vendor"
-requirements = "conda/_vendor/vendor.txt"
-
-patches-dir = "tools/vendoring/patches"
-protected-files = ["__init__.py", "vendor.txt", "README.md"]
-
-[tool.vendoring.transformations]
-drop = [
-  # contains unnecessary scripts
-  "bin/",
-  # remove unwanted modules
-  "cpuinfo/__main__.py",
+[tool.ruff]
+exclude = [
+  "conda/auxlib",
+  "tests/data/conda_format_repo",
+  "tests/data/env_metadata",
 ]
-substitute = []
+target-version = "py39"
 
-[tool.vendoring.typing-stubs]
-# prevent stubs from being generated
-appdirs = []
-cpuinfo = []
-distro = []
-frozendict = []
-
-[tool.vendoring.license.fallback-urls]
-appdirs = "https://raw.githubusercontent.com/ActiveState/appdirs/master/LICENSE.txt" # MIT
-cpuinfo = "https://raw.githubusercontent.com/workhorsy/py-cpuinfo/master/LICENSE" # MIT
-distro = "https://raw.githubusercontent.com/python-distro/distro/master/LICENSE" # Apache
-frozendict = "https://raw.githubusercontent.com/Marco-Sulla/python-frozendict/master/LICENSE.txt" # LGPL
+[tool.ruff.lint]
+extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
+flake8-type-checking = {exempt-modules = [], strict = true}
+ignore = [
+  "D101",  # Missing docstring in public class
+  "D102",  # Missing docstring in public method
+  "D103",  # Missing docstring in public function
+  "D104",  # Missing docstring in public package
+  "D105",  # Missing docstring in magic method
+  "D107",  # Missing docstring in `__init__`
+  "E402",  # module level import not at top of file
+  "E501",  # line too long
+  "E722",  # do not use bare 'except'
+  "E731",  # do not assign a lambda expression, use a def
+  "UP031",  # do not fix printf-style string formatting
+]
+pydocstyle = {convention = "pep257"}
+# see https://docs.astral.sh/ruff/rules/
+select = [
+  "D1",  # pydocstyle
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "FA",  # flake8-future-annotations
+  "I",  # isort
+  "ISC",  # flake8-implicit-str-concat
+  "RUF100",  # Unused noqa directive
+  "T10",  # flake8-debugger
+  "TCH",  # flake8-type-checking
+  "UP",  # pyupgrade
+  "W",  # pycodestyle warnings
+]

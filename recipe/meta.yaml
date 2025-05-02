@@ -1,13 +1,15 @@
 package:
   name: conda
-  version: {{ GIT_DESCRIBE_TAG }}+{{ GIT_BUILD_STR }}
+  # VERSION_OVERRIDE is used by the canary release workflow
+  version: {{ os.getenv("VERSION_OVERRIDE") or GIT_DESCRIBE_TAG }}.{{ GIT_BUILD_STR }}
 
 source:
   # git_url only captures committed code
   git_url: ../
+  folder: conda-src
 
 build:
-  script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
+  script: {{ PYTHON }} -m pip install conda-src/ --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
@@ -29,7 +31,9 @@ requirements:
     - hatch-vcs >=0.2.0
     # for `conda init` in build/script above
     - boltons >=23.0.0
+    - frozendict >=2.4.2
     - menuinst >=2
+    - platformdirs >=3.10.0
     - requests >=2.28.0,<3
     - ruamel.yaml >=0.11.14,<0.19
     - tqdm >=4
@@ -37,9 +41,10 @@ requirements:
     - archspec >=0.2.3
     - boltons >=23.0.0
     - charset-normalizer
-    - conda-libmamba-solver >=23.11.0
+    - conda-libmamba-solver >=24.11.0
     - conda-package-handling >=2.2.0
     - distro >=1.5.0
+    - frozendict >=2.4.2
     - jsonpatch >=1.32
     - menuinst >=2
     - packaging >=23.0
@@ -91,7 +96,7 @@ test:
 about:
   home: https://conda.org
   license: BSD-3-Clause
-  license_file: LICENSE
+  license_file: conda-src/LICENSE
   summary: Canary release of conda
   doc_url: https://conda.io/projects/conda/en/latest/
   dev_url: https://github.com/conda/conda

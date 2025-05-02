@@ -40,6 +40,7 @@ extensions = [
     "sphinx_reredirects",
     "sphinx_sitemap",
     "sphinxarg.ext",
+    "sphinxcontrib.mermaid",
     "sphinxcontrib.plantuml",
     "sphinxcontrib.programoutput",
     "sphinx_design",
@@ -163,7 +164,8 @@ autoapi_root = "dev-guide/api"
 # folder-view
 autoapi_add_toctree_entry = False
 autoapi_template_dir = "_templates/autoapi"
-
+autoapi_python_class_content = "both"
+autoapi_keep_files = True
 
 suppress_warnings = [
     "autosectionlabel.*",

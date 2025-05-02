@@ -19,10 +19,11 @@ from os import scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
 from posixpath import normpath as posix_normpath
 
+from frozendict import frozendict
+
 from ... import CondaError
-from ..._vendor.frozendict import frozendict
 from ...auxlib.decorators import memoizedproperty
-from ..compat import open
+from ..compat import open_utf8
 from ..iterators import groupby_to_dict as groupby
 from ..path import (
     get_major_minor_version,
@@ -110,7 +111,7 @@ class PythonDistribution:
         elif anchor_full_path and isdir(anchor_full_path):
             self._metadata_dir_full_path = anchor_full_path
         else:
-            raise RuntimeError("Path not found: %s" % anchor_full_path)
+            raise RuntimeError(f"Path not found: {anchor_full_path}")
 
         self._check_files()
         self._metadata = PythonDistributionMetadata(anchor_full_path)
@@ -206,7 +207,7 @@ class PythonDistribution:
         for fname in self.REQUIRES_FILES:
             fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
-                with open(fpath) as fh:
+                with open_utf8(fpath) as fh:
                     data = fh.read()
 
                 requires, extras = self._parse_requires_file_data(data)
@@ -274,7 +275,7 @@ class PythonDistribution:
                 return tuple(records)
 
             csv_delimiter = ","
-            with open(manifest_full_path) as csvfile:
+            with open_utf8(manifest_full_path) as csvfile:
                 record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                 # format of each record is (path, checksum, size)
                 records = process_csv_row(record_reader)
@@ -334,7 +335,7 @@ class PythonDistribution:
 
         This includes normalizing fields, and evaluating environment markers.
         """
-        python_spec = "python %s.*" % ".".join(self.python_version.split(".")[:2])
+        python_spec = "python {}.*".format(".".join(self.python_version.split(".")[:2]))
 
         def pyspec_to_norm_req(pyspec):
             conda_name = pypi_name_to_conda_name(norm_package_name(pyspec.name))
@@ -373,7 +374,7 @@ class PythonDistribution:
         for fname in self.ENTRY_POINTS_FILES:
             fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
-                with open(fpath) as fh:
+                with open_utf8(fpath) as fh:
                     data = fh.read()
         return self._parse_entries_file_data(data)
 
@@ -604,7 +605,7 @@ class PythonDistributionMetadata:
 
             # FIXME: Is this a correct assumption for the encoding?
             # This was needed due to some errors on windows
-            with open(fpath) as fp:
+            with open_utf8(fpath) as fp:
                 data = parser.parse(fp)
 
         return cls._message_to_dict(data)
@@ -934,7 +935,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
 
     egg_link_path = join(prefix_path, win_path_ok(egg_link_file))
     try:
-        with open(egg_link_path) as fh:
+        with open_utf8(egg_link_path) as fh:
             # See: https://setuptools.readthedocs.io/en/latest/formats.html#egg-links
             # "...Each egg-link file should contain a single file or directory name
             # with no newlines..."
@@ -942,7 +943,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     except UnicodeDecodeError:
         from locale import getpreferredencoding
 
-        with open(egg_link_path, encoding=getpreferredencoding()) as fh:
+        with open_utf8(egg_link_path, encoding=getpreferredencoding()) as fh:
             egg_link_contents = fh.readlines()[0].strip()
 
     if lexists(egg_link_contents):
@@ -974,7 +975,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     return egg_info_full_path
 
 
-# See: https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default  # NOQA
+# See: https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default
 # ------------------------------------------------------------------------------------------------
 def parse_marker(marker_string):
     """
@@ -997,7 +998,7 @@ def parse_marker(marker_string):
         else:
             q = remaining[0]
             if q not in "'\"":
-                raise SyntaxError("invalid expression: %s" % remaining)
+                raise SyntaxError(f"invalid expression: {remaining}")
             oq = "'\"".replace(q, "")
             remaining = remaining[1:]
             parts = [q]
@@ -1011,12 +1012,12 @@ def parse_marker(marker_string):
                 else:
                     m = STRING_CHUNK.match(remaining)
                     if not m:
-                        raise SyntaxError("error in string literal: %s" % remaining)
+                        raise SyntaxError(f"error in string literal: {remaining}")
                     parts.append(m.groups()[0])
                     remaining = remaining[m.end() :]
             else:
                 s = "".join(parts)
-                raise SyntaxError("unterminated string: %s" % s)
+                raise SyntaxError(f"unterminated string: {s}")
             parts.append(q)
             result = "".join(parts)
             remaining = remaining[1:].lstrip()  # skip past closing quote
@@ -1026,7 +1027,7 @@ def parse_marker(marker_string):
         if remaining and remaining[0] == "(":
             result, remaining = marker(remaining[1:].lstrip())
             if remaining[0] != ")":
-                raise SyntaxError("unterminated parenthesis: %s" % remaining)
+                raise SyntaxError(f"unterminated parenthesis: {remaining}")
             remaining = remaining[1:].lstrip()
         else:
             lhs, remaining = marker_var(remaining)
@@ -1067,8 +1068,8 @@ def parse_marker(marker_string):
 
 
 # See:
-#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default  # NOQA
-#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/markers.py?at=default&fileviewer=file-view-default  # NOQA
+#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default
+#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/markers.py?at=default&fileviewer=file-view-default
 # ------------------------------------------------------------------------------------------------
 #
 # Requirement parsing code as per PEP 508
@@ -1117,13 +1118,13 @@ class Evaluator:
                 result = expr[1:-1]
             else:
                 if expr not in context:
-                    raise SyntaxError("unknown variable: %s" % expr)
+                    raise SyntaxError(f"unknown variable: {expr}")
                 result = context[expr]
         else:
             assert isinstance(expr, dict)
             op = expr["op"]
             if op not in self.operations:
-                raise NotImplementedError("op not implemented: %s" % op)
+                raise NotImplementedError(f"op not implemented: {op}")
             elhs = expr["lhs"]
             erhs = expr["rhs"]
             if _is_literal(expr["lhs"]) and _is_literal(expr["rhs"]):

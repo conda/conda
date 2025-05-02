@@ -244,15 +244,25 @@ from logging import getLogger
 from pathlib import Path
 
 from boltons.timeutils import isoparse
+from frozendict import deepfreeze, frozendict
+from frozendict import getFreezeConversionMap as _getFreezeConversionMap
+from frozendict import register as _register
 
 from . import NULL
-from .._vendor.frozendict import frozendict
-from .collection import AttrDict, make_immutable
 from .compat import isiterable, odict
+from .collection import AttrDict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
 from .type_coercion import maybecall
+
+if Enum not in _getFreezeConversionMap():
+    # leave enums as is, deepfreeze will flatten it into a dict
+    # see https://github.com/Marco-Sulla/python-frozendict/issues/98
+    _register(Enum, lambda x : x)
+
+del _getFreezeConversionMap
+del _register
 
 log = getLogger(__name__)
 
@@ -595,7 +605,7 @@ class ListField(Field):
             if isinstance(et, type) and issubclass(et, Entity):
                 return self._type(v if isinstance(v, et) else et(**v) for v in val)
             else:
-                return make_immutable(val) if self.immutable else self._type(val)
+                return deepfreeze(val) if self.immutable else self._type(val)
         else:
             raise ValidationError(
                 val, msg=f"Cannot assign a non-iterable value to {self.name}"
@@ -646,7 +656,7 @@ class MapField(Field):
         if val is None:
             return self._type()
         elif isiterable(val):
-            val = make_immutable(val)
+            val = deepfreeze(val)
             if not isinstance(val, Mapping):
                 raise ValidationError(
                     val, msg=f"Cannot assign a non-iterable value to {self.name}"
@@ -778,6 +788,21 @@ class Entity(metaclass=EntityType):
 
     @classmethod
     def from_objects(cls, *objects, **override_fields):
+        """Construct a new object of type ``cls`` from existing objects or dicts.
+
+        Allows the creation of new objects of concrete :class:`Entity` subclasses by
+        combining information from several sources. This can be any combination of
+        objects and dictionaries passed in as positional arguments. When looking for
+        the value of the fields of the :class:`Entity` subclass, the first object
+        that provides an attribute (or, in the case of a dict an entry) that has the
+        name of the field or one of its aliases will take precedence. Any keyword
+        arguments passed in will override this and take precedence.
+
+        Args:
+            cls(:class:`Entity` subclass): The class to create, usually determined by call, e.g. ``PrefixRecord.from_objects(...)``.
+            *objects(tuple(object or dict)): Any combination of objects and dicts in order of decending precedence.
+            **override_fields(dict(str, object)): Any individual fields overriding possible contents from ``*objects``.
+        """
         init_vars = {}
         search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
                             for o in ((override_fields,) + objects))
