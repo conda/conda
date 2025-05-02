@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import pytest
 
+from collections.abc import Iterable
+
 from conda import plugins
 from conda.exceptions import InvalidInstaller, PluginError
 from conda.plugins.types import CondaInstaller, InstallerBase
@@ -11,11 +13,11 @@ class MyInstaller(InstallerBase):
     def __init__(self, **kwargs):
         pass
 
-    def install(self, prefix, specs, *args, **kwargs):
+    def install(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
         return "installing {specs} into {prefix}"
 
 
-    def dry_run(self, prefix, specs, *args, **kwargs):
+    def dry_run(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
         return "DRYRUN: installing {specs} into {prefix}"
 
 
