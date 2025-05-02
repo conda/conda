@@ -204,7 +204,7 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
                 continue
             elif not match_spec.match(dependency_record):
                 issues.append(
-                    f"Installed dependency {dependency_record} does not match required dependency {match_spec}"
+                    f"{record.name}:\n installed dependency '{dependency_record.name}=={dependency_record.version}' does not meet the required dependency constrains '{match_spec}'"
                 )
                 continue
     if issues:
