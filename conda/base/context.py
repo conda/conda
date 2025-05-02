@@ -47,6 +47,7 @@ from ..common.constants import TRACE
 from ..common.iterators import unique
 from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
+from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
 from .constants import (
     APP_NAME,
@@ -856,6 +857,22 @@ class Context(Configuration):
                 )
             )
         )
+
+    def _pkgs_in_conda_prefix(self) -> list[str]:
+        pkgs = []
+        if isdir(self.root_prefix_pkgs):
+            for path in os.listdir(self.root_prefix_pkgs):
+                if isdir(path):
+                    pkgs.append(path)
+        return pkgs
+
+    def _envs_in_conda_prefix(self) -> list[str]:
+        envs = []
+        if isdir(self.root_prefix_envs):
+            for path in os.listdir(self.root_prefix_envs):
+                if PrefixData(path).is_environment():
+                    envs.append(path)
+        return envs
 
     @memoizedproperty
     def trash_dir(self) -> PathType:
