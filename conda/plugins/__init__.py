@@ -31,6 +31,7 @@ from .types import (  # noqa: F401
     CondaPostCommand,
     CondaPostSolve,
     CondaPreCommand,
+    CondaPrefixDataLoader,
     CondaPreSolve,
     CondaReporterBackend,
     CondaRequestHeader,

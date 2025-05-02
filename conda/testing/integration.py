@@ -77,7 +77,7 @@ def package_is_installed(
     reload_records: bool = True,
 ) -> PrefixRecord | None:
     spec = MatchSpec(spec)
-    prefix_data = PrefixData(prefix, pip_interop_enabled=True)
+    prefix_data = PrefixData(prefix, interoperability=True)
     if reload_records:
         prefix_data.load()
     prefix_recs = tuple(prefix_data.query(spec))

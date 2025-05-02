@@ -53,9 +53,9 @@ def test_install_freezes_env_by_default(
 def test_conda_pip_interop_dependency_satisfied_by_pip(
     monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
     with tmp_env("python=3.10", "pip") as prefix:
         assert package_is_installed(prefix, "python=3.10")
         assert package_is_installed(prefix, "pip")
