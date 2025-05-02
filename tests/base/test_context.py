@@ -1023,3 +1023,81 @@ def test_pkgs_envs_configured(
         # of whether the user has set CONDA_ENVS_DIRS or not
         root_prefix_envs = str(Path(context.root_prefix) / "envs")
         assert {envs, root_prefix_envs} <= set(context.envs_dirs)
+
+
+@pytest.mark.parametrize(
+    "pkgs_in_root_prefix",
+    [
+        ["foo.conda", "bar.tar.bz2", "baz.conda"],
+        [],
+    ],
+)
+@pytest.mark.parametrize(
+    "pkgs_dirs",
+    [
+        tuple(
+            "/foo",
+        ),
+        tuple(),
+    ],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER.value,
+        PkgEnvLayout.CONDA_ROOT.value,
+        PkgEnvLayout.UNSET.value,
+    ],
+)
+def test_pkgs(
+    pkg_env_layout,
+    pkgs_dirs,
+    pkgs_in_root_prefix,
+    mock_context_attributes,
+    propagate_conda_logger,
+    caplog,
+):
+    with (
+        mock_context_attributes(
+            _pkgs_dirs=pkgs_dirs,
+            pkg_env_layout=pkg_env_layout,
+        ),
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
+    ):
+        mock_pkgs.return_value = pkgs_in_root_prefix
+
+        with caplog.at_level(logging.INFO):
+            result = context.pkgs_dirs
+
+        if pkgs_dirs:
+            assert set(result) == set(pkgs_dirs)
+        else:
+            if pkgs_in_root_prefix:
+                # No matter what if there are pkgs/ in the root prefix
+                # we default to using those
+                assert context.root_prefix_pkgs in result
+                assert context.user_data_pkgs not in result
+
+                if pkg_env_layout == PkgEnvLayout.USER.value:
+                    assert len(caplog.records) == 1
+                    assert (
+                        "consider migrating the existing packages" in caplog.records[0]
+                    )
+                else:
+                    assert len(caplog.records) == 0
+
+            else:
+                if pkg_env_layout == PkgEnvLayout.USER.value:
+                    assert (context.user_data_pkgs,) == result
+                else:
+                    if pkg_env_layout == PkgEnvLayout.UNSET.value:
+                        assert len(caplog.records) == 1
+                        assert (
+                            "the current location of `pkgs_dirs` resides"
+                            in caplog.records
+                        )
+                    else:
+                        assert len(caplog.records) == 0
+
+                    assert context.root_prefix_pkgs in result
+                    assert context.user_data_pkgs not in result

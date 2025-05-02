@@ -21,6 +21,7 @@ from functools import cache, cached_property
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from frozendict import frozendict
@@ -52,6 +53,7 @@ from ..deprecations import deprecated
 from .constants import (
     APP_NAME,
     CONDA_LIST_FIELDS,
+    CONDA_PACKAGE_EXTENSIONS,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNEL_ALIAS,
     DEFAULT_CHANNELS,
@@ -85,7 +87,6 @@ from .constants import (
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable, Iterator
-    from pathlib import Path
     from typing import Any, Literal
 
     from ..common.configuration import Parameter, RawParameter
@@ -793,17 +794,35 @@ class Context(Configuration):
             )
 
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
-            return (USER_DATA_ENVS,)
+            # user has not specified directories, but wants to use the user data directory
 
-        # Otherwise fall back on root prefix location
+            if self._envs_in_root_prefix():
+                # There are still envs/ in the root prefix; fall back to use these,
+                # and warn the user
+                log.warning(
+                    f"The root prefix has an envs/ directory ({self.root_prefix_envs}), "
+                    "but conda is configured to use the user data directory "
+                    f"({USER_DATA_ENVS}). Falling back to the root prefix envs/; "
+                    "consider migrating the existing packages with "
+                    "`conda config --migrate-envs`."
+                )
+            else:
+                return (USER_DATA_ENVS,)
+
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
-            log.warning(
-                "The current location of `envs_dirs` resides in the root prefix. "
-                "This location is deprecated in 25.9, and will be switched to "
-                f"{USER_DATA_ENVS} by default in 26.3. To keep the current default "
-                f"locations for `envs_dirs` and `pkgs_dirs`, and silence this "
-                "warning run `conda config set pkg_env_layout conda_root`. "
-            )
+            # If pkgs_env_layout is unset, fall back on the root prefix location
+
+            if not self._envs_in_root_prefix():
+                # If there are no envs/ in the root prefix, continue using
+                # the root prefix to store envs/ until the deprecation cycle is complete
+                # but warn the user
+                log.warning(
+                    "The current location of `envs_dirs` resides in the root prefix. "
+                    "This location is deprecated in 25.9, and will be switched to "
+                    f"{USER_DATA_ENVS} by default in 26.3. To keep the current default "
+                    f"locations for `envs_dirs` and `pkgs_dirs`, and silence this "
+                    "warning run `conda config set pkg_env_layout conda_root`. "
+                )
 
         if self.root_writable:
             fixed_dirs = [
@@ -823,7 +842,7 @@ class Context(Configuration):
     def pkgs_dirs(self) -> tuple[os.PathLike, ...]:
         """Get the pkgs_dirs for the environment.
 
-        :return: Directories where pkgs are stored
+        :return: Directories where downloaded packages are stored
         """
         if self._pkgs_dirs:
             # User has already specified what directories to use
@@ -831,17 +850,34 @@ class Context(Configuration):
 
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
             # User has not specified directories, but wants to use user data directory
-            return (self.user_data_pkgs,)
 
-        # Otherwise, fall back on the root prefix location
+            if self._pkgs_in_root_prefix():
+                # There are still pkgs/ in the root prefix; fall back to use these,
+                # and warn the user
+                log.warning(
+                    f"The root prefix has a pkgs/ directory ({self.root_prefix_pkgs}), "
+                    "but conda is configured to use the user data directory "
+                    f"({self.user_data_pkgs}). Falling back to the root prefix pkgs/; "
+                    "consider migrating the existing packages with "
+                    "`conda config --migrate-pkgs`."
+                )
+            else:
+                return (self.user_data_pkgs,)
+
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
-            log.warning(
-                "The current location of `envs_dirs` resides in the root prefix. "
-                "This location is deprecated in 25.9, and will be switched to "
-                f"{self.user_data_pkgs} by default in 26.3. To keep the current default "
-                f"locations for `envs_dirs` and `pkgs_dirs`, and silence this "
-                "warning run `conda config set pkg_env_layout conda_root`. "
-            )
+            # If pkgs_env_layout is unset, fall back on the root prefix location
+
+            if not self._pkgs_in_root_prefix():
+                # If there are no pkgs/ in the root prefix, continue using
+                # the root prefix to store pkgs/ until the deprecation cycle is complete
+                # but warn the user
+                log.warning(
+                    "The current location of `pkgs_dirs` resides in the root prefix. "
+                    "This location is deprecated in 25.9, and will be switched to "
+                    f"{self.user_data_pkgs} by default in 26.3. To keep the current default "
+                    f"locations for `envs_dirs` and `pkgs_dirs`, and silence this "
+                    "warning run `conda config set pkg_env_layout conda_root`. "
+                )
 
         cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
         fixed_dirs = [
@@ -858,20 +894,29 @@ class Context(Configuration):
             )
         )
 
-    def _pkgs_in_conda_prefix(self) -> list[str]:
-        pkgs = []
-        if isdir(self.root_prefix_pkgs):
-            for path in os.listdir(self.root_prefix_pkgs):
-                if isdir(path):
-                    pkgs.append(path)
+    def _pkgs_in_root_prefix(self) -> list[os.PathLike[str]]:
+        """Get a list of the environment directories in the root prefix.
+
+        PackageCacheData cannot be used here because it depends on `context.pkgs_dirs`,
+        which would cause a circular import.
+
+        :return: A list of the environment directories in the root prefix
+        """
+        pkgs: list[os.PathLike[str]] = []
+        for extension in CONDA_PACKAGE_EXTENSIONS:
+            pkgs.extend(list(Path(self.root_prefix_envs).glob(f"*.{extension}")))
         return pkgs
 
-    def _envs_in_conda_prefix(self) -> list[str]:
-        envs = []
+    def _envs_in_root_prefix(self) -> list[os.PathLike[str]]:
+        """Get a list of the environment directories in the root prefix.
+
+        :return: A list of the environment directories in the root prefix
+        """
+        envs: list[os.PathLike[str]] = []
         if isdir(self.root_prefix_envs):
-            for path in os.listdir(self.root_prefix_envs):
-                if PrefixData(path).is_environment():
-                    envs.append(path)
+            for env in Path(self.root_prefix_envs).iterdir():
+                if PrefixData(env).is_environment():
+                    envs.append(env)
         return envs
 
     @memoizedproperty
