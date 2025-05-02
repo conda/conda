@@ -19,7 +19,7 @@ from ...common.url import (
     split_anaconda_token,
     urlparse,
 )
-from ...exceptions import OfflineError, ProxyError
+from ...exceptions import ProxyError
 from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
@@ -52,6 +52,7 @@ CONDA_SESSION_SCHEMES = frozenset(
         "file",
     )
 )
+
 
 def get_channel_name_from_url(url: str) -> str | None:
     """
