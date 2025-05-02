@@ -12,21 +12,20 @@ from os.path import basename
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ...auxlib.exceptions import ValidationError
-from ...common.path import (
+from ....auxlib.exceptions import ValidationError
+from ....common.path import (
     get_python_site_packages_short_path,
     win_path_ok,
 )
-from ...common.pkg_formats.python import get_site_packages_anchor_files
-from ...gateways.disk.delete import rm_rf
-from ...gateways.disk.read import read_python_record
-from ...models.prefix_graph import PrefixGraph
-from .. import hookimpl
-from ..types import CondaPrefixDataLoader
+from ....gateways.disk.delete import rm_rf
+from ....models.prefix_graph import PrefixGraph
+from ... import hookimpl
+from ...types import CondaPrefixDataLoader
+from .pkg_format import get_site_packages_anchor_files, read_python_record
 
 if TYPE_CHECKING:
-    from ...common.path import PathType
-    from ...models.records import PrefixRecord
+    from ....common.path import PathType
+    from ....models.records import PrefixRecord
 
 log = getLogger(__name__)
 
