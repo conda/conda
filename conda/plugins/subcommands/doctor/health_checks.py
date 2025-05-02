@@ -13,9 +13,6 @@ from tempfile import TemporaryDirectory
 
 from requests.exceptions import RequestException
 
-from conda.models.channel import Channel
-from conda.models.match_spec import MatchSpec
-
 from ....base.constants import CONDA_PACKAGE_EXTENSION_V2
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
@@ -23,6 +20,8 @@ from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
+from ....models.channel import Channel
+from ....models.match_spec import MatchSpec
 from ... import CondaHealthCheck, hookimpl
 
 logger = getLogger(__name__)
