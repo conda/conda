@@ -429,7 +429,7 @@ class TmpChannelFixture:
                     **{
                         field: value
                         for field, value in pkg_data.dump().items()
-                        if field not in ("url", "channel", "schannel")
+                        if field not in ("url", "channel", "schannel", "channel_name")
                     }
                 )
 

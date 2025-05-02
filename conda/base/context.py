@@ -50,11 +50,13 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
 from .constants import (
     APP_NAME,
+    CONDA_LIST_FIELDS,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNEL_ALIAS,
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,
+    DEFAULT_CONDA_LIST_FIELDS,
     DEFAULT_CONSOLE_REPORTER_BACKEND,
     DEFAULT_CUSTOM_CHANNELS,
     DEFAULT_JSON_REPORTER_BACKEND,
@@ -193,6 +195,15 @@ def default_python_validation(value: str) -> str | Literal[True]:
     return f"default_python value '{value}' not of the form '[23].[0-9][0-9]?' or ''"
 
 
+def list_fields_validation(value: Iterable[str]) -> str | Literal[True]:
+    if invalid := set(value).difference(CONDA_LIST_FIELDS):
+        return (
+            f"Invalid value(s): {sorted(invalid)}. "
+            f"Valid values are: {sorted(CONDA_LIST_FIELDS)}"
+        )
+    return True
+
+
 def ssl_verify_validation(value: str) -> str | Literal[True]:
     if isinstance(value, str):
         if sys.version_info < (3, 10) and value == "truststore":
@@ -207,7 +218,7 @@ def ssl_verify_validation(value: str) -> str | Literal[True]:
     return True
 
 
-def _warn_defaults_deprecation():
+def _warn_defaults_deprecation() -> None:
     deprecated.topic(
         "24.9",
         "25.9",
@@ -249,6 +260,7 @@ class Context(Configuration):
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
     register_envs = ParameterLoader(PrimitiveParameter(True))
+    protect_frozen_envs = ParameterLoader(PrimitiveParameter(True))
     default_python = ParameterLoader(
         PrimitiveParameter(
             default_python_default(),
@@ -260,7 +272,14 @@ class Context(Configuration):
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
-    pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
+    prefix_data_interoperability = ParameterLoader(
+        PrimitiveParameter(False), aliases="pip_interop_enabled"
+    )
+
+    @property
+    @deprecated("25.9", "26.3", addendum="Use 'Context.prefix_data_interoperability'.")
+    def pip_interop_enabled(self):
+        return self.prefix_data_interoperability
 
     # multithreading in various places
     _default_threads = ParameterLoader(
@@ -467,6 +486,13 @@ class Context(Configuration):
     _console = ParameterLoader(
         PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str),
         aliases=["console"],
+    )
+    list_fields = ParameterLoader(
+        SequenceParameter(
+            PrimitiveParameter("", element_type=str),
+            default=DEFAULT_CONDA_LIST_FIELDS,
+            validation=list_fields_validation,
+        )
     )
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
@@ -1352,7 +1378,7 @@ class Context(Configuration):
                 "disallowed_packages",
                 "force_reinstall",
                 "pinned_packages",
-                "pip_interop_enabled",
+                "prefix_data_interoperability",
                 "track_features",
                 "solver",
             ),
@@ -1391,6 +1417,7 @@ class Context(Configuration):
                 "quiet",
                 "report_errors",
                 "show_channel_urls",
+                "list_fields",
                 "verbosity",
                 "unsatisfiable_hints",
                 "unsatisfiable_hints_check_depth",
@@ -1431,6 +1458,8 @@ class Context(Configuration):
                 # used to override prefix rewriting, for e.g. building docker containers or RPMs
                 "register_envs",
                 # whether to add the newly created prefix to ~/.conda/environments.txt
+                "protect_frozen_envs",
+                # prevent modifications to envs marked with conda-meta/frozen
             ),
             "Plugin Configuration": ("no_plugins",),
         }
@@ -1724,6 +1753,11 @@ class Context(Configuration):
                 Ensure all output written to stdout is structured json.
                 """
             ),
+            list_fields=dals(
+                """
+                Default fields to report as columns in the output of `conda list`.
+                """
+            ),
             local_repodata_ttl=dals(
                 """
                 For a value of False or 0, always fetch remote repodata (HTTP 304 responses
@@ -1791,9 +1825,9 @@ class Context(Configuration):
                 This parameter is in BETA, and its behavior may change in a future release.
                 """
             ),
-            pip_interop_enabled=dals(
+            prefix_data_interoperability=dals(
                 """
-                Allow the conda solver to interact with non-conda-installed python packages.
+                Enable plugins to allow conda to interact with non-conda-installed packages.
                 """
             ),
             pkg_env_layout=dals(

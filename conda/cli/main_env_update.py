@@ -21,6 +21,7 @@ from ..notices import notices
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
+        add_parser_frozen_env,
         add_parser_json,
         add_parser_prefix,
         add_parser_solver,
@@ -48,6 +49,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+    add_parser_frozen_env(p)
     add_parser_prefix(p)
     p.add_argument(
         "-f",
@@ -124,6 +126,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     prefix = determine_target_prefix(context, args)
     prefix_data = PrefixData(prefix)
+    if prefix_data.is_environment():
+        prefix_data.assert_writable()
+        if context.protect_frozen_envs:
+            prefix_data.assert_not_frozen()
+
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
