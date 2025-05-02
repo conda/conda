@@ -660,7 +660,7 @@ def get_python_version_for_prefix(prefix: os.PathLike) -> str | None:
     in that prefix.
     """
     # returns a string e.g. "2.7", "3.4", "3.5" or None
-    record = python_record_for_prefix(prefix)
+    record = PrefixData(prefix).get("python", None)
     if record is not None:
         if record.version[3].isdigit():
             return record.version[:4]
