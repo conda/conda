@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-import conda.plan
+with pytest.deprecated_call():
+    import conda.plan
 
 
 @pytest.mark.parametrize(
