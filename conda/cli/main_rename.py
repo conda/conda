@@ -71,9 +71,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @deprecated("25.9", "26.3", addendum="Use PrefixData.validate_path()")
 def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
-    from conda.gateways.disk.test import is_conda_environment
+    from conda.core.prefix_data import PrefixData
 
-    if is_conda_environment(Path(prefix).parent):
+    if PrefixData(Path(prefix).parent).is_environment():
         raise CondaEnvException(
             f"The specified prefix '{prefix}' "
             "appears to be a top level directory within an existing conda environment "
