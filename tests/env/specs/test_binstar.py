@@ -7,7 +7,8 @@ from contextlib import nullcontext
 
 import pytest
 
-from conda.env.specs import binstar
+with pytest.deprecated_call():
+    from conda.env.specs import binstar
 
 
 @pytest.mark.parametrize(
