@@ -10,7 +10,7 @@ allows users to extend conda to install new types of packages.
 Example plugin
 ==============
 
-The available installers can be extended with additional plugins 
+The available installers can be extended with additional plugins
 via the ``conda_installers``hook.
 
 .. autoapiclass:: conda.plugins.types.CondaInstaller
@@ -18,7 +18,7 @@ via the ``conda_installers``hook.
    :undoc-members:
 
 
-The following code code-block shows how to define a new installer 
+The following code code-block shows how to define a new installer
 plugin, called ``MyPipInstaller``. This plugin will install packages
 using pip.
 
@@ -28,16 +28,17 @@ using pip.
     from subprocess import run
     from conda import plugins
     from conda.plugins.types import CondaInstaller, InstallerBase
-    
+
     python = sys.executable
-    
+
+
     class MyPipInstaller(InstallerBase):
         def __init__(self, **kwargs):
             pass
-        
+
         def install(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
             return ["installing {specs} into {prefix}"]
-        
+
         def dry_run(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
             return ["DRYRUN: installing {specs} into {prefix}"]
 
@@ -52,7 +53,7 @@ using pip.
 
 Defining ``InstallerBase``
 --------------------------
-The first class we define is a subclass of :class:`~conda.plugins.types.InstallerBase`. 
+The first class we define is a subclass of :class:`~conda.plugins.types.InstallerBase`.
 The base class is an abstract base class which requires us to define
 our own implementations of its abstract methods:
 
