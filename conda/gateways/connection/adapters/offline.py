@@ -15,7 +15,7 @@ class OfflineAdapter(BaseAdapter):
         raise OfflineError(
              f"OfflineAdapter called with url {request.url}.\n"
              "This command is using a remote connection in offline mode."
-         )
+        )
 
     def close(self):
         raise NotImplementedError()
