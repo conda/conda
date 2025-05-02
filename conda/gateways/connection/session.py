@@ -5,9 +5,10 @@
 from __future__ import annotations
 
 from fnmatch import fnmatch
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from threading import local
+from typing import TYPE_CHECKING
 
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
@@ -18,7 +19,7 @@ from ...common.url import (
     split_anaconda_token,
     urlparse,
 )
-from ...exceptions import ProxyError
+from ...exceptions import OfflineError, ProxyError
 from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
@@ -35,6 +36,9 @@ from .adapters.localfs import LocalFSAdapter  # noqa
 from .adapters.offline import OfflineAdapter
 from .adapters.s3 import S3Adapter  # noqa
 
+if TYPE_CHECKING:
+    from requests.models import PreparedRequest, Request
+
 log = getLogger(__name__)
 RETRIES = 3
 
@@ -49,7 +53,6 @@ CONDA_SESSION_SCHEMES = frozenset(
     )
 )
 
-
 def get_channel_name_from_url(url: str) -> str | None:
     """
     Given a URL, determine the channel it belongs to and return its name.
@@ -57,7 +60,7 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_session(url: str):
     """
     Function that determines the correct Session object to be returned
@@ -149,7 +152,10 @@ class CondaSessionType(type):
 
 
 class CondaSession(Session, metaclass=CondaSessionType):
-    def __init__(self, auth: AuthBase | tuple[str, str] | None = None):
+    def __init__(
+        self,
+        auth: AuthBase | tuple[str, str] | None = None,
+    ):
         """
         :param auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
@@ -188,6 +194,24 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 if callable(adapter):
                     adapter = adapter()
             self.mount(f"{transport_adapter.scheme}://", adapter)
+
+    def prepare_request(self, request: Request) -> PreparedRequest:
+        # inject headers from plugins if this is a https/http request
+        url = urlparse(request.url)
+        if url.scheme in ("https", "http"):
+            request.headers = CaseInsensitiveDict(
+                {
+                    # hardcoded session headers (self.headers) are injected in super().prepare_request
+                    **context.plugin_manager.get_cached_session_headers(
+                        host=url.netloc
+                    ),
+                    **context.plugin_manager.get_cached_request_headers(
+                        host=url.netloc, path=url.path
+                    ),
+                    **(request.headers or {}),
+                }
+            )
+        return super().prepare_request(request)
 
     @classmethod
     def cache_clear(cls):

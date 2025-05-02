@@ -199,7 +199,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     else
         [ -f "${_INSTALLER}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_INSTALLER}/miniconda.exe' | Out-Null"'
     fi
-    if [ ${_CMD:+0} = 0 ]; then
+    if ! [ ${_CMD:-0} = 0 ]; then
         echo "Downloading miniconda..."
         eval ${_CMD}
         if ! [ $? = 0 ]; then
@@ -257,6 +257,21 @@ if updating; then
     touch "${_UPDATED}"
 fi
 
+# "install" conda
+# trick conda into importing from our source code and not from site-packages
+if [ -z "${PYTHONPATH+x}" ]; then
+    export PYTHONPATH="${_SRC}"
+else
+    export PYTHONPATH="${_SRC}:${PYTHONPATH}"
+fi
+
+# copy latest shell scripts
+echo "Update shell scripts..."
+if ! "${_ENVEXE}" init --install > /dev/null; then
+    echo "Error: failed to update shell scripts" 1>&2
+    return 1
+fi
+
 # initialize conda command
 echo "Initializing shell integration..."
 eval "$("${_ENVEXE}" shell.bash hook)" > /dev/null
@@ -271,9 +286,6 @@ if ! conda activate "${_ENV}" > /dev/null; then
     echo "Error: failed to activate ${_NAME}" 1>&2
     return 1
 fi
-
-# "install" conda
-export PYTHONPATH="${_SRC}:${PYTHONPATH}"
 
 cleanup
 unset -f cleanup

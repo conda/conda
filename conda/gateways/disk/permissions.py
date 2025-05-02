@@ -38,7 +38,7 @@ def make_writable(path):
             log.debug("tried make writable but failed: %s\n%r", path, e)
             return False
         else:
-            log.warn("Error making path writable: %s\n%r", path, e)
+            log.warning("Error making path writable: %s\n%r", path, e)
             raise
 
 
