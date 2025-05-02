@@ -574,3 +574,10 @@ def add_parser_verbose(parser: ArgumentParser | _ArgumentGroup) -> None:
         help=SUPPRESS,
         default=NULL,
     )
+
+
+def comma_separated_stripped(value: str) -> list[str]:
+    """
+    Custom type for argparse to handle comma-separated strings with stripping
+    """
+    return [item.strip() for item in value.split(",")]

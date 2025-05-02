@@ -727,7 +727,7 @@ def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
             f"""
             # packages in environment at {prefix}:
             #
-            # Name                    Version                   Build  Channel
+            # Name                     Version          Build            Channel
             """
         )
         assert not stderr
@@ -1077,7 +1077,7 @@ def test_channel_usage_replacing_python(
         data = {
             field: value
             for field, value in json.loads(fn.read_text()).items()
-            if field not in ("url", "channel", "schannel")
+            if field not in ("url", "channel", "schannel", "channel_name")
         }
         fn.write_text(json.dumps(data))
         PrefixData._cache_.clear()
@@ -2068,10 +2068,8 @@ def test_conda_pip_interop_compatible_release_operator(
 
         stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}")
         assert not stderr
-        assert (
-            "fs                        2.1.0                    pypi_0    pypi"
-            in stdout
-        )
+        split_stdout = [tuple(line.split()) for line in stdout.splitlines()]
+        assert ("fs", "2.1.0", "pypi_0", "pypi") in split_stdout
 
         with pytest.raises(DryRunExit):
             conda_cli(

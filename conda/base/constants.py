@@ -271,6 +271,37 @@ DEFAULT_JSON_REPORTER_BACKEND = "json"
 #: The name of the default console reporter backend
 DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
 
+#: The default `conda list` columns
+DEFAULT_CONDA_LIST_FIELDS = ("name", "version", "build", "channel_name")
+CONDA_LIST_FIELDS = {
+    # Keys MUST be valid attributes in conda.core.records.PrefixRecords
+    # Values are the displayed column title
+    "arch": "Arch",
+    "build": "Build",
+    "build_number": "Build number",
+    "channel": "Channel URL",
+    "channel_name": "Channel",
+    "constrains": "Constraints",
+    "depends": "Dependencies",
+    "dist_str": "Dist",
+    "features": "Features",
+    "fn": "Filename",
+    "license": "License",
+    "license_family": "License family",
+    "md5": "MD5",
+    "name": "Name",
+    "noarch": "Noarch",
+    "package_type": "Package type",
+    "requested_spec": "Requested",
+    "sha256": "SHA256",
+    "size": "Size",
+    "subdir": "Subdir",
+    "timestamp": "Timestamp",
+    "track_features": "Track features",
+    "url": "URL",
+    "version": "Version",
+}
+
 
 class NoticeLevel(ValueEnum):
     CRITICAL = "critical"
