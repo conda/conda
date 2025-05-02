@@ -192,7 +192,7 @@ def list_packages(
 
     exitcode = 0
 
-    prefix_data = PrefixData(prefix, pip_interop_enabled=True)
+    prefix_data = PrefixData(prefix, interoperability=True)
     if reload_records:
         prefix_data.load()
     installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)

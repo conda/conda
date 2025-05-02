@@ -264,7 +264,14 @@ class Context(Configuration):
     enable_private_envs = ParameterLoader(PrimitiveParameter(False))
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
-    pip_interop_enabled = ParameterLoader(PrimitiveParameter(False))
+    prefix_data_interoperability = ParameterLoader(
+        PrimitiveParameter(False), aliases="pip_interop_enabled"
+    )
+
+    @property
+    @deprecated("25.9", "26.3", addendum="Use 'Context.prefix_data_interoperability'.")
+    def pip_interop_enabled(self):
+        return self.prefix_data_interoperability
 
     # multithreading in various places
     _default_threads = ParameterLoader(
@@ -1285,7 +1292,7 @@ class Context(Configuration):
                 "disallowed_packages",
                 "force_reinstall",
                 "pinned_packages",
-                "pip_interop_enabled",
+                "prefix_data_interoperability",
                 "track_features",
                 "solver",
             ),
@@ -1732,9 +1739,9 @@ class Context(Configuration):
                 This parameter is in BETA, and its behavior may change in a future release.
                 """
             ),
-            pip_interop_enabled=dals(
+            prefix_data_interoperability=dals(
                 """
-                Allow the conda solver to interact with non-conda-installed python packages.
+                Enable plugins to allow conda to interact with non-conda-installed packages.
                 """
             ),
             pkgs_dirs=dals(
