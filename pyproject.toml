@@ -127,6 +127,11 @@ doctest_optionflags = [
   "ALLOW_UNICODE",
   "ELLIPSIS",
 ]
+filterwarnings = [
+  "error",
+  # Python <= 3.11
+  "ignore:sys.monitoring isn't available, using default core:coverage.exceptions.CoverageWarning",
+]
 markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",
@@ -144,11 +149,6 @@ norecursedirs = [
 pythonpath = [
   # faking a test-plugin to test ImportError handling
   "tests/plugins/data/test-plugin",
-]
-filterwarnings = [
-  "error",
-  # Python <= 3.11
-  "ignore:sys.monitoring isn't available, using default core:coverage.exceptions.CoverageWarning",
 ]
 testpaths = ["tests"]
 

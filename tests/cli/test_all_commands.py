@@ -4,6 +4,7 @@
 This testing module is for tests which test multiple commands under the same
 circumstance.
 """
+
 from typing import TYPE_CHECKING
 
 import pytest
