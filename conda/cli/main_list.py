@@ -5,22 +5,30 @@
 Lists all packages installed into an environment.
 """
 
+from __future__ import annotations
+
 import logging
 import re
-from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isdir, isfile
+from typing import TYPE_CHECKING
 
 from .. import __version__
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any
 
 log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..base.constants import CONDA_LIST_FIELDS
     from .helpers import (
         add_parser_json,
         add_parser_prefix,
         add_parser_show_channel_urls,
+        comma_separated_stripped,
     )
 
     summary = "List installed packages in a conda environment."
@@ -66,6 +74,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_prefix(p)
     add_parser_json(p)
     add_parser_show_channel_urls(p)
+    p.add_argument(
+        "--fields",
+        type=comma_separated_stripped,
+        dest="list_fields",
+        help="Comma-separated list of fields to print. "
+        f"Valid values: {sorted(CONDA_LIST_FIELDS)}.",
+    )
     p.add_argument(
         "--reverse",
         action="store_true",
@@ -163,20 +178,37 @@ def list_packages(
     reverse=False,
     show_channel_urls=None,
     reload_records=True,
-):
-    from ..base.constants import DEFAULTS_CHANNEL_NAME
+    fields=None,
+) -> tuple[int, list[str] | list[dict[str, Any]]]:
+    from ..base.constants import (
+        CONDA_LIST_FIELDS,
+        DEFAULT_CONDA_LIST_FIELDS,
+        DEFAULTS_CHANNEL_NAME,
+    )
     from ..base.context import context
     from ..core.prefix_data import PrefixData
+    from ..exceptions import CondaValueError
     from .common import disp_features
 
-    res = 0
+    exitcode = 0
 
     prefix_data = PrefixData(prefix, interoperability=True)
     if reload_records:
         prefix_data.load()
     installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
-
+    show_channel_urls = show_channel_urls or context.show_channel_urls
+    fields = fields or context.list_fields
+    if invalid_fields := set(fields).difference(CONDA_LIST_FIELDS):
+        raise CondaValueError(
+            f"Invalid fields passed: {sorted(invalid_fields)}. "
+            f"Valid options are {list(CONDA_LIST_FIELDS)}."
+        )
     packages = []
+    titles = [CONDA_LIST_FIELDS[field] for field in fields]
+    if fields == DEFAULT_CONDA_LIST_FIELDS and len(fields) == 4:
+        widths = [23, 15, 15, 1]
+    else:
+        widths = [len(title) for title in titles]
     for prec in get_packages(installed, regex) if regex else installed:
         if format == "canonical":
             packages.append(
@@ -187,33 +219,48 @@ def list_packages(
             packages.append("=".join((prec.name, prec.version, prec.build)))
             continue
 
-        features = set(prec.get("features") or ())
-        disp = "%(name)-25s %(version)-15s %(build)15s" % prec
-        disp += f"  {disp_features(features)}"
-        schannel = prec.get("schannel")
-        show_channel_urls = show_channel_urls or context.show_channel_urls
-        if (
-            show_channel_urls
-            or show_channel_urls is None
-            and schannel != DEFAULTS_CHANNEL_NAME
-        ):
-            disp += f"  {schannel}"
+        # this is for format == "human"
+        row = []
+        for idx, field in enumerate(fields):
+            if field == "features":
+                features = set(prec.get("features") or ())
+                value = disp_features(features)
+            elif field == "channel_name":
+                channel_name = prec.get("channel_name")
+                if (
+                    show_channel_urls
+                    or show_channel_urls is None
+                    and channel_name != DEFAULTS_CHANNEL_NAME
+                ):
+                    value = str(channel_name)
+                else:
+                    value = ""
+            else:
+                value = str(prec.get(field, None) or "").strip()
+                if value == "None":
+                    value = ""
+            row.append(value)
+            if (value_length := len(value)) > widths[idx]:
+                widths[idx] = value_length
 
-        packages.append(disp)
+        packages.append(row)
 
     if reverse:
         packages = reversed(packages)
 
-    result = []
     if format == "human":
+        template_line = "  ".join([f"%-{width}s" for width in widths])
         result = [
             f"# packages in environment at {prefix}:",
             "#",
-            "# %-23s %-15s %15s  Channel" % ("Name", "Version", "Build"),
+            f"# {template_line}" % tuple(titles),
         ]
-    result.extend(packages)
-
-    return res, result
+        widths[0] += 2  # account for the '# ' prefix in the header line
+        template_line = "  ".join([f"%-{width}s" for width in widths])
+        result.extend([template_line % tuple(package) for package in packages])
+    else:
+        result = list(packages)
+    return exitcode, result
 
 
 def print_packages(
@@ -224,7 +271,8 @@ def print_packages(
     piplist=False,
     json=False,
     show_channel_urls=None,
-):
+    fields=None,
+) -> int:
     from ..base.context import context
     from .common import stdout_json
 
@@ -243,12 +291,13 @@ def print_packages(
         format=format,
         reverse=reverse,
         show_channel_urls=show_channel_urls,
+        fields=fields,
     )
     if context.json:
         stdout_json(output)
 
     else:
-        print("\n".join(map(str, output)))
+        print("\n".join([str(line).rstrip() for line in output]))
 
     return exitcode
 
