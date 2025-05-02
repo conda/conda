@@ -46,8 +46,8 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
-        CondaInstaller,
         CondaHealthCheck,
+        CondaInstaller,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
@@ -234,9 +234,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[CondaPrefixDataLoader]: ...
 
     @overload
-    def get_hook_results(
-        self, name: Literal["installers"]
-    ) -> list[CondaInstaller]: ...
+    def get_hook_results(self, name: Literal["installers"]) -> list[CondaInstaller]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -496,9 +494,10 @@ class CondaPluginManager(pluggy.PluginManager):
             return found[0]
         if found:
             names = ", ".join([hook.name for hook in found])
-            raise PluginError(f"Too many env installers registered for '{installer_name}': {names}")
+            raise PluginError(
+                f"Too many env installers registered for '{installer_name}': {names}"
+            )
         raise InvalidInstaller(f"Could not find env installer for '{installer_name}'.")
-
 
 
 @functools.cache

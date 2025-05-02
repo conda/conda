@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
-        CondaInstaller,
         CondaHealthCheck,
+        CondaInstaller,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
@@ -521,7 +521,7 @@ class CondaSpecs:
             from subprocess import run
             from conda import plugins
             from conda.plugins.types import CondaInstaller, InstallerBase
-            
+
             python = sys.executable
 
 
