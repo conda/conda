@@ -13,8 +13,8 @@ from .. import BaseAdapter
 class OfflineAdapter(BaseAdapter):
     def send(self, request, *args, **kwargs):
         raise OfflineError(
-             f"OfflineAdapter called with url {request.url}.\n"
-             "This command is using a remote connection in offline mode."
+            f"OfflineAdapter called with url {request.url}.\n"
+            "This command is using a remote connection in offline mode."
         )
 
     def close(self):
