@@ -504,7 +504,7 @@ class CondaSpecs:
                     )
                 records.update(penguin_records)
                 return penguin_records
-    """
+        """
         yield from ()
 
     @_hookspec
