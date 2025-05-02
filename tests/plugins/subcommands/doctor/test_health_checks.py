@@ -353,7 +353,4 @@ def test_env_consistency_check_fails(
 
     with tmp_env(pkg_to_install) as prefix:
         out, _, _ = conda_cli("doctor", "--prefix", prefix)
-        assert (
-            f"{X_MARK} The environment is not consistent due to the following exception:\n"
-            in out
-        )
+        assert f"{X_MARK} The environment is not consistent.\n" in out

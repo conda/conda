@@ -6,21 +6,17 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import nullcontext, redirect_stdout
 from logging import getLogger
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from requests.exceptions import RequestException
 
-from ....base.constants import CONDA_PACKAGE_EXTENSION_V2
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
-from ....models.channel import Channel
 from ....models.match_spec import MatchSpec
 from ... import CondaHealthCheck, hookimpl
 
@@ -185,58 +181,38 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
     # get the plugin manager from context
     pm = context.plugin_manager
 
-    # get the solver backend from the plugin manager
-    SolverClass = pm.get_solver_backend()
-
     # get prefix data
     pd = PrefixData(prefix)
 
-    # create a repodatas dict with noarch subdir already created as it is pre-requisite for creating a channel
-    repodatas = {"noarch": {}}
+    # get virtual packages record
+    virtual_packages = {
+        record.name: record for record in pm.get_virtual_package_records()
+    }
 
-    # TODO create a list using iter_records and check its length, if 0 exit
+    # collect missing dependency issues in a list
+    issues = []
 
-    # segregate the package records based on subdir/architecture and package type
+    # check is dependencies are present
     for record in pd.iter_records():
-        record_data = dict(record.dump())
-        if record.fn.endswith(CONDA_PACKAGE_EXTENSION_V2):
-            pkg_type = "packages.conda"
-        else:
-            pkg_type = "packages"
-
-        repodata = repodatas.setdefault(record_data["subdir"], {})
-        repodata.setdefault(pkg_type, {})[record.fn] = record_data
-
-    # create fake channel with package records from pd
-    with TemporaryDirectory() as tmp_dir:
-        for subdir, repodata in repodatas.items():
-            path = Path(tmp_dir) / subdir
-            path.mkdir(parents=True, exist_ok=True)
-            (path / "repodata.json").write_text(json.dumps(repodata))
-
-        fake_channel = Channel(tmp_dir)
-        specs = [
-            MatchSpec(name=record.name, version=record.version, build=record.build)
-            for record in pd.iter_records()
-        ]
-
-        # instantiate a solver object
-        solver = SolverClass(
-            prefix=Path(tmp_dir) / "environment",
-            specs_to_add=specs,
-            channels=[fake_channel],
-        )
-
-        try:
-            with nullcontext() if verbose else redirect_stdout(open(os.devnull, "w")):
-                # get the final state from the solver
-                solver.solve_final_state()
-            print(f"{OK_MARK} The environment is consistent.\n")
-        except Exception as exc:
-            print(
-                f"{X_MARK} The environment is not consistent due to the following exception:\n",
-                {exc},
+        for dependency in record.depends:
+            match_spec = MatchSpec(dependency)
+            dependency_record = pd.get(
+                match_spec.name, default=virtual_packages.get(match_spec.name, None)
             )
+            if dependency_record is None:
+                issues.append(f"{match_spec} required by {record.name} not found")
+                continue
+            elif not match_spec.match(dependency_record):
+                issues.append(
+                    f"Installed dependency {dependency_record} does not match required dependency {match_spec}"
+                )
+                continue
+    if issues:
+        print(f"{X_MARK} The environment is not consistent.\n")
+        if verbose:
+            print("\n".join(issues), "\n")
+    else:
+        print(f"{OK_MARK} The environment is consistent.\n")
 
 
 @hookimpl
