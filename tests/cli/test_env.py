@@ -39,6 +39,9 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
+with pytest.deprecated_call():
+    CHANNELS = context.channels
+
 # Environment names we use during our tests
 TEST_ENV1 = "env1"
 
@@ -47,7 +50,7 @@ ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
-        "channels": context.channels,
+        "channels": CHANNELS,
     }
 )
 
@@ -55,7 +58,7 @@ ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
-        "channels": context.channels,
+        "channels": CHANNELS,
         "variables": {
             "DUDE": "woah",
             "SWEET": "yaaa",
@@ -68,7 +71,7 @@ ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates", "zlib"],
-        "channels": context.channels,
+        "channels": CHANNELS,
     }
 )
 
@@ -76,7 +79,7 @@ ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click"]}],
-        "channels": context.channels,
+        "channels": CHANNELS,
     }
 )
 
@@ -84,7 +87,7 @@ ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click", "attrs"]}],
-        "channels": context.channels,
+        "channels": CHANNELS,
     }
 )
 
@@ -92,7 +95,7 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["nonexisting_"]}],
-        "channels": context.channels,
+        "channels": CHANNELS,
     }
 )
 
@@ -100,7 +103,7 @@ ENVIRONMENT_UNSOLVABLE = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["does-not-exist"],
-        "channels": context.channels,
+        "channels": CHANNELS,
     }
 )
 
