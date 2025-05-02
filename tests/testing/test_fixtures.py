@@ -19,7 +19,7 @@ if TYPE_CHECKING:
         TmpEnvFixture,
     )
 
-pytest_plugins = ["conda.testing.fixtures", "pytester"]
+pytest_plugins = ["pytester"]
 
 
 def test_conda_cli(conda_cli: CondaCLIFixture) -> None:
