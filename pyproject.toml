@@ -130,7 +130,7 @@ doctest_optionflags = [
 filterwarnings = [
   "error",
   # Python <= 3.11
-  "ignore:sys.monitoring core:coverage.exceptions.CoverageWarning",
+  "ignore:sys.monitoring:coverage.exceptions.CoverageWarning",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
