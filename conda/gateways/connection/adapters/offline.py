@@ -5,7 +5,6 @@ Defines the offline transport adapter which is automatically used when
 context.offline is True.
 """
 
-from ....auxlib.ish import dals
 from ....exceptions import OfflineError
 from .. import BaseAdapter
 
