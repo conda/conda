@@ -6,18 +6,16 @@ context.offline is True.
 """
 
 from ....auxlib.ish import dals
+from ....exceptions import OfflineError
 from .. import BaseAdapter
 
 
 class OfflineAdapter(BaseAdapter):
     def send(self, request, *args, **kwargs):
-        message = dals(
-            f"""
-        OfflineAdapter called with url {request.url}
-        This command is using a remote connection in offline mode.
-        """
-        )
-        raise RuntimeError(message)
+        raise OfflineError(
+             f"OfflineAdapter called with url {request.url}.\n"
+             "This command is using a remote connection in offline mode."
+         )
 
     def close(self):
         raise NotImplementedError()
