@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.common.pkg_formats` subpackage as pending deprecation, to be removed in 26.3. Use the `prefix_data_loaders` plugin hook instead. (#14798)
+* Mark `conda.common.pkg_formats.python` module as pending deprecation, to be removed in 26.3. Use `conda.plugins.prefix_data_loaders.pypi.pkg_format` instead. (#14798)
+* Mark `conda.gateways.disk.read.read_python_record` as pending deprecation, to be removed in 26.3. Use `conda.plugins.prefix_data_loaders.pypi.pkg_format.read_python_record` instead. (#14798)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
