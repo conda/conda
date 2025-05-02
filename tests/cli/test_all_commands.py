@@ -4,11 +4,14 @@
 This testing module is for tests which test multiple commands under the same
 circumstance.
 """
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.exceptions import ChannelDenied
-from conda.testing.fixtures import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture
 
 DENYLIST_CHANNEL: str = "denylist_channel_name"
 DENYLIST_CHANNEL_URL: str = "https://conda.anaconda.org/denylist_channel_name"

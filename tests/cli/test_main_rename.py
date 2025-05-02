@@ -19,7 +19,6 @@ from conda.exceptions import (
     EnvironmentLocationNotFound,
     EnvironmentNameNotFound,
 )
-from conda.testing.fixtures import TmpEnvFixture
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
