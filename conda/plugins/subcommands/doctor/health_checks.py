@@ -16,6 +16,7 @@ from requests.exceptions import RequestException
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 
+from ....base.constants import CONDA_PACKAGE_EXTENSION_V2
 from ....base.context import context
 from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
@@ -199,7 +200,7 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
     # segregate the package records based on subdir/architecture and package type
     for record in pd.iter_records():
         record_data = dict(record.dump())
-        if record.fn.endswith(".conda"):
+        if record.fn.endswith(CONDA_PACKAGE_EXTENSION_V2):
             pkg_type = "packages.conda"
         else:
             pkg_type = "packages"
