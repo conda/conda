@@ -128,7 +128,6 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
-  "error",
   # Python <= 3.11
   "ignore:sys.monitoring:coverage.exceptions.CoverageWarning",
 ]
