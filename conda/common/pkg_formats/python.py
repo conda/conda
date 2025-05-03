@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""Common Python package format utilities."""
 
 from ...deprecations import deprecated
 from ...plugins.prefix_data_loaders.pypi.pkg_format import (  # noqa
