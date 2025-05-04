@@ -48,7 +48,6 @@ from ..common.constants import TRACE
 from ..common.iterators import unique
 from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
 from .constants import (
     APP_NAME,
@@ -912,6 +911,8 @@ class Context(Configuration):
 
         :return: A list of the environment directories in the root prefix
         """
+        from ..core.prefix_data import PrefixData
+
         envs: list[os.PathLike[str]] = []
         if isdir(self.root_prefix_envs):
             for env in Path(self.root_prefix_envs).iterdir():

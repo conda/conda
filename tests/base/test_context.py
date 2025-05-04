@@ -1035,10 +1035,9 @@ def test_pkgs_envs_configured(
 @pytest.mark.parametrize(
     "pkgs_dirs",
     [
-        tuple(
-            "/foo",
-        ),
-        tuple(),
+        ("/foo", "/bar/baz"),
+        ("/foo",),
+        (),
     ],
 )
 @pytest.mark.parametrize(
@@ -1071,33 +1070,164 @@ def test_pkgs(
 
         if pkgs_dirs:
             assert set(result) == set(pkgs_dirs)
+            mock_pkgs.assert_not_called()
         else:
             if pkgs_in_root_prefix:
                 # No matter what if there are pkgs/ in the root prefix
-                # we default to using those
+                # we use those
                 assert context.root_prefix_pkgs in result
                 assert context.user_data_pkgs not in result
 
                 if pkg_env_layout == PkgEnvLayout.USER.value:
+                    # If pkg_env_layout is user, issue a warning
+                    # message if there are still packages in
+                    # the root prefix
                     assert len(caplog.records) == 1
                     assert (
-                        "consider migrating the existing packages" in caplog.records[0]
+                        "consider migrating the existing packages"
+                        in caplog.records[0].message
                     )
-                else:
+                    mock_pkgs.assert_called_once()
+                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                    # If pkg_env_layout is unset, we don't issue
+                    # a warning if there are pkgs/ in the root prefix
                     assert len(caplog.records) == 0
+                    mock_pkgs.assert_called_once()
+                else:
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix pkgs, no questions asked
+                    assert len(caplog.records) == 0
+                    assert mock_pkgs.call_count == 0
 
             else:
                 if pkg_env_layout == PkgEnvLayout.USER.value:
+                    # If pkg_env_layout is user and there's no
+                    # packages in the root prefix, just return
+                    # the user data directory
                     assert (context.user_data_pkgs,) == result
+                    assert len(caplog.records) == 0
+                    mock_pkgs.assert_called_once()
+                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                    # If pkg_env_layout is unset and there's no
+                    # packages in the root prefix, warn the user
+                    # that the default location will change after
+                    # the next deprecation cycle
+                    assert len(caplog.records) == 1
+                    assert (
+                        "current location of `pkgs_dirs` resides"
+                        in caplog.records[0].message
+                    )
+                    mock_pkgs.assert_called_once()
+                    assert context.root_prefix_pkgs in result
+                    assert context.user_data_pkgs not in result
                 else:
-                    if pkg_env_layout == PkgEnvLayout.UNSET.value:
-                        assert len(caplog.records) == 1
-                        assert (
-                            "the current location of `pkgs_dirs` resides"
-                            in caplog.records
-                        )
-                    else:
-                        assert len(caplog.records) == 0
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix pkgs, no questions asked
+                    assert len(caplog.records) == 0
 
                     assert context.root_prefix_pkgs in result
                     assert context.user_data_pkgs not in result
+
+
+@pytest.mark.parametrize(
+    "envs_in_root_prefix",
+    [
+        ["foo.conda", "bar.tar.bz2", "baz.conda"],
+        [],
+    ],
+)
+@pytest.mark.parametrize(
+    "envs_dirs",
+    [
+        ("/foo", "/bar/baz"),
+        ("/foo",),
+        (),
+    ],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER.value,
+        PkgEnvLayout.CONDA_ROOT.value,
+        PkgEnvLayout.UNSET.value,
+    ],
+)
+def test_envs(
+    pkg_env_layout,
+    envs_dirs,
+    envs_in_root_prefix,
+    mock_context_attributes,
+    propagate_conda_logger,
+    caplog,
+):
+    with (
+        mock_context_attributes(
+            _envs_dirs=envs_dirs,
+            pkg_env_layout=pkg_env_layout,
+        ),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+    ):
+        mock_envs.return_value = envs_in_root_prefix
+
+        with caplog.at_level(logging.INFO):
+            result = context.envs_dirs
+
+        if envs_dirs:
+            assert set(result) >= set(envs_dirs)
+            mock_envs.assert_not_called()
+        else:
+            if envs_in_root_prefix:
+                # No matter what if there are envs/ in the root prefix
+                # we use those
+                assert context.root_prefix_envs in result
+                assert USER_DATA_ENVS not in result
+
+                if pkg_env_layout == PkgEnvLayout.USER.value:
+                    # If pkg_env_layout is user, issue a warning
+                    # message if there are still packages in
+                    # the root prefix
+                    assert len(caplog.records) == 1
+                    assert (
+                        "consider migrating the existing packages"
+                        in caplog.records[0].message
+                    )
+                    mock_envs.assert_called_once()
+                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                    # If pkg_env_layout is unset, we don't issue
+                    # a warning if there are envs/ in the root prefix
+                    assert len(caplog.records) == 0
+                    mock_envs.assert_called_once()
+                else:
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix envs, no questions asked
+                    assert len(caplog.records) == 0
+                    assert mock_envs.call_count == 0
+
+            else:
+                if pkg_env_layout == PkgEnvLayout.USER.value:
+                    # If pkg_env_layout is user and there's no
+                    # packages in the root prefix, just return
+                    # the user data directory
+                    assert USER_DATA_ENVS in result
+                    assert len(caplog.records) == 0
+                    mock_envs.assert_called_once()
+                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                    # If pkg_env_layout is unset and there's no
+                    # packages in the root prefix, warn the user
+                    # that the default location will change after
+                    # the next deprecation cycle
+                    assert len(caplog.records) == 1
+                    assert (
+                        "current location of `envs_dirs` resides"
+                        in caplog.records[0].message
+                    )
+                    mock_envs.assert_called_once()
+                    assert context.root_prefix_envs in result
+                    assert USER_DATA_ENVS not in result
+                else:
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix envs, no questions asked
+                    assert len(caplog.records) == 0
+
+                    assert context.root_prefix_envs in result
+                    assert USER_DATA_ENVS not in result
