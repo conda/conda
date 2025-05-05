@@ -1035,8 +1035,8 @@ def test_pkgs_envs_configured(
 @pytest.mark.parametrize(
     "pkgs_dirs",
     [
-        ("/foo", "/bar/baz"),
-        ("/foo",),
+        (Path("foo"), Path("bar") / "baz"),
+        (Path("foo"),),
         (),
     ],
 )
@@ -1056,6 +1056,7 @@ def test_pkgs(
     propagate_conda_logger,
     caplog,
 ):
+    pkgs_dirs = tuple(str(item) for item in pkgs_dirs)
     with (
         mock_context_attributes(
             _pkgs_dirs=pkgs_dirs,
@@ -1139,8 +1140,8 @@ def test_pkgs(
 @pytest.mark.parametrize(
     "envs_dirs",
     [
-        ("/foo", "/bar/baz"),
-        ("/foo",),
+        (Path("foo"), Path("bar") / "baz"),
+        (Path("foo"),),
         (),
     ],
 )
@@ -1160,6 +1161,7 @@ def test_envs(
     propagate_conda_logger,
     caplog,
 ):
+    envs_dirs = tuple(str(item) for item in envs_dirs)
     with (
         mock_context_attributes(
             _envs_dirs=envs_dirs,

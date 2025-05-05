@@ -1039,10 +1039,12 @@ def test_migrate_envs(
                 # state of the conda logger here in order to capture messages below
                 logging.getLogger("conda").propagate = True
 
-                # Check that having envs in the root triggers a warning
+                # Check that having envs in the root prefix does not trigger a warning
+                # if the pkg_env_layout is unset
                 with caplog.at_level(logging.WARNING):
-                    context.envs_dirs
-                assert len(caplog.records) == 1
+                    envs_dirs = context.envs_dirs
+                assert len(caplog.records) == 0
+                assert context.root_prefix_envs in envs_dirs
 
                 # This should raise a warning indicating that the user should
                 # set `conda config set pkg_env_layout user` before failing out
@@ -1053,19 +1055,26 @@ def test_migrate_envs(
 
                 # Okay, now the user sets `conda config set pkg_env_layout user`
                 with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER.value):
+                    reset_context()
+
+                    # If there are envs in the root prefix and the pkg_env_layout is
+                    # set to USER, a warning should be issued that we are falling
+                    # back to the root prefix
+                    logging.getLogger("conda").propagate = True
+                    with caplog.at_level(logging.WARNING):
+                        envs_dirs = context.envs_dirs
+                    assert len(caplog.records) == 1
+                    assert context.root_prefix_envs in envs_dirs
+
                     conda_cli("config", "--migrate-envs")
 
                     # Post-migration, running the migration again should raise an error
                     with pytest.raises(CondaError):
                         conda_cli("config", "--migrate-envs")
 
-                    # Because the conda_cli fixture calls conda.cli.main.main_subshell which among other
-                    # things reinitializes the loggers, we need to manually reset the propagation
-                    # state of the conda logger here in order to capture messages below
-                    logging.getLogger("conda").propagate = True
-
                     # After migration, accessing `envs_dirs` should not produce warnings
                     caplog.clear()
+                    logging.getLogger("conda").propagate = True
                     with caplog.at_level(logging.WARNING):
                         context.envs_dirs
                     assert len(caplog.records) == 0
