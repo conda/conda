@@ -23,11 +23,18 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable
+    from typing import Any, Callable, TypeAlias
 
     from ..common.configuration import Parameter
+    from ..common.path import PathType
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
+    from ..models.records import PrefixRecord
+
+    CondaPrefixDataLoaderCallable: TypeAlias = Callable[
+        [PathType, dict[str, PrefixRecord]],
+        dict[str, PrefixRecord],
+    ]
 
 
 @dataclass
@@ -377,3 +384,20 @@ class CondaPostTransaction:
                 "Post-transaction action types must be subclasses "
                 "of conda.core.path_actions.Action."
             )
+
+
+@dataclass
+class CondaPrefixDataLoader:
+    """
+    Define new loaders to expose non-conda packages in a given prefix
+    as ``PrefixRecord`` objects.
+
+    :param name: name of the loader
+    :param loader: a function that takes a prefix and a dictionary that maps
+        package names to ``PrefixRecord`` objects. The newly loaded packages
+        must be inserted in the passed dictionary accordingly, and also
+        returned as a separate dictionary.
+    """
+
+    name: str
+    loader: CondaPrefixDataLoaderCallable

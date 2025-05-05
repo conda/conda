@@ -258,6 +258,25 @@ command:
    The ``--prune`` option causes conda to remove any dependencies
    that are no longer required from the environment.
 
+.. _frozen-env:
+
+Freezing or locking an environment
+==================================
+
+`CEP 22 <https://conda.org/learn/ceps/cep-0022>`__ introduced an
+environment marker file that will instruct ``conda`` not to allow
+modifications in the given environment. When attempting to add,
+update or remove a package, users will receive an error by default::
+
+   EnvironmentIsFrozenError: Cannot not modify '~/.conda/envs/my-env'.
+   The environment is marked as frozen. You can ignore this error with
+   the `--override-frozen` flag, at your own risk.
+
+As mentioned above, users can pass the ``--override-frozen`` flag, but
+this is really not recommended and should only be done by advanced users
+who are aware of the risks and would have the knowledge to fix potential
+complications derived from that operation.
+
 
 Cloning an environment
 ======================
@@ -429,9 +448,13 @@ behavior uniform across operating systems. Conda 4.4 allowed
 support so that conda works faster and less disruptively on
 a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
 Now these shells can use the ``conda activate`` command.
-Removing the need to modify PATH makes conda less disruptive to
-other software on your system. For more information, read the
-output from ``conda init --help``.
+
+Alternatively, ``conda init --condabin`` will not install a shell
+function in your profile. Instead, it will only add the ``$CONDA_PREFIX/condabin/``
+directory to ``PATH``. This directory only contains the ``conda``
+executable, so it should be minimally invasive.
+
+For more information, read the output from ``conda init --help``.
 
 One setting may be useful to you when using ``conda init`` is::
 

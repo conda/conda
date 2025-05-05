@@ -25,6 +25,7 @@ from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
 from . import (
     post_solves,
+    prefix_data_loaders,
     reporter_backends,
     solvers,
     subcommands,
@@ -34,6 +35,7 @@ from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from typing import Literal
 
     from requests.auth import AuthBase
@@ -50,6 +52,8 @@ if TYPE_CHECKING:
         CondaPostSolve,
         CondaPostTransaction,
         CondaPreCommand,
+        CondaPrefixDataLoader,
+        CondaPrefixDataLoaderCallable,
         CondaPreSolve,
         CondaReporterBackend,
         CondaRequestHeader,
@@ -229,6 +233,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["post_transactions"]
     ) -> list[CondaPostTransaction]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["prefix_data_loaders"]
+    ) -> list[CondaPrefixDataLoader]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -434,6 +443,10 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
 
+    def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
+        for hook in self.get_hook_results("prefix_data_loaders"):
+            yield hook.loader
+
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
             try:
@@ -496,6 +509,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *prefix_data_loaders.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
