@@ -3,7 +3,7 @@
 """Register the native conda installer for conda env files."""
 
 import tempfile
-from typing import Iterable
+from typing import Iterable, Optional
 from os.path import basename
 
 from boltons.setutils import IndexedSet
@@ -128,8 +128,8 @@ class NativeInstaller(InstallerBase):
             self, 
             prefix: str, 
             specs: Iterable[str], 
-            update_modifier: UpdateModifier | None = None, 
-            deps_modifier: DepsModifier | None = None,
+            update_modifier: Optional[UpdateModifier] = None, 
+            deps_modifier: Optional[DepsModifier] = None,
             should_retry_unfrozen: bool = False,
             index_args: dict[str, any] = {},
             command: str = None,
