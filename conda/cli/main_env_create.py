@@ -112,7 +112,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env import specs
     from ..env.env import get_filename, print_result
-    from ..env.installers.base import get_installer
     from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
 
@@ -149,7 +148,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if args.dry_run:
         installer_type = "conda"
-        installer = get_installer(installer_type)
+        installer = context.plugin_manager.get_installer(installer_type).installer()
 
         pkg_specs = env.dependencies.get(installer_type, [])
         pkg_specs.extend(args_packages)
@@ -163,18 +162,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         if args_packages:
             installer_type = "conda"
-            installer = get_installer(installer_type)
+            installer = context.plugin_manager.get_installer(installer_type).installer()
             result[installer_type] = installer.install(prefix, args_packages, args, env)
 
         if len(env.dependencies.items()) == 0:
             installer_type = "conda"
             pkg_specs = []
-            installer = get_installer(installer_type)
+            installer = context.plugin_manager.get_installer(installer_type).installer()
             result[installer_type] = installer.install(prefix, pkg_specs, args, env)
         else:
             for installer_type, pkg_specs in env.dependencies.items():
                 try:
-                    installer = get_installer(installer_type)
+                    installer = context.plugin_manager.get_installer(installer_type).installer()
                     result[installer_type] = installer.install(
                         prefix, pkg_specs, args, env
                     )
