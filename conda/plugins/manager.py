@@ -517,6 +517,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *post_solves.plugins,
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,
+        *installers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

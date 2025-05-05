@@ -6,7 +6,7 @@ from .. import CondaInstaller, hookimpl
 
 
 @hookimpl
-def conda_env_installers():
+def conda_installers():
     from ...env.installers.pip import PipInstaller
 
     yield CondaInstaller(
