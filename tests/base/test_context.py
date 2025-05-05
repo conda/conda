@@ -34,6 +34,7 @@ from conda.base.context import (
     validate_channels,
     validate_prefix_name,
 )
+from conda.common.compat import on_win
 from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
@@ -47,7 +48,6 @@ from conda.exceptions import (
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.utils import on_win
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
@@ -901,12 +901,20 @@ def test_pkg_env_layout(
     pkg_env_layout,
     mock_context_attributes,
 ):
-    """Test that the default envs/pkgs directories are not in the base environment."""
-    with mock_context_attributes(
-        pkg_env_layout=pkg_env_layout,
-        _pkgs_dirs=(),
-        _envs_dirs=(),
+    """Test that default envs/pkgs are not in the root prefix if there are no
+    environments there either."""
+    with (
+        mock_context_attributes(
+            pkg_env_layout=pkg_env_layout,
+            _pkgs_dirs=(),
+            _envs_dirs=(),
+        ),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
     ):
+        mock_envs.return_value = []
+        mock_pkgs.return_value = []
+
         if pkg_env_layout == PkgEnvLayout.USER.value:
             basename = Path(USER_DATA_DIR)
         else:
@@ -958,32 +966,66 @@ def test_set_pkgs_envs_default_dirs(
         assert {envs, root_prefix_envs} <= set(context.envs_dirs)
 
 
+@pytest.mark.parametrize(
+    "envs_paths",
+    [[], [Path("bar"), Path("baz") / "quux"]],
+)
+@pytest.mark.parametrize(
+    "pkgs_paths",
+    [[], [Path("foo"), Path("abc") / "def"]],
+)
 def test_pkgs_envs_old_default_dirs(
     testdata,
     propagate_conda_logger,
     caplog,
     mock_context_attributes,
+    pkgs_paths,
+    envs_paths,
 ):
-    """Test that the old locations of envs/pkgs directories generate a log warning."""
-    with mock_context_attributes(
-        pkg_env_layout=PkgEnvLayout.UNSET.value,
-        _pkgs_dirs=(),
-        _envs_dirs=(),
+    """Test that the old locations of envs/pkgs get used by default."""
+
+    pkgs_paths = [str(Path(".").resolve() / path) for path in pkgs_paths]
+    envs_paths = [str(Path(".").resolve() / path) for path in envs_paths]
+
+    with (
+        mock_context_attributes(
+            pkg_env_layout=PkgEnvLayout.UNSET.value,
+            _pkgs_dirs=(),
+            _envs_dirs=(),
+        ),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
     ):
+        mock_envs.return_value = envs_paths
+        mock_pkgs.return_value = pkgs_paths
+
         envs = context.root_prefix_envs
         pkgs = context.root_prefix_pkgs
 
         with caplog.at_level(logging.INFO):
             # Fetch these properties, which should trigger the warning-level log messages
-            assert envs in context.envs_dirs
-            assert len(caplog.records) == 1
-            assert any([USER_DATA_ENVS in record.message for record in caplog.records])
 
+            assert envs in context.envs_dirs
+            if not envs_paths:
+                # Envs do not exist in the root prefix; warn the user that the default
+                # location will change
+                assert len(caplog.records) == 1
+                assert any(
+                    [USER_DATA_ENVS in record.message for record in caplog.records]
+                )
+
+            caplog.clear()
             assert pkgs in context.pkgs_dirs
-            assert len(caplog.records) == 2
-            assert any(
-                [context.user_data_pkgs in record.message for record in caplog.records]
-            )
+            if not pkgs_paths:
+                # Pkgs do not exist in the root prefix; warn the user that the default
+                # location will change
+                assert len(caplog.records) == 1
+                assert any(
+                    [
+                        context.user_data_pkgs in record.message
+                        for record in caplog.records
+                    ]
+                )
 
 
 @pytest.mark.parametrize(
@@ -1077,7 +1119,9 @@ def test_pkgs(
                 # No matter what if there are pkgs/ in the root prefix
                 # we use those
                 assert context.root_prefix_pkgs in result
-                assert context.user_data_pkgs not in result
+
+                if not on_win:
+                    assert context.user_data_pkgs not in result
 
                 if pkg_env_layout == PkgEnvLayout.USER.value:
                     # If pkg_env_layout is user, issue a warning
@@ -1120,14 +1164,19 @@ def test_pkgs(
                     )
                     mock_pkgs.assert_called_once()
                     assert context.root_prefix_pkgs in result
-                    assert context.user_data_pkgs not in result
+
+                    # On windows, USER_DATA_DIR/pkgs/ gets added
+                    # to pkgs_envs regardless of any user setting
+                    if not on_win:
+                        assert context.user_data_pkgs not in result
                 else:
                     # If pkg_env_layout is conda_root, just return
                     # the root prefix pkgs, no questions asked
                     assert len(caplog.records) == 0
 
                     assert context.root_prefix_pkgs in result
-                    assert context.user_data_pkgs not in result
+                    if not on_win:
+                        assert context.user_data_pkgs not in result
 
 
 @pytest.mark.parametrize(
@@ -1174,6 +1223,11 @@ def test_envs(
         with caplog.at_level(logging.INFO):
             result = context.envs_dirs
 
+        # On windows, `USER_DATA_ENVS` gets injected into the environments
+        # regardless of any user setting
+        if on_win:
+            assert USER_DATA_ENVS in result
+
         if envs_dirs:
             assert set(result) >= set(envs_dirs)
             mock_envs.assert_not_called()
@@ -1182,7 +1236,9 @@ def test_envs(
                 # No matter what if there are envs/ in the root prefix
                 # we use those
                 assert context.root_prefix_envs in result
-                assert USER_DATA_ENVS not in result
+
+                if not on_win:
+                    assert USER_DATA_ENVS not in result
 
                 if pkg_env_layout == PkgEnvLayout.USER.value:
                     # If pkg_env_layout is user, issue a warning
@@ -1225,11 +1281,12 @@ def test_envs(
                     )
                     mock_envs.assert_called_once()
                     assert context.root_prefix_envs in result
-                    assert USER_DATA_ENVS not in result
+                    if not on_win:
+                        assert USER_DATA_ENVS not in result
                 else:
                     # If pkg_env_layout is conda_root, just return
                     # the root prefix envs, no questions asked
                     assert len(caplog.records) == 0
-
                     assert context.root_prefix_envs in result
-                    assert USER_DATA_ENVS not in result
+                    if not on_win:
+                        assert USER_DATA_ENVS not in result
