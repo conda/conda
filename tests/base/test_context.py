@@ -1056,7 +1056,7 @@ def test_pkgs(
     propagate_conda_logger,
     caplog,
 ):
-    pkgs_dirs = tuple(str(item) for item in pkgs_dirs)
+    pkgs_dirs = tuple(str(Path(".").resolve() / item) for item in pkgs_dirs)
     with (
         mock_context_attributes(
             _pkgs_dirs=pkgs_dirs,
@@ -1161,7 +1161,7 @@ def test_envs(
     propagate_conda_logger,
     caplog,
 ):
-    envs_dirs = tuple(str(item) for item in envs_dirs)
+    envs_dirs = tuple(str(Path(".").resolve() / item) for item in envs_dirs)
     with (
         mock_context_attributes(
             _envs_dirs=envs_dirs,
