@@ -209,8 +209,6 @@ class NativeInstaller(InstallerBase):
 
 @hookimpl
 def conda_installers():
-    from ...env.installers.native import NativeInstaller
-
     yield CondaInstaller(
         name="conda",
         types=("conda",),

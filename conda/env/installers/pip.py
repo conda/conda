@@ -5,40 +5,16 @@
 import os
 import os.path as op
 from logging import getLogger
-from typing import Iterable
 
 from ...auxlib.compat import Utf8NamedTemporaryFile
-from ...base.context import context
-from ...common.io import Spinner
 from ...env.pip_util import get_pip_installed_packages, pip_subprocess
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from ...plugins.types import InstallerBase
+from ...reporters import get_spinner
 
 log = getLogger(__name__)
 
 
-class PipInstaller(InstallerBase):
-    def __init__(self, **kwargs):
-        pass
-
-    def install(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
-        """Install packages into an environment"""
-        with Spinner(
-            "Installing pip dependencies",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
-            pip_workdir = _get_pip_workdir()
-            return _pip_install_via_requirements(prefix, specs, pip_workdir)
-
-    def dry_run(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
-        """Do a dry run of the environment install"""
-        pip_workdir = _get_pip_workdir()
-        return _pip_install_via_requirements("", specs, pip_workdir, dry_run=True)
-
-
-
-def _pip_install_via_requirements(prefix, specs, pip_workdir, dry_run=False):
+def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
     """
     Installs the pip dependencies in specs using a temporary pip requirements file.
 
@@ -52,6 +28,16 @@ def _pip_install_via_requirements(prefix, specs, pip_workdir, dry_run=False):
       See: https://pip.pypa.io/en/stable/user_guide/#requirements-files
            https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
     """
+    url_scheme = args.file.split("://", 1)[0]
+    if url_scheme in CONDA_SESSION_SCHEMES:
+        pip_workdir = None
+    else:
+        try:
+            pip_workdir = op.dirname(op.abspath(args.file))
+            if not os.access(pip_workdir, os.W_OK):
+                pip_workdir = None
+        except AttributeError:
+            pip_workdir = None
     requirements = None
     try:
         # Generate the temporary requirements file
@@ -67,8 +53,6 @@ def _pip_install_via_requirements(prefix, specs, pip_workdir, dry_run=False):
         # pip command line...
         # see https://pip.pypa.io/en/stable/cli/pip/#exists-action-option
         pip_cmd = ["install", "-U", "-r", requirements.name, "--exists-action=b"]
-        if dry_run:
-            pip_cmd += "--dry_run"
         stdout, stderr = pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
     finally:
         # Win/Appveyor does not like it if we use context manager + delete=True.
@@ -83,18 +67,6 @@ def _pip_install_via_requirements(prefix, specs, pip_workdir, dry_run=False):
     return get_pip_installed_packages(stdout)
 
 
-def _get_pip_workdir() -> str:
-    pip_workdir = None
-    if hasattr(context._argparse_args, "file"):
-        file = context._argparse_args.file
-        url_scheme = file.split("://", 1)[0]
-        if url_scheme in CONDA_SESSION_SCHEMES:
-            pip_workdir = None
-        else:
-            try:
-                pip_workdir = op.dirname(op.abspath(file))
-                if not os.access(pip_workdir, os.W_OK):
-                    pip_workdir = None
-            except AttributeError:
-                pip_workdir = None
-    return pip_workdir
+def install(*args, **kwargs):
+    with get_spinner("Installing pip dependencies"):
+        return _pip_install_via_requirements(*args, **kwargs)

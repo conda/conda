@@ -103,8 +103,6 @@ def _get_pip_workdir() -> str:
 
 @hookimpl
 def conda_installers():
-    from ...env.installers.pip import PipInstaller
-
     yield CondaInstaller(
         name="pip",
         types=("pip",),
