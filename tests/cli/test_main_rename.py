@@ -8,10 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import (
-    context,
-    locate_prefix_by_name,
-)
+from conda.base.context import context, locate_prefix_by_name
 from conda.common.compat import on_win
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
@@ -247,11 +244,7 @@ def test_rename_with_force_with_errors_prefix(
         assert prefix.is_dir()
 
 
-def test_rename_with_dry_run(
-    conda_cli: CondaCLIFixture,
-    env_one: str,
-    env_rename: str,
-):
+def test_rename_with_dry_run(conda_cli: CondaCLIFixture, env_one: str, env_rename: str):
     """
     Runs a test where we specify the --dry-run flag to remove an existing directory.
     Without this flag, it would actually execute all the actions.

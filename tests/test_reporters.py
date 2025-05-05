@@ -23,9 +23,7 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture, MonkeyPatch
 
 
-def test_render(
-    capsys: CaptureFixture,
-):
+def test_render(capsys: CaptureFixture):
     """
     Ensure basic coverage of the :func:`~conda.reporters.render` function.
     """

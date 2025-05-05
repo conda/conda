@@ -1,6 +1,6 @@
 ### Enhancements
 
-* The default `pkgs_dirs` and `envs_dirs` are now in the user data directory rather than the root prefix (#14683).
+* Deprecation cycle started to change the default `pkgs_dirs` and `envs_dirs` to the user data directory rather than the root prefix (#14683).
 
 ### Bug fixes
 
