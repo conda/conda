@@ -24,6 +24,7 @@ from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
 from ..exceptions import CondaValueError, InvalidInstaller, PluginError
 from . import (
+    installers,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
