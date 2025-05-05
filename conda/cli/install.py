@@ -354,7 +354,6 @@ def install(args, parser, command="install"):
                 args_packages.append(default_package)
 
     index_args = get_index_args(args=args)
-    context_channels = context.channels
 
     num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
@@ -397,14 +396,6 @@ def install(args, parser, command="install"):
         )
         return install_clone(args, parser)
 
-    # use right repodata
-    if context.use_only_tar_bz2:
-        repodata_fns = ("repodata.json",)
-    else: 
-        repodata_fns = list(context.repodata_fns)
-    if REPODATA_FN not in repodata_fns:
-        repodata_fns.append(REPODATA_FN)
-
     args_set_update_modifier = getattr(args, "update_modifier", NULL) != NULL
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
@@ -419,50 +410,18 @@ def install(args, parser, command="install"):
         update_modifier = UpdateModifier.FREEZE_INSTALLED
     deps_modifier = context.deps_modifier
 
-    for repodata_fn in Repodatas(
-        repodata_fns,
-        index_args,
-        (UnsatisfiableError, SpecsConfigurationConflictError, SystemExit),
-    ):
-        with repodata_fn as repodata:
-            solver_backend = context.plugin_manager.get_cached_solver_backend()
-            solver = solver_backend(
-                prefix,
-                context_channels,
-                context.subdirs,
-                specs_to_add=specs,
-                repodata_fn=repodata,
-                command=args.cmd,
-            )
-            try:
-                unlink_link_transaction = solver.solve_for_transaction(
-                    deps_modifier=deps_modifier,
-                    update_modifier=update_modifier,
-                    force_reinstall=context.force_reinstall or context.force,
-                    should_retry_solve=(
-                        _should_retry_unfrozen or repodata != repodata_fns[-1]
-                    ),
-                )
-            except (UnsatisfiableError, SpecsConfigurationConflictError) as e:
-                if not getattr(e, "allow_retry", True):
-                    raise e
-                if _should_retry_unfrozen:
-                    unlink_link_transaction = solver.solve_for_transaction(
-                        deps_modifier=deps_modifier,
-                        update_modifier=UpdateModifier.UPDATE_SPECS,
-                        force_reinstall=context.force_reinstall or context.force,
-                        should_retry_solve=(repodata != repodata_fns[-1]),
-                    )
-                else:
-                    raise e
-            except SystemExit as e:
-                if not getattr(e, "allow_retry", True):
-                    raise e
-                if e.args and "could not import" in e.args[0]:
-                    raise CondaImportError(str(e))
-                raise e
-
-    handle_txn(unlink_link_transaction, prefix, args, newenv)
+    installer = context.plugin_manager.get_installer("conda").installer()
+    installer.install(
+        prefix=prefix,
+        specs=specs,
+        update_modifier=update_modifier,
+        deps_modifier=deps_modifier,
+        should_retry_unfrozen=_should_retry_unfrozen,
+        index_args=index_args,
+        command=command,
+    )
+    return True
+    
 
 
 def install_revision(args, parser):
