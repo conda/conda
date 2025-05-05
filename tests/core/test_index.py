@@ -22,7 +22,6 @@ from conda.core.index import (
     check_allowlist,
     dist_str_in_index,
     fetch_index,
-    get_index,
     get_reduced_index,
 )
 from conda.core.prefix_data import PrefixData
@@ -237,27 +236,11 @@ def test_supplement_index_with_system_glibc(monkeypatch: MonkeyPatch) -> None:
 
 
 @pytest.mark.integration
-def test_get_index_linux64_platform():
-    linux64 = "linux-64"
-    index = get_index(platform=linux64)
+@pytest.mark.parametrize("platform", ["linux-64", "osx-64", "win-64"])
+def test_get_index_platform(platform: str) -> None:
+    index = Index(platform=platform)
     for dist, record in index.items():
-        assert platform_in_record(linux64, record), (linux64, record.url)
-
-
-@pytest.mark.integration
-def test_get_index_osx64_platform():
-    osx64 = "osx-64"
-    index = get_index(platform=osx64)
-    for dist, record in index.items():
-        assert platform_in_record(osx64, record), (osx64, record.url)
-
-
-@pytest.mark.integration
-def test_get_index_win64_platform():
-    win64 = "win-64"
-    index = get_index(platform=win64)
-    for dist, record in index.items():
-        assert platform_in_record(win64, record), (win64, record.url)
+        assert platform_in_record(platform, record), (platform, record.url)
 
 
 @pytest.mark.integration
@@ -363,7 +346,7 @@ def test_calculate_channel_urls():
 @pytest.mark.integration
 def test_get_index_lazy():
     subdir = PLATFORMS[(platform.system(), platform.machine())]
-    index = get_index(channel_urls=["conda-forge"], platform=subdir)
+    index = Index(channels=["conda-forge"], platform=subdir)
     main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
     conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
 
