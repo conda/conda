@@ -379,9 +379,6 @@ class EnvironmentSpecBase(ABC):
     Base class for all env specs.
     """
 
-    def __init__(self, file: str):
-        self.file = file
-
     @abstractmethod
     def can_handle(self) -> bool:
         """
@@ -390,6 +387,7 @@ class EnvironmentSpecBase(ABC):
 
         :returns bool: returns True, if the plugin can interpret the file.
         """
+        raise NotImplementedError()
 
     @abstractmethod
     def environment(self) -> Environment:
@@ -398,6 +396,7 @@ class EnvironmentSpecBase(ABC):
 
         :returns Environment: the conda environment represented by the file.
         """
+        raise NotImplementedError()
 
 
 @dataclass

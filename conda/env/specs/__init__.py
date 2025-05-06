@@ -64,7 +64,6 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
 )
 def detect(
     filename: str | None = None,
-    **kwargs,
 ) -> SpecTypes:
     """
     Return the appropriate spec type to use.
