@@ -11,5 +11,5 @@ def conda_environment_specifiers():
 
     yield CondaEnvironmentSpecifier(
         name="environment.yml",
-        env_spec=YamlFileSpec,
+        environment_spec=YamlFileSpec,
     )

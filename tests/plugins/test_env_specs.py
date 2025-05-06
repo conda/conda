@@ -5,7 +5,7 @@ import pytest
 from conda import plugins
 from conda.env.env import Environment
 from conda.exceptions import EnvSpecPluginNotDetected
-from conda.plugins.types import CondaEnvironmentSpecifier, EnvSpecBase
+from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
 class RandomSpec(EnvironmentSpecBase):

@@ -526,13 +526,13 @@ class CondaSpecs:
             from pathlib import Path
             from subprocess import run
             from conda import plugins
-            from ...plugins.types import EnvSpecBase
+            from ...plugins.types import EnvironmentSpecBase
             from conda.env.env import Environment
 
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
 
 
-            class RandomSpec(EnvSpecBase):
+            class RandomSpec(EnvironmentSpecBase):
                 extensions = {".random"}
 
                 def __init__(self, filename: str):

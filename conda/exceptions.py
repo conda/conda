@@ -1288,7 +1288,7 @@ class EnvSpecPluginNotDetected(CondaError):
             f"""
             Environment at {name} is not readable by any installed
             environment specifier plugins.
-            
+
             Available plugins: {dashlist(plugin_names, 4)}
             """
         )
