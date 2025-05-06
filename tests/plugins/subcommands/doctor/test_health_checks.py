@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 from requests import Response
 
+from conda.common.serialize import yaml_safe_dump
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
@@ -352,3 +353,21 @@ def test_env_consistency_check_fails(
     with tmp_env(pkg_to_install) as prefix:
         out, _, _ = conda_cli("doctor", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out
+
+
+def test_env_consistency_check_fails_verbose(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    expected_output_dict = {
+        "dependent": {"missing": ["dependency[version='>=1.0,<2.0a0']"]}
+    }
+    expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out

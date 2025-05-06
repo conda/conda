@@ -12,6 +12,7 @@ from pathlib import Path
 from requests.exceptions import RequestException
 
 from ....base.context import context
+from ....common.serialize import yaml_safe_dump
 from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
@@ -203,7 +204,6 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
                 issues.setdefault(record.name, {}).setdefault("missing", []).append(
                     str(match_spec)
                 )
-                continue
             elif not match_spec.match(dependency_record):
                 inconsistent = {
                     "expected": str(match_spec),
@@ -212,17 +212,11 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
                 issues.setdefault(record.name, {}).setdefault(
                     "inconsistent", []
                 ).append(inconsistent)
-                continue
 
     if issues:
         print(f"{X_MARK} The environment is not consistent.\n")
         if verbose:
-            for package, issue in issues.items():
-                print(f"{package}:")
-                for k, v in issue.items():
-                    print(f" {k}:")
-                    for item in v:
-                        print(f"  {item}")
+            print(yaml_safe_dump(issues))
     else:
         print(f"{OK_MARK} The environment is consistent.\n")
 
