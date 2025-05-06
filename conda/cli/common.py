@@ -362,6 +362,21 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
 
 
 def validate_env_file_exists(filename: str):
+    """
+    Validate the existence of an environment file.
+
+    This function checks if the given ``filename`` exists as an environment file.
+    If the `filename` has a URL scheme supported by ``CONDA_SESSION_SCHEMES``,
+    it assumes the file is accessible and returns without further validation.
+    Otherwise, it expands the given path and verifies its existence. If the file
+    does not exist, an ``EnvironmentFileNotFound`` exception is raised.
+
+    Parameters:
+        filename (str): The path or URL of the environment file to validate.
+
+    Raises:
+        EnvironmentFileNotFound: If the file does not exist and is not a valid URL.
+    """
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         return

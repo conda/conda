@@ -5,8 +5,8 @@ Environment Specifiers
 Conda can create environments from several file formats. Currently, conda natively
 supports creating environments from:
 
-* a yaml `environment.yaml`
-* an "explicit" text file
+* A :ref:`YAML environment.yaml file <create-env-file-manually>`
+* An :ref:`"explicit" text file <identical-conda-envs>`
 
 For more information on how to manage conda environments, see the `Managing environments`_ documentation.
 
@@ -27,9 +27,10 @@ hook.
 
 .. autoapifunction:: conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers
 
-Defining ``EnvSpecBase``
-------------------------
-The first class we define is a subclass of :class:`~conda.plugins.types.EnvSpecBase`. The
+Defining ``Defining ``EnvironmentSpecBase``
+-------------------------------------------
+
+The first class we define is a subclass of :class:`~conda.plugins.types.EnvironmentSpecBase`. The
 base class is an abstract base class which requires us to define our own implementations
 of its abstract methods:
 
@@ -55,7 +56,7 @@ our plugin which returns our class wrapped in a
    def conda_environment_specifiers():
        yield plugins.CondaEnvSpec(
            name="random",
-           env_spec=RandomSpec,
+           environment_spec=RandomSpec,
        )
 
 Using the Plugin

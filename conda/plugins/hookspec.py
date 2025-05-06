@@ -554,7 +554,7 @@ class CondaSpecs:
             def conda_environment_specifiers():
                 yield plugins.CondaEnvSpec(
                     name="random",
-                    env_spec=RandomSpec,
+                    environment_spec=RandomSpec,
                 )
         """
         yield from ()

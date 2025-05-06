@@ -58,11 +58,10 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         :return: True if the file can be parsed and handled, False otherwise
         """
-        for ext in RequirementsSpec.extensions:
-            if self.filename.endswith(ext) and os.path.exists(self.filename):
-                return True
-
-        return False
+        return any(
+            self.filename.endswith(ext) and os.path.exists(self.filename)
+            for ext in RequirementsSpec.extensions
+        )
 
     @property
     def environment(self):
