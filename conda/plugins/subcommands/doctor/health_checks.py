@@ -190,7 +190,7 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
     }
 
     # collect missing dependency issues in a list
-    issues = []
+    issues = {}
 
     # check is dependencies are present
     for record in pd.iter_records():
@@ -200,17 +200,29 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
                 match_spec.name, default=virtual_packages.get(match_spec.name, None)
             )
             if dependency_record is None:
-                issues.append(f"{match_spec} required by {record.name} not found")
-                continue
-            elif not match_spec.match(dependency_record):
-                issues.append(
-                    f"{record.name}:\n installed dependency '{dependency_record.name}=={dependency_record.version}' does not meet the required dependency constrains '{match_spec}'"
+                issues.setdefault(record.name, {}).setdefault("missing", []).append(
+                    str(match_spec)
                 )
                 continue
+            elif not match_spec.match(dependency_record):
+                inconsistent = {
+                    "expected": str(match_spec),
+                    "installed": str(dependency_record),
+                }
+                issues.setdefault(record.name, {}).setdefault(
+                    "inconsistent", []
+                ).append(inconsistent)
+                continue
+
     if issues:
         print(f"{X_MARK} The environment is not consistent.\n")
         if verbose:
-            print("\n".join(issues), "\n")
+            for package, issue in issues.items():
+                print(f"{package}:")
+                for k, v in issue.items():
+                    print(f" {k}:")
+                    for item in v:
+                        print(f"  {item}")
     else:
         print(f"{OK_MARK} The environment is consistent.\n")
 

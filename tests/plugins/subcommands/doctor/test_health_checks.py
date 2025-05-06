@@ -336,9 +336,7 @@ def test_env_consistency_check_passes(
     conda_cli: CondaCLIFixture,
     test_recipes_channel: test_recipes_channel,
 ):
-    pkg_to_install = test_recipes_channel / "noarch" / "dependency-1.0-0.tar.bz2"
-
-    with tmp_env(pkg_to_install) as prefix:
+    with tmp_env("dependent") as prefix:
         out, _, _ = conda_cli("doctor", "--prefix", prefix)
 
         assert f"{OK_MARK} The environment is consistent.\n" in out
