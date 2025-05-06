@@ -84,14 +84,14 @@ def test_print_envs_list_output_false(capsys):
 
 
 @pytest.mark.parametrize(
-    "filename,exists", 
+    "filename,exists",
     [
         (os.path.realpath(__file__), True),
         ("idontexist.txt", False),
         ("http://imasession.txt", True),
         ("file://idontexist.txt", False),
         (f"file://{os.path.realpath(__file__)}", True),
-    ]
+    ],
 )
 def test_validate_file_exists(filename, exists):
     """Test `validate_file_exists` can:
