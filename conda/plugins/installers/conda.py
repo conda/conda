@@ -133,7 +133,7 @@ class NativeInstaller(InstallerBase):
             should_retry_unfrozen: bool = False,
             index_args: dict[str, any] = {},
             command: str = None,
-            channels: Iterable[str] = [],
+            channels: Iterable[str] = (),
             subdirs: Iterable[str] = (),
             *args, **kwargs
         ) -> Iterable[str]:
