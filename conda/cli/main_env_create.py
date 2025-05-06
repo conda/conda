@@ -7,6 +7,8 @@ Creates new conda environments with the specified packages.
 
 import json
 import os
+from os.path import basename
+
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -115,6 +117,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.installers.base import get_installer
     from ..exceptions import InvalidInstaller
     from ..gateways.disk.delete import rm_rf
+    from ..models.channel import prioritize_channels
 
     spec = specs.detect(
         name=args.name,
@@ -163,14 +166,54 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         if args_packages:
             installer_type = "conda"
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, args_packages, args, env)
+            installer = context.plugin_manager.get_installer("conda").installer()
+            channel_urls = [chan for chan in env.channels if chan != "nodefaults"]
+            if "nodefaults" not in env.channels:
+                channel_urls.extend(context.channels)
+            _channel_priority_map = prioritize_channels(channel_urls)
+
+            channels = [url for url in _channel_priority_map]
+            subdirs = [basename(url) for url in _channel_priority_map]
+            index_args = {
+                "channel_urls": channels,
+            }
+
+            result[installer_type] = installer.install(
+                prefix=prefix,
+                specs=args_packages,
+                update_modifier=context.update_modifier,
+                deps_modifier=context.deps_modifier,
+                index_args=index_args,
+                command="create",
+                channels=channels,
+                subdirs=subdirs
+            )
 
         if len(env.dependencies.items()) == 0:
             installer_type = "conda"
+            installer = context.plugin_manager.get_installer("conda").installer()
             pkg_specs = []
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+            channel_urls = [chan for chan in env.channels if chan != "nodefaults"]
+            if "nodefaults" not in env.channels:
+                channel_urls.extend(context.channels)
+            _channel_priority_map = prioritize_channels(channel_urls)
+
+            channels = [url for url in _channel_priority_map]
+            subdirs = [basename(url) for url in _channel_priority_map]
+            index_args = {
+                "channel_urls": channels,
+            }
+
+            result[installer_type] = installer.install(
+                prefix=prefix,
+                specs=pkg_specs,
+                update_modifier=context.update_modifier,
+                deps_modifier=context.deps_modifier,
+                index_args=index_args,
+                command="create",
+                channels=channels,
+                subdirs=subdirs
+            )
         else:
             for installer_type, pkg_specs in env.dependencies.items():
                 try:
