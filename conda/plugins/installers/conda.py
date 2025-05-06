@@ -133,6 +133,8 @@ class NativeInstaller(InstallerBase):
             should_retry_unfrozen: bool = False,
             index_args: dict[str, any] = {},
             command: str = None,
+            channels: Iterable[str] = [],
+            subdirs: Iterable[str] = (),
             *args, **kwargs
         ) -> Iterable[str]:
         """Install packages into an environment"""
@@ -152,8 +154,8 @@ class NativeInstaller(InstallerBase):
                 solver_backend = context.plugin_manager.get_cached_solver_backend()
                 solver = solver_backend(
                     prefix,
-                    context.channels,
-                    context.subdirs,
+                    channels=channels,
+                    subdirs=subdirs,
                     specs_to_add=specs,
                     repodata_fn=repodata,
                     command=command,

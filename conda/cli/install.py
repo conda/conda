@@ -419,9 +419,10 @@ def install(args, parser, command="install"):
         should_retry_unfrozen=_should_retry_unfrozen,
         index_args=index_args,
         command=command,
+        channels=context.channels,
+        subdirs=context.subdirs
     )
     return True
-    
 
 
 def install_revision(args, parser):
