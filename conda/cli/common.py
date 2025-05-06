@@ -361,7 +361,7 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
         print(message)  # TODO: use logger
 
 
-def validate_env_file_exists(filename: str):
+def validate_file_exists(filename: str):
     """
     Validate the existence of an environment file.
 
@@ -378,10 +378,12 @@ def validate_env_file_exists(filename: str):
         EnvironmentFileNotFound: If the file does not exist and is not a valid URL.
     """
     url_scheme = filename.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
-        return
-    else:
+    if url_scheme == "file":
+        filename = expand(filename.split("://", 1)[-1])
+    elif url_scheme not in CONDA_SESSION_SCHEMES:
         filename = expand(filename)
+    else:
+        return
 
     if not exists(filename):
         raise EnvironmentFileNotFound(filename=filename)

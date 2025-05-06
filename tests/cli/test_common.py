@@ -10,10 +10,11 @@ from conda.cli.common import (
     check_non_admin,
     is_active_prefix,
     print_envs_list,
+    validate_file_exists,
 )
 from conda.common.compat import on_win
 from conda.common.io import env_vars
-from conda.exceptions import OperationNotAllowed
+from conda.exceptions import EnvironmentFileNotFound, OperationNotAllowed
 
 
 def test_check_non_admin_enabled_false():
@@ -80,3 +81,26 @@ def test_print_envs_list_output_false(capsys):
     capture = capsys.readouterr()
 
     assert capture.out == ""
+
+
+@pytest.mark.parametrize(
+    "filename,exists", 
+    [
+        (os.path.realpath(__file__), True),
+        ("idontexist.txt", False),
+        ("http://imasession.txt", True),
+        ("file://idontexist.txt", False),
+        (f"file://{os.path.realpath(__file__)}", True),
+    ]
+)
+def test_validate_file_exists(filename, exists):
+    """Test `validate_file_exists` can:
+    - validate that a local file path exists
+    - accept a URL scheme supported by CONDA_SESSION_SCHEMES
+    - raise EnvironmentFileNotFound when the file does not exist or the url scheme is not supported
+    """
+    if exists:
+        validate_file_exists(filename)
+    else:
+        with pytest.raises(EnvironmentFileNotFound):
+            validate_file_exists(filename)

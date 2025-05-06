@@ -114,10 +114,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.specs import detect
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
-    from .common import validate_env_file_exists
+    from .common import validate_file_exists
 
     # validate incoming arguments
-    validate_env_file_exists(args.file)
+    validate_file_exists(args.file)
 
     # detect the file format and get the env representation
     spec = detect(filename=args.file)
