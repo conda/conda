@@ -5,21 +5,26 @@ from __future__ import annotations
 import os
 import random
 from io import StringIO
+from os.path import dirname, join
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
-from conda.common.serialize import yaml_round_trip_load
+from conda.auxlib.ish import dals
+from conda.common.serialize import yaml_round_trip_load, yaml_safe_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
     Environment,
+    EnvironmentV2,
     from_environment,
     from_file,
 )
 from conda.exceptions import CondaHTTPError
 from conda.models.match_spec import MatchSpec
+from conda.models.prefix_graph import PrefixGraph
+from conda.testing.helpers import get_solver_4
 from conda.testing.integration import package_is_installed
 
 from . import support_file
@@ -30,6 +35,23 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
+
+
+@pytest.fixture
+def simple_env_v2():
+    return join(dirname(__file__), "environment_v2_data", "simple.yml")
+
+
+@pytest.fixture()
+def prefix_graph(tmpdir):
+    specs = (
+        MatchSpec("conda"),
+        MatchSpec("conda-build"),
+        MatchSpec("intel-openmp"),
+    )
+    with get_solver_4(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+    return PrefixGraph(final_state, frozenset(specs))
 
 
 class FakeStream:
@@ -351,3 +373,113 @@ def test_from_history():
         assert len(out.to_dict()["dependencies"]) == 4
 
         m.assert_called()
+
+
+def test_parse_environment_v2():
+    """Test that a V2 env can be parsed from a yaml string."""
+    yml_str = dals("""
+        # From https://gist.github.com/jaimergp/4209c4c90d51b1bb07fe7293095f7c70
+        #
+        # What we want
+        # - Everything the original environment.yml had
+        # - All necessary inputs for the solver (channels, priority, repodata fn, platforms)
+        # - Conditional dependencies based on virtual packages
+        # - Requirement groups that can be joined
+        # What we do NOT want
+        # - This to become a lockfile
+        name: data-science-something
+        description: This environment provides data science packages
+        config:
+            version: 2
+            variables:
+                ENVVAR: value
+                ENVVAR2: value
+            channels:
+              - conda-forge
+            channel-priority: strict
+            repodata-fn: repodata.json
+        platforms:
+            - linux-64
+            - osx-64
+            - win-64
+        requirements:
+            - python
+            - numpy
+            - if: __win
+              then: pywin32
+        pypi-requirements:
+            - my-lab-dependency
+            - if: __cuda
+              then: my-lab-dependency-gpu
+        groups:
+            - group: py38
+              requirements:
+                - python=3.8
+            - group: test
+              requirements:
+                - pytest
+                - pytest-cov
+                - if: __win
+                  then: pytest-windows
+              pypi-requirements:
+                - some-test-dependency-only-on-pypi
+        """)
+    EnvironmentV2.from_yaml(yml_str)
+
+
+def test_envv2_from_file(simple_env_v2):
+    """Test that an EnvironmentV2 can be parsed from a file."""
+    env = EnvironmentV2.from_file(simple_env_v2)
+
+    with open(simple_env_v2) as f:
+        data = yaml_safe_load(f.read())
+    assert env.name == data["name"]
+    reqs = env.to_dict()["requirements"]
+    assert {"python", "numpy"} <= {req for req in reqs if isinstance(req, str)}
+
+
+@patch("conda.env.env.PrefixGraph")
+@patch("conda.env.env.get_env_name")
+@patch("conda.env.env.PrefixData")
+def test_envv2_from_prefix(
+    mock_prefix_data, mock_env_name, mock_prefix_graph, prefix_graph
+):
+    """Test that an EnvironmentV2 can be created from a prefix."""
+    mock_env_name.return_value = None
+    mock_prefix_data.return_value.get_environment_env_vars.return_value = {}
+    mock_prefix_graph.return_value = prefix_graph
+    env = EnvironmentV2.from_prefix("/foo")
+    assert env.name is None
+
+    # Check a few of the packages that are in the mock prefix
+    for req in ["conda", "python", "zlib"]:
+        assert any([req in str(item) for item in env.requirements])
+
+
+@patch("conda.history.History.get_requested_specs_map")
+@patch("conda.env.env.PrefixData")
+def test_envv2_from_history(mock_prefix_data, mock_requested_specs_map):
+    """Test that an EnvironmentV2 can be parsed from a history file."""
+    mock_requested_specs_map.return_value = {
+        "python": MatchSpec("python=3"),
+        "pytest": MatchSpec("pytest!=3.7.3"),
+        "mock": MatchSpec("mock"),
+        "yaml": MatchSpec("yaml>=0.1"),
+    }
+    mock_prefix_data.return_value.get_environment_env_vars.return_value = {}
+
+    env = EnvironmentV2.from_history("/foo")
+    env_dict = env.to_dict()
+
+    assert "yaml[version='>=0.1']" in env_dict["requirements"]
+    assert "pytest!=3.7.3" in env_dict["requirements"]
+    assert len(env_dict["requirements"]) == 4
+
+    mock_requested_specs_map.assert_called_once()
+    mock_prefix_data.assert_called_once()
+
+
+def test_envv2_serialize_deserialize(simple_env_v2):
+    """Test that environments can be serialized and deserialized and still parse."""
+    env = EnvironmentV2.from_file(simple_env_v2)
+    assert env == EnvironmentV2.from_dict(env.to_dict())
