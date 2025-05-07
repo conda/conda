@@ -528,14 +528,14 @@ class CondaSpecs:
             class MyPipInstaller(InstallerBase):
                 def __init__(self, **kwargs):
                     pass
-            
+
                 def install(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
                     return ["installing {specs} into {prefix}"]
-            
+
                 def dry_run(self, prefix, specs, *args, **kwargs) -> Iterable[str]:
                     return ["DRYRUN: installing {specs} into {prefix}"]
-            
-            
+
+
             @plugins.hookimpl
             def conda_installers():
                 yield CondaInstaller(
