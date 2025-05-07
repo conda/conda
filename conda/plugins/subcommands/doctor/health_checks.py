@@ -193,7 +193,7 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
     # collect missing dependency issues in a list
     issues = {}
 
-    # check is dependencies are present
+    # check if dependencies are present
     for record in pd.iter_records():
         for dependency in record.depends:
             match_spec = MatchSpec(dependency)
@@ -212,6 +212,21 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
                 issues.setdefault(record.name, {}).setdefault(
                     "inconsistent", []
                 ).append(inconsistent)
+
+        for constrain in record.constrains:
+            package_found = pd.get(
+                MatchSpec(constrain).name,
+                default=virtual_packages.get(MatchSpec(constrain).name, None),
+            )
+            if package_found is not None:
+                if not MatchSpec(constrain).match(package_found):
+                    inconsistent_constrain = {
+                        "expected": str(MatchSpec(constrain)),
+                        "installed": str(package_found),
+                    }
+                    issues.setdefault(record.name, {}).setdefault(
+                        "inconsistent", []
+                    ).append(inconsistent_constrain)
 
     if issues:
         print(f"{X_MARK} The environment is not consistent.\n")
