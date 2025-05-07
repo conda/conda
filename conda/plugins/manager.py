@@ -504,7 +504,6 @@ class CondaPluginManager(pluggy.PluginManager):
             return found[0]
         elif len(found) > 0:
             # raise an error if there is more than one plugin found
-            names = ", ".join([hook.name for hook in found])
             raise PluginError(
                 dals(
                     f"""
@@ -513,8 +512,8 @@ class CondaPluginManager(pluggy.PluginManager):
                     {", ".join([hook.name for hook in found])}
 
                     Please make sure that you don't have any overlapping plugins installed.
+                """
                 )
-                """"
             )
 
         # raise error if no plugins found that can read the environment file
