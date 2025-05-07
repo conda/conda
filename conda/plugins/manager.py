@@ -506,7 +506,15 @@ class CondaPluginManager(pluggy.PluginManager):
             # raise an error if there is more than one plugin found
             names = ", ".join([hook.name for hook in found])
             raise PluginError(
-                f"Multiple environment_spec plugins registered for the environment specified in '{filename}'. Please review plugins: {names}"
+                dals(
+                    f"""
+                    Too many plugins found that can handle the environment file '{filename}':
+
+                    {", ".join([hook.name for hook in found])}
+
+                    Please make sure that you don't have any overlapping plugins installed.
+                )
+                """"
             )
 
         # raise error if no plugins found that can read the environment file
