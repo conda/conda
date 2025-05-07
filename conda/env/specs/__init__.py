@@ -10,7 +10,7 @@ from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
-    EnvSpecPluginNotDetected,
+    EnvironmentSpecPluginNotDetected,
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 @deprecated(
     "25.9",
     "26.3",
-    addendum="Use conda.base.context.plugin_manager.get_environment_specifer_handler.",
+    addendum="Use conda.base.context.plugin_manager.get_environment_specifiers.",
 )
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
@@ -71,10 +71,10 @@ def detect(
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
     try:
-        spec_hook = context.plugin_manager.get_environment_specifier_handler(
+        spec_hook = context.plugin_manager.get_environment_specifiers(
             filename=filename,
         )
-    except EnvSpecPluginNotDetected as e:
+    except EnvironmentSpecPluginNotDetected as e:
         raise SpecNotFound(e.message)
 
     return spec_hook.environment_spec(filename)

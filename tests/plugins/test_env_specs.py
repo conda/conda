@@ -4,7 +4,7 @@ import pytest
 
 from conda import plugins
 from conda.env.env import Environment
-from conda.exceptions import EnvSpecPluginNotDetected
+from conda.exceptions import EnvironmentSpecPluginNotDetected
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
@@ -57,5 +57,5 @@ def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):
     """
     Ensures that our dummy random spec does not recognize non-".random" files
     """
-    with pytest.raises(EnvSpecPluginNotDetected):
+    with pytest.raises(EnvironmentSpecPluginNotDetected):
         dummy_random_spec_plugin.get_environment_specifier_handler("test.random-not")

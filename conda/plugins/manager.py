@@ -24,7 +24,8 @@ from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
-    EnvSpecPluginNotDetected,
+    EnvironmentSpecPluginNotDetected,
+    EnvironmentFileExtensionNotValid,
     PluginError,
 )
 from . import (
@@ -487,17 +488,16 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
-    def get_environment_specifier_handler(
-        self, filename: str
-    ) -> CondaEnvironmentSpecifier:
+    def get_environment_specifiers(self, filename: str) -> CondaEnvironmentSpecifier:
         hooks = self.get_hook_results("environment_specifiers")
         for hook in hooks:
             if hook.environment_spec(filename).can_handle():
                 return hook
 
         # raise error if no plugins found that can read the environment file
-        hook_names = [h.name for h in hooks]
-        raise EnvSpecPluginNotDetected(name=filename, plugin_names=hook_names)
+        raise EnvironmentSpecPluginNotDetected(
+            name=filename, plugin_names=[hook.name for hook in hooks]
+        )
 
 
 @functools.cache
