@@ -201,8 +201,10 @@ def list_packages(
             record = prefix_data.get(regex, None)
             prefix_records = (record,) if record else ()
         else:
-            prefix_records = get_packages(prefix_data.iter_records(), regex)
-            prefix_records.sort(lambda record: record.name)
+            prefix_records = sorted(
+                get_packages(prefix_data.iter_records(), regex),
+                key=lambda x: x.name,
+            )
     else:
         prefix_records = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
