@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.core.subdir_data`. (#13821)
+* Added type hints and docstrings to `conda.core.subdir_data`. (#13821)
 
 ### Other
 

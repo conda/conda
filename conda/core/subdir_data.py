@@ -55,28 +55,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 
 class SubdirDataType(type):
-    """
-    A class representing the SubdirDataType.
-
-    :param channel: The channel object.
-    :type channel: Channel
-    :param repodata_fn: The name of the repodata file. Defaults to REPODATA_FN.
-    :type repodata_fn: str
-    :return: A SubdirData instance.
-    :rtype: SubdirData
-    """
-
     def __call__(cls, channel: Channel, repodata_fn: str = REPODATA_FN) -> SubdirData:
-        """
-        Returns a SubdirData instance for the given channel and repodata_fn.
-
-        :param channel: The channel object.
-        :type channel: Channel
-        :param repodata_fn: The name of the repodata file. Defaults to REPODATA_FN.
-        :type repodata_fn: str
-        :return: A SubdirData instance.
-        :rtype: SubdirData
-        """
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
@@ -110,8 +89,7 @@ class PackageRecordList(UserList):
     item at the given index is a PackageRecord object. If not, it converts the dictionary to a
     PackageRecord object and stores it in the data list.
 
-    :param data: The list of items.
-    :type data: List[dict[str, Any] | PackageRecord]
+    :param data: The list of items
     """
 
     def __getitem__(self, i: int) -> PackageRecord:
@@ -121,13 +99,11 @@ class PackageRecordList(UserList):
         at index i is not already an instance of PackageRecord, it is converted to one and stored
         back in the data list.
 
-        :param i: An integer or slice object indicating the index or indices of the PackageRecord(s)
-                  to be returned.
-        :type i: int or slice
+        :param i: An integer or slice object indicating the index or indices of the
+                  PackageRecord(s) to be returned.
         :return: If i is a slice, returns a new instance of PackageRecordList containing the
                  PackageRecords at the indices in i. If i is an integer, returns the PackageRecord
                  at index i.
-        :rtype: PackageRecord or PackageRecordList
         """
         if isinstance(i, slice):
             return self.__class__(self.data[i])
@@ -145,12 +121,9 @@ class SubdirData(metaclass=SubdirDataType):
 
     This class provides functionality for managing and caching SubdirData instances.
 
-    :param channel: The channel object.
-    :type channel: Channel
-    :param repodata_fn: The name of the repodata file. Defaults to REPODATA_FN.
-    :type repodata_fn: str
+    :param channel: The channel object
+    :param repodata_fn: The name of the repodata file. Defaults to REPODATA_FN
     :return: A SubdirData instance.
-    :rtype: SubdirData
     """
 
     _cache_: dict[tuple[str, str], PackageRecordList | SubdirData] = {}
@@ -160,13 +133,12 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Clear the cached local channel data.
 
-        This method is used to clear the cached local channel data. It is primarily used during unit tests to handle
-        changes in the CONDA_USE_ONLY_TAR_BZ2 environment variable during the process lifetime.
+        This method is used to clear the cached local channel data. It is primarily used during
+        unit tests to handle changes in the CONDA_USE_ONLY_TAR_BZ2 environment variable during the
+        process lifetime.
 
-        :param exclude_file: A flag indicating whether to exclude file:// URLs from the cache. Defaults to True.
-        :type exclude_file: bool
-        :return: None
-        :rtype: None
+        :param exclude_file: A flag indicating whether to exclude file:// URLs from the cache.
+            Defaults to True.
         """
         # This should only ever be needed during unit tests, when
         # CONDA_USE_ONLY_TAR_BZ2 may change during process lifetime.
@@ -187,22 +159,18 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Executes a query against all repodata instances in the channel/subdir matrix.
 
-        :param package_ref_or_match_spec: Either an exact `PackageRef` to match against, or a `MatchSpec` query object.  A `str` will be turned into a `MatchSpec` automatically.
-        :type package_ref_or_match_spec: PackageRef | MatchSpec | str
-        :param channels: An iterable of urls for channels or `Channel` objects. If None, will fall back to context.channels.
-        :type channels: Optional[Iterable[Channel | str]]
+        :param package_ref_or_match_spec: Either an exact `PackageRef` to match against, or a
+            `MatchSpec` query object.  A `str` will be turned into a `MatchSpec` automatically.
+        :param channels: An iterable of urls for channels or `Channel` objects. If None, will fall
+            back to context.channels.
         :param subdirs: If None, will fall back to context.subdirs.
-        :type subdirs: Optional[Iterable[str]]
         :param repodata_fn: The filename of the repodata.
-        :type repodata_fn: str
         :return: A tuple of `PackageRecord` objects.
-        :rtype: tuple[PackageRecord, ...]
         """
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
             channels = context.channels
-            # TODO: Raise if 'channels' is empty?
         if subdirs is None:
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
@@ -221,9 +189,7 @@ class SubdirData(metaclass=SubdirDataType):
             Queries the SubdirData for a given URL and returns a tuple of PackageRecord objects.
 
             :param url: The URL of the SubdirData to query.
-            :type url: str
             :return: A tuple of PackageRecord objects representing the query results.
-            :rtype: tuple[PackageRecord, ...]
             """
             return tuple(
                 SubdirData(Channel(url), repodata_fn=repodata_fn).query(
@@ -252,9 +218,7 @@ class SubdirData(metaclass=SubdirDataType):
         A function that queries for a specific package reference or MatchSpec object.
 
         :param package_ref_or_match_spec: The package reference or MatchSpec object to query.
-        :type package_ref_or_match_spec: str | MatchSpec]
-        :return: A generator yielding PackageRecord objects.
-        :rtype: Generator[PackageRecord, None, None]
+        :yield: PackageRecord objects.
         """
         if not self._loaded:
             self.load()
@@ -287,11 +251,8 @@ class SubdirData(metaclass=SubdirDataType):
         Initializes a new instance of the SubdirData class.
 
         :param channel: The channel object.
-        :type channel: Channel
         :param repodata_fn: The repodata filename.
-        :type repodata_fn: str
         :param RepoInterface: The RepoInterface class.
-        :type RepoInterface: Type[RepoInterface]
         """
         assert channel.subdir
         # metaclass __init__ asserts no package_filename
@@ -316,11 +277,6 @@ class SubdirData(metaclass=SubdirDataType):
     def _repo(self) -> RepoInterface:
         """
         Changes as we mutate self.repodata_fn.
-
-        Returns the RepoInterface object.
-
-        :return: The RepoInterface object.
-        :rtype: RepoInterface
         """
         return self.repo_fetch._repo
 
@@ -328,9 +284,6 @@ class SubdirData(metaclass=SubdirDataType):
     def repo_cache(self) -> RepodataCache:
         """
         Returns the `RepodataCache` object associated with the current instance of `SubdirData`.
-
-        :return: The `RepodataCache` object.
-        :rtype: RepodataCache
         """
         return self.repo_fetch.repo_cache
 
@@ -340,9 +293,6 @@ class SubdirData(metaclass=SubdirDataType):
         Object to get repodata. Not cached since self.repodata_fn is mutable.
 
         Replaces self._repo & self.repo_cache.
-
-        :return: The `RepodataFetch` object.
-        :rtype: RepodataFetch
         """
         return RepodataFetch(
             Path(self.cache_path_base),
@@ -354,9 +304,6 @@ class SubdirData(metaclass=SubdirDataType):
     def reload(self) -> SubdirData:
         """
         Update the instance with new information.
-
-        :return: An instance of the SubdirData class.
-        :rtype: SubdirData
         """
         self._loaded = False
         self.load()
@@ -367,10 +314,8 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Get the base path for caching the repodata.json file.
 
-        This method returns the base path for caching the repodata.json file. It is used to construct the full path for caching the file.
-
-        :return: The base path for caching the repodata.json file.
-        :rtype: str
+        This method returns the base path for caching the repodata.json file. It is used to
+        construct the full path for caching the file.
         """
         return join(
             create_cache_dir(),
@@ -383,9 +328,6 @@ class SubdirData(metaclass=SubdirDataType):
         Get the URL with the repodata filename.
 
         This method returns the URL with the repodata filename.
-
-        :return: The URL with the repodata filename.
-        :rtype: str
         """
         return self.url_w_subdir + "/" + self.repodata_fn
 
@@ -395,9 +337,6 @@ class SubdirData(metaclass=SubdirDataType):
         Get the path to the cache file.
 
         This method returns the path to the cache file.
-
-        :return: The path to the cache file.
-        :rtype: str
         """
         return Path(
             self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json"
@@ -411,9 +350,6 @@ class SubdirData(metaclass=SubdirDataType):
         Get the path to the cache state file.
 
         This method returns the path to the cache state file.
-
-        :return: The path to the cache state file.
-        :rtype: str
         """
         return Path(
             self.cache_path_base
@@ -427,9 +363,6 @@ class SubdirData(metaclass=SubdirDataType):
         Get the path to the cache pickle file.
 
         This method returns the path to the cache pickle file.
-
-        :return: The path to the cache pickle file.
-        :rtype: Path
         """
         return self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".q"
 
@@ -438,8 +371,6 @@ class SubdirData(metaclass=SubdirDataType):
         Load the internal state of the SubdirData instance.
 
         This method loads the internal state of the SubdirData instance.
-
-        :return: None
         """
         _internal_state = self._load()
         if _internal_state.get("repodata_version", 0) > MAX_REPODATA_VERSION:
@@ -472,12 +403,10 @@ class SubdirData(metaclass=SubdirDataType):
         """
         A function that iterates over package records.
 
-        This function checks if the package records are loaded. If not loaded, it loads them.
-        It returns an iterator over the package records. The package_records attribute could potentially be
-        replaced with fully-converted UserList data after going through the entire list.
-
-        :return: An iterator over the package records.
-        :rtype: Iterator[PackageRecord]
+        This function checks if the package records are loaded. If not loaded, it loads them. It
+        returns an iterator over the package records. The package_records attribute could
+        potentially be replaced with fully-converted UserList data after going through the entire
+        list.
         """
         if not self._loaded:
             self.load()
@@ -489,12 +418,8 @@ class SubdirData(metaclass=SubdirDataType):
         """
         A function that iterates over package records by name.
 
-        This function iterates over package records and yields those whose name matches the given name.
-        If include_self is True, it also yields the record with the given name.
-
-        :param name: The name to match against.
-        :type name: str
-        :rtype: Iterator[PackageRecord]
+        This function iterates over package records and yields those whose name matches the given
+        name. If include_self is True, it also yields the record with the given name.
         """
         for i in self._names_index[name]:
             yield self._package_records[i]
@@ -504,9 +429,6 @@ class SubdirData(metaclass=SubdirDataType):
         Try to load repodata. If e.g. we are downloading
         `current_repodata.json`, fall back to `repodata.json` when the former is
         unavailable.
-
-        :return: A dictionary containing the loaded repodata.
-        :rtype: dict[str, Any]
         """
         try:
             fetcher = self.repo_fetch
@@ -522,9 +444,6 @@ class SubdirData(metaclass=SubdirDataType):
     def _pickle_me(self) -> None:
         """
         Pickle the object to the specified file.
-
-        :return: None
-        :rtype: None
         """
         try:
             log.debug(
@@ -540,11 +459,6 @@ class SubdirData(metaclass=SubdirDataType):
     def _read_local_repodata(self, state: RepodataState) -> dict[str, Any]:
         """
         Read local repodata from the cache and process it.
-
-        :param state: The repodata state.
-        :type state: RepodataState
-        :return: A dictionary containing the processed repodata.
-        :rtype: dict[str, Any]
         """
         # first try reading pickled data
         _pickled_state = self._read_pickled(state)
@@ -565,13 +479,10 @@ class SubdirData(metaclass=SubdirDataType):
         Throw away the pickle if these don't all match.
 
         :param pickled_state: The pickled state to compare against.
-        :type pickled_state: dict[str, Any]
         :param mod: The modification information to check.
-        :type mod: str
         :param etag: The etag to compare against.
-        :type etag: str
-        :return: A generator that yields tuples of the form (check_name, pickled_value, current_value).
-        :rtype: Generator[tuple[str, Any, Any], None, None]
+        :return: A generator that yields tuples of the form (check_name, pickled_value,
+            current_value).
         """
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
@@ -594,9 +505,8 @@ class SubdirData(metaclass=SubdirDataType):
         Read pickled repodata from the cache and process it.
 
         :param state: The repodata state.
-        :type state: RepodataState
-        :return: A dictionary containing the processed pickled repodata, or None if the repodata is not pickled.
-        :rtype: Optional[dict[str, Any]]
+        :return: A dictionary containing the processed pickled repodata, or None if the repodata is
+            not pickled.
         """
         if not isinstance(state, RepodataState):
             state = RepodataState(
@@ -624,18 +534,17 @@ class SubdirData(metaclass=SubdirDataType):
             """
             Generate a list of checks to verify the validity of a pickled state.
 
-            :return: A list of tuples, where each tuple contains a check name, the value from the pickled state, and the current value.
-            :rtype: List[tuple[str, Any, Any]]
+            :return: A list of tuples, where each tuple contains a check name, the value from the
+                pickled state, and the current value.
             """
             return self._pickle_valid_checks(_pickled_state, state.mod, state.etag)
 
         def _check_pickled_valid():
             """
-            Generate a generator that yields the results of checking the validity of a pickled state.
+            Generate a generator that yields the results of checking the validity of a pickled
+            state.
 
             :yields: True if the pickled state is valid, False otherwise.
-            :yield type: bool
-
             """
             for _, left, right in checks():
                 yield left == right
@@ -655,18 +564,13 @@ class SubdirData(metaclass=SubdirDataType):
         self,
         raw_repodata_str: str,
         state: RepodataState | None = None,
-    ) -> Iterator[tuple[str, str, str]]:
+    ) -> dict[str, Any]:
         """State contains information that was previously in-band in raw_repodata_str.
 
-        Process the raw repodata string and yield the results of checking the validity of a pickled state.
+        Process the raw repodata string and return the processed repodata.
 
         :param raw_repodata_str: The raw repodata string.
-        :type raw_repodata_str: str
-
-        :return: An iterator that yields tuples containing the results of checking the validity of a pickled state.
-                Each tuple contains three strings: the left side of the comparison, the right side of the comparison,
-                and the result of the comparison (True if equal, False otherwise).
-        :rtype: Iterator[tuple[str, str, str]]
+        :return: A dictionary containing the processed repodata.
         """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
@@ -678,11 +582,8 @@ class SubdirData(metaclass=SubdirDataType):
         Process the raw repodata dictionary and return the processed repodata.
 
         :param repodata: The raw repodata dictionary.
-        :type repodata: dict[str, Any]
         :param state: The repodata state. Defaults to None.
-        :type state: Optional[RepodataState]
         :return: A dictionary containing the processed repodata.
-        :rtype: dict[str, Any]
         """
         if not isinstance(state, RepodataState):
             state = RepodataState(
@@ -807,10 +708,7 @@ class SubdirData(metaclass=SubdirDataType):
         Get the base URL for the given endpoint.
 
         :param endpoint: The endpoint for which the base URL is needed.
-        :type endpoint: str
-
         :return: The base URL corresponding to the provided endpoint.
-        :rtype: str
         """
         maybe_base_url = repodata.get("info", {}).get("base_url")
         if maybe_base_url:  # repodata defines base_url field
@@ -851,11 +749,8 @@ def make_feature_record(feature_name: str) -> PackageRecord:
     """
     Create a feature record based on the given feature name.
 
-    :param feature_name: The name of the feature.
-    :type feature_name: str
-
+    :param feature_name: The name of the feature
     :return: The created PackageRecord for the feature.
-    :rtype: PackageRecord
     """
     # necessary for the SAT solver to do the right thing with features
     return PackageRecord.feature(feature_name)
