@@ -478,7 +478,11 @@ class PrefixData(metaclass=PrefixDataType):
         if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
-            if param.name and param.name != "*" and (record := self.get(param.name, None)):
+            if (
+                param.name
+                and param.name != "*"
+                and (record := self.get(param.name, None))
+            ):
                 if param.match(record):
                     return (r for r in (record,))
                 return (_ for _ in ())  # empty generator
