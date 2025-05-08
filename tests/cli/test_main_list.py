@@ -249,3 +249,16 @@ def test_fields_invalid(conda_cli):
     )
     assert "list_fields" in str(exc)
     assert "invalid-field" in str(exc)
+
+
+def test_list_full_name(conda_cli):
+    out, err, exc = conda_cli("list", f"--prefix={sys.prefix}", "--full-name", "python")
+    assert "python" in out
+    assert f"{sys.version_info.major}.{sys.version_info.minor}" in out
+
+
+def test_list_full_name_no_results(conda_cli):
+    out, err, exc = conda_cli(
+        "list", f"--prefix={sys.prefix}", "--full-name", "does-not-exist", "--json"
+    )
+    assert out == "[]"
