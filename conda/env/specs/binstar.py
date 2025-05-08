@@ -61,7 +61,7 @@ class BinstarSpec(EnvironmentSpecBase):
         Validates name
         :return: True or False
         """
-        if re.match(r"^[a-z-]+\/[a-z-\/]*$", str(self.name)) is not None:
+        if re.match(r"^[a-z0-9_\.][a-z0-9_\-\.]+/[_A-Za-z0-9][\s.\w-]*$", str(self.name)) is not None:
             return True
         elif self.name is None:
             self.msg = "Can't process without a name"

@@ -539,9 +539,18 @@ class CondaSpecs:
                     self.filename = filename
 
                 def can_handle(self):
-                    for ext in RandomSpec.extensions:
-                        if self.filename.endswith(ext):
-                            return True
+                    # Return early if no filename was provided
+                    if self.filename is None:
+                        return False
+                
+                    # Extract the file extension (e.g., '.txt' or '' if no extension)
+                    file_ext = os.path.splitext(self.filename)[1]
+                    
+                    # Check if the file has a supported extension and exists
+                    return any(
+                        spec_ext == file_ext and os.path.exists(self.filename)
+                        for spec_ext in RandomSpec.extensions
+                    )
 
                 def environment(self):
                     return Environment(
