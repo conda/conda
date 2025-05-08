@@ -10,13 +10,12 @@ from collections import UserList, defaultdict
 from functools import partial
 from itertools import chain
 from logging import getLogger
-from os.path import exists, join, splitext
+from os.path import exists, getmtime, isfile, join, splitext
 from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
-from genericpath import getmtime, isfile
 
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
@@ -37,15 +36,13 @@ from ..gateways.repodata import (
     create_cache_dir,
     get_repo_interface,
 )
-from ..gateways.repodata import (
-    get_cache_control_max_age as _get_cache_control_max_age,
-)
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from typing import Any, Generator, Iterable, Iterator, Optional
+    from collections.abc import Generator, Iterable, Iterator
+    from typing import Any
 
     from ..gateways.repodata import RepodataCache, RepoInterface
     from .index import PackageRef
@@ -54,24 +51,7 @@ log = getLogger(__name__)
 
 REPODATA_PICKLE_VERSION = 30
 MAX_REPODATA_VERSION = 2
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'  # NOQA
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.gateways.repodata.get_cache_control_max_age` instead.",
-)
-def get_cache_control_max_age(cache_control_value: str) -> int:
-    """
-    A function to get the cache control max age based on the cache control value provided.
-
-    :param cache_control_value: The cache control value to determine the max age from.
-    :type cache_control_value: str
-    :return: The maximum age for the cache control value.
-    :rtype: int
-    """
-    return _get_cache_control_max_age(cache_control_value)
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 
 class SubdirDataType(type):
@@ -200,8 +180,8 @@ class SubdirData(metaclass=SubdirDataType):
     @staticmethod
     def query_all(
         package_ref_or_match_spec: PackageRef | MatchSpec | str,
-        channels: Optional[Iterable[Channel | str]] = None,
-        subdirs: Optional[Iterable[str]] = None,
+        channels: Iterable[Channel | str] | None = None,
+        subdirs: Iterable[str] | None = None,
         repodata_fn: str = REPODATA_FN,
     ) -> tuple[PackageRecord, ...]:
         """
@@ -218,13 +198,11 @@ class SubdirData(metaclass=SubdirDataType):
         :return: A tuple of `PackageRecord` objects.
         :rtype: tuple[PackageRecord, ...]
         """
-
-        from .index import check_allowlist  # TODO: fix in-line import
-
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
             channels = context.channels
+            # TODO: Raise if 'channels' is empty?
         if subdirs is None:
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
@@ -237,8 +215,6 @@ class SubdirData(metaclass=SubdirDataType):
                     dashlist(ignored_urls),
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
-
-        check_allowlist(channel_urls)
 
         def subdir_query(url: str) -> tuple[PackageRecord, ...]:
             """
@@ -613,7 +589,7 @@ class SubdirData(metaclass=SubdirDataType):
         )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
-    def _read_pickled(self, state: RepodataState) -> Optional[dict[str, Any]]:
+    def _read_pickled(self, state: RepodataState) -> dict[str, Any] | None:
         """
         Read pickled repodata from the cache and process it.
 
@@ -696,7 +672,7 @@ class SubdirData(metaclass=SubdirDataType):
         return self._process_raw_repodata(json_obj, state=state)
 
     def _process_raw_repodata(
-        self, repodata: dict[str, Any], state: Optional[RepodataState] = None
+        self, repodata: dict[str, Any], state: RepodataState | None = None
     ) -> dict[str, Any]:
         """
         Process the raw repodata dictionary and return the processed repodata.
@@ -786,7 +762,7 @@ class SubdirData(metaclass=SubdirDataType):
         ):
             for fn, info in group:
                 if copy_legacy_md5:
-                    counterpart = fn.replace(".conda", ".tar.bz2")
+                    counterpart = f"{fn[: -len('.conda')]}.tar.bz2"
                     if counterpart in legacy_packages:
                         info["legacy_bz2_md5"] = legacy_packages[counterpart].get("md5")
                         info["legacy_bz2_size"] = legacy_packages[counterpart].get(
@@ -866,6 +842,11 @@ class SubdirData(metaclass=SubdirDataType):
         return self.url_w_subdir
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
+)
 def make_feature_record(feature_name: str) -> PackageRecord:
     """
     Create a feature record based on the given feature name.
@@ -877,15 +858,4 @@ def make_feature_record(feature_name: str) -> PackageRecord:
     :rtype: PackageRecord
     """
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = "%s@" % feature_name
-    return PackageRecord(
-        name=pkg_name,
-        version="0",
-        build="0",
-        channel="@",
-        subdir=context.subdir,
-        md5="12345678901234567890123456789012",
-        track_features=(feature_name,),
-        build_number=0,
-        fn=pkg_name,
-    )
+    return PackageRecord.feature(feature_name)

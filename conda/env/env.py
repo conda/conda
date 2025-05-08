@@ -78,7 +78,7 @@ def from_environment(
 
     Returns:     Environment object
     """
-    pd = PrefixData(prefix, pip_interop_enabled=True)
+    pd = PrefixData(prefix, interoperability=True)
     variables = pd.get_environment_env_vars()
 
     if from_history:

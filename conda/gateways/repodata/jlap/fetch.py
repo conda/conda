@@ -26,7 +26,7 @@ from .core import JLAP
 
 if TYPE_CHECKING:
     import pathlib
-    from typing import Iterator
+    from collections.abc import Iterator
 
     from ...connection import Response, Session
     from .. import RepodataCache
@@ -444,7 +444,7 @@ def request_url_jlap_state(
                     # bail with 'repodata on disk' (indicating another process
                     # downloaded repodata.json in parallel with us)
                     if have != cache.state.get(NOMINAL_HASH):  # or check mtime_ns?
-                        log.warn("repodata cache changed during jlap fetch.")
+                        log.warning("repodata cache changed during jlap fetch.")
                         return None
 
                 apply_patches(repodata_json, apply)

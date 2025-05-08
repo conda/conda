@@ -6,7 +6,7 @@ import codecs
 import re
 import socket
 from collections import namedtuple
-from functools import lru_cache
+from functools import cache
 from getpass import getpass
 from os.path import abspath, expanduser
 from urllib.parse import (  # noqa: F401
@@ -39,7 +39,7 @@ def hex_octal_to_int(ho):
     return res
 
 
-@lru_cache(maxsize=None)
+@cache
 def percent_decode(path):
     # This is not fast so avoid when we can.
     if "%" not in path:
@@ -91,16 +91,16 @@ def url_to_path(url):
 """
 
 
-@lru_cache(maxsize=None)
+@cache
 def path_to_url(path):
     if not path:
-        raise ValueError("Not allowed: %r" % path)
+        raise ValueError(f"Not allowed: {path!r}")
     if path.startswith(file_scheme):
         try:
             path.decode("ascii")
         except UnicodeDecodeError:
             raise ValueError(
-                "Non-ascii not allowed for things claiming to be URLs: %r" % path
+                f"Non-ascii not allowed for things claiming to be URLs: {path!r}"
             )
         return path
     path = abspath(expanduser(path)).replace("\\", "/")
@@ -119,7 +119,7 @@ def path_to_url(path):
     #
     percent_encode_chars = "!'()*-._/\\:"
     percent_encode = lambda s: "".join(
-        ["%%%02X" % ord(c), c][c < "{" and c.isalnum() or c in percent_encode_chars]
+        [f"%{ord(c):02X}", c][c < "{" and c.isalnum() or c in percent_encode_chars]
         for c in s
     )
     if any(ord(char) >= 128 for char in path):
@@ -228,7 +228,7 @@ class Url(namedtuple("Url", url_attrs)):
         return cls(**values)
 
 
-@lru_cache(maxsize=None)
+@cache
 def urlparse(url: str) -> Url:
     if on_win and url.startswith("file:"):
         url.replace("\\", "/")
@@ -246,7 +246,7 @@ def url_to_s3_info(url):
         ('bucket-name.bucket', '/here/is/the/key')
     """
     parsed_url = urlparse(url)
-    assert parsed_url.scheme == "s3", "You can only use s3: urls (not %r)" % url
+    assert parsed_url.scheme == "s3", f"You can only use s3: urls (not {url!r})"
     bucket, key = parsed_url.hostname, parsed_url.path
     return bucket, key
 
@@ -375,10 +375,10 @@ def split_platform(known_subdirs, url):
     return cleaned_url.rstrip("/"), platform
 
 
-@lru_cache(maxsize=None)
+@cache
 def _split_platform_re(known_subdirs):
-    _platform_match_regex = r"/(%s)(?:/|$)" % r"|".join(
-        r"%s" % d for d in known_subdirs
+    _platform_match_regex = r"/({})(?:/|$)".format(
+        r"|".join(rf"{d}" for d in known_subdirs)
     )
     return re.compile(_platform_match_regex, re.IGNORECASE)
 
@@ -440,9 +440,9 @@ def split_conda_url_easy_parts(known_subdirs, url):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_proxy_username_and_pass(scheme):
-    username = input("\n%s proxy username: " % scheme)
+    username = input(f"\n{scheme} proxy username: ")
     passwd = getpass("Password: ")
     return username, passwd
 

@@ -97,6 +97,81 @@ handler called, "test-auth-handler" registered via the aforementioned plugin hoo
    schema must match exactly to the channel URL, so a pattern like ``*`` is not valid.
 
 
+``allowlist_channels`` and ``denylist_channels``: Allow or deny specific channels
+---------------------------------------------------------------------------------
+
+.. versionadded:: 24.9.0
+
+  The ``denylist_channels`` setting was introduced in conda 24.9.0 complementing the
+  existing ``allowlist_channels`` setting.
+
+With ``allowlist_channels`` and ``denylist_channels``, you can allow or deny specific channels
+from being used in conda operations. This is useful for restricting the channels that conda
+can access, especially in enterprise or multi-user environments.
+
+The denylist takes precedence over the allowlist. If a channel is in both lists, it is denied.
+
+**Examples:**
+
+An example which allows the ``defaults`` and ``conda-forge`` channels with the ``allowlist_channels``
+setting is:
+
+.. code-block:: yaml
+
+  allowlist_channels:
+    - defaults
+    - conda-forge
+
+An example which denies the ``conda-forge`` channel with the ``denylist_channels`` setting is:
+
+.. code-block:: yaml
+
+  denylist_channels:
+    - conda-forge
+
+An example which explicitly allows the ``defaults`` channel but denies the ``conda-forge`` channel
+by using both the ``allowlist_channels`` and ``denylist_channels`` settings is:
+
+.. code-block:: yaml
+
+  allowlist_channels:
+    - defaults
+  denylist_channels:
+    - conda-forge
+
+An example to show that channels are automatically normalized based on their base URLs,
+so you can use either the full channel URL or just the base URL:
+
+.. code-block:: yaml
+
+  allowlist_channels:
+    - defaults
+  denylist_channels:
+    - https://conda.anaconda.org/conda-forge/linux-64
+
+An example that denies using ``defaults`` (which maps to the :ref:`default_channels <default-channels>`)
+configuration option:
+
+.. code-block:: yaml
+
+  denylist_channels:
+    - defaults
+
+.. note::
+
+  The :ref:`defaults channel <default-channels>` points to a list of channels at the
+  `repo.anaconda.com <https://repo.anaconda.com/>`_ repository by default.
+
+An example to explicitly deny the channels that are hosted on ``repo.anaconda.com``:
+
+.. code-block:: yaml
+
+  denylist_channels:
+    - https://repo.anaconda.com/pkgs/main
+    - https://repo.anaconda.com/pkgs/r
+    - https://repo.anaconda.com/pkgs/msys2
+
+
 ``auto_update_conda``: Update conda automatically
 -------------------------------------------------
 
@@ -197,7 +272,15 @@ here overrides that default:
 
   proxy_servers:
       http: http://user:pass@corp.com:8080
-      https: https://user:pass@corp.com:8080
+      https: http://user:pass@corp.com:8080
+
+.. admonition:: Mixing HTTPS and HTTP
+
+  The protocol in the URL (either ``http://`` or ``https://``) should match
+  the actual protocol of your proxy server. The keys ``http`` and ``https`` in
+  the above example merely indicate the type of traffic to route, not the
+  protocol of the proxy server itself. Ensure that both keys use the correct
+  protocol based on your proxy server's configuration.
 
 To give a proxy for a specific scheme and host, use the
 ``scheme://hostname`` form for the key. This matches for any request
@@ -238,6 +321,18 @@ connection's normal security and is not recommended:
 
   ssl_verify: False
 
+.. versionadded:: 23.9.0
+   The ``ssl_verify: truststore`` setting is only available with conda 23.9.0 or later and using Python 3.10 or later.
+
+If the certificate authority is already trusted by the operating
+system, for instance because it was installed by a system
+administrator, you can tell conda to use the operating system
+certificate store by setting ``ssl_verify`` to "truststore":
+
+.. code-block:: yaml
+
+  ssl_verify: truststore
+
 You can also set ``ssl_verify`` to a string path to a certificate,
 which can be used to verify SSL connections:
 
@@ -264,7 +359,7 @@ Advanced configuration
 
 .. _disallow-soft-linking:
 
-``allow_softlinks``: Disallow soft-linking
+``allow_softlinks``: Allow soft-linking
 ------------------------------------------
 
 When ``allow_softlinks`` is ``True``, conda uses hard links when
@@ -277,7 +372,7 @@ hard links when possible, but when it is not possible, conda
 copies files. Individual packages can override this option,
 specifying that certain files should never be soft linked.
 
-The default is ``True``.
+The default is ``False``.
 
 **Example:**
 
@@ -528,6 +623,32 @@ The default is ``False``.
 
    This is forced to ``True`` if conda-build is installed and older than 3.18.3,
    because older versions of conda break when conda feeds it the new file format.
+
+.. _console:
+
+``console``: Configure display type
+---------------------------------------
+
+
+.. versionadded:: 24.11.0
+   the ``console`` setting is only available after this version.
+
+The ``console`` setting allows you to modify the way output is rendered for conda commands.
+This setting is primarily used as a way to select new reporter backends made available by plugins.
+
+For example, a plugin may create a new reporter backend called "colors". As a user, you would
+configure it in your ``.condarc`` file as shown below:
+
+.. code-block:: yaml
+
+   console: colors
+
+or specify it on the command line with the ``--console`` option
+
+.. code-block:: commandline
+
+   conda info --console=colors
+
 
 Conda-build configuration
 =========================
@@ -783,6 +904,7 @@ These are:
 - ``proxy_servers``
 - ``verify_ssl``
 - ``allowlist_channels``
+- ``denylist_channels``
 
 This allows you to store the credentials of a private repository in an
 environment variable, like so:

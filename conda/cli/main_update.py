@@ -21,6 +21,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from .helpers import (
         add_parser_create_install_update,
+        add_parser_frozen_env,
         add_parser_prune,
         add_parser_solver,
         add_parser_update_modifiers,
@@ -58,6 +59,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+    add_parser_frozen_env(p)
     solver_mode_options, package_install_options, _ = add_parser_create_install_update(
         p
     )
@@ -87,7 +89,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from ..auxlib.ish import dals
+    from ..base.constants import UpdateModifier
     from ..base.context import context
+    from ..exceptions import CondaValueError
     from .install import install
 
     if context.force:
@@ -98,6 +103,22 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             "         and --clobber flags.\n"
             "\n",
             file=sys.stderr,
+        )
+
+    # Ensure provided combination of command line argments are valid
+    # One of --file or packages or --update-all must be specified
+    if not (
+        args.file
+        or args.packages
+        or context.update_modifier == UpdateModifier.UPDATE_ALL
+    ):
+        raise CondaValueError(
+            dals(
+                """
+                no package names supplied
+                # Example: conda update -n myenv scipy
+                """
+            )
         )
 
     install(args, parser, "update")
