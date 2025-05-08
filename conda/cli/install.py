@@ -21,7 +21,6 @@ from .. import CondaError
 from ..base.constants import (
     REPODATA_FN,
     ROOT_ENV_NAME,
-    DepsModifier,
     UpdateModifier,
 )
 from ..base.context import context
@@ -294,6 +293,8 @@ def validate_install_command(prefix: str, command: str = "install"):
             delete_trash(prefix)
             if not path_is_clean(prefix):
                 raise
+        if context.protect_frozen_envs:
+            prefix_data.assert_not_frozen()
 
 
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
@@ -333,7 +334,7 @@ def install_clone(args, parser):
 
 
 def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, and `conda create`."""
+    """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
     prefix = context.target_prefix
 
     # common validations for all types of installs
@@ -419,8 +420,6 @@ def install(args, parser, command="install"):
     if (isinstall or isremove) and args.update_modifier == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
     deps_modifier = context.deps_modifier
-    if isupdate:
-        deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
     for repodata_fn in Repodatas(
         repodata_fns,
