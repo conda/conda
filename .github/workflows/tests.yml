@@ -391,14 +391,8 @@ jobs:
       matrix:
         python-version: ['3.13']
         image:
-          - continuumio/miniconda3:latest
           - condaforge/miniforge3:latest
-        platform: [ppc64le, s390x]
-        exclude:
-          - image: continuumio/miniconda3:latest
-            platform: ppc64le
-          - image: condaforge/miniforge3:latest
-            platform: s390x
+        platform: [ppc64le]
 
     steps:
       - name: Checkout Source
