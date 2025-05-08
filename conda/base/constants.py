@@ -374,35 +374,19 @@ USER_DATA_DIR = user_data_dir(APP_NAME, APP_NAME)
 USER_DATA_ENVS = expand(join(USER_DATA_DIR, "envs"))
 
 
-class ContainsMeta(EnumMeta):
-    """A metaclass which enhances membership checks for subclasses.
+class PkgEnvLayoutMeta(EnumMeta):
+    """A metaclass which gracefully handles instantiation for NoneType or empty string members."""
 
-    Allows for member values to be used for checking membership, e.g.
-
-        >>> "conda_root" in PkgEnvLayout
-        True
-        >>> PkgEnvLayout.UNSET in PkgEnvLayout
-        True
-        >>> "bar" in PkgEnvLayout
-        False
-    """
-
-    def __contains__(self, member):
-        # Try testing for membership if this is an enum instance
-        if isinstance(member, self):
-            try:
-                return super().__contains__(member)
-            except TypeError:
-                return False
-
-        # Otherwise try testing against member values
-        for item in self:
-            if item.value == member:
-                return True
-        return False
+    def __call__(cls, value, *args, **kwargs):
+        try:
+            return super().__call__(value, *args, **kwargs)
+        except ValueError:
+            if value in (None, ""):
+                return cls.UNSET
+            raise
 
 
-class PkgEnvLayout(Enum, metaclass=ContainsMeta):
+class PkgEnvLayout(Enum, metaclass=PkgEnvLayoutMeta):
     UNSET = None
     CONDA_ROOT = "conda_root"
     USER = "user"

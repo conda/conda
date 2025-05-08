@@ -975,6 +975,7 @@ def test_set_pkgs_envs_default_dirs(
     [[], [Path("foo"), Path("abc") / "def"]],
 )
 def test_pkgs_envs_old_default_dirs(
+    tmpdir,
     testdata,
     propagate_conda_logger,
     caplog,
@@ -984,8 +985,8 @@ def test_pkgs_envs_old_default_dirs(
 ):
     """Test that the old locations of envs/pkgs get used by default."""
 
-    pkgs_paths = [str(Path(".").resolve() / path) for path in pkgs_paths]
-    envs_paths = [str(Path(".").resolve() / path) for path in envs_paths]
+    pkgs_paths = [str(tmpdir / path) for path in pkgs_paths]
+    envs_paths = [str(tmpdir / path) for path in envs_paths]
 
     with (
         mock_context_attributes(
@@ -1091,6 +1092,7 @@ def test_pkgs_envs_configured(
     ],
 )
 def test_pkgs(
+    tmp_path,
     pkg_env_layout,
     pkgs_dirs,
     pkgs_in_root_prefix,
@@ -1098,7 +1100,7 @@ def test_pkgs(
     propagate_conda_logger,
     caplog,
 ):
-    pkgs_dirs = tuple(str(Path(".").resolve() / item) for item in pkgs_dirs)
+    pkgs_dirs = tuple(str(tmp_path / item) for item in pkgs_dirs)
     with (
         mock_context_attributes(
             _pkgs_dirs=pkgs_dirs,
@@ -1203,6 +1205,7 @@ def test_pkgs(
     ],
 )
 def test_envs(
+    tmp_path,
     pkg_env_layout,
     envs_dirs,
     envs_in_root_prefix,
@@ -1210,7 +1213,7 @@ def test_envs(
     propagate_conda_logger,
     caplog,
 ):
-    envs_dirs = tuple(str(Path(".").resolve() / item) for item in envs_dirs)
+    envs_dirs = tuple(str(tmp_path / item) for item in envs_dirs)
     with (
         mock_context_attributes(
             _envs_dirs=envs_dirs,

@@ -85,7 +85,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from argparse import Namespace
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Generator, Iterable, Iterator
     from typing import Any, Literal
 
     from ..common.configuration import Parameter, RawParameter
@@ -336,13 +336,7 @@ class Context(Configuration):
 
     separate_format_cache = ParameterLoader(PrimitiveParameter(False))
 
-    pkg_env_layout = ParameterLoader(
-        PrimitiveParameter(
-            PkgEnvLayout.UNSET.value,
-            element_type=(str, NoneType),
-            validation=lambda x: x in PkgEnvLayout,
-        )
-    )
+    pkg_env_layout = ParameterLoader(PrimitiveParameter(PkgEnvLayout.UNSET))
     _root_prefix = ParameterLoader(
         PrimitiveParameter(""), aliases=("root_dir", "root_prefix")
     )
@@ -795,7 +789,7 @@ class Context(Configuration):
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
             # user has not specified directories, but wants to use the user data directory
 
-            if self._envs_in_root_prefix():
+            if any(self._envs_in_root_prefix()):
                 # There are still envs/ in the root prefix; fall back to use these,
                 # and warn the user
                 log.warning(
@@ -811,7 +805,7 @@ class Context(Configuration):
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
             # If pkgs_env_layout is unset, fall back on the root prefix location
 
-            if not self._envs_in_root_prefix():
+            if not any(self._envs_in_root_prefix()):
                 # If there are no envs/ in the root prefix, continue using
                 # the root prefix to store envs/ until the deprecation cycle is complete
                 # but warn the user
@@ -850,7 +844,7 @@ class Context(Configuration):
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
             # User has not specified directories, but wants to use user data directory
 
-            if self._pkgs_in_root_prefix():
+            if any(self._pkgs_in_root_prefix()):
                 # There are still pkgs/ in the root prefix; fall back to use these,
                 # and warn the user
                 log.warning(
@@ -866,7 +860,7 @@ class Context(Configuration):
         if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
             # If pkgs_env_layout is unset, fall back on the root prefix location
 
-            if not self._pkgs_in_root_prefix():
+            if not any(self._pkgs_in_root_prefix()):
                 # If there are no pkgs/ in the root prefix, continue using
                 # the root prefix to store pkgs/ until the deprecation cycle is complete
                 # but warn the user
@@ -878,47 +872,51 @@ class Context(Configuration):
                     "warning run `conda config set pkg_env_layout conda_root`. "
                 )
 
-        cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
-        fixed_dirs = [
-            join("~", ".conda"),
-        ]
+        fixed_dirs = [join("~", ".conda")]
         if on_win:
             fixed_dirs.append(USER_DATA_DIR)
         return tuple(
             dict.fromkeys(
                 (
                     self.root_prefix_pkgs,
-                    *(expand(join(p, cache_dir_name)) for p in (fixed_dirs)),
+                    *(expand(join(path, self._cache_dir_name)) for path in fixed_dirs),
                 )
             )
         )
 
-    def _pkgs_in_root_prefix(self) -> list[os.PathLike[str]]:
-        """Get a list of the environment directories in the root prefix.
+    @property
+    def _cache_dir_name(self) -> str:
+        """Get the package cache directory for the context.
+
+        The full path to the package cache directories can be found with
+        `context.pkgs_dirs`.
+
+        :return: Package cache directory name
+        """
+        return "pkgs32" if context.force_32bit else "pkgs"
+
+    def _pkgs_in_root_prefix(self) -> Generator[os.PathLike[str], None, None]:
+        """Get a list of the packages in the root prefix.
 
         PackageCacheData cannot be used here because it depends on `context.pkgs_dirs`,
         which would cause a circular import.
 
-        :return: A list of the environment directories in the root prefix
+        :return: The packages in the root prefix
         """
-        pkgs: list[os.PathLike[str]] = []
         for extension in CONDA_PACKAGE_EXTENSIONS:
-            pkgs.extend(list(Path(self.root_prefix_envs).glob(f"*.{extension}")))
-        return pkgs
+            yield from Path(self.root_prefix_pkgs).glob(f"*.{extension}")
 
-    def _envs_in_root_prefix(self) -> list[os.PathLike[str]]:
+    def _envs_in_root_prefix(self) -> Generator[os.PathLike[str], None, None]:
         """Get a list of the environment directories in the root prefix.
 
-        :return: A list of the environment directories in the root prefix
+        :return: The environment directories in the root prefix
         """
         from ..core.prefix_data import PrefixData
 
-        envs: list[os.PathLike[str]] = []
         if isdir(self.root_prefix_envs):
             for env in Path(self.root_prefix_envs).iterdir():
                 if PrefixData(env).is_environment():
-                    envs.append(env)
-        return envs
+                    yield env
 
     @memoizedproperty
     def trash_dir(self) -> PathType:

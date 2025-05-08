@@ -9,6 +9,7 @@ import re
 import shutil
 import sys
 from contextlib import contextmanager, nullcontext
+from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -18,7 +19,11 @@ from ruamel.yaml.scanner import ScannerError
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.constants import USER_DATA_ENVS, PkgEnvLayout
+from conda.base.constants import (
+    CONDA_PACKAGE_EXTENSION_V2,
+    USER_DATA_ENVS,
+    PkgEnvLayout,
+)
 from conda.base.context import (
     context,
     reset_context,
@@ -941,11 +946,28 @@ def test_migrate_pkgs(
     mock_context_attributes,
 ):
     """Test that migrating pkgs works as intended."""
-    with mock_context_attributes(
-        _pkgs_dirs=(),
-        pkg_env_layout=PkgEnvLayout.UNSET.value,
-        always_copy=False,
+    with (
+        mock_context_attributes(
+            _pkgs_dirs=(),
+            pkg_env_layout=PkgEnvLayout.UNSET.value,
+            always_copy=False,
+        ),
+        mock.patch(
+            "conda.base.context.Context.root_prefix_pkgs",
+            new_callable=mock.PropertyMock,
+        ) as mock_pkgs,
+        mock.patch("conda.common.path.directories.copy_dir_contents") as mock_copy,
+        mock.patch(
+            "conda.common.path.directories.hardlink_dir_contents"
+        ) as mock_hardlink,
     ):
+        # Create a dummy packages directory with some fake packages
+        pkgs_dir = os.path.join(tmpdir, "pkgs")
+        os.makedirs(pkgs_dir, exist_ok=True)
+        (Path(pkgs_dir) / f"foo{CONDA_PACKAGE_EXTENSION_V2}").touch()
+        (Path(pkgs_dir) / f"bar{CONDA_PACKAGE_EXTENSION_V2}").touch()
+        mock_pkgs.return_value = pkgs_dir
+
         # Check that having pkgs in the root triggers a warning
         # We need this context manager because there's an autouse
         # fixture which calls caplog.set_level in tests.cli.conftest
@@ -955,51 +977,33 @@ def test_migrate_pkgs(
             context.pkgs_dirs
         assert len(caplog.records) == 1
 
-        with (
-            mock.patch(
-                "conda.base.context.Context.root_prefix_pkgs",
-                new_callable=mock.PropertyMock,
-            ) as mock_pkgs,
-            mock.patch("conda.common.path.directories.copy_dir_contents") as mock_copy,
-            mock.patch(
-                "conda.common.path.directories.hardlink_dir_contents"
-            ) as mock_hardlink,
-        ):
-            # Create a dummy packages directory
-            pkgs_dir = os.path.join(tmpdir, "pkgs")
-            os.makedirs(pkgs_dir, exist_ok=True)
+        # Check that on systems where hardlinks are impossible,
+        # we fall back to copying
+        if not hardlink_possible:
+            mock_hardlink.side_effect = NotImplementedError
 
-            mock_pkgs.return_value = pkgs_dir
+        # This should raise a warning indicating that the user should
+        # set `conda config set pkg_env_layout user` before failing out
+        with pytest.raises(CondaError, match="`conda config set pkg_env_layout user`"):
+            conda_cli("config", "--migrate-pkgs")
 
-            # Check that on systems where hardlinks are impossible,
-            # we fall back to copying
+        mock_copy.assert_not_called()
+        mock_hardlink.assert_not_called()
+
+        # Okay, now the user sets `conda config set pkg_env_layout user`
+        with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER.value):
+            conda_cli("config", "--migrate-pkgs")
+
+            mock_hardlink.assert_called_once_with(
+                context.root_prefix_pkgs,
+                context.user_data_pkgs,
+            )
+
             if not hardlink_possible:
-                mock_hardlink.side_effect = NotImplementedError
-
-            # This should raise a warning indicating that the user should
-            # set `conda config set pkg_env_layout user` before failing out
-            with pytest.raises(
-                CondaError, match="`conda config set pkg_env_layout user`"
-            ):
-                conda_cli("config", "--migrate-pkgs")
-
-            mock_copy.assert_not_called()
-            mock_hardlink.assert_not_called()
-
-            # Okay, now the user sets `conda config set pkg_env_layout user`
-            with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER.value):
-                conda_cli("config", "--migrate-pkgs")
-
-                mock_hardlink.assert_called_once_with(
+                mock_copy.assert_called_once_with(
                     context.root_prefix_pkgs,
                     context.user_data_pkgs,
                 )
-
-                if not hardlink_possible:
-                    mock_copy.assert_called_once_with(
-                        context.root_prefix_pkgs,
-                        context.user_data_pkgs,
-                    )
 
 
 @mock.patch.dict(os.environ)
@@ -1089,10 +1093,24 @@ def test_ignore_migrate_pkgs(
     mock_context_attributes,
 ):
     """Test that migrating pkgs works as intended."""
-    with mock_context_attributes(
-        _pkgs_dirs=(),
-        pkg_env_layout=PkgEnvLayout.UNSET.value,
+    with (
+        mock_context_attributes(
+            _pkgs_dirs=(),
+            pkg_env_layout=PkgEnvLayout.UNSET.value,
+        ),
+        mock.patch(
+            "conda.base.context.Context.root_prefix_pkgs",
+            new_callable=mock.PropertyMock,
+        ) as mock_pkgs,
     ):
+        # Create a dummy packages directory with some fake packages
+        pkgs_dir = os.path.join(tmpdir, "pkgs")
+        os.makedirs(pkgs_dir, exist_ok=True)
+        (Path(pkgs_dir) / f"foo{CONDA_PACKAGE_EXTENSION_V2}").touch()
+        (Path(pkgs_dir) / f"bar{CONDA_PACKAGE_EXTENSION_V2}").touch()
+        mock_pkgs.return_value = pkgs_dir
+
+        mock_pkgs.return_value = pkgs_dir
         # Check that having pkgs in the root triggers a warning
         # We need this context manager because there's an autouse
         # fixture which calls caplog.set_level in tests.cli.conftest
@@ -1132,10 +1150,17 @@ def test_ignore_migrate_envs(
     mock_context_attributes,
 ):
     """Test that warning messages about envs migration can be suppressed."""
-    with mock_context_attributes(
-        _envs_dirs=(),
-        pkg_env_layout=PkgEnvLayout.UNSET.value,
+    with (
+        mock_context_attributes(
+            _envs_dirs=(),
+            pkg_env_layout=PkgEnvLayout.UNSET.value,
+        ),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
     ):
+        # Mock that there are no environments in the root prefix, which should
+        # trigger the warning
+        mock_envs.return_value = iter([])
+
         # Check that having envs in the root triggers a warning
         # We need this context manager because there's an autouse
         # fixture which calls caplog.set_level in tests.cli.conftest

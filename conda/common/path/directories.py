@@ -5,11 +5,11 @@
 from __future__ import annotations
 
 import os
-import pathlib
 from functools import reduce
 from itertools import accumulate, chain
 from logging import getLogger
 from os.path import join
+from pathlib import Path
 from shutil import copy2, copytree
 from typing import TYPE_CHECKING
 
@@ -71,8 +71,8 @@ def hardlink_dir_contents(src: os.PathLike, dst: os.PathLike):
     :param src: Source directory
     :param dst: Destination where the contents of src are to be hardlinked
     """
-    src = pathlib.Path(src)
-    dst = pathlib.Path(dst)
+    src = Path(src)
+    dst = Path(dst)
 
     for src_fname in src.glob("**/*"):
         if src_fname.is_file():
@@ -95,8 +95,8 @@ def copy_dir_contents(src: os.PathLike, dst: os.PathLike):
     :param src: Source directory
     :param dst: Destination where the contents of src are to be copied
     """
-    src = pathlib.Path(src)
-    dst = pathlib.Path(dst)
+    src = Path(src)
+    dst = Path(dst)
 
     for item in os.listdir(src):
         src_path = src / item

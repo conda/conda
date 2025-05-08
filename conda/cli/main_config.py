@@ -952,8 +952,17 @@ def migrate_envs(context, _config: dict):
                 failures[env] = e
 
     if failures:
+        commands = []
+        for env in failures:
+            commands.append(
+                f"`conda rename -p {str(root_prefix_envs / env)} {str(dest / env)}`"
+            )
+
+        message = "\n  ".join(commands)
         raise CondaError(
-            f"Errors migrating the following environments: {list(failures)}"
+            f"Errors migrating the following environments: {list(failures)}."
+            f"To manually migrate these environments, run the following commands:"
+            f"\n{message}"
         )
     else:
         # Directory should be emptied by the rename above
