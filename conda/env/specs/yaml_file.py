@@ -38,6 +38,8 @@ class YamlFileSpec(EnvironmentSpecBase):
         except (TypeError, YAMLError):
             self.msg = f"{self.filename} is not a valid yaml file."
             return False
+        except Exception as e:
+            return False
 
     @property
     def environment(self):
