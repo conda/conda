@@ -41,8 +41,8 @@ from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Iterator
-    from typing import Any
+    from collections.abc import Iterable, Iterator
+    from typing import Any, Self
 
     from ..gateways.repodata import RepodataCache, RepoInterface
     from .index import PackageRef
@@ -138,7 +138,6 @@ class SubdirData(metaclass=SubdirDataType):
         process lifetime.
 
         :param exclude_file: A flag indicating whether to exclude file:// URLs from the cache.
-            Defaults to True.
         """
         # This should only ever be needed during unit tests, when
         # CONDA_USE_ONLY_TAR_BZ2 may change during process lifetime.
@@ -162,7 +161,7 @@ class SubdirData(metaclass=SubdirDataType):
         :param package_ref_or_match_spec: Either an exact `PackageRef` to match against, or a
             `MatchSpec` query object.  A `str` will be turned into a `MatchSpec` automatically.
         :param channels: An iterable of urls for channels or `Channel` objects. If None, will fall
-            back to context.channels.
+            back to `context.channels`.
         :param subdirs: If None, will fall back to context.subdirs.
         :param repodata_fn: The filename of the repodata.
         :return: A tuple of `PackageRecord` objects.
@@ -213,12 +212,12 @@ class SubdirData(metaclass=SubdirDataType):
 
     def query(
         self, package_ref_or_match_spec: str | MatchSpec
-    ) -> Generator[PackageRecord, None, None]:
+    ) -> Iterator[PackageRecord]:
         """
         A function that queries for a specific package reference or MatchSpec object.
 
         :param package_ref_or_match_spec: The package reference or MatchSpec object to query.
-        :yield: PackageRecord objects.
+        :yields: PackageRecord objects.
         """
         if not self._loaded:
             self.load()
@@ -246,7 +245,7 @@ class SubdirData(metaclass=SubdirDataType):
         channel: Channel,
         repodata_fn: str = REPODATA_FN,
         RepoInterface: type[RepoInterface] = CondaRepoInterface,
-    ) -> None:
+    ):
         """
         Initializes a new instance of the SubdirData class.
 
@@ -301,7 +300,7 @@ class SubdirData(metaclass=SubdirDataType):
             repo_interface_cls=self.RepoInterface,
         )
 
-    def reload(self) -> SubdirData:
+    def reload(self) -> Self:
         """
         Update the instance with new information.
         """
@@ -332,7 +331,7 @@ class SubdirData(metaclass=SubdirDataType):
         return self.url_w_subdir + "/" + self.repodata_fn
 
     @property
-    def cache_path_json(self) -> str:
+    def cache_path_json(self) -> Path:
         """
         Get the path to the cache file.
 
@@ -343,7 +342,7 @@ class SubdirData(metaclass=SubdirDataType):
         )
 
     @property
-    def cache_path_state(self) -> str:
+    def cache_path_state(self) -> Path:
         """
         Out-of-band etag and other state needed by the RepoInterface.
 
@@ -358,7 +357,7 @@ class SubdirData(metaclass=SubdirDataType):
         )
 
     @property
-    def cache_path_pickle(self) -> Path:
+    def cache_path_pickle(self) -> str:
         """
         Get the path to the cache pickle file.
 
@@ -366,7 +365,7 @@ class SubdirData(metaclass=SubdirDataType):
         """
         return self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".q"
 
-    def load(self) -> None:
+    def load(self) -> Self:
         """
         Load the internal state of the SubdirData instance.
 
@@ -474,15 +473,14 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _pickle_valid_checks(
         self, pickled_state: dict[str, Any], mod: str, etag: str
-    ) -> Generator[tuple[str, Any, Any], None, None]:
+    ) -> Iterator[tuple[str, Any, Any]]:
         """
         Throw away the pickle if these don't all match.
 
         :param pickled_state: The pickled state to compare against.
         :param mod: The modification information to check.
         :param etag: The etag to compare against.
-        :return: A generator that yields tuples of the form (check_name, pickled_value,
-            current_value).
+        :yields: Tuples of the form (check_name, pickled_value, current_value).
         """
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
@@ -530,7 +528,7 @@ class SubdirData(metaclass=SubdirDataType):
             rm_rf(self.cache_path_pickle)
             return None
 
-        def checks():
+        def checks() -> Iterator[tuple[str, str | None, str]]:
             """
             Generate a list of checks to verify the validity of a pickled state.
 
@@ -539,7 +537,7 @@ class SubdirData(metaclass=SubdirDataType):
             """
             return self._pickle_valid_checks(_pickled_state, state.mod, state.etag)
 
-        def _check_pickled_valid():
+        def _check_pickled_valid() -> Iterator[bool]:
             """
             Generate a generator that yields the results of checking the validity of a pickled
             state.
