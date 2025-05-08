@@ -39,8 +39,8 @@ of its abstract methods:
 
 Be sure to be very specific when implementing the ``can_handle`` method. It should only
 return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle``
-method too permissive in the types of files it handles may lead to conflicts with other 
-plugins. If multiple installed plugins are able to ``can_handle`` the same file type, 
+method too permissive in the types of files it handles may lead to conflicts with other
+plugins. If multiple installed plugins are able to ``can_handle`` the same file type,
 conda will return an error to the user.
 
 Registering the plugin hook
@@ -72,7 +72,7 @@ using the plugin defined above:
 
 Another example plugin
 -----------------------
-In this example, we want to build a more realistic environemnt spec plugin. This 
+In this example, we want to build a more realistic environemnt spec plugin. This
 plugin has a scheme which expresses what it expects a valid environment file to
 contain. In this example, a valid environment file is a ``.json`` file that defines:
 
@@ -90,60 +90,61 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
 
 
    class MySimpleEnvironment(BaseModel):
-      """An model representing an environment file."""
-      # required
-      name: str
+       """An model representing an environment file."""
 
-      # optional
-      conda_deps: list[str] = []
+       # required
+       name: str
+
+       # optional
+       conda_deps: list[str] = []
 
 
    class MySimpleSpec(EnvironmentSpecBase):
-      def __init__(self, filename=None):
-         self.filename = filename
+       def __init__(self, filename=None):
+           self.filename = filename
 
-      def _parse_data(self) -> MySimpleEnvironment:
-         """"Validate and convert the provided file into a MySimpleEnvironment"""
-         with open(self.filename, "rb") as fp:
+       def _parse_data(self) -> MySimpleEnvironment:
+           """ "Validate and convert the provided file into a MySimpleEnvironment"""
+           with open(self.filename, "rb") as fp:
                json_data = fp.read()
-         
-         return MySimpleEnvironment.model_validate_json(json_data)
 
-      def can_handle(self) -> bool:
-         """
-         Validates loader can process environment definition.
-         This can handle if:
-               * the file exists
-               * the file can be read
-               * the data can be parsed as JSON into a MySimpleEnvironment object
+           return MySimpleEnvironment.model_validate_json(json_data)
 
-         :return: True if the file can be parsed and handled, False otherwise
-         """
-         if not os.path.exists(self.filename):
+       def can_handle(self) -> bool:
+           """
+           Validates loader can process environment definition.
+           This can handle if:
+                 * the file exists
+                 * the file can be read
+                 * the data can be parsed as JSON into a MySimpleEnvironment object
+
+           :return: True if the file can be parsed and handled, False otherwise
+           """
+           if not os.path.exists(self.filename):
                return False
-         try:
+           try:
                self._parse_data()
            except Exception:
                return False
-         
-         return True
 
-      @property
-      def environment(self) -> Environment:
-         """Returns the Environment representation of the environment spec file"""
-         data = self._parse_data()
-         return Environment(
+           return True
+
+       @property
+       def environment(self) -> Environment:
+           """Returns the Environment representation of the environment spec file"""
+           data = self._parse_data()
+           return Environment(
                name=data.name,
                dependencies=data.conda_deps,
-         )
+           )
 
 
    @hookimpl
    def conda_environment_specifiers():
-      yield CondaEnvironmentSpecifier(
-         name="mysimple",
-         environment_spec=MySimpleSpec,
-      )
+       yield CondaEnvironmentSpecifier(
+           name="mysimple",
+           environment_spec=MySimpleSpec,
+       )
 
 We can test this out by trying to create a conda environment with a new file
 that is compatible with the definied spec. Create a file ``testenv.json``
@@ -160,4 +161,3 @@ Then, create the environment
 .. code-block:: bash
 
    $ conda env create --file testenv.json
- 
