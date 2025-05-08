@@ -27,7 +27,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         :return: True or False
         """
         try:
-            self._environment = env.from_file(self.filename)
+            self._environment = env.from_file(self.filename, strict=True)
             return True
         except EnvironmentFileNotFound as e:
             self.msg = str(e)
