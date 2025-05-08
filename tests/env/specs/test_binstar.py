@@ -32,5 +32,8 @@ def test_can_handle_binstar_name():
     spec = binstar.BinstarSpec("conda-test/test")
     assert spec.valid_name()
 
-    spec = binstar.BinstarSpec("conda-test/test/label")
+    spec = binstar.BinstarSpec("user-name/Package_Name")
+    assert spec.valid_name()
+
+    spec = binstar.BinstarSpec("user.123/My Package 1.0")
     assert spec.valid_name()
