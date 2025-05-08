@@ -1,0 +1,8 @@
+[dependency-groups]
+conda-pip = ["httpx"]
+
+[tool.conda.environment]
+dependencies = [
+  "python",
+]
+name = "test"

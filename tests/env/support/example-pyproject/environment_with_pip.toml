@@ -1,0 +1,7 @@
+[tool.conda.environment]
+dependencies = [
+  "pip",
+  "python",
+  {pip = ["httpx"]},
+]
+name = "test"
