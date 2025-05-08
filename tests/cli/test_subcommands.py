@@ -12,7 +12,11 @@ from conda.common.compat import on_win
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 

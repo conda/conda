@@ -2,10 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
 
+from __future__ import annotations
+
 import os
 import sys
 from json import JSONEncoder
 from os.path import abspath, dirname
+from typing import TYPE_CHECKING
+
+from frozendict import frozendict
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from subprocess import Popen
+    from typing import Any
 
 try:
     from ._version import __version__
@@ -22,12 +32,6 @@ except ImportError:
         # Conda abides by CEP-8 which specifies using CalVer, so the dev version is:
         #     YY.MM.MICRO.devN+gHASH[.dirty]
         __version__ = "0.0.0.dev0+placeholder"
-
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from ._vendor.frozendict import frozendict
 
 __all__ = (
     "__name__",
@@ -66,21 +70,21 @@ CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
 
 
 class CondaError(Exception):
-    return_code = 1
-    reportable = False  # Exception may be reported to core maintainers
+    return_code: int = 1
+    reportable: bool = False  # Exception may be reported to core maintainers
 
-    def __init__(self, message, caused_by=None, **kwargs):
-        self.message = message
+    def __init__(self, message: str | None, caused_by: Any = None, **kwargs):
+        self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
         super().__init__(message)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {self}"
 
-    def __str__(self):
+    def __str__(self) -> str:
         try:
-            return str(self.message % self._kwargs)
+            return str(self.message) % self._kwargs
         except Exception:
             debug_message = "\n".join(
                 (
@@ -95,7 +99,7 @@ class CondaError(Exception):
             print(debug_message, file=sys.stderr)
             raise
 
-    def dump_map(self):
+    def dump_map(self) -> dict[str, Any]:
         result = {k: v for k, v in vars(self).items() if not k.startswith("_")}
         result.update(
             exception_type=str(type(self)),
@@ -109,11 +113,11 @@ class CondaError(Exception):
 
 
 class CondaMultiError(CondaError):
-    def __init__(self, errors):
+    def __init__(self, errors: Iterable[CondaError]):
         self.errors = errors
         super().__init__(None)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         errs = []
         for e in self.errors:
             if isinstance(e, EnvironmentError) and not isinstance(e, CondaError):
@@ -126,10 +130,10 @@ class CondaMultiError(CondaError):
         res = "\n".join(errs)
         return res
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join(str(e) for e in self.errors) + "\n"
 
-    def dump_map(self):
+    def dump_map(self) -> dict[str, str | tuple[str, ...]]:
         return dict(
             exception_type=str(type(self)),
             exception_name=self.__class__.__name__,
@@ -137,7 +141,7 @@ class CondaMultiError(CondaError):
             error="Multiple Errors Encountered.",
         )
 
-    def contains(self, exception_class):
+    def contains(self, exception_class: BaseException | tuple[BaseException]) -> bool:
         return any(isinstance(e, exception_class) for e in self.errors)
 
 
@@ -145,10 +149,10 @@ class CondaExitZero(CondaError):
     return_code = 0
 
 
-ACTIVE_SUBPROCESSES = set()
+ACTIVE_SUBPROCESSES: Iterable[Popen] = set()
 
 
-def conda_signal_handler(signum, frame):
+def conda_signal_handler(signum: int, frame: Any):
     # This function is in the base __init__.py so that it can be monkey-patched by other code
     #   if downstream conda users so choose.  The biggest danger of monkey-patching is that
     #   unlink/link transactions don't get rolled back if interrupted mid-transaction.

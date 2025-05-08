@@ -9,7 +9,6 @@ from platform import machine
 from ..auxlib.decorators import classproperty
 from ..auxlib.ish import dals
 from ..auxlib.type_coercion import TypeCoercionError, boolify
-from ..deprecations import deprecated
 from ..exceptions import CondaUpgradeError
 
 
@@ -26,6 +25,7 @@ class Arch(Enum):
     ppc64le = "ppc64le"
     riscv64 = "riscv64"
     s390x = "s390x"
+    wasm32 = "wasm32"
     z = "z"
 
     @classmethod
@@ -45,6 +45,8 @@ class Platform(Enum):
     openbsd = "openbsd5"
     osx = "darwin"
     zos = "zos"
+    emscripten = "emscripten"
+    wasi = "wasi"
 
     @classmethod
     def from_sys(cls):
@@ -59,7 +61,7 @@ class FileMode(Enum):
     binary = "binary"
 
     def __str__(self):
-        return "%s" % self.value
+        return f"{self.value}"
 
 
 class LinkType(Enum):
@@ -108,22 +110,6 @@ class PathType(Enum):
 
     def __json__(self):
         return self.name
-
-
-class LeasedPathType(Enum):
-    application_entry_point = "application_entry_point"
-    application_entry_point_windows_exe = "application_entry_point_windows_exe"
-    application_softlink = "application_softlink"
-
-    def __str__(self):
-        return self.name
-
-    def __json__(self):
-        return self.name
-
-
-deprecated.constant("24.3", "24.9", "LeasedPathType", LeasedPathType)
-del LeasedPathType
 
 
 class PackageType(Enum):
@@ -179,12 +165,11 @@ class NoarchType(Enum):
                 except TypeCoercionError:
                     raise CondaUpgradeError(
                         dals(
-                            """
-                    The noarch type for this package is set to '%s'.
+                            f"""
+                    The noarch type for this package is set to '{val}'.
                     The current version of conda is too old to install this package.
                     Please update conda.
                     """
-                            % val
                         )
                     )
         return val

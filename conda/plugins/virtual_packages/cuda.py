@@ -55,7 +55,7 @@ def cuda_version():
     return result
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def cached_cuda_version():
     """A cached version of the cuda detection system."""
     return cuda_version()

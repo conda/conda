@@ -5,20 +5,30 @@
 Lists all packages installed into an environment.
 """
 
+from __future__ import annotations
+
 import logging
 import re
-from argparse import ArgumentParser, Namespace, _SubParsersAction
 from os.path import isdir, isfile
+from typing import TYPE_CHECKING
+
+from .. import __version__
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from typing import Any
 
 log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..base.constants import CONDA_LIST_FIELDS
     from .helpers import (
         add_parser_json,
         add_parser_prefix,
         add_parser_show_channel_urls,
+        comma_separated_stripped,
     )
 
     summary = "List installed packages in a conda environment."
@@ -65,6 +75,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_json(p)
     add_parser_show_channel_urls(p)
     p.add_argument(
+        "--fields",
+        type=comma_separated_stripped,
+        dest="list_fields",
+        help="Comma-separated list of fields to print. "
+        f"Valid values: {sorted(CONDA_LIST_FIELDS)}.",
+    )
+    p.add_argument(
         "--reverse",
         action="store_true",
         default=False,
@@ -95,6 +112,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Add MD5 hashsum when using --explicit.",
     )
     p.add_argument(
+        "--sha256",
+        action="store_true",
+        help="Add SHA256 hashsum when using --explicit.",
+    )
+    p.add_argument(
         "-e",
         "--export",
         action="store_true",
@@ -116,6 +138,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Do not include pip-only installed packages.",
     )
     p.add_argument(
+        "--auth",
+        action="store_false",
+        default=True,
+        dest="remove_auth",
+        help="In explicit mode, leave authentication details in package URLs. "
+        "They are removed by default otherwise.",
+    )
+    p.add_argument(
         "regex",
         action="store",
         nargs="?",
@@ -129,7 +159,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def print_export_header(subdir):
     print("# This file may be used to create an environment using:")
     print("# $ conda create --name <env> --file <this file>")
-    print("# platform: %s" % subdir)
+    print(f"# platform: {subdir}")
+    print(f"# created-by: conda {__version__}")
 
 
 def get_packages(installed, regex):
@@ -146,20 +177,38 @@ def list_packages(
     format="human",
     reverse=False,
     show_channel_urls=None,
-):
-    from ..base.constants import DEFAULTS_CHANNEL_NAME
+    reload_records=True,
+    fields=None,
+) -> tuple[int, list[str] | list[dict[str, Any]]]:
+    from ..base.constants import (
+        CONDA_LIST_FIELDS,
+        DEFAULT_CONDA_LIST_FIELDS,
+        DEFAULTS_CHANNEL_NAME,
+    )
     from ..base.context import context
     from ..core.prefix_data import PrefixData
+    from ..exceptions import CondaValueError
     from .common import disp_features
 
-    res = 0
+    exitcode = 0
 
-    installed = sorted(
-        PrefixData(prefix, pip_interop_enabled=True).iter_records(),
-        key=lambda x: x.name,
-    )
-
+    prefix_data = PrefixData(prefix, interoperability=True)
+    if reload_records:
+        prefix_data.load()
+    installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
+    show_channel_urls = show_channel_urls or context.show_channel_urls
+    fields = fields or context.list_fields
+    if invalid_fields := set(fields).difference(CONDA_LIST_FIELDS):
+        raise CondaValueError(
+            f"Invalid fields passed: {sorted(invalid_fields)}. "
+            f"Valid options are {list(CONDA_LIST_FIELDS)}."
+        )
     packages = []
+    titles = [CONDA_LIST_FIELDS[field] for field in fields]
+    if fields == DEFAULT_CONDA_LIST_FIELDS and len(fields) == 4:
+        widths = [23, 15, 15, 1]
+    else:
+        widths = [len(title) for title in titles]
     for prec in get_packages(installed, regex) if regex else installed:
         if format == "canonical":
             packages.append(
@@ -170,33 +219,48 @@ def list_packages(
             packages.append("=".join((prec.name, prec.version, prec.build)))
             continue
 
-        features = set(prec.get("features") or ())
-        disp = "%(name)-25s %(version)-15s %(build)15s" % prec
-        disp += "  %s" % disp_features(features)
-        schannel = prec.get("schannel")
-        show_channel_urls = show_channel_urls or context.show_channel_urls
-        if (
-            show_channel_urls
-            or show_channel_urls is None
-            and schannel != DEFAULTS_CHANNEL_NAME
-        ):
-            disp += "  %s" % schannel
+        # this is for format == "human"
+        row = []
+        for idx, field in enumerate(fields):
+            if field == "features":
+                features = set(prec.get("features") or ())
+                value = disp_features(features)
+            elif field == "channel_name":
+                channel_name = prec.get("channel_name")
+                if (
+                    show_channel_urls
+                    or show_channel_urls is None
+                    and channel_name != DEFAULTS_CHANNEL_NAME
+                ):
+                    value = str(channel_name)
+                else:
+                    value = ""
+            else:
+                value = str(prec.get(field, None) or "").strip()
+                if value == "None":
+                    value = ""
+            row.append(value)
+            if (value_length := len(value)) > widths[idx]:
+                widths[idx] = value_length
 
-        packages.append(disp)
+        packages.append(row)
 
     if reverse:
         packages = reversed(packages)
 
-    result = []
     if format == "human":
+        template_line = "  ".join([f"%-{width}s" for width in widths])
         result = [
-            "# packages in environment at %s:" % prefix,
+            f"# packages in environment at {prefix}:",
             "#",
-            "# %-23s %-15s %15s  Channel" % ("Name", "Version", "Build"),
+            f"# {template_line}" % tuple(titles),
         ]
-    result.extend(packages)
-
-    return res, result
+        widths[0] += 2  # account for the '# ' prefix in the header line
+        template_line = "  ".join([f"%-{width}s" for width in widths])
+        result.extend([template_line % tuple(package) for package in packages])
+    else:
+        result = list(packages)
+    return exitcode, result
 
 
 def print_packages(
@@ -207,7 +271,8 @@ def print_packages(
     piplist=False,
     json=False,
     show_channel_urls=None,
-):
+    fields=None,
+) -> int:
     from ..base.context import context
     from .common import stdout_json
 
@@ -226,21 +291,25 @@ def print_packages(
         format=format,
         reverse=reverse,
         show_channel_urls=show_channel_urls,
+        fields=fields,
     )
     if context.json:
         stdout_json(output)
 
     else:
-        print("\n".join(map(str, output)))
+        print("\n".join([str(line).rstrip() for line in output]))
 
     return exitcode
 
 
-def print_explicit(prefix, add_md5=False):
+def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
     from ..base.constants import UNKNOWN_CHANNEL
     from ..base.context import context
+    from ..common import url as common_url
     from ..core.prefix_data import PrefixData
 
+    if add_md5 and add_sha256:
+        raise ValueError("Only one of add_md5 and add_sha256 can be chosen")
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
 
@@ -250,27 +319,38 @@ def print_explicit(prefix, add_md5=False):
     for prefix_record in PrefixData(prefix).iter_records_sorted():
         url = prefix_record.get("url")
         if not url or url.startswith(UNKNOWN_CHANNEL):
-            print("# no URL for: %s" % prefix_record["fn"])
+            print("# no URL for: {}".format(prefix_record["fn"]))
             continue
-        md5 = prefix_record.get("md5")
-        print(url + ("#%s" % md5 if add_md5 and md5 else ""))
+        if remove_auth:
+            url = common_url.remove_auth(common_url.split_anaconda_token(url)[0])
+        if add_md5 or add_sha256:
+            hash_key = "md5" if add_md5 else "sha256"
+            hash_value = prefix_record.get(hash_key)
+            print(url + (f"#{hash_value}" if hash_value else ""))
+        else:
+            print(url)
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from ..gateways.disk.test import is_conda_environment
+    from ..core.prefix_data import PrefixData
     from ..history import History
     from .common import stdout_json
 
-    prefix = context.target_prefix
-    if not is_conda_environment(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    prefix = str(prefix_data.prefix_path)
 
-        raise EnvironmentLocationNotFound(prefix)
+    if args.md5 and args.sha256:
+        from ..exceptions import ArgumentError
+
+        raise ArgumentError(
+            "Only one of --md5 and --sha256 can be specified at the same time"
+        )
 
     regex = args.regex
     if args.full_name:
-        regex = r"^%s$" % regex
+        regex = rf"^{regex}$"
 
     if args.revisions:
         h = History(prefix)
@@ -286,7 +366,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         return 0
 
     if args.explicit:
-        print_explicit(prefix, args.md5)
+        print_explicit(prefix, args.md5, args.remove_auth, args.sha256)
         return 0
 
     if args.canonical:

@@ -164,7 +164,7 @@ def fix_shebang(tmp_dir, path):
     if not (m and "python" in m.group()):
         return False
 
-    data = shebang_pat.sub("#!%s/bin/python" % PREFIX_PLACEHOLDER, data, count=1)
+    data = shebang_pat.sub(f"#!{PREFIX_PLACEHOLDER}/bin/python", data, count=1)
     tmp_path = join(tmp_dir, basename(path))
     with open(tmp_path, "w") as fo:
         fo.write(data)
@@ -223,7 +223,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         elif isfile(path):
             h.update(open(path, "rb").read())
             if path.endswith(".egg-link"):
-                warnings.append("found egg link: %s" % f)
+                warnings.append(f"found egg link: {f}")
 
     info["file_hash"] = h.hexdigest()
     if update_info:
@@ -275,7 +275,7 @@ def which_package(path):
     if prefix is None:
         from ..exceptions import CondaVerificationError
 
-        raise CondaVerificationError("could not determine conda prefix from: %s" % path)
+        raise CondaVerificationError(f"could not determine conda prefix from: {path}")
 
     for prec in PrefixData(prefix).iter_records():
         if any(paths_equal(join(prefix, f), path) for f in prec["files"] or ()):

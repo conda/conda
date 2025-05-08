@@ -1,10 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import ntpath
 import os
 import sys
+from collections import namedtuple
 from os.path import abspath, dirname, isfile, join, realpath, samefile
 from sysconfig import get_path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -12,14 +16,24 @@ from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.cli.common import stdout_json
-from conda.common.compat import on_win, open
+from conda.common.compat import on_win, open_utf8
 from conda.common.io import captured, env_var, env_vars
-from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
+from conda.common.path import (
+    BIN_DIRECTORY,
+    get_python_short_path,
+    win_path_backout,
+    win_path_ok,
+    win_path_to_unix,
+)
 from conda.core.initialize import (
     Result,
     _get_python_info,
+    add_condabin_to_path_registry,
+    init_fish_user,
+    init_powershell_user,
     init_sh_system,
     init_sh_user,
+    init_xonsh_user,
     initialize_dev,
     install,
     install_conda_csh,
@@ -35,9 +49,10 @@ from conda.core.initialize import (
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
-from conda.testing import CondaCLIFixture
 from conda.testing.helpers import tempdir
-from conda.testing.integration import BIN_DIRECTORY
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture
 
 CONDA_EXE = "conda.exe" if on_win else "conda"
 
@@ -362,16 +377,17 @@ def test_make_initialize_plan_cmd_exe(verbose):
 def test_make_entry_point(verbose):
     with tempdir() as conda_temp_prefix:
         conda_prefix = abspath(sys.prefix)
-        if on_win:
-            conda_exe_path = join(conda_temp_prefix, "Scripts", "conda-script.py")
-        else:
-            conda_exe_path = join(conda_temp_prefix, "bin", "conda")
+        conda_exe_path = join(
+            conda_temp_prefix,
+            BIN_DIRECTORY,
+            "conda-script.py" if on_win else "conda",
+        )
         result = make_entry_point(
             conda_exe_path, conda_prefix, "conda.entry.point", "run"
         )
         assert result == Result.MODIFIED
 
-        with open(conda_exe_path) as fh:
+        with open_utf8(conda_exe_path) as fh:
             ep_contents = fh.read()
 
         if on_win:
@@ -424,7 +440,7 @@ def test_install_conda_sh(verbose):
         result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         from conda.activate import PosixActivator
@@ -440,7 +456,7 @@ def test_install_conda_sh(verbose):
         assert line2 == "export _CE_CONDA=''"
         assert line3.startswith("export CONDA_PYTHON_EXE=")
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.sh")
         ) as fh:
             original_contents = fh.read()
@@ -459,7 +475,7 @@ def test_install_conda_fish(verbose):
         result = install_conda_fish(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         (
@@ -470,17 +486,17 @@ def test_install_conda_fish(verbose):
             remainder,
         ) = created_file_contents.split("\n", 4)
         if on_win:
-            assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % conda_exe
-            assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
-            assert third_line == 'set _CONDA_EXE (cygpath "%s")' % conda_exe
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE (cygpath "%s")' % python_exe
+            assert first_line == f'set -gx CONDA_EXE (cygpath "{conda_exe}")'
+            assert second_line == f'set _CONDA_ROOT (cygpath "{conda_prefix}")'
+            assert third_line == f'set _CONDA_EXE (cygpath "{conda_exe}")'
+            assert fourth_line == f'set -gx CONDA_PYTHON_EXE (cygpath "{python_exe}")'
         else:
-            assert first_line == 'set -gx CONDA_EXE "%s"' % conda_exe
-            assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'set _CONDA_EXE "%s"' % conda_exe
-            assert fourth_line == 'set -gx CONDA_PYTHON_EXE "%s"' % python_exe
+            assert first_line == f'set -gx CONDA_EXE "{conda_exe}"'
+            assert second_line == f'set _CONDA_ROOT "{conda_prefix}"'
+            assert third_line == f'set _CONDA_EXE "{conda_exe}"'
+            assert fourth_line == f'set -gx CONDA_PYTHON_EXE "{python_exe}"'
 
-        with open(
+        with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")
         ) as fh:
             original_contents = fh.read()
@@ -495,25 +511,30 @@ def test_install_conda_xsh(verbose):
 
     with tempdir() as conda_temp_prefix:
         conda_prefix = sys.prefix
-        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "Lib", "site-packages", "conda.xsh")
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
-        first_line, remainder = created_file_contents.split("\n", 1)
-        if on_win:
-            assert first_line == '$CONDA_EXE = "%s"' % XonshActivator.path_conversion(
-                conda_exe
-            )
-        else:
-            assert first_line == '$CONDA_EXE = "%s"' % conda_exe
-
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
+        with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
-        assert remainder == original_contents
+
+        assert created_file_contents == (
+            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
+            f"try:\n"
+            f"    del $_CE_M\n"
+            f"except KeyError:\n"
+            f"    pass\n"
+            f"try:\n"
+            f"    del $_CE_CONDA\n"
+            f"except KeyError:\n"
+            f"    pass\n"
+            f"$CONDA_PYTHON_EXE = '{XonshActivator.path_conversion(sys.executable)}'\n"
+            f"\n"
+            f"{original_contents}"
+        )
 
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
@@ -521,41 +542,38 @@ def test_install_conda_xsh(verbose):
 
 def test_install_conda_csh(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_prefix = sys.prefix
-        python_exe = sys.executable
-        conda_exe = join(conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "profile.d", "conda.csh")
-        result = install_conda_csh(target_path, conda_prefix)
+        result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
-        (
-            first_line,
-            second_line,
-            third_line,
-            fourth_line,
-            remainder,
-        ) = created_file_contents.split("\n", 4)
+        hook_source_path = join(
+            CONDA_PACKAGE_ROOT,
+            "shell",
+            "etc",
+            "profile.d",
+            "conda.csh",
+        )
         if on_win:
-            assert first_line == "setenv CONDA_EXE `cygpath %s`" % conda_exe
-            assert second_line == "setenv _CONDA_ROOT `cygpath %s`" % conda_prefix
-            assert third_line == "setenv _CONDA_EXE `cygpath %s`" % conda_exe
-            assert fourth_line == "setenv CONDA_PYTHON_EXE `cygpath %s`" % python_exe
+            assert created_file_contents == (
+                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
+                f"source \"`cygpath '{hook_source_path}'`\";\n"
+            )
         else:
-            assert first_line == 'setenv CONDA_EXE "%s"' % conda_exe
-            assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-            assert third_line == 'setenv _CONDA_EXE "%s"' % conda_exe
-            assert fourth_line == 'setenv CONDA_PYTHON_EXE "%s"' % python_exe
+            assert created_file_contents == (
+                f'setenv CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
+                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
+                f'source "{hook_source_path}";\n'
+            )
 
-        with open(
-            join(CONDA_PACKAGE_ROOT, "shell", "etc", "profile.d", "conda.csh")
-        ) as fh:
-            original_contents = fh.read()
-        assert remainder == original_contents
-
-        result = install_conda_csh(target_path, conda_prefix)
+        result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.NO_CHANGE
 
 
@@ -566,12 +584,14 @@ def test_install_condabin_conda_bat(verbose):
         result = install_condabin_conda_bat(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
         remainder = created_file_contents
 
-        with open(join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")) as fh:
+        with open_utf8(
+            join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+        ) as fh:
             original_contents = fh.read()
         assert remainder == original_contents
 
@@ -831,12 +851,12 @@ def test_init_sh_user_unix(verbose):
             """
         )
 
-        with open(target_path, "w") as fh:
+        with open_utf8(target_path, "w") as fh:
             fh.write(initial_content)
 
         init_sh_user(target_path, conda_temp_prefix, "bash")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             new_content = fh.read()
 
         expected_new_content = dals(
@@ -887,7 +907,7 @@ def test_init_sh_user_unix(verbose):
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             reversed_content = fh.read()
         print(reversed_content)
         assert reversed_content == expected_reversed_content
@@ -899,10 +919,10 @@ def test_init_sh_user_tcsh_unix(verbose):
         target_path = join(conda_temp_prefix, ".tcshrc")
         init_sh_user(target_path, conda_temp_prefix, "tcsh")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             tcshrc_contet = fh.read()
 
-        conda_csh = "%s/etc/profile.d/conda.csh" % conda_temp_prefix
+        conda_csh = f"{conda_temp_prefix}/etc/profile.d/conda.csh"
         # tcsh/csh doesn't give users the ability to register a function.
         # Make sure that conda doesn't try to register a function
         conda_eval_string = 'eval "$__conda_setup"'
@@ -939,12 +959,12 @@ def test_init_sh_user_windows(verbose):
             """
         )
 
-        with open(target_path, "w") as fh:
+        with open_utf8(target_path, "w") as fh:
             fh.write(initial_content)
 
         init_sh_user(target_path, conda_prefix, "bash")
 
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             new_content = fh.read()
 
         print(new_content)
@@ -987,7 +1007,7 @@ def test_init_sh_user_windows(verbose):
         )
 
         init_sh_user(target_path, conda_temp_prefix, "bash", reverse=True)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             reversed_content = fh.read()
         print(reversed_content)
         assert reversed_content == expected_reversed_content
@@ -1045,6 +1065,291 @@ def test_init_cmd_exe_registry(verbose):
     assert c.stdout.strip().splitlines()[-1][1:] == expected
 
 
+REG_EXPAND_SZ = 2
+# Define a namedtuple for test case parameters; helps with readability
+RegistryTestCase = namedtuple(
+    "RegistryTestCase",
+    [
+        "initial_path_value",
+        "initial_path_type",
+        "reverse",
+        "dry_run",
+        "expected_result",
+        "expected_write_calls_count",
+        "expected_written_path",
+        "expected_written_type",
+    ],
+)
+
+
+@pytest.mark.parametrize(
+    "initial_path_value, initial_path_type, reverse, dry_run, "
+    "expected_result, expected_write_calls_count, expected_written_path, expected_written_type",
+    [
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value=None,
+                initial_path_type=None,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_to_empty_path",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Windows\\System32",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows;C:\\Windows\\System32",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_to_existing_path_without_condabin",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="add_when_condabin_exists_case_sensitive",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\USERS\\TEST\\MINICONDA3\\CONDABIN;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="add_when_condabin_exists_case_insensitive",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Users\\test\\miniconda3\\condabin",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="add_when_condabin_exists_later_in_path",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_at_beginning",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Users\\test\\miniconda3\\condabin;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows;C:\\Program Files",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_in_middle",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Users\\test\\miniconda3\\condabin",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_at_end",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.NO_CHANGE,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="remove_when_condabin_does_not_exist",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;C:\\USERS\\TEST\\MINICONDA3\\CONDABIN",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_when_condabin_exists_case_insensitive",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows;C:\\Program Files",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_handle_double_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows;;C:\\Users\\test\\miniconda3\\condabin;;C:\\Program Files",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows;C:\\Program Files",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_handle_double_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value=";C:\\Windows;",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="add_handle_leading_trailing_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value=";C:\\Users\\test\\miniconda3\\condabin;C:\\Windows;",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=False,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=1,
+                expected_written_path="C:\\Windows",
+                expected_written_type=REG_EXPAND_SZ,
+            ),
+            id="remove_handle_leading_trailing_semicolons",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=False,
+                dry_run=True,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="dry_run_add",
+        ),
+        pytest.param(
+            *RegistryTestCase(
+                initial_path_value="C:\\Users\\test\\miniconda3\\condabin;C:\\Windows",
+                initial_path_type=REG_EXPAND_SZ,
+                reverse=True,
+                dry_run=True,
+                expected_result=Result.MODIFIED,
+                expected_write_calls_count=0,
+                expected_written_path=None,
+                expected_written_type=None,
+            ),
+            id="dry_run_remove",
+        ),
+    ],
+)
+def test_add_condabin_to_path_registry(
+    mocker,
+    initial_path_value,
+    initial_path_type,
+    reverse,
+    dry_run,
+    expected_result,
+    expected_write_calls_count,
+    expected_written_path,
+    expected_written_type,
+):
+    conda_prefix = "C:\\Users\\test\\miniconda3"
+    target_path = "HKEY_CURRENT_USER\\Environment\\PATH"
+
+    # Mock registry functions using mocker
+    mock_read_registry = mocker.patch("conda.core.initialize._read_windows_registry")
+    mock_write_registry = mocker.patch("conda.core.initialize._write_windows_registry")
+
+    # Use a list to store calls to the mocked write function
+    write_calls = []
+    mock_write_registry.side_effect = lambda path, value, type_: write_calls.append(
+        (path, value, type_)
+    )
+
+    # Set the return value for the read mock for this specific case
+    mock_read_registry.return_value = (initial_path_value, initial_path_type)
+
+    # --- Execute the function under test ---
+    if dry_run:
+        with env_var(
+            "CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
+            result = add_condabin_to_path_registry(
+                target_path, conda_prefix, reverse=reverse
+            )
+    else:
+        # Ensure CONDA_DRY_RUN is not set or false for non-dry-run cases
+        with env_var(
+            "CONDA_DRY_RUN", None, stack_callback=conda_tests_ctxt_mgmt_def_pol
+        ):
+            result = add_condabin_to_path_registry(
+                target_path, conda_prefix, reverse=reverse
+            )
+
+    # --- Assertions ---
+    assert result == expected_result
+    assert len(write_calls) == expected_write_calls_count
+
+    if expected_write_calls_count > 0:
+        assert write_calls[0][0] == target_path
+        assert write_calls[0][1] == expected_written_path
+        assert write_calls[0][2] == expected_written_type
+
+
 @pytest.mark.skipif(not on_win, reason="win-only test")
 def test_init_enable_long_path(verbose):
     dummy_value = 0
@@ -1081,7 +1386,7 @@ def test_init_sh_system(verbose):
         target_path = join(td, "conda.sh")
         conda_prefix = join(td, "b", "c")
         init_sh_system(target_path, conda_prefix)
-        with open(target_path) as fh:
+        with open_utf8(target_path) as fh:
             content = fh.read().strip().splitlines()
         assert content[0] == "# >>> conda initialize >>>"
         assert (
@@ -1101,3 +1406,35 @@ def test_init_all(conda_cli: CondaCLIFixture):
     assert stdout
     assert not stderr
     assert not err
+
+
+@pytest.mark.parametrize(
+    "init_func",
+    [
+        pytest.param(init_sh_system, id="init_sh_system"),
+        pytest.param(init_sh_user, id="init_sh_user"),
+        pytest.param(init_fish_user, id="init_fish_user"),
+        pytest.param(init_powershell_user, id="init_powershell_user"),
+        pytest.param(init_xonsh_user, id="init_xonsh_user"),
+    ],
+)
+def test_init_condabin(conda_cli: CondaCLIFixture, tmp_path, init_func):
+    profile = (
+        tmp_path / f"profile.{'ps1' if init_func == init_powershell_user else 'sh'}"
+    )
+    prefix = tmp_path / "conda"
+    condabin_path = str(prefix / "condabin")
+    if on_win and init_func != init_powershell_user:
+        condabin_path = win_path_to_unix(condabin_path)
+    if init_func == init_sh_user:
+        kwargs_list = [{"shell": shell} for shell in ("bash", "zsh", "csh")]
+    else:
+        kwargs_list = [{}]
+    for kwargs in kwargs_list:
+        init_func(
+            profile,
+            conda_prefix=tmp_path / "conda",
+            content_type="add_condabin_to_path",
+            **kwargs,
+        )
+        assert condabin_path in profile.read_text()

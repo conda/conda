@@ -48,7 +48,7 @@ def update_file_in_place_as_binary(file_full_path, callback):
             fh.truncate()
             return True
         except CancelOperation:
-            pass  # NOQA
+            pass
     finally:
         if fh:
             fh.close()

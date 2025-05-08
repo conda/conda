@@ -18,7 +18,7 @@ from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
 from ..common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_leaf_directories,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -220,7 +220,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                     raise CondaError(
                         "Unable to determine python site-packages "
                         "dir in target_prefix!\nPlease make sure "
-                        "python is installed in %s" % target_prefix
+                        f"python is installed in {target_prefix}"
                     )
                 target_short_path = get_python_noarch_target_path(
                     source_path_data.path, sp_dir
@@ -305,7 +305,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_directory = context.conda_prefix
         source_short_path = "Scripts/conda.exe"
         command, _, _ = parse_entry_point_def(entry_point_def)
-        target_short_path = "Scripts/%s.exe" % command
+        target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
             _path=target_short_path,
             path_type=PathType.windows_python_entry_point_exe,
@@ -348,7 +348,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         if self.link_type != LinkType.directory and not lexists(
             self.source_full_path
-        ):  # pragma: no cover  # NOQA
+        ):  # pragma: no cover
             return CondaVerificationError(
                 dals(
                     f"""
@@ -593,32 +593,6 @@ class MakeMenuAction(CreateInPrefixPathAction):
             make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
-class CreateNonadminAction(CreateInPrefixPathAction):
-    @classmethod
-    def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
-    ):
-        if on_win and lexists(join(context.root_prefix, ".nonadmin")):
-            return (cls(transaction_context, package_info, target_prefix),)
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, target_prefix):
-        super().__init__(
-            transaction_context, package_info, None, None, target_prefix, ".nonadmin"
-        )
-        self._file_created = False
-
-    def execute(self):
-        log.log(TRACE, "touching nonadmin %s", self.target_full_path)
-        self._file_created = touch(self.target_full_path)
-
-    def reverse(self):
-        if self._file_created:
-            log.log(TRACE, "removing nonadmin file %s", self.target_full_path)
-            rm_rf(self.target_full_path)
-
-
 class CompileMultiPycAction(MultiPathAction):
     @classmethod
     def create_actions(
@@ -765,7 +739,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = f"{get_bin_directory_short_path()}/{command}"
+                target_short_path = f"{BIN_DIRECTORY}/{command}"
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func
@@ -866,7 +840,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         all_link_path_actions,
     ):
         extracted_package_dir = package_info.extracted_package_dir
-        target_short_path = "conda-meta/%s.json" % basename(extracted_package_dir)
+        target_short_path = f"conda-meta/{basename(extracted_package_dir)}.json"
         return (
             cls(
                 transaction_context,
@@ -1047,7 +1021,7 @@ class RegisterEnvironmentLocationAction(PathAction):
             touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
             self._verified = True
         except NotWritableError:
-            log.warn(
+            log.warning(
                 "Unable to create environments file. Path not writable.\n"
                 "  environment location: %s\n",
                 user_environments_txt_file,
@@ -1392,9 +1366,9 @@ class ExtractPackageAction(PathAction):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print(
-                "ERROR: Encountered corrupt package tarball at %s. Conda has "
+                f"ERROR: Encountered corrupt package tarball at {self.source_full_path}. Conda has "
                 "left it in place. Please report this to the maintainers "
-                "of the package." % self.source_full_path
+                "of the package."
             )
             sys.exit(1)
 

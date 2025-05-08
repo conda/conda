@@ -26,7 +26,7 @@ log = getLogger(__name__)
 SHEBANG_REGEX = (
     rb"^(#!"  # pretty much the whole match string
     rb"(?:[ ]*)"  # allow spaces between #! and beginning of the executable path
-    rb"(/(?:\\ |[^ \n\r\t])*)"  # the executable is the next text block without an escaped space or non-space whitespace character  # NOQA
+    rb"(/(?:\\ |[^ \n\r\t])*)"  # the executable is the next text block without an escaped space or non-space whitespace character
     rb"(.*)"  # the rest of the line can contain option flags
     rb")$"
 )  # end whole_shebang group
@@ -193,7 +193,7 @@ def replace_prefix(
                 subdir=subdir,
             )
         else:
-            raise CondaIOError("Invalid mode: %r" % mode)
+            raise CondaIOError(f"Invalid mode: {mode!r}")
     return data
 
 
@@ -250,7 +250,9 @@ def binary_replace(
         return match.group().replace(search, replacement) + b"\0" * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros)
+    pat = re.compile(
+        re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros, flags=re.DOTALL
+    )
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 

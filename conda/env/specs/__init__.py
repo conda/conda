@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Type, Union
+from typing import TYPE_CHECKING
 
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
@@ -11,11 +11,12 @@ from ...exceptions import (
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from .binstar import BinstarSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
 
-FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+if TYPE_CHECKING:
+    FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec]
+    SpecTypes = YamlFileSpec | RequirementsSpec
 
 
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
@@ -25,7 +26,7 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
     # Check extensions
-    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+    all_valid_exts = {*YamlFileSpec.extensions, *RequirementsSpec.extensions}
     _, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
@@ -39,18 +40,13 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
             return YamlFileSpec
         elif ext in RequirementsSpec.extensions:
             return RequirementsSpec
-    else:
-        raise EnvironmentFileNotFound(filename=filename)
-
-
-SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
+    raise EnvironmentFileNotFound(filename=filename)
 
 
 def detect(
-    name: str = None,
-    filename: str = None,
-    directory: str = None,
-    remote_definition: str = None,
+    name: str | None = None,
+    filename: str | None = None,
+    directory: str | None = None,
 ) -> SpecTypes:
     """
     Return the appropriate spec type to use.
@@ -58,13 +54,6 @@ def detect(
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
-    if remote_definition is not None:
-        spec = BinstarSpec(name=remote_definition)
-        if spec.can_handle():
-            return spec
-        else:
-            raise SpecNotFound(spec.msg)
-
     if filename is not None:
         spec_class = get_spec_class_from_file(filename)
         spec = spec_class(name=name, filename=filename, directory=directory)

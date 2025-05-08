@@ -19,13 +19,23 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib.ish import dals
+from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
+from ..deprecations import deprecated
 from ..exceptions import CondaValueError, PluginError
-from . import post_solves, solvers, subcommands, virtual_packages
+from . import (
+    post_solves,
+    prefix_data_loaders,
+    reporter_backends,
+    solvers,
+    subcommands,
+    virtual_packages,
+)
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from typing import Literal
 
     from requests.auth import AuthBase
@@ -40,7 +50,11 @@ if TYPE_CHECKING:
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
+        CondaPrefixDataLoader,
+        CondaPrefixDataLoaderCallable,
         CondaPreSolve,
+        CondaReporterBackend,
+        CondaRequestHeader,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
@@ -66,9 +80,9 @@ class CondaPluginManager(pluggy.PluginManager):
         super().__init__(project_name, *args, **kwargs)
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
-        self.get_cached_solver_backend = functools.lru_cache(maxsize=None)(
-            self.get_solver_backend
-        )
+        self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
+        self.get_cached_session_headers = functools.cache(self.get_session_headers)
+        self.get_cached_request_headers = functools.cache(self.get_request_headers)
 
     def get_canonical_name(self, plugin: object) -> str:
         # detect the fully qualified module name
@@ -104,7 +118,7 @@ class CondaPluginManager(pluggy.PluginManager):
             raise PluginError(
                 f"Error while loading conda plugin: "
                 f"{name or self.get_canonical_name(plugin)} ({err})"
-            )
+            ) from err
 
     def load_plugins(self, *plugins) -> int:
         """
@@ -142,9 +156,11 @@ class CondaPluginManager(pluggy.PluginManager):
                     # not using exc_info=True here since the CLI loggers are
                     # set up after CLI initialization and argument parsing,
                     # meaning that it comes too late to properly render
-                    # a traceback
+                    # a traceback; instead we pass exc_info conditionally on
+                    # context.verbosity
                     log.warning(
-                        f"Error while loading conda entry point: {entry_point.name} ({err})"
+                        f"Error while loading conda entry point: {entry_point.name} ({err})",
+                        exc_info=err if context.info else None,
                     )
                     continue
 
@@ -194,9 +210,29 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[CondaPostSolve]: ...
 
     @overload
+    def get_hook_results(
+        self, name: Literal["session_headers"], *, host: str
+    ) -> list[CondaRequestHeader]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["request_headers"], *, host: str, path: str
+    ) -> list[CondaRequestHeader]: ...
+
+    @overload
     def get_hook_results(self, name: Literal["settings"]) -> list[CondaSetting]: ...
 
-    def get_hook_results(self, name):
+    @overload
+    def get_hook_results(
+        self, name: Literal["reporter_backends"]
+    ) -> list[CondaReporterBackend]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["prefix_data_loaders"]
+    ) -> list[CondaPrefixDataLoader]: ...
+
+    def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
         raise an error if there is a conflict.
@@ -206,7 +242,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = [item for items in hook() for item in items]
+        plugins = [item for items in hook(**kwargs) for item in items]
 
         # Check for invalid names
         invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
@@ -216,7 +252,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"""
                     Invalid plugin names found:
 
-                    {', '.join([str(plugin) for plugin in invalid])}
+                    {", ".join([str(plugin) for plugin in invalid])}
 
                     Please report this issue to the plugin author(s).
                     """
@@ -235,7 +271,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"""
                     Conflicting `{name}` plugins found:
 
-                    {', '.join([str(conflict) for conflict in conflicts])}
+                    {", ".join([str(conflict) for conflict in conflicts])}
 
                     Multiple conda plugins are registered via the `{specname}` hook.
                     Please make sure that you don't have any incompatible plugins installed.
@@ -339,8 +375,60 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    @deprecated(
+        "25.3",
+        "25.9",
+        addendum="Use `conda.plugins.manager.get_virtual_package_records` instead.",
+    )
     def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
         return tuple(self.get_hook_results("virtual_packages"))
+
+    def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
+        return tuple(self.get_hook_results("reporter_backends"))
+
+    def get_reporter_backend(self, name: str) -> CondaReporterBackend:
+        """
+        Attempts to find a reporter backend while providing a fallback option if it is
+        not found.
+
+        This method must return a valid ``CondaReporterBackend`` object or else it will
+        raise an exception.
+        """
+        reporter_backends_map = {
+            reporter_backend.name: reporter_backend
+            for reporter_backend in self.get_reporter_backends()
+        }
+        reporter_backend = reporter_backends_map.get(name, None)
+        if reporter_backend is None:
+            log.warning(
+                f'Unable to find reporter backend: "{name}"; '
+                f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
+            )
+            return reporter_backends_map.get(DEFAULT_CONSOLE_REPORTER_BACKEND)
+        else:
+            return reporter_backend
+
+    def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
+        return tuple(
+            hook.to_virtual_package()
+            for hook in self.get_hook_results("virtual_packages")
+        )
+
+    def get_session_headers(self, host: str) -> dict[str, str]:
+        return {
+            hook.name: hook.value
+            for hook in self.get_hook_results("session_headers", host=host)
+        }
+
+    def get_request_headers(self, host: str, path: str) -> dict[str, str]:
+        return {
+            hook.name: hook.value
+            for hook in self.get_hook_results("request_headers", host=host, path=path)
+        }
+
+    def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
+        for hook in self.get_hook_results("prefix_data_loaders"):
+            yield hook.loader
 
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
@@ -389,7 +477,7 @@ class CondaPluginManager(pluggy.PluginManager):
             add_plugin_setting(name, parameter, aliases)
 
 
-@functools.lru_cache(maxsize=None)  # FUTURE: Python 3.9+, replace w/ functools.cache
+@functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
     Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,
@@ -403,6 +491,8 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         health_checks,
         *post_solves.plugins,
+        *reporter_backends.plugins,
+        *prefix_data_loaders.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager
