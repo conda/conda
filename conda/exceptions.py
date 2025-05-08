@@ -1368,6 +1368,12 @@ class SpecNotFoundInPackageCache(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentSectionNotValid(CondaError):
+    def __init__(self, filename: str, sections: list[str],plural: str, verb: str, *args, **kwargs):
+        msg = f"The following section{plural} on '{filename}' {verb} invalid and will be ignored: {dashlist(sections)}"
+        super().__init__(msg, *args, **kwargs)
+
+
 def maybe_raise(error: BaseException, context: Context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)

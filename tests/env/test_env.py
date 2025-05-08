@@ -19,7 +19,7 @@ from conda.env.env import (
     from_environment,
     from_file,
 )
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, EnvironmentSectionNotValid
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -309,6 +309,12 @@ def test_invalid_keys():
     e_dict = e.to_dict()
     assert "name" in e_dict
     assert len(e_dict) == 1
+
+
+def test_strict_invalid_keys():
+    file = support_file("invalid_keys.yml")
+    with pytest.raises(EnvironmentSectionNotValid):
+        from_file(file, strict=True)
 
 
 def test_creates_file_on_save(tmp_path: Path):

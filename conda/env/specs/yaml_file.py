@@ -50,6 +50,8 @@ class YamlFileSpec(EnvironmentSpecBase):
         except Exception:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
             return False
+        except Exception as e:
+            return False
 
     @property
     @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
