@@ -54,9 +54,7 @@ def _subdir_is_win(subdir: str) -> bool:
     Determine if the given `subdir` corresponds to a Windows operating system.
 
     :param subdir: The subdirectory name which may contain an OS identifier.
-    :type subdir: str
     :return: Returns True if `subdir` indicates a Windows OS; otherwise, False.
-    :rtype: bool
     """
     if "-" in subdir:
         os, _ = subdir.lower().split("-", 1)
@@ -77,15 +75,10 @@ def update_prefix(
     Update the prefix in a file or directory.
 
     :param path: The path to the file or directory.
-    :type path: str
     :param new_prefix: The new prefix to replace the old prefix with.
-    :type new_prefix: str
     :param placeholder: The placeholder to use for the old prefix. Defaults to PREFIX_PLACEHOLDER.
-    :type placeholder: str, optional
     :param mode: The file mode. Defaults to FileMode.text.
-    :type mode: FileMode, optional
     :param subdir: The subdirectory. Defaults to context.subdir.
-    :type subdir: str, optional
     """
     if _subdir_is_win(subdir) and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
@@ -97,9 +90,8 @@ def update_prefix(
         A function that updates the prefix in a file or directory.
 
         :param original_data: The original data to be updated.
-        :type original_data: any
+
         :return: The updated data after prefix replacement.
-        :rtype: any
         """
         # Step 1. do all prefix replacement
         data = replace_prefix(mode, original_data, placeholder, new_prefix, subdir)
@@ -150,17 +142,11 @@ def replace_prefix(
     More information/discussion available here: https://github.com/conda/conda/pull/9946
 
     :param mode: The mode of operation.
-    :type mode: str
     :param original_data: The original data to be updated.
-    :type original_data: Any
     :param placeholder: The placeholder to be replaced.
-    :type placeholder: str
     :param new_prefix: The new prefix to be used.
-    :type new_prefix: str
     :param subdir: The subdirectory to be used.
-    :type subdir: str
     :return: The updated data after prefix replacement.
-    :rtype: Any
     """
     for encoding in POPULAR_ENCODINGS:
         if mode == FileMode.text:
@@ -208,17 +194,11 @@ def binary_replace(
     Replaces occurrences of a search string with a replacement string in a given byte string.
 
     :param data: The byte string in which to perform the replacements.
-    :type data: bytes
     :param search: The string to search for in the byte string.
-    :type search: bytes
     :param replacement: The string to replace occurrences of the search string with.
-    :type replacement: bytes
     :param encoding: The encoding to use when encoding and decoding strings. Defaults to "utf-8".
-    :type encoding: str
     :param subdir: The subdirectory to search for. Defaults to "noarch".
-    :type subdir: str
     :return: The byte string with the replacements made.
-    :rtype: bytes
     :raises _PaddingError: If the padding calculation results in a negative value.
 
     This function performs replacements only for pyzzer-type entry points on Windows.
@@ -238,9 +218,8 @@ def binary_replace(
         Replaces occurrences of the search string with the replacement string in a matched group.
 
         :param match: The matched group containing the search string.
-        :type match: re.Match
+
         :return: The replaced string with padding.
-        :rtype: bytes
         :raises _PaddingError: If the padding calculation results in a negative value.
         """
         occurrences = match.group().count(search)
@@ -264,9 +243,7 @@ def has_pyzzer_entry_point(data: bytes) -> bool:
     Check if the given byte string contains a pyzzer entry point.
 
     :param data: The byte string to check.
-    :type data: bytes
     :return: True if the byte string contains a pyzzer entry point, False otherwise.
-    :rtype: bool
     """
     pos: int = data.rfind(b"PK\x05\x06")
     return pos >= 0
@@ -282,13 +259,9 @@ def replace_pyzzer_entry_point_shebang(
     https://bitbucket.org/vinay.sajip/pyzzer/src/5d5740cb04308f067d5844a56fbe91e7a27efccc/pyzzer/__init__.py?at=default&fileviewer=file-view-default#__init__.py-112  # NOQA
 
     :param all_data: The byte string to search for the entry point.
-    :type all_data: bytes
     :param placeholder: The placeholder string to search for in the entry point.
-    :type placeholder: bytes
     :param new_prefix: The new prefix to replace the placeholder string with.
-    :type new_prefix: str
     :return: The updated byte string with the replaced shebang.
-    :rtype: bytes
     """
     # Copyright (c) 2013 Vinay Sajip.
     #
@@ -338,11 +311,8 @@ def replace_long_shebang(mode: FileMode, data: bytes) -> bytes:
     Replace long shebang lines in text mode with a shorter one.
 
     :param mode: The file mode.
-    :type mode: FileMode
     :param data: The byte string to search for the entry point.
-    :type data: bytes
     :return: The updated byte string with the replaced shebang.
-    :rtype: bytes
     """
     # this function only changes a shebang line if it exists and is greater than 127 characters
     if mode == FileMode.text:
@@ -379,11 +349,8 @@ def generate_shebang_for_entry_point(
     - conda init uses it to create its own entry point during conda-build
 
     :param executable: The path to the Python executable.
-    :type executable: str
     :param with_usr_bin_env: Whether to use the `/usr/bin/env` approach.
-    :type with_usr_bin_env: bool
     :return: The generated shebang line.
-    :rtype: str
     """
     shebang = f"#!{executable}\n"
     if os.environ.get("CONDA_BUILD") == "1" and "/_h_env_placehold" in executable:
