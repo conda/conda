@@ -45,6 +45,3 @@ rever/
 
 # setuptools-scm
 conda/_version.py
-
-# test artifact
-test_env.yml

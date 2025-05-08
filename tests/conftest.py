@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import ExitStack, contextmanager
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -207,6 +208,8 @@ def mock_context_attributes() -> Callable:
                     param = ParameterLoader(
                         PrimitiveParameter(value, element_type=(str, NoneType))
                     )
+                elif isinstance(value, Enum):
+                    param = ParameterLoader(PrimitiveParameter(value))
                 elif isinstance(value, tuple):
                     param = ParameterLoader(
                         SequenceParameter(

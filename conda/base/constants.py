@@ -390,3 +390,7 @@ class PkgEnvLayout(Enum, metaclass=PkgEnvLayoutMeta):
     UNSET = None
     CONDA_ROOT = "conda_root"
     USER = "user"
+
+    @property
+    def __name__(self):
+        return self.name

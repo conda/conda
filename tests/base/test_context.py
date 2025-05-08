@@ -1113,17 +1113,19 @@ def test_pkgs(
         with caplog.at_level(logging.INFO):
             result = context.pkgs_dirs
 
+        # Ensure that no envs_dirs are in the result (syntax is very similar)
+        assert {USER_DATA_ENVS, context.root_prefix_envs} & set(result) == set()
+
         if pkgs_dirs:
             assert set(result) == set(pkgs_dirs)
             mock_pkgs.assert_not_called()
         else:
+            mock_pkgs.assert_called_once()
+
             if pkgs_in_root_prefix:
                 # No matter what if there are pkgs/ in the root prefix
-                # we use those
+                # we include those
                 assert context.root_prefix_pkgs in result
-
-                if not on_win:
-                    assert context.user_data_pkgs not in result
 
                 if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user, issue a warning
@@ -1131,21 +1133,35 @@ def test_pkgs(
                     # the root prefix
                     assert len(caplog.records) == 1
                     assert (
-                        "consider migrating the existing packages"
+                        "Consider migrating the existing packages"
                         in caplog.records[0].message
                     )
-                    mock_pkgs.assert_called_once()
+
+                    # Both the root prefix packages and the user
+                    # data packages should be present
+                    assert context.user_data_pkgs in result
                 elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset, we don't issue
                     # a warning if there are pkgs/ in the root prefix
                     assert len(caplog.records) == 0
-                    mock_pkgs.assert_called_once()
+
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
+                        assert context.user_data_pkgs not in result
                 else:
                     # If pkg_env_layout is conda_root, just return
                     # the root prefix pkgs, no questions asked
                     assert len(caplog.records) == 0
-                    assert mock_pkgs.call_count == 0
 
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
+                        assert context.user_data_pkgs not in result
             else:
                 if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user and there's no
@@ -1153,7 +1169,6 @@ def test_pkgs(
                     # the user data directory
                     assert (context.user_data_pkgs,) == result
                     assert len(caplog.records) == 0
-                    mock_pkgs.assert_called_once()
                 elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset and there's no
                     # packages in the root prefix, warn the user
@@ -1164,12 +1179,13 @@ def test_pkgs(
                         "current location of `pkgs_dirs` resides"
                         in caplog.records[0].message
                     )
-                    mock_pkgs.assert_called_once()
                     assert context.root_prefix_pkgs in result
 
-                    # On windows, USER_DATA_DIR/pkgs/ gets added
-                    # to pkgs_envs regardless of any user setting
-                    if not on_win:
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
                         assert context.user_data_pkgs not in result
                 else:
                     # If pkg_env_layout is conda_root, just return
@@ -1177,7 +1193,11 @@ def test_pkgs(
                     assert len(caplog.records) == 0
 
                     assert context.root_prefix_pkgs in result
-                    if not on_win:
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
                         assert context.user_data_pkgs not in result
 
 
@@ -1226,6 +1246,9 @@ def test_envs(
         with caplog.at_level(logging.INFO):
             result = context.envs_dirs
 
+        # Ensure that no pkgs_dirs are in the result (syntax is very similar)
+        assert {context.user_data_pkgs, context.root_prefix_pkgs} & set(result) == set()
+
         # On windows, `USER_DATA_ENVS` gets injected into the environments
         # regardless of any user setting
         if on_win:
@@ -1235,13 +1258,12 @@ def test_envs(
             assert set(result) >= set(envs_dirs)
             mock_envs.assert_not_called()
         else:
+            mock_envs.assert_called_once()
+
             if envs_in_root_prefix:
                 # No matter what if there are envs/ in the root prefix
                 # we use those
                 assert context.root_prefix_envs in result
-
-                if not on_win:
-                    assert USER_DATA_ENVS not in result
 
                 if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user, issue a warning
@@ -1249,29 +1271,39 @@ def test_envs(
                     # the root prefix
                     assert len(caplog.records) == 1
                     assert (
-                        "consider migrating the existing packages"
+                        "Consider migrating the existing packages"
                         in caplog.records[0].message
                     )
-                    mock_envs.assert_called_once()
+
+                    assert USER_DATA_ENVS in result
                 elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset, we don't issue
                     # a warning if there are envs/ in the root prefix
                     assert len(caplog.records) == 0
-                    mock_envs.assert_called_once()
+
+                    assert context.root_prefix_envs in result
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
+                        assert USER_DATA_ENVS not in result
                 else:
                     # If pkg_env_layout is conda_root, just return
                     # the root prefix envs, no questions asked
                     assert len(caplog.records) == 0
-                    assert mock_envs.call_count == 0
+                    assert context.root_prefix_envs in result
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
+                        assert USER_DATA_ENVS not in result
 
             else:
                 if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user and there's no
                     # packages in the root prefix, just return
                     # the user data directory
-                    assert USER_DATA_ENVS in result
                     assert len(caplog.records) == 0
-                    mock_envs.assert_called_once()
+                    assert USER_DATA_ENVS in result
+                    assert context.root_prefix_envs not in result
                 elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset and there's no
                     # packages in the root prefix, warn the user
@@ -1282,14 +1314,17 @@ def test_envs(
                         "current location of `envs_dirs` resides"
                         in caplog.records[0].message
                     )
-                    mock_envs.assert_called_once()
                     assert context.root_prefix_envs in result
-                    if not on_win:
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
                         assert USER_DATA_ENVS not in result
                 else:
                     # If pkg_env_layout is conda_root, just return
                     # the root prefix envs, no questions asked
                     assert len(caplog.records) == 0
                     assert context.root_prefix_envs in result
-                    if not on_win:
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
                         assert USER_DATA_ENVS not in result

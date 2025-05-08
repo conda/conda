@@ -761,7 +761,7 @@ class Context(Configuration):
         return False
 
     @property
-    def envs_dirs(self) -> tuple[os.PathLike, ...]:
+    def envs_dirs(self) -> tuple[os.PathLike | str, ...]:
         """Get the env_dirs for the environment.
 
         :return: Directories where envs are stored
@@ -786,26 +786,30 @@ class Context(Configuration):
                 dict.fromkeys(expand(path) for path in (*self._envs_dirs, *fixed_dirs))
             )
 
+        has_root_envs = any(self._envs_in_root_prefix())
+        dirs: list[os.PathLike | str] = []
+
         if self.pkg_env_layout == PkgEnvLayout.USER:
             # user has not specified directories, but wants to use the user data directory
 
-            if any(self._envs_in_root_prefix()):
-                # There are still envs/ in the root prefix; fall back to use these,
-                # and warn the user
-                log.warning(
-                    f"The root prefix has an envs/ directory ({self.root_prefix_envs}), "
-                    "but conda is configured to use the user data directory "
-                    f"({USER_DATA_ENVS}). Falling back to the root prefix envs/; "
-                    "consider migrating the existing packages with "
-                    "`conda config --migrate-envs`."
-                )
-            else:
+            if not has_root_envs:
                 return (USER_DATA_ENVS,)
 
-        if self.pkg_env_layout == PkgEnvLayout.UNSET:
-            # If pkgs_env_layout is unset, fall back on the root prefix location
+            # There are still envs/ in the root prefix; fall back to use these,
+            # and warn the user
+            log.warning(
+                f"The root prefix has an envs/ directory ({self.root_prefix_envs}), "
+                "but conda is configured to use the user data directory "
+                f"({USER_DATA_ENVS}). Directories from both the user data "
+                "directory and the root prefix will be returned. Consider migrating "
+                "the existing packages with `conda config --migrate-envs`."
+            )
+            dirs.append(USER_DATA_ENVS)
 
-            if not any(self._envs_in_root_prefix()):
+        if self.pkg_env_layout == PkgEnvLayout.UNSET:
+            # If pkg_env_layout is unset, fall back on the root prefix location
+
+            if not has_root_envs:
                 # If there are no envs/ in the root prefix, continue using
                 # the root prefix to store envs/ until the deprecation cycle is complete
                 # but warn the user
@@ -818,21 +822,25 @@ class Context(Configuration):
                 )
 
         if self.root_writable:
-            fixed_dirs = [
-                self.root_prefix_envs,
-                join("~", ".conda", "envs"),
-            ]
+            dirs.extend(
+                [
+                    self.root_prefix_envs,
+                    expand(join("~", ".conda", "envs")),
+                ]
+            )
         else:
-            fixed_dirs = [
-                join("~", ".conda", "envs"),
-                self.root_prefix_envs,
-            ]
+            dirs.extend(
+                [
+                    expand(join("~", ".conda", "envs")),
+                    self.root_prefix_envs,
+                ]
+            )
         if on_win:
-            fixed_dirs.append(USER_DATA_ENVS)
-        return tuple(dict.fromkeys(expand(path) for path in fixed_dirs))
+            dirs.append(USER_DATA_ENVS)
+        return tuple(dict.fromkeys(dirs))
 
     @property
-    def pkgs_dirs(self) -> tuple[os.PathLike, ...]:
+    def pkgs_dirs(self) -> tuple[os.PathLike | str, ...]:
         """Get the pkgs_dirs for the environment.
 
         :return: Directories where downloaded packages are stored
@@ -841,26 +849,30 @@ class Context(Configuration):
             # User has already specified what directories to use
             return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
 
+        has_root_pkgs = any(self._pkgs_in_root_prefix())
+        dirs: list[os.PathLike | str] = []
+
         if self.pkg_env_layout == PkgEnvLayout.USER:
             # User has not specified directories, but wants to use user data directory
 
-            if any(self._pkgs_in_root_prefix()):
-                # There are still pkgs/ in the root prefix; fall back to use these,
-                # and warn the user
-                log.warning(
-                    f"The root prefix has a pkgs/ directory ({self.root_prefix_pkgs}), "
-                    "but conda is configured to use the user data directory "
-                    f"({self.user_data_pkgs}). Falling back to the root prefix pkgs/; "
-                    "consider migrating the existing packages with "
-                    "`conda config --migrate-pkgs`."
-                )
-            else:
+            if not has_root_pkgs:
                 return (self.user_data_pkgs,)
+
+            # There are still pkgs/ in the root prefix; warn the user,
+            # and include the root prefix pkgs in the return value.
+            log.warning(
+                f"The root prefix has a pkgs/ directory ({self.root_prefix_pkgs}), "
+                "but conda is configured to use the user data directory "
+                f"({self.user_data_pkgs}). Directories from both the user data "
+                "directory and the root prefix will be returned. Consider migrating "
+                "the existing packages with `conda config --migrate-pkgs`."
+            )
+            dirs.append(self.user_data_pkgs)
 
         if self.pkg_env_layout == PkgEnvLayout.UNSET:
             # If pkgs_env_layout is unset, fall back on the root prefix location
 
-            if not any(self._pkgs_in_root_prefix()):
+            if not has_root_pkgs:
                 # If there are no pkgs/ in the root prefix, continue using
                 # the root prefix to store pkgs/ until the deprecation cycle is complete
                 # but warn the user
@@ -872,17 +884,14 @@ class Context(Configuration):
                     "warning run `conda config set pkg_env_layout conda_root`. "
                 )
 
-        fixed_dirs = [join("~", ".conda")]
-        if on_win:
-            fixed_dirs.append(USER_DATA_DIR)
-        return tuple(
-            dict.fromkeys(
-                (
-                    self.root_prefix_pkgs,
-                    *(expand(join(path, self._cache_dir_name)) for path in fixed_dirs),
-                )
-            )
+        dirs.append(
+            str((Path("~") / ".conda" / self._cache_dir_name).expanduser().resolve())
         )
+        if on_win:
+            dirs.append(self.user_data_pkgs)
+
+        dirs.append(self.root_prefix_pkgs)
+        return tuple(dict.fromkeys(dirs))
 
     @property
     def _cache_dir_name(self) -> str:
@@ -2142,11 +2151,11 @@ class Context(Configuration):
 
     @property
     def root_prefix_pkgs(self) -> os.PathLike[str]:
-        return expand(join(self.root_prefix, "pkgs32" if self.force_32bit else "pkgs"))
+        return expand(join(self.root_prefix, self._cache_dir_name))
 
     @property
     def user_data_pkgs(self) -> os.PathLike[str]:
-        return expand(join(USER_DATA_DIR, "pkgs32" if self.force_32bit else "pkgs"))
+        return expand(join(USER_DATA_DIR, self._cache_dir_name))
 
 
 def reset_context(
