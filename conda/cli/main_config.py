@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any
 
-    from conda.base.context import Context
+    from ..base.context import Context
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
