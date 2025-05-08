@@ -10,7 +10,6 @@ from logging import getLogger
 from threading import local
 from typing import TYPE_CHECKING
 
-from ... import CondaError
 from ...auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
@@ -20,24 +19,23 @@ from ...common.url import (
     split_anaconda_token,
     urlparse,
 )
-from ...exceptions import OfflineError, ProxyError
+from ...exceptions import ProxyError
 from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
     AuthBase,
-    BaseAdapter,
     CaseInsensitiveDict,
-    Retry,
     Session,
     _basic_auth_str,
     extract_cookies_to_jar,
     get_auth_from_url,
     get_netrc_auth,
 )
-from .adapters.ftp import FTPAdapter
-from .adapters.http import HTTPAdapter
-from .adapters.localfs import LocalFSAdapter
-from .adapters.s3 import S3Adapter
+from .adapters.ftp import FTPAdapter  # noqa
+from .adapters.http import HTTPAdapter  # noqa
+from .adapters.localfs import LocalFSAdapter  # noqa
+from .adapters.offline import OfflineAdapter
+from .adapters.s3 import S3Adapter  # noqa
 
 if TYPE_CHECKING:
     from requests.models import PreparedRequest, Request
@@ -55,17 +53,6 @@ CONDA_SESSION_SCHEMES = frozenset(
         "file",
     )
 )
-
-
-class EnforceUnusedAdapter(BaseAdapter):
-    def send(self, request: Request, *args, **kwargs):
-        raise OfflineError(
-            f"EnforceUnusedAdapter called with url {request.url}.\n"
-            "This command is using a remote connection in offline mode."
-        )
-
-    def close(self):
-        raise NotImplementedError()
 
 
 def get_channel_name_from_url(url: str) -> str | None:
@@ -180,46 +167,12 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
         self.proxies.update(context.proxy_servers)
 
-        ssl_context = None
-        if context.ssl_verify == "truststore":
-            try:
-                import ssl
+        self.mount_plugin_adapters()
 
-                import truststore
-
-                ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-            except ImportError:
-                raise CondaError(
-                    "The `ssl_verify: truststore` setting is only supported on"
-                    "Python 3.10 or later."
-                )
-            self.verify = True
-        else:
-            self.verify = context.ssl_verify
-
-        if context.offline:
-            unused_adapter = EnforceUnusedAdapter()
-            self.mount("http://", unused_adapter)
-            self.mount("https://", unused_adapter)
-            self.mount("ftp://", unused_adapter)
-            self.mount("s3://", unused_adapter)
-
-        else:
-            # Configure retries
-            retry = Retry(
-                total=context.remote_max_retries,
-                backoff_factor=context.remote_backoff_factor,
-                status_forcelist=[413, 429, 500, 503],
-                raise_on_status=False,
-                respect_retry_after_header=False,
-            )
-            http_adapter = HTTPAdapter(max_retries=retry, ssl_context=ssl_context)
-            self.mount("http://", http_adapter)
-            self.mount("https://", http_adapter)
-            self.mount("ftp://", FTPAdapter())
-            self.mount("s3://", S3Adapter())
-
-        self.mount("file://", LocalFSAdapter())
+        # setting the SSL verify value depending on whether an adapter
+        # as decreed it so by setting context.ssl_verify, or by relying on
+        # the default value from the context.
+        self.verify = context.ssl_verify
 
         self.headers["User-Agent"] = context.user_agent
 
@@ -227,6 +180,22 @@ class CondaSession(Session, metaclass=CondaSessionType):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+    def mount_plugin_adapters(self) -> None:
+        """
+        Registers the transport adapters to a prefix as registered
+        via the transport_adapters plugin hook.
+        """
+        offline_adapter = OfflineAdapter()
+        transport_adapters = context.plugin_manager.get_transport_adapters()
+        for transport_adapter in transport_adapters.values():
+            if context.offline and transport_adapter.scheme != "file":
+                adapter = offline_adapter
+            else:
+                adapter = transport_adapter.adapter
+                if callable(adapter):
+                    adapter = adapter()
+            self.mount(f"{transport_adapter.scheme}://", adapter)
 
     def prepare_request(self, request: Request) -> PreparedRequest:
         # inject headers from plugins if this is a https/http request

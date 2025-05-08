@@ -29,6 +29,7 @@ from . import (
     reporter_backends,
     solvers,
     subcommands,
+    transport_adapters,
     virtual_packages,
 )
 from .hookspec import CondaSpecs, spec_name
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
+        CondaTransportAdapter,
         CondaVirtualPackage,
     )
 
@@ -232,6 +234,11 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["prefix_data_loaders"]
     ) -> list[CondaPrefixDataLoader]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["transport_adapters"]
+    ) -> list[CondaTransportAdapter]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -375,6 +382,12 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    def get_transport_adapters(self) -> dict[str, CondaTransportAdapter]:
+        return {
+            transport_adapter.name.lower(): transport_adapter
+            for transport_adapter in self.get_hook_results("transport_adapters")
+        }
+
     @deprecated(
         "25.3",
         "25.9",
@@ -489,6 +502,7 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
+        *transport_adapters.plugins,
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
