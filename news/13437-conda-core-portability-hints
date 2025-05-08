@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Added type hints and doc strings to `conda.core.portability`. (#13820)
+* Added type hints and docstrings to `conda.core.portability`. (#13820)
 
 ### Other
 
