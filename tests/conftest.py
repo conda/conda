@@ -12,6 +12,7 @@ from unittest import mock
 import pytest
 
 import conda
+from conda.base.constants import PkgEnvLayout
 from conda.base.context import context, reset_context
 from conda.common.compat import NoneType
 from conda.common.configuration import (
@@ -111,7 +112,7 @@ def do_not_notify_outdated_conda(monkeypatch):
 @pytest.fixture(autouse=True)
 def automatically_use_conda_root_pkgs_envs(mock_context_attributes):
     """Do not notify about pkgs/ and envs/ in the root prefix during tests."""
-    with mock_context_attributes(pkg_env_layout="conda_root"):
+    with mock_context_attributes(pkg_env_layout=PkgEnvLayout.CONDA_ROOT):
         yield
 
 

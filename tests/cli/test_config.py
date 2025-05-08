@@ -949,7 +949,7 @@ def test_migrate_pkgs(
     with (
         mock_context_attributes(
             _pkgs_dirs=(),
-            pkg_env_layout=PkgEnvLayout.UNSET.value,
+            pkg_env_layout=PkgEnvLayout.UNSET,
             always_copy=False,
         ),
         mock.patch(
@@ -991,7 +991,7 @@ def test_migrate_pkgs(
         mock_hardlink.assert_not_called()
 
         # Okay, now the user sets `conda config set pkg_env_layout user`
-        with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER.value):
+        with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER):
             conda_cli("config", "--migrate-pkgs")
 
             mock_hardlink.assert_called_once_with(
@@ -1018,7 +1018,7 @@ def test_migrate_envs(
     """Test that migrating the environments works as intended."""
     with mock_context_attributes(
         _envs_dirs=(),
-        pkg_env_layout=PkgEnvLayout.UNSET.value,
+        pkg_env_layout=PkgEnvLayout.UNSET,
     ):
         # Ensure there are no envs at USER_DATA_ENVS
         shutil.rmtree(USER_DATA_ENVS, ignore_errors=True)
@@ -1058,7 +1058,7 @@ def test_migrate_envs(
                     conda_cli("config", "--migrate-envs")
 
                 # Okay, now the user sets `conda config set pkg_env_layout user`
-                with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER.value):
+                with mock_context_attributes(pkg_env_layout=PkgEnvLayout.USER):
                     reset_context()
 
                     # If there are envs in the root prefix and the pkg_env_layout is
@@ -1096,7 +1096,7 @@ def test_ignore_migrate_pkgs(
     with (
         mock_context_attributes(
             _pkgs_dirs=(),
-            pkg_env_layout=PkgEnvLayout.UNSET.value,
+            pkg_env_layout=PkgEnvLayout.UNSET,
         ),
         mock.patch(
             "conda.base.context.Context.root_prefix_pkgs",
@@ -1153,7 +1153,7 @@ def test_ignore_migrate_envs(
     with (
         mock_context_attributes(
             _envs_dirs=(),
-            pkg_env_layout=PkgEnvLayout.UNSET.value,
+            pkg_env_layout=PkgEnvLayout.UNSET,
         ),
         mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
     ):
@@ -1205,7 +1205,7 @@ def test_migrate_pkgs_pointless(
     with (
         mock_context_attributes(
             _pkgs_dirs=(),
-            pkg_env_layout=PkgEnvLayout.USER.value,
+            pkg_env_layout=PkgEnvLayout.USER,
         ),
         mock.patch(
             "conda.base.context.Context.root_prefix_pkgs",
@@ -1236,7 +1236,7 @@ def test_migrate_pkgs_always_copy(
     with (
         mock_context_attributes(
             _pkgs_dirs=(),
-            pkg_env_layout=PkgEnvLayout.USER.value,
+            pkg_env_layout=PkgEnvLayout.USER,
             always_copy=True,
         ),
         mock.patch(

@@ -786,7 +786,7 @@ class Context(Configuration):
                 dict.fromkeys(expand(path) for path in (*self._envs_dirs, *fixed_dirs))
             )
 
-        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
+        if self.pkg_env_layout == PkgEnvLayout.USER:
             # user has not specified directories, but wants to use the user data directory
 
             if any(self._envs_in_root_prefix()):
@@ -802,7 +802,7 @@ class Context(Configuration):
             else:
                 return (USER_DATA_ENVS,)
 
-        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
+        if self.pkg_env_layout == PkgEnvLayout.UNSET:
             # If pkgs_env_layout is unset, fall back on the root prefix location
 
             if not any(self._envs_in_root_prefix()):
@@ -841,7 +841,7 @@ class Context(Configuration):
             # User has already specified what directories to use
             return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
 
-        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.USER:
+        if self.pkg_env_layout == PkgEnvLayout.USER:
             # User has not specified directories, but wants to use user data directory
 
             if any(self._pkgs_in_root_prefix()):
@@ -857,7 +857,7 @@ class Context(Configuration):
             else:
                 return (self.user_data_pkgs,)
 
-        if PkgEnvLayout(self.pkg_env_layout) == PkgEnvLayout.UNSET:
+        if self.pkg_env_layout == PkgEnvLayout.UNSET:
             # If pkgs_env_layout is unset, fall back on the root prefix location
 
             if not any(self._pkgs_in_root_prefix()):

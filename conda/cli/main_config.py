@@ -852,7 +852,7 @@ def migrate_pkgs(context, _config: dict):
         )
 
     layout = context.pkg_env_layout
-    if layout != PkgEnvLayout.USER.value:
+    if layout != PkgEnvLayout.USER:
         raise CondaError(
             f"The conda configuration for pkg_env_layout is set to {layout}; "
             "Unless this setting is changed with `conda config set pkg_env_layout user` "
@@ -917,7 +917,7 @@ def migrate_envs(context, _config: dict):
         )
 
     layout = context.pkg_env_layout
-    if layout != PkgEnvLayout.USER.value:
+    if layout != PkgEnvLayout.USER:
         raise CondaError(
             f"The conda configuration for pkg_env_layout is set to {layout}; "
             "Unless this setting is changed with `conda config set pkg_env_layout user` "

@@ -891,9 +891,9 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 @pytest.mark.parametrize(
     "pkg_env_layout",
     [
-        PkgEnvLayout.USER.value,
-        PkgEnvLayout.CONDA_ROOT.value,
-        PkgEnvLayout.UNSET.value,
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
     ],
 )
 def test_pkg_env_layout(
@@ -915,7 +915,7 @@ def test_pkg_env_layout(
         mock_envs.return_value = []
         mock_pkgs.return_value = []
 
-        if pkg_env_layout == PkgEnvLayout.USER.value:
+        if pkg_env_layout == PkgEnvLayout.USER:
             basename = Path(USER_DATA_DIR)
         else:
             basename = Path(context.root_prefix)
@@ -930,9 +930,9 @@ def test_pkg_env_layout(
 @pytest.mark.parametrize(
     "pkg_env_layout",
     [
-        PkgEnvLayout.USER.value,
-        PkgEnvLayout.CONDA_ROOT.value,
-        PkgEnvLayout.UNSET.value,
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
     ],
 )
 def test_set_pkgs_envs_default_dirs(
@@ -950,7 +950,7 @@ def test_set_pkgs_envs_default_dirs(
         _pkgs_dirs=(pkgs,),
         _envs_dirs=(envs,),
     ):
-        if pkg_env_layout == PkgEnvLayout.USER.value:
+        if pkg_env_layout == PkgEnvLayout.USER:
             basename = Path(USER_DATA_DIR)
         else:
             basename = Path(context.root_prefix)
@@ -990,7 +990,7 @@ def test_pkgs_envs_old_default_dirs(
 
     with (
         mock_context_attributes(
-            pkg_env_layout=PkgEnvLayout.UNSET.value,
+            pkg_env_layout=PkgEnvLayout.UNSET,
             _pkgs_dirs=(),
             _envs_dirs=(),
         ),
@@ -1032,9 +1032,9 @@ def test_pkgs_envs_old_default_dirs(
 @pytest.mark.parametrize(
     "pkg_env_layout",
     [
-        PkgEnvLayout.USER.value,
-        PkgEnvLayout.CONDA_ROOT.value,
-        PkgEnvLayout.UNSET.value,
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
     ],
 )
 def test_pkgs_envs_configured(
@@ -1086,9 +1086,9 @@ def test_pkgs_envs_configured(
 @pytest.mark.parametrize(
     "pkg_env_layout",
     [
-        PkgEnvLayout.USER.value,
-        PkgEnvLayout.CONDA_ROOT.value,
-        PkgEnvLayout.UNSET.value,
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
     ],
 )
 def test_pkgs(
@@ -1125,7 +1125,7 @@ def test_pkgs(
                 if not on_win:
                     assert context.user_data_pkgs not in result
 
-                if pkg_env_layout == PkgEnvLayout.USER.value:
+                if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user, issue a warning
                     # message if there are still packages in
                     # the root prefix
@@ -1135,7 +1135,7 @@ def test_pkgs(
                         in caplog.records[0].message
                     )
                     mock_pkgs.assert_called_once()
-                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset, we don't issue
                     # a warning if there are pkgs/ in the root prefix
                     assert len(caplog.records) == 0
@@ -1147,14 +1147,14 @@ def test_pkgs(
                     assert mock_pkgs.call_count == 0
 
             else:
-                if pkg_env_layout == PkgEnvLayout.USER.value:
+                if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user and there's no
                     # packages in the root prefix, just return
                     # the user data directory
                     assert (context.user_data_pkgs,) == result
                     assert len(caplog.records) == 0
                     mock_pkgs.assert_called_once()
-                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset and there's no
                     # packages in the root prefix, warn the user
                     # that the default location will change after
@@ -1199,9 +1199,9 @@ def test_pkgs(
 @pytest.mark.parametrize(
     "pkg_env_layout",
     [
-        PkgEnvLayout.USER.value,
-        PkgEnvLayout.CONDA_ROOT.value,
-        PkgEnvLayout.UNSET.value,
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
     ],
 )
 def test_envs(
@@ -1243,7 +1243,7 @@ def test_envs(
                 if not on_win:
                     assert USER_DATA_ENVS not in result
 
-                if pkg_env_layout == PkgEnvLayout.USER.value:
+                if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user, issue a warning
                     # message if there are still packages in
                     # the root prefix
@@ -1253,7 +1253,7 @@ def test_envs(
                         in caplog.records[0].message
                     )
                     mock_envs.assert_called_once()
-                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset, we don't issue
                     # a warning if there are envs/ in the root prefix
                     assert len(caplog.records) == 0
@@ -1265,14 +1265,14 @@ def test_envs(
                     assert mock_envs.call_count == 0
 
             else:
-                if pkg_env_layout == PkgEnvLayout.USER.value:
+                if pkg_env_layout == PkgEnvLayout.USER:
                     # If pkg_env_layout is user and there's no
                     # packages in the root prefix, just return
                     # the user data directory
                     assert USER_DATA_ENVS in result
                     assert len(caplog.records) == 0
                     mock_envs.assert_called_once()
-                elif pkg_env_layout == PkgEnvLayout.UNSET.value:
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
                     # If pkg_env_layout is unset and there's no
                     # packages in the root prefix, warn the user
                     # that the default location will change after
