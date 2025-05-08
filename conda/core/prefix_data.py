@@ -55,7 +55,7 @@ from ..models.records import PackageRecord, PrefixRecord
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Any, TypeVar
+    from typing import Any, Self, TypeVar
 
     from ..auxlib import _Null
     from ..common.path import PathType
@@ -378,7 +378,7 @@ class PrefixData(metaclass=PrefixDataType):
             for loader in context.plugin_manager.get_prefix_data_loaders():
                 loader(self.prefix_path, self.__prefix_records)
 
-    def reload(self) -> PrefixData:
+    def reload(self) -> Self:
         self.load()
         return self
 
