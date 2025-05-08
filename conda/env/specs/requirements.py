@@ -61,10 +61,10 @@ class RequirementsSpec(EnvironmentSpecBase):
         # Return early if no filename was provided
         if self.filename is None:
             return False
-            
+
         # Extract the file extension (e.g., '.txt' or '' if no extension)
         _, file_ext = os.path.splitext(self.filename)
-        
+
         # Check if the file has a supported extension and exists
         return any(
             spec_ext == file_ext and os.path.exists(self.filename)

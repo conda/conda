@@ -542,10 +542,10 @@ class CondaSpecs:
                     # Return early if no filename was provided
                     if self.filename is None:
                         return False
-                
+
                     # Extract the file extension (e.g., '.txt' or '' if no extension)
                     file_ext = os.path.splitext(self.filename)[1]
-                    
+
                     # Check if the file has a supported extension and exists
                     return any(
                         spec_ext == file_ext and os.path.exists(self.filename)
