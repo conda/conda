@@ -22,8 +22,13 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import add_plugin_setting, context
 from ..deprecations import deprecated
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import (
+    CondaValueError,
+    EnvironmentSpecPluginNotDetected,
+    PluginError,
+)
 from . import (
+    environment_specifiers,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
@@ -46,6 +51,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -231,6 +237,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["prefix_data_loaders"]
     ) -> list[CondaPrefixDataLoader]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["environment_specifiers"]
+    ) -> list[CondaEnvironmentSpecifier]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -476,6 +487,40 @@ class CondaPluginManager(pluggy.PluginManager):
         for name, (parameter, aliases) in self.get_settings().items():
             add_plugin_setting(name, parameter, aliases)
 
+    def get_environment_specifiers(self, filename: str) -> CondaEnvironmentSpecifier:
+        """
+        Returns the environment_spec plugin that can handle the provided file.
+
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+        """
+        hooks = self.get_hook_results("environment_specifiers")
+        found = []
+        for hook in hooks:
+            if hook.environment_spec(filename).can_handle():
+                found.append(hook)
+
+        if len(found) == 1:
+            return found[0]
+        elif len(found) > 0:
+            # raise an error if there is more than one plugin found
+            raise PluginError(
+                dals(
+                    f"""
+                    Too many plugins found that can handle the environment file '{filename}':
+
+                    {", ".join([hook.name for hook in found])}
+
+                    Please make sure that you don't have any overlapping plugins installed.
+                """
+                )
+            )
+
+        # raise error if no plugins found that can read the environment file
+        raise EnvironmentSpecPluginNotDetected(
+            name=filename, plugin_names=[hook.name for hook in hooks]
+        )
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -493,6 +538,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *post_solves.plugins,
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,
+        *environment_specifiers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

@@ -5,22 +5,31 @@
 import re
 import sys
 from logging import getLogger
-from os.path import dirname, isdir, isfile, join, normcase
+from os.path import (
+    dirname,
+    exists,
+    isdir,
+    isfile,
+    join,
+    normcase,
+)
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
-from ..common.path import paths_equal
+from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
+    EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     OperationNotAllowed,
 )
+from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
@@ -350,3 +359,31 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
             """
         )
         print(message)  # TODO: use logger
+
+
+def validate_file_exists(filename: str):
+    """
+    Validate the existence of an environment file.
+
+    This function checks if the given ``filename`` exists as an environment file.
+    If the `filename` has a URL scheme supported by ``CONDA_SESSION_SCHEMES``,
+    it assumes the file is accessible and returns without further validation.
+    Otherwise, it expands the given path and verifies its existence. If the file
+    does not exist, an ``EnvironmentFileNotFound`` exception is raised.
+
+    Parameters:
+        filename (str): The path or URL of the environment file to validate.
+
+    Raises:
+        EnvironmentFileNotFound: If the file does not exist and is not a valid URL.
+    """
+    url_scheme = filename.split("://", 1)[0]
+    if url_scheme == "file":
+        filename = expand(filename.split("://", 1)[-1])
+    elif url_scheme not in CONDA_SESSION_SCHEMES:
+        filename = expand(filename)
+    else:
+        return
+
+    if not exists(filename):
+        raise EnvironmentFileNotFound(filename=filename)
