@@ -46,7 +46,6 @@ if TYPE_CHECKING:
     from requests.auth import AuthBase
 
     from ..common.configuration import ParameterLoader
-    from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -392,16 +391,6 @@ class CondaPluginManager(pluggy.PluginManager):
             subcommand.name.lower(): subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
-
-    def run_post_transaction_hooks(self, action: Action) -> None:
-        """Run the post transaction hooks for the given action.
-
-        :param action: Action for which post transaction hooks are to be run.
-        """
-
-        for hook in self.get_hook_results("post_transactions"):
-            if isinstance(action, hook.action_type):
-                hook.run(action)
 
     @deprecated(
         "25.3",

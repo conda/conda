@@ -193,6 +193,7 @@ class PrefixActionGroup(NamedTuple):
     make_menu_action_groups: Iterable[ActionGroup]
     entry_point_action_groups: Iterable[ActionGroup]
     prefix_record_groups: Iterable[ActionGroup]
+    final_transaction_groups: Iterable[ActionGroup]
 
 
 class ChangeReport(NamedTuple):
@@ -551,6 +552,22 @@ class UnlinkLinkTransaction:
                 "register", None, register_actions + history_actions, target_prefix
             )
         ]
+
+        # Instantiate any final transactions defined by the user.
+        final_transactions = []
+        for hook in context.plugin_manager.get_hook_results("post_transactions"):
+            final_transactions.append(
+                hook.action(
+                    transaction_context,
+                    target_prefix,
+                    unlink_precs,
+                    link_precs,
+                    remove_specs,
+                    update_specs,
+                    neutered_specs,
+                )
+            )
+
         return PrefixActionGroup(
             remove_menu_action_groups,
             unlink_action_groups,
@@ -561,6 +578,7 @@ class UnlinkLinkTransaction:
             make_menu_action_groups,
             entry_point_action_groups,
             prefix_record_groups,
+            [ActionGroup("final", None, final_transactions, target_prefix)],
         )
 
     @staticmethod
@@ -836,6 +854,9 @@ class UnlinkLinkTransaction:
         remove_menu_actions = list(
             group for group in all_action_groups if group.type == "remove_menus"
         )
+        final_transaction_actions = list(
+            group for group in all_action_groups if group.type == "final"
+        )
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
@@ -926,6 +947,15 @@ class UnlinkLinkTransaction:
                         #   call something that isn't there anymore
                         for axngroup in make_menu_actions:
                             UnlinkLinkTransaction._execute_actions(axngroup)
+
+                # Execute any user-defined post-transaction actions
+                for exc in self.execute_executor.map(
+                    UnlinkLinkTransaction._execute_actions,
+                    final_transaction_actions,
+                ):
+                    if exc:
+                        exceptions.append(exc)
+
             if exceptions:
                 # might be good to show all errors, but right now we only show the first
                 e = exceptions[0]

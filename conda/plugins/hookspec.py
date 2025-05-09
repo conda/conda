@@ -261,34 +261,37 @@ class CondaSpecs:
     def conda_post_transactions(self) -> Iterable[CondaPostTransaction]:
         """Register post-transaction hooks.
 
-        Post-transaction hooks run after a UnlinkLinkTransaction builds up
-        a list of actions to carry out. Hooks accept any subclass of Action.
+        Post-transaction hooks run after all other actions run in a
+        UnlinkLinkTransaction. For information about FinalTransactionAction,
+        see :class:`~conda.core.path_actions.FinalTransactionAction`.
 
         **Example:**
 
         .. code-block:: python
 
-            import logging
             from conda import plugins
+            from conda.core.path_actions import FinalTransactionAction
 
-            logger = logging.getLogger(__name__)
+
+            class PrintAction(FinalTransactionAction):
+                def execute(self):
+                    print(
+                        self.transaction_context,
+                        self.target_prefix,
+                        self.unlink_precs,
+                        self.link_precs,
+                        self.remove_specs,
+                        self.update_specs,
+                        self.neutered_specs,
+                    )
 
 
             class PrintActionPlugin:
-                def print_action(self, action: Action) -> None:
-                    if isinstance(action, LinkPathAction):
-                        logger.warning(
-                            "LinkPathAction encountered! "
-                            f"Target full path: {action.target_full_path}"
-                        )
-                    else:
-                        logger.warning(f"Other action type encountered: {type(action)}")
-
                 @plugins.hookimpl
-                def conda_post_transactions(self):
+                def conda_post_transactions(self) -> Iterable[plugins.CondaPostTransaction]:
                     yield plugins.CondaPostTransaction(
                         name="example-post-transaction",
-                        run=self.print_action,
+                        action=PrintAction,
                     )
         """
         yield from ()

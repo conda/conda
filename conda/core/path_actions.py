@@ -102,9 +102,7 @@ class Action:
 
     def __call__(self):
         """Execute the action and call any post transaction hooks."""
-        result = self.execute()
-        context.plugin_manager.run_post_transaction_hooks(self)
-        return result
+        return self.execute()
 
     @abstractmethod
     def reverse(self):
@@ -134,6 +132,38 @@ deprecated.constant(
     Action,
     addendum="Use `conda.core.path_actions.Action` instead.",
 )
+
+
+class FinalTransactionAction(Action, metaclass=ABCMeta):
+    def __init__(
+        self,
+        transaction_context,
+        target_prefix,
+        unlink_precs,
+        link_precs,
+        remove_specs,
+        update_specs,
+        neutered_specs,
+    ):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+        self.unlink_precs = unlink_precs
+        self.link_precs = link_precs
+        self.remove_specs = remove_specs
+        self.update_specs = update_specs
+        self.neutered_specs = neutered_specs
+
+    def verify(self):
+        """Verifies work done if necessary and sets the self._verified = True."""
+
+    def execute(self):
+        """Run code necessary for the plugin."""
+
+    def reverse(self):
+        """Reverse what was done in execute."""
+
+    def cleanup(self):
+        """Remove any unwanted artifacts that might be lying around."""
 
 
 class PathAction(Action, metaclass=ABCMeta):
