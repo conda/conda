@@ -124,6 +124,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Validate that input files are of the same format type
     validate_environment_files_consistency(args.file)
-    
+
     install(args, parser, "update")
     return 0
