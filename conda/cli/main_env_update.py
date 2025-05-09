@@ -90,15 +90,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
     from ..env import specs as install_specs
-    from ..env.env import get_filename, print_result
+    from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
+    from .common import validate_file_exists
 
-    spec = install_specs.detect(
-        name=args.name,
-        filename=get_filename(args.file),
-        directory=os.getcwd(),
-    )
+    # validate incoming arguments
+    validate_file_exists(args.file)
+
+    # detect the file format and get the env representation
+    spec = install_specs.detect(filename=args.file)
     env = spec.environment
 
     if not (args.name or args.prefix):
@@ -107,16 +108,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             # TODO Refactor common.get_prefix
             name = os.environ.get("CONDA_DEFAULT_ENV", False)
             if not name:
-                msg = "Unable to determine environment\n\n"
-                instuctions = dals(
+                msg = dals(
                     """
+                    Unable to determine environment
+
                     Please re-run this command with one of the following options:
 
                     * Provide an environment name via --name or -n
+                    * Provide an environment path via --prefix or -p
                     * Re-run this command inside an activated conda environment.
                     """
                 )
-                msg += instuctions
                 # TODO Add json support
                 raise CondaEnvException(msg)
 

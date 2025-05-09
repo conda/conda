@@ -16,7 +16,6 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     CondaEnvException,
     DryRunExit,
-    EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
     PackagesNotFoundError,
@@ -697,5 +696,5 @@ def test_invalid_extensions(
     env_yml = path_factory(suffix=".ymla")
     env_yml.touch()
 
-    with pytest.raises(EnvironmentFileExtensionNotValid):
+    with pytest.raises(SpecNotFound):
         conda_cli("env", "create", f"--file={env_yml}", "--yes")
