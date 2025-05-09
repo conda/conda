@@ -11,7 +11,7 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError, EnvironmentFileTypeMismatchError
+from conda.exceptions import CondaValueError
 from conda.testing.integration import package_is_installed
 
 from . import support_file
