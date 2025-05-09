@@ -13,7 +13,6 @@ from argparse import (
     _SubParsersAction,
 )
 
-
 from .. import CondaError
 from ..deprecations import deprecated
 from ..notices import notices
