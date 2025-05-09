@@ -27,7 +27,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         :return: True or False
         """
         try:
-            self._environment = env.from_file(self.filename)
+            self._environment = env.from_file(self.filename, strict=True)
             return True
         except EnvironmentFileNotFound as e:
             self.msg = str(e)
@@ -37,6 +37,8 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
         except (TypeError, YAMLError):
             self.msg = f"{self.filename} is not a valid yaml file."
+            return False
+        except Exception as e:
             return False
 
     @property
