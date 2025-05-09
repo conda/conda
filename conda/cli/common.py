@@ -19,6 +19,7 @@ from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
+from ..exceptions import EnvironmentFileTypeMismatchError
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -387,11 +388,3 @@ def validate_file_exists(filename: str):
 
     if not exists(filename):
         raise EnvironmentFileNotFound(filename=filename)
-
-
-def validate_file_args_types(files: list[str]) -> None:
-    """Validates that all the files provided are of the same type.
-
-    :raises CondaError: The files are found to be of different types
-    """
-    # TODO
