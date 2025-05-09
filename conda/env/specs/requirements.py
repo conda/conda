@@ -5,11 +5,11 @@
 import os
 
 from ...deprecations import deprecated
-from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
+from .base import TextSpecFileBase
 
 
-class RequirementsSpec(EnvironmentSpecBase):
+class RequirementsSpec(TextSpecFileBase):
     """
     Reads dependencies from a requirements.txt file
     and returns an Environment object from it.
@@ -19,10 +19,9 @@ class RequirementsSpec(EnvironmentSpecBase):
     extensions = {".txt"}
 
     @deprecated.argument("24.7", "26.3", "name")
-    def __init__(self, filename=None, **kwargs):
-        self.filename = filename
-        self._name = None
-        self.msg = None
+    def __init__(self, filename=None, name=None, **kwargs):
+        super().__init__(filename, **kwargs)
+        self._name = name
 
     @property
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
@@ -49,27 +48,14 @@ class RequirementsSpec(EnvironmentSpecBase):
         else:
             return True
 
-    def can_handle(self) -> bool:
+    def _is_valid_content(self) -> bool:
         """
-        Validates loader can process environment definition.
-        This can handle if:
-            * the provided file ends in the supported file extensions (.txt)
-            * the file exists
+        Requirements files don't need additional content validation beyond
+        file extension and existence checks, which are done in the base class.
 
-        :return: True if the file can be parsed and handled, False otherwise
+        :return: True always, since there's no specific format to check
         """
-        # Return early if no filename was provided
-        if self.filename is None:
-            return False
-
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
-
-        # Check if the file has a supported extension and exists
-        return any(
-            spec_ext == file_ext and os.path.exists(self.filename)
-            for spec_ext in RequirementsSpec.extensions
-        )
+        return True
 
     @property
     def environment(self):
