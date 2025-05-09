@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
 
-from ruamel.yaml.error import YAMLError
 from logging import getLogger
 
 from ...plugins.types import EnvironmentSpecBase
