@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from ..common.configuration import Parameter
     from ..common.path import PathType
     from ..core.solve import Solver
+    from ..env.env import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
 
@@ -371,3 +372,44 @@ class CondaPrefixDataLoader:
 
     name: str
     loader: CondaPrefixDataLoaderCallable
+
+
+class EnvironmentSpecBase(ABC):
+    """
+    Base class for all env specs.
+    """
+
+    @abstractmethod
+    def can_handle(self) -> bool:
+        """
+        Determines if the EnvSpec plugin can read and operate on the
+        environment described by the `filename`.
+
+        :returns bool: returns True, if the plugin can interpret the file.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def environment(self) -> Environment:
+        """
+        Express the provided environment file as a conda environment object.
+
+        :returns Environment: the conda environment represented by the file.
+        """
+        raise NotImplementedError()
+
+
+@dataclass
+class CondaEnvironmentSpecifier:
+    """
+    Return type to use when defining a conda env spec plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
+
+    :param name: name of the spec (e.g., ``environment_yaml``)
+    :param environment_spec: EnvironmentSpecBase subclass handler
+    """
+
+    name: str
+    environment_spec: type[EnvironmentSpecBase]

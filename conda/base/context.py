@@ -13,8 +13,6 @@ import os
 import platform
 import struct
 import sys
-from collections import defaultdict
-from collections.abc import Mapping
 from contextlib import contextmanager, suppress
 from errno import ENOENT
 from functools import cache, cached_property
@@ -35,8 +33,6 @@ from ..common.compat import NoneType, on_win
 from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
-    ConfigurationType,
-    EnvRawParameter,
     MapParameter,
     ParameterLoader,
     PrimitiveParameter,
@@ -88,6 +84,7 @@ if TYPE_CHECKING:
     from ..common.path import PathsType, PathType
     from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
+    from ..plugins.config import PluginConfig
     from ..plugins.manager import CondaPluginManager
 
 try:
@@ -600,7 +597,7 @@ class Context(Configuration):
         Preferred way of accessing settings introduced by the settings plugin hook
         """
         self.plugin_manager.load_settings()
-        return PluginConfig(self.raw_data)
+        return self.plugin_manager.get_config(self.raw_data)
 
     @property
     def conda_build_local_paths(self) -> tuple[PathType, ...]:
@@ -1990,7 +1987,9 @@ def reset_context(
     global context
 
     # remove plugin config params
-    remove_all_plugin_settings()
+    from ..plugins.config import PluginConfig
+
+    PluginConfig.remove_all_plugin_settings()
 
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
@@ -2290,77 +2289,43 @@ def _first_writable_envs_dir() -> PathType:
     return first_writable_envs_dir()
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.base.context.context.plugins.raw_data` instead.",
+)
 def get_plugin_config_data(
     data: dict[Path, dict[str, RawParameter]],
 ) -> dict[Path, dict[str, RawParameter]]:
-    """
-    This is used to move everything under the key "plugins" from the provided dictionary
-    to the top level of the returned dictionary. The returned dictionary is then passed
-    to :class:`PluginConfig`.
-    """
-    new_data = defaultdict(dict)
+    from ..plugins.config import PluginConfig
 
-    for source, config in data.items():
-        if plugin_data := config.get("plugins"):
-            plugin_data_value = plugin_data.value(None)
-
-            if not isinstance(plugin_data_value, Mapping):
-                continue
-
-            for param_name, raw_param in plugin_data_value.items():
-                new_data[source][param_name] = raw_param
-
-        elif source == EnvRawParameter.source:
-            for env_var, raw_param in config.items():
-                if env_var.startswith("plugins_"):
-                    _, param_name = env_var.split("plugins_")
-                    new_data[source][param_name] = raw_param
-
-    return new_data
+    return PluginConfig(data).raw_data
 
 
-class PluginConfig(metaclass=ConfigurationType):
-    """
-    Class used to hold settings for conda plugins.
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.plugins.config.PluginConfig.add_plugin_setting` instead.",
+)
+def add_plugin_setting(
+    name: str,
+    parameter: Parameter,
+    aliases: tuple[str, ...] = (),
+) -> None:
+    from ..plugins.config import PluginConfig
 
-    The object created by this class should only be accessed via
-    :class:`conda.base.context.Context.plugins`.
-
-    When this class is updated via the :func:`add_plugin_setting` function it adds new setting
-    properties which can be accessed later via the context object.
-
-    We currently call that function in
-    :meth:`conda.plugins.manager.CondaPluginManager.load_settings`.
-    because ``CondaPluginManager`` has access to all registered plugin settings via the settings
-    plugin hook.
-    """
-
-    def __init__(self, data):
-        self._cache_ = {}
-        self.raw_data = get_plugin_config_data(data)
+    return PluginConfig.add_plugin_setting(name, parameter, aliases)
 
 
-def add_plugin_setting(name: str, parameter: Parameter, aliases: tuple[str, ...] = ()):
-    """
-    Adds a setting to the :class:`PluginConfig` class
-    """
-    PluginConfig.parameter_names = PluginConfig.parameter_names + (name,)
-    loader = ParameterLoader(parameter, aliases=aliases)
-    name = loader._set_name(name)
-    setattr(PluginConfig, name, loader)
-
-
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.plugins.config.PluginConfig.remove_all_plugin_settings` instead.",
+)
 def remove_all_plugin_settings() -> None:
-    """
-    Removes all attached settings from the :class:`PluginConfig` class
-    """
-    for name in PluginConfig.parameter_names:
-        try:
-            delattr(PluginConfig, name)
-        except AttributeError:
-            continue
+    from ..plugins.config import PluginConfig
 
-    PluginConfig.parameter_names = tuple()
+    return PluginConfig.remove_all_plugin_settings()
 
 
 try:

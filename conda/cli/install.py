@@ -21,7 +21,6 @@ from .. import CondaError
 from ..base.constants import (
     REPODATA_FN,
     ROOT_ENV_NAME,
-    DepsModifier,
     UpdateModifier,
 )
 from ..base.context import context
@@ -421,8 +420,6 @@ def install(args, parser, command="install"):
     if (isinstall or isremove) and args.update_modifier == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
     deps_modifier = context.deps_modifier
-    if isupdate:
-        deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
 
     for repodata_fn in Repodatas(
         repodata_fns,

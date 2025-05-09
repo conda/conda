@@ -4,10 +4,12 @@
 
 import os
 
+from ...deprecations import deprecated
+from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
 
 
-class RequirementsSpec:
+class RequirementsSpec(EnvironmentSpecBase):
     """
     Reads dependencies from a requirements.txt file
     and returns an Environment object from it.
@@ -16,11 +18,23 @@ class RequirementsSpec:
     msg = None
     extensions = {".txt"}
 
-    def __init__(self, filename=None, name=None, **kwargs):
+    @deprecated.argument("24.7", "26.3", "name")
+    def __init__(self, filename=None, **kwargs):
         self.filename = filename
-        self.name = name
+        self._name = None
         self.msg = None
 
+    @property
+    @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
+    def name(self):
+        return self._name
+
+    @name.setter
+    @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
+    def name(self, value):
+        self._name = value
+
+    @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
     def _valid_file(self):
         if os.path.exists(self.filename):
             return True
@@ -28,15 +42,34 @@ class RequirementsSpec:
             self.msg = "There is no requirements.txt"
             return False
 
+    @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
     def _valid_name(self):
         if self.name is None:
-            self.msg = "Environment with requirements.txt file needs a name"
             return False
         else:
             return True
 
-    def can_handle(self):
-        return self._valid_file() and self._valid_name()
+    def can_handle(self) -> bool:
+        """
+        Validates loader can process environment definition.
+        This can handle if:
+            * the provided file ends in the supported file extensions (.txt)
+            * the file exists
+
+        :return: True if the file can be parsed and handled, False otherwise
+        """
+        # Return early if no filename was provided
+        if self.filename is None:
+            return False
+
+        # Extract the file extension (e.g., '.txt' or '' if no extension)
+        _, file_ext = os.path.splitext(self.filename)
+
+        # Check if the file has a supported extension and exists
+        return any(
+            spec_ext == file_ext and os.path.exists(self.filename)
+            for spec_ext in RequirementsSpec.extensions
+        )
 
     @property
     def environment(self):
@@ -47,4 +80,4 @@ class RequirementsSpec:
                 if not line or line.startswith("#"):
                     continue
                 dependencies.append(line)
-        return Environment(name=self.name, dependencies=dependencies)
+        return Environment(dependencies=dependencies)
