@@ -1,4 +1,4 @@
-# Copyright (C) 2025 Anaconda, Inc
+# Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # No need for os and tempfile anymore as we use support files
 
