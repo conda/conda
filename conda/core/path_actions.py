@@ -135,6 +135,22 @@ deprecated.constant(
 
 
 class FinalTransactionAction(Action, metaclass=ABCMeta):
+    """Action which runs after all other actions.
+
+    Post-transaction plugins should inherit this class to
+    implement their own verification, execution, reversing,
+    and cleanup steps.
+
+    :param transaction_context: Mapping between target prefixes and PrefixActionGroup
+        instances
+    :param target_prefix: Target prefix for the action
+    :param unlink_precs: Package records to be unlinked
+    :param link_precs: Package records to link
+    :param remove_specs: Specs to be removed
+    :param update_specs: Specs to be updated
+    :param neutered_specs: Specs to be neutered
+    """
+
     def __init__(
         self,
         transaction_context,
@@ -153,15 +169,19 @@ class FinalTransactionAction(Action, metaclass=ABCMeta):
         self.update_specs = update_specs
         self.neutered_specs = neutered_specs
 
+    @abstractmethod
     def verify(self):
         """Verifies work done if necessary and sets the self._verified = True."""
 
+    @abstractmethod
     def execute(self):
         """Run code necessary for the plugin."""
 
+    @abstractmethod
     def reverse(self):
         """Reverse what was done in execute."""
 
+    @abstractmethod
     def cleanup(self):
         """Remove any unwanted artifacts that might be lying around."""
 
