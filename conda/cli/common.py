@@ -379,10 +379,8 @@ def validate_environment_files_consistency(files: list[str]) -> None:
         file: context.plugin_manager.get_environment_specifier_name(file)
         for file in files
     }
-    unique_types = set(file_types.values())
-
     # If there's more than one unique type, raise an error
-    if len(unique_types) > 1:
+    if len(set(file_types.values())) > 1:
         raise EnvironmentFileTypeMismatchError(file_types)
 
 
