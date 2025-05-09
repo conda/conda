@@ -28,6 +28,7 @@ from ..common.path import (
     win_path_ok,
 )
 from ..common.url import has_platform, path_to_url
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaUpgradeError,
     CondaVerificationError,
@@ -82,19 +83,26 @@ REPR_IGNORE_KWARGS = (
 )
 
 
-class _Action(metaclass=ABCMeta):
+class Action:
+    """Base class for path manipulation actions, including linking, unlinking, and others."""
+
     _verified = False
 
     @abstractmethod
     def verify(self):
         # if verify fails, it should return an exception object rather than raise
-        #  at the end of a verification run, all errors will be raised as a CondaMultiError
+        # at the end of a verification run, all errors will be raised as a CondaMultiError
         # after successful verification, the verify method should set self._verified = True
         raise NotImplementedError()
 
     @abstractmethod
     def execute(self):
+        """Execute the action."""
         raise NotImplementedError()
+
+    def __call__(self):
+        """Execute the action and call any post transaction hooks."""
+        return self.execute()
 
     @abstractmethod
     def reverse(self):
@@ -117,13 +125,74 @@ class _Action(metaclass=ABCMeta):
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
-class PathAction(_Action, metaclass=ABCMeta):
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "_Action",
+    Action,
+    addendum="Use `conda.core.path_actions.Action` instead.",
+)
+
+
+class FinalTransactionAction(Action, metaclass=ABCMeta):
+    """Action which runs after all other actions.
+
+    Post-transaction plugins should inherit this class to
+    implement their own verification, execution, reversing,
+    and cleanup steps.
+
+    :param transaction_context: Mapping between target prefixes and PrefixActionGroup
+        instances
+    :param target_prefix: Target prefix for the action
+    :param unlink_precs: Package records to be unlinked
+    :param link_precs: Package records to link
+    :param remove_specs: Specs to be removed
+    :param update_specs: Specs to be updated
+    :param neutered_specs: Specs to be neutered
+    """
+
+    def __init__(
+        self,
+        transaction_context,
+        target_prefix,
+        unlink_precs,
+        link_precs,
+        remove_specs,
+        update_specs,
+        neutered_specs,
+    ):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+        self.unlink_precs = unlink_precs
+        self.link_precs = link_precs
+        self.remove_specs = remove_specs
+        self.update_specs = update_specs
+        self.neutered_specs = neutered_specs
+
+    @abstractmethod
+    def verify(self):
+        """Verifies work done if necessary and sets the self._verified = True."""
+
+    @abstractmethod
+    def execute(self):
+        """Run code necessary for the plugin."""
+
+    @abstractmethod
+    def reverse(self):
+        """Reverse what was done in execute."""
+
+    @abstractmethod
+    def cleanup(self):
+        """Remove any unwanted artifacts that might be lying around."""
+
+
+class PathAction(Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_path(self):
         raise NotImplementedError()
 
 
-class MultiPathAction(_Action, metaclass=ABCMeta):
+class MultiPathAction(Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_paths(self):
         raise NotImplementedError()

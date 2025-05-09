@@ -55,6 +55,7 @@ if TYPE_CHECKING:
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
+        CondaPostTransaction,
         CondaPreCommand,
         CondaPrefixDataLoader,
         CondaPrefixDataLoaderCallable,
@@ -232,6 +233,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["post_transactions"]
+    ) -> list[CondaPostTransaction]: ...
 
     @overload
     def get_hook_results(

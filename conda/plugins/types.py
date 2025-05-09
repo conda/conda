@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
     from ..common.configuration import Parameter
     from ..common.path import PathType
+    from ..core.path_actions import FinalTransactionAction
     from ..core.solve import Solver
     from ..env.env import Environment
     from ..models.match_spec import MatchSpec
@@ -355,6 +356,25 @@ class CondaRequestHeader:
 
     name: str
     value: str
+
+
+@dataclass
+class CondaPostTransaction:
+    """
+    Return type to use when defining a post-transaction hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_transactions`.
+
+    :param name: Post transaction name (this is just a label)
+    :param action: FinalTransactionAction class which implements
+        plugin behavior. See
+        :class:`~conda.core.path_actions.FinalTransactionAction` for
+        implementation details
+    """
+
+    name: str
+    action: type[FinalTransactionAction]
 
 
 @dataclass

@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
+        CondaPostTransaction,
         CondaPreCommand,
         CondaPrefixDataLoader,
         CondaPreSolve,
@@ -253,6 +254,45 @@ class CondaSpecs:
                     name="example-health-check",
                     action=example_health_check,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_post_transactions(self) -> Iterable[CondaPostTransaction]:
+        """Register post-transaction hooks.
+
+        Post-transaction hooks run after all other actions run in a
+        UnlinkLinkTransaction. For information about FinalTransactionAction,
+        see :class:`~conda.core.path_actions.FinalTransactionAction`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.core.path_actions import FinalTransactionAction
+
+
+            class PrintAction(FinalTransactionAction):
+                def execute(self):
+                    print(
+                        self.transaction_context,
+                        self.target_prefix,
+                        self.unlink_precs,
+                        self.link_precs,
+                        self.remove_specs,
+                        self.update_specs,
+                        self.neutered_specs,
+                    )
+
+
+            class PrintActionPlugin:
+                @plugins.hookimpl
+                def conda_post_transactions(self) -> Iterable[plugins.CondaPostTransaction]:
+                    yield plugins.CondaPostTransaction(
+                        name="example-post-transaction",
+                        action=PrintAction,
+                    )
         """
         yield from ()
 
