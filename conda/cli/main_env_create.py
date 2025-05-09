@@ -13,6 +13,8 @@ from argparse import (
     _SubParsersAction,
 )
 
+
+from .common import validate_environment_files_consistency
 from .. import CondaError
 from ..deprecations import deprecated
 from ..notices import notices
@@ -118,6 +120,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # validate incoming arguments
     validate_file_exists(args.file)
+
+    # validate file type
+    validate_environment_files_consistency(args.file)
 
     # detect the file format and get the env representation
     spec = detect(filename=args.file)
