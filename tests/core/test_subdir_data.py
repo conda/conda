@@ -12,7 +12,7 @@ import pytest
 from conda import CondaError
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var, env_vars
-from conda.core.index import get_index
+from conda.core.index import Index
 from conda.core.subdir_data import SubdirData, cache_fn_url
 from conda.exceptions import CondaUpgradeError
 from conda.gateways.repodata import (
@@ -53,7 +53,7 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
 
         this_platform = context.subdir
-        index = get_index(channel_urls=channel_urls, prepend=False)
+        index = Index(channels=channel_urls, prepend=False)
         for dist, record in index.items():
             assert platform_in_record(this_platform, record), (
                 this_platform,
@@ -71,9 +71,7 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         with env_var(
             "CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
         ):
-            index2 = get_index(
-                channel_urls=channel_urls, prepend=False, unknown=unknown
-            )
+            index2 = Index(channels=channel_urls, prepend=False, unknown=unknown)
             assert all(index2.get(k) == rec for k, rec in index.items())
             assert unknown is not False or len(index) == len(index2)
 
@@ -82,9 +80,7 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
             {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": "linux-64"},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            index3 = get_index(
-                channel_urls=channel_urls, prepend=False, unknown=unknown
-            )
+            index3 = Index(channels=channel_urls, prepend=False, unknown=unknown)
             assert all(index3.get(k) == rec for k, rec in index.items())
             assert unknown or len(index) == len(index3)
 

@@ -127,6 +127,18 @@ doctest_optionflags = [
   "ALLOW_UNICODE",
   "ELLIPSIS",
 ]
+filterwarnings = [
+  # elevate all deprecation warnings to errors
+  "error::PendingDeprecationWarning",
+  "error::DeprecationWarning",
+  "error::FutureWarning",
+  # temporary ignores
+  "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:boltons.timeutils",
+  "ignore:conda.core.prefix_data.PrefixDataType.__call__:PendingDeprecationWarning:conda_libmamba_solver.state",
+  "ignore:conda.core.index._supplement_index_with_system:DeprecationWarning:conda_libmamba_solver.state",
+  "ignore:conda.base.context.Context.restore_free_channel:DeprecationWarning:conda_libmamba_solver.state",
+  "ignore:Adding 'defaults':FutureWarning:conda.base.context",
+]
 markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",

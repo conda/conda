@@ -1403,9 +1403,9 @@ def install_conda_csh(target_path, conda_prefix):
 def _config_fish_content(conda_prefix):
     conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        conda_exe = native_path_to_unix(conda_exe)
+        conda_exe = win_path_to_unix(conda_exe)
     conda_initialize_content = dals(
         """
         # >>> conda initialize >>>
@@ -1547,9 +1547,9 @@ def init_fish_user(
 def _config_xonsh_content(conda_prefix):
     conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        conda_exe = native_path_to_unix(conda_exe)
+        conda_exe = win_path_to_unix(conda_exe)
     conda_initialize_content = dals(
         """
     # >>> conda initialize >>>
@@ -1665,9 +1665,9 @@ def init_xonsh_user(
 def _bashrc_content(conda_prefix, shell):
     conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        conda_exe = native_path_to_unix(conda_exe)
+        conda_exe = win_path_to_unix(conda_exe)
         conda_initialize_content = dals(
             """
         # >>> conda initialize >>>
