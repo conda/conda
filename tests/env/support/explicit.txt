@@ -1,0 +1,5 @@
+# This is a comment
+@EXPLICIT
+# Some explicit packages
+https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h8bdb77d_3.tar.bz2
+https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.19.2-py39h30dfce3_0.tar.bz2
