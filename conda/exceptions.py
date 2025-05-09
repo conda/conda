@@ -1272,6 +1272,20 @@ class EnvironmentFileNotDownloaded(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentSpecPluginNotDetected(CondaError):
+    def __init__(self, name, plugin_names, *args, **kwargs):
+        self.name = name
+        msg = dals(
+            f"""
+            Environment at {name} is not readable by any installed
+            environment specifier plugins.
+
+            Available plugins: {dashlist(plugin_names, 4)}
+            """
+        )
+        super().__init__(msg, *args, **kwargs)
+
+
 class SpecNotFound(CondaError):
     def __init__(self, msg: str, *args, **kwargs):
         super().__init__(msg, *args, **kwargs)

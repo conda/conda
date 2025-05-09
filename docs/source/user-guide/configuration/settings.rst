@@ -359,7 +359,7 @@ Advanced configuration
 
 .. _disallow-soft-linking:
 
-``allow_softlinks``: Disallow soft-linking
+``allow_softlinks``: Allow soft-linking
 ------------------------------------------
 
 When ``allow_softlinks`` is ``True``, conda uses hard links when
@@ -372,7 +372,7 @@ hard links when possible, but when it is not possible, conda
 copies files. Individual packages can override this option,
 specifying that certain files should never be soft linked.
 
-The default is ``True``.
+The default is ``False``.
 
 **Example:**
 
