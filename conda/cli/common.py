@@ -19,13 +19,13 @@ from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
-from ..exceptions import EnvironmentFileTypeMismatchError
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentFileNotFound,
+    EnvironmentFileTypeMismatchError,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
     OperationNotAllowed,
@@ -375,7 +375,10 @@ def validate_environment_files_consistency(files: list[str]) -> None:
         return  # Nothing to validate if there are 0 or 1 files
 
     # Get types for all files using the plugin manager
-    file_types = {file: context.plugin_manager.get_environment_specifier_name(file) for file in files}
+    file_types = {
+        file: context.plugin_manager.get_environment_specifier_name(file)
+        for file in files
+    }
     unique_types = set(file_types.values())
 
     # If there's more than one unique type, raise an error
