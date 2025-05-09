@@ -48,6 +48,7 @@ from conda.exceptions import (
     DisallowedPackageError,
     DryRunExit,
     EnvironmentNotWritableError,
+    EnvironmentFileTypeMismatchError,
     LinkError,
     OperationNotAllowed,
     PackageNotInstalledError,
@@ -2751,7 +2752,7 @@ def test_dont_allow_mixed_file_arguments(
     types are specified
     """
     explicit_file = join(dirname(__file__), "support", "explicit.txt")
-    simple_requirements = join(dirname(__file__), "support", "simple_requirements.txt") 
+    simple_requirements = join(dirname(__file__), "support", "simple_requirements.txt")
 
     stdout, stderr, exc = conda_cli(
         "create",
@@ -2759,6 +2760,6 @@ def test_dont_allow_mixed_file_arguments(
         f"--file {explicit_file}",
         f"--file {simple_requirements}",
         "--yes",
-        raises=CondaError,
+        raises=EnvironmentFileTypeMismatchError,
     )
-    assert exc.match("can not mix `file` types")
+    assert exc.match("Cannot mix environment file formats")
