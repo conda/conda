@@ -19,6 +19,7 @@ from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
+from ..exceptions import EnvironmentFileTypeMismatchError
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -361,14 +362,27 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
         print(message)  # TODO: use logger
 
 
-def validate_file_args_types(files: list[str]) -> None:
-    """Validates that all the files provided are of the same type.
+def validate_environment_files_consistency(files: list[str]) -> None:
+    """Validates that all the provided environment files are of the same format type.
 
-    :raises CondaError: The files are found to be of different types
+    This function checks if all provided environment files are of the same format type
+    using the conda plugin system's environment specifiers. It prevents mixing different
+    environment file formats (e.g., YAML, explicit package lists, requirements.txt).
+
+    :raises EnvironmentFileTypeMismatchError: When files with different formats are found
     """
-    # TODO
+    if not files or len(files) <= 1:
+        return  # Nothing to validate if there are 0 or 1 files
 
-    
+    # Get types for all files using the plugin manager
+    file_types = {file: context.plugin_manager.get_environment_specifier_name(file) for file in files}
+    unique_types = set(file_types.values())
+
+    # If there's more than one unique type, raise an error
+    if len(unique_types) > 1:
+        raise EnvironmentFileTypeMismatchError(file_types)
+
+
 def validate_file_exists(filename: str):
     """
     Validate the existence of an environment file.

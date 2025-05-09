@@ -93,7 +93,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.constants import UpdateModifier
     from ..base.context import context
     from ..exceptions import CondaValueError
-    from .common import validate_file_args_types
+    from .common import validate_environment_files_consistency
     from .install import install
 
     if context.force:
@@ -122,8 +122,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             )
         )
 
-    # Validate that input files are of the same type
-    validate_file_args_types(args.file)
+    # Validate that input files are of the same format type
+    validate_environment_files_consistency(args.file)
     
     install(args, parser, "update")
     return 0
