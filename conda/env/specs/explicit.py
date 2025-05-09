@@ -1,4 +1,4 @@
-# Copyright (C) 2025 Anaconda, Inc
+# Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Define explicit file spec for conda environment files."""
 
@@ -7,7 +7,6 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from os.path import expanduser, expandvars
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

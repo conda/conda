@@ -1,11 +1,10 @@
-# Copyright (C) 2025 Anaconda, Inc
+# Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Define base spec class for environment specifiers."""
 
 from __future__ import annotations
 
 import os
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
