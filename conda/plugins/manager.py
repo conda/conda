@@ -548,7 +548,6 @@ class CondaPluginManager(pluggy.PluginManager):
             return f"unknown ({type(e).__name__})"
 
 
-
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
