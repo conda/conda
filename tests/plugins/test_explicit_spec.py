@@ -5,7 +5,7 @@
 import pytest
 
 from conda import plugins
-from conda.env.specs.explicit import ExplicitFileSpec
+from conda.env.specs.requirements import ExplicitRequirementsSpec
 from conda.exceptions import EnvironmentSpecPluginNotDetected
 from conda.plugins.types import CondaEnvironmentSpecifier
 from tests.env import support_file
@@ -24,20 +24,20 @@ def support_non_explicit_file():
 
 
 def test_can_handle_explicit_file(support_explicit_file):
-    """Ensures ExplicitFileSpec can handle a file with @EXPLICIT marker"""
-    assert ExplicitFileSpec(filename=support_explicit_file).can_handle()
+    """Ensures ExplicitRequirementsSpec can handle a file with @EXPLICIT marker"""
+    assert ExplicitRequirementsSpec(filename=support_explicit_file).can_handle()
 
 
 def test_explicit_file_spec_rejects_non_explicit_file(support_non_explicit_file):
-    """Ensures ExplicitFileSpec rejects a file without @EXPLICIT marker"""
-    spec = ExplicitFileSpec(filename=support_non_explicit_file)
+    """Ensures ExplicitRequirementsSpec rejects a file without @EXPLICIT marker"""
+    spec = ExplicitRequirementsSpec(filename=support_non_explicit_file)
     assert not spec.can_handle()
     assert "does not contain @EXPLICIT marker" in spec.msg
 
 
 def test_environment_creation(support_explicit_file):
     """Test that environment is correctly created from explicit file"""
-    spec = ExplicitFileSpec(filename=support_explicit_file)
+    spec = ExplicitRequirementsSpec(filename=support_explicit_file)
 
     # Test the raw parsed packages
     packages = spec._parse_explicit_file()
@@ -64,7 +64,7 @@ class ExplicitSpecPlugin:
     def conda_environment_specifiers(self):
         yield CondaEnvironmentSpecifier(
             name="explicit-test",
-            environment_spec=ExplicitFileSpec,
+            environment_spec=ExplicitRequirementsSpec,
         )
 
 
