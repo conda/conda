@@ -28,7 +28,9 @@ class RequirementsSpec(EnvironmentSpecBase):
     extensions: ClassVar[set[str]] = {".txt"}
 
     @deprecated.argument("24.7", "26.3", "name")
-    def __init__(self, filename: str | None = None, name: str | None = None, **kwargs) -> None:
+    def __init__(
+        self, filename: str | None = None, name: str | None = None, **kwargs
+    ) -> None:
         """Initialize the requirements specification.
 
         :param filename: Path to the requirements file
