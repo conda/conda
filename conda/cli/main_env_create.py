@@ -13,10 +13,10 @@ from argparse import (
     _SubParsersAction,
 )
 
-
 from .. import CondaError
 from ..deprecations import deprecated
 from ..notices import notices
+from .common import validate_environment_files_consistency
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
