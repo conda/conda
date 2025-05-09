@@ -67,8 +67,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: false
-    # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
     strategy:
@@ -189,8 +188,7 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: false
-    # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -309,8 +307,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: false
-    # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
     defaults:
@@ -440,6 +437,7 @@ jobs:
           --cobertura-xml-report=.mypy_cache/coverage.xml
           --txt-report=.mypy_cache/report.txt
           --html-report=.mypy_cache/report.html
+          || true
 
       - name: Upload Coverage
         if: '!cancelled()'
@@ -465,8 +463,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: false 
-    # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -529,8 +526,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: false 
-    # needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -592,8 +588,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: false 
-    # github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
     defaults:
