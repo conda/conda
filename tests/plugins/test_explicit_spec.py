@@ -75,7 +75,9 @@ def explicit_file_spec_plugin(plugin_manager):
     return plugin_manager
 
 
-def test_explicit_file_spec_is_registered(explicit_file_spec_plugin, support_explicit_file):
+def test_explicit_file_spec_is_registered(
+    explicit_file_spec_plugin, support_explicit_file
+):
     """Ensures that the explicit spec has been registered and can handle explicit files"""
     # Verify plugin registration and correct name
     env_spec_backend = explicit_file_spec_plugin.get_environment_specifiers(

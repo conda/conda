@@ -43,7 +43,9 @@ class TextSpecFileBase(EnvironmentSpecBase):
 
     """
 
-    extensions: ClassVar[set[str]] = set()  # Subclasses must override with supported extensions
+    extensions: ClassVar[set[str]] = (
+        set()
+    )  # Subclasses must override with supported extensions
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
