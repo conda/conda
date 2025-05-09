@@ -17,6 +17,7 @@ from shutil import rmtree
 from subprocess import check_call, check_output
 from typing import TYPE_CHECKING
 from unittest.mock import patch
+from uuid import uuid4
 
 import menuinst
 import pytest
@@ -77,6 +78,8 @@ from conda.testing.integration import (
     package_is_installed,
     which_or_where,
 )
+
+from .env import support_file
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -2744,22 +2747,19 @@ def test_python_site_packages_path(
 
 
 def test_dont_allow_mixed_file_arguments(
-    tmp_path: Path,
     conda_cli: CondaCLIFixture,
 ):
     """
     Test that conda will return an error when multiple --file arguments of different
     types are specified
     """
-    explicit_file = join(dirname(__file__), "support", "explicit.txt")
-    simple_requirements = join(dirname(__file__), "support", "simple_requirements.txt")
-
-    stdout, stderr, exc = conda_cli(
+    _, _, exc = conda_cli(
         "create",
-        f"--prefix={tmp_path}",
-        f"--file {explicit_file}",
-        f"--file {simple_requirements}",
+        *("--name", uuid4().hex[:8]),
+        *("--file", support_file("requirements.txt")),
+        *("--file", support_file("simple.yml")),
         "--yes",
         raises=EnvironmentFileTypeMismatchError,
     )
+
     assert exc.match("Cannot mix environment file formats")
