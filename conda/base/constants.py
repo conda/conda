@@ -185,7 +185,7 @@ class SafetyChecks(Enum):
     warn = "warn"
     enabled = "enabled"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -194,7 +194,7 @@ class PathConflict(Enum):
     warn = "warn"
     prevent = "prevent"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -205,7 +205,7 @@ class DepsModifier(Enum):
     NO_DEPS = "no_deps"
     ONLY_DEPS = "only_deps"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -219,7 +219,7 @@ class UpdateModifier(Enum):
     UPDATE_ALL = "update_all"
     # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
