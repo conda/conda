@@ -11,7 +11,7 @@ from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
-from os.path import basename, dirname, isdir, join
+from os.path import basename, isdir
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_call, check_output
