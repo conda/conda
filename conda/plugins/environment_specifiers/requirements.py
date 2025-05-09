@@ -7,9 +7,14 @@ from .. import CondaEnvironmentSpecifier, hookimpl
 
 @hookimpl
 def conda_environment_specifiers():
-    from ...env.specs.requirements import RequirementsSpec
+    from ...env.specs.requirements import ExplicitRequirementsSpec, RequirementsSpec
 
     yield CondaEnvironmentSpecifier(
         name="requirements.txt",
         environment_spec=RequirementsSpec,
+    )
+
+    yield CondaEnvironmentSpecifier(
+        name="explicit",
+        environment_spec=ExplicitRequirementsSpec,
     )
