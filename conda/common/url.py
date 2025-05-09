@@ -13,7 +13,6 @@ from getpass import getpass
 from os.path import abspath, expanduser
 from typing import TYPE_CHECKING
 from urllib.parse import (  # noqa: F401
-    ParseResult,
     quote,
     quote_plus,
     unquote,
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from re import Pattern
     from typing import Any, Self
+    from urllib.parse import ParseResult
 
 
 def hex_octal_to_int(ho: str) -> int:
