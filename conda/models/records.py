@@ -250,9 +250,9 @@ class PackageRecord(DictSafeMixin, Entity):
     It captures all the relevant information about a given package archive, including its source,
     in the following attributes.
 
-    Note that there are two subclasses, :class:`PrefixRecord` and
+    Note that there are three subclasses, :class:`SolvedRecord`, :class:`PrefixRecord` and
     :class:`PackageCacheRecord`. These capture the same information, but are augmented with
-    additional information relevant for these two sources of packages.
+    additional information relevant for these sources of packages.
 
     Further note that :class:`PackageRecord` makes use of its :attr:`_pkey`
     for comparison and hash generation.
@@ -603,7 +603,18 @@ class PackageCacheRecord(PackageRecord):
             return md5sum
 
 
-class PrefixRecord(PackageRecord):
+class SolvedRecord(PackageRecord):
+    """Representation of a package that has been returned as part of a solver solution.
+
+    This sits between :class:`PackageRecord` and :class:`PrefixRecord`, simply adding
+    ``requested_spec`` so it can be used in lockfiles without requiring the artifact on
+    disk.
+    """
+    #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
+    requested_spec = StringField(required=False)
+
+
+class PrefixRecord(SolvedRecord):
     """Representation of a package that is installed in a local conda environmnet.
 
     Specialization of :class:`PackageRecord` that adds information for packages that are installed
@@ -635,9 +646,6 @@ class PrefixRecord(PackageRecord):
     link = ComposableField(Link, required=False)
 
     # app = ComposableField(App, required=False)
-
-    #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
-    requested_spec = StringField(required=False)
 
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.
