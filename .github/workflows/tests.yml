@@ -369,7 +369,7 @@ jobs:
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/python -m pytest --codspeed
-  
+
   # linux typing
   linux-typing:
     # only run test suite if there are code changes
