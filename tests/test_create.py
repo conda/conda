@@ -2432,12 +2432,12 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "false")
     monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
+    monkeypatch.setenv("CONDA_SOLVER", context.solver)
 
     # elevate verbosity so we can inspect subprocess' stdout/stderr
     monkeypatch.setenv("CONDA_VERBOSE", "2")
 
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
-        python_exe = str(prefix / PYTHON_BINARY)
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
         assert (py_prec := package_is_installed(prefix, "python"))
         assert (conda_prec := package_is_installed(prefix, "conda"))
@@ -2451,6 +2451,8 @@ def test_conda_downgrade(
         subprocess_call_with_clean_env(
             [conda_exe, "install", f"--prefix={prefix}", "itsdangerous", "--yes"],
             path=prefix,
+            raise_on_error=False,
+            capture_output=False,
         )  # rev 2
         assert package_is_installed(prefix, "itsdangerous")
 
@@ -2458,7 +2460,7 @@ def test_conda_downgrade(
         PrefixData._cache_.clear()
         subprocess_call(
             [
-                python_exe,
+                sys.executable,
                 "-m",
                 "conda",
                 "install",
@@ -2468,10 +2470,12 @@ def test_conda_downgrade(
             ],
             path=prefix,
             raise_on_error=False,
+            capture_output=False,
         )  # rev 3
         assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
         # undo the conda downgrade in the env (using our current outer conda version)
+        PrefixData._cache_.clear()
         conda_cli("install", f"--prefix={prefix}", "--rev=2", "--yes")
         assert package_is_installed(prefix, f"python={py_prec.version}")
         assert package_is_installed(prefix, f"conda={conda_prec.version}")
