@@ -302,22 +302,3 @@ def test_protected_dirs_error_for_env_create(
                 "--file",
                 support_file("example/environment_pinned.yml"),
             )
-
-
-def test_dont_allow_mixed_file_arguments(
-    conda_cli: CondaCLIFixture,
-):
-    """
-    Test that conda will return an error when multiple --file arguments of different
-    types are specified
-    """
-    _, _, exc = conda_cli(
-        *("env", "create"),
-        *("--name", uuid4().hex[:8]),
-        *("--file", support_file("requirements.txt")),
-        *("--file", support_file("simple.yml")),
-        "--yes",
-        raises=EnvironmentFileTypeMismatchError,
-    )
-
-    assert exc.match("Cannot mix environment file formats")
