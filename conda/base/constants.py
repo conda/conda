@@ -12,7 +12,10 @@ import struct
 from enum import Enum, EnumMeta
 from os.path import join
 
+from platformdirs import user_data_dir
+
 from ..common.compat import on_win
+from ..common.path import expand
 
 PREFIX_PLACEHOLDER = (
     "/opt/anaconda1anaconda2"
@@ -366,3 +369,28 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
 NO_PLUGINS = False
+
+USER_DATA_DIR = user_data_dir(APP_NAME, APP_NAME)
+USER_DATA_ENVS = expand(join(USER_DATA_DIR, "envs"))
+
+
+class PkgEnvLayoutMeta(EnumMeta):
+    """A metaclass which gracefully handles instantiation for NoneType or empty string members."""
+
+    def __call__(cls, value, *args, **kwargs):
+        try:
+            return super().__call__(value, *args, **kwargs)
+        except ValueError:
+            if value in (None, ""):
+                return cls.UNSET
+            raise
+
+
+class PkgEnvLayout(Enum, metaclass=PkgEnvLayoutMeta):
+    UNSET = None
+    CONDA_ROOT = "conda_root"
+    USER = "user"
+
+    @property
+    def __name__(self):
+        return self.name

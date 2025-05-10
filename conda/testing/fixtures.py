@@ -18,17 +18,21 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
+from conda.common.serialize import yaml_round_trip_load
 from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..base.context import (
+    conda_tests_ctxt_mgmt_def_pol,
+    context,
+    reset_context,
+)
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
 from ..common.io import env_vars
-from ..common.serialize import yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
