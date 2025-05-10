@@ -881,13 +881,16 @@ class Context(Configuration):
                     "warning run `conda config set pkg_env_layout conda_root`. "
                 )
 
-        dirs.append(
-            str((Path("~") / ".conda" / self._cache_dir_name).expanduser().resolve())
+        dirs.extend(
+            [
+                self.root_prefix_pkgs,
+                str(
+                    (Path("~") / ".conda" / self._cache_dir_name).expanduser().resolve()
+                ),
+            ]
         )
         if on_win:
             dirs.append(self.user_data_pkgs)
-
-        dirs.append(self.root_prefix_pkgs)
         return tuple(dict.fromkeys(dirs))
 
     @property
