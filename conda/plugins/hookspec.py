@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentSpecifier,
-        CondaInstaller,
         CondaHealthCheck,
         CondaInstaller,
         CondaPostCommand,
@@ -575,15 +574,16 @@ class CondaSpecs:
         """
         Register new 'conda env' installer.
         The example below defines a simple pip installer:
-        
+
         **Example:**
-        
+
         .. code-block:: python
 
             import sys
             from subprocess import run
             from conda import plugins
             from conda.plugins.types import CondaInstaller, InstallerBase
+
             python = sys.executable
 
 

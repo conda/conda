@@ -53,7 +53,6 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentSpecifier,
-        CondaInstaller,
         CondaHealthCheck,
         CondaInstaller,
         CondaPostCommand,
