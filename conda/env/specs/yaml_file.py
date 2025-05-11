@@ -34,10 +34,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         _, file_ext = os.path.splitext(self.filename)
 
         # Check if the file has a supported extension and exists
-        if not any(
-            spec_ext == file_ext
-            for spec_ext in YamlFileSpec.extensions
-        ):
+        if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
             return False
 
         try:
