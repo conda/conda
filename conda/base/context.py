@@ -550,12 +550,7 @@ class Context(Configuration):
         argparse_args: Namespace | None = None,
         **kwargs,
     ):
-        deprecated_parameters = {
-            "_restore_free_channel",
-        }
-        super().__init__(
-            argparse_args=argparse_args, deprecated_parameters=deprecated_parameters
-        )
+        super().__init__(argparse_args=argparse_args)
 
         self._set_search_path(
             SEARCH_PATH if search_path is None else search_path,

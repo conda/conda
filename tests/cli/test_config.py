@@ -259,7 +259,8 @@ def test_create_condarc_on_set(conda_cli: CondaCLIFixture):
 def test_show_sorts_keys(conda_cli: CondaCLIFixture):
     # test alphabetical yaml output
     with make_temp_condarc() as rc:
-        stdout, stderr, _ = conda_cli("config", "--file", rc, "--show")
+        with pytest.deprecated_call():
+            stdout, stderr, _ = conda_cli("config", "--file", rc, "--show")
         output_keys = yaml_round_trip_load(stdout).keys()
 
         assert stderr == ""
