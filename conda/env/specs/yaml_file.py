@@ -42,8 +42,9 @@ class YamlFileSpec(EnvironmentSpecBase):
             return True
         except Exception as e:
             log.debug(
-                f"Failed to load {self.filename} as `environment.yaml`.\n"
-                f"Type: {type(e)}, Error: {e}"
+                "Failed to load %s as `environment.yaml`.",
+                self.filename,
+                exc_info=True
             )
             return False
 

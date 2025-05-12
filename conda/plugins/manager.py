@@ -505,13 +505,19 @@ class CondaPluginManager(pluggy.PluginManager):
         hooks = self.get_hook_results("environment_specifiers")
         found = []
         for hook in hooks:
-            log.debug(f"EnvironmentSpec hook: checking {hook.name}")
+            log.debug("EnvironmentSpec hook: checking %s", hook.name)
             if hook.environment_spec(filename).can_handle():
-                log.debug(f"EnvironmentSpec hook: {filename} can be {hook.name}")
+                log.debug(
+                    "EnvironmentSpec hook: %s can be %s",
+                    filename,
+                    hook.name,
+                )
                 found.append(hook)
             else:
                 log.debug(
-                    f"EnvironmentSpec hook: {filename} can NOT be handled by {hook.name}"
+                    "EnvironmentSpec hook: %s can NOT be handled by %s",
+                    filename,
+                    hook.name,
                 )
 
         if len(found) == 1:
