@@ -2,95 +2,126 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import os
+import uuid
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context, reset_context
+from conda.common.serialize import json_load, yaml_safe_load
 from conda.exceptions import CondaValueError
 
 if TYPE_CHECKING:
-    from pytest import CaptureFixture, MonkeyPatch
+    from pathlib import Path
 
-    from conda.testing.fixtures import CondaCLIFixture
+    from pytest import MonkeyPatch
 
-TEST_ENV_NAME = "test_env"
+    from conda.testing.fixtures import CondaCLIFixture, PathFactory
 
 
-def test_export(conda_cli: CondaCLIFixture):
-    conda_cli("export", "-n", f"{TEST_ENV_NAME}", f"--file={TEST_ENV_NAME}.yml")
-    assert os.path.exists(TEST_ENV_NAME + ".yml")
+def test_export(conda_cli: CondaCLIFixture, path_factory: PathFactory) -> None:
+    name = uuid.uuid4().hex
+    path = path_factory(suffix=".yml")
+    conda_cli("export", f"--name={name}", f"--file={path}")
+    assert path.exists()
 
     # check bare minimum contents of the export file
-    with open(TEST_ENV_NAME + ".yml") as f:
-        content = f.read()
-        assert "name: " + TEST_ENV_NAME in content
+    data = yaml_safe_load(path.read_text())
+    assert data["name"] == name
 
 
-def test_export_override_channels(conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch):
-    channels = (
-        "tester",
-        "defaults",
-        "conda-forge",
-    )
+def test_export_override_channels(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    path_factory: PathFactory,
+) -> None:
+    # channels to be ignored
+    channels = (uuid.uuid4().hex, uuid.uuid4().hex)
     monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
     reset_context()
     assert set(channels) <= set(context.channels)
 
+    name = uuid.uuid4().hex
+    path = path_factory(suffix=".yml")
     conda_cli(
         "export",
-        f"--name={TEST_ENV_NAME}",
+        f"--name={name}",
         "--override-channels",
         "--channel=tester",
-        f"--file={TEST_ENV_NAME}.yml",
+        f"--file={path}",
     )
-    assert os.path.exists(TEST_ENV_NAME + ".yml")
+    assert path.exists()
 
-    with open(TEST_ENV_NAME + ".yml") as f:
-        content = f.read()
-        assert "tester" in content
-        assert "conda-forge" not in content
+    data = yaml_safe_load(path.read_text())
+    assert data["channels"] == ["tester"]
 
 
-def test_export_add_channels(conda_cli: CondaCLIFixture):
+def test_export_add_channels(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactory,
+) -> None:
+    name = uuid.uuid4().hex
+    path = path_factory(suffix=".yml")
     conda_cli(
         "export",
-        f"--name={TEST_ENV_NAME}",
+        f"--name={name}",
         "--channel=include-me",
-        f"--file={TEST_ENV_NAME}.yml",
+        f"--file={path}",
     )
+    assert path.exists()
 
-    with open(TEST_ENV_NAME + ".yml") as f:
-        content = f.read()
-        assert "include-me" in content
+    data = yaml_safe_load(path.read_text())
+    assert data["channels"] == ["include-me", *context.channels]
 
 
-def test_export_yaml_file_extension(conda_cli: CondaCLIFixture):
+def test_export_yaml_file_extension(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactory,
+) -> None:
+    name = uuid.uuid4().hex
+    path = path_factory(suffix=".txt")
     with pytest.raises(
         CondaValueError,
-        match="Export files must have a valid extension \\('.yml', '.yaml'\\)",
+        match=r"Export files must have a valid extension \('.yml', '.yaml'\)",
     ):
-        conda_cli("export", f"--name={TEST_ENV_NAME}", f"--file={TEST_ENV_NAME}.txt")
+        conda_cli("export", f"--name={name}", f"--file={path}")
 
 
-def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture):
-    env_name = "no-file-test"
-    conda_cli("export", f"--name={env_name}")
-    assert not os.path.exists("env_name" + ".yml")
+def test_execute_export_no_file_specified(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    # ensure current directory is empty
+    assert not list(tmp_path.iterdir())
+
+    name = uuid.uuid4().hex
+    conda_cli("export", f"--name={name}")
+
+    # ensure no environment file was created
+    assert not list(tmp_path.iterdir())
 
 
-def test_export_with_json(conda_cli: CondaCLIFixture, capsys: CaptureFixture):
-    output = conda_cli(
+def test_export_with_json(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactory,
+) -> None:
+    name = uuid.uuid4().hex
+    path = path_factory(suffix=".yml")
+    stdout, stderr, code = conda_cli(
         "export",
-        f"--name={TEST_ENV_NAME}",
+        f"--name={name}",
         "--json",
-        f"--file={TEST_ENV_NAME}.yml",
+        f"--file={path}",
     )
+    assert stdout
+    assert not stderr
+    assert not code
 
-    assert f'"name": "{TEST_ENV_NAME}"' in output[0]
+    data = json_load(stdout)
+    assert data["name"] == name
 
-    # Ensure the command executed successfully without any errors
-    assert output[2] == 0
-
-    assert os.path.exists(TEST_ENV_NAME + ".yml")
+    assert path.exists()
+    assert yaml_safe_load(path.read_text()) == data

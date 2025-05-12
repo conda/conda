@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
 
+import os
 from logging import getLogger
 
 from ...plugins.types import EnvironmentSpecBase
@@ -22,11 +23,20 @@ class YamlFileSpec(EnvironmentSpecBase):
         """
         Validates loader can process environment definition.
         This can handle if:
+            * the provided file exists
+            * the provided file ends in the supported file extensions (.yaml or .yml)
             * the env file can be interpreted and transformed into
               a `conda.env.env.Environment`
 
         :return: True or False
         """
+        # Extract the file extension (e.g., '.txt' or '' if no extension)
+        _, file_ext = os.path.splitext(self.filename)
+
+        # Check if the file has a supported extension and exists
+        if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
+            return False
+
         try:
             self._environment = env.from_file(self.filename)
             return True
