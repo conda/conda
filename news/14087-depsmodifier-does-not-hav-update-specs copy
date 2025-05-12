@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add debug logs to get visibity into environment spec plugin selection (#14815)
+* Add debug logs to get visibity into environment spec plugin selection. (#14815)
 
 ### Bug fixes
 
