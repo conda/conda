@@ -262,18 +262,22 @@ class CondaSpecs:
         """Register post-transaction hooks.
 
         Post-transaction hooks run after all other actions run in a
-        UnlinkLinkTransaction. For information about FinalTransactionAction,
-        see :class:`~conda.core.path_actions.FinalTransactionAction`.
+        UnlinkLinkTransaction. For information about the Action class,
+        see :class:`~conda.core.path_actions.Action`.
 
         **Example:**
 
         .. code-block:: python
 
             from conda import plugins
-            from conda.core.path_actions import FinalTransactionAction
+            from conda.core.path_actions import Action
 
 
-            class PrintAction(FinalTransactionAction):
+            class PrintAction(Action):
+                def verify(self):
+                    print("Performing verification...")
+                    self._verified = True
+
                 def execute(self):
                     print(
                         self.transaction_context,
@@ -284,6 +288,12 @@ class CondaSpecs:
                         self.update_specs,
                         self.neutered_specs,
                     )
+
+                def reverse(self):
+                    print("Reversing only happens when `execute` raises an exception.")
+
+                def cleanup(self):
+                    print("Carrying out cleanup...")
 
 
             class PrintActionPlugin:

@@ -8,13 +8,13 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import plugins
-from conda.core.path_actions import FinalTransactionAction
+from conda.core.path_actions import Action
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
 
-class DummyTransactionAction(FinalTransactionAction):
+class DummyTransactionAction(Action):
     def verify(self):
         pass
 
