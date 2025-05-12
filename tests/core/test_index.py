@@ -255,8 +255,9 @@ def test_basic_get_reduced_index():
 
 
 def test_fetch_index(test_recipes_channel: Path) -> None:
-    idx = fetch_index(Channel(str(test_recipes_channel)).urls())
-    assert len(idx) == 24
+    with pytest.deprecated_call():
+        idx = fetch_index(Channel(str(test_recipes_channel)).urls())
+        assert len(idx) == 24
 
 
 def test_dist_str_in_index(test_recipes_channel: Path) -> None:
@@ -280,10 +281,13 @@ def test__supplement_index_with_prefix(
     )
     pkg_spec = "dependent=2.0"
     index = {ref: ref}
-    with tmp_env(pkg_spec) as prefix:
-        _supplement_index_with_prefix(index, prefix)
-    with tmp_env(pkg_spec) as prefix:
-        _supplement_index_with_prefix(index, PrefixData(prefix))
+
+    with pytest.deprecated_call():
+        with tmp_env(pkg_spec) as prefix:
+            _supplement_index_with_prefix(index, prefix)
+        with tmp_env(pkg_spec) as prefix:
+            _supplement_index_with_prefix(index, PrefixData(prefix))
+
     pkg = index[ref]
     assert type(ref) is PackageRecord
     assert type(pkg) is PrefixRecord

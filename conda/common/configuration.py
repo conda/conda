@@ -1371,13 +1371,21 @@ def custom_expandvars(
 
 
 class Configuration(metaclass=ConfigurationType):
-    def __init__(self, search_path=(), app_name=None, argparse_args=None, **kwargs):
+    def __init__(
+        self,
+        search_path=(),
+        app_name=None,
+        argparse_args=None,
+        deprecated_parameters=None,
+        **kwargs,
+    ):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
         self._cache_ = {}
         self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
+        self._deprecated_parameters = deprecated_parameters or set()
 
         self._set_search_path(search_path, **kwargs)
         self._set_env_vars(app_name)
@@ -1607,7 +1615,13 @@ class Configuration(metaclass=ConfigurationType):
         return details
 
     def list_parameters(self):
-        return tuple(sorted(name.lstrip("_") for name in self.parameter_names))
+        return tuple(
+            sorted(
+                name.lstrip("_")
+                for name in self.parameter_names
+                if name not in self._deprecated_parameters
+            )
+        )
 
     def typify_parameter(self, parameter_name, value, source):
         # return a tuple with correct parameter name and typed-value

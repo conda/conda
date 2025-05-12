@@ -557,21 +557,23 @@ def test_install_conda_csh(verbose):
             "conda.csh",
         )
         if on_win:
-            assert created_file_contents == (
-                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
-                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
-                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
-                f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
-                f"source \"`cygpath '{hook_source_path}'`\";\n"
-            )
+            with pytest.deprecated_call():
+                assert created_file_contents == (
+                    f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                    f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
+                    f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                    f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
+                    f"source \"`cygpath '{hook_source_path}'`\";\n"
+                )
         else:
-            assert created_file_contents == (
-                f'setenv CONDA_EXE "{context.conda_exe}";\n'
-                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
-                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
-                f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
-                f'source "{hook_source_path}";\n'
-            )
+            with pytest.deprecated_call():
+                assert created_file_contents == (
+                    f'setenv CONDA_EXE "{context.conda_exe}";\n'
+                    f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
+                    f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                    f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
+                    f'source "{hook_source_path}";\n'
+                )
 
         result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.NO_CHANGE

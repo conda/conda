@@ -971,19 +971,20 @@ class CshActivator(_Activator):
             "profile.d",
             "conda.csh",
         )
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if on_win:
             return (
-                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
                 f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
-                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
                 f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
                 f"source \"`cygpath '{hook_source_path}'`\";\n"
             )
         else:
             return (
-                f'setenv CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_EXE "{conda_exe}";\n'
                 f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
-                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv _CONDA_EXE "{conda_exe}";\n'
                 f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
                 f'source "{hook_source_path}";\n'
             )
@@ -1076,21 +1077,22 @@ class FishActivator(_Activator):
     )
 
     def _hook_preamble(self) -> str:
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if on_win:
             return dedent(
                 f"""
-                set -gx CONDA_EXE (cygpath "{context.conda_exe}")
+                set -gx CONDA_EXE (cygpath "{conda_exe}")
                 set _CONDA_ROOT (cygpath "{context.conda_prefix}")
-                set _CONDA_EXE (cygpath "{context.conda_exe}")
+                set _CONDA_EXE (cygpath "{conda_exe}")
                 set -gx CONDA_PYTHON_EXE (cygpath "{sys.executable}")
                 """
             ).strip()
         else:
             return dedent(
                 f"""
-                set -gx CONDA_EXE "{context.conda_exe}"
+                set -gx CONDA_EXE "{conda_exe}"
                 set _CONDA_ROOT "{context.conda_prefix}"
-                set _CONDA_EXE "{context.conda_exe}"
+                set _CONDA_EXE "{conda_exe}"
                 set -gx CONDA_PYTHON_EXE "{sys.executable}"
                 """
             ).strip()
@@ -1117,6 +1119,7 @@ class PowerShellActivator(_Activator):
     )
 
     def _hook_preamble(self) -> str:
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if context.dev:
             return dedent(
                 f"""
@@ -1125,18 +1128,18 @@ class PowerShellActivator(_Activator):
                 $Env:_CE_M = "-m"
                 $Env:_CE_CONDA = "conda"
                 $Env:_CONDA_ROOT = "{CONDA_PACKAGE_ROOT}"
-                $Env:_CONDA_EXE = "{context.conda_exe}"
+                $Env:_CONDA_EXE = "{conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
                 """
             ).strip()
         else:
             return dedent(
                 f"""
-                $Env:CONDA_EXE = "{context.conda_exe}"
+                $Env:CONDA_EXE = "{conda_exe}"
                 $Env:_CE_M = $null
                 $Env:_CE_CONDA = $null
                 $Env:_CONDA_ROOT = "{context.conda_prefix}"
-                $Env:_CONDA_EXE = "{context.conda_exe}"
+                $Env:_CONDA_EXE = "{conda_exe}"
                 $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
                 """
             ).strip()
