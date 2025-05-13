@@ -3,12 +3,12 @@
 """Define YAML spec."""
 
 import os
+from logging import getLogger
 
-from ruamel.yaml.error import YAMLError
-
-from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
+
+log = getLogger(__name__)
 
 
 class YamlFileSpec(EnvironmentSpecBase):
@@ -40,14 +40,10 @@ class YamlFileSpec(EnvironmentSpecBase):
         try:
             self._environment = env.from_file(self.filename)
             return True
-        except EnvironmentFileNotFound as e:
-            self.msg = str(e)
-            return False
-        except EnvironmentFileEmpty as e:
-            self.msg = e.message
-            return False
-        except (TypeError, YAMLError):
-            self.msg = f"{self.filename} is not a valid yaml file."
+        except Exception:
+            log.debug(
+                "Failed to load %s as `environment.yaml`.", self.filename, exc_info=True
+            )
             return False
 
     @property
