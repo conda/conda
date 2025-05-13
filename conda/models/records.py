@@ -611,7 +611,7 @@ class SolvedRecord(PackageRecord):
     disk.
     """
 
-    #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
+    #: str: The :class:`MatchSpec` that the user requested or ``None`` if the package it was installed as a dependency.
     requested_spec = StringField(required=False)
 
 
