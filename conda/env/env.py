@@ -187,19 +187,37 @@ class Dependencies(dict):
         if not self.raw:
             return
 
-        self.update({"conda": []})
+        self.update({"conda": [], "pip": []})
 
         for line in self.raw:
             if isinstance(line, dict):
                 self.update(line)
             else:
-                self["conda"].append(common.arg2spec(line))
+                # Try to install with conda first
+                try:
+                    from ..core.solve import Solver
+                    from ..models.match_spec import MatchSpec
+                    from ..base.context import context
+                    
+                    spec = common.arg2spec(line)
+                    solver = Solver(
+                        prefix=None,
+                        channels=context.channels,
+                        subdirs=context.subdirs,
+                        specs_to_add=[spec],
+                        specs_to_remove=[],
+                    )
+                    # If solver can find the package, add to conda dependencies
+                    solver.solve_final_state()
+                    self["conda"].append(spec)
+                except Exception:
+                    # If package not found in conda channels, add to pip dependencies
+                    self["pip"].append(line)
 
-        if "pip" in self:
-            if not self["pip"]:
-                del self["pip"]
-            if not any(MatchSpec(s).name == "pip" for s in self["conda"]):
-                self["conda"].append("pip")
+        if not self["pip"]:
+            del self["pip"]
+        if not self["conda"]:
+            del self["conda"]
 
     # TODO only append when it's not already present
     def add(self, package_name):

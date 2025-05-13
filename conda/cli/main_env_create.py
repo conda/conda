@@ -147,10 +147,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix_data.validate_path()
     prefix_data.validate_name()
 
-    # TODO, add capability
-    # common.ensure_override_channels_requires_channel(args)
-    # channel_urls = args.channel or ()
-
     result = {"conda": None, "pip": None}
 
     args_packages = (
@@ -171,36 +167,21 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             print(solved_env.to_yaml(), end="")
 
     else:
-        if args_packages:
+        # First install conda packages
+        if "conda" in env.dependencies:
             installer_type = "conda"
             installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, args_packages, args, env)
+            result[installer_type] = installer.install(
+                prefix, env.dependencies["conda"], args, env
+            )
 
-        if len(env.dependencies.items()) == 0:
-            installer_type = "conda"
-            pkg_specs = []
+        # Then install pip packages
+        if "pip" in env.dependencies:
+            installer_type = "pip"
             installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
-        else:
-            for installer_type, pkg_specs in env.dependencies.items():
-                try:
-                    installer = get_installer(installer_type)
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
-                    )
-                except InvalidInstaller:
-                    raise CondaError(
-                        dals(
-                            f"""
-                            Unable to install package for {installer_type}.
-
-                            Please double check and ensure your dependencies file has
-                            the correct spelling. You might also try installing the
-                            conda-env-{installer_type} package to see if provides
-                            the required installer.
-                            """
-                        )
-                    )
+            result[installer_type] = installer.install(
+                prefix, env.dependencies["pip"], args, env
+            )
 
         if env.variables:
             prefix_data.set_environment_env_vars(env.variables)
