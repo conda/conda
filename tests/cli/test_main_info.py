@@ -6,6 +6,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
+import pytest
+
 from conda.base.context import context
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
@@ -178,3 +180,15 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "root_writable",
         "solver",
     } <= set(parsed)
+
+
+# conda info --license
+def test_info_license(conda_cli: CondaCLIFixture):
+    with pytest.deprecated_call():
+        conda_cli("info", "--license")
+
+
+# conda info --root
+def test_info_root(conda_cli: CondaCLIFixture):
+    with pytest.deprecated_call():
+        conda_cli("info", "--root")
