@@ -610,6 +610,7 @@ class SolvedRecord(PackageRecord):
     ``requested_spec`` so it can be used in lockfiles without requiring the artifact on
     disk.
     """
+
     #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
     requested_spec = StringField(required=False)
 
