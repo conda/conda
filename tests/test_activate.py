@@ -2058,8 +2058,16 @@ def plugin(
     ["activate", "deactivate", "reactivate", "hook", "commands"],
 )
 def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
-    activator = PosixActivator([command])
-    activator.execute()
+    """
+    TODO: Remove "commands" from list once fully deprecated and removed
+    """
+    deprecated_ctx = (
+        pytest.deprecated_call() if command == "commands" else nullcontext()
+    )
+
+    with deprecated_ctx:
+        activator = PosixActivator([command])
+        activator.execute()
 
     assert len(plugin.pre_command_action.mock_calls) == 1
     assert len(plugin.post_command_action.mock_calls) == 1
@@ -2070,14 +2078,21 @@ def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) ->
     ["activate", "deactivate", "reactivate", "hook", "commands"],
 )
 def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> None:
+    """
+    TODO: Remove "commands" from list once fully deprecated and removed
+    """
     exc_message = "💥"
+    deprecated_ctx = (
+        pytest.deprecated_call() if command == "commands" else nullcontext()
+    )
 
     # first test post-command exceptions (sine they happen last)
     plugin.post_command_action.side_effect = Exception(exc_message)
 
     activator = PosixActivator([command])
     with pytest.raises(Exception, match=exc_message):
-        activator.execute()
+        with deprecated_ctx:
+            activator.execute()
 
     assert len(plugin.pre_command_action.mock_calls) == 1
     assert len(plugin.post_command_action.mock_calls) == 1
