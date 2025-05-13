@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 
@@ -11,18 +12,17 @@ from conda.exceptions import EnvironmentLocationNotFound
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest_mock import MockerFixture
-
     from conda.testing.fixtures import CondaCLIFixture
 
 
-def test_compare(mocker: MockerFixture, tmp_path: Path, conda_cli: CondaCLIFixture):
-    mocked = mocker.patch(
-        "conda.base.context.mockable_context_envs_dirs",
-        return_value=(str(tmp_path),),
-    )
+def test_compare(tmp_path: Path, conda_cli: CondaCLIFixture):
+    with mock.patch(
+        "conda.base.context.Context.envs_dirs",
+        new_callable=mock.PropertyMock,
+    ) as mock_envs:
+        mock_envs.return_value = (str(tmp_path),)
 
-    with pytest.raises(EnvironmentLocationNotFound):
-        conda_cli("compare", "--name", "nonexistent", "tempfile.rc", "--json")
+        with pytest.raises(EnvironmentLocationNotFound):
+            conda_cli("compare", "--name", "nonexistent", "tempfile.rc", "--json")
 
-    assert mocked.call_count > 0
+    mock_envs.assert_called()

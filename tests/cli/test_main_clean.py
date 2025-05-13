@@ -102,32 +102,37 @@ def test_clean_and_packages(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     tmp_pkgs_dir: Path,
+    mock_context_attributes,
 ):
-    pkg = "small-executable"
+    with mock_context_attributes(
+        _pkgs_dirs=(),
+        _envs_dirs=(),
+    ):
+        pkg = "small-executable"
 
-    # pkg doesn't exist ahead of time
-    assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
-
-    with tmp_env(pkg) as prefix:
-        # pkg exists
-        assert has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
-
-        # --json flag is regression test for #5451
-        stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
-        json.loads(stdout)  # assert valid json
-
-        # pkg still exists since its in use by temp env
-        assert has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
-
-        conda_cli("remove", "--prefix", prefix, pkg, "--yes", "--json")
-        stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
-        json.loads(stdout)  # assert valid json
-
-        # pkg is removed
+        # pkg doesn't exist ahead of time
         assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
 
-    # pkg is still removed
-    assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
+        with tmp_env(pkg) as prefix:
+            # pkg exists
+            assert has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
+
+            # --json flag is regression test for #5451
+            stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
+            json.loads(stdout)  # assert valid json
+
+            # pkg still exists since its in use by temp env
+            assert has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
+
+            conda_cli("remove", "--prefix", prefix, pkg, "--yes", "--json")
+            stdout, _, _ = conda_cli("clean", "--packages", "--yes", "--json")
+            json.loads(stdout)  # assert valid json
+
+            # pkg is removed
+            assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
+
+        # pkg is still removed
+        assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
 
 
 # conda clean --tarballs
