@@ -4,11 +4,12 @@
 
 ### Bug fixes
 
-* Fix `conda info` rendering to display components in a consistent order. (#14829 via 14831)
+* Fix `conda info` rendering to display components in a consistent order. (#14829 via #14831)
 
 ### Deprecations
 
-* <news item>
+* Mark `conda info --license` as pending deprecation to be removed in 26.3. (#14831)
+* Mark `conda info --root` as pending deprecation to be removed in 26.3. Use `conda info --base` instead. (#14831)
 
 ### Docs
 
