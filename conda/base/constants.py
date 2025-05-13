@@ -169,9 +169,7 @@ CONDA_PACKAGE_EXTENSIONS: Final = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_PACKAGE_PARTS: Final = tuple(
-    f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS
-)
+CONDA_PACKAGE_PARTS: Final = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
 CONDA_TARBALL_EXTENSION: Final = (
     CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
 )
