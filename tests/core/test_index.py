@@ -245,13 +245,17 @@ def test_get_index_platform(platform: str) -> None:
 
 @pytest.mark.integration
 def test_basic_get_reduced_index():
-    get_reduced_index(
-        None,
-        (Channel("defaults"), Channel("conda-test")),
-        context.subdirs,
-        (MatchSpec("flask"),),
-        "repodata.json",
-    )
+    """
+    TODO: test should be removed when `get_reduced_index` is removed.
+    """
+    with pytest.deprecated_call():
+        get_reduced_index(
+            None,
+            (Channel("defaults"), Channel("conda-test")),
+            context.subdirs,
+            (MatchSpec("flask"),),
+            "repodata.json",
+        )
 
 
 def test_fetch_index(test_recipes_channel: Path) -> None:
@@ -309,12 +313,13 @@ def test__supplement_index_with_prefix_index_class(
     )
     index = Index()
     pkg_spec = "dependent=2.0"
-    with tmp_env(pkg_spec) as prefix:
-        with pytest.raises(OperationNotAllowed):
+    with pytest.deprecated_call():
+        with tmp_env(pkg_spec) as prefix:
+            with pytest.raises(OperationNotAllowed):
+                _supplement_index_with_prefix(index, prefix)
+        with tmp_env(pkg_spec) as prefix:
+            index = Index(prefix=prefix)
             _supplement_index_with_prefix(index, prefix)
-    with tmp_env(pkg_spec) as prefix:
-        index = Index(prefix=prefix)
-        _supplement_index_with_prefix(index, prefix)
     pkg = index[ref]
     assert type(ref) is PackageRecord
     assert type(pkg) is PrefixRecord
@@ -323,11 +328,14 @@ def test__supplement_index_with_prefix_index_class(
 
 def test__supplement_index_with_cache():
     idx = {}
-    _supplement_index_with_cache(idx)
+    with pytest.deprecated_call():
+        _supplement_index_with_cache(idx)
+        _supplement_index_with_cache(idx)
     tzdata = [p for p in idx.values() if p.name == "tzdata"][0]
     tzdata = PackageRecord.from_objects(tzdata)
     idx = {tzdata: tzdata}
-    _supplement_index_with_cache(idx)
+    with pytest.deprecated_call():
+        _supplement_index_with_cache(idx)
     augmented_tzdata = idx[tzdata]
     assert type(tzdata) is PackageRecord
     assert type(augmented_tzdata) is PackageCacheRecord
@@ -335,7 +343,13 @@ def test__supplement_index_with_cache():
 
 
 def test__make_virtual_package():
-    virtual_package = _make_virtual_package("name", "1.0", "0")
+    """
+    Ensures that the deprecated call and the new call are equivalent.
+
+    TODO: Remove this test when the deprecated call is removed.
+    """
+    with pytest.deprecated_call():
+        virtual_package = _make_virtual_package("name", "1.0", "0")
     ref = PackageRecord.virtual_package("name", "1.0", "0")
     assert virtual_package == ref
 
