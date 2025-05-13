@@ -448,10 +448,11 @@ def test_install_conda_sh(verbose):
         PosixActivator()
 
         line0, line1, line2, line3, _, remainder = created_file_contents.split("\n", 5)
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if on_win:
-            assert line0 == f'''export CONDA_EXE="$(cygpath '{context.conda_exe}')"'''
+            assert line0 == f'''export CONDA_EXE="$(cygpath '{conda_exe}')"'''
         else:
-            assert line0 == f"export CONDA_EXE='{context.conda_exe}'"
+            assert line0 == f"export CONDA_EXE='{conda_exe}'"
         assert line1 == "export _CE_M=''"
         assert line2 == "export _CE_CONDA=''"
         assert line3.startswith("export CONDA_PYTHON_EXE=")
@@ -521,8 +522,9 @@ def test_install_conda_xsh(verbose):
         with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
 
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         assert created_file_contents == (
-            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
+            f"$CONDA_EXE = '{XonshActivator.path_conversion(conda_exe)}'\n"
             f"try:\n"
             f"    del $_CE_M\n"
             f"except KeyError:\n"
