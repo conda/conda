@@ -32,6 +32,7 @@ from ..auxlib.entity import (
 )
 from ..base.context import context
 from ..common.compat import isiterable
+from ..deprecations import deprecated
 from ..exceptions import PathNotFoundError
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
@@ -321,12 +322,17 @@ class PackageRecord(DictSafeMixin, Entity):
     )
 
     @property
-    def schannel(self):
+    def channel_name(self) -> str | None:
         """str: The canonical name of the channel of this package.
 
         Part of the :attr:`_pkey`.
         """
-        return self.channel.canonical_name
+        return getattr(self.channel, "canonical_name", None)
+
+    @property
+    @deprecated("25.9", "26.3", addendum="Use .channel_name instead")
+    def schannel(self):
+        return self.channel_name
 
     @property
     def _pkey(self):
@@ -338,7 +344,7 @@ class PackageRecord(DictSafeMixin, Entity):
 
         The included fields are:
 
-        * :attr:`schannel`
+        * :attr:`channel_name`
         * :attr:`subdir`
         * :attr:`name`
         * :attr:`version`
@@ -373,9 +379,9 @@ class PackageRecord(DictSafeMixin, Entity):
     def __eq__(self, other):
         return self._pkey == other._pkey
 
-    def dist_str(self):
+    def dist_str(self, canonical_name: bool = True) -> str:
         return "{}{}::{}-{}-{}".format(
-            self.channel.canonical_name,
+            self.channel.canonical_name if canonical_name else self.channel.name,
             ("/" + self.subdir) if self.subdir else "",
             self.name,
             self.version,

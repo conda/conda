@@ -197,7 +197,7 @@ class SafetyChecks(Enum):
     warn = "warn"
     enabled = "enabled"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -206,7 +206,7 @@ class PathConflict(Enum):
     warn = "warn"
     prevent = "prevent"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -217,7 +217,7 @@ class DepsModifier(Enum):
     NO_DEPS = "no_deps"
     ONLY_DEPS = "only_deps"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -231,7 +231,7 @@ class UpdateModifier(Enum):
     UPDATE_ALL = "update_all"
     # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -283,6 +283,37 @@ DEFAULT_JSON_REPORTER_BACKEND = "json"
 #: The name of the default console reporter backend
 DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
 
+#: The default `conda list` columns
+DEFAULT_CONDA_LIST_FIELDS = ("name", "version", "build", "channel_name")
+CONDA_LIST_FIELDS = {
+    # Keys MUST be valid attributes in conda.core.records.PrefixRecords
+    # Values are the displayed column title
+    "arch": "Arch",
+    "build": "Build",
+    "build_number": "Build number",
+    "channel": "Channel URL",
+    "channel_name": "Channel",
+    "constrains": "Constraints",
+    "depends": "Dependencies",
+    "dist_str": "Dist",
+    "features": "Features",
+    "fn": "Filename",
+    "license": "License",
+    "license_family": "License family",
+    "md5": "MD5",
+    "name": "Name",
+    "noarch": "Noarch",
+    "package_type": "Package type",
+    "requested_spec": "Requested",
+    "sha256": "SHA256",
+    "size": "Size",
+    "subdir": "Subdir",
+    "timestamp": "Timestamp",
+    "track_features": "Track features",
+    "url": "URL",
+    "version": "Version",
+}
+
 
 class NoticeLevel(ValueEnum):
     CRITICAL = "critical"
@@ -291,8 +322,9 @@ class NoticeLevel(ValueEnum):
 
 
 # Magic files for permissions determination
-PACKAGE_CACHE_MAGIC_FILE: str = "urls.txt"
-PREFIX_MAGIC_FILE: str = join("conda-meta", "history")
+PACKAGE_CACHE_MAGIC_FILE = "urls.txt"
+PREFIX_MAGIC_FILE = join("conda-meta", "history")
+PREFIX_FROZEN_FILE = join("conda-meta", "frozen")
 
 PREFIX_STATE_FILE: str = join("conda-meta", "state")
 PACKAGE_ENV_VARS_DIR: str = join("etc", "conda", "env_vars.d")

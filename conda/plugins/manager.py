@@ -20,34 +20,44 @@ import pluggy
 
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
-from ..base.context import add_plugin_setting, context
+from ..base.context import context
 from ..deprecations import deprecated
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import (
+    CondaValueError,
+    EnvironmentSpecPluginNotDetected,
+    PluginError,
+)
 from . import (
+    environment_specifiers,
     post_solves,
+    prefix_data_loaders,
     reporter_backends,
     solvers,
     subcommands,
     virtual_packages,
 )
+from .config import PluginConfig
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from typing import Literal
 
     from requests.auth import AuthBase
 
-    from ..common.configuration import ParameterLoader
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
         CondaPreCommand,
+        CondaPrefixDataLoader,
+        CondaPrefixDataLoaderCallable,
         CondaPreSolve,
         CondaReporterBackend,
         CondaRequestHeader,
@@ -223,6 +233,16 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["prefix_data_loaders"]
+    ) -> list[CondaPrefixDataLoader]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["environment_specifiers"]
+    ) -> list[CondaEnvironmentSpecifier]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -321,14 +341,14 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
-    def get_settings(self) -> dict[str, ParameterLoader]:
+    def get_settings(self) -> dict[str, CondaSetting]:
         """
-        Return a mapping of plugin setting name to ParameterLoader class
+        Return a mapping of plugin setting name to CondaSetting objects.
 
         This method intentionally overwrites any duplicates that may be present
         """
         return {
-            config_param.name.lower(): (config_param.parameter, config_param.aliases)
+            config_param.name.lower(): config_param
             for config_param in self.get_hook_results("settings")
         }
 
@@ -417,6 +437,10 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
 
+    def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
+        for hook in self.get_hook_results("prefix_data_loaders"):
+            yield hook.loader
+
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
             try:
@@ -460,8 +484,62 @@ class CondaPluginManager(pluggy.PluginManager):
         Iterates through all registered settings and adds them to the
         :class:`conda.common.configuration.PluginConfig` class.
         """
-        for name, (parameter, aliases) in self.get_settings().items():
-            add_plugin_setting(name, parameter, aliases)
+        for name, setting in self.get_settings().items():
+            PluginConfig.add_plugin_setting(name, setting.parameter, setting.aliases)
+
+    def get_config(self, data) -> PluginConfig:
+        """
+        Retrieve the configuration for the plugin.
+        Returns:
+            PluginConfig: The configuration object for the plugin, initialized with raw data from the context.
+        """
+        return PluginConfig(data)
+
+    def get_environment_specifiers(self, filename: str) -> CondaEnvironmentSpecifier:
+        """
+        Returns the environment_spec plugin that can handle the provided file.
+
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+        """
+        hooks = self.get_hook_results("environment_specifiers")
+        found = []
+        for hook in hooks:
+            log.debug("EnvironmentSpec hook: checking %s", hook.name)
+            if hook.environment_spec(filename).can_handle():
+                log.debug(
+                    "EnvironmentSpec hook: %s can be %s",
+                    filename,
+                    hook.name,
+                )
+                found.append(hook)
+            else:
+                log.debug(
+                    "EnvironmentSpec hook: %s can NOT be handled by %s",
+                    filename,
+                    hook.name,
+                )
+
+        if len(found) == 1:
+            return found[0]
+        elif len(found) > 0:
+            # raise an error if there is more than one plugin found
+            raise PluginError(
+                dals(
+                    f"""
+                    Too many plugins found that can handle the environment file '{filename}':
+
+                    {", ".join([hook.name for hook in found])}
+
+                    Please make sure that you don't have any overlapping plugins installed.
+                """
+                )
+            )
+
+        # raise error if no plugins found that can read the environment file
+        raise EnvironmentSpecPluginNotDetected(
+            name=filename, plugin_names=[hook.name for hook in hooks]
+        )
 
 
 @functools.cache
@@ -479,6 +557,8 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *prefix_data_loaders.plugins,
+        *environment_specifiers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

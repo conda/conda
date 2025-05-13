@@ -11,6 +11,7 @@ from argparse import (
     BooleanOptionalAction,
     _HelpAction,
     _StoreAction,
+    _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
 
@@ -70,6 +71,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
+        # "-f",  # FUTURE: 26.3: Enable this after deprecating alias in --force
         "--file",
         default=[],
         action="append",
@@ -133,21 +135,25 @@ def add_parser_prefix(
     npgroup = target_environment_group.add_mutually_exclusive_group(
         required=prefix_required
     )
-    npgroup.add_argument(
+    add_parser_prefix_to_group(npgroup)
+    return npgroup
+
+
+def add_parser_prefix_to_group(m: _MutuallyExclusiveGroup) -> None:
+    m.add_argument(
         "-n",
         "--name",
         action="store",
         help="Name of environment.",
         metavar="ENVIRONMENT",
     )
-    npgroup.add_argument(
+    m.add_argument(
         "-p",
         "--prefix",
         action="store",
         help="Full path to environment location (i.e. prefix).",
         metavar="PATH",
     )
-    return npgroup
 
 
 def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
@@ -197,6 +203,15 @@ def add_output_and_prompt_options(p: ArgumentParser) -> _ArgumentGroup:
         "Users will not be asked to confirm any adding, deleting, backups, etc.",
     )
     return output_and_prompt_options
+
+
+def add_parser_frozen_env(p: ArgumentParser):
+    p.add_argument(
+        "--override-frozen",
+        action="store_false",
+        help="DANGEROUS. Use at your own risk. Ignore protections if the environment is frozen.",
+        dest="protect_frozen_envs",
+    )
 
 
 def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
@@ -444,12 +459,24 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
+    from ..deprecations import deprecated
 
     package_install_options = p.add_argument_group(
         "Package Linking and Install-time Options"
     )
     package_install_options.add_argument(
         "-f",
+        dest="force",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--force` instead.",
+        ),
+        default=NULL,
+        help=SUPPRESS,
+    )
+    package_install_options.add_argument(
         "--force",
         action="store_true",
         default=NULL,
@@ -547,3 +574,10 @@ def add_parser_verbose(parser: ArgumentParser | _ArgumentGroup) -> None:
         help=SUPPRESS,
         default=NULL,
     )
+
+
+def comma_separated_stripped(value: str) -> list[str]:
+    """
+    Custom type for argparse to handle comma-separated strings with stripping
+    """
+    return [item.strip() for item in value.split(",")]

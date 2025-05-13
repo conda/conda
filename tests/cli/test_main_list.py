@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.constants import CONDA_LIST_FIELDS
+from conda.common.configuration import CustomValidationError
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.testing.integration import package_is_installed
@@ -33,16 +36,24 @@ def tmp_envs_dirs(mocker: MockerFixture, tmp_path: Path) -> Path:
 
 
 # conda list
-def test_list(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    pkg = "ca-certificates"  # has no dependencies
+def test_list(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+) -> None:
+    pkg = "dependency"  # has no dependencies
     with tmp_env(pkg) as prefix:
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--json")
         assert any(item["name"] == pkg for item in json.loads(stdout))
 
 
 # conda list --reverse
-def test_list_reverse(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    pkg = "curl"  # has dependencies
+def test_list_reverse(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+) -> None:
+    pkg = "dependent"  # has dependencies
     with tmp_env(pkg) as prefix:
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--json")
         names = [item["name"] for item in json.loads(stdout)]
@@ -64,8 +75,10 @@ def test_list_json(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
 
 
 def test_list_specific_version(
-    test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
-):
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+) -> None:
     def pkg_info(s):
         # function from nb_conda/envmanager.py
         if isinstance(s, str):
@@ -87,7 +100,7 @@ def test_list_specific_version(
 
 
 # conda list --revisions --json
-def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
+def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None:
     stdout, _, _ = conda_cli("list", "--revisions", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list) or (isinstance(parsed, dict) and "error" in parsed)
@@ -97,38 +110,42 @@ def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
 
 
 # conda list PACKAGE
-def test_list_package(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
+def test_list_package(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None:
     stdout, _, _ = conda_cli("list", "ipython", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list)
 
 
-def test_list_explicit(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    pkg = "curl"  # has dependencies
+def test_list_explicit(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+) -> None:
+    pkg = "dependency"  # has no dependencies
     with tmp_env(pkg) as prefix:
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--json")
-        curl = next(
-            (item for item in json.loads(stdout) if item["name"] == "curl"), None
-        )
-        assert curl
+        dist_names = [item["dist_name"] for item in json.loads(stdout)]
+        assert len(dist_names) == 1
+        dist_name = dist_names[0]
 
         # Plant a fake token to make sure we can remove it if needed
-        json_file = prefix / "conda-meta" / (curl["dist_name"] + ".json")
+        token = "t/some-fake-token/"
+        json_file = prefix / "conda-meta" / (dist_name + ".json")
         json_data = json.loads(json_file.read_text())
         json_data["url"] = (
-            "https://conda.anaconda.org/t/some-fake-token/"
+            f"https://conda.anaconda.org/{token}"
             f"{json_data['channel']}/{json_data['subdir']}/{json_data['fn']}"
         )
         json_file.write_text(json.dumps(json_data))
 
         PrefixData(prefix)._cache_.clear()
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--explicit")
-        assert curl["dist_name"] in stdout
-        assert "/t/some-fake-token/" not in stdout  # by default we should not see this
+        assert dist_name in stdout
+        assert token not in stdout  # by default we should not see this
 
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--explicit", "--auth")
-        assert curl["dist_name"] in stdout
-        assert "/t/some-fake-token/" in stdout  # with --auth we do
+        assert dist_name in stdout
+        assert token in stdout  # with --auth we do
 
 
 @pytest.mark.integration
@@ -136,18 +153,12 @@ def test_export(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-    mocker: MockerFixture,
-):
+    test_recipes_channel: Path,
+) -> None:
     """Test that `conda list --export` output can be used to create a similar environment."""
-    mocker.patch(
-        "conda.base.context.Context.channels",
-        new_callable=mocker.PropertyMock,
-        return_value=("defaults",),
-    )
-
-    # use "cheap" packages with no dependencies
-    with tmp_env("pkgs/main::zlib") as prefix:
-        assert package_is_installed(prefix, "pkgs/main::zlib")
+    pkg = "dependency=1.0"  # has no dependencies
+    with tmp_env(pkg) as prefix:
+        assert package_is_installed(prefix, pkg)
 
         output, _, _ = conda_cli("list", f"--prefix={prefix}", "--export")
 
@@ -155,45 +166,86 @@ def test_export(
         env_txt.write_text(output)
 
         with tmp_env("--file", env_txt) as prefix2:
-            assert package_is_installed(prefix, "pkgs/main::zlib")
+            assert package_is_installed(prefix, pkg)
 
             output2, _, _ = conda_cli("list", f"--prefix={prefix2}", "--export")
             assert output == output2
 
 
-# Using --quiet here as a no-op flag for test simplicity
-@pytest.mark.parametrize("checksum_flag", ("--quiet", "--md5", "--sha256"))
+@pytest.mark.parametrize("checksum_flag", (None, "--md5", "--sha256"))
 @pytest.mark.integration
 def test_explicit(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-    checksum_flag: str,
-):
+    checksum_flag: str | None,
+    test_recipes_channel: Path,
+) -> None:
     """Test that `conda list --explicit` output can be used to recreate an identical environment."""
-    # use "cheap" packages with no dependencies
-    with tmp_env("pkgs/main::zlib", "conda-forge::ca-certificates") as prefix:
-        assert package_is_installed(prefix, "pkgs/main::zlib")
-        assert package_is_installed(prefix, "conda-forge::ca-certificates")
+    pkg = "dependent=1.0"  # has dependencies
+    pkg2 = "dependency"
+    with tmp_env(pkg) as prefix:
+        assert package_is_installed(prefix, pkg)
+        assert package_is_installed(prefix, pkg2)
 
         output, _, _ = conda_cli(
             "list",
             f"--prefix={prefix}",
             "--explicit",
-            checksum_flag,
+            *([checksum_flag] if checksum_flag else ()),
         )
 
     env_txt = path_factory(suffix=".txt")
     env_txt.write_text(output)
 
     with tmp_env("--file", env_txt) as prefix2:
-        assert package_is_installed(prefix2, "pkgs/main::zlib")
-        assert package_is_installed(prefix2, "conda-forge::ca-certificates")
+        assert package_is_installed(prefix2, pkg)
+        assert package_is_installed(prefix2, pkg2)
 
         output2, _, _ = conda_cli(
             "list",
             f"--prefix={prefix2}",
             "--explicit",
-            checksum_flag,
+            *([checksum_flag] if checksum_flag else ()),
         )
         assert output == output2
+
+
+def test_fields_dependent(test_recipes_channel: Path, conda_cli, tmp_env):
+    pkg = "dependent=1.0"
+    with tmp_env(pkg) as prefix:
+        assert package_is_installed(prefix, pkg)
+
+        output, _, rc = conda_cli(
+            "list",
+            f"--prefix={prefix}",
+            "--fields",
+            "name",
+        )
+        assert not rc
+        assert "dependent" in output.splitlines()
+
+        output, _, rc = conda_cli(
+            "list", f"--prefix={prefix}", "--fields", "version", "dependent"
+        )
+        assert not rc
+        assert "1.0" in output.splitlines()
+
+
+def test_fields_all(conda_cli):
+    output, _, rc = conda_cli(
+        "list", f"--prefix={sys.prefix}", "--fields", ",".join(CONDA_LIST_FIELDS)
+    )
+    assert not rc
+
+
+def test_fields_invalid(conda_cli):
+    out, err, exc = conda_cli(
+        "list",
+        f"--prefix={sys.prefix}",
+        "--fields",
+        "invalid-field",
+        raises=CustomValidationError,
+    )
+    assert "list_fields" in str(exc)
+    assert "invalid-field" in str(exc)

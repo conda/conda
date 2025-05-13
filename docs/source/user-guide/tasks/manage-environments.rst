@@ -248,13 +248,34 @@ For example, it may be the case that:
 
 If any of these occur, all you need to do is update the contents of
 your ``environment.yml`` file accordingly and then run the following
-command::
+command:
 
-conda env update --file environment.yml  --prune
+.. code::
+
+   conda env update --file environment.yml  --prune
 
 .. note::
    The ``--prune`` option causes conda to remove any dependencies
    that are no longer required from the environment.
+
+.. _frozen-env:
+
+Freezing or locking an environment
+==================================
+
+`CEP 22 <https://conda.org/learn/ceps/cep-0022>`__ introduced an
+environment marker file that will instruct ``conda`` not to allow
+modifications in the given environment. When attempting to add,
+update or remove a package, users will receive an error by default::
+
+   EnvironmentIsFrozenError: Cannot not modify '~/.conda/envs/my-env'.
+   The environment is marked as frozen. You can ignore this error with
+   the `--override-frozen` flag, at your own risk.
+
+As mentioned above, users can pass the ``--override-frozen`` flag, but
+this is really not recommended and should only be done by advanced users
+who are aware of the risks and would have the knowledge to fix potential
+complications derived from that operation.
 
 
 Cloning an environment
@@ -398,7 +419,7 @@ You may receive a warning message if you have not activated your environment:
    please see https://conda.io/activation.
 
 If you receive this warning, you need to activate your environment. To do
-so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in a terminal window.
+so on Windows, run: ``c:\Anaconda3\Scripts\activate`` in a terminal window.
 
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
@@ -427,20 +448,29 @@ behavior uniform across operating systems. Conda 4.4 allowed
 support so that conda works faster and less disruptively on
 a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
 Now these shells can use the ``conda activate`` command.
-Removing the need to modify PATH makes conda less disruptive to
-other software on your system. For more information, read the
-output from ``conda init --help``.
+
+Alternatively, ``conda init --condabin`` will not install a shell
+function in your profile. Instead, it will only add the ``$CONDA_PREFIX/condabin/``
+directory to ``PATH``. This directory only contains the ``conda``
+executable, so it should be minimally invasive.
+
+For more information, read the output from ``conda init --help``.
 
 One setting may be useful to you when using ``conda init`` is::
 
-  auto_activate_base: bool
+  auto_activate: bool
 
-This setting controls whether or not conda activates your base
+This setting controls whether or not conda activates the given default
 environment when it first starts up. You'll have the ``conda``
 command available either way, but without activating the environment,
-none of the other programs in the environment will be available until
-the environment is activated with ``conda activate base``. People
-sometimes choose this setting to speed up the time their shell takes
+none of the other programs in the default environment will be available until
+the environment is activated with ``conda activate``.
+
+The environment to be activated by default can be configured with::
+
+   default_activation_env: str
+
+People sometimes choose this setting to speed up the time their shell takes
 to start up or to keep conda-installed software from automatically
 hiding their other software.
 
@@ -453,13 +483,13 @@ deactivating the new environment. Sometimes you may want to leave
 the current environment PATH entries in place so that you can continue
 to easily access command-line programs from the first environment.
 This is most commonly encountered when common command-line utilities
-are installed in the base environment. To retain the current environment
+are installed in the default environment. To retain the current environment
 in the PATH, you can activate the new environment using::
 
   conda activate --stack myenv
 
 If you wish to always stack when going from the outermost environment,
-which is typically the base environment, you can set the ``auto_stack``
+which is typically the default environment, you can set the ``auto_stack``
 configuration option::
 
   conda config --set auto_stack 1
@@ -489,7 +519,7 @@ Conda removes the path name for the currently active environment from
 your system command.
 
 .. note::
-   To simply return to the base environment, it's better to call ``conda
+   To simply return to the default environment, it's better to call ``conda
    activate`` with no environment specified, rather than to try to deactivate. If
    you run ``conda deactivate`` from your base environment, you may lose the
    ability to run conda at all. Don't worry, that's local to this shell - you can

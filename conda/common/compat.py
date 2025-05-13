@@ -42,11 +42,6 @@ def encode_environment(env):
     return env
 
 
-@deprecated("24.9", "25.3")
-def encode_arguments(arguments):
-    return arguments
-
-
 from collections.abc import Iterable
 
 

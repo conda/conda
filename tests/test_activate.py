@@ -22,6 +22,7 @@ from conda.activate import (
     PowerShellActivator,
     XonshActivator,
     _build_activator_cls,
+    activator_map,
     native_path_to_unix,
     unix_path_to_native,
 )
@@ -1471,13 +1472,14 @@ def test_cmd_exe_basic(
     )
     assert activate_data == (
         f"{unset_vars}\n"
-        f'@SET "PATH={activator.pathsep_join(new_path_parts)}"\n'
-        f'@SET "CONDA_PREFIX={activator.path_conversion(shell_wrapper_unit)}"\n'
-        f'@SET "CONDA_SHLVL=1"\n'
-        f'@SET "CONDA_DEFAULT_ENV={shell_wrapper_unit}"\n'
-        f'@SET "CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}"\n'
+        f"PROMPT={get_prompt(shell_wrapper_unit)}\n"
+        f"PATH={activator.pathsep_join(new_path_parts)}\n"
+        f"CONDA_PREFIX={activator.path_conversion(shell_wrapper_unit)}\n"
+        f"CONDA_SHLVL=1\n"
+        f"CONDA_DEFAULT_ENV={shell_wrapper_unit}\n"
+        f"CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}\n"
         f"{conda_exe_export}\n"
-        f'@CALL "{activate1}"\n'
+        f"_CONDA_SCRIPT={activate1}\n"
     )
 
     monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
@@ -1516,13 +1518,14 @@ def test_cmd_exe_basic(
         )
     )
     assert reactivate_data == (
-        f'@CALL "{deactivate1}"\n'
+        f"_CONDA_SCRIPT={deactivate1}\n"
         f"{unset_vars}\n"
-        f'@SET "PATH={activator.pathsep_join(new_path_parts)}"\n'
-        f'@SET "CONDA_SHLVL=1"\n'
-        f'@SET "CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}"\n'
+        f"PROMPT={get_prompt(shell_wrapper_unit)}\n"
+        f"PATH={activator.pathsep_join(new_path_parts)}\n"
+        f"CONDA_SHLVL=1\n"
+        f"CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}\n"
         f"{conda_exe_export}\n"
-        f'@CALL "{activate1}"\n'
+        f"_CONDA_SCRIPT={activate1}\n"
     )
 
     err = main_sourced("shell.cmd.exe", "deactivate")
@@ -1546,13 +1549,14 @@ def test_cmd_exe_basic(
         )
     )
     assert deactivate_data == (
-        f'@SET "PATH={new_path}"\n'
-        f'@CALL "{deactivate1}"\n'
-        f"@SET CONDA_PREFIX=\n"
-        f"@SET CONDA_DEFAULT_ENV=\n"
-        f"@SET CONDA_PROMPT_MODIFIER=\n"
+        f"PATH={new_path}\n"
+        f"_CONDA_SCRIPT={deactivate1}\n"
+        f"CONDA_PREFIX=\n"
+        f"CONDA_DEFAULT_ENV=\n"
+        f"CONDA_PROMPT_MODIFIER=\n"
         f"{unset_vars}\n"
-        f'@SET "CONDA_SHLVL=0"\n'
+        f"PROMPT={get_prompt()}\n"
+        f"CONDA_SHLVL=0\n"
         f"{conda_exe_export}\n"
     )
 
@@ -1774,9 +1778,18 @@ def test_xonsh_basic(
     assert deactivate_data == (
         f"$PATH = '{new_path}'\n"
         f'{sourcer} "{deactivate1}"\n'
-        f"del $CONDA_PREFIX\n"
-        f"del $CONDA_DEFAULT_ENV\n"
-        f"del $CONDA_PROMPT_MODIFIER\n"
+        f"try:\n"
+        f"    del $CONDA_PREFIX\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"try:\n"
+        f"    del $CONDA_DEFAULT_ENV\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"try:\n"
+        f"    del $CONDA_PROMPT_MODIFIER\n"
+        f"except KeyError:\n"
+        f"    pass\n"
         f"{unset_vars}\n"
         f"$CONDA_SHLVL = '0'\n"
         f"{conda_exe_export}\n"
@@ -2392,3 +2405,25 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
 
     with pytest.raises(ArgumentError, match=expected_error_message):
         activator.execute()
+
+
+@pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
+def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
+    # Make sure local config does not affect the test; empty string -> base
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", "")
+    reset_context()
+
+    output = activator_cls(["activate"]).execute()
+    if activator_cls == CmdExeActivator:
+        output = Path(output.strip()).read_text()
+    assert "(base)" in output
+
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", str(tmp_path))
+    reset_context()
+
+    conda_cli("create", "-p", tmp_path, "--yes", "--offline")
+
+    output = activator_cls(["activate"]).execute()
+    if activator_cls == CmdExeActivator:
+        output = Path(output.strip()).read_text()
+    assert str(tmp_path) in output
