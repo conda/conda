@@ -184,6 +184,7 @@ class ActionGroup(NamedTuple):
 
 
 class PrefixActionGroup(NamedTuple):
+    initial_transaction_groups: Iterable[ActionGroup]
     remove_menu_action_groups: Iterable[ActionGroup]
     unlink_action_groups: Iterable[ActionGroup]
     unregister_action_groups: Iterable[ActionGroup]
@@ -553,10 +554,22 @@ class UnlinkLinkTransaction:
             )
         ]
 
-        # Instantiate any final transactions defined by the user.
-        final_transactions = []
+        # Instantiate any pre or post transactions defined by the user.
+        pre_transactions, post_transactions = [], []
+        for hook in context.plugin_manager.get_hook_results("pre_transactions"):
+            pre_transactions.append(
+                hook.action(
+                    transaction_context,
+                    target_prefix,
+                    unlink_precs,
+                    link_precs,
+                    remove_specs,
+                    update_specs,
+                    neutered_specs,
+                )
+            )
         for hook in context.plugin_manager.get_hook_results("post_transactions"):
-            final_transactions.append(
+            post_transactions.append(
                 hook.action(
                     transaction_context,
                     target_prefix,
@@ -569,6 +582,7 @@ class UnlinkLinkTransaction:
             )
 
         return PrefixActionGroup(
+            [ActionGroup("initial", None, pre_transactions, target_prefix)],
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
@@ -578,7 +592,7 @@ class UnlinkLinkTransaction:
             make_menu_action_groups,
             entry_point_action_groups,
             prefix_record_groups,
-            [ActionGroup("final", None, final_transactions, target_prefix)],
+            [ActionGroup("final", None, post_transactions, target_prefix)],
         )
 
     @staticmethod
@@ -854,13 +868,24 @@ class UnlinkLinkTransaction:
         remove_menu_actions = list(
             group for group in all_action_groups if group.type == "remove_menus"
         )
-        final_transaction_actions = list(
+        pre_transaction_actions = list(
+            group for group in all_action_groups if group.type == "initial"
+        )
+        post_transaction_actions = list(
             group for group in all_action_groups if group.type == "final"
         )
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
             with get_spinner("Executing transaction"):
+                # Execute any user-defined pre-transaction actions
+                for exc in self.execute_executor.map(
+                    UnlinkLinkTransaction._execute_actions,
+                    pre_transaction_actions,
+                ):
+                    if exc:
+                        exceptions.append(exc)
+
                 # Execute unlink actions
                 for group, register_group, install_side in (
                     (unlink_actions, "unregister", False),
@@ -951,7 +976,7 @@ class UnlinkLinkTransaction:
                 # Execute any user-defined post-transaction actions
                 for exc in self.execute_executor.map(
                     UnlinkLinkTransaction._execute_actions,
-                    final_transaction_actions,
+                    post_transaction_actions,
                 ):
                     if exc:
                         exceptions.append(exc)

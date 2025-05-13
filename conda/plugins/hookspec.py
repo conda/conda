@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         CondaPreCommand,
         CondaPrefixDataLoader,
         CondaPreSolve,
+        CondaPreTransaction,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -254,6 +255,55 @@ class CondaSpecs:
                     name="example-health-check",
                     action=example_health_check,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_pre_transactions(self) -> Iterable[CondaPreTransaction]:
+        """Register pre-transaction hooks.
+
+        Pre-transaction hooks run before all other actions run in a
+        UnlinkLinkTransaction. For information about the Action class,
+        see :class:`~conda.core.path_actions.Action`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.core.path_actions import Action
+
+
+            class PrintAction(Action):
+                def verify(self):
+                    print("Performing verification...")
+                    self._verified = True
+
+                def execute(self):
+                    print(
+                        self.transaction_context,
+                        self.target_prefix,
+                        self.unlink_precs,
+                        self.link_precs,
+                        self.remove_specs,
+                        self.update_specs,
+                        self.neutered_specs,
+                    )
+
+                def reverse(self):
+                    print("Reversing only happens when `execute` raises an exception.")
+
+                def cleanup(self):
+                    print("Carrying out cleanup...")
+
+
+            class PrintActionPlugin:
+                @plugins.hookimpl
+                def conda_pre_transactions(self) -> Iterable[plugins.CondaPreTransaction]:
+                    yield plugins.CondaPreTransaction(
+                        name="example-pre-transaction",
+                        action=PrintAction,
+                    )
         """
         yield from ()
 

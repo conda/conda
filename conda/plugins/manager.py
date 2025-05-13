@@ -60,6 +60,7 @@ if TYPE_CHECKING:
         CondaPrefixDataLoader,
         CondaPrefixDataLoaderCallable,
         CondaPreSolve,
+        CondaPreTransaction,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -233,6 +234,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["pre_transactions"]
+    ) -> list[CondaPreTransaction]: ...
 
     @overload
     def get_hook_results(

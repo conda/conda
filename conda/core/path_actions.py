@@ -88,8 +88,8 @@ REPR_IGNORE_KWARGS = (
 class Action:
     """Base class for path manipulation actions, including linking, unlinking, and others.
 
-    Post-transaction plugins should inherit this class to implement their own
-    verification, execution, reversing, and cleanup steps. These methods are
+    Pre and post-transaction plugins should inherit this class to implement their
+    own verification, execution, reversing, and cleanup steps. These methods are
     guaranteed to be called in the following order:
 
         1. ``verify``

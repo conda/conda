@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add the ability to define post-transaction hooks. (#14754)
+* Add the ability to define pre- and post-transaction hooks. (#14754)
 
 ### Bug fixes
 

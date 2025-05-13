@@ -359,6 +359,25 @@ class CondaRequestHeader:
 
 
 @dataclass
+class CondaPreTransaction:
+    """
+    Return type to use when defining a pre-transaction hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_transactions`.
+
+    :param name: Pre transaction name (this is just a label)
+    :param action: Action class which implements
+        plugin behavior. See
+        :class:`~conda.core.path_actions.Action` for
+        implementation details
+    """
+
+    name: str
+    action: type[Action]
+
+
+@dataclass
 class CondaPostTransaction:
     """
     Return type to use when defining a post-transaction hook.
