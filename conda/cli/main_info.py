@@ -10,11 +10,13 @@ from __future__ import annotations
 import os
 import re
 import sys
-from argparse import SUPPRESS
+from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -69,7 +71,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-l",
         "--license",
-        action="store_true",
+        action=deprecated.action("25.9", "26.3", _StoreTrueAction),
         help=SUPPRESS,
     )
     p.add_argument(
@@ -80,7 +82,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     p.add_argument(
         "--root",
-        action="store_true",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--base` instead.",
+        ),
         help=SUPPRESS,
         dest="base",
     )
@@ -499,43 +506,36 @@ class InfoRenderer:
         return self._info_dict
 
 
-def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
+def get_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
     """
-    Based on values in ``args`` and ``context`` determine which components need to be displayed
-    and return them as a ``set``
-    """
-    components: set[InfoComponents] = set()
+    Determine which components to display.
 
+    :param args: The parsed command line arguments.
+    :param context: The conda context.
+    :returns: An iterable of components to display.
+    """
     if args.base:
-        components.add("base")
+        yield "base"
 
     if args.unsafe_channels:
-        components.add("channels")
-
-    options = "envs", "system"
-
-    if args.all or context.json:
-        for option in options:
-            setattr(args, option, True)
+        yield "channels"
 
     if (
-        (args.all or all(not getattr(args, opt) for opt in options))
+        (args.all or (not args.envs and not args.system))
         and not context.json
         and not args.base
         and not args.unsafe_channels
     ):
-        components.add("detail")
+        yield "detail"
 
-    if args.envs and not context.json:
-        components.add("envs")
+    if (args.envs or args.all) and not context.json:
+        yield "envs"
 
-    if args.system and not context.json:
-        components.add("system")
+    if (args.system or args.all) and not context.json:
+        yield "system"
 
     if context.json and not args.base and not args.unsafe_channels:
-        components.add("json_all")
-
-    return components
+        yield "json_all"
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
