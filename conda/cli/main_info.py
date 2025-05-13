@@ -10,11 +10,13 @@ from __future__ import annotations
 import os
 import re
 import sys
-from argparse import SUPPRESS
+from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -69,7 +71,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-l",
         "--license",
-        action="store_true",
+        action=deprecated.action("25.9", "26.3", _StoreTrueAction),
         help=SUPPRESS,
     )
     p.add_argument(
@@ -80,7 +82,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     p.add_argument(
         "--root",
-        action="store_true",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--base` instead.",
+        ),
         help=SUPPRESS,
         dest="base",
     )
