@@ -165,10 +165,9 @@ def _execute_transaction(transaction):
     :rtype: dict
     """
     if transaction.nothing_to_do:
-        return {"success": True}
+        return None
 
     # Execute the transaction and return success
-    transaction._make_legacy_action_groups()  # This processes the action groups
     transaction.download_and_extract()
     transaction.execute()
-    return {"success": True}
+    return transaction._make_legacy_action_groups()[0]
