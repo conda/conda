@@ -8,24 +8,32 @@ Think of this as a "more static" source of configuration information.
 Another important source of "static" configuration is conda/models/enums.py.
 """
 
+from __future__ import annotations
+
 import struct
 from enum import Enum, EnumMeta
 from os.path import join
+from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
 
-PREFIX_PLACEHOLDER: str = (
+if TYPE_CHECKING:
+    from typing import Final
+
+    from ..common.path import PathType
+
+PREFIX_PLACEHOLDER: Final = (
     "/opt/anaconda1anaconda2"
     # this is intentionally split into parts, such that running
     # this program on itself will leave it unchanged
     "anaconda3"
 )
 
-machine_bits: int = 8 * struct.calcsize("P")
+machine_bits: Final = 8 * struct.calcsize("P")
 
-APP_NAME: str = "conda"
+APP_NAME: Final = "conda"
 
-SEARCH_PATH: tuple[str]
+SEARCH_PATH: tuple[str, ...]
 
 if on_win:  # pragma: no cover
     SEARCH_PATH = (
@@ -63,15 +71,12 @@ SEARCH_PATH += (
     "$CONDARC",
 )
 
-DEFAULT_CHANNEL_ALIAS: str = "https://conda.anaconda.org"
-CONDA_HOMEPAGE_URL: str = "https://conda.io"
-ERROR_UPLOAD_URL: str = "https://conda.io/conda-post/unexpected-error"
-DEFAULTS_CHANNEL_NAME: str = "defaults"
+DEFAULT_CHANNEL_ALIAS: Final = "https://conda.anaconda.org"
+CONDA_HOMEPAGE_URL: Final = "https://conda.io"
+ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
+DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
-KNOWN_SUBDIRS: tuple[str]
-PLATFORM_DIRECTORIES: tuple[str]
-
-KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
+KNOWN_SUBDIRS: Final = (
     "noarch",
     "emscripten-wasm32",
     "wasi-wasm32",
@@ -92,31 +97,32 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "win-arm64",
     "zos-z",
 )
+PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
-RECOGNIZED_URL_SCHEMES: tuple[str] = ("http", "https", "ftp", "s3", "file")
+RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
 
 
-DEFAULT_CHANNELS_UNIX: tuple[str] = (
+DEFAULT_CHANNELS_UNIX: Final = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",
 )
 
-DEFAULT_CHANNELS_WIN: tuple[str] = (
+DEFAULT_CHANNELS_WIN: Final = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",
     "https://repo.anaconda.com/pkgs/msys2",
 )
 
-DEFAULT_CUSTOM_CHANNELS: tuple[str] = {
+DEFAULT_CUSTOM_CHANNELS: Final = {
     "pkgs/pro": "https://repo.anaconda.com",
 }
 
-DEFAULT_CHANNELS: tuple[str] = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
+DEFAULT_CHANNELS: Final = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
-ROOT_ENV_NAME: str = "base"
-UNUSED_ENV_NAME: str = "unused-env-name"
+ROOT_ENV_NAME: Final = "base"
+UNUSED_ENV_NAME: Final = "unused-env-name"
 
-ROOT_NO_RM: tuple[str] = (
+ROOT_NO_RM: Final = (
     "python",
     "pycosat",
     "ruamel.yaml",
@@ -125,13 +131,13 @@ ROOT_NO_RM: tuple[str] = (
     "requests",
 )
 
-DEFAULT_AGGRESSIVE_UPDATE_PACKAGES: tuple[str] = (
+DEFAULT_AGGRESSIVE_UPDATE_PACKAGES: Final = (
     "ca-certificates",
     "certifi",
     "openssl",
 )
 
-COMPATIBLE_SHELLS: tuple[str]
+COMPATIBLE_SHELLS: tuple[str, ...]
 
 if on_win:  # pragma: no cover
     COMPATIBLE_SHELLS = (
@@ -155,41 +161,41 @@ else:
 
 
 # Maximum priority, reserved for packages we really want to remove
-MAX_CHANNEL_PRIORITY: int = 10000
+MAX_CHANNEL_PRIORITY: Final = 10000
 
-CONDA_PACKAGE_EXTENSION_V1: str = ".tar.bz2"
-CONDA_PACKAGE_EXTENSION_V2: str = ".conda"
-CONDA_PACKAGE_EXTENSIONS: tuple[str] = (
+CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
+CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
+CONDA_PACKAGE_EXTENSIONS: Final = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_PACKAGE_PARTS: tuple[str] = tuple(
+CONDA_PACKAGE_PARTS: Final = tuple(
     f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS
 )
-CONDA_TARBALL_EXTENSION: str = (
+CONDA_TARBALL_EXTENSION: Final = (
     CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
 )
-CONDA_TEMP_EXTENSION: str = ".c~"
-CONDA_TEMP_EXTENSIONS: tuple[str] = (CONDA_TEMP_EXTENSION, ".trash")
-CONDA_LOGS_DIR: str = ".logs"
+CONDA_TEMP_EXTENSION: Final = ".c~"
+CONDA_TEMP_EXTENSIONS: Final = (CONDA_TEMP_EXTENSION, ".trash")
+CONDA_LOGS_DIR: Final = ".logs"
 
-UNKNOWN_CHANNEL: str = "<unknown>"
-REPODATA_FN: str = "repodata.json"
+UNKNOWN_CHANNEL: Final = "<unknown>"
+REPODATA_FN: Final = "repodata.json"
 
 #: Default name of the notices file on the server we look for
-NOTICES_FN: str = "notices.json"
+NOTICES_FN: Final = "notices.json"
 
 #: Name of cache file where read notice IDs are stored
-NOTICES_CACHE_FN: str = "notices.cache"
+NOTICES_CACHE_FN: Final = "notices.cache"
 
 #: Determines the subdir for notices cache
-NOTICES_CACHE_SUBDIR: str = "notices"
+NOTICES_CACHE_SUBDIR: Final = "notices"
 
 #: Determines the subdir for notices cache
-NOTICES_DECORATOR_DISPLAY_INTERVAL: int = 86400  # in seconds
+NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
 
-DRY_RUN_PREFIX: str = "Dry run action:"
-PREFIX_NAME_DISALLOWED_CHARS: set[str] = {"/", " ", ":", "#"}
+DRY_RUN_PREFIX: Final = "Dry run action:"
+PREFIX_NAME_DISALLOWED_CHARS: Final = {"/", " ", ":", "#"}
 
 
 class SafetyChecks(Enum):
@@ -254,7 +260,7 @@ class ChannelPriorityMeta(EnumMeta):
 class ValueEnum(Enum):
     """Subclass of enum that returns the value of the enum as its str representation"""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}"
 
 
@@ -274,18 +280,18 @@ class SatSolverChoice(ValueEnum):
 
 
 #: The name of the default solver, currently "libmamba"
-DEFAULT_SOLVER: str = "libmamba"
-CLASSIC_SOLVER: str = "classic"
+DEFAULT_SOLVER: Final = "libmamba"
+CLASSIC_SOLVER: Final = "classic"
 
 #: The name of the default json reporter backend
-DEFAULT_JSON_REPORTER_BACKEND = "json"
+DEFAULT_JSON_REPORTER_BACKEND: Final = "json"
 
 #: The name of the default console reporter backend
-DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
+DEFAULT_CONSOLE_REPORTER_BACKEND: Final = "classic"
 
 #: The default `conda list` columns
-DEFAULT_CONDA_LIST_FIELDS = ("name", "version", "build", "channel_name")
-CONDA_LIST_FIELDS = {
+DEFAULT_CONDA_LIST_FIELDS: Final = ("name", "version", "build", "channel_name")
+CONDA_LIST_FIELDS: Final = {
     # Keys MUST be valid attributes in conda.core.records.PrefixRecords
     # Values are the displayed column title
     "arch": "Arch",
@@ -322,17 +328,17 @@ class NoticeLevel(ValueEnum):
 
 
 # Magic files for permissions determination
-PACKAGE_CACHE_MAGIC_FILE = "urls.txt"
-PREFIX_MAGIC_FILE = join("conda-meta", "history")
-PREFIX_FROZEN_FILE = join("conda-meta", "frozen")
+PACKAGE_CACHE_MAGIC_FILE: Final[PathType] = "urls.txt"
+PREFIX_MAGIC_FILE: Final[PathType] = join("conda-meta", "history")
+PREFIX_FROZEN_FILE: Final[PathType] = join("conda-meta", "frozen")
 
-PREFIX_STATE_FILE: str = join("conda-meta", "state")
-PACKAGE_ENV_VARS_DIR: str = join("etc", "conda", "env_vars.d")
-CONDA_ENV_VARS_UNSET_VAR: str = "***unset***"
+PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
+PACKAGE_ENV_VARS_DIR: Final[PathType] = join("etc", "conda", "env_vars.d")
+CONDA_ENV_VARS_UNSET_VAR: Final = "***unset***"
 
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
-NAMESPACES_MAP: dict[str, str] = {  # base package name, namespace
+NAMESPACES_MAP: Final = {  # base package name, namespace
     "python": "python",
     "r": "r",
     "r-base": "r",
@@ -351,8 +357,8 @@ NAMESPACES_MAP: dict[str, str] = {  # base package name, namespace
     "msys2-conda-epoch": "m2w64",
 }
 
-NAMESPACE_PACKAGE_NAMES: frozenset[str] = frozenset(NAMESPACES_MAP)
-NAMESPACES: frozenset[str] = frozenset(NAMESPACES_MAP.values())
+NAMESPACE_PACKAGE_NAMES: Final = frozenset(NAMESPACES_MAP)
+NAMESPACES: Final = frozenset(NAMESPACES_MAP.values())
 
 # Namespace arbiters of uniqueness
 #  global: some repository established by Anaconda, Inc. and conda-forge
@@ -377,4 +383,4 @@ NAMESPACES: frozenset[str] = frozenset(NAMESPACES_MAP.values())
 
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
-NO_PLUGINS: bool = False
+NO_PLUGINS: Final = False
