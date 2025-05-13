@@ -7,6 +7,7 @@ import json
 from typing import TYPE_CHECKING
 
 from conda.base.context import context
+from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
@@ -42,13 +43,13 @@ DETAIL_KEYS = {
 # conda info --base [--json]
 def test_info_base(conda_cli: CondaCLIFixture) -> None:
     stdout, stderr, err = conda_cli("info", "--base")
-    assert stdout.strip() == context.root_prefix
+    assert paths_equal(stdout.strip(), context.root_prefix)
     assert not stderr
     assert not err
 
     stdout, stderr, err = conda_cli("info", "--base", "--json")
     parsed = json.loads(stdout.strip())
-    assert parsed["root_prefix"] == context.root_prefix
+    assert paths_equal(parsed["root_prefix"], context.root_prefix)
     assert not stderr
     assert not err
 
@@ -60,7 +61,7 @@ def test_info_unsafe_channels(
 ) -> None:
     channels = [
         "https://conda.anaconda.org/t/tk-123/a/b/c",
-        "another-chanenl",
+        "another-channel",
     ]
     mocker.patch(
         "conda.base.context.Context.channels",
