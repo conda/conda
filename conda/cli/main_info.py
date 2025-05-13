@@ -501,8 +501,11 @@ class InfoRenderer:
 
 def get_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
     """
-    Based on values in ``args`` and ``context`` determine which components need to be displayed
-    and return them as a ``set``
+    Determine which components to display.
+
+    :param args: The parsed command line arguments.
+    :param context: The conda context.
+    :returns: An iterable of components to display.
     """
     if args.base:
         yield "base"
