@@ -506,7 +506,16 @@ class InfoRenderer:
         return self._info_dict
 
 
-def get_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.cli.main_info.iter_info_components` instead.",
+)
+def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
+    return set(iter_info_components(args, context))
+
+
+def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
     """
     Determine which components to display.
 
@@ -552,7 +561,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.context import context
 
-    components = get_info_components(args, context)
+    components = iter_info_components(args, context)
     renderer = InfoRenderer(context)
     renderer.render(components)
 
