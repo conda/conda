@@ -11,7 +11,7 @@ from collections import namedtuple
 from functools import cache
 from getpass import getpass
 from os.path import abspath, expanduser
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import (  # noqa: F401
     quote,
     quote_plus,
@@ -423,19 +423,21 @@ def split_scheme_auth_token(
     return str(remainder_url), url_parts.scheme, url_parts.auth, token
 
 
+class _SplitUrlParts(NamedTuple):
+    scheme: str | None
+    auth: str | None
+    token: str | None
+    platform: str | None
+    package_filename: str | None
+    hostname: str | None
+    port: str | None
+    path: str | None
+    query: str | None
+
+
 def split_conda_url_easy_parts(
     known_subdirs: Iterable[str], url: str
-) -> tuple[
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-]:
+) -> _SplitUrlParts:
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
@@ -449,7 +451,7 @@ def split_conda_url_easy_parts(
     # TODO: split out namespace using regex
     url_parts = urlparse(cleaned_url)
 
-    return (
+    return _SplitUrlParts(
         url_parts.scheme,
         url_parts.auth,
         token,
