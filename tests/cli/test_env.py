@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
+# FUTURE: remove once default 'defaults' context.channels value deprecation completes
 with pytest.deprecated_call():
     CHANNELS = context.channels
 
