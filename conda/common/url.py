@@ -19,10 +19,12 @@ from urllib.parse import (  # noqa: F401
 from urllib.parse import urlparse as _urlparse
 from urllib.parse import urlunparse as _urlunparse  # noqa: F401
 
+from ..deprecations import deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
 
+@deprecated("25.9", "26.3", addendum="Use int(..., 16) instead.")
 def hex_octal_to_int(ho):
     ho = ord(ho.upper())
     o0 = ord("0")
@@ -67,8 +69,8 @@ def percent_decode(path):
 
                     emit = struct.pack(
                         "B",
-                        hex_octal_to_int(path[i + 1]) * 16
-                        + hex_octal_to_int(path[i + 2]),
+                        int(path[i + 1], 16) * 16
+                        + int(path[i + 2], 16),
                     )
                     skips = 2
                     break
