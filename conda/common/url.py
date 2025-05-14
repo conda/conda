@@ -69,8 +69,7 @@ def percent_decode(path):
 
                     emit = struct.pack(
                         "B",
-                        int(path[i + 1], 16) * 16
-                        + int(path[i + 2], 16),
+                        int(path[i + 1], 16) * 16 + int(path[i + 2], 16),
                     )
                     skips = 2
                     break
