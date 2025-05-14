@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context
-from conda.cli.main_info import get_info_components, get_info_components_iterable
+from conda.cli.main_info import get_info_components, iter_info_components
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
@@ -197,8 +197,8 @@ def test_info_root(conda_cli: CondaCLIFixture):
         conda_cli("info", "--root")
 
 
-def test_get_info_components_iterable() -> None:
-    components = get_info_components_iterable(
+def test_iter_info_components() -> None:
+    components = iter_info_components(
         args=SimpleNamespace(
             base=True,
             unsafe_channels=True,
