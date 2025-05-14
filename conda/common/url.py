@@ -5,6 +5,7 @@
 import codecs
 import re
 import socket
+import struct
 from collections import namedtuple
 from functools import cache
 from getpass import getpass
@@ -65,12 +66,7 @@ def percent_decode(path):
         if c == b"%":
             for r in ranges:
                 if i == r[0]:
-                    import struct
-
-                    emit = struct.pack(
-                        "B",
-                        int(path[i + 1], 16) * 16 + int(path[i + 2], 16),
-                    )
+                    emit = struct.pack("B", int(path[i + 1 : i + 3], 16))
                     skips = 2
                     break
         if emit:
