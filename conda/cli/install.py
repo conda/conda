@@ -27,9 +27,8 @@ from ..base.context import context
 from ..common.constants import NULL
 from ..common.path import is_package_file
 from ..core.index import (
-    _supplement_index_with_prefix,
+    Index,
     calculate_channel_urls,
-    get_index,
 )
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
@@ -493,16 +492,24 @@ def install_revision(args, parser):
     for repodata_fn in Repodatas(repodata_fns, index_args):
         with repodata_fn as repodata:
             with get_spinner(f"Collecting package metadata ({repodata})"):
-                index = get_index(
-                    channel_urls=index_args["channel_urls"],
-                    prepend=index_args["prepend"],  # --override-channels
+                index = Index(
+                    channels=index_args["channel_urls"],
+                    prepend=index_args["prepend"],
                     platform=None,
-                    use_local=index_args["use_local"],  # --use-local
-                    # use_cache=index_args["use_cache"],  # --use-index-cache
-                    # unknown=index_args["unknown"],  # --unknown
+                    use_local=index_args["use_local"],
                     prefix=prefix,
                     repodata_fn=repodata,
                 )
+                # index = get_index(
+                #     channel_urls=index_args["channel_urls"],
+                #     prepend=index_args["prepend"],  # --override-channels
+                #     platform=None,
+                #     use_local=index_args["use_local"],  # --use-local
+                #     # use_cache=index_args["use_cache"],  # --use-index-cache
+                #     # unknown=index_args["unknown"],  # --unknown
+                #     prefix=prefix,
+                #     repodata_fn=repodata,
+                # )
             revision_idx = get_revision(args.revision)
             with get_spinner(f"Reverting to revision {revision_idx}"):
                 unlink_link_transaction = revert_actions(prefix, revision_idx, index)
@@ -510,7 +517,7 @@ def install_revision(args, parser):
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 
 
-def revert_actions(prefix, revision=-1, index=None):
+def revert_actions(prefix, revision=-1, index: Index | None = None):
     # TODO: If revision raise a revision error, should always go back to a safe revision
     h = History(prefix)
     # TODO: need a History method to get user-requested specs for revision number
@@ -526,7 +533,8 @@ def revert_actions(prefix, revision=-1, index=None):
     except IndexError:
         raise CondaIndexError("no such revision: %d" % revision)
 
-    _supplement_index_with_prefix(index, prefix)
+    if index is not None:
+        index.reload(prefix=True)
 
     not_found_in_index_specs = set()
     link_precs = set()
