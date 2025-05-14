@@ -34,6 +34,7 @@ from conda.testing.helpers import (
     add_subdir,
     add_subdir_to_iter,
     convert_to_dist_str,
+    forward_to_subprocess,
     get_solver,
     get_solver_2,
     get_solver_4,
@@ -1295,6 +1296,9 @@ def test_broken_install(tmpdir):
 
 
 def test_conda_downgrade(tmpdir, request):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
+
     if context.solver == "libmamba":
         request.applymarker(
             pytest.mark.xfail(
