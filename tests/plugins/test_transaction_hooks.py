@@ -38,8 +38,10 @@ class DummyPreTransactionAction(DummyTransactionAction):
 
 class DummyPreActionPlugin:
     @plugins.hookimpl
-    def conda_pre_transactions(self) -> Iterable[plugins.CondaPreTransaction]:
-        yield plugins.CondaPreTransaction(
+    def conda_pre_transaction_actions(
+        self,
+    ) -> Iterable[plugins.CondaPreTransactionAction]:
+        yield plugins.CondaPreTransactionAction(
             name="bar",
             action=DummyPreTransactionAction,
         )
@@ -47,8 +49,10 @@ class DummyPreActionPlugin:
 
 class DummyPostActionPlugin:
     @plugins.hookimpl
-    def conda_post_transactions(self) -> Iterable[plugins.CondaPostTransaction]:
-        yield plugins.CondaPostTransaction(
+    def conda_post_transaction_actions(
+        self,
+    ) -> Iterable[plugins.CondaPostTransactionAction]:
+        yield plugins.CondaPostTransactionAction(
             name="foo",
             action=DummyPostTransactionAction,
         )

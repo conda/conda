@@ -8,7 +8,12 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.core.link.PrefixActionGroup` as pending deprecation. Use
+`conda.core.link.PrefixActionGroupV2` instead. It will be permanently
+removed in 26.3. (#14754)
+* Mark `conda.core.path_actions._Action` as pending deprecation. Use
+`conda.core.path_actions.Action` instead. It will be permanently
+removed in 26.3. (#14754)
 
 ### Docs
 

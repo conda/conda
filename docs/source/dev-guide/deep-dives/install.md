@@ -418,7 +418,7 @@ entirely and then adding the new one. In other words, an update is just unlink+l
 
 How is this implemented? For each `PrefixSetup` object passed to `UnlinkLinkTransaction`, a
 number of `ActionGroup` namedtuples (one per task _category_) will be instantiated and grouped
-together in a `PrefixActionGroup` namedtuple. These are then passed to `.verify()`. This method
+together in a `PrefixActionGroupV2` dataclass. These are then passed to `.verify()`. This method
 will take each action, run its checks and, if all of them passed, will allow us to perform the
 actual execution in `.execute()`. If one of them fails, the transaction can be aborted and
 rolled back.
@@ -543,7 +543,7 @@ It turns out that there's a number of smaller tasks that need to happen to make 
 convenient as it is. You can find all of them listed a few paragraphs above, but we'll cover
 them here, too. The execution order is determined in
 [`UnlinLinkTransaction._execute`][conda.core.link:_execute].
-All the possible groups are listed under [`PrefixActionGroup`][conda.core.link:PrefixActionGroup].
+All the possible groups are listed under [`PrefixActionGroupV2`][conda.core.link:PrefixActionGroupV2].
 Their order is roughly how they happen in practice:
 
 1. `remove_menu_action_groups`, composed of `RemoveMenuAction` actions.
@@ -559,6 +559,8 @@ Their order is roughly how they happen in practice:
 7. `make_menu_action_groups`, composed of `MakeMenuAction` actions.
 9. `prefix_record_groups`, records installed packages in the environment via
    `CreatePrefixRecordAction` actions.
+10. `initial_action_groups`, includes any user-defined pre-transaction actions.
+11. `final_action_groups`, includes any user-defined post-transaction actions.
 
 Let's discuss these actions groups for the command we are describing in this guide: `conda
 install numpy`. The solution given by the solver says we need to:
@@ -623,7 +625,7 @@ initially thought, but it all boils down to only some steps. TL;DR:
 [conda.core.link:_prepare]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L266
 [conda.core.link:_execute]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L602
 [conda.core.link:determine_link_type]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L50
-[conda.core.link:PrefixActionGroup]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L123
+[conda.core.link:PrefixActionGroupV2]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L187
 [conda.core.link:UnlinkLinkTransaction]: https://github.com/conda/conda/blob/4.11.0/conda/core/link.py#L156
 [conda.core.path_actions:create_file_link_actions]: https://github.com/conda/conda/blob/4.11.0/conda/core/path_actions.py#L190
 [conda.core.path_actions:PathAction]: https://github.com/conda/conda/blob/4.11.0/conda/core/path_actions.py#L61

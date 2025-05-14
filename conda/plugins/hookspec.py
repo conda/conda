@@ -23,11 +23,11 @@ if TYPE_CHECKING:
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
-        CondaPostTransaction,
+        CondaPostTransactionAction,
         CondaPreCommand,
         CondaPrefixDataLoader,
         CondaPreSolve,
-        CondaPreTransaction,
+        CondaPreTransactionAction,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -259,7 +259,7 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_pre_transactions(self) -> Iterable[CondaPreTransaction]:
+    def conda_pre_transaction_actions(self) -> Iterable[CondaPreTransactionAction]:
         """Register pre-transaction hooks.
 
         Pre-transaction hooks run before all other actions run in a
@@ -299,16 +299,18 @@ class CondaSpecs:
 
             class PrintActionPlugin:
                 @plugins.hookimpl
-                def conda_pre_transactions(self) -> Iterable[plugins.CondaPreTransaction]:
-                    yield plugins.CondaPreTransaction(
-                        name="example-pre-transaction",
+                def conda_pre_transaction_actions(
+                    self,
+                ) -> Iterable[plugins.CondaPreTransactionAction]:
+                    yield plugins.CondaPreTransactionAction(
+                        name="example-pre-transaction-action",
                         action=PrintAction,
                     )
         """
         yield from ()
 
     @_hookspec
-    def conda_post_transactions(self) -> Iterable[CondaPostTransaction]:
+    def conda_post_transaction_actions(self) -> Iterable[CondaPostTransactionAction]:
         """Register post-transaction hooks.
 
         Post-transaction hooks run after all other actions run in a
@@ -348,9 +350,11 @@ class CondaSpecs:
 
             class PrintActionPlugin:
                 @plugins.hookimpl
-                def conda_post_transactions(self) -> Iterable[plugins.CondaPostTransaction]:
-                    yield plugins.CondaPostTransaction(
-                        name="example-post-transaction",
+                def conda_post_transaction_actions(
+                    self,
+                ) -> Iterable[plugins.CondaPostTransactionAction]:
+                    yield plugins.CondaPostTransactionAction(
+                        name="example-post-transaction-action",
                         action=PrintAction,
                     )
         """

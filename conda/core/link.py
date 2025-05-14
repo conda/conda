@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Package installation implemented as a series of link/unlink transactions."""
 
-from __future__ import annotations
+from __future__ import annotations  # noqa: I001
 
+from dataclasses import dataclass, fields
 import itertools
 import os
 import sys
@@ -37,6 +38,7 @@ from ..common.path import (
     get_python_site_packages_short_path,
 )
 from ..common.signals import signal_handler
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaSystemExit,
     DisallowedPackageError,
@@ -82,7 +84,7 @@ from .prefix_data import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Generator, Iterable
 
     from ..models.package_info import PackageInfo
     from ..models.records import PackageRecord
@@ -183,8 +185,23 @@ class ActionGroup(NamedTuple):
     target_prefix: str
 
 
-class PrefixActionGroup(NamedTuple):
-    initial_transaction_groups: Iterable[ActionGroup]
+@dataclass
+class PrefixActionGroupV2:
+    """A container for groups of actions carried out during an UnlinkLinkTransaction.
+
+    :param remove_menu_action_groups: Actions which remove menu items
+    :param unlink_action_groups: Actions which unlink files
+    :param unregister_action_groups: Actions which unregister environment locations
+    :param link_action_groups: Actions which link files
+    :param register_action_groups: Actions which register environment locations
+    :param compile_action_groups: Actions which compile pyc files
+    :param make_menu_action_groups: Actions which create menu items
+    :param entry_point_action_groups: Actions which create python entry points
+    :param prefix_record_groups: Actions which create package json files in ``conda-meta/``
+    :param initial_action_groups: User-defined actions which run before all other actions
+    :param final_action_groups: User-defined actions which run after all other actions
+    """
+
     remove_menu_action_groups: Iterable[ActionGroup]
     unlink_action_groups: Iterable[ActionGroup]
     unregister_action_groups: Iterable[ActionGroup]
@@ -194,7 +211,25 @@ class PrefixActionGroup(NamedTuple):
     make_menu_action_groups: Iterable[ActionGroup]
     entry_point_action_groups: Iterable[ActionGroup]
     prefix_record_groups: Iterable[ActionGroup]
-    final_transaction_groups: Iterable[ActionGroup]
+    initial_action_groups: Iterable[ActionGroup] = ()
+    final_action_groups: Iterable[ActionGroup] = ()
+
+    def __iter__(self) -> Generator[Iterable[ActionGroup], None, None]:
+        for field in fields(self):
+            yield getattr(self, field.name)
+
+
+@deprecated("25.9", "26.3", addendum="Use PrefixActionGroupV2 instead.")
+class PrefixActionGroup(NamedTuple):
+    remove_menu_action_groups: Iterable[ActionGroup]
+    unlink_action_groups: Iterable[ActionGroup]
+    unregister_action_groups: Iterable[ActionGroup]
+    link_action_groups: Iterable[ActionGroup]
+    register_action_groups: Iterable[ActionGroup]
+    compile_action_groups: Iterable[ActionGroup]
+    make_menu_action_groups: Iterable[ActionGroup]
+    entry_point_action_groups: Iterable[ActionGroup]
+    prefix_record_groups: Iterable[ActionGroup]
 
 
 class ChangeReport(NamedTuple):
@@ -272,7 +307,7 @@ class UnlinkLinkTransaction:
 
         with get_spinner("Preparing transaction"):
             for stp in self.prefix_setups.values():
-                grps = self._prepare(
+                self.prefix_action_groups[stp.target_prefix] = self._prepare(
                     self.transaction_context,
                     stp.target_prefix,
                     stp.unlink_precs,
@@ -281,7 +316,6 @@ class UnlinkLinkTransaction:
                     stp.update_specs,
                     stp.neutered_specs,
                 )
-                self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
         self._prepared = True
 
@@ -345,8 +379,8 @@ class UnlinkLinkTransaction:
 
         assert not context.dry_run
         try:
-            # innermost dict.values() is an iterable of PrefixActionGroup namedtuple
-            # zip() is an iterable of each PrefixActionGroup namedtuple key
+            # innermost dict.values() is an iterable of PrefixActionGroupV2 instances
+            # zip() is an iterable of each PrefixActionGroupV2
             self._execute(
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
@@ -555,9 +589,9 @@ class UnlinkLinkTransaction:
         ]
 
         # Instantiate any pre or post transactions defined by the user.
-        pre_transactions, post_transactions = [], []
-        for hook in context.plugin_manager.get_hook_results("pre_transactions"):
-            pre_transactions.append(
+        pre_transaction_actions, post_transaction_actions = [], []
+        for hook in context.plugin_manager.get_hook_results("pre_transaction_actions"):
+            pre_transaction_actions.append(
                 hook.action(
                     transaction_context,
                     target_prefix,
@@ -568,8 +602,8 @@ class UnlinkLinkTransaction:
                     neutered_specs,
                 )
             )
-        for hook in context.plugin_manager.get_hook_results("post_transactions"):
-            post_transactions.append(
+        for hook in context.plugin_manager.get_hook_results("post_transaction_actions"):
+            post_transaction_actions.append(
                 hook.action(
                     transaction_context,
                     target_prefix,
@@ -581,8 +615,7 @@ class UnlinkLinkTransaction:
                 )
             )
 
-        return PrefixActionGroup(
-            [ActionGroup("initial", None, pre_transactions, target_prefix)],
+        return PrefixActionGroupV2(
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
@@ -592,7 +625,12 @@ class UnlinkLinkTransaction:
             make_menu_action_groups,
             entry_point_action_groups,
             prefix_record_groups,
-            [ActionGroup("final", None, post_transactions, target_prefix)],
+            initial_action_groups=[
+                ActionGroup("initial", None, pre_transaction_actions, target_prefix)
+            ],
+            final_action_groups=[
+                ActionGroup("final", None, post_transaction_actions, target_prefix)
+            ],
         )
 
     @staticmethod
