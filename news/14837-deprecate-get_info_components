@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.cli.main_info.get_info_components` as pending deprecation to be removed in 26.3. Use `conda.cli.main_info.get_info_components_iterable` instead. (#14837)
+* Mark `conda.cli.main_info.get_info_components` as pending deprecation to be removed in 26.3. Use `conda.cli.main_info.iter_info_components` instead. (#14837)
 
 ### Docs
 
