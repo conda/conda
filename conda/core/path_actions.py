@@ -11,6 +11,7 @@ from itertools import chain
 from json import JSONDecodeError
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from .. import CondaError
@@ -69,6 +70,9 @@ from ..models.records import (
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 try:
     FileNotFoundError
