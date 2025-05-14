@@ -104,7 +104,7 @@ def install(prefix: str, specs: list, args, env, *_, **kwargs) -> dict:
 
 def _install_explicit_environment(
     prefix: str, specs: list, env: ExplicitEnvironment
-) -> dict:
+) -> dict[str, Any]:
     """
     Install packages from an explicit environment without using the solver.
 
