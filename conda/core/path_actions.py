@@ -112,13 +112,13 @@ class Action:
 
     def __init__(
         self,
-        transaction_context,
-        target_prefix,
-        unlink_precs,
-        link_precs,
-        remove_specs,
-        update_specs,
-        neutered_specs,
+        transaction_context: dict[str, str] | None = None,
+        target_prefix: str | None = None,
+        unlink_precs: Iterable[PackageRecord] | None = None,
+        link_precs: Iterable[PackageRecord] | None = None,
+        remove_specs: Iterable[MatchSpec] | None = None,
+        update_specs: Iterable[MatchSpec] | None = None,
+        neutered_specs: Iterable[MatchSpec] | None = None,
     ):
         self.transaction_context = transaction_context
         self.target_prefix = target_prefix
