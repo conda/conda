@@ -16,7 +16,7 @@ from .common.compat import on_mac, on_win, open_utf8
 from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
-from .core.index import get_index
+from .core.index import Index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
@@ -285,7 +285,9 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     notfound = []
     if unknowns:
         index_args = index_args or {}
-        index = get_index(**index_args)
+        index_args["channels"] = index_args["channel_urls"]
+        del index_args["channel_urls"]
+        index = Index(**index_args)
 
         for prec in unknowns:
             spec = MatchSpec(name=prec.name, version=prec.version, build=prec.build)

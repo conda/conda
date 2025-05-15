@@ -290,15 +290,20 @@ def test_create_env_json(
 def test_protected_dirs_error_for_env_create(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
 ):
+    """
+    TODO: Once `conda.env.specs.binstar` is removed via deprecation, remove the
+          `with pytest.deprecated_call()` context manager.
+    """
     with tmp_env() as prefix:
         with pytest.raises(
             CondaValueError,
             match="Environment paths cannot be immediately nested under another conda environment",
         ):
-            conda_cli(
-                "env",
-                "create",
-                f"--prefix={prefix}/envs",
-                "--file",
-                support_file("example/environment_pinned.yml"),
-            )
+            with pytest.deprecated_call():
+                conda_cli(
+                    "env",
+                    "create",
+                    f"--prefix={prefix}/envs",
+                    "--file",
+                    support_file("example/environment_pinned.yml"),
+                )

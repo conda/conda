@@ -76,10 +76,7 @@ from .path_actions import (
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
 )
-from .prefix_data import (
-    PrefixData,
-    python_record_for_prefix,
-)
+from .prefix_data import PrefixData
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -1096,7 +1093,7 @@ class UnlinkLinkTransaction:
             python_record = linking_new_python.repodata_record
             log.debug(f"found in current transaction python: {python_record}")
             return version_and_sp(python_record)
-        python_record = python_record_for_prefix(target_prefix)
+        python_record = PrefixData(target_prefix).get("python", None)
         if python_record:
             unlinking_python = next(
                 (

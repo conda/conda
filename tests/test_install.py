@@ -17,7 +17,6 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
 from conda.gateways.connection.download import download
-from conda.gateways.disk.delete import move_path_to_trash
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
 
@@ -213,6 +212,9 @@ def test_binary(path_factory: PathFactoryFixture, subdir: str):
 
 
 def test_trash_outside_prefix():
+    with pytest.deprecated_call():
+        from conda.gateways.disk.delete import move_path_to_trash
+
     tmp_dir = tempfile.mkdtemp()
     rel = relpath(tmp_dir, context.root_prefix)
     assert rel.startswith("..")
