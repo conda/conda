@@ -1900,8 +1900,8 @@ def test_conda_pip_interop_conda_editable_package(
     )
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="conda-libmamba-solver does not implement pip interoperability",
+            context.solver in ("libmamba", "rattler"),
+            reason="This solver does not implement pip interoperability",
         )
     )
 

@@ -1118,7 +1118,7 @@ def test_only_deps_2(tmpdir):
 
 
 def test_update_all_1(tmpdir):
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         # LIBMAMBA ADJUSTMENT
         # Libmamba requires MatchSpec.conda_build_form() internally, which depends on `version` and
         # `build` fields. `system` below is using only `build_number`, so we have to adapt the syntax
