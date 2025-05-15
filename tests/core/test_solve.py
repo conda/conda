@@ -2563,7 +2563,7 @@ def test_pinned_1(tmpdir):
     # now update without pinning
     if context.solver in ["libmamba", "rattler"]:
         # LIBMAMBA ADJUSTMENT:
-        # libmamba decides to stay in python=2.6 unless explicit
+        # libmamba and rattler decide to stay in python=2.6 unless explicit
         specs_to_add = (MatchSpec("python=3"),)
     else:
         specs_to_add = (MatchSpec("python"),)
@@ -3380,9 +3380,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 r"scikit-learn.*0\.13",
             ]
         elif context.solver == "rattler":
-            # TODO improve the error message
-            print("Rattler error message: ", error_msg)
-            error_snippets = ["Could not find solution"]
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"scikit-learn.*0\.13",
+            ]
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
@@ -3412,9 +3415,12 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 "unsatisfiable-with-py26",
             ]
         elif context.solver == "rattler":
-            # TODO -- improve the error message
-            error_snippets = ["Could not find solution"]
-            print("Rattler error message: ", error_msg)
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"unsatisfiable-with-py26",
+            ]
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
