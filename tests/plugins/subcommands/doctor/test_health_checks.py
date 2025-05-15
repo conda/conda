@@ -28,6 +28,9 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
 
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from tests.conftest import test_recipes_channel
+
 
 @pytest.fixture(params=[".pyo", ".pyc"])
 def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]:
@@ -326,3 +329,31 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     prefix, _, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(prefix) == {}
+
+
+def test_env_consistency_check_passes(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependency-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+
+        assert f"{OK_MARK} The environment is consistent.\n" in out
+
+
+def test_env_consistency_check_fails(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+        assert (
+            f"{X_MARK} The environment is not consistent due to the following exception:\n"
+            in out
+        )
