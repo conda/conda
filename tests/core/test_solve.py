@@ -3839,7 +3839,16 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
 
 
 @pytest.mark.integration
-def test_globstr_matchspec_compatible(tmpdir):
+def test_globstr_matchspec_compatible(tmpdir, request):
+    if context.solver == "rattler":
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "rattler",
+                reason="Look-around regex not supported: "
+                "https://github.com/conda/rattler/issues/1304",
+            )
+        )
+
     # This should work -- build strings are compatible
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"))
     with get_solver(tmpdir, specs) as solver:
@@ -3851,7 +3860,16 @@ def test_globstr_matchspec_compatible(tmpdir):
 
 
 @pytest.mark.integration
-def test_globstr_matchspec_non_compatible(tmpdir):
+def test_globstr_matchspec_non_compatible(tmpdir, request):
+    if context.solver == "rattler":
+        request.applymarker(
+            pytest.mark.xfail(
+                context.solver == "rattler",
+                reason="Look-around regex not supported: "
+                "https://github.com/conda/rattler/issues/1304",
+            )
+        )
+
     # This should fail -- build strings are not compatible
 
     # This one fails with ValueError (glob str match_spec checks)
