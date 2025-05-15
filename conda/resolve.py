@@ -10,9 +10,10 @@ from __future__ import annotations
 import copy
 import itertools
 from collections import defaultdict, deque
-from functools import lru_cache
+from functools import cache
 from logging import DEBUG, getLogger
 
+from frozendict import frozendict
 from tqdm import tqdm
 
 from .auxlib.decorators import memoizemethod
@@ -42,11 +43,6 @@ from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
 
-try:
-    from frozendict import frozendict
-except ImportError:
-    from ._vendor.frozendict import FrozenOrderedDict as frozendict
-
 log = getLogger(__name__)
 stdoutlog = getLogger("conda.stdoutlog")
 
@@ -61,7 +57,7 @@ _sat_solvers = {
 }
 
 
-@lru_cache(maxsize=None)
+@cache
 def _get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     def try_out_solver(sat_solver):
         c = Clauses(sat_solver=sat_solver)
@@ -930,7 +926,7 @@ class Resolve:
         channel = prec.channel
         channel_priority = self._channel_priorities_map.get(
             channel.name, 1
-        )  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
+        )  # TODO: ask @mcg1969 why the default value is 1 here
         valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
         version_comparator = VersionOrder(prec.get("version", ""))
         build_number = prec.get("build_number", 0)

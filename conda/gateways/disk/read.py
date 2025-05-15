@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
+listdir = lambda d: list(entry.name for entry in os.scandir(d))
 
 
 def yield_lines(path):
@@ -95,7 +95,7 @@ def read_package_info(record, package_cache_record):
     return PackageInfo(
         extracted_package_dir=epd,
         package_tarball_full_path=package_cache_record.package_tarball_full_path,
-        channel=Channel(record.schannel or record.channel),
+        channel=Channel(record.channel_name or record.channel),
         repodata_record=record,
         url=package_cache_record.url,
         icondata=icondata,

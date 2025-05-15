@@ -20,7 +20,12 @@ from ...common.compat import on_linux, on_win
 from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
-from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
+from ...exceptions import (
+    BasicClobberError,
+    CondaOSError,
+    NoWritableEnvsDirError,
+    maybe_raise,
+)
 from ...models.enums import LinkType
 from . import mkdir_p
 from .delete import path_is_clean, rm_rf
@@ -94,7 +99,7 @@ if __name__ == '__main__':
     sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
     sys.exit(%(func)s())
 """
-)  # NOQA
+)
 
 application_entry_point_template = dals(
     """
@@ -497,3 +502,29 @@ def create_envs_directory(envs_dir):
         else:
             raise
     return True
+
+
+def first_writable_envs_dir(create=True):
+    # Calling this function will *create* an envs directory if one does not already
+    # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
+    for envs_dir in context.envs_dirs:
+        if envs_dir == os.devnull:
+            continue
+
+        # The magic file being used here could change in the future.  Don't write programs
+        # outside this code base that rely on the presence of this file.
+        # This value is duplicated in conda.gateways.disk.create.create_envs_directory().
+        envs_dir_magic_file = join(envs_dir, ".conda_envs_dir_test")
+
+        if isfile(envs_dir_magic_file):
+            try:
+                open(envs_dir_magic_file, "a").close()
+                return envs_dir
+            except OSError:
+                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
+        elif create:
+            was_created = create_envs_directory(envs_dir)
+            if was_created:
+                return envs_dir
+
+    raise NoWritableEnvsDirError(context.envs_dirs)

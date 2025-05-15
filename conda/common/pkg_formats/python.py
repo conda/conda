@@ -19,6 +19,8 @@ from os import scandir, strerror
 from os.path import basename, dirname, isdir, isfile, join, lexists
 from posixpath import normpath as posix_normpath
 
+from frozendict import frozendict
+
 from ... import CondaError
 from ...auxlib.decorators import memoizedproperty
 from ..compat import open_utf8
@@ -29,11 +31,6 @@ from ..path import (
     pyc_path,
     win_path_ok,
 )
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from ..._vendor.frozendict import frozendict
 
 log = getLogger(__name__)
 
@@ -978,7 +975,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     return egg_info_full_path
 
 
-# See: https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default  # NOQA
+# See: https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default
 # ------------------------------------------------------------------------------------------------
 def parse_marker(marker_string):
     """
@@ -1071,8 +1068,8 @@ def parse_marker(marker_string):
 
 
 # See:
-#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default  # NOQA
-#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/markers.py?at=default&fileviewer=file-view-default  # NOQA
+#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/util.py?at=default&fileviewer=file-view-default
+#   https://bitbucket.org/pypa/distlib/src/34629e41cdff5c29429c7a4d1569ef5508b56929/distlib/markers.py?at=default&fileviewer=file-view-default
 # ------------------------------------------------------------------------------------------------
 #
 # Requirement parsing code as per PEP 508

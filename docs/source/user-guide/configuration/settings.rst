@@ -359,7 +359,7 @@ Advanced configuration
 
 .. _disallow-soft-linking:
 
-``allow_softlinks``: Disallow soft-linking
+``allow_softlinks``: Allow soft-linking
 ------------------------------------------
 
 When ``allow_softlinks`` is ``True``, conda uses hard links when
@@ -372,7 +372,7 @@ hard links when possible, but when it is not possible, conda
 copies files. Individual packages can override this option,
 specifying that certain files should never be soft linked.
 
-The default is ``True``.
+The default is ``False``.
 
 **Example:**
 
@@ -623,6 +623,32 @@ The default is ``False``.
 
    This is forced to ``True`` if conda-build is installed and older than 3.18.3,
    because older versions of conda break when conda feeds it the new file format.
+
+.. _console:
+
+``console``: Configure display type
+---------------------------------------
+
+
+.. versionadded:: 24.11.0
+   the ``console`` setting is only available after this version.
+
+The ``console`` setting allows you to modify the way output is rendered for conda commands.
+This setting is primarily used as a way to select new reporter backends made available by plugins.
+
+For example, a plugin may create a new reporter backend called "colors". As a user, you would
+configure it in your ``.condarc`` file as shown below:
+
+.. code-block:: yaml
+
+   console: colors
+
+or specify it on the command line with the ``--console`` option
+
+.. code-block:: commandline
+
+   conda info --console=colors
+
 
 Conda-build configuration
 =========================

@@ -14,6 +14,7 @@ Authors are sorted alphabetically.
 * Alex Hall
 * Alex Liew
 * Alex Wiltschko
+* Ali Abbas Zaidi
 * Alisue
 * Almar Klein
 * Amelio Vazquez-Reina
@@ -270,6 +271,7 @@ Authors are sorted alphabetically.
 * Matthew Rocklin
 * Matthew Wardrop
 * Matthieu Guillaumin
+* Matthieu Muffato
 * MatthieuDartiailh
 * Matti Picus
 * Maurice Meyer
@@ -310,6 +312,7 @@ Authors are sorted alphabetically.
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
+* Nils Koch
 * Nir Ganani
 * Nitin Madnani
 * Nixon Kwok

@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of helper functions used in conda tests."""
 
+from __future__ import annotations
+
 import json
 import os
+import subprocess
+import sys
 from contextlib import contextmanager
-from functools import lru_cache
+from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
@@ -41,7 +45,7 @@ expected_error_prefix = "Using Anaconda Cloud api site https://api.anaconda.org"
 
 def strip_expected(stderr):
     if expected_error_prefix and stderr.startswith(expected_error_prefix):
-        stderr = stderr[len(expected_error_prefix) :].lstrip()  # noqa
+        stderr = stderr[len(expected_error_prefix) :].lstrip()
     return stderr
 
 
@@ -74,15 +78,15 @@ def assert_equals(a, b, output=""):
 
 
 def assert_not_in(a, b, output=""):
-    assert (
-        a.lower() not in b.lower()
-    ), f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
+    assert a.lower() not in b.lower(), (
+        f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
+    )
 
 
 def assert_in(a, b, output=""):
-    assert (
-        a.lower() in b.lower()
-    ), f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
+    assert a.lower() in b.lower(), (
+        f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
+    )
 
 
 def add_subdir(dist_string):
@@ -320,7 +324,7 @@ def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index2.json",
@@ -331,7 +335,7 @@ def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     return _get_index_r_base(
         "index4.json",
@@ -342,7 +346,7 @@ def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     return _get_index_r_base(
         "index5.json",
@@ -353,7 +357,7 @@ def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
     repodata = {
         "foobar-1.0-0.tar.bz2": {
@@ -532,12 +536,13 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with patch.object(
-        History, "get_requested_specs_map", return_value=spec_map
-    ), env_var(
-        "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-        str(add_pip).lower(),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
+    with (
+        patch.object(History, "get_requested_specs_map", return_value=spec_map),
+        env_var(
+            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
+            str(add_pip).lower(),
+            stack_callback=conda_tests_ctxt_mgmt_def_pol,
+        ),
     ):
         # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
         # get_index_r_*) to cover solver logics that need to load from disk instead of
@@ -728,17 +733,41 @@ def get_solver_cuda(
 
 
 def convert_to_dist_str(solution):
-    dist_str = []
-    for prec in solution:
-        # This is needed to remove the local path prefix in the
-        # dist_str() calls, otherwise we cannot compare them
-        canonical_name = prec.channel._Channel__canonical_name
-        prec.channel._Channel__canonical_name = prec.channel.name
-        dist_str.append(prec.dist_str())
-        prec.channel._Channel__canonical_name = canonical_name
-    return tuple(dist_str)
+    return tuple(prec.dist_str(canonical_name=False) for prec in solution)
 
 
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_solver_backend()
+
+
+def in_subprocess():
+    return bool(os.getenv("_RERUN_IN_SUBPROCESS"))
+
+
+def forward_to_subprocess(
+    request, *cli_args, **subprocess_kwargs
+) -> subprocess.CompletedProcess | None:
+    if in_subprocess():
+        return
+    args = cli_args or (
+        "--no-header",
+        "--disable-warnings",
+        "--color=no",
+        "-vvv",
+    )
+    env = os.environ.copy()
+    env["_RERUN_IN_SUBPROCESS"] = "1"
+    env.update(subprocess_kwargs.pop("env", {}))
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            *args,
+            f"{request.node.path}::{request.node.name}",
+        ],
+        check=subprocess_kwargs.pop("check", True),
+        env=env,
+        **subprocess_kwargs,
+    )

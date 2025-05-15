@@ -6,7 +6,7 @@ import logging
 import re
 import sys
 from datetime import datetime
-from functools import lru_cache, partial
+from functools import cache, partial
 from logging import (
     DEBUG,
     ERROR,
@@ -23,7 +23,6 @@ from ..common.io import _FORMATTER, attach_stderr_handler
 from ..deprecations import deprecated
 
 log = getLogger(__name__)
-
 _VERBOSITY_LEVELS = {
     0: WARN,  # standard output
     1: WARN,  # -v, detailed output
@@ -31,6 +30,9 @@ _VERBOSITY_LEVELS = {
     3: DEBUG,  # -vvv, debug logging
     4: TRACE,  # -vvvv, trace logging
 }
+
+# Labels log messages with log level TRACE (5) as "TRACE"
+logging.addLevelName(TRACE, "TRACE")
 
 
 class TokenURLFilter(Filter):
@@ -45,7 +47,7 @@ class TokenURLFilter(Filter):
         r"(|:\d{1,5})?"  # \3  port
         r"/t/[a-z0-9A-Z-]+/"  # token
     )
-    TOKEN_REPLACE = partial(TOKEN_URL_PATTERN.sub, r"\1\2\3/t/<TOKEN>/")
+    TOKEN_REPLACE = staticmethod(partial(TOKEN_URL_PATTERN.sub, r"\1\2\3/t/<TOKEN>/"))
 
     def filter(self, record):
         """
@@ -137,7 +139,7 @@ class StdStreamHandler(StreamHandler):
 # e.g., using their own levels, handlers, formatters and propagation settings.
 
 
-@lru_cache(maxsize=None)
+@cache
 def initialize_logging():
     # 'conda' gets level WARN and does not propagate to root.
     getLogger("conda").setLevel(WARN)
@@ -203,7 +205,7 @@ def set_all_logger_level(level=DEBUG):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
         timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
@@ -219,17 +221,3 @@ def set_file_logging(logger_name=None, level=DEBUG, path=None):
 def set_log_level(log_level: int):
     set_all_logger_level(log_level)
     log.debug("log_level set to %d", log_level)
-
-
-@deprecated(
-    "24.9",
-    "25.3",
-    addendum="Use `logging.getLogger(__name__)(conda.common.constants.TRACE, ...)` instead.",
-)
-def trace(self, message, *args, **kwargs):
-    if self.isEnabledFor(TRACE):
-        self._log(TRACE, message, args, **kwargs)
-
-
-logging.addLevelName(TRACE, "TRACE")
-logging.Logger.trace = trace  # type: ignore[attr-defined]

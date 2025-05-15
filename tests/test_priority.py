@@ -31,6 +31,7 @@ def test_reorder_channel_priority(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     pinned_package: bool,
+    clear_conda_session_cache: None,
 ):
     # use "cheap" packages with no dependencies
     package1 = "zlib"

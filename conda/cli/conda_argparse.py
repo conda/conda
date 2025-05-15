@@ -37,6 +37,7 @@ from .helpers import (  # noqa: F401
     add_parser_package_install_options,
     add_parser_platform,
     add_parser_prefix,
+    add_parser_prefix_to_group,
     add_parser_prune,
     add_parser_pscheck,
     add_parser_show_channel_urls,
@@ -184,7 +185,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # run the subcommand from executables; legacy path
         deprecated.topic(
             "23.3",
-            "25.3",
+            "26.3",
             topic="Loading conda subcommands via executables",
             addendum="Use the plugin system instead.",
         )
@@ -222,6 +223,11 @@ class ArgumentParser(ArgumentParserBase):
             add_parser_help(self)
 
     def _check_value(self, action, value):
+        # For our greedy subparsers, sort the choices by their repr for stable output
+        if isinstance(action, _GreedySubParsersAction) and isinstance(
+            action.choices, dict
+        ):
+            action.choices = dict(sorted(action.choices.items()))
         # extend to properly handle when we accept multiple choices and the default is a list
         if action.choices is not None and isiterable(value):
             for element in value:

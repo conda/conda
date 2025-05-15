@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Common compatiblity code."""
+"""Common compatibility code."""
 # Try to keep compat small because it's imported by everything
 # What is compat, and what isn't?
 # If a piece of code is "general" and used in multiple modules, it goes here.
@@ -40,11 +40,6 @@ def encode_environment(env):
     if ENCODE_ENVIRONMENT:
         env = {encode_for_env_var(k): encode_for_env_var(v) for k, v in env.items()}
     return env
-
-
-@deprecated("24.9", "25.3")
-def encode_arguments(arguments):
-    return arguments
 
 
 from collections.abc import Iterable

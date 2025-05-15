@@ -32,6 +32,9 @@ from string import Template
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
+from frozendict import deepfreeze, frozendict
+from frozendict import getFreezeConversionMap as _getFreezeConversionMap
+from frozendict import register as _register
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
@@ -45,25 +48,20 @@ from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
 
-try:
-    from frozendict import deepfreeze, frozendict
-    from frozendict import getFreezeConversionMap as _getFreezeConversionMap
-    from frozendict import register as _register
+if Enum not in _getFreezeConversionMap():
+    # leave enums as is, deepfreeze will flatten it into a dict
+    # see https://github.com/Marco-Sulla/python-frozendict/issues/98
+    _register(Enum, lambda x: x)
 
-    if Enum not in _getFreezeConversionMap():
-        # leave enums as is, deepfreeze will flatten it into a dict
-        # see https://github.com/Marco-Sulla/python-frozendict/issues/98
-        _register(Enum, lambda x: x)
-
-    del _getFreezeConversionMap
-    del _register
-except ImportError:
-    from .._vendor.frozendict import frozendict
-    from ..auxlib.collection import make_immutable as deepfreeze
+del _getFreezeConversionMap
+del _register
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable, Iterable, Sequence
     from re import Match
-    from typing import Any, Hashable, Iterable, Sequence
+    from typing import Any
+
+    from ..common.path import PathsType
 
 log = getLogger(__name__)
 
@@ -908,6 +906,17 @@ class ObjectLoadedParameter(LoadedParameter):
 class ConfigurationObject:
     """Dummy class to mark whether a Python object has config parameters within."""
 
+    def to_json(self):
+        """
+        Return a serializable object with defaults filled in
+        """
+        serializable = {}
+
+        for attr, value in vars(self).items():
+            serializable[attr] = value
+
+        return serializable
+
 
 class Parameter(metaclass=ABCMeta):
     # (type) describes the type of parameter
@@ -1376,7 +1385,7 @@ class Configuration(metaclass=ConfigurationType):
 
     @staticmethod
     def _expand_search_path(
-        search_path: Iterable[Path | str],
+        search_path: PathsType,
         **kwargs,
     ) -> Iterable[Path]:
         for search in search_path:
@@ -1385,7 +1394,7 @@ class Configuration(metaclass=ConfigurationType):
             if isinstance(search, Path):
                 path = search
             else:
-                template = custom_expandvars(search, environ, **kwargs)
+                template = custom_expandvars(str(search), environ, **kwargs)
                 path = Path(template).expanduser()
 
             if path.is_file() and (
@@ -1414,7 +1423,7 @@ class Configuration(metaclass=ConfigurationType):
                     err,
                 )
 
-    def _set_search_path(self, search_path: Iterable[Path | str], **kwargs):
+    def _set_search_path(self, search_path: PathsType, **kwargs):
         self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
 
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
@@ -1574,7 +1583,9 @@ class Configuration(metaclass=ConfigurationType):
         if not isiterable(et):
             et = [et]
 
-        if isinstance(parameter._element_type, Parameter):
+        if isinstance(parameter._element_type, Parameter) or isinstance(
+            parameter._element_type, ConfigurationObject
+        ):
             element_types = tuple(
                 _et.__class__.__name__.lower().replace("parameter", "") for _et in et
             )

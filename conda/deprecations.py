@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import sys
 import warnings
-from argparse import Action
+from argparse import SUPPRESS, Action
 from functools import wraps
 from types import ModuleType
 from typing import TYPE_CHECKING
@@ -216,7 +216,9 @@ class DeprecationHandler:
                     raise DeprecatedError(message)
 
                 inner_self.category = category
-                inner_self.help = message
+                inner_self.deprecation = message
+                if inner_self.help is not SUPPRESS:
+                    inner_self.help = message
 
             def __call__(
                 inner_self: Self,
@@ -226,11 +228,14 @@ class DeprecationHandler:
                 option_string: str | None = None,
             ) -> None:
                 # alert user that it's time to remove something
-                warnings.warn(
-                    inner_self.help,
-                    inner_self.category,
-                    stacklevel=7 + stack,
-                )
+                from conda.common.constants import NULL
+
+                if values is not NULL:
+                    warnings.warn(
+                        inner_self.deprecation,
+                        inner_self.category,
+                        stacklevel=7 + stack,
+                    )
 
                 super().__call__(parser, namespace, values, option_string)
 

@@ -18,6 +18,9 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
+from conda.deprecations import deprecated
+
+from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
@@ -34,7 +37,7 @@ from ..gateways.disk.create import TemporaryDirectory
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
-    from typing import Iterable, Iterator
+    from collections.abc import Iterable, Iterator
 
     from _pytest.capture import MultiCapture
     from pytest import (
@@ -189,6 +192,7 @@ def _solver_helper(
 
 
 @pytest.fixture(scope="session")
+@deprecated("25.9", "26.3")
 def session_capsys(request) -> Iterator[MultiCapture]:
     # https://github.com/pytest-dev/pytest/issues/2704#issuecomment-603387680
     capmanager = request.config.pluginmanager.getplugin("capturemanager")
@@ -198,23 +202,26 @@ def session_capsys(request) -> Iterator[MultiCapture]:
 
 @dataclass
 class CondaCLIFixture:
-    capsys: CaptureFixture | MultiCapture
+    capsys: CaptureFixture | None
 
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike | Path,
+        *argv: str | os.PathLike[str] | Path,
         raises: type[Exception] | tuple[type[Exception], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
-    def __call__(self, *argv: str | os.PathLike | Path) -> tuple[str, str, int]: ...
+    def __call__(
+        self,
+        *argv: str | os.PathLike[str] | Path,
+    ) -> tuple[str, str, int]: ...
 
     def __call__(
         self,
-        *argv: str | os.PathLike | Path,
+        *argv: str | os.PathLike[str] | Path,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
-    ) -> tuple[str, str, int | ExceptionInfo]:
+    ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 
         `conda ...` == `conda_cli(...)`
@@ -225,22 +232,46 @@ class CondaCLIFixture:
         :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
         """
         # clear output
-        self.capsys.readouterr()
-
-        # ensure arguments are string
-        argv = tuple(map(str, argv))
+        if self.capsys:
+            self.capsys.readouterr()
 
         # run command
         code = None
         with pytest.raises(raises) if raises else nullcontext() as exception:
-            code = main_subshell(*argv)
+            code = main_subshell(*self._cast_args(argv))
         # capture output
-        out, err = self.capsys.readouterr()
+        if self.capsys:
+            out, err = self.capsys.readouterr()
+        else:
+            out = err = None
 
         # restore to prior state
         reset_context()
 
         return out, err, exception if raises else code
+
+    @staticmethod
+    def _cast_args(argv: tuple[str | os.PathLike[str] | Path, ...]) -> Iterable[str]:
+        """Cast args to string and inspect for `conda run`.
+
+        `conda run` is a unique case that requires `--dev` to use the src shell scripts
+        and not the shell scripts provided by the installer.
+        """
+        # TODO: Refactor this so we don't expose testing infrastructure to the user
+        # (i.e., deprecate `conda run --dev`).
+        argv = map(str, argv)
+        for arg in argv:
+            yield arg
+
+            # detect if arg is the command (the first positional)
+            if arg[0] != "-":
+                # this is the first positional, return remaining arguments
+
+                # if this happens to be the `conda run` command, add --dev
+                if arg == "run":
+                    yield "--dev"  # use src, not installer's shell scripts
+
+                yield from argv
 
 
 @pytest.fixture
@@ -254,13 +285,13 @@ def conda_cli(capsys: CaptureFixture) -> Iterator[CondaCLIFixture]:
 
 
 @pytest.fixture(scope="session")
-def session_conda_cli(session_capsys: MultiCapture) -> Iterator[CondaCLIFixture]:
+def session_conda_cli() -> Iterator[CondaCLIFixture]:
     """A session scoped fixture returning CondaCLIFixture instance.
 
     Use this for any commands that are global to the test session (e.g., creating a
     conda environment shared across tests, `conda info`, etc.).
     """
-    yield CondaCLIFixture(session_capsys)
+    yield CondaCLIFixture(None)
 
 
 @dataclass
@@ -284,7 +315,7 @@ class PathFactoryFixture:
         :return: A new unique path
         """
         prefix = prefix or ""
-        name = name or uuid.uuid4().hex
+        name = name or uuid.uuid4().hex[:8]
         suffix = suffix or ""
         return self.tmp_path / (prefix + name + suffix)
 
@@ -394,7 +425,7 @@ class TmpChannelFixture:
                     **{
                         field: value
                         for field, value in pkg_data.dump().items()
-                        if field not in ("url", "channel", "schannel")
+                        if field not in ("url", "channel", "schannel", "channel_name")
                     }
                 )
 
@@ -470,3 +501,25 @@ def tmp_envs_dir(
     assert context.envs_dirs == (envs_dir_str,)
 
     yield envs_dir
+
+
+@pytest.fixture(scope="session", autouse=True)
+def PYTHONPATH():
+    """
+    We need to set this so Python loads the dev version of 'conda', usually taken
+    from `conda/` in the root of the cloned repo. This root is usually the working
+    directory when we run `pytest`.
+    Otherwise, it will import the one installed in the base environment, which might
+    have not been overwritten with `pip install -e . --no-deps`. This doesn't happen
+    in other tests because they run with the equivalent of `python -m conda`. However,
+    some tests directly run `conda (shell function) which calls `conda` (Python entry
+    point). When a script is called this way, it bypasses the automatic "working directory
+    is first on sys.path" behavior you find in `python -m` style calls. See
+    https://docs.python.org/3/library/sys_path_init.html for details.
+    """
+    if "PYTHONPATH" in os.environ:
+        yield
+    else:
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
+            yield

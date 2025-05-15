@@ -5,8 +5,9 @@
 import codecs
 import re
 import socket
+import struct
 from collections import namedtuple
-from functools import lru_cache
+from functools import cache
 from getpass import getpass
 from os.path import abspath, expanduser
 from urllib.parse import (  # noqa: F401
@@ -19,10 +20,12 @@ from urllib.parse import (  # noqa: F401
 from urllib.parse import urlparse as _urlparse
 from urllib.parse import urlunparse as _urlunparse  # noqa: F401
 
+from ..deprecations import deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
 
+@deprecated("25.9", "26.3", addendum="Use int(..., 16) instead.")
 def hex_octal_to_int(ho):
     ho = ord(ho.upper())
     o0 = ord("0")
@@ -39,7 +42,7 @@ def hex_octal_to_int(ho):
     return res
 
 
-@lru_cache(maxsize=None)
+@cache
 def percent_decode(path):
     # This is not fast so avoid when we can.
     if "%" not in path:
@@ -63,13 +66,7 @@ def percent_decode(path):
         if c == b"%":
             for r in ranges:
                 if i == r[0]:
-                    import struct
-
-                    emit = struct.pack(
-                        "B",
-                        hex_octal_to_int(path[i + 1]) * 16
-                        + hex_octal_to_int(path[i + 2]),
-                    )
+                    emit = struct.pack("B", int(path[i + 1 : i + 3], 16))
                     skips = 2
                     break
         if emit:
@@ -91,7 +88,7 @@ def url_to_path(url):
 """
 
 
-@lru_cache(maxsize=None)
+@cache
 def path_to_url(path):
     if not path:
         raise ValueError(f"Not allowed: {path!r}")
@@ -228,7 +225,7 @@ class Url(namedtuple("Url", url_attrs)):
         return cls(**values)
 
 
-@lru_cache(maxsize=None)
+@cache
 def urlparse(url: str) -> Url:
     if on_win and url.startswith("file:"):
         url.replace("\\", "/")
@@ -375,7 +372,7 @@ def split_platform(known_subdirs, url):
     return cleaned_url.rstrip("/"), platform
 
 
-@lru_cache(maxsize=None)
+@cache
 def _split_platform_re(known_subdirs):
     _platform_match_regex = r"/({})(?:/|$)".format(
         r"|".join(rf"{d}" for d in known_subdirs)
@@ -440,7 +437,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_proxy_username_and_pass(scheme):
     username = input(f"\n{scheme} proxy username: ")
     passwd = getpass("Password: ")

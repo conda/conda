@@ -17,20 +17,28 @@ from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+    DEFAULT_CHANNELS,
     ChannelPriority,
     PathConflict,
 )
 from conda.base.context import (
+    channel_alias_validation,
     context,
-    get_plugin_config_data,
+    default_python_validation,
     reset_context,
+    validate_channels,
     validate_prefix_name,
 )
-from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
+from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
-from conda.exceptions import CondaValueError, EnvironmentNameNotFound
+from conda.exceptions import (
+    ChannelDenied,
+    ChannelNotAllowed,
+    CondaValueError,
+    EnvironmentNameNotFound,
+)
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -76,11 +84,6 @@ TEST_CONDARC = dals(
       rsync: 'false'
     aggressive_update_packages: []
     channel_priority: false
-    reporters:
-      - backend: json
-        output: stdout
-      - backend: console
-        output: stdout
     """
 )
 
@@ -666,9 +669,10 @@ VALIDATE_PREFIX_TEST_CASES = (
 def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
     ctx = mock.MagicMock()
 
-    with mock.patch(
-        "conda.base.context._first_writable_envs_dir"
-    ) as mock_one, mock.patch("conda.base.context.locate_prefix_by_name") as mock_two:
+    with (
+        mock.patch("conda.gateways.disk.create.first_writable_envs_dir") as mock_one,
+        mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
+    ):
         mock_one.side_effect = [mock_return_values[0]]
         mock_two.side_effect = [mock_return_values[1]]
 
@@ -684,140 +688,121 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
             assert actual == str(expected)
 
 
-def test_get_plugin_config_data_file_source(tmp_path):
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("https://example.com/", True),
+        ("bad_value", "channel_alias value 'bad_value' must have scheme/protocol."),
+    ),
+)
+def test_channel_alias_validation(value, expected):
     """
-    Test file source of plugin configuration values
+    Ensure that ``conda.base.context.channel_alias_validation`` works as expected
     """
-    condarc = tmp_path / "condarc"
+    assert channel_alias_validation(value) == expected
 
-    condarc.write_text(
-        dals(
-            """
-            plugins:
-              option_one: value_one
-              option_two: value_two
-            """
-        )
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        ("3.12", True),
+        (
+            "4.12",
+            "default_python value '4.12' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+        ("", True),
+        (
+            "not a number",
+            "default_python value 'not a number' not of the form '[23].[0-9][0-9]?' or ''",
+        ),
+    ),
+)
+def test_default_python_validation(value, expected):
+    """
+    Ensure that ``conda.base.context.default_python_validation`` works as expected
+    """
+    assert default_python_validation(value) == expected
+
+
+def test_check_allowlist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(("conda-canary", "conda-forge"))
+
+    allowlist = (
+        "defaults",
+        "conda-forge",
+        "https://beta.conda.anaconda.org/conda-test",
     )
-
-    config_data = {
-        path: data for path, data in Configuration._load_search_path((condarc,))
-    }
-
-    plugin_config_data = get_plugin_config_data(config_data)
-
-    assert plugin_config_data.get(condarc) is not None
-
-    option_one = plugin_config_data.get(condarc).get("option_one")
-    assert option_one is not None
-    assert option_one.value(None) == "value_one"
-
-    option_two = plugin_config_data.get(condarc).get("option_two")
-    assert option_two is not None
-    assert option_two.value(None) == "value_two"
-
-
-def test_get_plugin_config_data_env_var_source():
-    """
-    Test environment variable source of plugin configuration values
-    """
-    raw_data = {
-        "envvars": {
-            "plugins_option_one": {"_raw_value": "value_one"},
-            "plugins_option_two": {"_raw_value": "value_two"},
-        }
-    }
-
-    plugin_config_data = get_plugin_config_data(raw_data)
-
-    assert plugin_config_data.get("envvars") is not None
-
-    option_one = plugin_config_data.get("envvars").get("option_one")
-    assert option_one is not None
-    assert option_one.get("_raw_value") == "value_one"
-
-    option_two = plugin_config_data.get("envvars").get("option_two")
-    assert option_two is not None
-    assert option_two.get("_raw_value") == "value_two"
-
-
-def test_get_plugin_config_data_skip_bad_values():
-    """
-    Make sure that values that are not frozendict for file sources are skipped
-    """
-    path = Path("/tmp/")
-
-    class Value:
-        def value(self, _):
-            return "some_value"
-
-    raw_data = {path: {"plugins": Value()}}
-
-    plugin_config_data = get_plugin_config_data(raw_data)
-
-    assert plugin_config_data == {}
-
-
-def test_reporters_from_config_file(testdata):
-    """
-    Ensure that the ``reporters`` property returns the correct values
-    """
-    assert context.reporters == (
-        {"backend": "json", "output": "stdout"},
-        {"backend": "console", "output": "stdout"},
-    )
-
-
-def test_reporters_json_is_true(testdata):
-    """
-    Ensure that the ``reporters`` property returns the correct values when ``context.json``
-    is true.
-    """
-    args = SimpleNamespace(json=True)
-    reset_context((), args)
-
-    assert context.reporters == (
-        {
-            "backend": "json",
-            "output": "stdout",
-            "quiet": False,
-            "verbosity": context.verbosity,
-        },
-    )
-
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
     reset_context()
 
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("conda-canary",))
 
-def test_reporters_quiet_is_true(testdata):
-    """
-    Ensure that the ``reporters`` property returns the correct values when ``context.quiet``
-    is true.
-    """
-    args = SimpleNamespace(quiet=True)
-    reset_context((), args)
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("https://repo.anaconda.com/pkgs/denied",))
 
-    assert context.reporters == (
-        {
-            "backend": "console",
-            "output": "stdout",
-            "verbosity": context.verbosity,
-            "quiet": True,
-        },
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+    validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+
+def test_check_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(("conda-canary", "conda-forge"))
+
+    denylist = (
+        "defaults",
+        "conda-forge",
+        "https://beta.conda.anaconda.org/conda-test",
     )
-
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
     reset_context()
 
+    with pytest.raises(ChannelDenied):
+        validate_channels(("defaults",))
 
-def test_reporters_default_value():
-    """
-    Ensure that the ``reporters`` property returns the correct values when nothing is set including
-    values from configuration files.
-    """
-    assert context.reporters == (
-        {
-            "backend": "console",
-            "output": "stdout",
-            "quiet": False,
-            "verbosity": context.verbosity,
-        },
+    with pytest.raises(ChannelDenied):
+        validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("conda-forge",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://beta.conda.anaconda.org/conda-test",))
+
+
+def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
+    # any channel is allowed
+    validate_channels(
+        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge")
     )
+    allowlist = (
+        "defaults",
+        "https://beta.conda.anaconda.org/conda-test",
+        "conda-forge",
+    )
+    denylist = ("conda-forge",)
+    monkeypatch.setenv("CONDA_ALLOWLIST_CHANNELS", ",".join(allowlist))
+    monkeypatch.setenv("CONDA_DENYLIST_CHANNELS", ",".join(denylist))
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    # neither in allowlist nor denylist
+    with pytest.raises(ChannelNotAllowed):
+        validate_channels(("conda-canary",))
+
+    # conda-forge is on denylist, so it should raise ChannelDenied
+    # even though it is in the allowlist
+    with pytest.raises(ChannelDenied):
+        validate_channels(("conda-forge",))
+    with pytest.raises(ChannelDenied):
+        validate_channels(("https://conda.anaconda.org/conda-forge/linux-64",))
+
+    validate_channels(("defaults",))
+    validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))

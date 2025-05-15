@@ -614,6 +614,8 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
 
     def merge(self, other):
         assert isinstance(other, self.__class__)
+        if self.raw_value == other.raw_value:
+            return self
         return self.__class__(",".join(sorted((self.raw_value, other.raw_value))))
 
     def union(self, other):

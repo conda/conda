@@ -7,9 +7,9 @@ import re
 import shutil
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
-from typing import Iterable
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
@@ -226,6 +226,7 @@ def untracked(prefix, exclude_self_build=False):
     }
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.set_nonadmin()")
 def touch_nonadmin(prefix):
     """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
     if on_win and exists(join(context.root_prefix, ".nonadmin")):

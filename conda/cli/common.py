@@ -5,23 +5,43 @@
 import re
 import sys
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, normcase
+from os.path import (
+    dirname,
+    exists,
+    isdir,
+    isfile,
+    join,
+    normcase,
+)
 
 from ..auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
-from ..common.path import paths_equal
-from ..common.serialize import json_dump
+from ..common.path import expand, paths_equal
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaError,
     DirectoryNotACondaEnvironmentError,
+    EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
+    EnvironmentNotWritableError,
+    OperationNotAllowed,
 )
+from ..gateways.connection.session import CONDA_SESSION_SCHEMES
+from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
+from ..reporters import render
+
+log = getLogger(__name__)
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
     assert default in choices, default
     if (dry_run is NULL and context.dry_run) or dry_run:
@@ -54,6 +74,11 @@ def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NUL
             return choices[user_choice]
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.confirm_yn` instead.",
+)
 def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
     if (dry_run is NULL and context.dry_run) or dry_run:
         from ..exceptions import DryRunExit
@@ -143,9 +168,9 @@ def spec_from_line(line):
         return name + cc.replace("=", " ")
     elif pc:
         if pc.startswith("~= "):
-            assert (
-                pc.count("~=") == 1
-            ), f"Overly complex 'Compatible release' spec not handled {line}"
+            assert pc.count("~=") == 1, (
+                f"Overly complex 'Compatible release' spec not handled {line}"
+            )
             assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
             ver = pc.replace("~= ", "")
             ver2 = ".".join(ver.split(".")[:-1]) + ".*"
@@ -198,7 +223,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    getLogger("conda.stdout").info(json_dump(d))
+    render(d)
 
 
 def stdout_json_success(success=True, **kwargs):
@@ -214,30 +239,13 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
+@deprecated(
+    "25.3",
+    "25.9",
+    addendum="Use `conda.reporters.render(style='env_list')` instead.",
+)
 def print_envs_list(known_conda_prefixes, output=True):
-    if output:
-        print("# conda environments:")
-        print("#")
-
-    def disp_env(prefix):
-        fmt = "%-20s  %s  %s"
-        active = "*" if prefix == context.active_prefix else " "
-        if prefix == context.root_prefix:
-            name = ROOT_ENV_NAME
-        elif any(
-            paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs
-        ):
-            name = basename(prefix)
-        else:
-            name = ""
-        if output:
-            print(fmt % (name, active, prefix))
-
-    for prefix in known_conda_prefixes:
-        disp_env(prefix)
-
-    if output:
-        print()
+    render(known_conda_prefixes, style="envs_list", output=output)
 
 
 def check_non_admin():
@@ -256,7 +264,8 @@ def check_non_admin():
         )
 
 
-def validate_prefix(prefix):
+@deprecated("25.9", "26.3", addendum="Use PrefixData.assert_environment()")
+def validate_prefix(prefix) -> str:
     """Verifies the prefix is a valid conda environment.
 
     :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
@@ -265,9 +274,116 @@ def validate_prefix(prefix):
     :rtype: str
     """
     if isdir(prefix):
-        if not isfile(join(prefix, "conda-meta", "history")):
+        if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
             raise DirectoryNotACondaEnvironmentError(prefix)
     else:
         raise EnvironmentLocationNotFound(prefix)
 
     return prefix
+
+
+@deprecated("25.9", "26.3", addendum="Use PrefixData.assert_writable()")
+def validate_prefix_is_writable(prefix: str) -> str:
+    """Verifies the environment directory is writable by trying to access
+    the conda-meta/history file. If this file is not writable then we assume
+    the whole prefix is not writable and raise an exception.
+
+    :raises EnvironmentNotWritableError: Conda does not have permission to write to the prefix
+    :returns: Valid prefix.
+    :rtype: str
+    """
+    test_path = join(prefix, PREFIX_MAGIC_FILE)
+    if isdir(dirname(test_path)) and file_path_is_writable(test_path):
+        return prefix
+    raise EnvironmentNotWritableError(prefix)
+
+
+def validate_subdir_config():
+    """Validates that the configured subdir is ok. A subdir that is different from
+    the native system is only allowed if it comes from the global configuration, or
+    from an environment variable.
+
+    :raises OperationNotAllowed: Active environment is not allowed to request
+                                 non-native platform packages
+    """
+    if context.subdir != context._native_subdir():
+        # We will only allow a different subdir if it's specified by global
+        # configuration, environment variable or command line argument. IOW,
+        # prevent a non-base env configured for a non-native subdir from leaking
+        # its subdir to a newer env.
+        context_sources = context.collect_all()
+        if context_sources.get("cmd_line", {}).get("subdir") == context.subdir:
+            pass  # this is ok
+        elif context_sources.get("envvars", {}).get("subdir") == context.subdir:
+            pass  # this is ok too
+        # config does not come from envvars or cmd_line, it must be a file
+        # that's ok as long as it's a base env or a global file
+        elif not paths_equal(context.active_prefix, context.root_prefix):
+            # this is only ok as long as it's NOT base environment
+            active_env_config = next(
+                (
+                    config
+                    for path, config in context_sources.items()
+                    if paths_equal(context.active_prefix, path.parent)
+                ),
+                None,
+            )
+            if active_env_config.get("subdir") == context.subdir:
+                # In practice this never happens; the subdir info is not even
+                # loaded from the active env for conda create :shrug:
+                msg = dals(
+                    f"""
+                    Active environment configuration ({context.active_prefix}) is
+                    implicitly requesting a non-native platform ({context.subdir}).
+                    Please deactivate first or explicitly request the platform via
+                    the --platform=[value] command line flag.
+                    """
+                )
+                raise OperationNotAllowed(msg)
+
+
+def print_activate(env_name_or_prefix):  # pragma: no cover
+    if not context.quiet and not context.json:
+        if " " in env_name_or_prefix:
+            env_name_or_prefix = f'"{env_name_or_prefix}"'
+        message = dals(
+            f"""
+            #
+            # To activate this environment, use
+            #
+            #     $ conda activate {env_name_or_prefix}
+            #
+            # To deactivate an active environment, use
+            #
+            #     $ conda deactivate
+            """
+        )
+        print(message)  # TODO: use logger
+
+
+def validate_file_exists(filename: str):
+    """
+    Validate the existence of an environment file.
+
+    This function checks if the given ``filename`` exists as an environment file.
+    If the `filename` has a URL scheme supported by ``CONDA_SESSION_SCHEMES``,
+    it assumes the file is accessible and returns without further validation.
+    Otherwise, it expands the given path and verifies its existence. If the file
+    does not exist, an ``EnvironmentFileNotFound`` exception is raised.
+
+    Parameters:
+        filename (str): The path or URL of the environment file to validate.
+
+    Raises:
+        EnvironmentFileNotFound: If the file does not exist and is not a valid URL.
+    """
+    url_scheme = filename.split("://", 1)[0]
+    if url_scheme == "file":
+        filename = expand(filename.split("://", 1)[-1])
+    elif url_scheme not in CONDA_SESSION_SCHEMES:
+        filename = expand(filename)
+    else:
+        return
+
+    if not exists(filename):
+        raise EnvironmentFileNotFound(filename=filename)

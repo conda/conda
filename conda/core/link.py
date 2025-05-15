@@ -22,11 +22,9 @@ from ..auxlib.collection import first
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
-from ..cli.common import confirm_yn
 from ..common.compat import ensure_text_type, on_win
 from ..common.io import (
     DummyExecutor,
-    Spinner,
     ThreadLimitedThreadPoolExecutor,
     dashlist,
     time_recorder,
@@ -55,12 +53,12 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import (
     hardlink_supported,
-    is_conda_environment,
     softlink_supported,
 )
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
+from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
@@ -78,10 +76,13 @@ from .path_actions import (
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
 )
-from .prefix_data import PrefixData, get_python_version_for_prefix
+from .prefix_data import (
+    PrefixData,
+    python_record_for_prefix,
+)
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from ..models.package_info import PackageInfo
     from ..models.records import PackageRecord
@@ -204,6 +205,7 @@ class ChangeReport(NamedTuple):
     downgraded_precs: Iterable[PackageRecord]
     superseded_precs: Iterable[PackageRecord]
     fetch_precs: Iterable[PackageRecord]
+    revised_precs: Iterable[PackageRecord]
 
 
 class UnlinkLinkTransaction:
@@ -245,7 +247,7 @@ class UnlinkLinkTransaction:
         return not any(
             (stp.unlink_precs or stp.link_precs) for stp in self.prefix_setups.values()
         ) and all(
-            is_conda_environment(stp.target_prefix)
+            PrefixData(stp.target_prefix).is_environment()
             for stp in self.prefix_setups.values()
         )
 
@@ -266,11 +268,7 @@ class UnlinkLinkTransaction:
 
         self.transaction_context = {}
 
-        with Spinner(
-            "Preparing transaction",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner("Preparing transaction"):
             for stp in self.prefix_setups.values():
                 grps = self._prepare(
                     self.transaction_context,
@@ -296,11 +294,7 @@ class UnlinkLinkTransaction:
             self._verified = True
             return
 
-        with Spinner(
-            "Verifying transaction",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner("Verifying transaction"):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
@@ -418,13 +412,13 @@ class UnlinkLinkTransaction:
 
         # make all the path actions
         # no side effects allowed when instantiating these action objects
-        python_version = cls._get_python_version(
-            target_prefix, prefix_recs_to_unlink, packages_info_to_link
+        python_version, python_site_packages = cls._get_python_info(
+            target_prefix,
+            prefix_recs_to_unlink,
+            packages_info_to_link,
         )
         transaction_context["target_python_version"] = python_version
-        sp = get_python_site_packages_short_path(python_version)
-        transaction_context["target_site_packages_short_path"] = sp
-
+        transaction_context["target_site_packages_short_path"] = python_site_packages
         transaction_context["temp_dir"] = join(target_prefix, ".condatmp")
 
         remove_menu_action_groups = []
@@ -845,11 +839,7 @@ class UnlinkLinkTransaction:
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
-            with Spinner(
-                "Executing transaction",
-                not context.verbose and not context.quiet,
-                context.json,
-            ):
+            with get_spinner("Executing transaction"):
                 # Execute unlink actions
                 for group, register_group, install_side in (
                     (unlink_actions, "unregister", False),
@@ -955,11 +945,7 @@ class UnlinkLinkTransaction:
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    with Spinner(
-                        "Rolling back transaction",
-                        not context.verbose and not context.quiet,
-                        context.json,
-                    ):
+                    with get_spinner("Rolling back transaction"):
                         reverse_actions = reversed(tuple(all_action_groups))
                         for axngroup in reverse_actions:
                             excs = UnlinkLinkTransaction._reverse_actions(axngroup)
@@ -1081,9 +1067,23 @@ class UnlinkLinkTransaction:
         return exceptions
 
     @staticmethod
-    def _get_python_version(target_prefix, pcrecs_to_unlink, packages_info_to_link):
-        # this method determines the python version that will be present at the
-        # end of the transaction
+    def _get_python_info(
+        target_prefix, prefix_recs_to_unlink, packages_info_to_link
+    ) -> tuple[str | None, str | None]:
+        """
+        Return the python version and location of the site-packages directory at the end of the transaction
+        """
+
+        def version_and_sp(python_record) -> tuple[str | None, str | None]:
+            assert python_record.version
+            python_version = get_major_minor_version(python_record.version)
+            python_site_packages = python_record.python_site_packages_path
+            if python_site_packages is None:
+                python_site_packages = get_python_site_packages_short_path(
+                    python_version
+                )
+            return python_version, python_site_packages
+
         linking_new_python = next(
             (
                 package_info
@@ -1093,31 +1093,26 @@ class UnlinkLinkTransaction:
             None,
         )
         if linking_new_python:
-            # is python being linked? we're done
-            full_version = linking_new_python.repodata_record.version
-            assert full_version
-            log.debug("found in current transaction python version %s", full_version)
-            return get_major_minor_version(full_version)
-
-        # is python already linked and not being unlinked? that's ok too
-        linked_python_version = get_python_version_for_prefix(target_prefix)
-        if linked_python_version:
-            find_python = (
-                lnkd_pkg_data
-                for lnkd_pkg_data in pcrecs_to_unlink
-                if lnkd_pkg_data.name == "python"
+            python_record = linking_new_python.repodata_record
+            log.debug(f"found in current transaction python: {python_record}")
+            return version_and_sp(python_record)
+        python_record = python_record_for_prefix(target_prefix)
+        if python_record:
+            unlinking_python = next(
+                (
+                    prefix_rec_to_unlink
+                    for prefix_rec_to_unlink in prefix_recs_to_unlink
+                    if prefix_rec_to_unlink.name == "python"
+                ),
+                None,
             )
-            unlinking_this_python = next(find_python, None)
-            if unlinking_this_python is None:
-                # python is not being unlinked
-                log.debug(
-                    "found in current prefix python version %s", linked_python_version
-                )
-                return linked_python_version
-
-        # there won't be any python in the finished environment
+            if unlinking_python is None:
+                # python is already linked and not being unlinked
+                log.debug(f"found in current prefix, python: {python_record}")
+                return version_and_sp(python_record)
+        # no python in the finished environment
         log.debug("no python version found in prefix")
-        return None
+        return None, None
 
     @staticmethod
     def _make_link_actions(
@@ -1338,6 +1333,16 @@ class UnlinkLinkTransaction:
                 left_str = left_str[:37] + "~"
             builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
 
+        def summarize_double(change_report_precs, key):
+            for namekey in sorted(change_report_precs, key=key):
+                unlink_prec, link_prec = change_report_precs[namekey]
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(
+                    strip_global(namekey),
+                    left_str,
+                    f"{right_str} {' '.join(link_prec.metadata)}",
+                )
+
         if change_report.new_precs:
             builder.append("\nThe following NEW packages will be INSTALLED:\n")
             for namekey in sorted(change_report.new_precs, key=convert_namekey):
@@ -1357,39 +1362,23 @@ class UnlinkLinkTransaction:
 
         if change_report.updated_precs:
             builder.append("\nThe following packages will be UPDATED:\n")
-            for namekey in sorted(change_report.updated_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.updated_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.updated_precs, convert_namekey)
 
         if change_report.superseded_precs:
             builder.append(
                 "\nThe following packages will be SUPERSEDED "
                 "by a higher-priority channel:\n"
             )
-            for namekey in sorted(change_report.superseded_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.superseded_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.superseded_precs, convert_namekey)
 
         if change_report.downgraded_precs:
             builder.append("\nThe following packages will be DOWNGRADED:\n")
-            for namekey in sorted(change_report.downgraded_precs, key=convert_namekey):
-                unlink_prec, link_prec = change_report.downgraded_precs[namekey]
-                left_str, right_str = diff_strs(unlink_prec, link_prec)
-                add_double(
-                    strip_global(namekey),
-                    left_str,
-                    f"{right_str} {' '.join(link_prec.metadata)}",
-                )
+            summarize_double(change_report.downgraded_precs, convert_namekey)
+
+        if change_report.revised_precs:
+            builder.append("\nThe following packages will be REVISED:\n")
+            summarize_double(change_report.revised_precs, convert_namekey)
+
         builder.append("")
         builder.append("")
         return "\n".join(builder)
@@ -1413,9 +1402,12 @@ class UnlinkLinkTransaction:
         # updated means a version increase, or a build number increase
         # downgraded means a version decrease, or build number decrease, but channel canonical_name
         #   has to be the same
-        # superseded then should be everything else left over
+        # revised means the version and channel canonical_name is the same, but the build variant
+        #   is different. The build variant is the build string and build number.
+        # superseded then should be everything else left over (eg. changed channel)
         updated_precs = {}
         downgraded_precs = {}
+        revised_precs = {}
         superseded_precs = {}
 
         common_namekeys = link_namekeys & unlink_namekeys
@@ -1424,6 +1416,7 @@ class UnlinkLinkTransaction:
             unlink_vo = VersionOrder(unlink_prec.version)
             link_vo = VersionOrder(link_prec.version)
             build_number_increases = link_prec.build_number > unlink_prec.build_number
+
             if link_vo == unlink_vo and build_number_increases or link_vo > unlink_vo:
                 updated_precs[namekey] = (unlink_prec, link_prec)
             elif (
@@ -1434,7 +1427,10 @@ class UnlinkLinkTransaction:
                     # noarch: python packages are re-linked on a python version change
                     # just leave them out of the package report
                     continue
-                downgraded_precs[namekey] = (unlink_prec, link_prec)
+                if link_vo == unlink_vo and link_prec.build != unlink_prec.build:
+                    revised_precs[namekey] = (unlink_prec, link_prec)
+                else:
+                    downgraded_precs[namekey] = (unlink_prec, link_prec)
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)
 
@@ -1449,6 +1445,7 @@ class UnlinkLinkTransaction:
             downgraded_precs,
             superseded_precs,
             fetch_precs,
+            revised_precs,
         )
         return change_report
 
