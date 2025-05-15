@@ -3163,12 +3163,13 @@ def test_freeze_deps_1(tmpdir):
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
                 # LIBMAMBA ADJUSTMENT
-                # libmamba v1 doesn't remove xz in this solve
+                # libmamba v1 / rattler don't remove xz in this solve
                 *(
                     ()
                     if (
-                        context.solver in ["libmamba", "rattler"]
+                        context.solver == "libmamba"
                         and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
+                        or context.solver == "rattler"
                     )
                     else ("channel-2::xz-5.2.3-0",)
                 ),

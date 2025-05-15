@@ -1017,7 +1017,7 @@ def test_pinned_override_with_explicit_spec(
             f"--file={prefix / 'condarc'}",
             *("--add", "pinned_packages", "dependent=1.0"),
         )
-        if context.solver == "libmamba":
+        if context.solver in ("libmamba", "rattler"):
             # LIBMAMBA ADJUSTMENT
             # Incompatible pin overrides forbidden in conda-libmamba-solver 23.9.0+
             # See https://github.com/conda/conda-libmamba-solver/pull/294
