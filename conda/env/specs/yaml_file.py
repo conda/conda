@@ -38,12 +38,14 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
         try:
-            self._environment = env.from_file(self.filename)
+            self._environment = env.from_file(self.filename, strict=True)
             return True
         except Exception:
             log.debug(
                 "Failed to load %s as `environment.yaml`.", self.filename, exc_info=True
             )
+            return False
+        except Exception as e:
             return False
 
     @property
