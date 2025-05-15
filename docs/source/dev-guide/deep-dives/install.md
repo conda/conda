@@ -559,8 +559,8 @@ Their order is roughly how they happen in practice:
 7. `make_menu_action_groups`, composed of `MakeMenuAction` actions.
 9. `prefix_record_groups`, records installed packages in the environment via
    `CreatePrefixRecordAction` actions.
-10. `initial_action_groups`, includes any user-defined pre-transaction actions.
-11. `final_action_groups`, includes any user-defined post-transaction actions.
+10. `initial_action_groups`, includes any plugin-defined pre-transaction actions.
+11. `final_action_groups`, includes any plugin-defined post-transaction actions.
 
 Let's discuss these actions groups for the command we are describing in this guide: `conda
 install numpy`. The solution given by the solver says we need to:
