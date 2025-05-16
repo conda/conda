@@ -188,10 +188,10 @@ class ActionGroup(NamedTuple):
 @deprecated(
     "25.9",
     "26.3",
-    addendum="PrefixActionGroupDataclass will be renamed to PrefixActionGroup in 26.3.",
+    addendum="PrefixActions will be renamed to PrefixActionGroup in 26.3.",
 )
 @dataclass
-class PrefixActionGroupDataclass:
+class PrefixActions:
     """A container for groups of actions carried out during an UnlinkLinkTransaction.
 
     :param remove_menu_action_groups: Actions which remove menu items
@@ -224,7 +224,7 @@ class PrefixActionGroupDataclass:
             yield getattr(self, field.name)
 
 
-@deprecated("25.9", "26.3", addendum="Use PrefixActionGroupDataclass instead.")
+@deprecated("25.9", "26.3", addendum="Use PrefixActions instead.")
 class PrefixActionGroup(NamedTuple):
     remove_menu_action_groups: Iterable[ActionGroup]
     unlink_action_groups: Iterable[ActionGroup]
@@ -384,8 +384,8 @@ class UnlinkLinkTransaction:
 
         assert not context.dry_run
         try:
-            # innermost dict.values() is an iterable of PrefixActionGroupDataclass
-            # instances; zip() is an iterable of each PrefixActionGroupDataclass
+            # innermost dict.values() is an iterable of PrefixActions
+            # instances; zip() is an iterable of each PrefixActions
             self._execute(
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
@@ -613,7 +613,7 @@ class UnlinkLinkTransaction:
             neutered_specs,
         )
 
-        return PrefixActionGroupDataclass(
+        return PrefixActions(
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,

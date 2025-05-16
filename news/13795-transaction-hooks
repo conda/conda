@@ -9,9 +9,9 @@
 ### Deprecations
 
 * Mark `conda.core.link.PrefixActionGroup` as pending deprecation. Use
-`conda.core.link.PrefixActionGroupDataclass` instead. It will be permanently
+`conda.core.link.PrefixActions` instead. It will be permanently
 removed in 26.3. (#14754)
-* Mark `conda.core.link.PrefixActionGroupDataclass` as deprecated. It will
+* Mark `conda.core.link.PrefixActions` as deprecated. It will
 be renamed to `conda.core.link.PrefixActionGroup` in 26.3. (#14754)
 * Mark `conda.core.path_actions._Action` as pending deprecation. Use
 `conda.core.path_actions.Action` instead. It will be permanently

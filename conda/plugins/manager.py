@@ -566,7 +566,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[Action]:
         """Get the plugin-defined pre-transaction actions.
 
-        :param transaction_context: Mapping between target prefixes and PrefixActionGroupDataclass
+        :param transaction_context: Mapping between target prefixes and PrefixActions
             instances
         :param target_prefix: Target prefix for the action
         :param unlink_precs: Package records to be unlinked
@@ -603,7 +603,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[Action]:
         """Get the plugin-defined post-transaction actions.
 
-        :param transaction_context: Mapping between target prefixes and PrefixActionGroupDataclass
+        :param transaction_context: Mapping between target prefixes and PrefixActions
             instances
         :param target_prefix: Target prefix for the action
         :param unlink_precs: Package records to be unlinked
