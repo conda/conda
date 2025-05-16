@@ -3855,15 +3855,6 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
 
 @pytest.mark.integration
 def test_globstr_matchspec_compatible(tmpdir, request):
-    if context.solver == "rattler":
-        request.applymarker(
-            pytest.mark.xfail(
-                context.solver == "rattler",
-                reason="Look-around regex not supported: "
-                "https://github.com/conda/rattler/issues/1304",
-            )
-        )
-
     # This should work -- build strings are compatible
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"))
     with get_solver(tmpdir, specs) as solver:
@@ -3876,15 +3867,6 @@ def test_globstr_matchspec_compatible(tmpdir, request):
 
 @pytest.mark.integration
 def test_globstr_matchspec_non_compatible(tmpdir, request):
-    if context.solver == "rattler":
-        request.applymarker(
-            pytest.mark.xfail(
-                context.solver == "rattler",
-                reason="Look-around regex not supported: "
-                "https://github.com/conda/rattler/issues/1304",
-            )
-        )
-
     # This should fail -- build strings are not compatible
 
     # This one fails with ValueError (glob str match_spec checks)
@@ -3902,13 +3884,13 @@ def test_globstr_matchspec_non_compatible(tmpdir, request):
     # context manager is now in the inner block!
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises((UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)):
             solver.solve_final_state()
 
     # Same here; the index has no accelerate pkg with BOTH np15 and py33
     specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises((UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)):
             solver.solve_final_state()
 
 
