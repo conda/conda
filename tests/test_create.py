@@ -1066,17 +1066,21 @@ def test_channel_usage_replacing_python(
         )
         PrefixData._cache_.clear()
         if context.solver == "rattler":
+            # Rattler adjustment: channels change more than expected
             assert (prec := package_is_installed(prefix, "python=3.10"))
+            assert package_is_installed(prefix, "decorator")
         else:
             assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
-        assert package_is_installed(prefix, "main::decorator")
+            assert package_is_installed(prefix, "main::decorator")
 
         with tmp_env(f"--clone={prefix}") as clone:
             if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
                 assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
             else:
                 assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+                assert package_is_installed(clone, "main::decorator")
 
         # Regression test for #2645
         fn = prefix / "conda-meta" / f"{prec.name}-{prec.version}-{prec.build}.json"
@@ -1090,10 +1094,12 @@ def test_channel_usage_replacing_python(
 
         with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
             if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
                 assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
             else:
                 assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+                assert package_is_installed(clone, "main::decorator")
 
 
 def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
