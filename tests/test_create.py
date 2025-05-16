@@ -1065,11 +1065,17 @@ def test_channel_usage_replacing_python(
             "--yes",
         )
         PrefixData._cache_.clear()
-        assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
+        if context.solver == "rattler":
+            assert (prec := package_is_installed(prefix, "python=3.10"))
+        else:
+            assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
         assert package_is_installed(prefix, "main::decorator")
 
         with tmp_env(f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
+            if context.solver == "rattler":
+                assert package_is_installed(clone, "python=3.10")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
             assert package_is_installed(clone, "main::decorator")
 
         # Regression test for #2645
@@ -1083,7 +1089,10 @@ def test_channel_usage_replacing_python(
         PrefixData._cache_.clear()
 
         with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
+            if context.solver == "rattler":
+                assert package_is_installed(clone, "python=3.10")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
             assert package_is_installed(clone, "main::decorator")
 
 
