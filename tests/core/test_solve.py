@@ -457,7 +457,7 @@ def test_archspec_call(tmpdir):
 def test_prune_1(tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver in ["libmamba", "rattler"],
+            context.solver in ("libmamba", "rattler"),
             reason="Features not supported in libmamba/rattler",
             strict=True,
         )
@@ -595,7 +595,7 @@ def test_update_prune_2(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver in ["libmamba", "rattler"],
+            context.solver in ("libmamba", "rattler"),
             reason="Features not supported in libmamba/rattler",
             strict=True,
         )
@@ -673,7 +673,7 @@ def test_update_prune_3(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver in ["libmamba", "rattler"],
+            context.solver in ("libmamba", "rattler"),
             reason="Features not supported in libmamba/rattler",
             strict=True,
         )
@@ -2898,7 +2898,7 @@ def test_priority_1(tmpdir, request):
     if context.solver in ("libmamba", "rattler"):
         request.applymarker(
             pytest.mark.xfail(
-                context.solver in ["libmamba", "rattler"],
+                context.solver in ("libmamba", "rattler"),
                 reason="libmamba/rattler are 'lazier' to change channels if the installed one already "
                 "satisfies the request.",
                 strict=True,
@@ -3002,7 +3002,7 @@ def test_priority_1(tmpdir, request):
 def test_features_solve_1(tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver in ["libmamba", "rattler"],
+            context.solver in ("libmamba", "rattler"),
             reason="Features not supported in libmamba",
             strict=True,
         )
