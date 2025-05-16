@@ -7,7 +7,10 @@ from importlib import import_module
 import pytest
 
 
-@pytest.mark.parametrize("module", ["conda.trust", "conda.trust.constants"])
+@pytest.mark.parametrize(
+    "module",
+    ["conda.trust", "conda.trust.constants", "conda.trust.signature_verification"],
+)
 def test_deprecations(module: str) -> None:
     with pytest.deprecated_call():
         import_module(module)
