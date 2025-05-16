@@ -852,7 +852,7 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
 def test_force_remove_1(tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver in ["libmamba"],
+            context.solver == "libmamba",
             reason="Known limitation. VERIFY task needed to make this pass, but breaks other tests."
             " See https://github.com/conda/conda-libmamba-solver/pull/302",
             strict=True,
