@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from requests.auth import AuthBase
 
     from ..common.configuration import ParameterLoader
+    from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -532,6 +533,80 @@ class CondaPluginManager(pluggy.PluginManager):
         raise EnvironmentSpecPluginNotDetected(
             name=filename, plugin_names=[hook.name for hook in hooks]
         )
+
+    def get_pre_transaction_actions(
+        self,
+        transaction_context: dict[str, str] | None = None,
+        target_prefix: str | None = None,
+        unlink_precs: Iterable[PackageRecord] | None = None,
+        link_precs: Iterable[PackageRecord] | None = None,
+        remove_specs: Iterable[MatchSpec] | None = None,
+        update_specs: Iterable[MatchSpec] | None = None,
+        neutered_specs: Iterable[MatchSpec] | None = None,
+    ) -> list[Action]:
+        """Get the plugin-defined pre-transaction actions.
+
+        :param transaction_context: Mapping between target prefixes and PrefixActionGroupV2
+            instances
+        :param target_prefix: Target prefix for the action
+        :param unlink_precs: Package records to be unlinked
+        :param link_precs: Package records to link
+        :param remove_specs: Specs to be removed
+        :param update_specs: Specs to be updated
+        :param neutered_specs: Specs to be neutered
+        :return: The plugin-defined pre-transaction actions
+        """
+        actions = []
+        for hook in self.get_hook_results("pre_transaction_actions"):
+            actions.append(
+                hook.action(
+                    transaction_context,
+                    target_prefix,
+                    unlink_precs,
+                    link_precs,
+                    remove_specs,
+                    update_specs,
+                    neutered_specs,
+                )
+            )
+        return actions
+
+    def get_post_transaction_actions(
+        self,
+        transaction_context: dict[str, str] | None = None,
+        target_prefix: str | None = None,
+        unlink_precs: Iterable[PackageRecord] | None = None,
+        link_precs: Iterable[PackageRecord] | None = None,
+        remove_specs: Iterable[MatchSpec] | None = None,
+        update_specs: Iterable[MatchSpec] | None = None,
+        neutered_specs: Iterable[MatchSpec] | None = None,
+    ) -> list[Action]:
+        """Get the plugin-defined post-transaction actions.
+
+        :param transaction_context: Mapping between target prefixes and PrefixActionGroupV2
+            instances
+        :param target_prefix: Target prefix for the action
+        :param unlink_precs: Package records to be unlinked
+        :param link_precs: Package records to link
+        :param remove_specs: Specs to be removed
+        :param update_specs: Specs to be updated
+        :param neutered_specs: Specs to be neutered
+        :return: The plugin-defined post-transaction actions
+        """
+        actions = []
+        for hook in self.get_hook_results("post_transaction_actions"):
+            actions.append(
+                hook.action(
+                    transaction_context,
+                    target_prefix,
+                    unlink_precs,
+                    link_precs,
+                    remove_specs,
+                    update_specs,
+                    neutered_specs,
+                )
+            )
+        return actions
 
 
 @functools.cache

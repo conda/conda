@@ -589,31 +589,24 @@ class UnlinkLinkTransaction:
         ]
 
         # Instantiate any pre or post transactions defined by the user.
-        pre_transaction_actions, post_transaction_actions = [], []
-        for hook in context.plugin_manager.get_hook_results("pre_transaction_actions"):
-            pre_transaction_actions.append(
-                hook.action(
-                    transaction_context,
-                    target_prefix,
-                    unlink_precs,
-                    link_precs,
-                    remove_specs,
-                    update_specs,
-                    neutered_specs,
-                )
-            )
-        for hook in context.plugin_manager.get_hook_results("post_transaction_actions"):
-            post_transaction_actions.append(
-                hook.action(
-                    transaction_context,
-                    target_prefix,
-                    unlink_precs,
-                    link_precs,
-                    remove_specs,
-                    update_specs,
-                    neutered_specs,
-                )
-            )
+        pre_transaction_actions = context.plugin_manager.get_pre_transaction_actions(
+            transaction_context,
+            target_prefix,
+            unlink_precs,
+            link_precs,
+            remove_specs,
+            update_specs,
+            neutered_specs,
+        )
+        post_transaction_actions = context.plugin_manager.get_post_transaction_actions(
+            transaction_context,
+            target_prefix,
+            unlink_precs,
+            link_precs,
+            remove_specs,
+            update_specs,
+            neutered_specs,
+        )
 
         return PrefixActionGroupV2(
             remove_menu_action_groups,
@@ -1085,7 +1078,7 @@ class UnlinkLinkTransaction:
                 )
 
             for action in axngroup.actions:
-                action()
+                action.execute()
         except Exception as e:  # this won't be a multi error
             # reverse this package
             reverse_excs = ()

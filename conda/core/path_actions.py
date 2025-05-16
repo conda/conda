@@ -151,10 +151,6 @@ class Action:
         ``self.reverse()`` will be called.
         """
 
-    def __call__(self) -> None:
-        """Execute the action."""
-        return self.execute()
-
     @abstractmethod
     def reverse(self) -> None:
         """Reverse what was done in execute.
