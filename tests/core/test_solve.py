@@ -2584,7 +2584,6 @@ def test_pinned_1(tmpdir):
         MatchSpec("system=5.8=0"),
         MatchSpec("numba"),
     )
-
     with get_solver(
         tmpdir,
         specs_to_add=specs_to_add,
