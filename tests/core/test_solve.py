@@ -1408,7 +1408,7 @@ def test_conda_downgrade(tmpdir, request):
                 # no conda downgrade
             )
             if context.solver == "rattler":
-                link_order = ("channel-4/osx-arm64::itsdangerous-0.24-py37_1",)
+                link_order = add_subdir_to_iter(("channel-4::itsdangerous-0.24-py37_1",))
             else:
                 link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
             assert convert_to_dist_str(unlink_precs) == unlink_order
