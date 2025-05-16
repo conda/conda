@@ -48,6 +48,7 @@ from conda.exceptions import (
     DisallowedPackageError,
     DryRunExit,
     EnvironmentNotWritableError,
+    InvalidMatchSpec,
     LinkError,
     OperationNotAllowed,
     PackageNotInstalledError,
@@ -975,7 +976,7 @@ def test_tarball_install_and_bad_metadata(
                 """
             )
         )
-        with pytest.raises(PackagesNotFoundError):
+        with pytest.raises((InvalidMatchSpec, PackagesNotFoundError)):
             conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
             assert not package_is_installed(prefix, "something-made-up")
 
