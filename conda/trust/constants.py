@@ -13,6 +13,15 @@ The discrepancy can be detected when loading the root data, and we can
 decline to cache incorrect trust metadata that would make further root
 updates impossible.
 """
+from ..deprecations import deprecated
+
+# Mark the entire module for deprecation. For more information see
+# https://github.com/conda/conda-content-trust and #14797
+deprecated.module(
+    "25.9.0",  # deprecate_in version
+    "26.3.0",  # remove_in version
+    addendum="This module will be moved to conda-anaconda-trust-root."
+)
 
 INITIAL_TRUST_ROOT = {
     "signatures": {
