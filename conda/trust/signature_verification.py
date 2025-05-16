@@ -48,7 +48,7 @@ log = getLogger(__name__)
 deprecated.module(
     "25.9.0",  # deprecate_in version
     "26.3.0",  # remove_in version
-    addendum="This module will be moved to conda-content-trust."
+    addendum="This module will be moved to conda-content-trust.",
 )
 
 
