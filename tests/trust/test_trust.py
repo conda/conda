@@ -1,0 +1,13 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from importlib import import_module
+
+import pytest
+
+
+@pytest.mark.parametrize("module", ["conda.trust", "conda.trust.constants"])
+def test_deprecations(module: str) -> None:
+    with pytest.deprecated_call():
+        import_module(module)
