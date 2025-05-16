@@ -2453,7 +2453,16 @@ def test_conda_downgrade(
     with tmp_env("python=3.11", "pip", "conda", "py-rattler>=0.8.2") as prefix:  # rev 0
         python_exe = str(prefix / PYTHON_BINARY)
         # TMP: Install conda-rattler-solver in target env too
-        subprocess_call_with_clean_env([python_exe, "-m", "pip", "install", "https://github.com/jaimergp/conda-rattler-solver/archive/refs/heads/support-0.6.zip", "--no-deps"])
+        subprocess_call_with_clean_env(
+            [
+                python_exe,
+                "-m",
+                "pip",
+                "install",
+                "https://github.com/jaimergp/conda-rattler-solver/archive/refs/heads/support-0.6.zip",
+                "--no-deps",
+            ]
+        )
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
         assert (py_prec := package_is_installed(prefix, "python"))
         assert (conda_prec := package_is_installed(prefix, "conda"))
