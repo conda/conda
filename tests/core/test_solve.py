@@ -3375,7 +3375,6 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
             solver.solve_final_state()
 
         error_msg = str(exc.value).strip()
-        print("Error message: ", error_msg)
         # libmamba has a significantly more detailed (and different) error messages
         if context.solver == "classic":
             error_snippets = [
@@ -3844,7 +3843,7 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
 
 
 @pytest.mark.integration
-def test_globstr_matchspec_compatible(tmpdir, request):
+def test_globstr_matchspec_compatible(tmpdir):
     # This should work -- build strings are compatible
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"))
     with get_solver(tmpdir, specs) as solver:
@@ -3856,7 +3855,7 @@ def test_globstr_matchspec_compatible(tmpdir, request):
 
 
 @pytest.mark.integration
-def test_globstr_matchspec_non_compatible(tmpdir, request):
+def test_globstr_matchspec_non_compatible(tmpdir):
     # This should fail -- build strings are not compatible
 
     # This one fails with ValueError (glob str match_spec checks)
