@@ -22,17 +22,12 @@ from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import open_utf8
-from ...common.pkg_formats.python import (
-    PythonDistribution,
-    PythonEggInfoDistribution,
-    PythonEggLinkDistribution,
-    PythonInstalledDistribution,
-)
+from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
-from ...models.enums import FileMode, PackageType, PathType
+from ...models.enums import FileMode, PathType
 from ...models.package_info import PackageInfo, PackageMetadata
-from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
+from ...models.records import PathData, PathDataV1, PathsData
 from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
 
@@ -249,73 +244,12 @@ def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use 'conda.plugins.prefix_data_loaders.pypi.pkg_format.read_python_record'",
+)
 def read_python_record(prefix_path, anchor_file, python_version):
-    """
-    Convert a python package defined by an anchor file (Metadata information)
-    into a conda prefix record object.
-    """
-    pydist = PythonDistribution.init(prefix_path, anchor_file, python_version)
-    depends, constrains = pydist.get_conda_dependencies()
+    from ...plugins.prefix_data_loaders.pypi.pkg_format import read_python_record
 
-    if isinstance(pydist, PythonInstalledDistribution):
-        channel = Channel("pypi")
-        build = "pypi_0"
-        package_type = PackageType.VIRTUAL_PYTHON_WHEEL
-
-        paths_tups = pydist.get_paths()
-        paths_data = PathsData(
-            paths_version=1,
-            paths=(
-                PathDataV1(
-                    _path=path,
-                    path_type=PathType.hardlink,
-                    sha256=checksum,
-                    size_in_bytes=size,
-                )
-                for (path, checksum, size) in paths_tups
-            ),
-        )
-        files = tuple(p[0] for p in paths_tups)
-
-    elif isinstance(pydist, PythonEggLinkDistribution):
-        channel = Channel("<develop>")
-        build = "dev_0"
-        package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
-
-        paths_data, files = PathsData(paths_version=1, paths=()), ()
-
-    elif isinstance(pydist, PythonEggInfoDistribution):
-        channel = Channel("pypi")
-        build = "pypi_0"
-        if pydist.is_manageable:
-            package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
-
-            paths_tups = pydist.get_paths()
-            files = tuple(p[0] for p in paths_tups)
-            paths_data = PathsData(
-                paths_version=1,
-                paths=(
-                    PathData(_path=path, path_type=PathType.hardlink) for path in files
-                ),
-            )
-        else:
-            package_type = PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
-            paths_data, files = PathsData(paths_version=1, paths=()), ()
-
-    else:
-        raise NotImplementedError()
-
-    return PrefixRecord(
-        package_type=package_type,
-        name=pydist.norm_name,
-        version=pydist.version,
-        channel=channel,
-        subdir="pypi",
-        fn=pydist.sp_reference,
-        build=build,
-        build_number=0,
-        paths_data=paths_data,
-        files=files,
-        depends=depends,
-        constrains=constrains,
-    )
+    return read_python_record(prefix_path, anchor_file, python_version)
