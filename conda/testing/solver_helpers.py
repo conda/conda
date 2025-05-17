@@ -118,7 +118,7 @@ class SimpleEnvironment:
     def _package_data(self, record):
         """Turn record into data, to be written in the JSON environment/repo files."""
         data = {
-            key: value
+            key: (",".join(value) if key in ("features", "track_features") else value)
             for key, value in vars(record).items()
             if key in self.REPO_DATA_KEYS
         }
@@ -174,7 +174,7 @@ class SimpleEnvironment:
 
 
 def empty_prefix():
-    return TemporaryDirectory(prefix="conda-test-repo-")
+    return TemporaryDirectory(prefix="conda-test-repo-", delete=False)
 
 
 @pytest.fixture()
@@ -203,7 +203,7 @@ class SolverTests:
 
     @pytest.fixture()
     def env(self):
-        with TemporaryDirectory(prefix="conda-test-repo-") as tmpdir:
+        with TemporaryDirectory(prefix="conda-test-repo-", delete=False) as tmpdir:
             self.env = SimpleEnvironment(tmpdir, self.solver_class)
             yield self.env
             self.env = None
