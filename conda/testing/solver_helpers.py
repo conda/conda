@@ -174,7 +174,7 @@ class SimpleEnvironment:
 
 
 def empty_prefix():
-    return TemporaryDirectory(prefix="conda-test-repo-", delete=False)
+    return TemporaryDirectory(prefix="conda-test-repo-")
 
 
 @pytest.fixture()
@@ -203,7 +203,7 @@ class SolverTests:
 
     @pytest.fixture()
     def env(self):
-        with TemporaryDirectory(prefix="conda-test-repo-", delete=False) as tmpdir:
+        with TemporaryDirectory(prefix="conda-test-repo-") as tmpdir:
             self.env = SimpleEnvironment(tmpdir, self.solver_class)
             yield self.env
             self.env = None
