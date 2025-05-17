@@ -414,14 +414,31 @@ class TmpChannelFixture:
         noarch = channel / "noarch"
         noarch.mkdir(parents=True)
 
-        repodata = {"info": {}, "packages": {}}
+        repodata_noarch = {
+            "info": {"subdir": "noarch", "base_url": pkgs_dir},
+            "packages": {},
+            "packages.conda": {},
+        }
+        repodata_subdir = {
+            "info": {"subdir": subdir, "base_url": pkgs_dir},
+            "packages": {},
+            "packages.conda": {},
+        }
         for package in packages:
             for pkg_data in pkgs_cache.query(package):
                 fname = pkg_data["fn"]
 
-                copyfile(pkgs_dir / fname, subdir / fname)
+                if pkg_data["subdir"] == "noarch":
+                    target_repodata = repodata_noarch
+                    target_directory = noarch
+                else:
+                    target_repodata = repodata_subdir
+                    target_directory = subdir
 
-                repodata["packages"][fname] = PackageRecord(
+                copyfile(pkgs_dir / fname, target_directory / fname)
+
+                key = "packages" if fname.endswith(".tar.bz2") else "packages.conda"
+                target_repodata[key][fname] = PackageRecord(
                     **{
                         field: value
                         for field, value in pkg_data.dump().items()
@@ -429,8 +446,12 @@ class TmpChannelFixture:
                     }
                 )
 
-        (subdir / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
-        (noarch / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
+        (subdir / "repodata.json").write_text(
+            json.dumps(repodata_subdir, cls=EntityEncoder)
+        )
+        (noarch / "repodata.json").write_text(
+            json.dumps(repodata_noarch, cls=EntityEncoder)
+        )
 
         for package in packages:
             assert any(PackageCacheData.query_all(package))
