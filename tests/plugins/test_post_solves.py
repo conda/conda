@@ -8,7 +8,6 @@ import pytest
 
 from conda import plugins
 from conda.exceptions import DryRunExit
-from conda.plugins import solvers
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -16,7 +15,6 @@ if TYPE_CHECKING:
     from conda.plugins.manager import CondaPluginManager
     from conda.testing.fixtures import (
         CondaCLIFixture,
-        PathFactoryFixture,
         TmpEnvFixture,
     )
 
@@ -44,7 +42,9 @@ def post_solve_plugin(
     plugin_manager_with_reporter_backends.register(post_solve_plugin)
 
     # register solvers
-    plugin_manager_with_reporter_backends.load_plugins(solvers)
+    plugin_manager_with_reporter_backends.load_entrypoints(
+        "conda", "conda-classic-solver"
+    )
 
     return post_solve_plugin
 
@@ -52,7 +52,6 @@ def post_solve_plugin(
 def test_post_solve_invoked(
     post_solve_plugin: PostSolvePlugin,
     tmp_env: TmpEnvFixture,
-    path_factory: PathFactoryFixture,
 ):
     with pytest.raises(DryRunExit):
         with tmp_env("zlib", "--solver=classic", "--dry-run"):
@@ -73,7 +72,6 @@ def test_post_solve_not_invoked(
 def test_post_solve_action_raises_exception(
     post_solve_plugin: PostSolvePlugin,
     tmp_env: TmpEnvFixture,
-    path_factory: PathFactoryFixture,
 ):
     exc_message = "💥"
     post_solve_plugin.post_solve_action.side_effect = [Exception(exc_message)]
