@@ -54,7 +54,7 @@ def test_scrapy_py36_osx_whl():
     pd1 = {
         "_path": sp_dir + "/scrapy/core/scraper.py",
         "path_type": "hardlink",
-        "sha256": "2559X9n2z1YKdFV9ElMRD6_88LIdqH1a2UwQimStt2k",
+        "sha256": "db9e7d5fd9f6cf560a74557d1253110faffcf0b21da87d5ad94c108a64adb769",
         "size_in_bytes": 9960,
     }
     assert pd1 in paths_data["paths"]
@@ -68,7 +68,7 @@ def test_scrapy_py36_osx_whl():
     pd3 = {
         "_path": "../bin/scrapy" if on_win else "bin/scrapy",
         "path_type": "hardlink",
-        "sha256": "RncAAoxSEnSi_0VIopaRxsq6kryQGL61YbEweN2TW3g",
+        "sha256": "467700028c521274a2ff4548a29691c6caba92bc9018beb561b13078dd935b78",
         "size_in_bytes": 268,
     }
     assert pd3 in paths_data["paths"]
@@ -112,7 +112,7 @@ def test_twilio_py36_osx_whl():
     pd1 = {
         "_path": sp_dir + "/twilio/compat.py",
         "path_type": "hardlink",
-        "sha256": "sJ1t7CKvxpipiX5cyH1YwXTf3n_FsLf_taUhuCVsCwE",
+        "sha256": "b09d6dec22afc698a9897e5cc87d58c174dfde7fc5b0b7ffb5a521b8256c0b01",
         "size_in_bytes": 517,
     }
     assert pd1 in paths_data["paths"]
@@ -154,7 +154,7 @@ def test_pyjwt_py36_osx_whl():
     pd1 = {
         "_path": "../bin/pyjwt" if on_win else "bin/pyjwt",
         "path_type": "hardlink",
-        "sha256": "wZET_24uZDEpsMdhAQ78Ass2k-76aQ59yPSE4DTE2To",
+        "sha256": "c19113ff6e2e643129b0c761010efc02cb3693eefa690e7dc8f484e034c4d93a",
         "size_in_bytes": 260,
     }
     assert pd1 in paths_data["paths"]
