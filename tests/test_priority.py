@@ -51,7 +51,7 @@ def test_reorder_channel_priority(
         assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
 
         # update --all
-        conda_cli(
+        out, err, rc = conda_cli(
             "update",
             f"--prefix={prefix}",
             "--override-channels",
@@ -59,14 +59,14 @@ def test_reorder_channel_priority(
             "--all",
             "--yes",
         )
+        assert not rc
         # check pinned package is unchanged but unpinned packages are updated from conda-forge
         PrefixData._cache_.clear()
         expected_channel = "pkgs/main" if pinned_package else "conda-forge"
         assert PrefixData(prefix).get(package1).channel.name == expected_channel
-        if context.solver in ("libmamba", "rattler"):
+        if context.solver == "libmamba":
             # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
             # the request, so it stays in pkgs/main. Other transient deps do change, though.
-            if on_linux:  # lazy, only check on linux
-                assert PrefixData(prefix).get("libgcc").channel.name == "conda-forge"
+            assert PrefixData(prefix).get("libzlib").channel.name == "conda-forge"
         else:
             assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
