@@ -604,7 +604,7 @@ class SolverTests:
         with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
             env.install("numpy 1.5")
 
-    def test_timestamps_and_deps(self, env):
+    def test_timestamps_and_deps(self, env: SimpleEnvironment):
         env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="mypackage",
@@ -633,11 +633,23 @@ class SolverTests:
         # by newer timestamps. regression test of sorts for
         #  https://github.com/conda/conda/issues/6271
         assert (
-            env.install("mypackage", *env.install("libpng 1.2.*", as_specs=True))
+            env.install(
+                "mypackage",
+                *[
+                    record.to_match_spec().conda_build_form()
+                    for record in env.install("libpng 1.2.*", as_specs=True)
+                ],
+            )
             == records_12
         )
         assert (
-            env.install("mypackage", *env.install("libpng 1.5.*", as_specs=True))
+            env.install(
+                "mypackage",
+                *[
+                    record.to_match_spec().conda_build_form()
+                    for record in env.install("libpng 1.5.*", as_specs=True)
+                ],
+            )
             == records_15
         )
         # unspecified python version should maximize libpng (v1.5),
