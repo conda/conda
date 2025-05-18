@@ -6,6 +6,7 @@ import platform
 import re
 import sys
 import warnings
+from base64 import urlsafe_b64decode
 from collections import namedtuple
 from configparser import ConfigParser
 from csv import reader as csv_reader
@@ -264,6 +265,8 @@ class PythonDistribution:
                                 checksum,
                             )
                             checksum = checksum[7:]
+                            pad = '=' * (4 - (len(checksum) & 3))
+                            checksum = urlsafe_b64decode(checksum + pad).hex()
                         else:
                             checksum = None
                         size = int(size) if size else None
