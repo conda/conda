@@ -415,12 +415,12 @@ class TmpChannelFixture:
         noarch.mkdir(parents=True)
 
         repodata_noarch = {
-            "info": {"subdir": "noarch", "base_url": pkgs_dir},
+            "info": {"subdir": "noarch", "base_url": path_to_url(str(pkgs_dir))},
             "packages": {},
             "packages.conda": {},
         }
         repodata_subdir = {
-            "info": {"subdir": subdir, "base_url": pkgs_dir},
+            "info": {"subdir": context.subdir, "base_url": path_to_url(str(pkgs_dir))},
             "packages": {},
             "packages.conda": {},
         }
