@@ -29,10 +29,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-env:
-  # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
-  CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
-
 jobs:
   # detect whether any code changes are included in this PR
   changes:
@@ -88,7 +84,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'rattler' || 'rattler,classic' }}
 
     steps:
       - name: Checkout Source
@@ -126,6 +122,9 @@ jobs:
           --file tests\requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
+
+      - name: Install conda-rattler-solver
+        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -227,7 +226,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'rattler' || 'rattler,classic' }}
 
     steps:
       - name: Checkout Source
@@ -260,6 +259,9 @@ jobs:
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
+
+      - name: Install conda-rattler-solver
+        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -353,6 +355,9 @@ jobs:
           --file tests/requirements-benchmarks.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
+        
+      - name: Install conda-rattler-solver
+        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -366,6 +371,8 @@ jobs:
 
       - name: Run Benchmarks
         uses: CodSpeedHQ/action@0010eb0ca6e89b80c88e8edaaa07cfe5f3e6664d # v3.5.0
+        env:
+          CONDA_TEST_SOLVERS: rattler
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/python -m pytest --codspeed
@@ -623,7 +630,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'rattler' || 'rattler,classic' }}
 
     steps:
       - name: Checkout Source
@@ -659,6 +666,9 @@ jobs:
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
+
+      - name: Install conda-rattler-solver
+        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
