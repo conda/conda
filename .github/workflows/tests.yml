@@ -124,7 +124,9 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
+        run: |
+          conda remove --force conda-libmamba-solver
+          python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -156,6 +158,8 @@ jobs:
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
+        env:
+          CONDA_SOLVER: rattler
         run: >
           python -m pytest
           --cov=conda
@@ -261,7 +265,9 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
+        run: |
+          conda remove --force conda-libmamba-solver
+          python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -279,6 +285,8 @@ jobs:
         run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
 
       - name: Run Tests
+        env:
+          CONDA_SOLVER: rattler
         run: >
           python -m pytest
           --cov=conda
@@ -357,7 +365,9 @@ jobs:
           python=${{ matrix.python-version }}
         
       - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
+        run: |
+          conda remove --force conda-libmamba-solver
+          python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -668,7 +678,9 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
+        run: |
+          conda remove --force conda-libmamba-solver
+          python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -686,6 +698,8 @@ jobs:
         run: brew update && brew install fish xonsh
 
       - name: Run Tests
+        env:
+          CONDA_SOLVER: rattler
         run: >
           python -m pytest
           --cov=conda
