@@ -1257,18 +1257,11 @@ def test_envs(
 
 @pytest.mark.parametrize(
     "pkgs_in_root_prefix",
-    [
-        ["foo.conda", "bar.tar.bz2", "baz.conda"],
-        [],
-    ],
+    [True, False],
 )
 @pytest.mark.parametrize(
-    "pkgs_dirs",
-    [
-        (Path("foo"), Path("bar") / "baz"),
-        (Path("foo"),),
-        (),
-    ],
+    "pkgs_dirs_set",
+    [True, False],
 )
 @pytest.mark.parametrize(
     "pkg_env_layout",
@@ -1277,33 +1270,113 @@ def test_envs(
         PkgEnvLayout.UNSET,
     ],
 )
+@pytest.mark.parametrize("on_win", [True, False])
+@pytest.mark.parametrize("force_32bit", [True, False])
 def test_pkgs_precedence(
-    tmp_path,
+    force_32bit,
+    on_win,
     pkg_env_layout,
-    pkgs_dirs,
+    pkgs_dirs_set,
     pkgs_in_root_prefix,
     mock_context_attributes,
+    tmp_path,
 ):
-    pkgs_dirs = tuple(str(tmp_path / item) for item in pkgs_dirs)
+    """Test that the order of precedence of context.pkgs_dirs is as expected."""
+    if pkgs_dirs_set:
+        pkgs_dirs = (expand(join(tmp_path, "my_pkgs")),)
+    else:
+        pkgs_dirs = ()
+
+    user_data_dir = expand(join(tmp_path, "my_user_data"))
+
     with (
         mock_context_attributes(
             _pkgs_dirs=pkgs_dirs,
             pkg_env_layout=pkg_env_layout,
+            force_32bit=force_32bit,
         ),
+        mock.patch("conda.base.context.on_win", on_win),
         mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
+        mock.patch("conda.base.context.USER_DATA_DIR", user_data_dir),
     ):
-        mock_pkgs.return_value = pkgs_in_root_prefix
-
+        mock_pkgs.return_value = ["foo.conda"] if pkgs_in_root_prefix else []
         result = context.pkgs_dirs
 
-        if pkgs_dirs:
-            assert result == pkgs_dirs
-        else:
-            expected = [
-                context.root_prefix_pkgs,
-                expand(join("~", ".conda", context._cache_dir_name)),
-            ]
-            if on_win:
-                expected.append(context.user_data_pkgs)
+        home_conda_pkgs = expand(join("~", ".conda", context._cache_dir_name))
+        user_data_pkgs = context.user_data_pkgs
+        root_prefix_pkgs = context.root_prefix_pkgs
 
-            assert result == tuple(expected)
+    if pkgs_dirs:
+        assert result == pkgs_dirs
+    else:
+        expected = [root_prefix_pkgs, home_conda_pkgs]
+        if on_win:
+            expected.append(user_data_pkgs)
+
+        assert result == tuple(expected)
+
+
+@pytest.mark.parametrize(
+    "envs_in_root_prefix",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "envs_dirs_set",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+@pytest.mark.parametrize("on_win", [True, False])
+@pytest.mark.parametrize("root_writable", [True, False])
+def test_envs_precedence(
+    root_writable,
+    on_win,
+    pkg_env_layout,
+    envs_dirs_set,
+    envs_in_root_prefix,
+    mock_context_attributes,
+    tmp_path,
+):
+    """Test that the order of precedence of context.envs_dirs is as expected."""
+    if envs_dirs_set:
+        envs_dirs = (expand(join(tmp_path, "my_envs")),)
+    else:
+        envs_dirs = ()
+
+    user_data_dir = expand(join(tmp_path, "my_user_data"))
+    user_data_envs = expand(join(tmp_path, "my_user_data", "envs"))
+    home_conda_envs = expand(join("~", ".conda", "envs"))
+
+    with (
+        mock_context_attributes(
+            _envs_dirs=envs_dirs,
+            pkg_env_layout=pkg_env_layout,
+        ),
+        mock.patch("conda.base.context.Context.root_writable", root_writable),
+        mock.patch("conda.base.context.on_win", on_win),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+        mock.patch("conda.base.context.USER_DATA_DIR", user_data_dir),
+        mock.patch("conda.base.context.USER_DATA_ENVS", user_data_envs),
+    ):
+        mock_envs.return_value = ["foo/"] if envs_in_root_prefix else []
+        result = context.envs_dirs
+
+        root_prefix_envs = context.root_prefix_envs
+
+    expected = [
+        *envs_dirs,
+    ]
+    if root_writable:
+        expected.extend([root_prefix_envs, home_conda_envs])
+    else:
+        expected.extend([home_conda_envs, root_prefix_envs])
+
+    if on_win:
+        expected.append(user_data_envs)
+
+    assert result == tuple(expected)
