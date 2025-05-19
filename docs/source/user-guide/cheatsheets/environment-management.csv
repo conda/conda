@@ -1,7 +1,7 @@
-create environment with Python version,``conda create -n ENVNAME python=3.10``
-clone environment,``conda create --clone ENVNAME -n NEWENV``
-rename environment,``conda rename -n ENVNAME NEWENVNAME``
-delete environment by name,``conda remove -n ENVNAME --all``
-list revisions made to environment,``conda list -n ENVNAME --revisions``
-restore environment to a revision,``conda install -n ENVNAME --revision NUMBER``
-uninstall package from specific channel,``conda remove -n ENVNAME -c CHANNELNAME PKGNAME``
+create environment with Python version,``conda create --name ENVNAME python=3.10``
+clone environment,``conda create --clone ENVNAME --name NEWENV``
+rename environment,``conda rename --name ENVNAME NEWENVNAME``
+delete environment by name,``conda remove --name ENVNAME --all``
+list revisions made to environment,``conda list --name ENVNAME --revisions``
+restore environment to a revision,``conda install --name ENVNAME --revision NUMBER``
+uninstall package from specific channel,``conda remove --name ENVNAME --channel CHANNELNAME PKGNAME``
