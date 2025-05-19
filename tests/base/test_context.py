@@ -1253,3 +1253,57 @@ def test_envs(
                         assert USER_DATA_ENVS in result
                     else:
                         assert USER_DATA_ENVS not in result
+
+
+@pytest.mark.parametrize(
+    "pkgs_in_root_prefix",
+    [
+        ["foo.conda", "bar.tar.bz2", "baz.conda"],
+        [],
+    ],
+)
+@pytest.mark.parametrize(
+    "pkgs_dirs",
+    [
+        (Path("foo"), Path("bar") / "baz"),
+        (Path("foo"),),
+        (),
+    ],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+def test_pkgs_precedence(
+    tmp_path,
+    pkg_env_layout,
+    pkgs_dirs,
+    pkgs_in_root_prefix,
+    mock_context_attributes,
+):
+    pkgs_dirs = tuple(str(tmp_path / item) for item in pkgs_dirs)
+    with (
+        mock_context_attributes(
+            _pkgs_dirs=pkgs_dirs,
+            pkg_env_layout=pkg_env_layout,
+        ),
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
+    ):
+        mock_pkgs.return_value = pkgs_in_root_prefix
+
+        result = context.pkgs_dirs
+
+        if pkgs_dirs:
+            assert result == pkgs_dirs
+        else:
+            expected = [
+                context.root_prefix_pkgs,
+                expand(join("~", ".conda", context._cache_dir_name)),
+            ]
+            if on_win:
+                expected.append(context.user_data_pkgs)
+
+            assert result == tuple(expected)
