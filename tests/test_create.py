@@ -1459,7 +1459,11 @@ def test_shortcut_creation_installs_shortcut(
     # depending on channel priorities match one of:
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
 
         assert get_shortcut()
@@ -1485,7 +1489,13 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # including --no-shortcuts should not get shortcuts installed
-    with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, "--no-shortcuts", prefix=prefix):
+        out, err, rc  =conda_cli("list", "-p", prefix)
+        print(out)
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
@@ -1516,7 +1526,11 @@ def test_shortcut_absent_when_condarc_set(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # shortcuts: False from condarc should not get shortcuts installed
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
