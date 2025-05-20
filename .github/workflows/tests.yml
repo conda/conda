@@ -819,12 +819,6 @@ jobs:
               last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
               num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
               envs["VERSION_OVERRIDE"] = f"{last_tag}dev{num_commits}"
-          elif "${{ github.ref_name }}" == "fix-release-versions":
-              # testing branch will be an "alpha" release
-              last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
-              num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
-              envs["VERSION_OVERRIDE"] = f"{last_tag}a{num_commits}"
-
           elif re.match(r"\d+(\.\d+)+\.x", "${{ github.ref_name }}"):
               # release branch commits are added to the rc label
               # see https://github.com/conda/infrastructure/issues/760
@@ -840,6 +834,11 @@ jobs:
               last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
               num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
               envs["VERSION_OVERRIDE"] = f"{last_tag}rc{num_commits}"
+          else:
+              # testing branch will be an "alpha" release
+              last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
+              num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
+              envs["VERSION_OVERRIDE"] = f"{last_tag}a{num_commits}"
 
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
