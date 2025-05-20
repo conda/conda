@@ -28,6 +28,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_platform,
         add_parser_prefix,
         add_parser_solver,
+        add_parser_env_spec_plugin,
     )
 
     summary = "Create an environment based on an environment definition file."
@@ -81,6 +82,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     # Add networking args
     add_parser_networking(p)
+
+    # Add environment spec plugin args
+    add_parser_env_spec_plugin(p)
 
     p.add_argument(
         "remote_definition",

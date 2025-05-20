@@ -508,6 +508,15 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         return PluginConfig(data)
 
+    def get_environment_specifier_names(self) ->  dict[str, CondaEnvironmentSpecifier]:
+        """
+        Returns a list of all the environment specifier plugin names
+        """
+        return {
+            hook.name.lower(): hook
+            for hook in self.get_hook_results("environment_specifiers")
+        }
+
     def get_environment_specifiers(self, filename: str) -> CondaEnvironmentSpecifier:
         """
         Returns the environment_spec plugin that can handle the provided file.

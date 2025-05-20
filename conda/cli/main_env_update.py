@@ -25,6 +25,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_json,
         add_parser_prefix,
         add_parser_solver,
+        add_parser_env_spec_plugin,
     )
 
     summary = "Update the current environment based on environment file."
@@ -49,6 +50,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+
+    # Add environment spec plugin args
+    add_parser_env_spec_plugin(p)
+
     add_parser_frozen_env(p)
     add_parser_prefix(p)
     p.add_argument(
