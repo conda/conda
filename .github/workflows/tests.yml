@@ -828,10 +828,20 @@ jobs:
               _, name = "${{ github.repository }}".split("/")
               envs["ANACONDA_ORG_LABEL"] = f"rc-{name}-${{ github.ref_name }}"
 
+              # if no releases have occurred on this branch yet then `git describe --tag`
+              # will misleadingly produce a version number relative to the last release
+              # and not relative to the current release branch, if this is the case we need
+              # to override the version with a derivative of the branch name
+
               # override the version if `git describe --tag` does not start with the branch version
-              last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
-              num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
-              envs["VERSION_OVERRIDE"] = f"{last_tag}rc{num_commits}"
+              last_release = check_output(["git", "describe", "--tag"], text=True).strip()
+              prefix = "${{ github.ref_name }}"[:-1]  # without x suffix
+              if not last_release.startswith(prefix):
+                  envs["VERSION_OVERRIDE"] = "${{ github.ref_name }}"
+              else:
+                last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
+                num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
+                envs["VERSION_OVERRIDE"] = f"{last_tag}rc{num_commits}"
 
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
