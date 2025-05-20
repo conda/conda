@@ -775,6 +775,7 @@ jobs:
       && (
         github.ref_name == 'main'
         || startsWith(github.ref_name, 'feature/')
+        || startsWith(github.ref_name, 'fix-release-versions')
         || endsWith(github.ref_name, '.x')
       )
     strategy:
@@ -825,6 +826,11 @@ jobs:
               last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
               num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
               envs["VERSION_OVERRIDE"] = f"{last_tag}dev{num_commits}"
+          elif "${{ github.ref_name }}" == "fix-release-versions":
+              # testing branch will be an "alpha" release
+              last_tag = check_output(["git", "describe", "--tag", "--abbrev=0"], text=True).strip()
+              num_commits = check_output(["git", "rev-list", "--count", "HEAD", f"{last_tag}..HEAD"], text=True).strip()
+              envs["VERSION_OVERRIDE"] = f"{last_tag}a{num_commits}"
 
           elif re.match(r"\d+(\.\d+)+\.x", "${{ github.ref_name }}"):
               # release branch commits are added to the rc label
