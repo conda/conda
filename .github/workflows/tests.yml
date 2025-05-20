@@ -771,13 +771,6 @@ jobs:
     # - we are on the main, feature, or release branch
     if: >-
       !cancelled()
-      && !github.event.repository.fork
-      && (
-        github.ref_name == 'main'
-        || startsWith(github.ref_name, 'feature/')
-        || startsWith(github.ref_name, 'fix-release-versions')
-        || endsWith(github.ref_name, '.x')
-      )
     strategy:
       matrix:
         include:
