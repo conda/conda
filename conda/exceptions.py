@@ -1287,7 +1287,16 @@ class EnvironmentFileNotDownloaded(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
-class EnvironmentSpecPluginNotDetected(CondaError):
+class PluginError(CondaError):
+    pass
+
+
+class SpecNotFound(CondaError):
+    def __init__(self, msg: str, *args, **kwargs):
+        super().__init__(msg, *args, **kwargs)
+
+
+class EnvironmentSpecPluginNotDetected(SpecNotFound):
     def __init__(self, name, plugin_names, *args, **kwargs):
         self.name = name
         msg = dals(
@@ -1299,15 +1308,6 @@ class EnvironmentSpecPluginNotDetected(CondaError):
             """
         )
         super().__init__(msg, *args, **kwargs)
-
-
-class SpecNotFound(CondaError):
-    def __init__(self, msg: str, *args, **kwargs):
-        super().__init__(msg, *args, **kwargs)
-
-
-class PluginError(CondaError):
-    pass
 
 
 def maybe_raise(error: BaseException, context: Context):

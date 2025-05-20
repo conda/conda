@@ -4,7 +4,11 @@ import pytest
 
 from conda import plugins
 from conda.env.env import Environment
-from conda.exceptions import EnvironmentSpecPluginNotDetected, PluginError
+from conda.exceptions import (
+    CondaValueError,
+    EnvironmentSpecPluginNotDetected,
+    PluginError,
+)
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
@@ -63,7 +67,19 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
     Ensures that our dummy random spec has been registered and can recognize .random files
     """
     filename = "test.random"
-    env_spec_backend = dummy_random_spec_plugin.get_environment_specifiers(filename)
+    env_spec_backend = dummy_random_spec_plugin.get_environment_specifier(filename)
+    assert env_spec_backend.name == "rand-spec"
+    assert env_spec_backend.environment_spec(filename).environment is not None
+
+    env_spec_backend = dummy_random_spec_plugin.get_environment_specifier_by_name(
+        source=filename, name="rand-spec"
+    )
+    assert env_spec_backend.name == "rand-spec"
+    assert env_spec_backend.environment_spec(filename).environment is not None
+
+    env_spec_backend = dummy_random_spec_plugin.detect_environment_specifier(
+        source=filename
+    )
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).environment is not None
 
@@ -73,7 +89,29 @@ def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):
     Ensures that our dummy random spec does not recognize non-".random" files
     """
     with pytest.raises(EnvironmentSpecPluginNotDetected):
-        dummy_random_spec_plugin.get_environment_specifiers("test.random-not")
+        dummy_random_spec_plugin.detect_environment_specifier("test.random-not")
+
+
+def test_raises_an_error_if_plugin_name_does_not_exist(dummy_random_spec_plugin):
+    """
+    Ensures that an error is raised if the user requests a plugin that doesn't exist
+    """
+    with pytest.raises(CondaValueError):
+        dummy_random_spec_plugin.get_environment_specifier_by_name(
+            name="uhoh", source="test.random"
+        )
+
+
+def test_raises_an_error_if_named_plugin_can_not_be_handled(
+    dummy_random_spec_plugin,
+):
+    """
+    Ensures that an error is raised if the user requests a plugin exists, but can't be handled
+    """
+    with pytest.raises(PluginError):
+        dummy_random_spec_plugin.get_environment_specifier_by_name(
+            name="rand-spec", source="test.random-not-so-much"
+        )
 
 
 def test_raise_error_for_multiple_registered_installers(
@@ -86,4 +124,4 @@ def test_raise_error_for_multiple_registered_installers(
     """
     filename = "test.random"
     with pytest.raises(PluginError):
-        dummy_random_spec_plugin.get_environment_specifiers(filename)
+        dummy_random_spec_plugin.get_environment_specifier(filename)
