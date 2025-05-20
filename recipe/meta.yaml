@@ -29,9 +29,6 @@ requirements:
     - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
-    # setuptools-scm 8.2.1 was yanked for problems handeling pre-releases
-    # https://github.com/pypa/setuptools-scm/issues/1119
-    - setuptools-scm !=8.2.1
     # for `conda init` in build/script above
     - boltons >=23.0.0
     - frozendict >=2.4.2
