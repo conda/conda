@@ -1,7 +1,7 @@
 package:
   name: conda
   # VERSION_OVERRIDE is used by the canary release workflow
-  version: {{ os.getenv("VERSION_OVERRIDE") or GIT_DESCRIBE_TAG }}
+  version: {{ os.getenv("VERSION_OVERRIDE") or GIT_DESCRIBE_TAG + "+" + GIT_BUILD_STR }}
 
 source:
   # git_url only captures committed code
