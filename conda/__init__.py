@@ -179,5 +179,6 @@ def _default(self, obj):
     return _default.default(obj)
 
 
+# FUTURE: conda 26.3, remove the following monkey patching
 _default.default = JSONEncoder().default
 JSONEncoder.default = _default
