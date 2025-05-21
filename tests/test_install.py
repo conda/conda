@@ -10,7 +10,6 @@ from os import makedirs
 from os.path import exists, join, relpath
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import pytest
 
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
 
     from conda.testing.fixtures import PathFactoryFixture
 
-patch = mock.patch if mock else None
+PYZZER_DIR = Path(__file__).parent / "data" / "pyzzer"
 
 
 def generate_random_path():
@@ -128,17 +127,13 @@ def test_windows_entry_point(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     original_prefix = "C:\\BogusPrefix\\python.exe"
     download(
-        "https://bitbucket.org/vinay.sajip/pyzzer/downloads/pyzzerw.pyz",
-        "pyzzerw.pyz",
-    )
-    download(
         "https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz",
         "conda-4.1.6.tar.gz",
     )
     subprocess.check_call(
         [
             sys.executable,
-            "pyzzerw.pyz",
+            PYZZER_DIR / "pyzzerw.pyz",
             # output file
             "-o",
             "conda.exe",
