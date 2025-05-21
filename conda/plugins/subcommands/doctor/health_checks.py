@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 from logging import getLogger
 from pathlib import Path
@@ -12,6 +11,7 @@ from pathlib import Path
 from requests.exceptions import RequestException
 
 from ....base.context import context
+from ....common.serialize import json
 from ....core.envs_manager import get_user_environments_txt_file
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session

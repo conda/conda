@@ -55,3 +55,4 @@ def dumps(*args, **kwargs):
 
 load = json.load
 loads = json.loads
+JSONDecodeError = json.JSONDecodeError

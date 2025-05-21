@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Environment object describing the conda environment.yaml file."""
 
-import json
 import os
 import re
 from itertools import chain
@@ -12,7 +11,7 @@ from ..cli import common, install
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.path import expand
-from ..common.serialize import yaml_safe_dump, yaml_safe_load
+from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
 from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound

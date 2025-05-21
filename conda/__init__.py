@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import os
 import sys
-from json import JSONEncoder
+from json import JSONEncoder  # noqa: TID251
 from os.path import abspath, dirname
 from typing import TYPE_CHECKING
 
