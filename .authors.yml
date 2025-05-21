@@ -2531,7 +2531,9 @@
   github: v2thegreat
   num_commits: 1
   first_commit: 2025-02-11 10:38:55
-- name: Faith
+- name: Faith Rider
+  aliases:
+  - Faith
   email: 85044320+faithrider@users.noreply.github.com
   num_commits: 2
   first_commit: 2025-05-13 10:20:45
