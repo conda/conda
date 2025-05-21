@@ -5,7 +5,6 @@
 Creates new conda environments with the specified packages.
 """
 
-import os
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -108,35 +107,45 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
-    from ..cli.main_rename import check_protected_dirs
     from ..common.serialize import json
     from ..core.prefix_data import PrefixData
-    from ..env import specs
-    from ..env.env import get_filename, print_result
+    from ..env.env import print_result
     from ..env.installers.base import get_installer
-    from ..exceptions import InvalidInstaller
+    from ..env.specs import detect
+    from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
-    from ..misc import touch_nonadmin
-    from . import install as cli_install
+    from .common import validate_file_exists
 
-    spec = specs.detect(
-        name=args.name,
-        filename=get_filename(args.file),
-        directory=os.getcwd(),
-    )
+    # validate incoming arguments
+    validate_file_exists(args.file)
+
+    # detect the file format and get the env representation
+    spec = detect(filename=args.file)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
     if args.prefix is None and args.name is None:
+        if env.name is None:  # requirements.txt won't populate Environment.name
+            msg = dals(
+                """
+                Unable to create environment
+                Please re-run this command with one of the following options:
+                * Provide an environment name via --name or -n
+                * Provide a path on disk via --prefix or -p
+                """
+            )
+            raise CondaEnvException(msg)
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)
+    prefix_data = PrefixData(prefix)
 
-    if args.yes and prefix != context.root_prefix and os.path.exists(prefix):
+    if args.yes and not prefix_data.is_base() and prefix_data.exists():
         rm_rf(prefix)
-    cli_install.check_prefix(prefix, json=args.json)
-    check_protected_dirs(prefix)
+
+    prefix_data.validate_path()
+    prefix_data.validate_name()
 
     # TODO, add capability
     # common.ensure_override_channels_requires_channel(args)
@@ -194,10 +203,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     )
 
         if env.variables:
-            pd = PrefixData(prefix)
-            pd.set_environment_env_vars(env.variables)
+            prefix_data.set_environment_env_vars(env.variables)
 
-        touch_nonadmin(prefix)
+        prefix_data.set_nonadmin()
         print_result(args, prefix, result)
 
     return 0
