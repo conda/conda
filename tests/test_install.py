@@ -126,6 +126,7 @@ def test_windows_entry_point(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     """
     monkeypatch.chdir(tmp_path)
     original_prefix = "C:\\BogusPrefix\\python.exe"
+    # TODO: create a dummy Python package tarball instead of fetching conda from PyPI
     download(
         "https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz",
         "conda-4.1.6.tar.gz",
