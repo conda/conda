@@ -835,7 +835,7 @@ jobs:
               last_release = check_output(["git", "describe", "--tag"], text=True).strip()
               prefix = "${{ github.ref_name }}"[:-1]  # without x suffix
               if not last_release.startswith(prefix):
-                  envs["VERSION_OVERRIDE"] = "${{ github.ref_name }}"
+                  envs["VERSION_OVERRIDE"] = f"{prefix}0"
 
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
