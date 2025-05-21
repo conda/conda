@@ -13,8 +13,7 @@
 * Extend `PrefixData` API with two constructors (`from_name()`, `from_context()`), a new property (`name`), several boolean-returning methods (`exists()`, `is_environment()`, `is_base()`), and a few exception-raising methods (`assert_exists()`, `assert_environment()`, `assert_writable()`, `validate_path()`, `validate_name()`). An additional method `set_nonadmin()` allows to plant the `.nonadmin` marker on Windows. (#14747 via #14750)
 * Add support for frozen environment markers (CEP 22). (#14746 via #14766)
 * Add a plugin hook for `PrefixData` loaders and use it to wrap the existing PyPI interoperability features. These are now present in `conda.plugins.prefix_data_loaders.pypi`. (#14780)
-* Add a `--fields` flag to `conda list` that allows to customize the content of the `human` output
- format. (#14781)
+* Add a `--fields` flag to `conda list` that allows to customize the content of the `human` output format. (#14781)
 * Add debug logs to get visibility into environment spec plugin selection. (#14815)
 * Add `conda.models.records.SolvedRecord` class. It is a `PackageRecord` subclass augmented with the `requested_spec` field originally found in `PrefixRecord`. (#14821)
 
@@ -23,9 +22,7 @@
 * Cleanup references to `DepsModifier.UPDATE_SPECS`. (#14807)
 * Report package variant installation as "REVISED" as opposed to "DOWNGRADED". (#13797 via #14727)
 * Add a validation step to check if the target environment is writable when running the `install` or `update` commands. (#12561 via #14668)
-*  <news item>
-*  <news item>
-* Fix cache key in `PrefixData`. It will now consider `pip_interop_enabled`. (#14750)
+* Fix cache key in `PrefixData`. It will now consider `interoperability`. (#14750)
 * Do not cache `PrefixData` records across successive `conda list` invocations. (#14750)
 * `environment.yaml` spec plugin should only handle yaml files (files with `.yaml` or `.yml` file extensions).  (#14823)
 * Fix `conda info` rendering to display components in a consistent order. (#14829 via #14831)
@@ -66,8 +63,8 @@
 
 ### Docs
 
-* Added type hints and docstrings to `conda.core.portability`. (#13820)
-* Added type hints and docstrings to `conda.core.subdir_data`. (#13821)
+* Add type hints and docstrings to `conda.core.portability`. (#13820)
+* Add type hints and docstrings to `conda.core.subdir_data`. (#13821)
 * Add type hints to `conda.base.constants`. (#13480)
 * Add type hints to `conda.base.context`. (#14776)
 * Add type hints to `conda.__init__`, `conda.exceptions` and `conda.exception_handler`. (#14776)
