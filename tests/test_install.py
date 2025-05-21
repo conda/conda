@@ -6,10 +6,10 @@ import random
 import subprocess
 import sys
 import tempfile
-from os import chdir, getcwd, makedirs
+from os import makedirs
 from os.path import exists, join, relpath
+from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import pytest
 
@@ -22,9 +22,11 @@ from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from conda.testing.fixtures import PathFactoryFixture
 
-patch = mock.patch if mock else None
+PYZZER_DIR = Path(__file__).parent / "data" / "pyzzer"
 
 
 def generate_random_path():
@@ -117,70 +119,61 @@ def test_ends_with_newl(subdir):
 
 @pytest.mark.integration
 @pytest.mark.skipif(not on_win, reason="exe entry points only necessary on win")
-def test_windows_entry_point():
+def test_windows_entry_point(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     """
     This emulates pip-created entry point executables on windows.  For more info,
     refer to conda/install.py::replace_entry_point_shebang
     """
-    tmp_dir = tempfile.mkdtemp()
-    cwd = getcwd()
-    chdir(tmp_dir)
+    monkeypatch.chdir(tmp_path)
     original_prefix = "C:\\BogusPrefix\\python.exe"
-    try:
-        url = "https://s3.amazonaws.com/conda-dev/pyzzerw.pyz"
-        download(url, "pyzzerw.pyz")
-        url = (
-            "https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz"
-        )
-        download(url, "conda-4.1.6.tar.gz")
-        subprocess.check_call(
-            [
-                sys.executable,
-                "pyzzerw.pyz",
-                # output file
-                "-o",
-                "conda.exe",
-                # entry point
-                "-m",
-                "conda.cli.main:main",
-                # initial shebang
-                "-s",
-                "#! " + original_prefix,
-                # launcher executable to use (32-bit text should be compatible)
-                "-l",
-                "t32",
-                # source archive to turn into executable
-                "conda-4.1.6.tar.gz",
-            ],
-            cwd=tmp_dir,
-        )
-        # this is the actual test: change the embedded prefix and make sure that the exe runs.
-        data = open("conda.exe", "rb").read()
-        fixed_data = binary_replace(data, original_prefix, sys.executable)
-        with open("conda.fixed.exe", "wb") as f:
-            f.write(fixed_data)
-        # without a valid shebang in the exe, this should fail
-        with pytest.raises(subprocess.CalledProcessError):
-            subprocess.check_call(["conda.exe", "-h"])
+    # TODO: create a dummy Python package tarball instead of fetching conda from PyPI
+    download(
+        "https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz",
+        "conda-4.1.6.tar.gz",
+    )
+    subprocess.check_call(
+        [
+            sys.executable,
+            PYZZER_DIR / "pyzzerw.pyz",
+            # output file
+            "-o",
+            "conda.exe",
+            # entry point
+            "-m",
+            "conda.cli.main:main",
+            # initial shebang
+            "-s",
+            "#! " + original_prefix,
+            # launcher executable to use (32-bit text should be compatible)
+            "-l",
+            "t32",
+            # source archive to turn into executable
+            "conda-4.1.6.tar.gz",
+        ],
+        cwd=tmp_path,
+    )
+    # this is the actual test: change the embedded prefix and make sure that the exe runs.
+    data = Path("conda.exe").read_bytes()
+    fixed_data = binary_replace(data, original_prefix, sys.executable)
+    Path("conda.fixed.exe").write_bytes(fixed_data)
+    # without a valid shebang in the exe, this should fail
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.check_call(["conda.exe", "-h"])
 
-        process = subprocess.Popen(
-            ["conda.fixed.exe", "-h"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        output, error = process.communicate()
-        output = output.decode("utf-8")
-        error = error.decode("utf-8")
-        print(output)
-        print(error, file=sys.stderr)
-        assert (
-            "conda is a tool for managing and deploying applications, "
-            "environments and packages."
-        ) in output
-    except:
-        raise
-    finally:
-        chdir(cwd)
+    process = subprocess.Popen(
+        ["conda.fixed.exe", "-h"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    output, error = process.communicate()
+    output = output.decode("utf-8")
+    error = error.decode("utf-8")
+    print(output)
+    print(error, file=sys.stderr)
+    assert (
+        "conda is a tool for managing and deploying applications, "
+        "environments and packages."
+    ) in output
 
 
 def test_default_text(path_factory: PathFactoryFixture):
