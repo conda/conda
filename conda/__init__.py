@@ -172,7 +172,7 @@ def _default(self, obj):
         deprecated.topic(
             "25.9",
             "26.3",
-            "Monkey-patching `json.JSONEncoder` to support `frozendict`",
+            topic="Monkey-patching `json.JSONEncoder` to support `frozendict`",
             addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
         )
         return dict(obj)
@@ -180,7 +180,7 @@ def _default(self, obj):
         deprecated.topic(
             "25.9",
             "26.3",
-            "Monkey-patching `json.JSONEncoder` to support `obj.to_json()`",
+            topic="Monkey-patching `json.JSONEncoder` to support `obj.to_json()`",
             addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
         )
         return obj.to_json()
