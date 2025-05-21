@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Add type hints to `conda.base.constants`. (#13480)
 
 ### Other
 
-* Add type hints to `conda.base.constants`. (#13480)
+* <news item>

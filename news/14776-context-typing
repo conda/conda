@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Add type hints to `conda.base.context`. (#14776)
 
 ### Other
 
-* Add type hints to `conda.base.context`. (#14776)
+* <news item>

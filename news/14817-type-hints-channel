@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Add type hints to `conda.models.channel.Channel`. (#14817)
 
 ### Other
 
-* Add type hints to `conda.models.channel.Channel`. (#14817)
+* <news item>

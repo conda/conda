@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Report package variant installation as "REVISED" opposed to "DOWNGRADED". (#13797 via #14727)
+* Report package variant installation as "REVISED" as opposed to "DOWNGRADED". (#13797 via #14727)
 
 ### Deprecations
 

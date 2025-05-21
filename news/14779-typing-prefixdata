@@ -12,8 +12,6 @@
 
 ### Docs
 
-* <news item>
+* Add type hints to `conda.core.prefix_data`. (#14779)
 
 ### Other
-
-* Add type hints to `conda.core.prefix_data`. (#14779)

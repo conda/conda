@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `conda.models.records.SolvedRecord` class. It a `PackageRecord` subclass augmented with the `requested_spec` field originally found in `PrefixRecord`. (#14821)
+* Add `conda.models.records.SolvedRecord` class. It is a `PackageRecord` subclass augmented with the `requested_spec` field originally found in `PrefixRecord`. (#14821)
 
 ### Bug fixes
 

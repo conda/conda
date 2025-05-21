@@ -12,8 +12,8 @@
 
 ### Docs
 
-* <news item>
+* Add type hints to `conda.__init__`, `conda.exceptions` and `conda.exception_handler`. (#14776)
 
 ### Other
 
-* Add type hints to `conda.__init__`, `conda.exceptions` and `conda.exception_handler`. (#14776)
+* <news item>
