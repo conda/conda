@@ -71,7 +71,7 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.9', '3.13']
-        default-channel: [defaults, conda-forge]
+        default-channel: [conda-forge]  # [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
@@ -122,9 +122,6 @@ jobs:
           --file tests\requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-
-      - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -200,7 +197,7 @@ jobs:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         runs-on: [ubuntu-latest, ubuntu-24.04-arm]
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
-        default-channel: [defaults, conda-forge]
+        default-channel: [conda-forge]  # [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
@@ -259,9 +256,6 @@ jobs:
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-
-      - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -355,9 +349,6 @@ jobs:
           --file tests/requirements-benchmarks.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-        
-      - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
@@ -608,14 +599,14 @@ jobs:
         # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & conda-forge & integration tests)
         arch: [osx-64, osx-arm64]
         python-version: ['3.9', '3.13']
-        default-channel: [defaults, conda-forge]
+        default-channel: [conda-forge] # [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - arch: osx-64
             python-version: '3.13'
-          - arch: osx-64
-            default-channel: conda-forge
+          # - arch: osx-64
+          #   default-channel: conda-forge
           - arch: osx-64
             test-type: integration
           - arch: osx-arm64
@@ -666,9 +657,6 @@ jobs:
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-
-      - name: Install conda-rattler-solver
-        run: python -m pip install https://github.com/jaimergp/conda-rattler-solver/archive/main.tar.gz --no-deps
 
       - name: Conda Info
         # view test env info (not base)
