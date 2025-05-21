@@ -632,7 +632,7 @@ def get_conda_anchor_files_and_records(
     return conda_python_packages
 
 
-@deprecated("25.9", "25.3", addendum="Use `PrefixData.get('python', None)`")
+@deprecated("25.9", "26.3", addendum="Use `PrefixData.get('python', None)`")
 def python_record_for_prefix(prefix: os.PathLike) -> PrefixRecord | None:
     """
     For the given conda prefix, return the PrefixRecord of the Python installed
@@ -653,7 +653,7 @@ def python_record_for_prefix(prefix: os.PathLike) -> PrefixRecord | None:
     return record
 
 
-@deprecated("25.9", "25.3", addendum="Use `PrefixData.get('python').version`")
+@deprecated("25.9", "26.3", addendum="Use `PrefixData.get('python').version`")
 def get_python_version_for_prefix(prefix: os.PathLike) -> str | None:
     """
     For the given conda prefix, return the version of the Python installation
