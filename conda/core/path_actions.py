@@ -29,7 +29,7 @@ from ..common.path import (
     url_to_path,
     win_path_ok,
 )
-from ..common.ser import json
+from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
 from ..deprecations import deprecated
 from ..exceptions import (
