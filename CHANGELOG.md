@@ -99,6 +99,10 @@
 * @dependabot[bot]
 * @pre-commit-ci[bot]
 
+### New Contributors
+
+* @faithrider made their first contribution in https://github.com/conda/conda/pull/13820
+* @peytondmurray made their first contribution in https://github.com/conda/conda/pull/14754
 
 
 ## 25.3.1 (2025-04-03)
