@@ -117,8 +117,8 @@ def __getattr__(name: str) -> Any:
 
 
 deprecated.constant(
-    "25.9",
     "26.3",
+    "26.9",
     "EntityEncoder",
     CondaJSONEncoder,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",

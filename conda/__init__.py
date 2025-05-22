@@ -170,16 +170,16 @@ def _default(self, obj):
 
     if isinstance(obj, frozendict):
         deprecated.topic(
-            "25.9",
             "26.3",
+            "26.9",
             topic="Monkey-patching `json.JSONEncoder` to support `frozendict`",
             addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
         )
         return dict(obj)
     elif hasattr(obj, "to_json"):
         deprecated.topic(
-            "25.9",
             "26.3",
+            "26.9",
             topic="Monkey-patching `json.JSONEncoder` to support `obj.to_json()`",
             addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
         )

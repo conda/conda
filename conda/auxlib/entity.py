@@ -974,8 +974,8 @@ class DictSafeMixin:
 
 
 deprecated.constant(
-    "25.9",
     "26.3",
+    "26.9",
     "EntityEncoder",
     json.CondaJSONEncoder,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",

@@ -61,16 +61,16 @@ def yaml_safe_dump(object, stream=None):
 
 
 deprecated.constant(
-    "25.9",
     "26.3",
+    "26.9",
     "EntityEncoder",
     CondaJSONEncoder,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
 del CondaJSONEncoder
 deprecated.constant(
-    "25.9",
     "26.3",
+    "26.9",
     "json_load",
     loads,
     addendum="Use `conda.common.serialize.json.loads(sort_keys=True)` instead.",
@@ -79,8 +79,8 @@ del loads
 
 
 @deprecated(
-    "25.9",
     "26.3",
+    "26.9",
     addendum="Use `conda.common.serialize.json.dumps(sort_keys=True)` instead.",
 )
 def json_dump(object):

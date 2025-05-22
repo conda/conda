@@ -52,23 +52,23 @@ def initialize_logging(level=INFO):
 
 
 deprecated.constant(
-    "25.9",
     "26.3",
+    "26.9",
     "DumpEncoder",
     json.CondaJSONEncoder,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
 _DUMPS = json.CondaJSONEncoder(indent=2, ensure_ascii=False, sort_keys=True).encode
 deprecated.constant(
-    "25.9",
     "26.3",
+    "26.9",
     "_DUMPS",
     _DUMPS,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
 )
 deprecated.constant(
-    "25.9",
     "26.3",
+    "26.9",
     "jsondumps",
     _DUMPS,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
