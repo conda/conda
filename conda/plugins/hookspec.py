@@ -19,11 +19,15 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
+        CondaPostTransactionAction,
         CondaPreCommand,
+        CondaPrefixDataLoader,
         CondaPreSolve,
+        CondaPreTransactionAction,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -255,6 +259,108 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
+    def conda_pre_transaction_actions(self) -> Iterable[CondaPreTransactionAction]:
+        """Register pre-transaction hooks.
+
+        Pre-transaction hooks run before all other actions run in a
+        UnlinkLinkTransaction. For information about the Action class,
+        see :class:`~conda.core.path_actions.Action`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.core.path_actions import Action
+
+
+            class PrintAction(Action):
+                def verify(self):
+                    print("Performing verification...")
+                    self._verified = True
+
+                def execute(self):
+                    print(
+                        self.transaction_context,
+                        self.target_prefix,
+                        self.unlink_precs,
+                        self.link_precs,
+                        self.remove_specs,
+                        self.update_specs,
+                        self.neutered_specs,
+                    )
+
+                def reverse(self):
+                    print("Reversing only happens when `execute` raises an exception.")
+
+                def cleanup(self):
+                    print("Carrying out cleanup...")
+
+
+            class PrintActionPlugin:
+                @plugins.hookimpl
+                def conda_pre_transaction_actions(
+                    self,
+                ) -> Iterable[plugins.CondaPreTransactionAction]:
+                    yield plugins.CondaPreTransactionAction(
+                        name="example-pre-transaction-action",
+                        action=PrintAction,
+                    )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_post_transaction_actions(self) -> Iterable[CondaPostTransactionAction]:
+        """Register post-transaction hooks.
+
+        Post-transaction hooks run after all other actions run in a
+        UnlinkLinkTransaction. For information about the Action class,
+        see :class:`~conda.core.path_actions.Action`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.core.path_actions import Action
+
+
+            class PrintAction(Action):
+                def verify(self):
+                    print("Performing verification...")
+                    self._verified = True
+
+                def execute(self):
+                    print(
+                        self.transaction_context,
+                        self.target_prefix,
+                        self.unlink_precs,
+                        self.link_precs,
+                        self.remove_specs,
+                        self.update_specs,
+                        self.neutered_specs,
+                    )
+
+                def reverse(self):
+                    print("Reversing only happens when `execute` raises an exception.")
+
+                def cleanup(self):
+                    print("Carrying out cleanup...")
+
+
+            class PrintActionPlugin:
+                @plugins.hookimpl
+                def conda_post_transaction_actions(
+                    self,
+                ) -> Iterable[plugins.CondaPostTransactionAction]:
+                    yield plugins.CondaPostTransactionAction(
+                        name="example-post-transaction-action",
+                        action=PrintAction,
+                    )
+        """
+        yield from ()
+
+    @_hookspec
     def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
         """
         Register pre-solve functions in conda that are used in the
@@ -459,5 +565,109 @@ class CondaSpecs:
                        name="Example-Header",
                        value="example",
                    )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_prefix_data_loaders() -> Iterable[CondaPrefixDataLoader]:
+        """
+        Register new loaders for PrefixData
+
+        The example below defines how to expose the packages installed
+        by a hypothetical 'penguin' tool as conda packages.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from pathlib import Path
+
+            from conda import plugins
+            from conda.common.path import PathType
+            from conda.models.records import PrefixRecord
+            from conda.plugins.types import CondaPrefixDataLoader
+
+
+            @plugins.hookimpl
+            def conda_prefix_data_loaders():
+                yield CondaPrefixDataLoader(
+                    "hypothetical",
+                    load_hypothetical_packages,
+                )
+
+
+            def load_hypothetical_packages(
+                prefix: PathType, records: dict[str, PrefixRecord]
+            ) -> dict[str, PrefixRecord]:
+                penguin_records = {}
+                for info in Path(prefix).glob("lib/penguin/*.penguin-info"):
+                    name, version = info.name.rsplit("-", 1)
+                    kwargs = {}  # retrieve extra fields here
+                    penguin_records[name] = PrefixRecord(
+                        name=name, version=version, build_number=0, build="0", **kwargs
+                    )
+                records.update(penguin_records)
+                return penguin_records
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_environment_specifiers(self) -> Iterable[CondaEnvironmentSpecifier]:
+        """
+        Register new conda env spec type
+
+        The example below defines a type of conda env file called "random". It
+        can parse a file with the file extension `.random`. This plugin will ignore
+        whatever is in the input environment file and produce an environment with a
+        random name and with random packages.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import json
+            import random
+            from pathlib import Path
+            from subprocess import run
+            from conda import plugins
+            from ...plugins.types import EnvironmentSpecBase
+            from conda.env.env import Environment
+
+            packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
+
+
+            class RandomSpec(EnvironmentSpecBase):
+                extensions = {".random"}
+
+                def __init__(self, filename: str):
+                    self.filename = filename
+
+                def can_handle(self):
+                    # Return early if no filename was provided
+                    if self.filename is None:
+                        return False
+
+                    # Extract the file extension (e.g., '.txt' or '' if no extension)
+                    file_ext = os.path.splitext(self.filename)[1]
+
+                    # Check if the file has a supported extension and exists
+                    return any(
+                        spec_ext == file_ext and os.path.exists(self.filename)
+                        for spec_ext in RandomSpec.extensions
+                    )
+
+                def environment(self):
+                    return Environment(
+                        name="".join(random.choice("0123456789abcdef") for i in range(6)),
+                        dependencies=[random.choice(packages) for i in range(6)],
+                    )
+
+
+            @plugins.hookimpl
+            def conda_environment_specifiers():
+                yield plugins.CondaEnvSpec(
+                    name="random",
+                    environment_spec=RandomSpec,
+                )
         """
         yield from ()

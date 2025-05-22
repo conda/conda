@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.cli.main_info.get_info_components` as pending deprecation to be removed in 26.3. Use `conda.cli.main_info.iter_info_components` instead. (#14837)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
