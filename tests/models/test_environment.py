@@ -18,7 +18,10 @@ def test_environments_merge():
         prefix="/path/to/env1",
         platform="one",
         config={"primitive_one": "yes", "list_one": [1, 2, 4]},
-        external_packages={"pip": ["one", "two"], "other": ["three"]},
+        external_packages={
+            "pip": ["one", "two", {"special": "type"}], 
+            "other": ["three"],
+        },
         explicit_specs=[MatchSpec("somepackage.conda")],
         requested_specs=[MatchSpec("numpy"), MatchSpec("pandas")],
         variables={"PATH": "/usr/bin"},
@@ -41,7 +44,7 @@ def test_environments_merge():
         "list_one": [1, 2, 4, 3],
     }
     assert merged.external_packages == {
-        "pip": ["one", "two", "flask"],
+        "pip": ["one", "two", {"special": "type"}, "flask"],
         "other": ["three"],
         "a": ["nother"],
     }

@@ -32,7 +32,7 @@ class Environment:
     config: dict[str, Any] = field(default_factory=dict)
 
     # Map of other package types that conda can install. For example pypi packages.
-    external_packages: dict[str, list] = field(default_factory=dict)
+    external_packages: dict[str, list[Any]] = field(default_factory=dict)
 
     # The complete list of specs for the environment.
     # eg. after a solve, or from an explicit environemnt spec
