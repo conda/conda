@@ -61,6 +61,8 @@ if TYPE_CHECKING:
     from re import Match
     from typing import Any
 
+    from ..common.path import PathsType
+
 log = getLogger(__name__)
 
 EMPTY_MAP = frozendict()
@@ -1383,7 +1385,7 @@ class Configuration(metaclass=ConfigurationType):
 
     @staticmethod
     def _expand_search_path(
-        search_path: Iterable[Path | str],
+        search_path: PathsType,
         **kwargs,
     ) -> Iterable[Path]:
         for search in search_path:
@@ -1392,7 +1394,7 @@ class Configuration(metaclass=ConfigurationType):
             if isinstance(search, Path):
                 path = search
             else:
-                template = custom_expandvars(search, environ, **kwargs)
+                template = custom_expandvars(str(search), environ, **kwargs)
                 path = Path(template).expanduser()
 
             if path.is_file() and (
@@ -1421,7 +1423,7 @@ class Configuration(metaclass=ConfigurationType):
                     err,
                 )
 
-    def _set_search_path(self, search_path: Iterable[Path | str], **kwargs):
+    def _set_search_path(self, search_path: PathsType, **kwargs):
         self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
 
         self._set_raw_data(dict(self._load_search_path(self._search_path)))

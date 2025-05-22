@@ -23,6 +23,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     p = sub_parsers.add_parser(
         "env",
+        help="Create and manage conda environments.",
         **kwargs,
     )
 

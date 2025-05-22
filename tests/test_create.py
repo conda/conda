@@ -727,7 +727,7 @@ def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
             f"""
             # packages in environment at {prefix}:
             #
-            # Name                    Version                   Build  Channel
+            # Name                     Version          Build            Channel
             """
         )
         assert not stderr
@@ -834,7 +834,7 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
 
         # regression test for #5847
         #   when using rm_rf on a directory
-        # cache key is prefix, pip_interop_enabled, which is default=True on conda list
+        # cache key is prefix, interoperability, which is default=True on conda list
         assert (prefix, True) in PrefixData._cache_
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver))
         assert prefix not in PrefixData._cache_
@@ -1077,7 +1077,7 @@ def test_channel_usage_replacing_python(
         data = {
             field: value
             for field, value in json.loads(fn.read_text()).items()
-            if field not in ("url", "channel", "schannel")
+            if field not in ("url", "channel", "schannel", "channel_name")
         }
         fn.write_text(json.dumps(data))
         PrefixData._cache_.clear()
@@ -1325,9 +1325,9 @@ def test_update_all_updates_pip_pkg(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env("python", "pip", "pytz<2023") as prefix:
         # install an old version of itsdangerous from pip
@@ -1697,9 +1697,9 @@ def test_conda_pip_interop_pip_clobbers_conda(
     #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
     #     context.load_verify_locations(ca_certs, ca_cert_dir)
     #   TypeError: cafile should be a valid filesystem path
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env(
         "--channel=https://repo.anaconda.com/pkgs/free",
@@ -1905,9 +1905,9 @@ def test_conda_pip_interop_conda_editable_package(
         )
     )
 
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env("python=3.12", "pip", "git") as prefix:
         assert package_is_installed(prefix, "python")
@@ -2031,9 +2031,9 @@ def test_conda_pip_interop_compatible_release_operator(
         pytest.skip("This test is too slow with conda-forge as default channel.")
     # Regression test for #7776
     # important to start the env with six 1.9.  That version forces an upgrade later in the test
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env(
         "--channel=https://repo.anaconda.com/pkgs/free",
@@ -2068,10 +2068,8 @@ def test_conda_pip_interop_compatible_release_operator(
 
         stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}")
         assert not stderr
-        assert (
-            "fs                        2.1.0                    pypi_0    pypi"
-            in stdout
-        )
+        split_stdout = [tuple(line.split()) for line in stdout.splitlines()]
+        assert ("fs", "2.1.0", "pypi_0", "pypi") in split_stdout
 
         with pytest.raises(DryRunExit):
             conda_cli(
