@@ -1,13 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from conda.exceptions import CondaError
+import pytest
+
 from conda.env.env import Environment
 from conda.env.specs.pixi_lock_file import PixiLockFile
+from conda.exceptions import CondaError
 
 from .. import support_file
-
-import pytest
 
 
 def test_no_environment_file():
