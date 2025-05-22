@@ -60,9 +60,7 @@ class PixiLockFile(EnvironmentSpecBase):
                     return True
             return False
         except Exception:
-            log.debug(
-                "Failed to load %s as `environment.yaml`.", self.filename, exc_info=True
-            )
+            log.debug("Failed to load %s as `pixi.lock`.", self.filename, exc_info=True)
             return False
 
     @property
@@ -77,7 +75,7 @@ class PixiLockFile(EnvironmentSpecBase):
         if not env:
             raise CondaError(
                 f"Environment {lock_environment} not found. "
-                f"Available environment names: {sorted(self.data['environments'])}."
+                f"Available environment names: {sorted(self._yaml_data['environments'])}."
             )
 
         # validate that the lock file specifies an environment for the target platform
