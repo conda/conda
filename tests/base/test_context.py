@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from itertools import chain
 from os.path import abspath, join
@@ -18,8 +19,11 @@ from conda.auxlib.ish import dals
 from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
+    USER_DATA_DIR,
+    USER_DATA_ENVS,
     ChannelPriority,
     PathConflict,
+    PkgEnvLayout,
 )
 from conda.base.context import (
     channel_alias_validation,
@@ -29,6 +33,7 @@ from conda.base.context import (
     validate_channels,
     validate_prefix_name,
 )
+from conda.common.compat import on_win
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
@@ -42,7 +47,6 @@ from conda.exceptions import (
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from conda.utils import on_win
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
@@ -348,29 +352,30 @@ def test_default_target_is_root_prefix(testdata: None):
 def test_target_prefix(
     path_factory: PathFactoryFixture,
     monkeypatch: MonkeyPatch,
+    mock_context_attributes,
 ) -> None:
     (envs1 := path_factory()).mkdir()
     (envs2 := path_factory()).mkdir()
     envs_dirs = (str(envs1), str(envs2))
 
-    monkeypatch.setenv("CONDA_ENVS_DIRS", os.pathsep.join(envs_dirs))
-    reset_context()
-    assert context._envs_dirs == envs_dirs
-    assert context.envs_dirs[:2] == envs_dirs
+    with mock_context_attributes(_envs_dirs=envs_dirs):
+        reset_context()
+        assert context._envs_dirs == envs_dirs
+        assert context.envs_dirs[:2] == envs_dirs
 
-    # with both dirs writable, choose first
-    reset_context(argparse_args=SimpleNamespace(name="blarg"))
-    assert context.target_prefix == str(envs1 / "blarg")
+        # with both dirs writable, choose first
+        reset_context(argparse_args=SimpleNamespace(name="blarg"))
+        assert context.target_prefix == str(envs1 / "blarg")
 
-    # with first dir read-only, choose second
-    make_read_only(envs1 / ".conda_envs_dir_test")
-    reset_context(argparse_args=SimpleNamespace(name="blarg"))
-    assert context.target_prefix == str(envs2 / "blarg")
+        # with first dir read-only, choose second
+        make_read_only(envs1 / ".conda_envs_dir_test")
+        reset_context(argparse_args=SimpleNamespace(name="blarg"))
+        assert context.target_prefix == str(envs2 / "blarg")
 
-    # if first dir is read-only but environment exists, choose first
-    (envs1 / "blarg").mkdir()
-    reset_context(argparse_args=SimpleNamespace(name="blarg"))
-    assert context.target_prefix == str(envs1 / "blarg")
+        # if first dir is read-only but environment exists, choose first
+        (envs1 / "blarg").mkdir()
+        reset_context(argparse_args=SimpleNamespace(name="blarg"))
+        assert context.target_prefix == str(envs1 / "blarg")
 
 
 def test_aggressive_update_packages(monkeypatch: MonkeyPatch) -> None:
@@ -806,3 +811,572 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+def test_pkg_env_layout(
+    testdata,
+    pkg_env_layout,
+    mock_context_attributes,
+):
+    """Test that default envs/pkgs are not in the root prefix if there are no
+    environments there either."""
+    with (
+        mock_context_attributes(
+            pkg_env_layout=pkg_env_layout,
+            _pkgs_dirs=(),
+            _envs_dirs=(),
+        ),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
+    ):
+        mock_envs.return_value = []
+        mock_pkgs.return_value = []
+
+        if pkg_env_layout == PkgEnvLayout.USER:
+            basename = Path(USER_DATA_DIR)
+        else:
+            basename = Path(context.root_prefix)
+
+        pkgs = basename / "pkgs"
+        envs = basename / "envs"
+
+        assert str(envs) in set(context.envs_dirs)
+        assert str(pkgs) in set(context.pkgs_dirs)
+
+
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+def test_set_pkgs_envs_default_dirs(
+    tmpdir,
+    testdata,
+    pkg_env_layout,
+    mock_context_attributes,
+):
+    """Test that the default locations aren't used if pkgs_dirs and envs_dirs are set."""
+    pkgs = str(tmpdir / "pkgs")
+    envs = str(tmpdir / "envs")
+
+    with mock_context_attributes(
+        pkg_env_layout=pkg_env_layout,
+        _pkgs_dirs=(pkgs,),
+        _envs_dirs=(envs,),
+    ):
+        if pkg_env_layout == PkgEnvLayout.USER:
+            basename = Path(USER_DATA_DIR)
+        else:
+            basename = Path(context.root_prefix)
+
+        default_pkgs = str(basename / "pkgs")
+        root_prefix_envs = str(Path(context.root_prefix) / "envs")
+
+        assert {pkgs} == set(context.pkgs_dirs)
+        assert default_pkgs not in set(context.pkgs_dirs)
+
+        # Legacy behavior includes other directories regardless
+        # of whether the user has set CONDA_ENVS_DIRS or not
+        assert {envs, root_prefix_envs} <= set(context.envs_dirs)
+
+
+@pytest.mark.parametrize(
+    "envs_paths",
+    [[], [Path("bar"), Path("baz") / "quux"]],
+)
+@pytest.mark.parametrize(
+    "pkgs_paths",
+    [[], [Path("foo"), Path("abc") / "def"]],
+)
+def test_pkgs_envs_old_default_dirs(
+    tmpdir,
+    testdata,
+    propagate_conda_logger,
+    caplog,
+    mock_context_attributes,
+    pkgs_paths,
+    envs_paths,
+):
+    """Test that the old locations of envs/pkgs get used by default."""
+
+    pkgs_paths = [str(tmpdir / path) for path in pkgs_paths]
+    envs_paths = [str(tmpdir / path) for path in envs_paths]
+
+    with (
+        mock_context_attributes(
+            pkg_env_layout=PkgEnvLayout.UNSET,
+            _pkgs_dirs=(),
+            _envs_dirs=(),
+        ),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
+    ):
+        mock_envs.return_value = envs_paths
+        mock_pkgs.return_value = pkgs_paths
+
+        envs = context.root_prefix_envs
+        pkgs = context.root_prefix_pkgs
+
+        with caplog.at_level(logging.INFO):
+            # Fetch these properties, which should trigger the warning-level log messages
+
+            assert envs in context.envs_dirs
+            if not envs_paths:
+                # Envs do not exist in the root prefix; warn the user that the default
+                # location will change
+                assert len(caplog.records) == 1
+                assert any(
+                    [USER_DATA_ENVS in record.message for record in caplog.records]
+                )
+
+            caplog.clear()
+            assert pkgs in context.pkgs_dirs
+            if not pkgs_paths:
+                # Pkgs do not exist in the root prefix; warn the user that the default
+                # location will change
+                assert len(caplog.records) == 1
+                assert any(
+                    [
+                        context.user_data_pkgs in record.message
+                        for record in caplog.records
+                    ]
+                )
+
+
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+def test_pkgs_envs_configured(
+    tmpdir,
+    testdata,
+    pkg_env_layout,
+    mock_context_attributes,
+):
+    """Test that the context uses the requested paths when `pkgs_dirs`/`envs_dirs` are set."""
+    pkgs = str(tmpdir / "pkgs")
+    envs = str(tmpdir / "envs")
+
+    with mock_context_attributes(
+        pkg_env_layout=pkg_env_layout,
+        _pkgs_dirs=(pkgs,),
+        _envs_dirs=(envs,),
+    ):
+        assert set(context._pkgs_dirs) == set(context.pkgs_dirs) == set((pkgs,))
+
+        # When setting `envs_dirs`, the legacy behavior is to use
+        # ~/.conda/envs, <root prefix>/envs,
+        # and if running on windows, <user data dir>/conda/conda/envs.
+        # Here we just check that the requested envs are a subset
+        # of the actual envs returned.
+        assert envs in set(context.envs_dirs)
+        assert set(context._envs_dirs) <= set(context.envs_dirs)
+
+        # Legacy behavior includes other directories regardless
+        # of whether the user has set CONDA_ENVS_DIRS or not
+        root_prefix_envs = str(Path(context.root_prefix) / "envs")
+        assert {envs, root_prefix_envs} <= set(context.envs_dirs)
+
+
+@pytest.mark.parametrize(
+    "pkgs_in_root_prefix",
+    [
+        ["foo.conda", "bar.tar.bz2", "baz.conda"],
+        [],
+    ],
+)
+@pytest.mark.parametrize(
+    "pkgs_dirs",
+    [
+        (Path("foo"), Path("bar") / "baz"),
+        (Path("foo"),),
+        (),
+    ],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+def test_pkgs(
+    tmp_path,
+    pkg_env_layout,
+    pkgs_dirs,
+    pkgs_in_root_prefix,
+    mock_context_attributes,
+    propagate_conda_logger,
+    caplog,
+):
+    pkgs_dirs = tuple(str(tmp_path / item) for item in pkgs_dirs)
+    with (
+        mock_context_attributes(
+            _pkgs_dirs=pkgs_dirs,
+            pkg_env_layout=pkg_env_layout,
+        ),
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
+    ):
+        mock_pkgs.return_value = pkgs_in_root_prefix
+
+        with caplog.at_level(logging.INFO):
+            result = context.pkgs_dirs
+
+        # Ensure that no envs_dirs are in the result (syntax is very similar)
+        assert {USER_DATA_ENVS, context.root_prefix_envs} & set(result) == set()
+
+        if pkgs_dirs:
+            assert set(result) == set(pkgs_dirs)
+            mock_pkgs.assert_not_called()
+        else:
+            mock_pkgs.assert_called_once()
+
+            if pkgs_in_root_prefix:
+                # No matter what if there are pkgs/ in the root prefix
+                # we include those
+                assert context.root_prefix_pkgs in result
+
+                if pkg_env_layout == PkgEnvLayout.USER:
+                    # If pkg_env_layout is user, issue a warning
+                    # message if there are still packages in
+                    # the root prefix
+                    assert len(caplog.records) == 1
+                    assert (
+                        "Consider migrating the existing packages"
+                        in caplog.records[0].message
+                    )
+
+                    # Both the root prefix packages and the user
+                    # data packages should be present
+                    assert context.user_data_pkgs in result
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
+                    # If pkg_env_layout is unset, we don't issue
+                    # a warning if there are pkgs/ in the root prefix
+                    assert len(caplog.records) == 0
+
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
+                        assert context.user_data_pkgs not in result
+                else:
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix pkgs, no questions asked
+                    assert len(caplog.records) == 0
+
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
+                        assert context.user_data_pkgs not in result
+            else:
+                if pkg_env_layout == PkgEnvLayout.USER:
+                    # If pkg_env_layout is user and there's no
+                    # packages in the root prefix, just return
+                    # the user data directory
+                    assert (context.user_data_pkgs,) == result
+                    assert len(caplog.records) == 0
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
+                    # If pkg_env_layout is unset and there's no
+                    # packages in the root prefix, warn the user
+                    # that the default location will change after
+                    # the next deprecation cycle
+                    assert len(caplog.records) == 1
+                    assert (
+                        "current location of `pkgs_dirs` resides"
+                        in caplog.records[0].message
+                    )
+                    assert context.root_prefix_pkgs in result
+
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
+                        assert context.user_data_pkgs not in result
+                else:
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix pkgs, no questions asked
+                    assert len(caplog.records) == 0
+
+                    assert context.root_prefix_pkgs in result
+                    # On windows, the user data packages are always
+                    # included
+                    if on_win:
+                        assert context.user_data_pkgs in result
+                    else:
+                        assert context.user_data_pkgs not in result
+
+
+@pytest.mark.parametrize(
+    "envs_in_root_prefix",
+    [
+        ["foo.conda", "bar.tar.bz2", "baz.conda"],
+        [],
+    ],
+)
+@pytest.mark.parametrize(
+    "envs_dirs",
+    [
+        (Path("foo"), Path("bar") / "baz"),
+        (Path("foo"),),
+        (),
+    ],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.USER,
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+def test_envs(
+    tmp_path,
+    pkg_env_layout,
+    envs_dirs,
+    envs_in_root_prefix,
+    mock_context_attributes,
+    propagate_conda_logger,
+    caplog,
+):
+    envs_dirs = tuple(str(tmp_path / item) for item in envs_dirs)
+    with (
+        mock_context_attributes(
+            _envs_dirs=envs_dirs,
+            pkg_env_layout=pkg_env_layout,
+        ),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+    ):
+        mock_envs.return_value = envs_in_root_prefix
+
+        with caplog.at_level(logging.INFO):
+            result = context.envs_dirs
+
+        # Ensure that no pkgs_dirs are in the result (syntax is very similar)
+        assert {context.user_data_pkgs, context.root_prefix_pkgs} & set(result) == set()
+
+        # On windows, `USER_DATA_ENVS` gets injected into the environments
+        # regardless of any user setting
+        if on_win:
+            assert USER_DATA_ENVS in result
+
+        if envs_dirs:
+            assert set(result) >= set(envs_dirs)
+            mock_envs.assert_not_called()
+        else:
+            mock_envs.assert_called_once()
+
+            if envs_in_root_prefix:
+                # No matter what if there are envs/ in the root prefix
+                # we use those
+                assert context.root_prefix_envs in result
+
+                if pkg_env_layout == PkgEnvLayout.USER:
+                    # If pkg_env_layout is user, issue a warning
+                    # message if there are still packages in
+                    # the root prefix
+                    assert len(caplog.records) == 1
+                    assert (
+                        "Consider migrating the existing packages"
+                        in caplog.records[0].message
+                    )
+
+                    assert USER_DATA_ENVS in result
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
+                    # If pkg_env_layout is unset, we don't issue
+                    # a warning if there are envs/ in the root prefix
+                    assert len(caplog.records) == 0
+
+                    assert context.root_prefix_envs in result
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
+                        assert USER_DATA_ENVS not in result
+                else:
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix envs, no questions asked
+                    assert len(caplog.records) == 0
+                    assert context.root_prefix_envs in result
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
+                        assert USER_DATA_ENVS not in result
+
+            else:
+                if pkg_env_layout == PkgEnvLayout.USER:
+                    # If pkg_env_layout is user and there's no
+                    # packages in the root prefix, just return
+                    # the user data directory
+                    assert len(caplog.records) == 0
+                    assert USER_DATA_ENVS in result
+                    assert context.root_prefix_envs not in result
+                elif pkg_env_layout == PkgEnvLayout.UNSET:
+                    # If pkg_env_layout is unset and there's no
+                    # packages in the root prefix, warn the user
+                    # that the default location will change after
+                    # the next deprecation cycle
+                    assert len(caplog.records) == 1
+                    assert (
+                        "current location of `envs_dirs` resides"
+                        in caplog.records[0].message
+                    )
+                    assert context.root_prefix_envs in result
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
+                        assert USER_DATA_ENVS not in result
+                else:
+                    # If pkg_env_layout is conda_root, just return
+                    # the root prefix envs, no questions asked
+                    assert len(caplog.records) == 0
+                    assert context.root_prefix_envs in result
+                    if on_win:
+                        assert USER_DATA_ENVS in result
+                    else:
+                        assert USER_DATA_ENVS not in result
+
+
+@pytest.mark.parametrize(
+    "pkgs_in_root_prefix",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "pkgs_dirs_set",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+@pytest.mark.parametrize("on_win", [True, False])
+@pytest.mark.parametrize("force_32bit", [True, False])
+def test_pkgs_precedence(
+    force_32bit,
+    on_win,
+    pkg_env_layout,
+    pkgs_dirs_set,
+    pkgs_in_root_prefix,
+    mock_context_attributes,
+    tmp_path,
+):
+    """Test that the order of precedence of context.pkgs_dirs is as expected."""
+    if pkgs_dirs_set:
+        pkgs_dirs = (expand(join(tmp_path, "my_pkgs")),)
+    else:
+        pkgs_dirs = ()
+
+    user_data_dir = expand(join(tmp_path, "my_user_data"))
+
+    with (
+        mock_context_attributes(
+            _pkgs_dirs=pkgs_dirs,
+            pkg_env_layout=pkg_env_layout,
+            force_32bit=force_32bit,
+        ),
+        mock.patch("conda.base.context.on_win", on_win),
+        mock.patch("conda.base.context.Context._pkgs_in_root_prefix") as mock_pkgs,
+        mock.patch("conda.base.context.USER_DATA_DIR", user_data_dir),
+    ):
+        mock_pkgs.return_value = ["foo.conda"] if pkgs_in_root_prefix else []
+        result = context.pkgs_dirs
+
+        home_conda_pkgs = expand(join("~", ".conda", context._cache_dir_name))
+        user_data_pkgs = context.user_data_pkgs
+        root_prefix_pkgs = context.root_prefix_pkgs
+
+    if pkgs_dirs:
+        assert result == pkgs_dirs
+    else:
+        expected = [root_prefix_pkgs, home_conda_pkgs]
+        if on_win:
+            expected.append(user_data_pkgs)
+
+        assert result == tuple(expected)
+
+
+@pytest.mark.parametrize(
+    "envs_in_root_prefix",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "envs_dirs_set",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "pkg_env_layout",
+    [
+        PkgEnvLayout.CONDA_ROOT,
+        PkgEnvLayout.UNSET,
+    ],
+)
+@pytest.mark.parametrize("on_win", [True, False])
+@pytest.mark.parametrize("root_writable", [True, False])
+def test_envs_precedence(
+    root_writable,
+    on_win,
+    pkg_env_layout,
+    envs_dirs_set,
+    envs_in_root_prefix,
+    mock_context_attributes,
+    tmp_path,
+):
+    """Test that the order of precedence of context.envs_dirs is as expected."""
+    if envs_dirs_set:
+        envs_dirs = (expand(join(tmp_path, "my_envs")),)
+    else:
+        envs_dirs = ()
+
+    user_data_dir = expand(join(tmp_path, "my_user_data"))
+    user_data_envs = expand(join(tmp_path, "my_user_data", "envs"))
+    home_conda_envs = expand(join("~", ".conda", "envs"))
+
+    with (
+        mock_context_attributes(
+            _envs_dirs=envs_dirs,
+            pkg_env_layout=pkg_env_layout,
+        ),
+        mock.patch("conda.base.context.Context.root_writable", root_writable),
+        mock.patch("conda.base.context.on_win", on_win),
+        mock.patch("conda.base.context.Context._envs_in_root_prefix") as mock_envs,
+        mock.patch("conda.base.context.USER_DATA_DIR", user_data_dir),
+        mock.patch("conda.base.context.USER_DATA_ENVS", user_data_envs),
+    ):
+        mock_envs.return_value = ["foo/"] if envs_in_root_prefix else []
+        result = context.envs_dirs
+
+        root_prefix_envs = context.root_prefix_envs
+
+    expected = [
+        *envs_dirs,
+    ]
+    if root_writable:
+        expected.extend([root_prefix_envs, home_conda_envs])
+    else:
+        expected.extend([home_conda_envs, root_prefix_envs])
+
+    if on_win:
+        expected.append(user_data_envs)
+
+    assert result == tuple(expected)
