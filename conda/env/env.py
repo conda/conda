@@ -201,6 +201,9 @@ class Dependencies(dict):
             if not any(MatchSpec(s).name == "pip" for s in self["conda"]):
                 self["conda"].append("pip")
 
+        if "conda" in self and not self["conda"]:
+            del self["conda"]
+
     # TODO only append when it's not already present
     def add(self, package_name):
         """Add a package to the ``Environment``"""
@@ -219,18 +222,12 @@ class Environment:
         dependencies=None,
         prefix=None,
         variables=None,
-        direct_conda_pkgs=None,
-        direct_pip_pkgs=None,
-        is_direct_env=False,
     ):
         self.name = name
         self.filename = filename
         self.prefix = prefix
         self.dependencies = Dependencies(dependencies)
         self.variables = variables
-        self.direct_conda_pkgs = direct_conda_pkgs
-        self.direct_pip_pkgs = direct_pip_pkgs
-        self.is_direct_env = is_direct_env
 
         if channels is None:
             channels = []

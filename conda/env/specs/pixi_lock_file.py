@@ -108,16 +108,12 @@ class PixiLockFile(EnvironmentSpecBase):
                 pypi[url].pop("pypi", None)
 
         # create an Environment instance that described the environment
-        environment = Environment(
-            direct_conda_pkgs=conda,
-            direct_pip_pkgs=pypi,
-            is_direct_env=True,
-        )
-        # override the dependencies to trigger the conda and/or pip installers
-        dependencies = {}
+        dependencies = []
         if conda:
-            dependencies["conda"] = []
+            dependencies.append({"conda_direct": conda})
         if pypi:
-            dependencies["pip"] = []
-        environment.dependencies = dependencies
+            dependencies.append({"pip_direct": pypi})
+        environment = Environment(
+            dependencies=dependencies,
+        )
         return environment

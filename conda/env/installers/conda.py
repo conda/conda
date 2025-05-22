@@ -10,7 +10,6 @@ from boltons.setutils import IndexedSet
 from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
-from ...direct import direct
 from ...env.env import Environment
 from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
@@ -46,9 +45,6 @@ def dry_run(specs, args, env, *_, **kwargs):
 
 def install(prefix, specs, args, env, *_, **kwargs):
     """Install packages into an environment"""
-    if getattr(env, "is_direct_env", False):
-        return direct(env.direct_conda_pkgs, prefix)
-
     solver = _solve(prefix, specs, args, env, *_, **kwargs)
 
     try:
