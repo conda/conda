@@ -222,7 +222,7 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
                 if not MatchSpec(constrain).match(package_found):
                     inconsistent_constrain = {
                         "expected": str(MatchSpec(constrain)),
-                        "installed": str(package_found),
+                        "installed": f"{package_found.name}[version='{package_found.version}']",
                     }
                     issues.setdefault(record.name, {}).setdefault(
                         "inconsistent", []

@@ -345,6 +345,22 @@
       "subdir": "noarch",
       "timestamp": 1737753459620,
       "version": "1.0.0"
+    },
+    "run_constrained-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "constrains": [
+        "dependency>=2.0"
+      ],
+      "depends": [],
+      "md5": "29e59112ea9693a0876dfcf73163f0ef",
+      "name": "run_constrained",
+      "noarch": "generic",
+      "sha256": "e1a0cef570df26bc3aedb9e11415e0f46adcc4f38ee92066850c2f1d396ffded",
+      "size": 4022,
+      "subdir": "noarch",
+      "timestamp": 1747922191018,
+      "version": "1.0"
     }
   },
   "removed": [],

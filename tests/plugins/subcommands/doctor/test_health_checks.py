@@ -371,3 +371,29 @@ def test_env_consistency_check_fails_verbose(
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out
         assert expected_output_yaml in out
+
+
+def test_env_consistency_constrains_not_met(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_1_to_install = test_recipes_channel / "noarch" / "run_constrained-1.0-0.conda"
+    pkg_2_to_install = test_recipes_channel / "noarch" / "dependency-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_1_to_install, pkg_2_to_install) as prefix:
+        expected_output_dict = {
+            "run_constrained": {
+                "inconsistent": [
+                    {
+                        "expected": "dependency[version='>=2.0']",
+                        "installed": "dependency[version='1.0']",
+                    }
+                ]
+            }
+        }
+        expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out
