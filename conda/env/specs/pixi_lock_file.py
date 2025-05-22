@@ -8,14 +8,14 @@ import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ...common.serialize import yaml_safe_load
-from ...plugins.types import EnvironmentSpecBase
-from ...exceptions import CondaError
 from ...base.context import context
+from ...common.serialize import yaml_safe_load
+from ...exceptions import CondaError
+from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
 
 if TYPE_CHECKING:
-    from typing import Any, Optional
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -31,7 +31,7 @@ class PixiLockFile(EnvironmentSpecBase):
         **kwargs,
     ):
         self.filename: str = filename
-        self._yaml_data: Optional[dict[str, Any]] = None
+        self._yaml_data: dict[str, Any] | None = None
         self._lock_environment_name = lock_environment_name
         self._platform = platform
 

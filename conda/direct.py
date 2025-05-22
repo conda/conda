@@ -2,19 +2,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Installing into environments from direct (URL based) specifications"""
 
-from typing import Dict, Any
+from typing import Any
 
 from .base.context import context
+from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
-from .models.match_spec import MatchSpec
-from .models.records import PackageCacheRecord
-from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .exceptions import (
     CondaExitZero,
     DryRunExit,
 )
-
+from .models.match_spec import MatchSpec
+from .models.records import PackageCacheRecord
 
 DirectPackageURL = str
 DirectPackageMetadata = dict[str, Any]
