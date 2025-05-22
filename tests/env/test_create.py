@@ -99,6 +99,29 @@ def test_create_host_port(
     assert package_is_installed(prefix, "flask=2.0.3")
 
 
+@pytest.mark.skipif(
+    context.subdir not in ["osx-arm64", "linux-64"],
+    reason="Lockfile only supports osx-arm64 and linux-64",
+)
+@pytest.mark.integration
+def test_create_pixi_lock(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
+):
+    env_name = uuid4().hex[:8]
+    prefix = tmp_envs_dir / env_name
+
+    conda_cli(
+        *("env", "create"),
+        *("--name", env_name),
+        *("--file", support_file("pixi.lock")),
+    )
+    assert prefix.exists()
+    assert package_is_installed(prefix, "python")
+    assert package_is_installed(prefix, "imagesize")
+
+
 @pytest.mark.integration
 def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,

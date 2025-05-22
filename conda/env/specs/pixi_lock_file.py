@@ -98,12 +98,14 @@ class PixiLockFile(EnvironmentSpecBase):
         for pkg_metadata in self._yaml_data.get("packages", ()):
             if "conda" in pkg_metadata:
                 url = pkg_metadata["conda"]
-                conda[url].update(pkg_metadata)
-                conda[url].pop("conda", None)
+                if url in conda:
+                    conda[url].update(pkg_metadata)
+                    conda[url].pop("conda", None)
             elif "pypi" in pkg_metadata:
                 url = pkg_metadata["pypi"]
-                pypi[url].update(pkg_metadata)
-                pypi[url].pop("pypi", None)
+                if url in pypi:
+                    pypi[url].update(pkg_metadata)
+                    pypi[url].pop("pypi", None)
 
         # create an Environment instance that described the environment
         dependencies = []
