@@ -32,14 +32,14 @@ class Environment:
     config: dict[str, Any] = field(default_factory=dict)
 
     # Map of other package types that conda can install. For example pypi packages.
-    external_packages: dict[str, list]  = field(default_factory=dict)
+    external_packages: dict[str, list] = field(default_factory=dict)
 
     # The complete list of specs for the environment.
     # eg. after a solve, or from an explicit environemnt spec
     explicit_specs: list[PackageRecord] = field(default_factory=list)
 
     # Environment name
-    name: str |  None = None
+    name: str | None = None
 
     # User requested specs for this environment.
     requested_specs: list[MatchSpec] = field(default_factory=list)
@@ -64,35 +64,41 @@ class Environment:
         platform = None
         names = [env.name for env in environments if env.name]
         prefixes = [env.prefix for env in environments if env.prefix]
-        
+
         if names:
             name = names[0]
             if len(names) > 1:
                 log.debug("Several names passed %s. Picking first one %s", names, name)
-        
+
         if prefixes:
             prefix = prefixes[0]
             if len(prefixes) > 1:
                 log.debug(
                     "Several prefixes passed %s. Picking first one %s", prefixes, prefix
                 )
-        
+
         platforms = [env.platform for env in environments if env.platform]
         # Ensure that all environments have the same platform
         if len(set(platforms)) == 1:
             platform = platforms[0]
         else:
-            raise CondaValueError(f"Conda can not merge environments of different platforms. Recieved environments with plafroms {platforms}")
+            raise CondaValueError(
+                f"Conda can not merge environments of different platforms. Recieved environments with plafroms {platforms}"
+            )
 
         requested_specs = list(
             dict.fromkeys(
-                requirement for env in environments for requirement in env.requested_specs
+                requirement
+                for env in environments
+                for requirement in env.requested_specs
             )
         )
 
         explicit_specs = list(
             dict.fromkeys(
-                requirement for env in environments for requirement in env.explicit_specs
+                requirement
+                for env in environments
+                for requirement in env.explicit_specs
             )
         )
 
@@ -101,7 +107,7 @@ class Environment:
         config = {}
         external_packages = {}
         for env in environments:
-            # Config items can be any type, merge them so that lists get 
+            # Config items can be any type, merge them so that lists get
             # concatenated, dicts get merged, and primitive types get clobbered.
             for k, v in env.config.items():
                 if k not in config:
@@ -126,7 +132,7 @@ class Environment:
 
         return cls(
             config=config,
-            external_packages= external_packages,
+            external_packages=external_packages,
             explicit_specs=explicit_specs,
             name=name,
             platform=platform,
