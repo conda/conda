@@ -17,8 +17,8 @@ from .exceptions import (
 
 
 DirectPackageURL = str
-DirectPackageMetadata = Dict[str, Any]
-DirectPackages = Dict[DirectPackageURL, DirectPackageMetadata]
+DirectPackageMetadata = dict[str, Any]
+DirectPackages = dict[DirectPackageURL, DirectPackageMetadata]
 
 
 def _matchspec_from_url_and_metadata(
