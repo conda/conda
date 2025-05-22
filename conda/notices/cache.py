@@ -9,7 +9,6 @@ Handles all caching logic including:
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from datetime import datetime, timezone
@@ -20,6 +19,7 @@ from typing import TYPE_CHECKING
 from platformdirs import user_cache_dir
 
 from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
+from ..common.serialize import json
 from ..utils import ensure_dir_exists
 from .types import ChannelNoticeResponse
 

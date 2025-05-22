@@ -11,7 +11,6 @@ from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
@@ -34,6 +33,7 @@ from ..common.constants import NULL, TRACE
 from ..common.io import IS_INTERACTIVE, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
+from ..common.serialize import json
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
@@ -385,10 +385,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-            # EnvironmentError if info/repodata_record.json doesn't exists
-            # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
-            #   python 2.7 raises ValueError instead of JsonDecodeError
+        except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+            # EnvironmentError: info/repodata_record.json doesn't exists
+            # json.JSONDecodeError: info/repodata_record.json is partially extracted or corrupted
+            #   python 2.7 raises ValueError instead of json.JSONDecodeError
             #   ValueError("No JSON object could be decoded")
             log.debug(
                 "unable to read %s\n  because %r",
@@ -399,10 +399,10 @@ class PackageCacheData(metaclass=PackageCacheType):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-                # EnvironmentError if info/index.json doesn't exist
-                # JsonDecodeError if info/index.json is partially extracted or corrupted
-                #   python 2.7 raises ValueError instead of JsonDecodeError
+            except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+                # EnvironmentError: info/index.json doesn't exist
+                # json.JSONDecodeError: info/index.json is partially extracted or corrupted
+                #   python 2.7 raises ValueError instead of json.JSONDecodeError
                 #   ValueError("No JSON object could be decoded")
                 log.debug(
                     "unable to read %s\n  because %r",
@@ -439,7 +439,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                                 return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (OSError, JSONDecodeError, FileNotFoundError):
+                        except (OSError, json.JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)

@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import pickle
 from collections import UserList, defaultdict
 from functools import partial
@@ -23,6 +22,7 @@ from ..base.context import context
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
+from ..common.serialize import json
 from ..common.url import join_url
 from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
