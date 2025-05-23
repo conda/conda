@@ -179,7 +179,7 @@ filterwarnings = [
   # ignore this until 26.9 due to a circular deprecation warning
   "ignore:conda.core.link.PrefixActions:PendingDeprecationWarning:conda.core.link",
   # this deprecation needs to be delayed so ignore it
-  "ignore: conda.env.specs.binstar.BinstarSpec:DeprecationWarning:conda.env.specs.binstar",
+  "ignore: conda.env.specs.binstar.BinstarSpec:DeprecationWarning",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
