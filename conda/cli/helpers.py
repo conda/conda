@@ -576,6 +576,17 @@ def add_parser_verbose(parser: ArgumentParser | _ArgumentGroup) -> None:
     )
 
 
+def add_parser_env_spec_plugin(p: ArgumentParser) -> None:
+    from ..base.context import context
+
+    p.add_argument(
+        "--env-spec-plugin",
+        choices=context.plugin_manager.get_environment_specifier_names(),
+        help="Specify the environment spec plugin to use.",
+        default="",
+    )
+
+
 def comma_separated_stripped(value: str) -> list[str]:
     """
     Custom type for argparse to handle comma-separated strings with stripping

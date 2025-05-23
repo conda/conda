@@ -36,7 +36,7 @@ class BinstarSpec(EnvironmentSpecBase):
 
     msg = None
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, **kwargs):
         self.name = name
 
     def can_handle(self) -> bool:

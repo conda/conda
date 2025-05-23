@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 @deprecated(
     "25.9",
     "26.3",
-    addendum="Use conda.base.context.plugin_manager.get_environment_specifiers.",
+    addendum="Use conda.base.context.plugin_manager.get_environment_specifier.",
 )
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
@@ -71,7 +71,7 @@ def detect(
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
     try:
-        spec_hook = context.plugin_manager.get_environment_specifiers(
+        spec_hook = context.plugin_manager.get_environment_specifier(
             filename=filename,
         )
     except EnvironmentSpecPluginNotDetected as e:

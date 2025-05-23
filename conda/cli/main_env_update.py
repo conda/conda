@@ -25,6 +25,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_json,
         add_parser_prefix,
         add_parser_solver,
+        add_parser_env_spec_plugin,
     )
 
     summary = "Update the current environment based on environment file."
@@ -49,6 +50,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+
+    # Add environment spec plugin args
+    add_parser_env_spec_plugin(p)
+
     add_parser_frozen_env(p)
     add_parser_prefix(p)
     p.add_argument(
@@ -88,7 +93,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
-    from ..env import specs as install_specs
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
@@ -98,7 +102,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    spec = install_specs.detect(filename=args.file)
+    spec_hook = context.plugin_manager.get_environment_specifier(
+        filename=args.file, plugin_name=context.env_spec_plugin,
+    )
+    spec = spec_hook.environment_spec(args.file)
     env = spec.environment
 
     if not (args.name or args.prefix):
