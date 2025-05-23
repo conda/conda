@@ -1295,6 +1295,19 @@ class PluginError(CondaError):
     pass
 
 
+class PluginNotFound(CondaError):
+    def __init__(self, requested_plugin, plugin_names, *args, **kwargs):
+        self.requested_plugin = requested_plugin
+        msg = dals(
+            f"""
+            Requested plugin '{requested_plugin}' was not found.
+
+            Available plugins: {dashlist(plugin_names, 4)}
+            """
+        )
+        super().__init__(msg, *args, **kwargs)
+
+
 def maybe_raise(error: BaseException, context: Context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)

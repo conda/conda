@@ -26,6 +26,7 @@ from ..exceptions import (
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
     PluginError,
+    PluginNotFound,
 )
 from . import (
     environment_specifiers,
@@ -516,13 +517,39 @@ class CondaPluginManager(pluggy.PluginManager):
             hook.name.lower(): hook
             for hook in self.get_hook_results("environment_specifiers")
         }
+    
+    def get_explicit_environment_specifier(self, plugin_name: str) -> CondaEnvironmentSpecifier:
+        """
+        Returns the environment spec plugin that was requested by the user. Will not validate that the 
+        selected plugin can handle the target file.
 
-    def get_environment_specifier(self, filename: str) -> CondaEnvironmentSpecifier:
+        Raises PluginError if more than one environment_spec plugin is found with the same registered name.
+        Raises PluginNotFound if no plugins were found.
+
+        :param plugin_name: name of the environment plugin to load
+        :returns: an environment_spec plugin that that matches the given name
+        """
+        hooks = self.get_hook_results("environment_specifiers")
+        found = [hook for hook in hooks if hook.name == plugin_name]
+        if len(found) == 0:
+            raise PluginNotFound(
+                requested_plugin=plugin_name,
+                plugin_names=[hook.name for hook in hooks],
+            )
+        elif len(found) > 1:
+            raise PluginError(f"More than one environment_spec plugin named {plugin_name} found")
+        
+        return found[0]
+    
+    def detect_environment_spec_plugin_from_file(self, filename: str) -> CondaEnvironmentSpecifier:
         """
         Returns the environment_spec plugin that can handle the provided file.
 
         Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
         Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+
+        :param filename: full path to the environment spec file/source
+        :returns: an environment_spec plugin that can handle the provided file
         """
         hooks = self.get_hook_results("environment_specifiers")
         found = []
@@ -543,6 +570,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 )
 
         if len(found) == 1:
+            # return the plugin if only one is found
             return found[0]
         elif len(found) > 0:
             # raise an error if there is more than one plugin found
@@ -562,6 +590,22 @@ class CondaPluginManager(pluggy.PluginManager):
         raise EnvironmentSpecPluginNotDetected(
             name=filename, plugin_names=[hook.name for hook in hooks]
         )
+
+    def get_environment_specifier(self, filename: str, plugin_name=None) -> CondaEnvironmentSpecifier:
+        """
+        Returns the environment_spec plugin that can handle the provided file.
+
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected or PluginNotFound if no plugins were found.
+        
+        :param filename: full path to the environment spec file/source
+        :param plugin_name: name of the environment plugin to load
+        :returns: an environment_spec plugin that matches the provided plugin name, or can handle the provided file
+        """
+        if plugin_name is None or plugin_name == "":
+            return self.detect_environment_spec_plugin_from_file(filename)
+        else:
+            return self.get_explicit_environment_specifier(plugin_name)
 
     def get_pre_transaction_actions(
         self,
