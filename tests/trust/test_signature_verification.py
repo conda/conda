@@ -17,9 +17,8 @@ from conda.gateways.connection import HTTPError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 
-with warnings.catch_warnings(
-    action="ignore:conda.trust.* is pending deprecation:PendingDeprecationWarning"
-):
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message="conda.trust.* is pending deprecation")
     from conda.trust.constants import KEY_MGR_FILE
     from conda.trust.signature_verification import (
         SignatureError,
