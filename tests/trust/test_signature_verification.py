@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from pathlib import Path
 from shutil import copyfile
 from types import SimpleNamespace
@@ -15,8 +16,15 @@ from conda.base.context import context, reset_context
 from conda.gateways.connection import HTTPError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.trust.constants import KEY_MGR_FILE
-from conda.trust.signature_verification import SignatureError, _SignatureVerification
+
+with warnings.catch_warnings(
+    action="ignore:conda.trust.* is pending deprecation:PendingDeprecationWarning"
+):
+    from conda.trust.constants import KEY_MGR_FILE
+    from conda.trust.signature_verification import (
+        SignatureError,
+        _SignatureVerification,
+    )
 
 if TYPE_CHECKING:
     from typing import Callable
