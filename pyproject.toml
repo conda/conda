@@ -174,6 +174,7 @@ filterwarnings = [
   "ignore:conda.core.index._supplement_index_with_system:DeprecationWarning:conda_libmamba_solver.state",
   "ignore:conda.base.context.Context.restore_free_channel:DeprecationWarning:conda_libmamba_solver.state",
   "ignore:Adding 'defaults':FutureWarning:conda.base.context",
+  "ignore: datetime.datetime.utcnow():DeprecationWarning:botocore.auth",
   # pexpect ignores
   "ignore:setDaemon.*:DeprecationWarning",
   # ignore this until 26.9 due to a circular deprecation warning
