@@ -177,7 +177,9 @@ filterwarnings = [
   # pexpect ignores
   "ignore:setDaemon() is deprecated, set the daemon attribute instead:DeprecationWarning",
   # ignore this until 26.9 due to a circular deprecation warning
-  "ignore:conda.core.link.PrefixActions is pending deprecation:PendingDeprecationWarning:conda.core.link",
+  "ignore:conda.core.link.PrefixActions:PendingDeprecationWarning:conda.core.link",
+  # this deprecation needs to be delayed so ignore it
+  "ignore:conda.env.specs.binstar.BinstarSpec:PendingDeprecationWarning:conda.env.specs.binstar",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
