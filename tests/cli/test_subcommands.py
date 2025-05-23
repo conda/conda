@@ -54,8 +54,7 @@ def test_compare(
     environment_yml: Path,
 ):
     with tmp_env() as prefix:
-        with pytest.deprecated_call():
-            out, err, code = conda_cli("compare", "--prefix", prefix, environment_yml)
+        out, err, code = conda_cli("compare", "--prefix", prefix, environment_yml)
         assert out
         assert not err
         assert code
