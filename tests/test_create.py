@@ -39,7 +39,7 @@ from conda.common.path import (
     pyc_path,
 )
 from conda.common.serialize import json_dump, yaml_round_trip_load
-from conda.core.index import get_reduced_index
+from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -788,7 +788,18 @@ def test_strict_channel_priority(
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
-    index = get_reduced_index(None, channels, context.subdirs, specs, "repodata.json")
+
+    index = ReducedIndex(
+        specs,
+        channels=channels,
+        prepend=False,
+        subdirs=context.subdirs,
+        use_local=False,
+        use_cache=None,
+        prefix=None,
+        repodata_fn="repodata.json",
+        use_system=True,
+    )
     r = Resolve(index, channels=channels)
 
     monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
