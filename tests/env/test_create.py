@@ -299,11 +299,10 @@ def test_protected_dirs_error_for_env_create(
             CondaValueError,
             match="Environment paths cannot be immediately nested under another conda environment",
         ):
-            with pytest.deprecated_call():
-                conda_cli(
-                    "env",
-                    "create",
-                    f"--prefix={prefix}/envs",
-                    "--file",
-                    support_file("example/environment_pinned.yml"),
-                )
+            conda_cli(
+                "env",
+                "create",
+                f"--prefix={prefix}/envs",
+                "--file",
+                support_file("example/environment_pinned.yml"),
+            )
