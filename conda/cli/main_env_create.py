@@ -115,7 +115,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
     from ..env.installers.base import get_installer
-    from ..env.specs import detect
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from .common import validate_file_exists
@@ -124,7 +123,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    spec = detect(filename=args.file)
+    spec_hook = context.plugin_manager.get_environment_specifier(
+        filename=args.file, plugin_name=context.env_spec_plugin,
+    )
+    spec = spec_hook.environment_spec(filename=args.file)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix
