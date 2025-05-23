@@ -63,7 +63,7 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
     Ensures that our dummy random spec has been registered and can recognize .random files
     """
     filename = "test.random"
-    env_spec_backend = dummy_random_spec_plugin.get_environment_specifiers(filename)
+    env_spec_backend = dummy_random_spec_plugin.get_environment_specifier(filename)
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).environment is not None
 
@@ -73,7 +73,7 @@ def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):
     Ensures that our dummy random spec does not recognize non-".random" files
     """
     with pytest.raises(EnvironmentSpecPluginNotDetected):
-        dummy_random_spec_plugin.get_environment_specifiers("test.random-not")
+        dummy_random_spec_plugin.get_environment_specifier("test.random-not")
 
 
 def test_raise_error_for_multiple_registered_installers(
@@ -86,4 +86,4 @@ def test_raise_error_for_multiple_registered_installers(
     """
     filename = "test.random"
     with pytest.raises(PluginError):
-        dummy_random_spec_plugin.get_environment_specifiers(filename)
+        dummy_random_spec_plugin.get_environment_specifier(filename)
