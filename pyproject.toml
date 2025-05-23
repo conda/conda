@@ -175,7 +175,7 @@ filterwarnings = [
   "ignore:conda.base.context.Context.restore_free_channel:DeprecationWarning:conda_libmamba_solver.state",
   "ignore:Adding 'defaults':FutureWarning:conda.base.context",
   # pexpect ignores
-  "ignore: setDaemon() is deprecated, set the daemon attribute instead:DeprecationWarning",
+  "ignore: setDaemon() is deprecated, set the daemon attribute instead:DeprecationWarning:pexpect.popen_spawn",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
