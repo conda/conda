@@ -126,7 +126,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     spec_hook = context.plugin_manager.get_environment_specifier(
         filename=args.file, plugin_name=context.env_spec_plugin,
     )
-    spec = spec_hook.environment_spec(filename=args.file)
+    spec = spec_hook.environment_spec(args.file)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix

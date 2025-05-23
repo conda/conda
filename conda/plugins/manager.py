@@ -518,15 +518,16 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("environment_specifiers")
         }
     
-    def get_explicit_environment_specifier(self, plugin_name: str) -> CondaEnvironmentSpecifier:
+    def get_explicit_environment_specifier(self, plugin_name: str, filename: str) -> CondaEnvironmentSpecifier:
         """
-        Returns the environment spec plugin that was requested by the user. Will not validate that the 
+        Returns the environment spec plugin that was requested by the user. Will validate that the 
         selected plugin can handle the target file.
 
         Raises PluginError if more than one environment_spec plugin is found with the same registered name.
         Raises PluginNotFound if no plugins were found.
 
         :param plugin_name: name of the environment plugin to load
+        :param filename: full path to the environment spec file/source
         :returns: an environment_spec plugin that that matches the given name
         """
         hooks = self.get_hook_results("environment_specifiers")
@@ -539,7 +540,10 @@ class CondaPluginManager(pluggy.PluginManager):
         elif len(found) > 1:
             raise PluginError(f"More than one environment_spec plugin named {plugin_name} found")
         
-        return found[0]
+        if found[0].environment_spec(filename).can_handle():
+            return found[0]
+        else:
+            raise PluginError(f"Requested plugin '{plugin_name}' is unable to handle environment spec '{filename}'")
     
     def detect_environment_spec_plugin_from_file(self, filename: str) -> CondaEnvironmentSpecifier:
         """
@@ -605,7 +609,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if plugin_name is None or plugin_name == "":
             return self.detect_environment_spec_plugin_from_file(filename)
         else:
-            return self.get_explicit_environment_specifier(plugin_name)
+            return self.get_explicit_environment_specifier(plugin_name, filename)
 
     def get_pre_transaction_actions(
         self,

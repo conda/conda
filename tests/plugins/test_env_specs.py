@@ -71,7 +71,7 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).environment is not None
 
-    env_spec_backend = dummy_random_spec_plugin.get_explicit_environment_specifier("rand-spec")
+    env_spec_backend = dummy_random_spec_plugin.get_explicit_environment_specifier("rand-spec", filename)
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).environment is not None
 
@@ -84,12 +84,20 @@ def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):
         dummy_random_spec_plugin.get_environment_specifier("test.random-not")
 
 
-def test_raises_an_error_if_plugin_does_not_exist(dummy_random_spec_plugin):
+def test_raises_an_error_if_explicit_plugin_does_not_exist(dummy_random_spec_plugin):
     """
     Ensures that an error is raised if the user requests a plugin that doesn't exist
     """
     with pytest.raises(PluginNotFound):
-        dummy_random_spec_plugin.get_explicit_environment_specifier("uhoh")
+        dummy_random_spec_plugin.get_explicit_environment_specifier("uhoh", "test.random")
+
+
+def test_raises_an_error_if_explicit_plugin_does_can_not_be_handles(dummy_random_spec_plugin):
+    """
+    Ensures that an error is raised if the user requests a plugin exists, but can't be handled
+    """
+    with pytest.raises(PluginNotFound):
+        dummy_random_spec_plugin.get_explicit_environment_specifier("uhoh", "test.random-not-so-much")
 
 
 def test_raise_error_for_multiple_registered_installers(
