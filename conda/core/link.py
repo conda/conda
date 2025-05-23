@@ -184,8 +184,8 @@ class ActionGroup(NamedTuple):
 
 @deprecated(
     "25.9",
-    "26.3",
-    addendum="PrefixActions will be renamed to PrefixActionGroup in 26.3.",
+    "26.9",
+    addendum="PrefixActions will be renamed to PrefixActionGroup in 26.9.",
 )
 @dataclass
 class PrefixActions:
