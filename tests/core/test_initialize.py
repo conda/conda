@@ -479,23 +479,33 @@ def test_install_conda_fish(verbose):
         with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
-        (
-            first_line,
-            second_line,
-            third_line,
-            fourth_line,
-            remainder,
-        ) = created_file_contents.split("\n", 4)
+        split_vals = created_file_contents.split("\n", 6)
+        header = "\n".join(split_vals[:6])
+        remainder = split_vals[6]
         if on_win:
-            assert first_line == f'set -gx CONDA_EXE (cygpath "{conda_exe}")'
-            assert second_line == f'set _CONDA_ROOT (cygpath "{conda_prefix}")'
-            assert third_line == f'set _CONDA_EXE (cygpath "{conda_exe}")'
-            assert fourth_line == f'set -gx CONDA_PYTHON_EXE (cygpath "{python_exe}")'
+            assert (
+                header
+                == (
+                    f'set -gx CONDA_EXE (cygpath "{conda_exe}")\n'
+                    "set -e _CE_M\n"
+                    "set -e _CE_CONDA\n"
+                    f'set -gx CONDA_PYTHON_EXE (cygpath "{python_exe}")\n'
+                    f'set _CONDA_EXE (cygpath "{conda_exe}")\n'
+                    f'set _CONDA_ROOT (cygpath "{conda_prefix}")\n'
+                ).strip()
+            )
         else:
-            assert first_line == f'set -gx CONDA_EXE "{conda_exe}"'
-            assert second_line == f'set _CONDA_ROOT "{conda_prefix}"'
-            assert third_line == f'set _CONDA_EXE "{conda_exe}"'
-            assert fourth_line == f'set -gx CONDA_PYTHON_EXE "{python_exe}"'
+            assert (
+                header
+                == (
+                    f'set -gx CONDA_EXE "{conda_exe}"\n'
+                    "set -e _CE_M\n"
+                    "set -e _CE_CONDA\n"
+                    f'set -gx CONDA_PYTHON_EXE "{python_exe}"\n'
+                    f'set _CONDA_EXE "{conda_exe}"\n'
+                    f'set _CONDA_ROOT "{conda_prefix}"\n'
+                ).strip()
+            )
 
         with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")

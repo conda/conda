@@ -1089,25 +1089,31 @@ class FishActivator(_Activator):
     )
 
     def _hook_preamble(self) -> str:
-        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
+        result = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                result.append(self.unset_var_tmpl % key)
+            elif on_win:
+                result.append(f'set -gx {key} (cygpath "{value}")')
+            else:
+                result.append(self.export_var_tmpl % (key, value))
+
+        if "CONDA_EXE" in context.conda_exe_vars_dict:
+            if on_win:
+                result.append(
+                    f'set _CONDA_EXE (cygpath "{context.conda_exe_vars_dict["CONDA_EXE"]}")'
+                )
+            else:
+                result.append(
+                    f'set _CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}"'
+                )
+
         if on_win:
-            return dedent(
-                f"""
-                set -gx CONDA_EXE (cygpath "{conda_exe}")
-                set _CONDA_ROOT (cygpath "{context.conda_prefix}")
-                set _CONDA_EXE (cygpath "{conda_exe}")
-                set -gx CONDA_PYTHON_EXE (cygpath "{sys.executable}")
-                """
-            ).strip()
+            result.append(f'set _CONDA_ROOT (cygpath "{context.conda_prefix}")')
         else:
-            return dedent(
-                f"""
-                set -gx CONDA_EXE "{conda_exe}"
-                set _CONDA_ROOT "{context.conda_prefix}"
-                set _CONDA_EXE "{conda_exe}"
-                set -gx CONDA_PYTHON_EXE "{sys.executable}"
-                """
-            ).strip()
+            result.append(f'set _CONDA_ROOT "{context.conda_prefix}"')
+
+        return "\n".join(result)
 
 
 class PowerShellActivator(_Activator):
