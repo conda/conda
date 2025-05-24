@@ -28,19 +28,18 @@ from os.path import (
     join,
 )
 from pathlib import Path
-from textwrap import dedent
 from typing import TYPE_CHECKING
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
-from . import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
+from . import CONDA_PACKAGE_ROOT
 from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
 )
-from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+from .base.context import BIN_DIRECTORY, ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import on_win
 from .common.path import _cygpath, paths_equal, unix_path_to_win, win_path_to_unix
 from .common.path import path_identity as _path_identity
@@ -1137,30 +1136,31 @@ class PowerShellActivator(_Activator):
     )
 
     def _hook_preamble(self) -> str:
-        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
+        result = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if value is None:
+                result.append(self.unset_var_tmpl % key)
+            else:
+                result.append(self.export_var_tmpl % (key, value))
+
         if context.dev:
-            return dedent(
-                f"""
-                $Env:PYTHONPATH = "{CONDA_SOURCE_ROOT}"
-                $Env:CONDA_EXE = "{sys.executable}"
-                $Env:_CE_M = "-m"
-                $Env:_CE_CONDA = "conda"
-                $Env:_CONDA_ROOT = "{CONDA_PACKAGE_ROOT}"
-                $Env:_CONDA_EXE = "{conda_exe}"
-                $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
-                """
-            ).strip()
+            result.append(f'$Env:_CONDA_ROOT = "{CONDA_PACKAGE_ROOT}"')
+            # this gets set to the non-dev value so construct by hand
+            # the non-dev value was used before the refactor to use
+            # context.conda_exe_vars_dict
+            # we have kept it here to match the old code out of caution
+            if "CONDA_EXE" in result:
+                exe = "conda.exe" if on_win else "conda"
+                conda_exe = join(self.conda_prefix, BIN_DIRECTORY, exe)
+                result.append(f'$Env:_CONDA_EXE = "{conda_exe}"')
         else:
-            return dedent(
-                f"""
-                $Env:CONDA_EXE = "{conda_exe}"
-                $Env:_CE_M = $null
-                $Env:_CE_CONDA = $null
-                $Env:_CONDA_ROOT = "{context.conda_prefix}"
-                $Env:_CONDA_EXE = "{conda_exe}"
-                $CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}
-                """
-            ).strip()
+            result.append(f'$Env:_CONDA_ROOT = "{context.conda_prefix}"')
+            if "CONDA_EXE" in result:
+                result.append(f'$Env:_CONDA_EXE = "{result["CONDA_EXE"]}"')
+
+        result.append(f"$CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}")
+
+        return "\n".join(result)
 
     def _hook_postamble(self) -> str:
         return "Remove-Variable CondaModuleArgs"
@@ -1174,23 +1174,26 @@ class JSONFormatMixin(_Activator):
     command_join = list
 
     def _hook_preamble(self):
+        result = context.conda_exe_vars_dict.copy()
+        for k in result:
+            if result[k] is None:
+                result[k] = ""
+
         if context.dev:
-            return {
-                "PYTHONPATH": CONDA_SOURCE_ROOT,
-                "CONDA_EXE": sys.executable,
-                "_CE_M": "-m",
-                "_CE_CONDA": "conda",
-                "_CONDA_ROOT": CONDA_PACKAGE_ROOT,
-                "_CONDA_EXE": context.conda_exe,
-            }
+            result["_CONDA_ROOT"] = CONDA_PACKAGE_ROOT
+            # this gets set to the non-dev value so construct by hand
+            # the non-dev value was used before the refactor to use
+            # context.conda_exe_vars_dict
+            # we have kept it here to match the old code out of caution
+            if "CONDA_EXE" in result:
+                exe = "conda.exe" if on_win else "conda"
+                result["_CONDA_EXE"] = join(self.conda_prefix, BIN_DIRECTORY, exe)
         else:
-            return {
-                "CONDA_EXE": context.conda_exe,
-                "_CE_M": "",
-                "_CE_CONDA": "",
-                "_CONDA_ROOT": context.conda_prefix,
-                "_CONDA_EXE": context.conda_exe,
-            }
+            result["_CONDA_ROOT"] = context.conda_prefix
+            if "CONDA_EXE" in result:
+                result["_CONDA_EXE"] = result["CONDA_EXE"]
+
+        return result
 
     def _finalize(self, commands, ext):
         merged = {}
