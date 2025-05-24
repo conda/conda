@@ -985,22 +985,14 @@ class CshActivator(_Activator):
 
         result = []
         for key, value in context.conda_exe_vars_dict.items():
-            # if key not in [
-            #     "CONDA_EXE",
-            #     "_CONDA_ROOT",
-            #     "_CONDA_EXE",
-            #     "CONDA_PYTHON_EXE",
-            # ]:
-            #     continue
-
             result = _add_key_value_to_result(key, value, result)
 
-            if key == "CONDA_EXE":
-                # insert extra values with underscores
-                # result = _add_key_value_to_result(
-                #     "_CONDA_ROOT", context.conda_prefix, result
-                # )
-                result = _add_key_value_to_result("_" + key, value, result)
+        if "CONDA_EXE" in context.conda_exe_vars_dict:
+            result = _add_key_value_to_result(
+                "_CONDA_EXE", context.conda_exe_vars_dict["CONDA_EXE"], result
+            )
+
+        result = _add_key_value_to_result("_CONDA_ROOT", context.conda_prefix, result)
 
         if on_win:
             result.append(f"source \"`cygpath '{hook_source_path}'`\"")
