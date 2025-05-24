@@ -997,9 +997,9 @@ class CshActivator(_Activator):
 
             if key == "CONDA_EXE":
                 # insert extra values with underscores
-                result = _add_key_value_to_result(
-                    "_CONDA_ROOT", context.conda_prefix, result
-                )
+                # result = _add_key_value_to_result(
+                #     "_CONDA_ROOT", context.conda_prefix, result
+                # )
                 result = _add_key_value_to_result("_" + key, value, result)
 
         if on_win:
