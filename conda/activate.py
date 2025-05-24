@@ -986,7 +986,7 @@ class CshActivator(_Activator):
                 # with shell flag -u set (error on unset).
                 result.append(self.export_var_tmpl % (key, ""))
             elif on_win:
-                result.append(self.export_var_tmpl % (key, "$(cygpath '{value}')"))
+                result.append(self.export_var_tmpl % (key, "`cygpath '{value}'`"))
             else:
                 result.append(self.export_var_tmpl % (key, value))
 
