@@ -971,23 +971,31 @@ class CshActivator(_Activator):
             "profile.d",
             "conda.csh",
         )
-        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
+        result = []
+        for key, value in context.conda_exe_vars_dict.items():
+            if key not in [
+                "CONDA_EXE",
+                "_CONDA_ROOT",
+                "_CONDA_EXE",
+                "CONDA_PYTHON_EXE",
+            ]:
+                continue
+
+            if value is None:
+                # Using `unset_var_tmpl` would cause issues for people running
+                # with shell flag -u set (error on unset).
+                result.append(self.export_var_tmpl % (key, ""))
+            elif on_win:
+                result.append(self.export_var_tmpl % (key, "$(cygpath '{value}')"))
+            else:
+                result.append(self.export_var_tmpl % (key, value))
+
         if on_win:
-            return (
-                f"setenv CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
-                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
-                f"setenv _CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
-                f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
-                f"source \"`cygpath '{hook_source_path}'`\";\n"
-            )
+            result.append(f"source \"`cygpath '{hook_source_path}'`\"")
         else:
-            return (
-                f'setenv CONDA_EXE "{conda_exe}";\n'
-                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
-                f'setenv _CONDA_EXE "{conda_exe}";\n'
-                f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
-                f'source "{hook_source_path}";\n'
-            )
+            result.append(f'source "{hook_source_path}"')
+
+        return ";\n".join(result) + ";\n"
 
 
 class XonshActivator(_Activator):
