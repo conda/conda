@@ -208,7 +208,7 @@ def set_all_logger_level(level=DEBUG):
 @cache
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
-        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(datetime.UTC).strftime("%Y%m%d-%H%M%S")
         path = f".conda.{timestamp}.log"
 
     conda_logger = getLogger(logger_name)

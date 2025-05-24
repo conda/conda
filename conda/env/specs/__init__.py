@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from typing import TYPE_CHECKING
 
 from ...base.context import context
@@ -71,9 +72,13 @@ def detect(
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
     try:
-        spec_hook = context.plugin_manager.get_environment_specifiers(
-            filename=filename,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", message="conda.env.specs.binstar.BinstarSpec"
+            )
+            spec_hook = context.plugin_manager.get_environment_specifiers(
+                filename=filename,
+            )
     except EnvironmentSpecPluginNotDetected as e:
         raise SpecNotFound(e.message)
 
