@@ -574,27 +574,25 @@ def test_install_conda_csh(verbose):
         # won't pass no matter what
         conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if on_win:
-            with pytest.deprecated_call():
-                assert created_file_contents == (
-                    f"setenv CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
-                    'setenv _CE_M "";\n'
-                    'setenv _CE_CONDA "";\n'
-                    f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
-                    f"setenv _CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
-                    f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
-                    f"source \"`cygpath '{hook_source_path}'`\";\n"
-                )
+            assert created_file_contents == (
+                f"setenv CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
+                'setenv _CE_M "";\n'
+                'setenv _CE_CONDA "";\n'
+                f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
+                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
+                f"source \"`cygpath '{hook_source_path}'`\";\n"
+            )
         else:
-            with pytest.deprecated_call():
-                assert created_file_contents == (
-                    f'setenv CONDA_EXE "{conda_exe}";\n'
-                    'setenv _CE_M "";\n'
-                    'setenv _CE_CONDA "";\n'
-                    f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
-                    f'setenv _CONDA_EXE "{conda_exe}";\n'
-                    f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
-                    f'source "{hook_source_path}";\n'
-                )
+            assert created_file_contents == (
+                f'setenv CONDA_EXE "{conda_exe}";\n'
+                'setenv _CE_M "";\n'
+                'setenv _CE_CONDA "";\n'
+                f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
+                f'setenv _CONDA_EXE "{conda_exe}";\n'
+                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
+                f'source "{hook_source_path}";\n'
+            )
 
         result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.NO_CHANGE
