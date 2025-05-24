@@ -448,6 +448,10 @@ def test_install_conda_sh(verbose):
         PosixActivator()
 
         line0, line1, line2, line3, _, remainder = created_file_contents.split("\n", 5)
+        # we extract CONDA_EXE by hand here because this test hardcodes
+        # the correct test result anyways
+        # if CONDA_EXE is not in context.conda_exe_vars_dict, the test
+        # won't pass no matter what
         conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if on_win:
             assert line0 == f'''export CONDA_EXE="$(cygpath '{conda_exe}')"'''
