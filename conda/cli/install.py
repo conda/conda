@@ -494,22 +494,17 @@ def install_revision(args, parser):
             with get_spinner(f"Collecting package metadata ({repodata})"):
                 index = Index(
                     channels=index_args["channel_urls"],
-                    prepend=index_args["prepend"],
+                    prepend=index_args["prepend"],  # --override-channels
                     platform=None,
+                    # these options were commented out in the version of this
+                    # code bit that used the now-deprecated `get_index` function
+                    # we have left them here so that this information is not lost
+                    # use_cache=index_args["use_cache"],  # --use-index-cache
+                    # unknown=index_args["unknown"],  # --unknown
                     use_local=index_args["use_local"],
                     prefix=prefix,
                     repodata_fn=repodata,
                 )
-                # index = get_index(
-                #     channel_urls=index_args["channel_urls"],
-                #     prepend=index_args["prepend"],  # --override-channels
-                #     platform=None,
-                #     use_local=index_args["use_local"],  # --use-local
-                #     # use_cache=index_args["use_cache"],  # --use-index-cache
-                #     # unknown=index_args["unknown"],  # --unknown
-                #     prefix=prefix,
-                #     repodata_fn=repodata,
-                # )
             revision_idx = get_revision(args.revision)
             with get_spinner(f"Reverting to revision {revision_idx}"):
                 unlink_link_transaction = revert_actions(prefix, revision_idx, index)
