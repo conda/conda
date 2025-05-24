@@ -1151,7 +1151,7 @@ class PowerShellActivator(_Activator):
             # we have kept it here to match the old code out of caution
             if "CONDA_EXE" in context.conda_exe_vars_dict:
                 exe = "conda.exe" if on_win else "conda"
-                conda_exe = join(self.conda_prefix, BIN_DIRECTORY, exe)
+                conda_exe = join(context.conda_prefix, BIN_DIRECTORY, exe)
                 result.append(f'$Env:_CONDA_EXE = "{conda_exe}"')
         else:
             result.append(f'$Env:_CONDA_ROOT = "{context.conda_prefix}"')
@@ -1189,7 +1189,7 @@ class JSONFormatMixin(_Activator):
             # we have kept it here to match the old code out of caution
             if "CONDA_EXE" in context.conda_exe_vars_dict:
                 exe = "conda.exe" if on_win else "conda"
-                result["_CONDA_EXE"] = join(self.conda_prefix, BIN_DIRECTORY, exe)
+                result["_CONDA_EXE"] = join(context.conda_prefix, BIN_DIRECTORY, exe)
         else:
             result["_CONDA_ROOT"] = context.conda_prefix
             if "CONDA_EXE" in context.conda_exe_vars_dict:
