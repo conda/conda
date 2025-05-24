@@ -1149,13 +1149,13 @@ class PowerShellActivator(_Activator):
             # the non-dev value was used before the refactor to use
             # context.conda_exe_vars_dict
             # we have kept it here to match the old code out of caution
-            if "CONDA_EXE" in result:
+            if "CONDA_EXE" in context.conda_exe_vars_dict:
                 exe = "conda.exe" if on_win else "conda"
                 conda_exe = join(self.conda_prefix, BIN_DIRECTORY, exe)
                 result.append(f'$Env:_CONDA_EXE = "{conda_exe}"')
         else:
             result.append(f'$Env:_CONDA_ROOT = "{context.conda_prefix}"')
-            if "CONDA_EXE" in result:
+            if "CONDA_EXE" in context.conda_exe_vars_dict:
                 result.append(f'$Env:_CONDA_EXE = "{result["CONDA_EXE"]}"')
 
         result.append(f"$CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}")
@@ -1185,12 +1185,12 @@ class JSONFormatMixin(_Activator):
             # the non-dev value was used before the refactor to use
             # context.conda_exe_vars_dict
             # we have kept it here to match the old code out of caution
-            if "CONDA_EXE" in result:
+            if "CONDA_EXE" in context.conda_exe_vars_dict:
                 exe = "conda.exe" if on_win else "conda"
                 result["_CONDA_EXE"] = join(self.conda_prefix, BIN_DIRECTORY, exe)
         else:
             result["_CONDA_ROOT"] = context.conda_prefix
-            if "CONDA_EXE" in result:
+            if "CONDA_EXE" in context.conda_exe_vars_dict:
                 result["_CONDA_EXE"] = result["CONDA_EXE"]
 
         return result
