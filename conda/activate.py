@@ -971,6 +971,18 @@ class CshActivator(_Activator):
             "profile.d",
             "conda.csh",
         )
+
+        def _add_key_value_to_result(key, value, result):
+            if value is None:
+                # Using `unset_var_tmpl` would cause issues for people running
+                # with shell flag -u set (error on unset).
+                result.append(self.export_var_tmpl % (key, ""))
+            elif on_win:
+                result.append(self.export_var_tmpl % (key, "`cygpath '{value}'`"))
+            else:
+                result.append(self.export_var_tmpl % (key, value))
+            return result
+
         result = []
         for key, value in context.conda_exe_vars_dict.items():
             if key not in [
@@ -981,14 +993,14 @@ class CshActivator(_Activator):
             ]:
                 continue
 
-            if value is None:
-                # Using `unset_var_tmpl` would cause issues for people running
-                # with shell flag -u set (error on unset).
-                result.append(self.export_var_tmpl % (key, ""))
-            elif on_win:
-                result.append(self.export_var_tmpl % (key, "`cygpath '{value}'`"))
-            else:
-                result.append(self.export_var_tmpl % (key, value))
+            result = _add_key_value_to_result(key, value, result)
+
+            if key == "CONDA_EXE":
+                # insert extra values with underscores
+                result = _add_key_value_to_result(
+                    "_CONDA_ROOT", context.conda_prefix, result
+                )
+                result = _add_key_value_to_result("_" + key, value, result)
 
         if on_win:
             result.append(f"source \"`cygpath '{hook_source_path}'`\"")
