@@ -1156,7 +1156,9 @@ class PowerShellActivator(_Activator):
         else:
             result.append(f'$Env:_CONDA_ROOT = "{context.conda_prefix}"')
             if "CONDA_EXE" in context.conda_exe_vars_dict:
-                result.append(f'$Env:_CONDA_EXE = "{result["CONDA_EXE"]}"')
+                result.append(
+                    f'$Env:_CONDA_EXE = "{context.conda_exe_vars_dict["CONDA_EXE"]}"'
+                )
 
         result.append(f"$CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}")
 
