@@ -985,13 +985,13 @@ class CshActivator(_Activator):
 
         result = []
         for key, value in context.conda_exe_vars_dict.items():
-            if key not in [
-                "CONDA_EXE",
-                "_CONDA_ROOT",
-                "_CONDA_EXE",
-                "CONDA_PYTHON_EXE",
-            ]:
-                continue
+            # if key not in [
+            #     "CONDA_EXE",
+            #     "_CONDA_ROOT",
+            #     "_CONDA_EXE",
+            #     "CONDA_PYTHON_EXE",
+            # ]:
+            #     continue
 
             result = _add_key_value_to_result(key, value, result)
 
