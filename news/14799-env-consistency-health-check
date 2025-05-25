@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add "environment consistency" health check to `conda doctor`. (#14715 via #14799)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Update the conda cheatsheet to 25.3.1 version. (#14830)
+* <news item>
 
 ### Other
 
