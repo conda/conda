@@ -1494,7 +1494,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     else:
         spec = "console_shortcut"
     with tmp_env(spec, "--no-shortcuts", prefix=prefix):
-        out, err, rc  =conda_cli("list", "-p", prefix)
+        out, err, rc = conda_cli("list", "-p", prefix)
         print(out)
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
@@ -2471,7 +2471,9 @@ def test_conda_downgrade(
 
     # with tmp_env("python=3.11", "conda") as prefix:  # rev 0
     # TMP: Ask for py-rattler
-    with tmp_env("python=3.11", "pip", "conda", "py-rattler>=0.13.1") as prefix:  # rev 0
+    with tmp_env(
+        "python=3.11", "pip", "conda", "py-rattler>=0.13.1"
+    ) as prefix:  # rev 0
         python_exe = str(prefix / PYTHON_BINARY)
         # TMP: Install conda-rattler-solver in target env too
         subprocess_call_with_clean_env(

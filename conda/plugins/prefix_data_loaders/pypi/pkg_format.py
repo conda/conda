@@ -270,7 +270,7 @@ class PythonDistribution:
                                 checksum,
                             )
                             checksum = checksum[7:]
-                            pad = '=' * (4 - (len(checksum) & 3))
+                            pad = "=" * (4 - (len(checksum) & 3))
                             checksum = urlsafe_b64decode(checksum + pad).hex()
                         else:
                             checksum = None
