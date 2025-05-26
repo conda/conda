@@ -24,11 +24,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
+        add_parser_env_spec_plugin,
         add_parser_networking,
         add_parser_platform,
         add_parser_prefix,
         add_parser_solver,
-        add_parser_env_spec_plugin,
     )
 
     summary = "Create an environment based on an environment definition file."
@@ -124,7 +124,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # detect the file format and get the env representation
     spec_hook = context.plugin_manager.get_environment_specifier(
-        filename=args.file, plugin_name=context.env_spec_plugin,
+        filename=args.file,
+        plugin_name=context.env_spec_plugin,
     )
     spec = spec_hook.environment_spec(args.file)
     env = spec.environment

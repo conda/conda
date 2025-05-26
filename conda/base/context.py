@@ -1373,7 +1373,10 @@ class Context(Configuration):
                 "protect_frozen_envs",
                 # prevent modifications to envs marked with conda-meta/frozen
             ),
-            "Plugin Configuration": ("env_spec_plugin", "no_plugins", ),
+            "Plugin Configuration": (
+                "env_spec_plugin",
+                "no_plugins",
+            ),
         }
 
     def get_descriptions(self) -> dict[str, str]:

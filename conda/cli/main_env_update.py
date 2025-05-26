@@ -21,11 +21,11 @@ from ..notices import notices
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
+        add_parser_env_spec_plugin,
         add_parser_frozen_env,
         add_parser_json,
         add_parser_prefix,
         add_parser_solver,
-        add_parser_env_spec_plugin,
     )
 
     summary = "Update the current environment based on environment file."
@@ -103,7 +103,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # detect the file format and get the env representation
     spec_hook = context.plugin_manager.get_environment_specifier(
-        filename=args.file, plugin_name=context.env_spec_plugin,
+        filename=args.file,
+        plugin_name=context.env_spec_plugin,
     )
     spec = spec_hook.environment_spec(args.file)
     env = spec.environment

@@ -118,7 +118,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             filename = abspath(expanduser(expandvars(args.file)))
 
         spec_hook = context.plugin_manager.get_environment_specifier(
-            filename=filename, plugin_name=context.env_spec_plugin,
+            filename=filename,
+            plugin_name=context.env_spec_plugin,
         )
         spec = spec_hook.environment_spec(filename)
         env = spec.environment
