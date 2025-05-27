@@ -576,13 +576,14 @@ def add_parser_verbose(parser: ArgumentParser | _ArgumentGroup) -> None:
     )
 
 
-def add_parser_env_spec_plugin(p: ArgumentParser) -> None:
+def add_parser_environment_specifier(p: ArgumentParser) -> None:
     from ..base.context import context
 
     p.add_argument(
-        "--env-spec-plugin",
+        "--environment-specifier",
+        "--env-spec",  # for brevity
         choices=context.plugin_manager.get_environment_specifier_names(),
-        help="Specify the environment spec plugin to use.",
+        help="Specify the environment specifier plugin to use.",
         default="",
     )
 

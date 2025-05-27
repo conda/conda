@@ -119,7 +119,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         spec_hook = context.plugin_manager.get_environment_specifier(
             filename=filename,
-            plugin_name=context.env_spec_plugin,
+            plugin_name=context.environment_specifier,
         )
         spec = spec_hook.environment_spec(filename)
         env = spec.environment

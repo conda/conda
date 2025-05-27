@@ -245,7 +245,7 @@ class Context(Configuration):
     clobber = ParameterLoader(PrimitiveParameter(False))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
-    env_spec_plugin = ParameterLoader(PrimitiveParameter(""))
+    environment_specifier = ParameterLoader(PrimitiveParameter(""))
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
@@ -1374,7 +1374,7 @@ class Context(Configuration):
                 # prevent modifications to envs marked with conda-meta/frozen
             ),
             "Plugin Configuration": (
-                "env_spec_plugin",
+                "environment_specifier",
                 "no_plugins",
             ),
         }
@@ -1630,9 +1630,9 @@ class Context(Configuration):
                 str.format() method.
                 """
             ),
-            env_spec_plugin=dals(
+            environment_specifier=dals(
                 """
-                The name of the environment_spec plugin that should be used for this context.
+                The name of the environment specifier plugin that should be used for this context.
                 If not specified, the plugin manager will try to detect the plugin to use.
                 """
             ),

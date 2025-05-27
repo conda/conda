@@ -24,7 +24,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
-        add_parser_env_spec_plugin,
+        add_parser_environment_specifier,
         add_parser_networking,
         add_parser_platform,
         add_parser_prefix,
@@ -84,7 +84,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_networking(p)
 
     # Add environment spec plugin args
-    add_parser_env_spec_plugin(p)
+    add_parser_environment_specifier(p)
 
     p.add_argument(
         "remote_definition",
@@ -125,7 +125,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # detect the file format and get the env representation
     spec_hook = context.plugin_manager.get_environment_specifier(
         filename=args.file,
-        plugin_name=context.env_spec_plugin,
+        plugin_name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
     env = spec.environment
