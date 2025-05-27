@@ -582,7 +582,7 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
-        choices=context.plugin_manager.get_environment_specifier_names(),
+        choices=context.plugin_manager.get_environment_specifiers(),
         help="Specify the environment specifier plugin to use.",
         default="",
     )
