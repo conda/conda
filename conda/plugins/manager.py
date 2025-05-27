@@ -509,9 +509,9 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         return PluginConfig(data)
 
-    def get_environment_specifier_names(self) -> dict[str, CondaEnvironmentSpecifier]:
+    def get_environment_specifiers(self) -> dict[str, CondaEnvironmentSpecifier]:
         """
-        Returns a list of all the environment specifier plugin names
+        Returns a mapping from environment specifier name to environment specifier. 
         """
         return {
             hook.name.lower(): hook
