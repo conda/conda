@@ -245,7 +245,9 @@ class Context(Configuration):
     clobber = ParameterLoader(PrimitiveParameter(False))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
-    environment_specifier = ParameterLoader(PrimitiveParameter(""))
+    environment_specifier = ParameterLoader(
+        PrimitiveParameter(None, element_type=(str, NoneType)), aliases=("env_spec",)
+    )
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
@@ -1335,6 +1337,7 @@ class Context(Configuration):
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
                 "envvars_force_uppercase",
+                "environment_specifier",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1374,7 +1377,6 @@ class Context(Configuration):
                 # prevent modifications to envs marked with conda-meta/frozen
             ),
             "Plugin Configuration": (
-                "environment_specifier",
                 "no_plugins",
             ),
         }
