@@ -1337,7 +1337,6 @@ class Context(Configuration):
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
                 "envvars_force_uppercase",
-                "environment_specifier",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1379,6 +1378,9 @@ class Context(Configuration):
             "Plugin Configuration": (
                 "no_plugins",
             ),
+            "Environment Managment Configuration": (
+                "environment_specifier",
+            )
         }
 
     def get_descriptions(self) -> dict[str, str]:
