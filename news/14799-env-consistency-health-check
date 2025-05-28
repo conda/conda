@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `environment_specifiers` hooks to allow the creation of plugins to read different file formats and sources. (#14710)
+* Add "environment consistency" health check to `conda doctor`. (#14715 via #14799)
 
 ### Bug fixes
 
