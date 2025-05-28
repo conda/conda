@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Add "environment consistency" health check to `conda doctor`. (#14715 via #14799)
 
 ### Bug fixes
 
-* Cleanup refrences to `DepsModifier.UPDATE_SPECS`. (#14807)
+* <news item>
 
 ### Deprecations
 

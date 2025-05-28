@@ -12,10 +12,13 @@ from pathlib import Path
 from requests.exceptions import RequestException
 
 from ....base.context import context
+from ....common.serialize import yaml_safe_dump
 from ....core.envs_manager import get_user_environments_txt_file
+from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
+from ....models.match_spec import MatchSpec
 from ... import CondaHealthCheck, hookimpl
 
 logger = getLogger(__name__)
@@ -94,6 +97,9 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
 
         for path in paths:
             _path = path.get("_path")
+            if excluded_files_check(_path):
+                continue
+
             old_sha256 = path.get("sha256_in_prefix")
             if _path is None or old_sha256 is None:
                 continue
@@ -175,6 +181,64 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
             )
 
 
+def consistent_env_check(prefix: str, verbose: bool) -> None:
+    # get the plugin manager from context
+    pm = context.plugin_manager
+
+    # get prefix data
+    pd = PrefixData(prefix)
+
+    # get virtual packages record
+    virtual_packages = {
+        record.name: record for record in pm.get_virtual_package_records()
+    }
+
+    # collect missing dependency issues in a list
+    issues = {}
+
+    # check if dependencies are present
+    for record in pd.iter_records():
+        for dependency in record.depends:
+            match_spec = MatchSpec(dependency)
+            dependency_record = pd.get(
+                match_spec.name, default=virtual_packages.get(match_spec.name, None)
+            )
+            if dependency_record is None:
+                issues.setdefault(record.name, {}).setdefault("missing", []).append(
+                    str(match_spec)
+                )
+            elif not match_spec.match(dependency_record):
+                inconsistent = {
+                    "expected": str(match_spec),
+                    "installed": str(dependency_record),
+                }
+                issues.setdefault(record.name, {}).setdefault(
+                    "inconsistent", []
+                ).append(inconsistent)
+
+        for constrain in record.constrains:
+            package_found = pd.get(
+                MatchSpec(constrain).name,
+                default=virtual_packages.get(MatchSpec(constrain).name, None),
+            )
+            if package_found is not None:
+                if not MatchSpec(constrain).match(package_found):
+                    inconsistent_constrain = {
+                        "expected": str(MatchSpec(constrain)),
+                        "installed": f"{package_found.name}[version='{package_found.version}']",
+                    }
+                    issues.setdefault(record.name, {}).setdefault(
+                        "inconsistent", []
+                    ).append(inconsistent_constrain)
+
+    if issues:
+        print(f"{X_MARK} The environment is not consistent.\n")
+        if verbose:
+            print(yaml_safe_dump(issues))
+    else:
+        print(f"{OK_MARK} The environment is consistent.\n")
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
@@ -182,4 +246,7 @@ def conda_health_checks():
     yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)
     yield CondaHealthCheck(
         name="REQUESTS_CA_BUNDLE Check", action=requests_ca_bundle_check
+    )
+    yield CondaHealthCheck(
+        name="Consistent Environment Check", action=consistent_env_check
     )
