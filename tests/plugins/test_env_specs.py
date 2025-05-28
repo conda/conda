@@ -71,11 +71,15 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).environment is not None
 
-    env_spec_backend = dummy_random_spec_plugin.get_environment_specifier_by_name(source=filename, name="rand-spec")
+    env_spec_backend = dummy_random_spec_plugin.get_environment_specifier_by_name(
+        source=filename, name="rand-spec"
+    )
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).environment is not None
 
-    env_spec_backend = dummy_random_spec_plugin.detect_environment_specifier(source=filename)
+    env_spec_backend = dummy_random_spec_plugin.detect_environment_specifier(
+        source=filename
+    )
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).environment is not None
 
