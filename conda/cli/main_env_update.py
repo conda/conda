@@ -103,7 +103,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # detect the file format and get the env representation
     spec_hook = context.plugin_manager.get_environment_specifier(
-        filename=args.file,
+        source=args.file,
         name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
