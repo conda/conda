@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Conda environment data model"""
+"""EXPERIMENTAL Conda environment data model"""
 
 from __future__ import annotations
 
@@ -22,6 +22,12 @@ log = getLogger(__name__)
 
 @dataclass
 class Environment:
+    """
+    **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+    Data model for a conda environment.
+    """
+
     #: Prefix the environment is installed into (required).
     prefix: str
 
@@ -55,9 +61,12 @@ class Environment:
     @classmethod
     def merge(cls, *environments):
         """
-        Keeps first name and/or prefix.
-        Concatenates and deduplicates requirements.
-        Reduces configuration and variables (last key wins).
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Merges multiple environments into a single environment following the rules:
+        * Keeps first name and/or prefix.
+        * Concatenates and deduplicates requirements.
+        * Reduces configuration and variables (last key wins).
         """
         name = None
         prefix = None
