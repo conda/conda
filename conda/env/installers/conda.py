@@ -6,6 +6,7 @@ import logging
 import os
 import tempfile
 from os.path import basename
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -17,7 +18,14 @@ from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 
 
-def _solve(prefix, specs, args, env, *_, **kwargs):
+if TYPE_CHECKING:
+    from ...core.solve import Solver
+    from argparse import Namespace
+
+
+def _solve(
+    prefix: str, specs: list, args: Namespace, env: Environment, *_, **kwargs
+) -> Solver:
     """Solve the environment.
 
     :param prefix: Installation target directory
@@ -42,7 +50,9 @@ def _solve(prefix, specs, args, env, *_, **kwargs):
     return solver
 
 
-def dry_run(specs, args, env, *_, **kwargs):
+def dry_run(
+    specs: list, args: Namespace, env: Environment, *_, **kwargs
+) -> Environment:
     """Do a dry run of the environment solve.
 
     :param specs: Package specifications to install
@@ -53,10 +63,9 @@ def dry_run(specs, args, env, *_, **kwargs):
     """
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
-    solved_env = Environment(
+    return Environment(
         name=env.name, dependencies=[str(p) for p in pkgs], channels=env.channels
     )
-    return solved_env
 
 
 def install(prefix: str, specs: list, args, env, *_, **kwargs) -> dict:
