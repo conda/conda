@@ -19,7 +19,7 @@ def test_environments_merge():
         platform="one",
         config={"primitive_one": "yes", "list_one": [1, 2, 4]},
         external_packages={
-            "pip": ["one", "two", {"special": "type"}], 
+            "pip": ["one", "two", {"special": "type"}],
             "other": ["three"],
         },
         explicit_packages=[MatchSpec("somepackage.conda")],
