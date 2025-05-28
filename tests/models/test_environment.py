@@ -22,8 +22,8 @@ def test_environments_merge():
             "pip": ["one", "two", {"special": "type"}], 
             "other": ["three"],
         },
-        explicit_specs=[MatchSpec("somepackage.conda")],
-        requested_specs=[MatchSpec("numpy"), MatchSpec("pandas")],
+        explicit_packages=[MatchSpec("somepackage.conda")],
+        requested_packages=[MatchSpec("numpy"), MatchSpec("pandas")],
         variables={"PATH": "/usr/bin"},
     )
     env2 = Environment(
@@ -31,8 +31,8 @@ def test_environments_merge():
         platform="one",
         config={"primitive_one": "no", "primitive_two": "yes", "list_one": [3]},
         external_packages={"pip": ["two", "flask"], "a": ["nother"]},
-        explicit_specs=[MatchSpec("somepackageother.conda")],
-        requested_specs=[MatchSpec("numpy"), MatchSpec("flask")],
+        explicit_packages=[MatchSpec("somepackageother.conda")],
+        requested_packages=[MatchSpec("numpy"), MatchSpec("flask")],
         variables={"VAR": "IABLE"},
     )
     merged = Environment.merge(env1, env2)
@@ -48,10 +48,10 @@ def test_environments_merge():
         "other": ["three"],
         "a": ["nother"],
     }
-    assert set(merged.requested_specs) == set(
+    assert set(merged.requested_packages) == set(
         [MatchSpec("pandas"), MatchSpec("flask"), MatchSpec("numpy")]
     )
-    assert set(merged.explicit_specs) == set(
+    assert set(merged.explicit_packages) == set(
         [MatchSpec("somepackageother.conda"), MatchSpec("somepackage.conda")]
     )
     assert merged.variables == {"PATH": "/usr/bin", "VAR": "IABLE"}
