@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """Conda-flavored installer."""
+
 from __future__ import annotations
 
 import logging
@@ -20,10 +21,11 @@ from ...exceptions import UnsatisfiableError
 from ...gateways.disk.read import read_non_comment_lines
 from ...models.channel import Channel, prioritize_channels
 
-
 if TYPE_CHECKING:
-    from ...core.solve import Solver
     from argparse import Namespace
+    from typing import Any
+
+    from ...core.solve import Solver
 
 
 def _solve(
