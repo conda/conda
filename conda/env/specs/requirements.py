@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 from ...common.url import path_to_url
 from ...deprecations import deprecated
+from ...gateways.disk.read import read_non_comment_lines
 from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
 from ..explicit import ExplicitEnvironment
@@ -116,12 +117,7 @@ class RequirementsSpec(EnvironmentSpecBase):
             return None
 
         try:
-            with open(self.filename, encoding="utf-8") as f:
-                return [
-                    line.strip()
-                    for line in f
-                    if line.strip() and not line.strip().startswith("#")
-                ]
+            return read_non_comment_lines(self.filename)
         except Exception as e:
             self.msg = f"Error reading file {self.filename}: {str(e)}"
             return None
