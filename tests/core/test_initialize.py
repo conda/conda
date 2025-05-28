@@ -448,10 +448,15 @@ def test_install_conda_sh(verbose):
         PosixActivator()
 
         line0, line1, line2, line3, _, remainder = created_file_contents.split("\n", 5)
+        # we extract CONDA_EXE by hand here because this test hardcodes
+        # the correct test result anyways
+        # if CONDA_EXE is not in context.conda_exe_vars_dict, the test
+        # won't pass no matter what
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if on_win:
-            assert line0 == f'''export CONDA_EXE="$(cygpath '{context.conda_exe}')"'''
+            assert line0 == f'''export CONDA_EXE="$(cygpath '{conda_exe}')"'''
         else:
-            assert line0 == f"export CONDA_EXE='{context.conda_exe}'"
+            assert line0 == f"export CONDA_EXE='{conda_exe}'"
         assert line1 == "export _CE_M=''"
         assert line2 == "export _CE_CONDA=''"
         assert line3.startswith("export CONDA_PYTHON_EXE=")
@@ -478,23 +483,33 @@ def test_install_conda_fish(verbose):
         with open_utf8(target_path) as fh:
             created_file_contents = fh.read()
 
-        (
-            first_line,
-            second_line,
-            third_line,
-            fourth_line,
-            remainder,
-        ) = created_file_contents.split("\n", 4)
+        split_vals = created_file_contents.split("\n", 6)
+        header = "\n".join(split_vals[:6])
+        remainder = split_vals[6]
         if on_win:
-            assert first_line == f'set -gx CONDA_EXE (cygpath "{conda_exe}")'
-            assert second_line == f'set _CONDA_ROOT (cygpath "{conda_prefix}")'
-            assert third_line == f'set _CONDA_EXE (cygpath "{conda_exe}")'
-            assert fourth_line == f'set -gx CONDA_PYTHON_EXE (cygpath "{python_exe}")'
+            assert (
+                header
+                == (
+                    f'set -gx CONDA_EXE (cygpath "{conda_exe}")\n'
+                    "set -e _CE_M\n"
+                    "set -e _CE_CONDA\n"
+                    f'set -gx CONDA_PYTHON_EXE (cygpath "{python_exe}")\n'
+                    f'set _CONDA_EXE (cygpath "{conda_exe}")\n'
+                    f'set _CONDA_ROOT (cygpath "{conda_prefix}")\n'
+                ).strip()
+            )
         else:
-            assert first_line == f'set -gx CONDA_EXE "{conda_exe}"'
-            assert second_line == f'set _CONDA_ROOT "{conda_prefix}"'
-            assert third_line == f'set _CONDA_EXE "{conda_exe}"'
-            assert fourth_line == f'set -gx CONDA_PYTHON_EXE "{python_exe}"'
+            assert (
+                header
+                == (
+                    f'set -gx CONDA_EXE "{conda_exe}"\n'
+                    "set -e _CE_M\n"
+                    "set -e _CE_CONDA\n"
+                    f'set -gx CONDA_PYTHON_EXE "{python_exe}"\n'
+                    f'set _CONDA_EXE "{conda_exe}"\n'
+                    f'set _CONDA_ROOT "{conda_prefix}"\n'
+                ).strip()
+            )
 
         with open_utf8(
             join(CONDA_PACKAGE_ROOT, "shell", "etc", "fish", "conf.d", "conda.fish")
@@ -521,8 +536,9 @@ def test_install_conda_xsh(verbose):
         with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
 
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         assert created_file_contents == (
-            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
+            f"$CONDA_EXE = '{XonshActivator.path_conversion(conda_exe)}'\n"
             f"try:\n"
             f"    del $_CE_M\n"
             f"except KeyError:\n"
@@ -556,20 +572,29 @@ def test_install_conda_csh(verbose):
             "profile.d",
             "conda.csh",
         )
+        # we extract CONDA_EXE by hand here because this test hardcodes
+        # the correct test result anyways
+        # if CONDA_EXE is not in context.conda_exe_vars_dict, the test
+        # won't pass no matter what
+        conda_exe = context.conda_exe_vars_dict["CONDA_EXE"]
         if on_win:
             assert created_file_contents == (
-                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
-                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
-                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
+                'setenv _CE_M "";\n'
+                'setenv _CE_CONDA "";\n'
                 f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
+                f"setenv _CONDA_ROOT \"`cygpath '{context.conda_prefix}'`\";\n"
                 f"source \"`cygpath '{hook_source_path}'`\";\n"
             )
         else:
             assert created_file_contents == (
-                f'setenv CONDA_EXE "{context.conda_exe}";\n'
-                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
-                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_EXE "{conda_exe}";\n'
+                'setenv _CE_M "";\n'
+                'setenv _CE_CONDA "";\n'
                 f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
+                f'setenv _CONDA_EXE "{conda_exe}";\n'
+                f'setenv _CONDA_ROOT "{context.conda_prefix}";\n'
                 f'source "{hook_source_path}";\n'
             )
 

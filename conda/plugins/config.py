@@ -73,6 +73,7 @@ class PluginConfig(Configuration):
     def __init__(self, data):
         self._cache_ = {}
         self._data = data
+        self._deprecated_parameters = set()
 
     @property
     def raw_data(self) -> dict[Path, dict[str, RawParameter]]:

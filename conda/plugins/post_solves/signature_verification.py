@@ -2,12 +2,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Register signature verification as a post-solve plugin."""
 
+import warnings
+
 from .. import CondaPostSolve, hookimpl
 
 
 @hookimpl
 def conda_post_solves():
-    from ...trust.signature_verification import signature_verification
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="conda.trust.* is pending deprecation"
+        )
+        from ...trust.signature_verification import signature_verification
 
     yield CondaPostSolve(
         name="signature-verification",
