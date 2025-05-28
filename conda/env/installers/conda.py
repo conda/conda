@@ -16,6 +16,7 @@ from ...common.constants import NULL
 from ...env.env import Environment
 from ...env.explicit import ExplicitEnvironment
 from ...exceptions import UnsatisfiableError
+from ...gateways.disk.read import read_non_comment_lines
 from ...models.channel import Channel, prioritize_channels
 
 
@@ -147,14 +148,9 @@ def _install_explicit_environment(
     # 1. Try to read from original file if available (most reliable source)
     if filename and os.path.exists(filename):
         try:
-            with open(filename) as f:
-                explicit_specs = [
-                    line.strip()
-                    for line in f
-                    if line.strip() and not line.strip().startswith("#")
-                ]
+            explicit_specs = read_non_comment_lines(filename)
             log.debug(f"Using package specs from explicit file: {filename}")
-        except OSError as e:
+        except (OSError, FileNotFoundError) as e:
             log.warning(f"Could not read explicit file {filename}: {e}")
 
     # 2-3. Fall back to provided specs or parsed specs from environment
