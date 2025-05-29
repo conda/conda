@@ -646,6 +646,7 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         return actions
 
+
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
     """
