@@ -431,9 +431,9 @@ class EnvironmentExporter(ABC):
     # File extensions this exporter supports
     extensions: set[str] = set()
 
-    def supports_filename(self, filename: str) -> bool:
+    def supports(self, filename: str) -> bool:
         """
-        Check if this exporter supports the given filename based on extension.
+        Check if this exporter can handle the given filename based on extension.
         
         :param filename: Filename to check (e.g., 'env.json')
         :return: True if filename extension is supported
