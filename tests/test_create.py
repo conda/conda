@@ -17,6 +17,7 @@ from shutil import rmtree
 from subprocess import check_call, check_output
 from typing import TYPE_CHECKING
 from unittest.mock import patch
+from uuid import uuid4
 
 import menuinst
 import pytest
@@ -47,6 +48,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
+    EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
@@ -76,6 +78,8 @@ from conda.testing.integration import (
     package_is_installed,
     which_or_where,
 )
+
+from .env import support_file
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -2740,3 +2744,22 @@ def test_python_site_packages_path(
     with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
         sp_dir = "lib/python3.99t/site-packages"
         assert (prefix / sp_dir / "sample.py").is_file()
+
+
+def test_dont_allow_mixed_file_arguments(
+    conda_cli: CondaCLIFixture,
+):
+    """
+    Test that conda will return an error when multiple --file arguments of different
+    types are specified
+    """
+    _, _, exc = conda_cli(
+        "create",
+        *("--name", uuid4().hex[:8]),
+        *("--file", support_file("requirements.txt")),
+        *("--file", support_file("simple.yml")),
+        "--yes",
+        raises=EnvironmentFileTypeMismatchError,
+    )
+
+    assert exc.match("Cannot mix environment file formats")
