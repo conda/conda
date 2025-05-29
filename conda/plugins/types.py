@@ -377,7 +377,7 @@ class CondaPrefixDataLoader:
 class EnvironmentSpecBase(ABC):
     """
     Base class for all environment specifications.
-    
+
     Environment specs parse different types of environment definition files
     (environment.yml, requirements.txt, pyproject.toml, etc.) into a common
     Environment object model.
@@ -421,20 +421,20 @@ class CondaEnvironmentSpecifier:
 
 class EnvironmentExporter(ABC):
     """
-    Base class for environment exporters that serialize Environment objects 
+    Base class for environment exporters that serialize Environment objects
     to different output formats.
     """
 
     # The canonical format name this exporter handles
     format: str = ""
-    
+
     # File extensions this exporter supports
     extensions: set[str] = set()
 
     def supports(self, filename: str) -> bool:
         """
         Check if this exporter can handle the given filename based on extension.
-        
+
         :param filename: Filename to check (e.g., 'env.json')
         :return: True if filename extension is supported
         """
@@ -454,12 +454,14 @@ class EnvironmentExporter(ABC):
     def validate(self, format: str) -> None:
         """
         Validate that this exporter supports the requested format.
-        
+
         :param format: Format name to validate
         :raises ValueError: If format is not supported
         """
         if format != self.format:
-            raise ValueError(f"{self.__class__.__name__} doesn't support format: {format}")
+            raise ValueError(
+                f"{self.__class__.__name__} doesn't support format: {format}"
+            )
 
 
 @dataclass

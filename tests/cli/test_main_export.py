@@ -85,7 +85,7 @@ def test_export_yaml_file_extension(
     # This should now work fine - it will default to YAML format
     conda_cli("export", f"--name={name}", f"--file={path}")
     assert path.exists()
-    
+
     # Content should be YAML format (default)
     data = yaml_safe_load(path.read_text())
     assert data["name"] == name

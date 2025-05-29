@@ -20,7 +20,7 @@ class YAMLExporter(EnvironmentExporter):
     def export(self, env: "Environment", format: str) -> str:
         """Export Environment to YAML format."""
         self.validate(format)
-        
+
         # Use the existing YAML export functionality
         yaml_content = env.to_yaml()
         if yaml_content is None:
@@ -33,4 +33,4 @@ def conda_environment_exporters():
     yield CondaEnvironmentExporter(
         name="yaml",
         handler=YAMLExporter,
-    ) 
+    )

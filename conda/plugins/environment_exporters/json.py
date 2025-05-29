@@ -21,7 +21,7 @@ class JSONExporter(EnvironmentExporter):
     def export(self, env: "Environment", format: str) -> str:
         """Export Environment to JSON format."""
         self.validate(format)
-        
+
         # Convert environment to dictionary and serialize as JSON
         env_dict = env.to_dict()
         return json.dumps(env_dict, indent=2, ensure_ascii=False)
@@ -32,4 +32,4 @@ def conda_environment_exporters():
     yield CondaEnvironmentExporter(
         name="json",
         handler=JSONExporter,
-    ) 
+    )

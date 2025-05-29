@@ -574,7 +574,7 @@ class CondaSpecs:
         """
         Register new conda environment exporter
 
-        Environment exporters serialize conda Environment objects to different 
+        Environment exporters serialize conda Environment objects to different
         output formats (JSON, TOML, XML, etc.) for the 'conda export' command.
         This is separate from environment specifiers which parse input files.
 

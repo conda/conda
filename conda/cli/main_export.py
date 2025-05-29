@@ -18,21 +18,21 @@ from ..exceptions import CondaValueError
 def _generate_format_help_and_examples():
     """
     Generate dynamic help text and examples based on available export formats.
-    
+
     :return: Tuple of (format_help, examples_epilog)
     """
     from ..plugins.manager import get_plugin_manager
-    
+
     plugin_manager = get_plugin_manager()
     available_formats = plugin_manager.get_available_export_formats()
-    
+
     # Generate help text
     format_examples = ", ".join(available_formats[:3]) if available_formats else "yaml"
     format_help = (
         f"Format for the exported environment (e.g., {format_examples}). "
         "If not specified, format will be determined by file extension or default to YAML."
     )
-    
+
     # Generate examples
     example_format = available_formats[0] if available_formats else "yaml"
     example_ext = available_formats[0] if available_formats else "yaml"
@@ -45,7 +45,7 @@ def _generate_format_help_and_examples():
         conda export --file environment.{example_ext}
 
     """
-    
+
     return format_help, examples
 
 
@@ -154,10 +154,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Determine export format and handle via environment exporter plugins
     plugin_manager = get_plugin_manager()
-    
+
     target_format = args.format
     environment_exporter = None
-    
+
     # Try to find exporter by filename first
     if args.file:
         file_exporter = plugin_manager.find_exporter_by_filename(args.file)
@@ -191,9 +191,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         exporter = json_exporter.handler()
     else:
         exporter = environment_exporter.handler()
-    
+
     exported_content = exporter.export(env, export_format)
-    
+
     # Output the content
     if args.file:
         with open(args.file, "w") as fp:
@@ -202,5 +202,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             stdout_json({"success": True, "file": args.file, "format": target_format})
     else:
         print(exported_content, end="")
-    
+
     return 0

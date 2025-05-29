@@ -536,10 +536,12 @@ class CondaPluginManager(pluggy.PluginManager):
             name=filename, plugin_names=[hook.name for hook in hooks]
         )
 
-    def find_exporter_by_format(self, format_name: str) -> CondaEnvironmentExporter | None:
+    def find_exporter_by_format(
+        self, format_name: str
+    ) -> CondaEnvironmentExporter | None:
         """
         Find an environment exporter that supports the given format.
-        
+
         :param format_name: Format name to find exporter for (e.g., 'json', 'yaml')
         :return: Environment exporter config or None if not found
         """
@@ -549,7 +551,9 @@ class CondaPluginManager(pluggy.PluginManager):
                 return exporter_config
         return None
 
-    def find_exporter_by_filename(self, filename: str) -> CondaEnvironmentExporter | None:
+    def find_exporter_by_filename(
+        self, filename: str
+    ) -> CondaEnvironmentExporter | None:
         """
         Find an environment exporter based on the filename extension.
 
@@ -562,7 +566,7 @@ class CondaPluginManager(pluggy.PluginManager):
             exporter = exporter_config.handler()
             if exporter.supports(filename):
                 matches.append(exporter_config)
-        
+
         if len(matches) == 1:
             return matches[0]
         elif len(matches) > 1:
@@ -577,13 +581,13 @@ class CondaPluginManager(pluggy.PluginManager):
                 """
                 )
             )
-        
+
         return None
 
     def get_available_export_formats(self) -> list[str]:
         """
         Returns a list of all available export format names.
-        
+
         :return: List of format names that have working export plugins
         """
         formats = set()
@@ -591,7 +595,7 @@ class CondaPluginManager(pluggy.PluginManager):
             exporter = exporter_config.handler()
             if exporter.format:
                 formats.add(exporter.format)
-        
+
         return sorted(formats)
 
 

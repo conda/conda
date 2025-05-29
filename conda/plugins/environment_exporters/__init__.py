@@ -5,4 +5,4 @@
 from . import json, yaml
 
 #: The list of environment exporter plugins for easier registration with pluggy
-plugins = [json, yaml] 
+plugins = [json, yaml]
