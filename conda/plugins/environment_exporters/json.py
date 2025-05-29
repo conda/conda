@@ -18,9 +18,9 @@ class JSONExporter(EnvironmentExporter):
     format = "json"
     extensions = {".json"}
 
-    def export(self, env: "Environment", format_name: str) -> str:
+    def export(self, env: "Environment", format: str) -> str:
         """Export Environment to JSON format."""
-        self.validate(format_name)
+        self.validate(format)
         
         # Convert environment to dictionary and serialize as JSON
         env_dict = env.to_dict()

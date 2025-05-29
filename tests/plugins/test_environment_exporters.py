@@ -15,8 +15,8 @@ class TestEnvironmentExporter(EnvironmentExporter):
     format = "test"
     extensions = {".test"}
     
-    def export(self, env: Environment, format_name: str) -> str:
-        self.validate(format_name)
+    def export(self, env: Environment, format: str) -> str:
+        self.validate(format)
         return f"TEST FORMAT: {env.name}"
 
 

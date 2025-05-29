@@ -17,9 +17,9 @@ class YAMLExporter(EnvironmentExporter):
     format = "yaml"
     extensions = {".yaml", ".yml"}
 
-    def export(self, env: "Environment", format_name: str) -> str:
+    def export(self, env: "Environment", format: str) -> str:
         """Export Environment to YAML format."""
-        self.validate(format_name)
+        self.validate(format)
         
         # Use the existing YAML export functionality
         yaml_content = env.to_yaml()

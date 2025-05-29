@@ -441,25 +441,25 @@ class EnvironmentExporter(ABC):
         return any(filename.endswith(ext) for ext in self.extensions)
 
     @abstractmethod
-    def export(self, env: "Environment", format_name: str) -> str:
+    def export(self, env: "Environment", format: str) -> str:
         """
         Export an Environment object to the specified format.
 
         :param env: The conda Environment object to export
-        :param format_name: The target format name
+        :param format: The target format name
         :returns str: The environment data in the target format
         """
         raise NotImplementedError()
 
-    def validate(self, format_name: str) -> None:
+    def validate(self, format: str) -> None:
         """
         Validate that this exporter supports the requested format.
         
-        :param format_name: Format name to validate
+        :param format: Format name to validate
         :raises ValueError: If format is not supported
         """
-        if format_name != self.format:
-            raise ValueError(f"{self.__class__.__name__} doesn't support format: {format_name}")
+        if format != self.format:
+            raise ValueError(f"{self.__class__.__name__} doesn't support format: {format}")
 
 
 @dataclass
