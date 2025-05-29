@@ -419,12 +419,24 @@ class EnvironmentSpecBase(ABC):
     """
 
     @abstractmethod
-    def can_handle(self) -> bool:
+    def validate_source_name(self) -> bool:
         """
-        Determines if the EnvSpec plugin can read and operate on the
-        environment described by the `filename`.
+        Determine if the EnvironmentSpec plugin can parse the target
+        source name. If the source spec is a filename, this check
+        may be used to ensure the file has the right extension and format.
 
-        :returns bool: returns True, if the plugin can interpret the file.
+        :returns bool: returns True, if the plugin can interpret the source
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def validate_schema(self) -> bool:
+        """
+        Determine if the EnvironmentSpec plugin can parse the contents of
+        the source spec. This check may be used to ensure that the provided
+        spec has all the correct fields for parsing to an Environment.
+
+        :returns bool: returns True, if the plugin can interpret the source
         """
         raise NotImplementedError()
 
