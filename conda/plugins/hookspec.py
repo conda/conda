@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
+        CondaEnvironmentExporter,
     )
 
 spec_name = "conda"
@@ -564,6 +565,41 @@ class CondaSpecs:
                 yield plugins.CondaEnvSpec(
                     name="random",
                     environment_spec=RandomSpec,
+                )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        """
+        Register new conda environment exporter
+
+        Environment exporters serialize conda Environment objects to different 
+        output formats (JSON, TOML, XML, etc.) for the 'conda export' command.
+        This is separate from environment specifiers which parse input files.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import json
+            from conda import plugins
+            from conda.plugins.types import EnvironmentExporter
+
+            class JSONExporter(EnvironmentExporter):
+                format = "json"
+                extensions = {".json"}
+
+                def export(self, env, format_name: str) -> str:
+                    if format_name != "json":
+                        raise ValueError(f"Unsupported format: {format_name}")
+                    return json.dumps(env.to_dict(), indent=2)
+
+            @plugins.hookimpl
+            def conda_environment_exporters():
+                yield plugins.CondaEnvironmentExporter(
+                    name="json",
+                    handler=JSONExporter,
                 )
         """
         yield from ()

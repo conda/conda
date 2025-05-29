@@ -28,6 +28,7 @@ from ..exceptions import (
     PluginError,
 )
 from . import (
+    environment_exporters,
     environment_specifiers,
     post_solves,
     prefix_data_loaders,
@@ -51,6 +52,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
@@ -242,6 +244,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_specifiers"]
     ) -> list[CondaEnvironmentSpecifier]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["environment_exporters"]
+    ) -> list[CondaEnvironmentExporter]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -529,6 +536,64 @@ class CondaPluginManager(pluggy.PluginManager):
             name=filename, plugin_names=[hook.name for hook in hooks]
         )
 
+    def find_exporter_by_format(self, format_name: str) -> CondaEnvironmentExporter | None:
+        """
+        Find an environment exporter that supports the given format.
+        
+        :param format_name: Format name to find exporter for (e.g., 'json', 'yaml')
+        :return: Environment exporter config or None if not found
+        """
+        for exporter_config in self.get_hook_results("environment_exporters"):
+            exporter = exporter_config.handler()
+            if exporter.format == format_name:
+                return exporter_config
+        return None
+
+    def find_exporter_by_filename(self, filename: str) -> CondaEnvironmentExporter | None:
+        """
+        Find an environment exporter based on the filename extension.
+
+        :param filename: Filename to find an exporter for (extension is used for detection)
+        :return: CondaEnvironmentExporter that supports the file extension, or None if none found
+        :raises PluginError: If multiple exporters claim to support the same file extension
+        """
+        matches = []
+        for exporter_config in self.get_hook_results("environment_exporters"):
+            exporter = exporter_config.handler()
+            if exporter.supports_filename(filename):
+                matches.append(exporter_config)
+        
+        if len(matches) == 1:
+            return matches[0]
+        elif len(matches) > 1:
+            raise PluginError(
+                dals(
+                    f"""
+                    Multiple environment exporters found that can handle filename '{filename}':
+
+                    {", ".join([match.name for match in matches])}
+
+                    Please make sure that you don't have any conflicting exporter plugins installed.
+                """
+                )
+            )
+        
+        return None
+
+    def get_available_export_formats(self) -> list[str]:
+        """
+        Returns a list of all available export format names.
+        
+        :return: List of format names that have working export plugins
+        """
+        formats = set()
+        for exporter_config in self.get_hook_results("environment_exporters"):
+            exporter = exporter_config.handler()
+            if exporter.format:
+                formats.add(exporter.format)
+        
+        return sorted(formats)
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -547,6 +612,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
+        *environment_exporters.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

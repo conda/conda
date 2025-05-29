@@ -11,7 +11,7 @@ from .. import env
 
 class YamlFileSpec(EnvironmentSpecBase):
     _environment = None
-    extensions = {".yaml", ".yml"}
+    extensions = {".yaml", ".yml", ".json"}  # Add JSON support since JSON ⊆ YAML
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
@@ -36,11 +36,13 @@ class YamlFileSpec(EnvironmentSpecBase):
             self.msg = e.message
             return False
         except (TypeError, YAMLError):
-            self.msg = f"{self.filename} is not a valid yaml file."
+            self.msg = f"{self.filename} is not a valid yaml or json file."
             return False
 
-    @property
-    def environment(self):
+    def environment(self) -> env.Environment:
         if not self._environment:
-            self.can_handle()
+            if not self.can_handle():
+                raise ValueError(f"Cannot handle environment file: {self.msg}")
+        if self._environment is None:
+            raise ValueError("Environment could not be loaded")
         return self._environment

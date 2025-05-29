@@ -11,25 +11,54 @@ from argparse import (
     _SubParsersAction,
 )
 
-from ..common.configuration import YAML_EXTENSIONS
+from ..common.constants import NULL
 from ..exceptions import CondaValueError
+
+
+def _generate_format_help_and_examples():
+    """
+    Generate dynamic help text and examples based on available export formats.
+    
+    :return: Tuple of (format_help, examples_epilog)
+    """
+    from ..plugins.manager import get_plugin_manager
+    
+    plugin_manager = get_plugin_manager()
+    available_formats = plugin_manager.get_available_export_formats()
+    
+    # Generate help text
+    format_examples = ", ".join(available_formats[:3]) if available_formats else "yaml"
+    format_help = (
+        f"Format for the exported environment (e.g., {format_examples}). "
+        "If not specified, format will be determined by file extension or default to YAML."
+    )
+    
+    # Generate examples
+    example_format = available_formats[0] if available_formats else "yaml"
+    example_ext = available_formats[0] if available_formats else "yaml"
+    examples = f"""
+    Examples::
+
+        conda export
+        conda export --file FILE_NAME
+        conda export --format {example_format}
+        conda export --file environment.{example_ext}
+
+    """
+    
+    return format_help, examples
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import add_parser_json, add_parser_prefix
 
+    # Get dynamic help text and examples
+    format_help, examples = _generate_format_help_and_examples()
+
     summary = "Export a given environment"
     description = summary
-    epilog = dals(
-        """
-        Examples::
-
-            conda export
-            conda export --file FILE_NAME
-
-        """
-    )
+    epilog = dals(examples)
 
     p = sub_parsers.add_parser(
         "export",
@@ -66,6 +95,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     p.add_argument(
+        "--format",
+        default=NULL,
+        required=False,
+        help=format_help,
+    )
+
+    p.add_argument(
         "--no-builds",
         default=False,
         action="store_true",
@@ -98,6 +134,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix, env_name
     from ..env.env import from_environment
+    from ..plugins.manager import get_plugin_manager
     from .common import stdout_json
 
     prefix = determine_target_prefix(context, args)
@@ -115,19 +152,55 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.channel is not None:
         env.add_channels(args.channel)
 
+    # Determine export format and handle via environment exporter plugins
+    plugin_manager = get_plugin_manager()
+    
+    target_format = args.format
+    environment_exporter = None
+    
+    # Try to find exporter by filename first
     if args.file:
-        filename = args.file
-        # check for the proper file extension; otherwise when the export file is used later,
-        # the user will get a file parsing error
-        if not filename.endswith(YAML_EXTENSIONS):
-            raise CondaValueError(
-                f"Export files must have a valid extension {YAML_EXTENSIONS}: {filename}"
-            )
-        with open(args.file, "w") as fp:
-            env.to_yaml(stream=fp)
-    if args.json:
-        stdout_json(env.to_dict())
-    else:
-        print(env.to_yaml(), end="")
+        file_exporter = plugin_manager.find_exporter_by_filename(args.file)
+        if file_exporter:
+            exporter_instance = file_exporter.handler()
+            target_format = exporter_instance.format
+            environment_exporter = file_exporter
 
+    # If format is still NULL, default to yaml
+    if target_format is NULL:
+        target_format = "yaml"
+
+    # Find appropriate exporter if we don't already have one
+    if not environment_exporter:
+        environment_exporter = plugin_manager.find_exporter_by_format(target_format)
+
+    if not environment_exporter:
+        # No exporter found for the requested format
+        available_formats = plugin_manager.get_available_export_formats()
+        raise CondaValueError(
+            f"Unknown export format '{target_format}'. "
+            f"Available formats: {', '.join(available_formats)}"
+        )
+
+    # Export the environment - use JSON format if --json flag without file
+    export_format = "json" if (args.json and not args.file) else target_format
+    if export_format == "json" and target_format != "json":
+        json_exporter = plugin_manager.find_exporter_by_format("json")
+        if not json_exporter:
+            raise CondaValueError("JSON exporter plugin not available")
+        exporter = json_exporter.handler()
+    else:
+        exporter = environment_exporter.handler()
+    
+    exported_content = exporter.export(env, export_format)
+    
+    # Output the content
+    if args.file:
+        with open(args.file, "w") as fp:
+            fp.write(exported_content)
+        if args.json:
+            stdout_json({"success": True, "file": args.file, "format": target_format})
+    else:
+        print(exported_content, end="")
+    
     return 0
