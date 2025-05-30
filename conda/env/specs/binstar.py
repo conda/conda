@@ -39,22 +39,22 @@ class BinstarSpec(EnvironmentSpecBase):
     def __init__(self, name=None):
         self.name = name
 
-    def can_handle(self) -> bool:
+    def validate_source_name(self) -> bool:
+        return self.valid_name()
+
+    def validate_schema(self) -> bool:
         """
         Validates loader can process environment definition.
         :return: True or False
         """
-        # TODO: log information about trying to find the package in binstar.org
-        if self.valid_name():
-            if not self.binstar:
-                self.msg = (
-                    "Anaconda Client is required to interact with anaconda.org or an "
-                    "Anaconda API. Please run `conda install anaconda-client -n base`."
-                )
-                return False
+        if not self.binstar:
+            self.msg = (
+                "Anaconda Client is required to interact with anaconda.org or an "
+                "Anaconda API. Please run `conda install anaconda-client -n base`."
+            )
+            return False
 
-            return self.package is not None and self.valid_package()
-        return False
+        return self.package is not None and self.valid_package()
 
     def valid_name(self) -> bool:
         """

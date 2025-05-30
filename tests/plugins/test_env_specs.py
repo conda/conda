@@ -14,11 +14,14 @@ class RandomSpec(EnvironmentSpecBase):
     def __init__(self, filename: str):
         self.filename = filename
 
-    def can_handle(self):
+    def validate_source_name(self):
         for ext in RandomSpec.extensions:
             if self.filename.endswith(ext):
                 return True
         return False
+    
+    def validate_schema(self):
+        return True
 
     def environment(self):
         return Environment(name="random-environment", dependencies=["python", "numpy"])
