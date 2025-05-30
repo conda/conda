@@ -104,7 +104,12 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
             if _path is None or old_sha256 is None:
                 continue
 
+            # ignore softlinks/symlinks
+            if path["path_type"] == "softlink":
+                continue
+
             file_location = prefix / _path
+
             if not file_location.is_file():
                 continue
 
