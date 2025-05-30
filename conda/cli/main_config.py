@@ -7,7 +7,6 @@ Allows for programmatically interacting with conda's configuration files (e.g., 
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from argparse import SUPPRESS
@@ -265,8 +264,7 @@ def format_dict(d):
 
 
 def parameter_description_builder(name, context=None, plugins=False):
-    from ..auxlib.entity import EntityEncoder
-    from ..common.serialize import yaml_round_trip_dump
+    from ..common.serialize import json, yaml_round_trip_dump
 
     # Keeping this for backward-compatibility, in case no context instance is provided
     if context is None:
@@ -279,7 +277,7 @@ def parameter_description_builder(name, context=None, plugins=False):
     aliases = details["aliases"]
     string_delimiter = details.get("string_delimiter")
     element_types = details["element_types"]
-    default_value_str = json.dumps(details["default_value"], cls=EntityEncoder)
+    default_value_str = json.dumps(details["default_value"])
 
     if details["parameter_type"] == "primitive":
         builder.append(
@@ -618,7 +616,6 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
 
 def execute_config(args, parser):
     from .. import CondaError
-    from ..auxlib.entity import EntityEncoder
     from ..base.context import (
         _warn_defaults_deprecation,
         context,
@@ -627,7 +624,7 @@ def execute_config(args, parser):
     )
     from ..common.io import timeout
     from ..common.iterators import groupby_to_dict as groupby
-    from ..common.serialize import yaml_round_trip_load
+    from ..common.serialize import json, yaml_round_trip_load
     from ..core.prefix_data import PrefixData
 
     stdout_write = getLogger("conda.stdout").info
@@ -644,9 +641,6 @@ def execute_config(args, parser):
                         for source, values in context.collect_all().items()
                     },
                     sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
-                    cls=EntityEncoder,
                 )
             )
         else:
@@ -697,15 +691,7 @@ def execute_config(args, parser):
             del d["plugins"]
 
         if context.json:
-            stdout_write(
-                json.dumps(
-                    d,
-                    sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
-                    cls=EntityEncoder,
-                )
-            )
+            stdout_write(json.dumps(d, sort_keys=True))
         else:
             # Add in custom formatting
             if "custom_channels" in d:
@@ -757,9 +743,6 @@ def execute_config(args, parser):
                     json.dumps(
                         json_descriptions,
                         sort_keys=True,
-                        indent=2,
-                        separators=(",", ": "),
-                        cls=EntityEncoder,
                     )
                 )
             else:
@@ -796,9 +779,6 @@ def execute_config(args, parser):
                             for name in provided_parameters
                         ],
                         sort_keys=True,
-                        indent=2,
-                        separators=(",", ": "),
-                        cls=EntityEncoder,
                     )
                 )
             else:
