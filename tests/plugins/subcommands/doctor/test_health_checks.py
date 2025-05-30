@@ -64,16 +64,19 @@ def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]
             "paths": [
                 {
                     "_path": bin_doctor,
+                    "path_type": "hardlink",
                     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
                 {
                     "_path": lib_doctor,
+                    "path_type": "hardlink",
                     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
                 {
                     "_path": ignored_doctor,
+                    "path_type": "hardlink",
                     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
@@ -110,6 +113,35 @@ def env_altered_files(
         f.write("print('Hello, World!')")
     with open(prefix / ignored_doctor, "w") as f:
         f.write("nonsense")
+
+    return env_ok
+
+
+@pytest.fixture
+def env_altered_files_soft_links(
+    env_ok: tuple[Path, str, str, str, str],
+) -> tuple[Path, str, str, str, str]:
+    """Fixture that returns a testing environment with altered files"""
+    prefix, bin_doctor, lib_doctor, ignored_doctor, package = env_ok
+
+    # open and load the package json file
+    with (prefix / "conda-meta" / f"{package}.json").open("r") as f:
+        content = json.load(f)
+
+    # change the sha256 and the path_type of bin_doctor in the package_json file
+    content["paths_data"]["paths"][0]["sha256_in_prefix"] = (
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b856"
+    )
+    content["paths_data"]["paths"][0]["path_type"] = "softlink"
+
+    with (prefix / "conda-meta" / f"{package}.json").open("w") as f:
+        json.dump(content, f)
+
+    # deleting the existing file at bin_doctor
+    (prefix / bin_doctor).unlink()
+
+    # Converting bin_doctor into a symlink/softlink for lib_doctor
+    (prefix / bin_doctor).symlink_to(prefix / lib_doctor)
 
     return env_ok
 
@@ -400,3 +432,8 @@ def test_env_consistency_constrains_not_met(
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out
         assert expected_output_yaml in out
+
+
+def test_altered_files_sym_links(env_altered_files_soft_links):
+    prefix, _, _, _, _ = env_altered_files_soft_links
+    assert find_altered_packages(prefix) == {}
