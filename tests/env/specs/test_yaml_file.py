@@ -10,17 +10,18 @@ from .. import support_file
 
 def test_no_environment_file():
     spec = YamlFileSpec(name=None, filename="not-a-file")
-    assert not spec.can_handle()
+    assert not spec.validate_source_name()
 
 
 def test_environment_file_exist():
     spec = YamlFileSpec(name=None, filename=support_file("simple.yml"))
-    assert spec.can_handle()
+    assert spec.validate_source_name()
+    assert spec.validate_schema()
 
 
 def test_environment_file_not_yaml():
     spec = YamlFileSpec(name=None, filename=support_file("requirements.txt"))
-    assert not spec.can_handle()
+    assert not spec.validate_source_name()
 
 
 def test_get_environment():

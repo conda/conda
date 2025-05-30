@@ -19,14 +19,12 @@ class YamlFileSpec(EnvironmentSpecBase):
         self.filename = filename
         self.msg = None
 
-    def can_handle(self):
+    def validate_source_name(self) -> bool:
         """
-        Validates loader can process environment definition.
-        This can handle if:
+        Validates loader can process the spec with the provided filename. 
+        Valid if:
             * the provided file exists
             * the provided file ends in the supported file extensions (.yaml or .yml)
-            * the env file can be interpreted and transformed into
-              a `conda.env.env.Environment`
 
         :return: True or False
         """
@@ -36,7 +34,18 @@ class YamlFileSpec(EnvironmentSpecBase):
         # Check if the file has a supported extension and exists
         if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
             return False
+        
+        return True
 
+    def validate_schema(self) -> bool:
+        """
+        Validates loader can process the spec with the provided filename. 
+        Valid if:
+            * the env file can be interpreted and transformed into
+              a `conda.env.env.Environment`
+
+        :return: True or False
+        """
         try:
             self._environment = env.from_file(self.filename)
             return True
@@ -49,5 +58,5 @@ class YamlFileSpec(EnvironmentSpecBase):
     @property
     def environment(self):
         if not self._environment:
-            self.can_handle()
+            self._environment = env.from_file(self.filename)
         return self._environment

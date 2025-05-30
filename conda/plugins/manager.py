@@ -519,9 +519,9 @@ class CondaPluginManager(pluggy.PluginManager):
         found = []
         for hook in hooks:
             log.debug("EnvironmentSpec hook: checking %s", hook.name)
-            if hook.environment_spec(filename).can_handle():
+            if hook.environment_spec(filename).validate_source_name() and hook.environment_spec(filename).validate_schema():
                 log.debug(
-                    "EnvironmentSpec hook: %s can be %s",
+                    "EnvironmentSpec hook: %s can be handled by %s",
                     filename,
                     hook.name,
                 )

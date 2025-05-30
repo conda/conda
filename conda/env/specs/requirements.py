@@ -49,9 +49,9 @@ class RequirementsSpec(EnvironmentSpecBase):
         else:
             return True
 
-    def can_handle(self) -> bool:
+    def validate_source_name(self) -> bool:
         """
-        Validates loader can process environment definition.
+        Validates loader can process the spec with the provided filename. 
         This can handle if:
             * the provided file ends in the supported file extensions (.txt)
             * the file exists
@@ -70,6 +70,10 @@ class RequirementsSpec(EnvironmentSpecBase):
             spec_ext == file_ext and os.path.exists(self.filename)
             for spec_ext in RequirementsSpec.extensions
         )
+    
+    def validate_schema(self) -> bool:
+        # no-op
+        return True
 
     @property
     def environment(self):

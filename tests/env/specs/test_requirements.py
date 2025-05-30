@@ -9,18 +9,20 @@ from .. import support_file
 
 def test_no_environment_file():
     spec = RequirementsSpec(name=None, filename="not-a-file")
-    assert not spec.can_handle()
+    assert not spec.validate_source_name()
 
 
 def test_no_name():
     spec = RequirementsSpec(filename=support_file("requirements.txt"))
-    assert spec.can_handle()
+    assert spec.validate_source_name()
+    assert spec.validate_schema()
     assert spec.name is None  # this is caught in the application layer
 
 
 def test_req_file_and_name():
     spec = RequirementsSpec(filename=support_file("requirements.txt"), name="env")
-    assert spec.can_handle()
+    assert spec.validate_source_name()
+    assert spec.validate_schema()
 
 
 def test_environment():
