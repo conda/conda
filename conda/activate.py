@@ -891,6 +891,7 @@ class PosixActivator(_Activator):
 
     unset_var_tmpl = "unset %s"
     export_var_tmpl = "export %s='%s'"
+    path_var_tmpl = "export %s=\"$(cygpath '%s')\"" if on_win else export_var_tmpl
     set_var_tmpl = "%s='%s'"
     run_script_tmpl = '. "%s"'
 
@@ -927,8 +928,8 @@ class PosixActivator(_Activator):
                 # Using `unset_var_tmpl` would cause issues for people running
                 # with shell flag -u set (error on unset).
                 result.append(self.export_var_tmpl % (key, ""))
-            elif on_win and ("/" in value or "\\" in value):
-                result.append(f'''export {key}="$(cygpath '{value}')"''')
+            elif {"/", "\\"}.intersection(value):
+                result.append(self.path_var_tmpl % (key, value))
             else:
                 result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result) + "\n"
