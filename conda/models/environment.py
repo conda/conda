@@ -38,7 +38,7 @@ class Environment:
     config: dict[str, Any] = field(default_factory=dict)
 
     #: Map of other package types that conda can install. For example pypi packages.
-    external_packages: dict[str, list[Any]] = field(default_factory=dict)
+    external_packages: dict[str, list[str]] = field(default_factory=dict)
 
     #: The complete list of specs for the environment.
     #: eg. after a solve, or from an explicit environemnt spec
@@ -92,7 +92,8 @@ class Environment:
             platform = platforms[0]
         else:
             raise CondaValueError(
-                f"Conda can not merge environments of different platforms. Recieved environments with plafroms {platforms}"
+                "Conda can not merge environments of different platforms. "
+                f"Received environments with platforms: {platforms}"
             )
 
         requested_packages = list(
@@ -130,7 +131,7 @@ class Environment:
                     config[k] = v
 
             # External packages map values are always lists of strings. So,
-            # we'll want to concatentate each list.
+            # we'll want to concatenate each list.
             for k, v in env.external_packages.items():
                 if k in external_packages:
                     for val in v:
