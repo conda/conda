@@ -973,11 +973,11 @@ class CshActivator(_Activator):
         result = []
         for key, value in context.conda_exe_vars_dict.items():
             if value is None:
-                result.append(f"unsetenv {key}")
+                result.append(self.unset_var_tmpl % key)
             elif on_win:
                 result.append(f"setenv {key} \"`cygpath '{value}'`\"")
             else:
-                result.append(f'setenv {key} "{value}"')
+                result.append(self.export_var_tmpl % (key, value))
         result.append(f'source "{hook_source_path}"')
         return ";\n".join(result) + ";\n"
 
@@ -1072,11 +1072,11 @@ class FishActivator(_Activator):
         result = []
         for key, value in context.conda_exe_vars_dict.items():
             if value is None:
-                result.append(f"set -e {key}")
+                result.append(self.unset_var_tmpl % key)
             elif on_win:
                 result.append(f'set -gx {key} (cygpath "{value}")')
             else:
-                result.append(f'set -gx {key} "{value}"')
+                result.append(self.export_var_tmpl % (key, value))
         return "\n".join(result)
 
 
@@ -1104,9 +1104,9 @@ class PowerShellActivator(_Activator):
         result = []
         for key, value in context.conda_exe_vars_dict.items():
             if value is None:
-                result.append(f"$Env:{key} = $null")
+                result.append(self.unset_var_tmpl % key)
             else:
-                result.append(f'$Env:{key} = "{value}"')
+                result.append(self.export_var_tmpl % (key, value))
         result.append(f"$CondaModuleArgs = @{{ChangePs1 = ${context.changeps1}}}")
         return "\n".join(result)
 
