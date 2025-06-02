@@ -141,7 +141,7 @@ def rename(
     force: bool = False,
     quiet: bool = False,
     json: bool = False,
-):
+) -> None:
     """Rename an environment.
 
     :param source: Environment to be renamed; assumed to be validated, i.e. that the prefix

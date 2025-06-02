@@ -1073,7 +1073,7 @@ def migrate_envs(context, _config: dict):
     if layout != PkgEnvLayout.USER:
         raise CondaError(
             f"The conda configuration for pkg_env_layout is set to {layout}; "
-            "Unless this setting is changed with `conda config set pkg_env_layout user` "
+            "Unless this setting is changed with `conda config --set pkg_env_layout user` "
             "conda will continue to store environments in the root prefix by default."
         )
 
