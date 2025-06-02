@@ -76,8 +76,7 @@ CONDA_HOMEPAGE_URL: Final = "https://conda.io"
 ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
 DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
-KNOWN_SUBDIRS: Final = (
-    "noarch",
+PLATFORMS: Final = (
     "emscripten-wasm32",
     "wasi-wasm32",
     "freebsd-64",
@@ -97,6 +96,10 @@ KNOWN_SUBDIRS: Final = (
     "win-arm64",
     "zos-z",
 )
+KNOWN_SUBDIRS: Final = (
+    "noarch",
+) 
+KNOWN_SUBDIRS += PLATFORMS
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")

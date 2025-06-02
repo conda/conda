@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from ..base.constants import PLATFORMS
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -35,6 +36,8 @@ class Environment:
     platform: str
 
     #: Environment level configuration, eg. channels, solver options, etc.
+    #: TODO: may need to think more about the type of this field and how
+    #:       conda should be merging configs between environments
     config: dict[str, Any] = field(default_factory=dict)
 
     #: Map of other package types that conda can install. For example pypi packages.
@@ -57,6 +60,26 @@ class Environment:
         # an environment must have a name of prefix
         if not self.prefix:
             raise CondaValueError("'Environment' needs a 'prefix'.")
+
+        # an environment must have a platform
+        if not self.platform:
+            raise CondaValueError("'Environment' needs a 'platform'.")
+        
+        # ensure the platform is valid
+        if self.platform not in PLATFORMS:
+            raise CondaValueError(f"Invalid platform '{self.platform}'. Valid platforms are {PLATFORMS}.")
+
+        # ensure there are no duplicate packages in explicit_packages
+        if len(self.explicit_packages) > 1 and len(set(pkg.name for pkg in self.explicit_packages)) != len(self.explicit_packages):
+            raise CondaValueError("Duplicate packages found in 'explicit_packages'.")
+        
+        # ensure requested_packages matches one (and only one) explicit package
+        if len(self.requested_packages) > 0 and len(self.explicit_packages) > 0:
+            explicit_package_names = set(pkg.name for pkg in self.explicit_packages)
+            for requested_package in self.requested_packages:
+                if requested_package.name not in explicit_package_names:
+                    raise CondaValueError(f"Requested package '{requested_package}' is not found in 'explicit_packages'.")
+
 
     @classmethod
     def merge(cls, *environments):
