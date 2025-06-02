@@ -984,7 +984,9 @@ def test_migrate_pkgs(
 
         # This should raise a warning indicating that the user should
         # set `conda config set pkg_env_layout user` before failing out
-        with pytest.raises(CondaError, match="`conda config set pkg_env_layout user`"):
+        with pytest.raises(
+            CondaError, match="`conda config --set pkg_env_layout user`"
+        ):
             conda_cli("config", "--migrate-pkgs")
 
         mock_copy.assert_not_called()
@@ -1053,7 +1055,7 @@ def test_migrate_envs(
                 # This should raise a warning indicating that the user should
                 # set `conda config set pkg_env_layout user` before failing out
                 with pytest.raises(
-                    CondaError, match="`conda config set pkg_env_layout user`"
+                    CondaError, match="`conda config --set pkg_env_layout user`"
                 ):
                     conda_cli("config", "--migrate-envs")
 
