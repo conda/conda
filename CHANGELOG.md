@@ -1,5 +1,107 @@
 [//]: # (current developments)
 
+## 25.5.0 (2025-05-21)
+
+### Enhancements
+
+* Add the ability to define pre- and post-transaction hooks. (#14754)
+* Add support for showing and manipulating settings registered via the settings plugin hook to `conda config`. (#13661 via #14510)
+* Raise `conda.exceptions.OfflineError` instead of generic `RuntimeError` when `--offline` is used for better error handling. (#14664 via #14665)
+* Add `context.default_activation_env` setting, which allows users to customize which environment should get auto activated on initialization (if `context.auto_activate` is enabled), as well as `conda activate` calls without arguments. Defaults to `base`. (#14666)
+* Add `conda init --condabin` to only add the `$CONDA_PREFIX/condabin` directory to the `PATH` environment variable instead of installing a shell function. (#14703)
+* Add `environment_specifiers` plugin hooks to allow the creation of plugins to read different file formats and sources. (#14710)
+* Extend `PrefixData` API with two constructors (`from_name()`, `from_context()`), a new property (`name`), several boolean-returning methods (`exists()`, `is_environment()`, `is_base()`), and a few exception-raising methods (`assert_exists()`, `assert_environment()`, `assert_writable()`, `validate_path()`, `validate_name()`). An additional method `set_nonadmin()` allows to plant the `.nonadmin` marker on Windows. (#14747 via #14750)
+* Add support for frozen environment markers (CEP 22). (#14746 via #14766)
+* Add a plugin hook for `PrefixData` loaders and use it to wrap the existing PyPI interoperability features. These are now present in `conda.plugins.prefix_data_loaders.pypi`. (#14780)
+* Add a `--fields` flag to `conda list` that allows to customize the content of the `human` output format. (#14781)
+* Add debug logs to get visibility into environment spec plugin selection. (#14815)
+* Add `conda.models.records.SolvedRecord` class. It is a `PackageRecord` subclass augmented with the `requested_spec` field originally found in `PrefixRecord`. (#14821)
+
+### Bug fixes
+
+* Cleanup references to `DepsModifier.UPDATE_SPECS`. (#14807)
+* Report package variant installation as "REVISED" as opposed to "DOWNGRADED". (#13797 via #14727)
+* Add a validation step to check if the target environment is writable when running the `install` or `update` commands. (#12561 via #14668)
+* Fix cache key in `PrefixData`. It will now consider `interoperability`. (#14750)
+* Do not cache `PrefixData` records across successive `conda list` invocations. (#14750)
+* Fix `environment.yaml` spec plugin to only handle yaml files (files with `.yaml` or `.yml` file extensions).  (#14823)
+* Fix `conda info` rendering to display components in a consistent order. (#14829 via #14831)
+
+### Deprecations
+
+* Mark `conda.base.context.context.auto_activate_base` as pending deprecation, to be removed in 26.3. Use `conda.base.context.context.auto_activate` instead. (#14666)
+* Mark `conda.base.context.Context.pip_interop_enabled` as pending deprecation, to be removed in 26.3. Use `conda.base.context.Context.prefix_data_interoperability`. instead. (#14750)
+* Mark `conda.base.context._first_writable_envs_dir` as pending deprecation, to be removed in 26.3. Use `conda.gateways.disk.create.first_writable_envs_dir()` and `PrefixData.from_name()` instead. (#14750)
+* Mark `conda.base.context.validate_prefix_name` as pending deprecation, to be removed in 26.3. Use `PrefixData.validate_name()` and `PrefixData.from_name()` instead. (#14750)
+* Mark `conda.cli.common.validate_prefix` as pending deprecation, to be removed in 26.3. Use `PrefixData.assert_environment()` instead. (#14750)
+* Mark `conda.cli.common.validate_prefix_is_writable` as pending deprecation, to be removed in 26.3. Use `PrefixData.assert_writable()` instead. (#14750)
+* Mark `conda.cli.install.check_prefix` as pending deprecation, to be removed in 26.3. Use `PrefixData.exists()`, `PrefixData.validate_path()`, `PrefixData.validate_name()` instead. (#14750)
+* Mark `conda.cli.install.print_activate` as pending deprecation, to be removed in 26.3. Use `conda.cli.common.print_activate` instead. (#14670)
+* Mark `conda.cli.install.validate_new_prefix` as pending deprecation, to be removed in 26.3. Use `PrefixData.exists()` and `PrefixData.validate_path()` instead. (#14750)
+* Mark `conda.cli.install.validate_prefix_exists` as pending deprecation, to be removed in 26.3. Use `PrefixData.exists()` instead. (#14750)
+* Mark `conda.cli.main_info.get_info_components` as pending deprecation, to be removed in 26.3. Use `conda.cli.main_info.iter_info_components` instead. (#14837)
+* Mark `conda.cli.main_rename.check_protected_dirs` as pending deprecation, to be removed in 26.3. Use `PrefixData.validate_path()` instead. (#14750)
+* Mark `conda.cli.main_rename.validate_src` as pending deprecation. to be removed in 26.3. Use `PrefixData.validate_path()` and `PrefixData.validate_name()` instead. (#14750)
+* Mark `conda.common.pkg_formats.python` module as pending deprecation, to be removed in 26.3. Use `conda.plugins.prefix_data_loaders.pypi.pkg_format` instead. (#14798)
+* Mark `conda.common.pkg_formats` subpackage as pending deprecation, to be removed in 26.3. Use the `prefix_data_loaders` plugin hook instead. (#14798)
+* Mark `conda.common.url.hex_octal_to_int` as pending deprecation, to be removed in 26.3. Use `int(..., 16)` instead. (#14750)
+* Mark `conda.core.link.PrefixActionGroup` as pending deprecation, to be removed in 26.3. Use `conda.core.link.PrefixActions` instead. (#14754)
+* Mark `conda.core.link.PrefixActions` as pending deprecated, to be removed in 26.3. Use `conda.core.link.PrefixActionGroup` instead. (#14754)
+* Mark `conda.core.path_actions._Action` as pending deprecation, to be removed in 26.3. Use `conda.core.path_actions.Action` instead. (#14754)
+* Mark `conda.core.prefix_data.get_python_version_for_prefix()` as pending deprecation, to be removed in 26.3. Use `conda.core.prefix_data.PrefixData(prefix).get("python").version` instead. (#14750)
+* Mark `conda.core.prefix_data.PrefixData` keyword argument `pip_interop_enabled` as pending deprecation, to be removed in 26.3. Use the `interoperability` keyword argument instead. (#14750)
+* Mark `conda.core.prefix_data.PrefixData._load_site_packages()` as pending deprecation, to be removed in 26.3. Use `conda.plugins.prefix_data_loaders.pypi.load_site_packages()` instead. (#14750)
+* Mark `conda.core.prefix_data.PrefixData._python_pkg_record` as pending deprecation, to be removed in 26.3. Use `PrefixData.get("python")` instead. (#14750)
+* Mark `conda.core.prefix_data.python_record_for_prefix()` as pending deprecation, to be removed in 26.3. Use `conda.core.prefix_data.PrefixData(prefix).get("python")` instead. (#14750)
+* Mark `conda.gateways.disk.read.read_python_record` as pending deprecation, to be removed in 26.3. Use `conda.plugins.prefix_data_loaders.pypi.pkg_format.read_python_record` instead. (#14798)
+* Mark `conda.gateways.disk.test.is_conda_environment` as pending deprecation, to be removed in 26.3. Use `PrefixData.is_environment()` instead. (#14750)
+* Mark `conda.gateways.disk.test.touch_nonadmin` as pending deprecation, to be removed in 26.3. Use `PrefixData.set_nonadmin()` instead. (#14750)
+* Mark `conda.models.records.PackageRecord.schannel` as pending deprecation, to be removed in 26.3. Use `conda.models.records.PackageRecord.channel_name` instead. (#14781)
+* Mark `conda.trust.signature_verification` and `conda.trust.constants` as pending deprecation, to be removed in 26.3. The functionality will be moved to `conda-content-trust` and `conda-anaconda-trust-root` packages respectively. (#14849)
+* Mark `conda info --license` as pending deprecation, to be removed in 26.3. (#14831)
+* Mark `conda info --root` as pending deprecation, to be removed in 26.3. Use `conda info --base` instead. (#14831)
+
+### Docs
+
+* Add type hints and docstrings to `conda.core.portability`. (#13820)
+* Add type hints and docstrings to `conda.core.subdir_data`. (#13821)
+* Add type hints to `conda.base.constants`. (#13480)
+* Add type hints to `conda.base.context`. (#14776)
+* Add type hints to `conda.__init__`, `conda.exceptions` and `conda.exception_handler`. (#14776)
+* Add type hints to `conda.core.prefix_data`. (#14779)
+* Add examples to environment specs plugin docs. (#14814)
+* Add type hints to `conda.models.channel.Channel`. (#14817)
+* Update the conda cheatsheet to 25.3.1 version. (#14830)
+
+### Other
+
+* Refactor `--repodata-fn` iteration in `conda.cli.install` and other smaller cleanups. (#14670)
+* Refactor command line argument validations from `conda.cli.install.install` to the relevant `cli` modules. (#14742)
+* Refactor `conda create --clone` logic into a separate function. (#14743)
+* Use `dict.fromkeys` for sequence deduplication, instead of `IndexedSet()`. (#14777)
+
+
+### Contributors
+
+* @conda-bot
+* @faithrider
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @peytondmurray
+* @samhaese
+* @soapy1
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+### New Contributors
+
+* @faithrider made their first contribution in https://github.com/conda/conda/pull/13820
+* @peytondmurray made their first contribution in https://github.com/conda/conda/pull/14754
+
+
 ## 25.3.1 (2025-04-03)
 
 ### Bug fixes
