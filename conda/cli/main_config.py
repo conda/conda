@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 
     from ..base.context import Context
 
+log = getLogger(__name__)
+
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -447,8 +449,9 @@ def _set_key(key: str, item: Any, config: dict) -> None:
 
         raise CondaKeyError(key, "unknown parameter")
 
-    if alias := context._name_for_alias(key):
-        key = alias
+    if aliased := context._name_for_alias(key):
+        log.warning("Key %s is an alias of %s; setting value with latter", key, aliased)
+        key = aliased
 
     first, *rest = key.split(".")
 
