@@ -1485,12 +1485,14 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
-    def _name_for_alias(self, alias: str) -> str | None:
+    def _name_for_alias(self, alias: str, ignore_private: bool = True) -> str | None:
         return next(
             (
                 p._name
                 for p in self.__class__.__dict__.values()
-                if isinstance(p, ParameterLoader) and alias in p.aliases
+                if isinstance(p, ParameterLoader)
+                and alias in p.aliases
+                and (ignore_private and not p._name.startswith("_"))
             ),
             None,
         )
