@@ -126,7 +126,7 @@ def test_export_with_json(
 
     # With --json and --file, output should be success info in JSON format
     data = json_load(stdout)
-    assert data["success"] == True
+    assert data["success"]
     assert data["file"] == str(path)
     assert data["format"] == "yaml"
 
