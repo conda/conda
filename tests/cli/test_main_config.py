@@ -256,19 +256,27 @@ def test_config_set_keys(tmp_path: Path) -> None:
 
 def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
     condarc = tmp_path / ".condarc"
+
     set_keys(("auto_activate_base", True), path=condarc)
     assert condarc.read_text() == "auto_activate: true\n"
+
     set_keys(("auto_activate", True), path=condarc)
     assert condarc.read_text() == "auto_activate: true\n"
-    out, err, rc = conda_cli("config", "--show", "auto_activate_base")
+
+    out, err, rc = conda_cli("config", "--show", "auto_activate_base", "--file", condarc)
     assert not rc
     assert "auto_activate: True\n" == out
-    out, err, rc = conda_cli("config", "--get", "auto_activate_base")
+
+    out, err, rc = conda_cli("config", "--get", "auto_activate_base", "--file", condarc)
     assert not rc
     assert "--set auto_activate True\n" == out
-    out, err, rc = conda_cli("config", "--describe", "auto_activate_base")
+
+    out, err, rc = conda_cli("config", "--describe", "auto_activate_base", "--file", condarc)
     assert not rc
     assert "auto_activate: true" in out
+
+    out, err, rc = conda_cli("config", "--remove-key", "auto_activate_base", "--file", condarc)
+    assert not rc
 
 
 def test_config_set_and_get_key_for_env(
