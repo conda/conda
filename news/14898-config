@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Allow `conda config` commands to process aliased settings names by forwarding them to the canonical name (e.g. `self_update` -> `auto_update_conda`). (#14898)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
