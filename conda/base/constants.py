@@ -37,7 +37,7 @@ APP_NAME: Final = "conda"
 
 SEARCH_PATH: tuple[str, ...] = ()
 
-if on_win and (PROGRAMDATA := environ.get("PROGRAMDATA")):  # pragma: no cover
+if on_win and (PROGRAMDATA := environ.get("ProgramData")):  # pragma: no cover
     PROGRAMDATA = PureWindowsPath(PROGRAMDATA).as_posix()
     SEARCH_PATH += (
         f"{PROGRAMDATA}/conda/.condarc",
