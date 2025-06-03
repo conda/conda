@@ -1438,9 +1438,9 @@ def test_posix_basic(
     assert deactivate_data == (
         f"export PATH='{new_path}'\n"
         f'. "{deactivate1}"\n'
-        f"unset CONDA_PREFIX\n"
-        f"unset CONDA_DEFAULT_ENV\n"
-        f"unset CONDA_PROMPT_MODIFIER\n"
+        f"export CONDA_PREFIX=''\n"
+        f"export CONDA_DEFAULT_ENV=''\n"
+        f"export CONDA_PROMPT_MODIFIER=''\n"
         f"{unset_vars}\n"
         f"PS1='{get_prompt()}'\n"
         f"export CONDA_SHLVL='0'\n"
