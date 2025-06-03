@@ -41,9 +41,7 @@ class YamlFileSpec(EnvironmentSpecBase):
             self._environment = env.from_file(self.filename)
             return True
         except Exception:
-            log.debug(
-                "Failed to load %s as a YAML/JSON.", self.filename, exc_info=True
-            )
+            log.debug("Failed to load %s as a YAML/JSON.", self.filename, exc_info=True)
             return False
 
     def environment(self) -> env.Environment:

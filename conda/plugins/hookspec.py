@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
@@ -34,7 +35,6 @@ if TYPE_CHECKING:
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
-        CondaEnvironmentExporter,
     )
 
 spec_name = "conda"
@@ -690,6 +690,7 @@ class CondaSpecs:
             from conda import plugins
             from conda.plugins.types import EnvironmentExporter
 
+
             class JSONExporter(EnvironmentExporter):
                 format = "json"
                 extensions = {".json"}
@@ -698,6 +699,7 @@ class CondaSpecs:
                     if format_name != "json":
                         raise ValueError(f"Unsupported format: {format_name}")
                     return json.dumps(env.to_dict(), indent=2)
+
 
             @plugins.hookimpl
             def conda_environment_exporters():

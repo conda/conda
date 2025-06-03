@@ -480,7 +480,7 @@ class EnvironmentExporter(ABC):
         return any(filename.endswith(ext) for ext in self.extensions)
 
     @abstractmethod
-    def export(self, env: "Environment", format: str) -> str:
+    def export(self, env: Environment, format: str) -> str:
         """
         Export an Environment object to the specified format.
 

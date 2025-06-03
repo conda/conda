@@ -6,7 +6,7 @@ import pytest
 
 from conda.env.env import Environment
 from conda.plugins.manager import get_plugin_manager
-from conda.plugins.types import CondaEnvironmentExporter, EnvironmentExporter
+from conda.plugins.types import EnvironmentExporter
 
 
 class TestEnvironmentExporter(EnvironmentExporter):
