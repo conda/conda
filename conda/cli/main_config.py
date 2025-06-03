@@ -394,6 +394,8 @@ def _key_exists(key: str, warnings: list[str], context=None) -> bool:
         return True
 
     if first not in context.list_parameters():
+        if context._name_for_alias(first):
+            return True
         if context.json:
             warnings.append(f"Unknown key: {key!r}")
         else:
@@ -419,6 +421,10 @@ def _get_key(
     if not _key_exists(key, warnings, context):
         return
 
+    if alias := context._name_for_alias(key):
+        key = alias
+        key_parts = alias.split(".")
+
     sub_config = config
     try:
         for part in key_parts:
@@ -440,6 +446,9 @@ def _set_key(key: str, item: Any, config: dict) -> None:
         from ..exceptions import CondaKeyError
 
         raise CondaKeyError(key, "unknown parameter")
+
+    if alias := context._name_for_alias(key):
+        key = alias
 
     first, *rest = key.split(".")
 
@@ -595,7 +604,7 @@ def _validate_provided_parameters(
     from ..common.io import dashlist
     from ..exceptions import ArgumentError
 
-    all_names = context.list_parameters()
+    all_names = context.list_parameters(aliases=True)
     all_plugin_names = context.plugins.list_parameters()
 
     not_params = set(parameters) - set(all_names)
@@ -672,6 +681,11 @@ def execute_config(args, parser):
             _validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
             )
+            provided_parameters = tuple(
+                dict.fromkeys(
+                    context._name_for_alias(name) for name in provided_parameters
+                )
+            )
 
         else:
             provided_parameters = context.list_parameters()
@@ -744,6 +758,11 @@ def execute_config(args, parser):
             )
             _validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
+            )
+            provided_parameters = tuple(
+                dict.fromkeys(
+                    context._name_for_alias(name) for name in provided_parameters
+                )
             )
 
             if context.json:

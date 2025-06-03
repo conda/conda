@@ -1314,6 +1314,12 @@ class ConfigurationType(type):
             for name, p in cls.__dict__.items()
             if isinstance(p, ParameterLoader)
         )
+        cls.parameter_names_and_aliases = tuple(
+            name
+            for p in cls.__dict__.values()
+            if isinstance(p, ParameterLoader)
+            for name in p._names
+        )
 
 
 CONDARC_FILENAMES = (".condarc", "condarc")
@@ -1479,6 +1485,16 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
+    def _name_for_alias(self, alias: str) -> str | None:
+        return next(
+            (
+                p._name
+                for p in self.__class__.__dict__.values()
+                if isinstance(p, ParameterLoader) and alias in p.aliases
+            ),
+            None,
+        )
+
     def _reset_cache(self):
         self._cache_ = {}
         for callback in self._reset_callbacks:
@@ -1606,7 +1622,16 @@ class Configuration(metaclass=ConfigurationType):
             details["string_delimiter"] = parameter.string_delimiter
         return details
 
-    def list_parameters(self):
+    def list_parameters(self, aliases: bool = False):
+        if aliases:
+            return tuple(
+                dict.fromkeys(
+                    name
+                    for p in self.__class__.__dict__.values()
+                    if isinstance(p, ParameterLoader)
+                    for name in p._names
+                )
+            )
         return tuple(sorted(name.lstrip("_") for name in self.parameter_names))
 
     def typify_parameter(self, parameter_name, value, source):
