@@ -959,7 +959,7 @@ class CshActivator(_Activator):
     export_var_tmpl = 'setenv %s "%s"'
     path_var_tmpl = "setenv %s \"`cygpath '%s'`\"" if on_win else export_var_tmpl
     set_var_tmpl = "set %s='%s'"
-    run_script_tmpl = 'source "%s"'
+    run_script_tmpl = "source \"`cygpath '%s'`\"" if on_win else 'source "%s"'
 
     hook_source_path = Path(
         CONDA_PACKAGE_ROOT,
