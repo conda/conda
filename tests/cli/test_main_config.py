@@ -263,7 +263,9 @@ def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
     set_keys(("auto_activate", True), path=condarc)
     assert condarc.read_text() == "auto_activate: true\n"
 
-    out, err, rc = conda_cli("config", "--show", "auto_activate_base", "--file", condarc)
+    out, err, rc = conda_cli(
+        "config", "--show", "auto_activate_base", "--file", condarc
+    )
     assert not rc
     assert "auto_activate: True\n" == out
 
@@ -271,11 +273,15 @@ def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
     assert not rc
     assert "--set auto_activate True\n" == out
 
-    out, err, rc = conda_cli("config", "--describe", "auto_activate_base", "--file", condarc)
+    out, err, rc = conda_cli(
+        "config", "--describe", "auto_activate_base", "--file", condarc
+    )
     assert not rc
     assert "auto_activate: true" in out
 
-    out, err, rc = conda_cli("config", "--remove-key", "auto_activate_base", "--file", condarc)
+    out, err, rc = conda_cli(
+        "config", "--remove-key", "auto_activate_base", "--file", condarc
+    )
     assert not rc
 
 
