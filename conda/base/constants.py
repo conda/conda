@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import struct
 from enum import Enum, EnumMeta
+from os import environ
 from os.path import join
+from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
@@ -33,16 +35,17 @@ machine_bits: Final = 8 * struct.calcsize("P")
 
 APP_NAME: Final = "conda"
 
-SEARCH_PATH: tuple[str, ...]
+SEARCH_PATH: tuple[str, ...] = ()
 
-if on_win:  # pragma: no cover
-    SEARCH_PATH = (
-        "C:/ProgramData/conda/.condarc",
-        "C:/ProgramData/conda/condarc",
-        "C:/ProgramData/conda/condarc.d",
+if on_win and (PROGRAMDATA := environ.get("PROGRAMDATA")):  # pragma: no cover
+    PROGRAMDATA = PureWindowsPath(PROGRAMDATA).as_posix()
+    SEARCH_PATH += (
+        f"{PROGRAMDATA}/conda/.condarc",
+        f"{PROGRAMDATA}/conda/condarc",
+        f"{PROGRAMDATA}/conda/condarc.d",
     )
 else:
-    SEARCH_PATH = (
+    SEARCH_PATH += (
         "/etc/conda/.condarc",
         "/etc/conda/condarc",
         "/etc/conda/condarc.d/",
