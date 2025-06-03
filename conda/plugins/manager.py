@@ -623,6 +623,24 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return sorted(formats)
 
+    def get_environment_specifier_name(self, filename: str) -> str:
+        """
+        Returns the name of the environment specifier plugin that can handle the given file.
+
+        Unlike get_environment_specifiers, this method doesn't raise exceptions but
+        returns a string with the specifier name or an error description.
+
+        :param filename: Path to the environment file
+        :type filename: str
+        :return: The name of the environment specifier that can handle the file,
+                 or a descriptive error string
+        :rtype: str
+        """
+        try:
+            return self.get_environment_specifiers(filename).name
+        except (EnvironmentSpecPluginNotDetected, PluginError, Exception) as e:
+            return f"unknown ({type(e).__name__})"
+
     def get_pre_transaction_actions(
         self,
         transaction_context: dict[str, str] | None = None,
