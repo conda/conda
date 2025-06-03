@@ -104,10 +104,12 @@ def env_altered_files(
     env_ok: tuple[Path, str, str, str, str],
 ) -> tuple[Path, str, str, str, str]:
     """Fixture that returns a testing environment with altered files"""
-    prefix, _, lib_doctor, _, _ = env_ok
+    prefix, _, lib_doctor, ignored_doctor, _ = env_ok
     # Altering the lib_doctor.py file so that it's sha256 checksum will change
     with open(prefix / lib_doctor, "w") as f:
         f.write("print('Hello, World!')")
+    with open(prefix / ignored_doctor, "w") as f:
+        f.write("nonsense")
 
     return env_ok
 
@@ -192,11 +194,12 @@ def test_no_missing_files_action(
 def test_altered_files_action(
     env_altered_files: tuple[Path, str, str, str, str], capsys, verbose
 ):
-    prefix, _, lib_doctor, _, package = env_altered_files
+    prefix, _, lib_doctor, ignored_doctor, package = env_altered_files
     altered_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(lib_doctor) in captured.out
+        assert str(ignored_doctor) not in captured.out
     else:
         assert f"{package}: 1" in captured.out
 
