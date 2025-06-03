@@ -12,7 +12,7 @@ from conda.models.records import PackageRecord
 def test_create_environment_missing_required_fields():
     with pytest.raises(CondaValueError):
         Environment(platform="linux-64", prefix=None)
-    
+
     with pytest.raises(CondaValueError):
         Environment(platform=None, prefix="/path/to/env")
 
@@ -41,9 +41,9 @@ def test_ensure_no_duplicate_named_explicit_packages():
     )
     with pytest.raises(CondaValueError):
         Environment(
-            platform="linux-64", 
-            prefix="/path/to/env", 
-            explicit_packages=[test_record_one, test_record_two]
+            platform="linux-64",
+            prefix="/path/to/env",
+            explicit_packages=[test_record_one, test_record_two],
         )
 
 
@@ -58,8 +58,8 @@ def test_create_missing_explicit_package():
     )
     with pytest.raises(CondaValueError):
         Environment(
-            platform="linux-64", 
-            prefix="/path/to/env", 
+            platform="linux-64",
+            prefix="/path/to/env",
             explicit_packages=[test_record_one],
             requested_packages=[MatchSpec("test"), MatchSpec("pandas")],
         )

@@ -96,9 +96,7 @@ PLATFORMS: Final = (
     "win-arm64",
     "zos-z",
 )
-KNOWN_SUBDIRS: Final = (
-    "noarch",
-) 
+KNOWN_SUBDIRS: Final = ("noarch",)
 KNOWN_SUBDIRS += PLATFORMS
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
