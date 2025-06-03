@@ -334,18 +334,29 @@ def install_clone(args, parser):
 
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
+    newenv = command == "create"
+    isupdate = command == "update"
+    isinstall = command == "install"
+    isremove = command == "remove"
+
+    if newenv and args.clone:
+        deprecated.topic(
+            "25.9",
+            "26.3",
+            topic="This function will not handle clones anymore.",
+            addendum="Use `conda.cli.install.install_clone()` instead",
+        )
+        return install_clone(args, parser)
+
     prefix = context.target_prefix
+    index_args = get_index_args(args=args)
+    context_channels = context.channels
 
     # common validations for all types of installs
     validate_install_command(prefix=prefix, command=command)
 
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
-
-    newenv = command == "create"
-    isupdate = command == "update"
-    isinstall = command == "install"
-    isremove = command == "remove"
 
     # collect packages provided from the command line
     args_packages = [s.strip("\"'") for s in args.packages]
@@ -355,9 +366,6 @@ def install(args, parser, command="install"):
         for default_package in context.create_default_packages:
             if MatchSpec(default_package).name not in names:
                 args_packages.append(default_package)
-
-    index_args = get_index_args(args=args)
-    context_channels = context.channels
 
     num_cp = sum(is_package_file(s) for s in args_packages)
     if num_cp:
@@ -391,14 +399,6 @@ def install(args, parser, command="install"):
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         ensure_update_specs_exist(prefix=prefix, specs=specs)
-    if newenv and args.clone:
-        deprecated.topic(
-            "25.9",
-            "26.3",
-            topic="This function will not handle clones anymore.",
-            addendum="Use `conda.cli.install.install_clone()` instead",
-        )
-        return install_clone(args, parser)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
