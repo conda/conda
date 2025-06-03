@@ -73,7 +73,9 @@ def dry_run(
     )
 
 
-def install(prefix: str, specs: list, args: Namespace, env: Environment, *_, **kwargs) -> dict:
+def install(
+    prefix: str, specs: list, args: Namespace, env: Environment, *_, **kwargs
+) -> dict:
     """Install packages into a conda environment.
 
     This function handles two main paths:
