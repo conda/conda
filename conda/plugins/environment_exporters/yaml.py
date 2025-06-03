@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """YAML environment exporter plugin."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from .. import hookimpl

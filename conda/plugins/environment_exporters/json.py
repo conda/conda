@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """JSON environment exporter plugin."""
 
+from __future__ import annotations
+
 import json
 from typing import TYPE_CHECKING
 
@@ -18,7 +20,7 @@ class JSONExporter(EnvironmentExporter):
     format = "json"
     extensions = {".json"}
 
-    def export(self, env: "Environment", format: str) -> str:
+    def export(self, env: Environment, format: str) -> str:
         """Export Environment to JSON format."""
         self.validate(format)
 
