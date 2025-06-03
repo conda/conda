@@ -532,6 +532,7 @@ def _remove_key(key: str, config: dict) -> None:
             sub_config = sub_config[part]
         del sub_config[key_parts[-1]]
     except KeyError:
+        # KeyError: part not found, nothing to remove, but maybe user passed an alias?
         from ..base.context import context
         from ..exceptions import CondaKeyError
 
@@ -539,8 +540,7 @@ def _remove_key(key: str, config: dict) -> None:
             try:
                 return _remove_key(alias, config)
             except CondaKeyError:
-                pass  # raise with original name
-        # KeyError: part not found, nothing to remove
+                pass  # raise with originally passed key
         raise CondaKeyError(key, "undefined in config")
 
 
