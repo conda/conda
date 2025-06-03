@@ -32,6 +32,8 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
+from .models.records import PackageCacheRecord
+
 
 log = getLogger(__name__)
 
@@ -89,6 +91,26 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
         if sha256 := m.group("sha256"):
             checksums["sha256"] = sha256
         yield MatchSpec(url, **checksums)
+
+
+def get_package_record_from_explicit(specs: list[str]) -> Iterable[PackageCacheRecord]:
+    fetch_specs = list(_match_specs_from_explicit(specs))
+
+    if context.dry_run:
+        raise DryRunExit()
+
+    pfe = ProgressiveFetchExtract(fetch_specs)
+    pfe.execute()
+
+    if context.download_only:
+        raise CondaExitZero(
+            "Package caches prepared. "
+            "UnlinkLinkTransaction cancelled with --download-only option."
+        )
+
+    return tuple(
+        next(PackageCacheData.query_all(spec), None) for spec in fetch_specs
+    )
 
 
 @deprecated.argument("25.3", "25.9", "index_args")
