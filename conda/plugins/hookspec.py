@@ -696,8 +696,7 @@ class CondaSpecs:
                 extensions = {".json"}
 
                 def export(self, env, format_name: str) -> str:
-                    if format_name != "json":
-                        raise ValueError(f"Unsupported format: {format_name}")
+                    self.validate(format_name)
                     return json.dumps(env.to_dict(), indent=2)
 
 
