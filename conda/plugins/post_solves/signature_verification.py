@@ -9,9 +9,11 @@ from .. import CondaPostSolve, hookimpl
 
 @hookimpl
 def conda_post_solves():
+    # FUTURE: conda 26.3+, remove ignore signature_verification deprecation
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", message="conda.trust.* is pending deprecation"
+            "ignore",
+            message="conda.trust.* is pending deprecation",
         )
         from ...trust.signature_verification import signature_verification
 

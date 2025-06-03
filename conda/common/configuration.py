@@ -1371,13 +1371,7 @@ def custom_expandvars(
 
 
 class Configuration(metaclass=ConfigurationType):
-    def __init__(
-        self,
-        search_path=(),
-        app_name=None,
-        argparse_args=None,
-        **kwargs,
-    ):
+    def __init__(self, search_path=(), app_name=None, argparse_args=None, **kwargs):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}

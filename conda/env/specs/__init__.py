@@ -72,13 +72,13 @@ def detect(
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
     """
     try:
+        # FUTURE: conda 26.3+, remove ignore BinstarSpec deprecation
         with warnings.catch_warnings():
             warnings.filterwarnings(
-                "ignore", message="conda.env.specs.binstar.BinstarSpec"
+                "ignore",
+                message="conda.env.specs.binstar.BinstarSpec",
             )
-            spec_hook = context.plugin_manager.get_environment_specifiers(
-                filename=filename,
-            )
+            spec_hook = context.plugin_manager.get_environment_specifiers(filename)
     except EnvironmentSpecPluginNotDetected as e:
         raise SpecNotFound(e.message)
 

@@ -285,8 +285,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     notfound = []
     if unknowns:
         index_args = index_args or {}
-        index_args["channels"] = index_args["channel_urls"]
-        del index_args["channel_urls"]
+        index_args["channels"] = index_args.pop("channel_urls")
         index = Index(**index_args)
 
         for prec in unknowns:
