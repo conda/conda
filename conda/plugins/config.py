@@ -44,6 +44,7 @@ class PluginConfig(Configuration):
     """
 
     parameter_names: tuple[str, ...] = ()
+    parameter_names_and_aliases: tuple[str, ...] = ()
 
     @classmethod
     def add_plugin_setting(
@@ -56,6 +57,13 @@ class PluginConfig(Configuration):
         loader = ParameterLoader(parameter, aliases=aliases)
         name = loader._set_name(name)
         setattr(cls, name, loader)
+
+        # Rebuild parameter_names_and_aliases to include the new parameter
+        cls.parameter_names_and_aliases = tuple(
+            alias_name
+            for p in cls.parameter_loaders.values()
+            for alias_name in (p._names or ())
+        )
 
     @classmethod
     def remove_all_plugin_settings(cls) -> None:

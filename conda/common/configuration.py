@@ -1308,7 +1308,7 @@ class ConfigurationType(type):
     def __init__(cls, name, bases, attr):
         super().__init__(name, bases, attr)
 
-        # call _set_name for each parameter
+        # call _set_name for each parameter found during class creation
         cls.parameter_names = tuple(
             p._set_name(name)
             for name, p in cls.__dict__.items()
@@ -1325,9 +1325,9 @@ class ConfigurationType(type):
         This allows for parameters added after class creation (like plugin parameters).
         """
         return {
-            name: p
-            for name, p in cls.__dict__.items()
-            if isinstance(p, ParameterLoader)
+            name: param
+            for name, param in cls.__dict__.items()
+            if isinstance(param, ParameterLoader)
         }
 
 
@@ -1537,6 +1537,28 @@ class Configuration(metaclass=ConfigurationType):
     def register_reset_callaback(self, callback):
         self._reset_callbacks.add(callback)
 
+    def _get_parameter_loader(self, parameter_name):
+        """Get parameter loader with fallback for missing parameters."""
+        loaders = self.__class__.parameter_loaders
+        if parameter_name in loaders:
+            return loaders[parameter_name]
+
+        # Try with underscore prefix for private parameters
+        private_name = "_" + parameter_name
+        if private_name in loaders:
+            return loaders[private_name]
+
+        # Last resort: search through __dict__ for any ParameterLoader
+        for name, param in self.__class__.__dict__.items():
+            if isinstance(param, ParameterLoader) and param._name == parameter_name:
+                return param
+            if isinstance(param, ParameterLoader) and parameter_name in getattr(
+                param, "_names", set()
+            ):
+                return param
+
+        return None
+
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__
         # I haven't yet found a way to make it more DRY though
@@ -1544,7 +1566,10 @@ class Configuration(metaclass=ConfigurationType):
         validation_errors = []
         raw_parameters = self.raw_data[source]
         for key in self.parameter_names:
-            parameter = self.__class__.__dict__[key]
+            parameter = self._get_parameter_loader(key)
+            if parameter is None:
+                continue  # Skip parameters that can't be found
+
             match, multikey_error = parameter._raw_parameters_from_single_source(
                 raw_parameters
             )
@@ -1617,7 +1642,11 @@ class Configuration(metaclass=ConfigurationType):
         # TODO, in Parameter base class, rename element_type to value_type
         if parameter_name not in self.parameter_names:
             parameter_name = "_" + parameter_name
-        parameter_loader = self.__class__.__dict__[parameter_name]
+
+        parameter_loader = self._get_parameter_loader(parameter_name)
+        if parameter_loader is None:
+            raise KeyError(parameter_name)
+
         parameter = parameter_loader.type
         assert isinstance(parameter, Parameter)
 
@@ -1660,8 +1689,7 @@ class Configuration(metaclass=ConfigurationType):
             return tuple(
                 dict.fromkeys(
                     name
-                    for p in self.__class__.__dict__.values()
-                    if isinstance(p, ParameterLoader)
+                    for p in self.__class__.parameter_loaders.values()
                     for name in p._names
                 )
             )
@@ -1671,7 +1699,11 @@ class Configuration(metaclass=ConfigurationType):
         # return a tuple with correct parameter name and typed-value
         if parameter_name not in self.parameter_names:
             parameter_name = "_" + parameter_name
-        parameter_loader = self.__class__.__dict__[parameter_name]
+
+        parameter_loader = self._get_parameter_loader(parameter_name)
+        if parameter_loader is None:
+            raise KeyError(parameter_name)
+
         parameter = parameter_loader.type
         assert isinstance(parameter, Parameter)
 
