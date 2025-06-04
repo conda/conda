@@ -8,7 +8,9 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.gateways.disk.create.create_application_entry_point` as pending deprecation, to be removed in 26.9. (#12771)
+* Mark `conda.gateways.disk.create.ProgressFileWrapper` as pending deprecation, to be removed in 26.9. (#12771)
+* Mark `conda.gateways.disk.create.create_fake_executable_softlink` as pending deprecation, to be removed in 26.9. (#12771)
 
 ### Docs
 
