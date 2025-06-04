@@ -648,6 +648,11 @@ def execute_config(args, parser):
     from ..common.serialize import yaml_round_trip_load
     from ..core.prefix_data import PrefixData
 
+    # Override context for --file operations with --show/--describe
+    if args.file and (args.show is not None or args.describe is not None):
+        from ..base.context import Context
+        context = Context(search_path=(args.file,))
+
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
     json_warnings = []
