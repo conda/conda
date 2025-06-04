@@ -1314,21 +1314,12 @@ class ConfigurationType(type):
             for name, p in cls.__dict__.items()
             if isinstance(p, ParameterLoader)
         )
-        cls.parameter_names_and_aliases = tuple(
-            name for p in cls.parameter_loaders.values() for name in p._names
-        )
 
-    @property
-    def parameter_loaders(cls):
-        """
-        Dynamically return mapping from parameter names to ParameterLoader objects.
-        This allows for parameters added after class creation (like plugin parameters).
-        """
-        return {
-            name: param
-            for name, param in cls.__dict__.items()
-            if isinstance(param, ParameterLoader)
-        }
+        # Build parameter_names_and_aliases using the class method
+        # This will work because the class is now fully constructed
+        cls.parameter_names_and_aliases = tuple(
+            name for p in cls.parameter_loaders().values() for name in p._names
+        )
 
 
 CONDARC_FILENAMES = (".condarc", "condarc")
@@ -1494,6 +1485,18 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
+    @classmethod
+    def parameter_loaders(cls):
+        """
+        Return mapping from parameter names to ParameterLoader objects.
+        This allows for parameters added after class creation (like plugin parameters).
+        """
+        return {
+            name: param
+            for name, param in cls.__dict__.items()
+            if isinstance(param, ParameterLoader)
+        }
+
     def name_for_alias(self, alias: str, ignore_private: bool = True) -> str | None:
         """
         Find the canonical parameter name for a given alias.
@@ -1521,25 +1524,16 @@ class Configuration(metaclass=ConfigurationType):
         return next(
             (
                 p._name
-                for p in self.__class__.parameter_loaders.values()
+                for p in self.__class__.parameter_loaders().values()
                 if alias in p.aliases
                 and (not ignore_private or not p._name.startswith("_"))
             ),
             None,
         )
 
-    def _reset_cache(self):
-        self._cache_ = {}
-        for callback in self._reset_callbacks:
-            callback()
-        return self
-
-    def register_reset_callaback(self, callback):
-        self._reset_callbacks.add(callback)
-
     def _get_parameter_loader(self, parameter_name):
         """Get parameter loader with fallback for missing parameters."""
-        loaders = self.__class__.parameter_loaders
+        loaders = self.__class__.parameter_loaders()
         if parameter_name in loaders:
             return loaders[parameter_name]
 
@@ -1553,11 +1547,20 @@ class Configuration(metaclass=ConfigurationType):
             if isinstance(param, ParameterLoader) and param._name == parameter_name:
                 return param
             if isinstance(param, ParameterLoader) and parameter_name in getattr(
-                param, "_names", set()
+                param, "_names", ()
             ):
                 return param
 
         return None
+
+    def _reset_cache(self):
+        self._cache_ = {}
+        for callback in self._reset_callbacks:
+            callback()
+        return self
+
+    def register_reset_callaback(self, callback):
+        self._reset_callbacks.add(callback)
 
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__
@@ -1689,7 +1692,7 @@ class Configuration(metaclass=ConfigurationType):
             return tuple(
                 dict.fromkeys(
                     name
-                    for p in self.__class__.parameter_loaders.values()
+                    for p in self.__class__.parameter_loaders().values()
                     for name in p._names
                 )
             )
