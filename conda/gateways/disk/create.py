@@ -158,7 +158,7 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     return target_full_path
 
 
-@deprecated("25.3", "25.9")
+@deprecated("26.3", "26.9")
 def create_application_entry_point(
     source_full_path, target_full_path, python_full_path
 ):
@@ -187,7 +187,7 @@ def create_application_entry_point(
     make_executable(target_full_path)
 
 
-@deprecated("25.3", "25.9")
+@deprecated("26.3", "26.9")
 class ProgressFileWrapper:
     def __init__(self, fileobj, progress_update_callback):
         self.progress_file = fileobj
@@ -314,7 +314,7 @@ def _do_softlink(src, dst):
         symlink(src, dst)
 
 
-@deprecated("25.3", "25.9")
+@deprecated("26.3", "26.9")
 def create_fake_executable_softlink(src, dst):
     assert on_win
     src_root, _ = splitext(src)
