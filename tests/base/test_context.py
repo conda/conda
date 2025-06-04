@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from itertools import chain
+from frozendict import frozendict
 from os.path import abspath, join
 from pathlib import Path
 from types import SimpleNamespace
