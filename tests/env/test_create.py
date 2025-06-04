@@ -290,10 +290,6 @@ def test_create_env_json(
 def test_protected_dirs_error_for_env_create(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
 ):
-    """
-    TODO: Once `conda.env.specs.binstar` is removed via deprecation, remove the
-          `with pytest.deprecated_call()` context manager.
-    """
     with tmp_env() as prefix:
         with pytest.raises(
             CondaValueError,
