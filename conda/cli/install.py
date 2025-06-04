@@ -55,7 +55,7 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, explicit, get_package_record_from_explicit
+from ..misc import _get_best_prec_match, clone_env, install_explicit_packages, get_package_record_from_explicit
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.environment import Environment
@@ -425,7 +425,7 @@ def install(args, parser, command="install"):
 
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
-        return explicit(env.explicit_packages, env.prefix, verbose=not context.quiet)
+        return install_explicit_packages(env.explicit_packages, env.prefix)
 
     # TODO: these calls to context should maybe actually be calls to the
     #       environment configuration?
