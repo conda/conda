@@ -228,10 +228,7 @@ def test_env_create(
     path_factory: PathFactoryFixture,
     environment_yml: Path,
 ):
-    """
-    TODO: Once `conda.env.specs.binstar` is removed via deprecation, remove the
-          `with pytest.deprecated_call()` context manager.
-    """
+    # FUTURE: conda 26.3+, remove ignore BinstarSpec deprecation
     with pytest.deprecated_call():
         out, err, code = conda_cli(
             "env",
