@@ -651,6 +651,7 @@ def execute_config(args, parser):
     # Override context for --file operations with --show/--describe
     if args.file and (args.show is not None or args.describe is not None):
         from ..base.context import Context
+
         context = Context(search_path=(args.file,))
 
     stdout_write = getLogger("conda.stdout").info
@@ -697,8 +698,7 @@ def execute_config(args, parser):
             )
             provided_parameters = tuple(
                 dict.fromkeys(
-                    context.name_for_alias(name) or name
-                    for name in provided_parameters
+                    context.name_for_alias(name) or name for name in provided_parameters
                 )
             )
 
@@ -776,8 +776,7 @@ def execute_config(args, parser):
             )
             provided_parameters = tuple(
                 dict.fromkeys(
-                    context.name_for_alias(name) or name
-                    for name in provided_parameters
+                    context.name_for_alias(name) or name for name in provided_parameters
                 )
             )
 
