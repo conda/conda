@@ -14,11 +14,61 @@ from ..exceptions import CondaValueError
 if TYPE_CHECKING:
     from typing import Any
 
+    from ..base.constants import (
+        DepsModifier,
+        ChannelPriority,
+        SatSolverChoice,
+        UpdateModifier,
+    )
+
     from .match_spec import MatchSpec
     from .records import PackageRecord
 
 
 log = getLogger(__name__)
+
+
+@dataclass
+class EnvironmentConfig:
+    """
+    **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+    Data model for a conda environment config.
+    """
+
+    aggressive_update_packages: bool
+
+    channel_priority:  ChannelPriority
+
+    channels: list[str]
+
+    channel_settings: dict[str, str]
+
+    deps_modifier: DepsModifier
+
+    disallowed_packages: list[str]
+
+    pinned_packages: list[str]
+
+    repodata_fns: list[str]
+
+    sat_solver: SatSolverChoice | None = None
+
+    solver: str | None = None
+
+    track_features: list[str]
+
+    update_modifier: UpdateModifier
+
+    use_only_tar_bz2: bool
+
+    @classmethod
+    def merge(cls, *config):
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Merges multiple EnvironemntConfigs
+        """
 
 
 @dataclass
@@ -38,7 +88,7 @@ class Environment:
     #: Environment level configuration, eg. channels, solver options, etc.
     #: TODO: may need to think more about the type of this field and how
     #:       conda should be merging configs between environments
-    config: dict[str, Any] = field(default_factory=dict)
+    config: EnvironmentConfig
 
     #: Map of other package types that conda can install. For example pypi packages.
     external_packages: dict[str, list[str]] = field(default_factory=dict)
