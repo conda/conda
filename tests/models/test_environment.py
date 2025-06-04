@@ -81,7 +81,12 @@ def test_environments_merge():
     env2 = Environment(
         prefix="/path/to/env1",
         platform="linux-64",
-        config={"primitive_one": "no", "primitive_two": "yes", "list_one": [3], "map": {"b": 1}},
+        config={
+            "primitive_one": "no",
+            "primitive_two": "yes",
+            "list_one": [3],
+            "map": {"b": 1},
+        },
         external_packages={"pip": ["two", "flask"], "a": ["nother"]},
         explicit_packages=[],
         requested_packages=[MatchSpec("numpy"), MatchSpec("flask")],
@@ -94,7 +99,7 @@ def test_environments_merge():
         "primitive_one": "no",
         "primitive_two": "yes",
         "list_one": [1, 2, 4, 3],
-        "map": {"a":1, "b": 1},
+        "map": {"a": 1, "b": 1},
     }
     assert merged.external_packages == {
         "pip": ["one", "two", {"special": "type"}, "flask"],
