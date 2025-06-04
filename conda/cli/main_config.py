@@ -396,7 +396,7 @@ def _key_exists(key: str, warnings: list[str], context=None) -> bool:
         return True
 
     if first not in context.list_parameters():
-        if context._name_for_alias(first):
+        if context.name_for_alias(first):
             return True
         if context.json:
             warnings.append(f"Unknown key: {key!r}")
@@ -423,7 +423,7 @@ def _get_key(
     if not _key_exists(key, warnings, context):
         return
 
-    if alias := context._name_for_alias(key):
+    if alias := context.name_for_alias(key):
         key = alias
         key_parts = alias.split(".")
 
@@ -449,7 +449,7 @@ def _set_key(key: str, item: Any, config: dict) -> None:
 
         raise CondaKeyError(key, "unknown parameter")
 
-    if aliased := context._name_for_alias(key):
+    if aliased := context.name_for_alias(key):
         log.warning("Key %s is an alias of %s; setting value with latter", key, aliased)
         key = aliased
 
@@ -539,7 +539,7 @@ def _remove_key(key: str, config: dict) -> None:
         from ..base.context import context
         from ..exceptions import CondaKeyError
 
-        if alias := context._name_for_alias(key):
+        if alias := context.name_for_alias(key):
             try:
                 return _remove_key(alias, config)
             except CondaKeyError:
@@ -692,7 +692,7 @@ def execute_config(args, parser):
             )
             provided_parameters = tuple(
                 dict.fromkeys(
-                    context._name_for_alias(name) or name
+                    context.name_for_alias(name) or name
                     for name in provided_parameters
                 )
             )
@@ -771,7 +771,7 @@ def execute_config(args, parser):
             )
             provided_parameters = tuple(
                 dict.fromkeys(
-                    context._name_for_alias(name) or name
+                    context.name_for_alias(name) or name
                     for name in provided_parameters
                 )
             )

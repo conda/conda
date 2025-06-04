@@ -1485,14 +1485,36 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
-    def _name_for_alias(self, alias: str, ignore_private: bool = True) -> str | None:
+    def name_for_alias(self, alias: str, ignore_private: bool = True) -> str | None:
+        """
+        Find the canonical parameter name for a given alias.
+
+        This method searches through all configuration parameters to find the canonical
+        parameter name that corresponds to the given alias. It's useful for resolving
+        parameter aliases to their primary names in configuration contexts.
+
+        Args:
+            alias (str): The parameter alias to look up.
+            ignore_private (bool, optional): If True (default), exclude private parameters
+                (those starting with underscore) from the search. If False, include all
+                parameters regardless of privacy.
+
+        Returns:
+            str | None: The canonical parameter name if the alias is found, otherwise None.
+
+        Example:
+            >>> config = Configuration()
+            >>> config.name_for_alias("channel_priority")
+            'channel_priority'
+            >>> config.name_for_alias("unknown_alias")
+            None
+        """
         return next(
             (
                 p._name
-                for p in self.__class__.__dict__.values()
-                if isinstance(p, ParameterLoader)
-                and alias in p.aliases
-                and (ignore_private and not p._name.startswith("_"))
+                for p in self.__class__.parameter_loaders.values()
+                if alias in p.aliases
+                and (not ignore_private or not p._name.startswith("_"))
             ),
             None,
         )
