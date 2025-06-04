@@ -526,7 +526,7 @@ class LoadedParameter(metaclass=ABCMeta):
         """
         Recursively expands any environment values in the Loaded Parameter.
 
-        Returns: LoadedParameter
+        Returns LoadedParameter
         """
         # This is similar to conda.auxlib.type_coercion.typify_data_structure
         # It could be DRY-er but that would break SRP.
@@ -1315,9 +1315,8 @@ class ConfigurationType(type):
             if isinstance(p, ParameterLoader)
         )
 
-        # Build parameter_names_and_aliases using the classmethod
-        # to avoid duplicating the parameter extraction logic
-        parameter_loaders = cls.parameter_loaders()
+        # Build parameter_names_and_aliases by extracting parameter loaders directly
+        parameter_loaders: dict[str, ParameterLoader] = cls._parameter_loaders()
         cls.parameter_names_and_aliases = tuple(
             name for p in parameter_loaders.values() for name in p._names
         )
@@ -1431,7 +1430,7 @@ class Configuration(metaclass=ConfigurationType):
                 )
 
     @classmethod
-    def parameter_loaders(cls):
+    def _parameter_loaders(cls) -> dict[str, ParameterLoader]:
         """Extract ParameterLoader objects from the class."""
         return {
             name: param
@@ -1495,11 +1494,6 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
-    @property
-    def _parameter_loaders(self):
-        """Instance property for cleaner access to parameter loaders."""
-        return self.__class__.parameter_loaders()
-
     def name_for_alias(self, alias: str, ignore_private: bool = True) -> str | None:
         """
         Find the canonical parameter name for a given alias.
@@ -1527,7 +1521,7 @@ class Configuration(metaclass=ConfigurationType):
         return next(
             (
                 p._name
-                for p in self._parameter_loaders.values()
+                for p in self.__class__._parameter_loaders().values()
                 if alias in p.aliases
                 and (not ignore_private or not p._name.startswith("_"))
             ),
@@ -1536,7 +1530,7 @@ class Configuration(metaclass=ConfigurationType):
 
     def _get_parameter_loader(self, parameter_name):
         """Get parameter loader with fallback for missing parameters."""
-        loaders = self._parameter_loaders
+        loaders = self.__class__._parameter_loaders()
         if parameter_name in loaders:
             return loaders[parameter_name]
 
@@ -1694,7 +1688,9 @@ class Configuration(metaclass=ConfigurationType):
         if aliases:
             return tuple(
                 dict.fromkeys(
-                    name for p in self._parameter_loaders.values() for name in p._names
+                    name
+                    for p in self.__class__._parameter_loaders().values()
+                    for name in p._names
                 )
             )
         return tuple(sorted(name.lstrip("_") for name in self.parameter_names))
