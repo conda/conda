@@ -859,23 +859,33 @@ class Context(Configuration):
         None means unset it.
         """
         if context.dev:
+            if pythonpath := os.environ.get("PYTHONPATH", ""):
+                pythonpath = os.pathsep.join((CONDA_SOURCE_ROOT, pythonpath))
+            else:
+                pythonpath = CONDA_SOURCE_ROOT
             return {
                 "CONDA_EXE": sys.executable,
+                "_CONDA_EXE": sys.executable,
                 # do not confuse with os.path.join, we are joining paths with ; or : delimiters
-                "PYTHONPATH": os.pathsep.join(
-                    (CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", ""))
-                ),
+                "PYTHONPATH": pythonpath,
                 "_CE_M": "-m",
                 "_CE_CONDA": "conda",
                 "CONDA_PYTHON_EXE": sys.executable,
+                "_CONDA_ROOT": self.conda_prefix,
             }
         else:
-            exe = "conda.exe" if on_win else "conda"
+            exe = os.path.join(
+                self.conda_prefix,
+                BIN_DIRECTORY,
+                "conda.exe" if on_win else "conda",
+            )
             return {
-                "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
+                "CONDA_EXE": exe,
+                "_CONDA_EXE": exe,
                 "_CE_M": None,
                 "_CE_CONDA": None,
                 "CONDA_PYTHON_EXE": sys.executable,
+                "_CONDA_ROOT": self.conda_prefix,
             }
 
     @memoizedproperty

@@ -1377,7 +1377,7 @@ def test_posix_basic(
         f"export CONDA_DEFAULT_ENV='{shell_wrapper_unit}'\n"
         f"export CONDA_PROMPT_MODIFIER='{get_prompt_modifier(shell_wrapper_unit)}'\n"
         f"{conda_exe_export}\n"
-        f'. "{activate1}"\n'
+        + (f". \"`cygpath '{activate1}'`\"\n" if on_win else f'. "{activate1}"\n')
     )
 
     monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
@@ -1407,14 +1407,14 @@ def test_posix_basic(
         )
     )
     assert reactivate_data == (
-        f'. "{deactivate1}"\n'
-        f"{unset_vars}\n"
+        (f". \"`cygpath '{deactivate1}'`\"\n" if on_win else f'. "{deactivate1}"\n')
+        + f"{unset_vars}\n"
         f"PS1='{get_prompt(shell_wrapper_unit)}'\n"
         f"export PATH='{activator.pathsep_join(new_path_parts)}'\n"
         f"export CONDA_SHLVL='1'\n"
         f"export CONDA_PROMPT_MODIFIER='{get_prompt_modifier(shell_wrapper_unit)}'\n"
         f"{conda_exe_export}\n"
-        f'. "{activate1}"\n'
+        + (f". \"`cygpath '{activate1}'`\"\n" if on_win else f'. "{activate1}"\n')
     )
 
     err = main_sourced("shell.posix", "deactivate")
@@ -1437,10 +1437,10 @@ def test_posix_basic(
     )
     assert deactivate_data == (
         f"export PATH='{new_path}'\n"
-        f'. "{deactivate1}"\n'
-        f"unset CONDA_PREFIX\n"
-        f"unset CONDA_DEFAULT_ENV\n"
-        f"unset CONDA_PROMPT_MODIFIER\n"
+        + (f". \"`cygpath '{deactivate1}'`\"\n" if on_win else f'. "{deactivate1}"\n')
+        + f"export CONDA_PREFIX=''\n"
+        f"export CONDA_DEFAULT_ENV=''\n"
+        f"export CONDA_PROMPT_MODIFIER=''\n"
         f"{unset_vars}\n"
         f"PS1='{get_prompt()}'\n"
         f"export CONDA_SHLVL='0'\n"
@@ -1588,7 +1588,11 @@ def test_csh_basic(
         f'setenv CONDA_DEFAULT_ENV "{shell_wrapper_unit}";\n'
         f'setenv CONDA_PROMPT_MODIFIER "{get_prompt_modifier(shell_wrapper_unit)}";\n'
         f"{conda_exe_export};\n"
-        f'source "{activate1}";\n'
+        + (
+            f"source \"`cygpath '{activate1}'`\";\n"
+            if on_win
+            else f'source "{activate1}";\n'
+        )
     )
 
     monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
@@ -1624,14 +1628,22 @@ def test_csh_basic(
         )
     )
     assert reactivate_data == (
-        f'source "{deactivate1}";\n'
-        f"{unset_vars};\n"
+        (
+            f"source \"`cygpath '{deactivate1}'`\";\n"
+            if on_win
+            else f'source "{deactivate1}";\n'
+        )
+        + f"{unset_vars};\n"
         f"set prompt='{get_prompt(shell_wrapper_unit)}';\n"
         f'setenv PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'setenv CONDA_SHLVL "1";\n'
         f'setenv CONDA_PROMPT_MODIFIER "{get_prompt_modifier(shell_wrapper_unit)}";\n'
         f"{conda_exe_export};\n"
-        f'source "{activate1}";\n'
+        + (
+            f"source \"`cygpath '{activate1}'`\";\n"
+            if on_win
+            else f'source "{activate1}";\n'
+        )
     )
 
     err = main_sourced("shell.csh", "deactivate")
@@ -1654,8 +1666,12 @@ def test_csh_basic(
     )
     assert deactivate_data == (
         f'setenv PATH "{new_path}";\n'
-        f'source "{deactivate1}";\n'
-        f"unsetenv CONDA_PREFIX;\n"
+        + (
+            f"source \"`cygpath '{deactivate1}'`\";\n"
+            if on_win
+            else f'source "{deactivate1}";\n'
+        )
+        + f"unsetenv CONDA_PREFIX;\n"
         f"unsetenv CONDA_DEFAULT_ENV;\n"
         f"unsetenv CONDA_PROMPT_MODIFIER;\n"
         f"{unset_vars};\n"
