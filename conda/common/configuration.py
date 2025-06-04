@@ -1315,10 +1315,11 @@ class ConfigurationType(type):
             if isinstance(p, ParameterLoader)
         )
 
-        # Build parameter_names_and_aliases using the classmethod to avoid duplicating the
-        # parameter extraction logic
+        # Build parameter_names_and_aliases using the classmethod
+        # to avoid duplicating the parameter extraction logic
+        parameter_loaders = cls.parameter_loaders()
         cls.parameter_names_and_aliases = tuple(
-            name for p in cls.parameter_loaders().values() for name in p._names
+            name for p in parameter_loaders.values() for name in p._names
         )
 
 

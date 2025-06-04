@@ -652,7 +652,7 @@ def execute_config(args, parser):
     if args.file and (args.show is not None or args.describe is not None):
         from ..base.context import Context
 
-        context = Context(search_path=(args.file,))
+        context = Context(search_path=(args.file,), argparse_args=args)
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
