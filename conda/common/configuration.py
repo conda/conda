@@ -1315,11 +1315,20 @@ class ConfigurationType(type):
             if isinstance(p, ParameterLoader)
         )
         cls.parameter_names_and_aliases = tuple(
-            name
-            for p in cls.__dict__.values()
-            if isinstance(p, ParameterLoader)
-            for name in p._names
+            name for p in cls.parameter_loaders.values() for name in p._names
         )
+
+    @property
+    def parameter_loaders(cls):
+        """
+        Dynamically return mapping from parameter names to ParameterLoader objects.
+        This allows for parameters added after class creation (like plugin parameters).
+        """
+        return {
+            name: p
+            for name, p in cls.__dict__.items()
+            if isinstance(p, ParameterLoader)
+        }
 
 
 CONDARC_FILENAMES = (".condarc", "condarc")
