@@ -46,6 +46,16 @@ class RandomSpecPlugin2:
         )
 
 
+class RandomSpecPluginNoAutodetect:
+    @plugins.hookimpl
+    def conda_environment_specifiers(self):
+        yield CondaEnvironmentSpecifier(
+            name="rand-spec-no-autodetect",
+            environment_spec=RandomSpec,
+            enable_autodetection=False,
+        )
+
+
 @pytest.fixture()
 def dummy_random_spec_plugin(plugin_manager):
     random_spec_plugin = RandomSpecPlugin()
@@ -57,6 +67,14 @@ def dummy_random_spec_plugin(plugin_manager):
 @pytest.fixture()
 def dummy_random_spec_plugin2(plugin_manager):
     random_spec_plugin = RandomSpecPlugin2()
+    plugin_manager.register(random_spec_plugin)
+
+    return plugin_manager
+
+
+@pytest.fixture()
+def dummy_random_spec_plugin_no_autodetect(plugin_manager):
+    random_spec_plugin = RandomSpecPluginNoAutodetect()
     plugin_manager.register(random_spec_plugin)
 
     return plugin_manager
@@ -125,3 +143,24 @@ def test_raise_error_for_multiple_registered_installers(
     filename = "test.random"
     with pytest.raises(PluginError):
         dummy_random_spec_plugin.get_environment_specifier(filename)
+
+
+def test_raises_an_error_if_no_plugins_found(dummy_random_spec_plugin_no_autodetect):
+    """
+    Ensures that our a plugin with autodetect disabled does not get detected
+    """
+    with pytest.raises(EnvironmentSpecPluginNotDetected):
+        dummy_random_spec_plugin_no_autodetect.get_environment_specifier("test.random")
+
+
+def test_explicitly_select_a_non_autodetect_plugin(
+    dummy_random_spec_plugin, dummy_random_spec_plugin_no_autodetect
+):
+    """
+    Ensures that our a plugin with autodetect disabled can be explicitly selected
+    """
+    env_spec = dummy_random_spec_plugin.get_environment_specifier(
+        "test.random", name="rand-spec-no-autodetect"
+    )
+    assert env_spec.name == "rand-spec-no-autodetect"
+    assert env_spec.enable_autodetection is False
