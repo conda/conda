@@ -180,7 +180,7 @@
 
 :: initialize conda command
 @ECHO Initializing shell integration...
-@SET CONDA_AUTO_ACTIVATE=0
+@SET "CONDA_AUTO_ACTIVATE=0"
 @CALL "%_CONDAHOOK%"
 @SET CONDA_AUTO_ACTIVATE=
 @IF NOT %ErrorLevel%==0 (
