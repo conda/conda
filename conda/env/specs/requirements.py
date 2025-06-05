@@ -239,7 +239,7 @@ class ExplicitRequirementsSpec(RequirementsSpec):
             return False
 
     @property
-    def environment(self) -> Environment:
+    def environment(self) -> ExplicitEnvironment:
         """Build an environment from the explicit file.
 
         Creates a special Environment object from explicit specifications.
