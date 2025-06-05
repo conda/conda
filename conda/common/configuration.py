@@ -1316,7 +1316,11 @@ class ConfigurationType(type):
         )
 
         # Build parameter_names_and_aliases by extracting parameter loaders directly
-        parameter_loaders: dict[str, ParameterLoader] = cls._parameter_loaders()
+        parameter_loaders = {
+            name: param
+            for name, param in cls.__dict__.items()
+            if isinstance(param, ParameterLoader)
+        }
         cls.parameter_names_and_aliases = tuple(
             name for p in parameter_loaders.values() for name in p._names
         )
@@ -1429,14 +1433,7 @@ class Configuration(metaclass=ConfigurationType):
                     err,
                 )
 
-    @classmethod
-    def _parameter_loaders(cls) -> dict[str, ParameterLoader]:
-        """Extract ParameterLoader objects from the class."""
-        return {
-            name: param
-            for name, param in cls.__dict__.items()
-            if isinstance(param, ParameterLoader)
-        }
+
 
     def _set_search_path(self, search_path: PathsType, **kwargs):
         self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
@@ -1521,8 +1518,8 @@ class Configuration(metaclass=ConfigurationType):
         return next(
             (
                 p._name
-                for p in self.__class__._parameter_loaders().values()
-                if alias in p.aliases
+                for p in self.__class__.__dict__.values()
+                if isinstance(p, ParameterLoader) and alias in p.aliases
                 and (not ignore_private or not p._name.startswith("_"))
             ),
             None,
@@ -1530,7 +1527,11 @@ class Configuration(metaclass=ConfigurationType):
 
     def _get_parameter_loader(self, parameter_name):
         """Get parameter loader with fallback for missing parameters."""
-        loaders = self.__class__._parameter_loaders()
+        loaders = {
+            name: param
+            for name, param in self.__class__.__dict__.items()
+            if isinstance(param, ParameterLoader)
+        }
         if parameter_name in loaders:
             return loaders[parameter_name]
 
@@ -1689,7 +1690,8 @@ class Configuration(metaclass=ConfigurationType):
             return tuple(
                 dict.fromkeys(
                     name
-                    for p in self.__class__._parameter_loaders().values()
+                    for p in self.__class__.__dict__.values()
+                    if isinstance(p, ParameterLoader)
                     for name in p._names
                 )
             )

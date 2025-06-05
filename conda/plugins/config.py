@@ -61,7 +61,8 @@ class PluginConfig(Configuration):
         # Rebuild parameter_names_and_aliases to include the new parameter
         cls.parameter_names_and_aliases = tuple(
             alias_name
-            for p in cls._parameter_loaders().values()
+            for p in cls.__dict__.values()
+            if isinstance(p, ParameterLoader)
             for alias_name in (p._names or ())
         )
 
