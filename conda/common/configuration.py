@@ -1433,8 +1433,6 @@ class Configuration(metaclass=ConfigurationType):
                     err,
                 )
 
-
-
     def _set_search_path(self, search_path: PathsType, **kwargs):
         self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
 
@@ -1519,7 +1517,8 @@ class Configuration(metaclass=ConfigurationType):
             (
                 p._name
                 for p in self.__class__.__dict__.values()
-                if isinstance(p, ParameterLoader) and alias in p.aliases
+                if isinstance(p, ParameterLoader)
+                and alias in p.aliases
                 and (not ignore_private or not p._name.startswith("_"))
             ),
             None,
