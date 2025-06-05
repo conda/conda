@@ -6,7 +6,7 @@ import pytest
 
 from conda.env.env import Environment
 from conda.env.installers.conda import install
-from conda.env.specs.requirements import ExplicitRequirementsSpec
+from conda.env.specs.requirements import RequirementsSpec
 from tests.env import support_file
 
 
@@ -116,7 +116,7 @@ def test_installer_uses_original_file(
 ):
     """Test that the installer uses the original file when available."""
     # Create spec from a real file
-    spec = ExplicitRequirementsSpec(filename=support_explicit_file)
+    spec = RequirementsSpec(filename=support_explicit_file)
     env = spec.environment
 
     # Call installer with tmp_path as prefix

@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import tempfile
 from os.path import basename
 from typing import TYPE_CHECKING
@@ -17,7 +16,7 @@ from ...base.context import context
 from ...common.constants import NULL
 from ...env.env import Environment
 from ...exceptions import UnsatisfiableError
-from ...gateways.disk.read import read_non_comment_lines
+from ...gateways.disk.read import yield_lines
 from ...models.channel import Channel, prioritize_channels
 
 if TYPE_CHECKING:
@@ -50,6 +49,7 @@ def _solve(
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
 
     solver_backend = context.plugin_manager.get_cached_solver_backend()
+    assert solver_backend is not None  # get_cached_solver_backend never returns None
     solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 
@@ -74,7 +74,7 @@ def dry_run(
 
 def install(
     prefix: str, specs: list, args: Namespace, env: Environment, *_, **kwargs
-) -> dict:
+) -> dict | None:
     """Install packages into a conda environment.
 
     This function handles two main paths:
@@ -123,7 +123,7 @@ def install(
 
 def _install_explicit_environment(
     prefix: str, specs: list, env: Environment
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     """
     Install packages from an explicit environment without using the solver.
 
@@ -150,12 +150,12 @@ def _install_explicit_environment(
     filename = env.filename
 
     # 1. Try to read from original file if available (most reliable source)
-    if filename and os.path.exists(filename):
-        try:
-            explicit_specs = read_non_comment_lines(filename)
+    if filename:
+        explicit_specs = list(yield_lines(filename))
+        if explicit_specs:
             log.debug(f"Using package specs from explicit file: {filename}")
-        except (OSError, FileNotFoundError) as e:
-            log.warning(f"Could not read explicit file {filename}: {e}")
+        else:
+            log.warning(f"Could not read explicit file {filename} or file is empty")
 
     # 2-3. Fall back to provided specs or dependencies from environment
     if not explicit_specs:
