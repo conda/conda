@@ -9,17 +9,17 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.constants import (
-    DepsModifier,
-    ChannelPriority,
     PLATFORMS,
-    SatSolverChoice,
-    UpdateModifier,
 )
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
-    from typing import Any
-
+    from ..base.constants import (
+        ChannelPriority,
+        DepsModifier,
+        SatSolverChoice,
+        UpdateModifier,
+    )
     from .match_spec import MatchSpec
     from .records import PackageRecord
 
@@ -37,9 +37,9 @@ class EnvironmentConfig:
 
     aggressive_update_packages: bool | None = None
 
-    channel_priority:  ChannelPriority | None = None
+    channel_priority: ChannelPriority | None = None
 
-    channels: list[str]  = field(default_factory=list)
+    channels: list[str] = field(default_factory=list)
 
     channel_settings: dict[str, str] = field(default_factory=dict)
 
@@ -74,7 +74,9 @@ class EnvironmentConfig:
 
         # Ensure that we are merging another EnvironmentConfig
         if not isinstance(other, self.__class__):
-            raise CondaValueError("Cannot merge EnvironmentConfig with non-EnvironmentConfig")
+            raise CondaValueError(
+                "Cannot merge EnvironmentConfig with non-EnvironmentConfig"
+            )
 
         self.aggressive_update_packages = other.aggressive_update_packages
         self.channel_priority = other.channel_priority
