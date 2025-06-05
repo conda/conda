@@ -180,6 +180,7 @@ class Dependencies(dict):
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.raw = raw
+        self.explicit = bool(raw and raw[0] == "@EXPLICIT")
         self.parse()
 
     def parse(self):

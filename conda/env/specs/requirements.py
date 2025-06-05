@@ -11,14 +11,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import ClassVar
 
-from ...common.url import is_url, path_to_url
 from ...common.path import expand
+from ...common.url import is_url, path_to_url
 from ...deprecations import deprecated
 from ...gateways.disk.read import read_non_comment_lines
 from ...misc import url_pat
 from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
-from ..explicit import ExplicitEnvironment
 
 
 class RequirementsSpec(EnvironmentSpecBase):
@@ -202,6 +201,8 @@ class ExplicitRequirementsSpec(RequirementsSpec):
         processed_lines = []
         for line in lines:
             if line == "@EXPLICIT":
+                # Keep the @EXPLICIT marker so Depedencies.explicit() can detect it
+                processed_lines.append(line)
                 continue
 
             # Strip any channel and platform-specific prefixes (e.g., 'conda-forge/osx-64::')
@@ -228,7 +229,7 @@ class ExplicitRequirementsSpec(RequirementsSpec):
 
             processed_lines.append(line)
 
-        # Return the processed lines that will be passed to ExplicitEnvironment
+        # Return the processed lines that will be passed to Environment
         # and eventually to the explicit() function in conda.misc
         return processed_lines
 
@@ -247,7 +248,7 @@ class ExplicitRequirementsSpec(RequirementsSpec):
             return False
 
     @property
-    def environment(self) -> ExplicitEnvironment:
+    def environment(self) -> Environment:
         """Build an environment from the explicit file.
 
         Creates a special Environment object from explicit specifications.
@@ -263,10 +264,13 @@ class ExplicitRequirementsSpec(RequirementsSpec):
             if packages is None:
                 raise ValueError(f"Unable to handle file {self.filename}: {self.msg}")
 
-            # Create an explicit environment with the packages
-            # Using the typed ExplicitEnvironment class signals that this is from an explicit file
+            # Create an environment with explicit specifications
+            # The @EXPLICIT marker in dependencies signals that this is from an explicit file
             # and should bypass the solver according to CEP-23
-            return ExplicitEnvironment(dependencies=packages, filename=self.filename)
+            return Environment(
+                dependencies=packages,
+                filename=self.filename,
+            )
         except Exception as e:
             self.msg = f"Error creating environment from {self.filename}: {str(e)}"
             raise ValueError(self.msg) from e
