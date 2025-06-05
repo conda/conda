@@ -16,7 +16,6 @@ from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
 from ...env.env import Environment
-from ...env.explicit import ExplicitEnvironment
 from ...exceptions import UnsatisfiableError
 from ...gateways.disk.read import read_non_comment_lines
 from ...models.channel import Channel, prioritize_channels
@@ -79,7 +78,7 @@ def install(
     """Install packages into a conda environment.
 
     This function handles two main paths:
-    1. For ExplicitEnvironment instances (from @EXPLICIT files): Bypasses the solver
+    1. For environments with explicit_specs (from @EXPLICIT files): Bypasses the solver
        and directly installs packages using conda.misc.explicit() as required by CEP-23.
     2. For regular Environment instances: Uses the solver to determine the optimal
        package set before installation.
@@ -100,7 +99,7 @@ def install(
         processed, the conda client SHOULD NOT invoke a solver."
     """
     # Handle explicit environments separately per CEP-23 requirements
-    if isinstance(env, ExplicitEnvironment):
+    if env.dependencies.explicit:
         return _install_explicit_environment(prefix, specs, env)
 
     # For regular environments, proceed with the normal solve-based installation
@@ -123,7 +122,7 @@ def install(
 
 
 def _install_explicit_environment(
-    prefix: str, specs: list, env: ExplicitEnvironment
+    prefix: str, specs: list, env: Environment
 ) -> dict[str, Any]:
     """
     Install packages from an explicit environment without using the solver.
@@ -135,7 +134,7 @@ def _install_explicit_environment(
     :param specs: Package specifications to install
     :type specs: list
     :param env: Environment with explicit package URLs
-    :type env: ExplicitEnvironment
+    :type env: Environment
     :return: Installation result from explicit()
     :rtype: dict
     """
@@ -148,7 +147,7 @@ def _install_explicit_environment(
 
     # Determine which package specs to use (priority order):
     explicit_specs = None
-    filename = env.explicit_filename
+    filename = env.filename
 
     # 1. Try to read from original file if available (most reliable source)
     if filename and os.path.exists(filename):
@@ -158,13 +157,13 @@ def _install_explicit_environment(
         except (OSError, FileNotFoundError) as e:
             log.warning(f"Could not read explicit file {filename}: {e}")
 
-    # 2-3. Fall back to provided specs or parsed specs from environment
+    # 2-3. Fall back to provided specs or dependencies from environment
     if not explicit_specs:
-        explicit_specs = specs if specs else env.explicit_specs
+        explicit_specs = specs if specs else env.dependencies.raw
         log_msg = (
             "Using specs provided to installer"
             if specs
-            else "Using specs from environment"
+            else "Using dependencies from environment"
         )
         log.debug(log_msg)
 

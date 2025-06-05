@@ -1,11 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Tests for the ExplicitEnvironment class."""
+"""Tests for Environment class with explicit functionality."""
 
 import pytest
 
 from conda.env.env import Environment
-from conda.env.explicit import ExplicitEnvironment
 from conda.env.specs.requirements import ExplicitRequirementsSpec
 from tests.env import support_file
 
@@ -27,56 +26,64 @@ def explicit_urls():
 
 @pytest.fixture(scope="function")
 def explicit_env(explicit_urls):
-    """Create an ExplicitEnvironment instance for testing."""
-    return ExplicitEnvironment(
+    """Create an Environment instance with explicit specs for testing."""
+    return Environment(
         name="test-explicit",
-        dependencies=explicit_urls,
+        dependencies=["@EXPLICIT"] + explicit_urls,
         filename="/path/to/explicit-file.txt",
     )
 
 
-def test_explicit_environment_is_environment_subclass():
-    """Test that ExplicitEnvironment is a subclass of Environment."""
-    assert issubclass(ExplicitEnvironment, Environment)
+def test_explicit_environment_is_explicit():
+    """Test that Environment with @EXPLICIT marker returns True for explicit()."""
+    env = Environment(dependencies=["@EXPLICIT", "test"])
+    assert env.dependencies.explicit
+
+    regular_env = Environment()
+    assert not regular_env.dependencies.explicit
 
 
 def test_explicit_environment_initialization(explicit_urls):
-    """Test ExplicitEnvironment initialization with typical parameters."""
-    env = ExplicitEnvironment(
-        name="test-env", dependencies=explicit_urls, filename="/path/to/test.txt"
+    """Test Environment initialization with explicit parameters."""
+    explicit_deps = ["@EXPLICIT"] + explicit_urls
+    env = Environment(
+        name="test-env",
+        dependencies=explicit_deps,
+        filename="/path/to/test.txt",
     )
 
     # Check standard Environment properties
     assert env.name == "test-env"
-    assert len(env.dependencies.raw) == 2
+    assert len(env.dependencies.raw) == 3  # @EXPLICIT + 2 URLs
 
-    # Check ExplicitEnvironment-specific properties
-    assert env.explicit_specs == explicit_urls
-    assert env.explicit_filename == "/path/to/test.txt"
+    # Check explicit-specific properties
+    assert env.dependencies.raw == explicit_deps
+    assert env.filename == "/path/to/test.txt"
+    assert env.dependencies.explicit
 
 
 def test_requirements_spec_returns_explicit_environment(support_explicit_file):
-    """Test that ExplicitRequirementsSpec returns an ExplicitEnvironment instance."""
+    """Test that ExplicitRequirementsSpec returns an Environment instance with explicit specs."""
     spec = ExplicitRequirementsSpec(filename=support_explicit_file)
     env = spec.environment
 
     # Verify it's the right type
-    assert isinstance(env, ExplicitEnvironment)
+    assert isinstance(env, Environment)
+    assert env.dependencies.explicit
 
     # Check expected attributes
-    assert env.explicit_filename == support_explicit_file
-    assert hasattr(env, "explicit_specs")
-    assert len(env.explicit_specs) == 2
+    assert env.filename == support_explicit_file
+    assert len(env.dependencies.raw) == 3  # @EXPLICIT + 2 package URLs
 
 
 def test_explicit_environment_for_cep23_compliance(explicit_env):
-    """Test that ExplicitEnvironment follows CEP-23 by storing explicit specs separately."""
-    # The environment should have both regular dependencies and explicit_specs
+    """Test that Environment with explicit specs follows CEP-23 by detecting explicit format in dependencies."""
+    # The environment should have dependencies with @EXPLICIT marker
     assert explicit_env.dependencies is not None
-    assert explicit_env.explicit_specs is not None
+    assert "@EXPLICIT" in explicit_env.dependencies.raw
 
-    # Dependencies and explicit_specs should match in this test case
-    assert len(explicit_env.dependencies.raw) == len(explicit_env.explicit_specs)
+    # Filename should be stored
+    assert explicit_env.filename is not None
 
-    # Explicit filename should be stored
-    assert explicit_env.explicit_filename is not None
+    # Should be identified as explicit
+    assert explicit_env.dependencies.explicit

@@ -5,7 +5,6 @@
 import pytest
 
 from conda.env.env import Environment
-from conda.env.explicit import ExplicitEnvironment
 from conda.env.installers.conda import install
 from conda.env.specs.requirements import ExplicitRequirementsSpec
 from tests.env import support_file
@@ -29,11 +28,12 @@ def explicit_urls():
 
 @pytest.fixture(scope="function")
 def explicit_env():
-    """Create an ExplicitEnvironment instance for testing."""
+    """Create an Environment instance with explicit specs for testing."""
     urls = [
-        "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2"
+        "@EXPLICIT",
+        "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2",
     ]
-    return ExplicitEnvironment(dependencies=urls)
+    return Environment(dependencies=urls)
 
 
 @pytest.fixture(scope="function")
@@ -145,14 +145,14 @@ def test_installer_uses_original_file(
 def test_installer_handles_missing_filename(
     explicit_urls, mock_explicit, tmp_path, mocker
 ):
-    """Test that the installer handles ExplicitEnvironment with no filename."""
-    # Create ExplicitEnvironment without a filename
-    env = ExplicitEnvironment(dependencies=explicit_urls)
+    """Test that the installer handles Environment with explicit specs but no filename."""
+    # Create Environment with explicit specs but without a filename
+    env = Environment(dependencies=explicit_urls)
 
     # Call installer with tmp_path as prefix
     install(tmp_path, [], mocker.Mock(), env)
 
-    # Verify explicit() was called with the explicit_specs
+    # Verify explicit() was called with the dependencies
     mock_explicit.assert_called_once()
     args, kwargs = mock_explicit.call_args
     assert args[0] == explicit_urls
