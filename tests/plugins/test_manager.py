@@ -12,7 +12,7 @@ from pytest_mock import MockerFixture
 from conda import plugins
 from conda.common.url import urlparse
 from conda.core import solve
-from conda.exceptions import CondaValueError, PluginError
+from conda.exceptions import CondaValueError, EnvironmentSpecPluginNotDetected, PluginError
 from conda.plugins import virtual_packages
 from conda.plugins.manager import CondaPluginManager
 
@@ -260,30 +260,29 @@ class EnvironmentSpecifierPlugin:
         )
 
 
-def test_get_environment_specifier_name_success(plugin_manager: CondaPluginManager):
+def test_get_environment_specifier_success(plugin_manager: CondaPluginManager):
     """
-    Test that get_environment_specifier_name returns the name of the environment
+    Test that get_environment_specifier returns the name of the environment
     specifier plugin that can handle the given file.
     """
     # Load a test environment specifier plugin
-    plugin = EnvironmentSpecifierPlugin()
+    plugin = EnvironmentSpecifierPlugin(name="test-env-spec", can_handle_result=True)
     assert plugin_manager.load_plugins(plugin) == 1
 
     # Test successful case
-    specifier_name = plugin_manager.get_environment_specifier_name("environment.yml")
-    assert specifier_name == "test-env-spec"
+    specifier_name = plugin_manager.get_environment_specifier("environment.yml")
+    assert specifier_name.name == "test-env-spec"
 
 
-def test_get_environment_specifier_name_not_found(plugin_manager: CondaPluginManager):
+def test_get_environment_specifier_not_found(plugin_manager: CondaPluginManager):
     """
-    Test that get_environment_specifier_name returns an error string when no plugin
+    Test that get_environment_specifier returns an error string when no plugin
     can handle the given file.
     """
     # Load a test environment specifier plugin that can't handle any files
-    plugin = EnvironmentSpecifierPlugin(can_handle_result=False)
+    plugin = EnvironmentSpecifierPlugin(name="test-env-spec", can_handle_result=False)
     assert plugin_manager.load_plugins(plugin) == 1
 
     # Test error case
-    specifier_name = plugin_manager.get_environment_specifier_name("environment.yml")
-    assert "unknown" in specifier_name
-    assert "EnvironmentSpecPluginNotDetected" in specifier_name
+    with pytest.raises(EnvironmentSpecPluginNotDetected):
+        plugin_manager.get_environment_specifier("environment.yml")
