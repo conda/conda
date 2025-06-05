@@ -4,5 +4,5 @@
 
 from . import binstar, environment_yml, requirements
 
-#: The list of environment speficier plugins for easier registration with pluggy
+#: The list of environment specifier plugins for easier registration with pluggy
 plugins = [binstar, requirements, environment_yml]

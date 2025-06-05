@@ -5,7 +5,7 @@
 from .. import CondaEnvironmentSpecifier, hookimpl
 
 
-@hookimpl
+@hookimpl(tryfirst=True)
 def conda_environment_specifiers():
     from ...env.specs.yaml_file import YamlFileSpec
 

@@ -13,7 +13,7 @@ log = getLogger(__name__)
 
 class YamlFileSpec(EnvironmentSpecBase):
     _environment = None
-    extensions = {".yaml", ".yml"}
+    extensions = {".yaml", ".yml", ".json"}  # Add JSON support since JSON ⊆ YAML
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
@@ -41,13 +41,14 @@ class YamlFileSpec(EnvironmentSpecBase):
             self._environment = env.from_file(self.filename)
             return True
         except Exception:
-            log.debug(
-                "Failed to load %s as `environment.yaml`.", self.filename, exc_info=True
-            )
+            log.debug("Failed to load %s as a YAML/JSON.", self.filename, exc_info=True)
             return False
 
     @property
-    def environment(self):
+    def environment(self) -> env.Environment:
         if not self._environment:
-            self.can_handle()
+            if not self.can_handle():
+                raise ValueError(f"Cannot handle environment file: {self.msg}")
+        if self._environment is None:
+            raise ValueError("Environment could not be loaded")
         return self._environment
