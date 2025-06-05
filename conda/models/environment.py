@@ -8,17 +8,89 @@ from dataclasses import dataclass, field
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ..base.constants import PLATFORMS
+from ..base.constants import (
+    PLATFORMS,
+)
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
-    from typing import Any
-
+    from ..base.constants import (
+        ChannelPriority,
+        DepsModifier,
+        SatSolverChoice,
+        UpdateModifier,
+    )
     from .match_spec import MatchSpec
     from .records import PackageRecord
 
 
 log = getLogger(__name__)
+
+
+@dataclass
+class EnvironmentConfig:
+    """
+    **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+    Data model for a conda environment config.
+    """
+
+    aggressive_update_packages: bool | None = None
+
+    channel_priority: ChannelPriority | None = None
+
+    channels: list[str] = field(default_factory=list)
+
+    channel_settings: dict[str, str] = field(default_factory=dict)
+
+    deps_modifier: DepsModifier | None = None
+
+    disallowed_packages: list[str] = field(default_factory=list)
+
+    pinned_packages: list[str] = field(default_factory=list)
+
+    repodata_fns: list[str] = field(default_factory=list)
+
+    solver: SatSolverChoice | None = None
+
+    track_features: list[str] = field(default_factory=list)
+
+    update_modifier: UpdateModifier | None = None
+
+    use_only_tar_bz2: bool | None = None
+
+    def merge(self, other):
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Merges an EnvironmentConfig into this one. Merging rules are:
+        * Primitive types get clobbered
+        * Lists get appended to
+        * Dicts get updated
+        """
+        # Return early if there is nothing to merge
+        if other is None:
+            return self
+
+        # Ensure that we are merging another EnvironmentConfig
+        if not isinstance(other, self.__class__):
+            raise CondaValueError(
+                "Cannot merge EnvironmentConfig with non-EnvironmentConfig"
+            )
+
+        self.aggressive_update_packages = other.aggressive_update_packages
+        self.channel_priority = other.channel_priority
+        self.channels.extend(other.channels)
+        self.channel_settings.update(other.channel_settings)
+        self.deps_modifier = other.deps_modifier
+        self.disallowed_packages.extend(other.disallowed_packages)
+        self.pinned_packages.extend(other.pinned_packages)
+        self.repodata_fns.extend(other.repodata_fns)
+        self.solver = other.solver
+        self.track_features.extend(other.track_features)
+        self.update_modifier = other.update_modifier
+        self.use_only_tar_bz2 = other.use_only_tar_bz2
+        return self
 
 
 @dataclass
@@ -38,7 +110,7 @@ class Environment:
     #: Environment level configuration, eg. channels, solver options, etc.
     #: TODO: may need to think more about the type of this field and how
     #:       conda should be merging configs between environments
-    config: dict[str, Any] = field(default_factory=dict)
+    config: EnvironmentConfig | None = None
 
     #: Map of other package types that conda can install. For example pypi packages.
     external_packages: dict[str, list[str]] = field(default_factory=dict)
@@ -142,21 +214,11 @@ class Environment:
 
         variables = {k: v for env in environments for (k, v) in env.variables.items()}
 
-        config = {}
         external_packages = {}
+        config = EnvironmentConfig()
         for env in environments:
-            # Config items can be any type, merge them so that lists get
-            # concatenated, dicts get merged, and primitive types get clobbered.
-            for k, v in env.config.items():
-                if k not in config:
-                    config[k] = v
-                elif isinstance(config[k], list) and isinstance(v, list):
-                    config[k].extend(v)
-                elif isinstance(config[k], dict) and isinstance(v, dict):
-                    config[k].update(v)
-                else:
-                    log.debug("merging configs, clobbering value %s with value %s")
-                    config[k] = v
+            # Merge configs
+            config = config.merge(env.config)
 
             # External packages map values are always lists of strings. So,
             # we'll want to concatenate each list.
