@@ -565,20 +565,23 @@ class CondaPluginManager(pluggy.PluginManager):
         hooks = self.get_hook_results("environment_specifiers")
         found = []
         for hook in hooks:
-            log.debug("EnvironmentSpec hook: checking %s", hook.name)
-            if hook.environment_spec(source).can_handle():
-                log.debug(
-                    "EnvironmentSpec hook: %s can be %s",
-                    source,
-                    hook.name,
-                )
-                found.append(hook)
+            if hook.enable_autodetection:
+                log.debug("EnvironmentSpec hook: checking %s", hook.name)
+                if hook.environment_spec(source).can_handle():
+                    log.debug(
+                        "EnvironmentSpec hook: %s can be %s",
+                        source,
+                        hook.name,
+                    )
+                    found.append(hook)
+                else:
+                    log.debug(
+                        "EnvironmentSpec hook: %s can NOT be handled by %s",
+                        source,
+                        hook.name,
+                    )
             else:
-                log.debug(
-                    "EnvironmentSpec hook: %s can NOT be handled by %s",
-                    source,
-                    hook.name,
-                )
+               log.debug("EnvironmentSpec hook '%s' does not support autodetection, skipping", hook.name)
 
         if len(found) == 0:
             # raise error if no plugins found that can read the environment file
