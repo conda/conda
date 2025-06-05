@@ -2,6 +2,16 @@
 
 ## 25.5.1 (2025-06-05)
 
+### Contributors
+
+* @jaimergp
+* @soapy1
+* @travishathaway
+
+
+
+## 25.5.1 (2025-06-05)
+
 ### Bug fixes
 
 * Allow `conda config` commands to process aliased settings names by forwarding them to the canonical name (e.g. `self_update` -> `auto_update_conda`). (#14899 via #14898)
