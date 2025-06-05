@@ -59,12 +59,7 @@ class PluginConfig(Configuration):
         setattr(cls, name, loader)
 
         # Rebuild parameter_names_and_aliases to include the new parameter
-        cls.parameter_names_and_aliases = tuple(
-            alias_name
-            for p in cls.__dict__.values()
-            if isinstance(p, ParameterLoader)
-            for alias_name in (p._names or ())
-        )
+        cls._set_parameter_names_and_aliases()
 
     @classmethod
     def remove_all_plugin_settings(cls) -> None:

@@ -1316,14 +1316,20 @@ class ConfigurationType(type):
         )
 
         # Build parameter_names_and_aliases by extracting parameter loaders directly
-        parameter_loaders = {
+        cls._set_parameter_names_and_aliases()
+
+    @property
+    def _parameter_loaders(cls) -> dict[str, ParameterLoader]:
+        return {
             name: param
             for name, param in cls.__dict__.items()
             if isinstance(param, ParameterLoader)
         }
-        cls.parameter_names_and_aliases = tuple(
-            name for p in parameter_loaders.values() for name in p._names
-        )
+
+    def __call__(cls, *args, **kwargs):
+        self = super().__call__(*args, **kwargs)
+        self._parameter_loaders = cls._parameter_loaders
+        return self
 
 
 CONDARC_FILENAMES = (".condarc", "condarc")
@@ -1392,6 +1398,15 @@ class Configuration(metaclass=ConfigurationType):
         self._set_search_path(search_path, **kwargs)
         self._set_env_vars(app_name)
         self._set_argparse_args(argparse_args)
+
+    @classmethod
+    def _set_parameter_names_and_aliases(cls):
+        """Build parameter_names_and_aliases from the class's parameter loaders."""
+        cls.parameter_names_and_aliases = tuple(
+            alias_name
+            for p in cls._parameter_loaders.values()
+            for alias_name in (p._names or ())
+        )
 
     @staticmethod
     def _expand_search_path(
@@ -1516,9 +1531,8 @@ class Configuration(metaclass=ConfigurationType):
         return next(
             (
                 p._name
-                for p in self.__class__.__dict__.values()
-                if isinstance(p, ParameterLoader)
-                and alias in p.aliases
+                for p in self._parameter_loaders.values()
+                if alias in p.aliases
                 and (not ignore_private or not p._name.startswith("_"))
             ),
             None,
@@ -1526,11 +1540,7 @@ class Configuration(metaclass=ConfigurationType):
 
     def _get_parameter_loader(self, parameter_name):
         """Get parameter loader with fallback for missing parameters."""
-        loaders = {
-            name: param
-            for name, param in self.__class__.__dict__.items()
-            if isinstance(param, ParameterLoader)
-        }
+        loaders = self._parameter_loaders
         if parameter_name in loaders:
             return loaders[parameter_name]
 
@@ -1688,10 +1698,7 @@ class Configuration(metaclass=ConfigurationType):
         if aliases:
             return tuple(
                 dict.fromkeys(
-                    name
-                    for p in self.__class__.__dict__.values()
-                    if isinstance(p, ParameterLoader)
-                    for name in p._names
+                    name for p in self._parameter_loaders.values() for name in p._names
                 )
             )
         return tuple(sorted(name.lstrip("_") for name in self.parameter_names))
