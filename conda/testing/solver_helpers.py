@@ -118,7 +118,7 @@ class SimpleEnvironment:
     def _package_data(self, record):
         """Turn record into data, to be written in the JSON environment/repo files."""
         data = {
-            key: value
+            key: (",".join(value) if key in ("features", "track_features") else value)
             for key, value in vars(record).items()
             if key in self.REPO_DATA_KEYS
         }
@@ -372,7 +372,9 @@ class SolverTests:
             ],
         )
 
-        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)) as exc_info:
+        with pytest.raises(
+            (ResolvePackageNotFound, PackagesNotFoundError, UnsatisfiableError)
+        ) as exc_info:
             env.install("numpy 1.5*", "numpy 1.6*")
         if exc_info.type is ResolvePackageNotFound:
             assert sorted(map(str, exc_info.value.bad_deps)) == [
@@ -602,7 +604,7 @@ class SolverTests:
         with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
             env.install("numpy 1.5")
 
-    def test_timestamps_and_deps(self, env):
+    def test_timestamps_and_deps(self, env: SimpleEnvironment):
         env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="mypackage",
@@ -631,11 +633,23 @@ class SolverTests:
         # by newer timestamps. regression test of sorts for
         #  https://github.com/conda/conda/issues/6271
         assert (
-            env.install("mypackage", *env.install("libpng 1.2.*", as_specs=True))
+            env.install(
+                "mypackage",
+                *[
+                    record.to_match_spec().conda_build_form()
+                    for record in env.install("libpng 1.2.*", as_specs=True)
+                ],
+            )
             == records_12
         )
         assert (
-            env.install("mypackage", *env.install("libpng 1.5.*", as_specs=True))
+            env.install(
+                "mypackage",
+                *[
+                    record.to_match_spec().conda_build_form()
+                    for record in env.install("libpng 1.5.*", as_specs=True)
+                ],
+            )
             == records_15
         )
         # unspecified python version should maximize libpng (v1.5),
