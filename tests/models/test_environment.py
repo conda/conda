@@ -70,7 +70,9 @@ def test_environments_merge():
         prefix="/path/to/env1",
         platform="linux-64",
         config=EnvironmentConfig(
-            aggressive_update_packages=True, channels=["defaults"], channel_settings={"a":1},
+            aggressive_update_packages=True,
+            channels=["defaults"],
+            channel_settings={"a": 1},
         ),
         external_packages={
             "pip": ["one", "two", {"special": "type"}],
@@ -84,7 +86,10 @@ def test_environments_merge():
         prefix="/path/to/env1",
         platform="linux-64",
         config=EnvironmentConfig(
-            aggressive_update_packages=False, channels=["conda-forge"], channel_settings={"b":2}, repodata_fns=["repodata2.json"],
+            aggressive_update_packages=False,
+            channels=["conda-forge"],
+            channel_settings={"b": 2},
+            repodata_fns=["repodata2.json"],
         ),
         external_packages={"pip": ["two", "flask"], "a": ["nother"]},
         explicit_packages=[],
@@ -97,7 +102,7 @@ def test_environments_merge():
     assert merged.config == EnvironmentConfig(
         aggressive_update_packages=False,
         channels=["defaults", "conda-forge"],
-        channel_settings={"a":1, "b":2},
+        channel_settings={"a": 1, "b": 2},
         repodata_fns=["repodata2.json"],
     )
     assert merged.external_packages == {
