@@ -302,3 +302,27 @@ def test_protected_dirs_error_for_env_create(
                 "--file",
                 support_file("example/environment_pinned.yml"),
             )
+
+
+def test_create_env_from_non_existent_plugin(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "nonexistent_plugin")
+    with tmp_env() as prefix:
+        with pytest.raises(
+            CondaValueError,
+        ) as excinfo:
+            conda_cli(
+                "env",
+                "create",
+                f"--prefix={prefix}/envs",
+                "--file",
+                support_file("example/environment_pinned.yml"),
+            )
+
+        assert (
+            "You have chosen an unrecognized environment specifier type (nonexistent_plugin)"
+            in str(excinfo.value)
+        )

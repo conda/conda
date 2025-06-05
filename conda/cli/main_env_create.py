@@ -24,6 +24,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
+        add_parser_environment_specifier,
         add_parser_networking,
         add_parser_platform,
         add_parser_prefix,
@@ -82,6 +83,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # Add networking args
     add_parser_networking(p)
 
+    # Add environment spec plugin args
+    add_parser_environment_specifier(p)
+
     p.add_argument(
         "remote_definition",
         help="Remote environment definition / IPython notebook",
@@ -111,7 +115,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
     from ..env.installers.base import get_installer
-    from ..env.specs import detect
     from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from .common import validate_file_exists
@@ -120,7 +123,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    spec = detect(filename=args.file)
+    spec_hook = context.plugin_manager.get_environment_specifier(
+        source=args.file,
+        name=context.environment_specifier,
+    )
+    spec = spec_hook.environment_spec(args.file)
     env = spec.environment
 
     # FIXME conda code currently requires args to have a name or prefix

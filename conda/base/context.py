@@ -245,6 +245,12 @@ class Context(Configuration):
     clobber = ParameterLoader(PrimitiveParameter(False))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
+
+    # environment_specifier is an EXPERIMENTAL config parameter
+    environment_specifier = ParameterLoader(
+        PrimitiveParameter(None, element_type=(str, NoneType)), aliases=("env_spec",)
+    )
+
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
@@ -1383,6 +1389,7 @@ class Context(Configuration):
                 # prevent modifications to envs marked with conda-meta/frozen
             ),
             "Plugin Configuration": ("no_plugins",),
+            "Environment Managment Configuration": ("environment_specifier",),
         }
 
     def get_descriptions(self) -> dict[str, str]:
@@ -1634,6 +1641,14 @@ class Context(Configuration):
                 of '{name}' if the active environment is a conda named environment ('-n'
                 flag), or otherwise holds the value of '{prefix}'. Templating uses python's
                 str.format() method.
+                """
+            ),
+            environment_specifier=dals(
+                """
+                **EXPERIMENTAL** While experimental, expect both major and minor changes across minor releases.
+
+                The name of the environment specifier plugin that should be used for this context.
+                If not specified, the plugin manager will try to detect the plugin to use.
                 """
             ),
             execute_threads=dals(
