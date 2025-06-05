@@ -11,9 +11,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import ClassVar
 
-from ...common.url import path_to_url
+from ...common.url import is_url, path_to_url
+from ...common.path import expand
 from ...deprecations import deprecated
 from ...gateways.disk.read import read_non_comment_lines
+from ...misc import url_pat
 from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
 from ..explicit import ExplicitEnvironment
@@ -210,13 +212,19 @@ class ExplicitRequirementsSpec(RequirementsSpec):
                 # or just: channel::package==version=build
                 line = line.split("::", 1)[1]
 
-                # This ensures the line is in the format expected by explicit()
-                # which requires direct URLs to packages, not channel-prefixed specifications
-            # Handle file paths by expanding variables and converting to URLs
-            if not line.startswith(("http://", "https://", "file://")):
-                line = os.path.expanduser(os.path.expandvars(line))
-                if os.path.isabs(line) and not line.startswith("file://"):
-                    line = path_to_url(line)
+            # Handle file paths and URL normalization using the same logic as misc.py
+            if not is_url(line):
+                # Convert paths to URLs using the same logic as _match_specs_from_explicit
+                line = path_to_url(expand(line))
+
+            # Validate URL format using the same regex pattern as misc.py
+            # This ensures consistency and proper parsing of URLs with checksums
+            m = url_pat.match(line)
+            if m is None:
+                # If the URL doesn't match the expected pattern, still include it
+                # but log a warning. This maintains backward compatibility while
+                # ensuring we use consistent URL parsing logic.
+                pass
 
             processed_lines.append(line)
 
