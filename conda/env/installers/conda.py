@@ -148,23 +148,16 @@ def install(
         unlink_link_transaction = solver.solve_for_transaction(
             prune=getattr(args, "prune", False), update_modifier=NULL
         )
-    return _execute_transaction(unlink_link_transaction)
-
-
-
-
-
-def _execute_transaction(transaction):
-    """Execute a conda transaction after it has been solved.
-
-    :param transaction: Transaction object to execute
-    :return: Success status dictionary
-    :rtype: dict
-    """
-    if transaction.nothing_to_do:
+    # Execute the transaction and return success
+    if unlink_link_transaction.nothing_to_do:
         return None
 
-    # Execute the transaction and return success
-    transaction.download_and_extract()
-    transaction.execute()
-    return transaction._make_legacy_action_groups()[0]
+    unlink_link_transaction.download_and_extract()
+    unlink_link_transaction.execute()
+    return unlink_link_transaction._make_legacy_action_groups()[0]
+
+
+
+
+
+
