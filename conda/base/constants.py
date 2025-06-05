@@ -96,8 +96,7 @@ PLATFORMS: Final = (
     "win-arm64",
     "zos-z",
 )
-KNOWN_SUBDIRS: Final = ("noarch",)
-KNOWN_SUBDIRS += PLATFORMS
+KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
