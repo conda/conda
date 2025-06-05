@@ -5,7 +5,7 @@
 import pytest
 
 from conda.env.env import Environment
-from conda.env.specs.requirements import ExplicitRequirementsSpec
+from conda.env.specs.requirements import RequirementsSpec
 from tests.env import support_file
 
 
@@ -63,8 +63,8 @@ def test_explicit_environment_initialization(explicit_urls):
 
 
 def test_requirements_spec_returns_explicit_environment(support_explicit_file):
-    """Test that ExplicitRequirementsSpec returns an Environment instance with explicit specs."""
-    spec = ExplicitRequirementsSpec(filename=support_explicit_file)
+    """Test that RequirementsSpec returns an Environment instance with explicit specs."""
+    spec = RequirementsSpec(filename=support_explicit_file)
     env = spec.environment
 
     # Verify it's the right type

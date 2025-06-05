@@ -5,8 +5,7 @@
 import pytest
 
 from conda import plugins
-from conda.env.specs.requirements import ExplicitRequirementsSpec
-from conda.exceptions import EnvironmentSpecPluginNotDetected
+from conda.env.specs.requirements import RequirementsSpec
 from conda.plugins.types import CondaEnvironmentSpecifier
 from tests.env import support_file
 
@@ -24,33 +23,29 @@ def support_non_explicit_file():
 
 
 def test_can_handle_explicit_file(support_explicit_file):
-    """Ensures ExplicitRequirementsSpec can handle a file with @EXPLICIT marker"""
-    assert ExplicitRequirementsSpec(filename=support_explicit_file).can_handle()
+    """Ensures RequirementsSpec can handle a file with @EXPLICIT marker"""
+    assert RequirementsSpec(filename=support_explicit_file).can_handle()
 
 
 def test_explicit_file_spec_rejects_non_explicit_file(support_non_explicit_file):
-    """Ensures ExplicitRequirementsSpec rejects a file without @EXPLICIT marker"""
-    spec = ExplicitRequirementsSpec(filename=support_non_explicit_file)
-    assert not spec.can_handle()
-    assert "does not contain @EXPLICIT marker" in spec.msg
+    """Ensures RequirementsSpec can handle any .txt file (explicit detection happens at Environment level)"""
+    spec = RequirementsSpec(filename=support_non_explicit_file)
+    # In our unified architecture, RequirementsSpec handles both types
+    assert spec.can_handle()
+    # The distinction happens at Environment.dependencies.explicit level
 
 
 def test_environment_creation(support_explicit_file):
     """Test that environment is correctly created from explicit file"""
-    spec = ExplicitRequirementsSpec(filename=support_explicit_file)
+    spec = RequirementsSpec(filename=support_explicit_file)
 
-    # Test the raw parsed packages
-    packages = spec._parse_explicit_file()
-    assert packages is not None
-    assert len(packages) == 3  # @EXPLICIT + 2 package URLs
+    # Get the environment and check if it's detected as explicit
+    env = spec.environment
+    assert env.dependencies.explicit is True
 
-    # Verify we have both Python and NumPy packages
-    pkg_names = [str(pkg).lower() for pkg in packages]
-    assert any("python" in pkg for pkg in pkg_names), "No Python package found"
-    assert any("numpy" in pkg for pkg in pkg_names), "No NumPy package found"
-
-    # Check raw dependencies length and content
-    raw_deps = spec.environment.dependencies.raw
+    # Check raw dependencies - should include @EXPLICIT and package URLs
+    raw_deps = env.dependencies.raw
+    assert raw_deps is not None
     assert len(raw_deps) == 3  # @EXPLICIT + 2 package URLs
 
     # Verify environment dependencies include both packages
@@ -64,7 +59,7 @@ class ExplicitSpecPlugin:
     def conda_environment_specifiers(self):
         yield CondaEnvironmentSpecifier(
             name="explicit-test",
-            environment_spec=ExplicitRequirementsSpec,
+            environment_spec=RequirementsSpec,
         )
 
 
@@ -102,6 +97,14 @@ def test_explicit_file_spec_is_registered(
 def test_raises_error_if_not_explicit_file(
     explicit_file_spec_plugin, support_non_explicit_file
 ):
-    """Ensures explicit spec plugin rejects non-explicit files"""
-    with pytest.raises(EnvironmentSpecPluginNotDetected):
-        explicit_file_spec_plugin.get_environment_specifiers(support_non_explicit_file)
+    """Ensures explicit spec plugin accepts all .txt files (distinction happens at Environment level)"""
+    # In our unified architecture, RequirementsSpec handles all .txt files
+    # The explicit detection happens at the Environment.dependencies.explicit level
+    env_spec_backend = explicit_file_spec_plugin.get_environment_specifiers(
+        support_non_explicit_file
+    )
+    assert env_spec_backend.name == "explicit-test"
+
+    # Verify it creates an environment but it's not marked as explicit
+    env = env_spec_backend.environment_spec(support_non_explicit_file).environment
+    assert env.dependencies.explicit is False
