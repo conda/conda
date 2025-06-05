@@ -430,6 +430,7 @@ class EnvironmentSpecBase(ABC):
         """
         raise NotImplementedError()
 
+    @property
     @abstractmethod
     def environment(self) -> Environment:
         """
