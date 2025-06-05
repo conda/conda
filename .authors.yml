@@ -642,7 +642,7 @@
   github: bradsaracik
 - name: Jaime Rodríguez-Guerra
   email: jaime.rogue@gmail.com
-  num_commits: 108
+  num_commits: 109
   first_commit: 2016-04-18 20:12:46
   github: jaimergp
   aliases:
@@ -1247,7 +1247,7 @@
   - scastellarin@anaconda.com
   - scastellarin95@gmail.com
   - scastellarin@continuum.io
-  num_commits: 398
+  num_commits: 399
   first_commit: 2016-10-11 00:29:05
 - name: Ryan Grout
   email: rgrout@continuum.io
@@ -2104,7 +2104,7 @@
 - name: Travis Hathaway
   email: travis.j.hathaway@gmail.com
   github: travishathaway
-  num_commits: 68
+  num_commits: 65
   first_commit: 2022-03-31 12:01:37
 - name: Tom Hu
   email: 88201630+thomasrockhu-codecov@users.noreply.github.com
