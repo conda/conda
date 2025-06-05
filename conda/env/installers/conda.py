@@ -21,7 +21,6 @@ from ...models.channel import Channel, prioritize_channels
 
 if TYPE_CHECKING:
     from argparse import Namespace
-    from typing import Any
 
     from ...core.solve import Solver
 
@@ -155,9 +154,3 @@ def install(
     unlink_link_transaction.download_and_extract()
     unlink_link_transaction.execute()
     return unlink_link_transaction._make_legacy_action_groups()[0]
-
-
-
-
-
-
