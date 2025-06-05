@@ -100,7 +100,37 @@ def install(
     """
     # Handle explicit environments separately per CEP-23 requirements
     if env.dependencies.explicit:
-        return _install_explicit_environment(prefix, specs, env)
+        from ...misc import explicit
+
+        log = logging.getLogger(__name__)
+
+        # Use verbose output if not in quiet mode
+        verbose = not context.quiet
+
+        # Determine which package specs to use (priority order):
+        explicit_specs = None
+        filename = env.filename
+
+        # 1. Try to read from original file if available (most reliable source)
+        if filename:
+            explicit_specs = list(yield_lines(filename))
+            if explicit_specs:
+                log.debug(f"Using package specs from explicit file: {filename}")
+            else:
+                log.warning(f"Could not read explicit file {filename} or file is empty")
+
+        # 2-3. Fall back to provided specs or dependencies from environment
+        if not explicit_specs:
+            explicit_specs = specs if specs else env.dependencies.raw
+            log_msg = (
+                "Using specs provided to installer"
+                if specs
+                else "Using dependencies from environment"
+            )
+            log.debug(log_msg)
+
+        # Install using explicit() - bypassing the solver completely
+        return explicit(explicit_specs, prefix, verbose=verbose)
 
     # For regular environments, proceed with the normal solve-based installation
     solver = _solve(prefix, specs, args, env, *_, **kwargs)
@@ -121,54 +151,7 @@ def install(
     return _execute_transaction(unlink_link_transaction)
 
 
-def _install_explicit_environment(
-    prefix: str, specs: list, env: Environment
-) -> dict[str, Any] | None:
-    """
-    Install packages from an explicit environment without using the solver.
 
-    Implements CEP-23 requirement to bypass the solver for explicit environments.
-
-    :param prefix: Installation target directory
-    :type prefix: str
-    :param specs: Package specifications to install
-    :type specs: list
-    :param env: Environment with explicit package URLs
-    :type env: Environment
-    :return: Installation result from explicit()
-    :rtype: dict
-    """
-    from ...misc import explicit
-
-    log = logging.getLogger(__name__)
-
-    # Use verbose output if not in quiet mode
-    verbose = not getattr(context, "quiet", False)
-
-    # Determine which package specs to use (priority order):
-    explicit_specs = None
-    filename = env.filename
-
-    # 1. Try to read from original file if available (most reliable source)
-    if filename:
-        explicit_specs = list(yield_lines(filename))
-        if explicit_specs:
-            log.debug(f"Using package specs from explicit file: {filename}")
-        else:
-            log.warning(f"Could not read explicit file {filename} or file is empty")
-
-    # 2-3. Fall back to provided specs or dependencies from environment
-    if not explicit_specs:
-        explicit_specs = specs if specs else env.dependencies.raw
-        log_msg = (
-            "Using specs provided to installer"
-            if specs
-            else "Using dependencies from environment"
-        )
-        log.debug(log_msg)
-
-    # Install using explicit() - bypassing the solver completely
-    return explicit(explicit_specs, prefix, verbose=verbose)
 
 
 def _execute_transaction(transaction):
