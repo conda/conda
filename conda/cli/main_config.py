@@ -698,7 +698,8 @@ def execute_config(args, parser):
             )
             provided_parameters = tuple(
                 dict.fromkeys(
-                    context.name_for_alias(name) or name for name in provided_parameters
+                    context.name_for_alias(name) or name
+                    for name in provided_parameters
                 )
             )
 
@@ -776,7 +777,8 @@ def execute_config(args, parser):
             )
             provided_parameters = tuple(
                 dict.fromkeys(
-                    context.name_for_alias(name) or name for name in provided_parameters
+                    context.name_for_alias(name) or name
+                    for name in provided_parameters
                 )
             )
 
