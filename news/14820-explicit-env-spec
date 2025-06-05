@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add support for explicit environment specification files as a supported environment spec according to CEP-23, bringing parity between `conda env` and `conda create/install/update`. (#14820)
+
+### Bug fixes
+
+* Improve type hints and error handling in conda installer functions. (#14820)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
