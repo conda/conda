@@ -35,17 +35,19 @@ machine_bits: Final = 8 * struct.calcsize("P")
 
 APP_NAME: Final = "conda"
 
-SEARCH_PATH: tuple[str, ...] = ()
+SEARCH_PATH: tuple[str, ...]
 
-if on_win and (PROGRAMDATA := environ.get("ProgramData")):  # pragma: no cover
-    PROGRAMDATA = PureWindowsPath(PROGRAMDATA).as_posix()
-    SEARCH_PATH += (
+if on_win:  # pragma: no cover
+    PROGRAMDATA = PureWindowsPath(
+        environ.get("ProgramData", r"C:\ProgramData")
+    ).as_posix()
+    SEARCH_PATH = (
         f"{PROGRAMDATA}/conda/.condarc",
         f"{PROGRAMDATA}/conda/condarc",
         f"{PROGRAMDATA}/conda/condarc.d",
     )
 else:
-    SEARCH_PATH += (
+    SEARCH_PATH = (
         "/etc/conda/.condarc",
         "/etc/conda/condarc",
         "/etc/conda/condarc.d/",
