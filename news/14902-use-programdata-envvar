@@ -16,4 +16,4 @@
 
 ### Other
 
-* Use `%PROGRAMDATA%` environment variable instead of hard-coding `C:\ProgramData` for `.condarc` search paths. (#14902)
+* Use `%PROGRAMDATA%` environment variable instead of hard-coding `C:\ProgramData` for `.condarc` search paths. (#14912 via #14902)
