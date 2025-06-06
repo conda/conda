@@ -48,7 +48,8 @@ Registering the plugin hook
 In order to make the plugin available to conda, it must be registered with the plugin
 manager. Define a function with the ``plugins.hookimpl`` decorator to register
 our plugin which returns our class wrapped in a
-:class:`~conda.plugins.types.CondaEnvironmentSpecifier` object.
+:class:`~conda.plugins.types.CondaEnvironmentSpecifier` object. Note, that by default
+autodetection is enabled.
 
 .. code-block:: python
 
@@ -57,6 +58,7 @@ our plugin which returns our class wrapped in a
        yield plugins.CondaEnvSpec(
            name="random",
            environment_spec=RandomSpec,
+           enable_autodetection=True,
        )
 
 Using the Plugin
@@ -69,6 +71,34 @@ using the plugin defined above:
 
    conda env create --file /doesnt/matter/any/way.random
 
+Plugin detection
+----------------
+
+When conda is trying to determine which environment spec plugin to use it will loop through all
+registered plugins and call their ``can_handle`` function. If one (and only one) plugin returns a
+``True`` value, conda will use that plugin to read the provided environment spec. However, if multiple
+plugins are detected an error will be raised.
+
+Plugin authors may explicitly disable their plugin from being detected by disabling autodetection
+as part of their plugin registration. For these types of plugins, they may only be used by conda
+when a user explicitly requests them. For example:
+
+.. code-block:: python
+
+   @plugins.hookimpl
+   def conda_environment_specifiers():
+       yield plugins.CondaEnvSpec(
+           name="random",
+           environment_spec=RandomSpec,
+           enable_autodetection=False,
+       )
+
+End users can bypass environment spec plugin detection and explicitly request a plugin to be used
+by configuring conda to use a particular installed plugin. This can be done by either:
+
+* cli by providing the ``--env-spec`` flag, or
+* environment variable by setting the ``CONDA_ENV_SPEC`` environment variable, or
+* ``.condarc`` by setting the ``environment_specifier`` config field
 
 Another example plugin
 -----------------------
