@@ -12,6 +12,25 @@ from conda.exceptions import (
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
+class NaughtySpec(EnvironmentSpecBase):
+    def __init__(self, source: str):
+        self.source = source
+
+    def can_handle(self):
+        raise TypeError("This is a naughty spec")
+
+    def environment(self):
+        raise TypeError("This is a naughty spec")
+
+
+class NaughtySpecPlugin:
+    @plugins.hookimpl
+    def conda_environment_specifiers(self):
+        yield CondaEnvironmentSpecifier(
+            name="naughty",
+            environment_spec=NaughtySpec,
+        )
+
 class RandomSpec(EnvironmentSpecBase):
     extensions = {".random"}
 
@@ -79,6 +98,13 @@ def dummy_random_spec_plugin2(plugin_manager):
 def dummy_random_spec_plugin_no_autodetect(plugin_manager):
     random_spec_plugin = RandomSpecPluginNoAutodetect()
     plugin_manager.register(random_spec_plugin)
+
+    return plugin_manager
+
+@pytest.fixture()
+def naughty_spec_plugin(plugin_manager):
+    plg = NaughtySpecPlugin()
+    plugin_manager.register(plg)
 
     return plugin_manager
 
@@ -167,3 +193,33 @@ def test_explicitly_select_a_non_autodetect_plugin(
     )
     assert env_spec.name == "rand-spec-no-autodetect"
     assert env_spec.environment_spec.detection_supported is False
+
+
+def test_naught_plugin_does_not_cause_unhandled_errors(
+    plugin_manager,
+    dummy_random_spec_plugin,
+    dummy_random_spec_plugin_no_autodetect,
+    naughty_spec_plugin
+):
+    """
+    Ensures that explicitly selecting a plugin that has errors is handled appropriately
+    """
+    filename = "test.random"
+    with pytest.raises(PluginError) as e:
+        plugin_manager.get_environment_specifier_by_name(filename, "naughty")
+        assert "An error occured when handling '{filename}' with plugin 'naughty'." in str(e)
+
+
+def test_naught_plugin_does_not_cause_unhandled_errors_during_detection(
+    plugin_manager,
+    dummy_random_spec_plugin,
+    dummy_random_spec_plugin_no_autodetect,
+    naughty_spec_plugin,
+):
+    """
+    Ensure that plugins that cause errors does not break plugin detection
+    """
+    filename = "test.random"
+    env_spec_backend = plugin_manager.detect_environment_specifier(filename)
+    assert env_spec_backend.name == "rand-spec"
+    assert env_spec_backend.environment_spec(filename).environment is not None
