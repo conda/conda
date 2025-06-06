@@ -118,7 +118,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         else:
             filename = abspath(expanduser(expandvars(args.file)))
 
-        spec = specs.detect(name=args.name, filename=filename, directory=os.getcwd())
+        spec = specs.detect(filename)
         env = spec.environment
 
         if args.prefix is None and args.name is None:

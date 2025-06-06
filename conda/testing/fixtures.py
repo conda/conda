@@ -415,7 +415,13 @@ class TmpChannelFixture:
         noarch.mkdir(parents=True)
 
         repodata = {"info": {}, "packages": {}}
-        for package in packages:
+        # copy the full package dependency tree, collecting the
+        # repodata records as we go
+        packages_to_copy = set(packages)
+        seen_packages = set()
+        while packages_to_copy:
+            package = packages_to_copy.pop()
+            seen_packages.add(package)
             for pkg_data in pkgs_cache.query(package):
                 fname = pkg_data["fn"]
 
@@ -428,6 +434,11 @@ class TmpChannelFixture:
                         if field not in ("url", "channel", "schannel", "channel_name")
                     }
                 )
+
+                for dep_spec in pkg_data.depends:
+                    dep = dep_spec.split(" ")[0]
+                    if dep not in seen_packages:
+                        packages_to_copy.add(dep)
 
         (subdir / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
         (noarch / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))

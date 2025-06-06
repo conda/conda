@@ -19,12 +19,12 @@ if TYPE_CHECKING:
 
     from ...env.env import Environment
 
-deprecated.module("24.7", "25.9")
+deprecated.module("24.7", "26.3")
 
-deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
+deprecated.constant("24.7", "26.3", "ENVIRONMENT_TYPE", "env")
 
 
-@deprecated("24.7", "25.9")
+@deprecated("24.7", "26.3")
 class BinstarSpec(EnvironmentSpecBase):
     """
     spec = BinstarSpec('darth/deathstar')

@@ -7,7 +7,8 @@ from contextlib import nullcontext
 
 import pytest
 
-from conda.env.specs import binstar
+with pytest.deprecated_call():
+    from conda.env.specs import binstar
 
 
 @pytest.mark.parametrize(
@@ -24,16 +25,18 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
 
 
 def test_cannot_handle_file_path():
-    spec = binstar.BinstarSpec("/file/path/doesnt/exist")
-    assert spec.valid_name() is False
+    with pytest.deprecated_call():
+        spec = binstar.BinstarSpec("/file/path/doesnt/exist")
+        assert spec.valid_name() is False
 
 
 def test_can_handle_binstar_name():
-    spec = binstar.BinstarSpec("conda-test/test")
-    assert spec.valid_name()
+    with pytest.deprecated_call():
+        spec = binstar.BinstarSpec("conda-test/test")
+        assert spec.valid_name()
 
-    spec = binstar.BinstarSpec("user-name/Package_Name")
-    assert spec.valid_name()
+        spec = binstar.BinstarSpec("user-name/Package_Name")
+        assert spec.valid_name()
 
-    spec = binstar.BinstarSpec("user.123/My Package 1.0")
-    assert spec.valid_name()
+        spec = binstar.BinstarSpec("user.123/My Package 1.0")
+        assert spec.valid_name()
