@@ -5,7 +5,6 @@
 import os
 import re
 import shutil
-import sys
 from collections import defaultdict
 from collections.abc import Iterable
 from logging import getLogger
