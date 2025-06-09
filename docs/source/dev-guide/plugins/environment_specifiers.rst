@@ -96,8 +96,8 @@ when a user explicitly requests them. For example:
 End users can bypass environment spec plugin detection and explicitly request a plugin to be used
 by configuring conda to use a particular installed plugin. This can be done by either:
 
-* cli by providing the ``--env-spec`` flag, or
-* environment variable by setting the ``CONDA_ENV_SPEC`` environment variable, or
+* cli by providing the ``--environment-specifier`` or ``--env-spec`` flag, or
+* environment variable by setting the ``CONDA_ENVIRONMENT_SPECIFIER`` environment variable, or
 * ``.condarc`` by setting the ``environment_specifier`` config field
 
 Another example plugin
