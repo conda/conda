@@ -10,6 +10,7 @@ import uuid
 import warnings
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
+from itertools import chain
 from logging import getLogger
 from pathlib import Path
 from shutil import copyfile
@@ -393,12 +394,12 @@ class TmpChannelFixture:
     conda_cli: CondaCLIFixture
 
     @contextmanager
-    def __call__(self, *packages: str) -> Iterator[tuple[Path, str]]:
+    def __call__(self, *specs: str) -> Iterator[tuple[Path, str]]:
         # download packages
         self.conda_cli(
             "create",
             f"--prefix={self.path_factory()}",
-            *packages,
+            *specs,
             "--yes",
             "--quiet",
             "--download-only",
@@ -415,25 +416,38 @@ class TmpChannelFixture:
         noarch.mkdir(parents=True)
 
         repodata = {"info": {}, "packages": {}}
-        for package in packages:
-            for pkg_data in pkgs_cache.query(package):
-                fname = pkg_data["fn"]
+        iter_specs = list(specs)
+        seen: dict[str, set[str]] = {}
+        while iter_specs:
+            spec = iter_specs.pop(0)
 
+            for package_record in pkgs_cache.query(spec):
+                # track which packages have already been copied to the channel
+                fname = package_record["fn"]
+                if fname in seen:
+                    seen[fname].add(spec)
+                seen[fname] = {spec}
+
+                # copy package to channel
                 copyfile(pkgs_dir / fname, subdir / fname)
 
+                # add package to repodata
                 repodata["packages"][fname] = PackageRecord(
                     **{
                         field: value
-                        for field, value in pkg_data.dump().items()
+                        for field, value in package_record.dump().items()
                         if field not in ("url", "channel", "schannel", "channel_name")
                     }
                 )
 
+                iter_specs.extend(package_record.depends)
+
         (subdir / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
         (noarch / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
 
-        for package in packages:
-            assert any(PackageCacheData.query_all(package))
+        # ensure all packages were copied to the channel
+        for spec in chain.from_iterable(seen.values()):
+            assert any(PackageCacheData(pkgs_dir).query(spec))
 
         yield channel, path_to_url(str(channel))
 
