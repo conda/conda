@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add config option and cli argument to allow users to select which environment specifier plugin to use. (#14877)
+* Add config option `environment_specifier` and CLI argument (`--environment-specifier, --env-spec`) to allow users to select which environment specifier plugin to use. (#14877)
 
 ### Bug fixes
 

@@ -550,7 +550,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 )
         elif len(found) > 1:
             raise PluginError(
-                f"More than one environment_spec plugin named {name} found"
+                f"More than one environment_spec plugin named {name} found: {found}"
             )
 
     def detect_environment_specifier(self, source: str) -> CondaEnvironmentSpecifier:
