@@ -13,12 +13,11 @@ from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
     from ..base.constants import (
-        DepsModifier,
         ChannelPriority,
+        DepsModifier,
         SatSolverChoice,
         UpdateModifier,
     )
-
     from .match_spec import MatchSpec
     from .records import PackageRecord
 
@@ -62,12 +61,7 @@ class EnvironmentConfig:
 
     def _append_without_duplicates(self, first: list, second: list) -> list:
         first.extend(second)
-        return list(
-            dict.fromkeys(
-                item
-                for item in first
-            )
-        )
+        return list(dict.fromkeys(item for item in first))
 
     def _merge(self, other: EnvironmentConfig) -> EnvironmentConfig:
         """
@@ -101,11 +95,17 @@ class EnvironmentConfig:
         if other.deps_modifier is not None:
             self.deps_modifier = other.deps_modifier
 
-        self.disallowed_packages = self._append_without_duplicates(self.disallowed_packages, other.disallowed_packages)
+        self.disallowed_packages = self._append_without_duplicates(
+            self.disallowed_packages, other.disallowed_packages
+        )
 
-        self.pinned_packages = self._append_without_duplicates(self.pinned_packages, other.pinned_packages)
+        self.pinned_packages = self._append_without_duplicates(
+            self.pinned_packages, other.pinned_packages
+        )
 
-        self.repodata_fns = self._append_without_duplicates(self.repodata_fns, other.repodata_fns)
+        self.repodata_fns = self._append_without_duplicates(
+            self.repodata_fns, other.repodata_fns
+        )
 
         if other.sat_solver is not None:
             self.sat_solver = other.sat_solver
@@ -113,7 +113,9 @@ class EnvironmentConfig:
         if other.solver is not None:
             self.solver = other.solver
 
-        self.track_features = self._append_without_duplicates(self.track_features, other.track_features)
+        self.track_features = self._append_without_duplicates(
+            self.track_features, other.track_features
+        )
 
         if other.update_modifier is not None:
             self.update_modifier = other.update_modifier
@@ -281,7 +283,9 @@ class Environment:
                 elif isinstance(v, list):
                     external_packages[k] = v
 
-        config = EnvironmentConfig.merge(*[env.config for env in environments if env.config is not None])
+        config = EnvironmentConfig.merge(
+            *[env.config for env in environments if env.config is not None]
+        )
 
         return cls(
             config=config,
