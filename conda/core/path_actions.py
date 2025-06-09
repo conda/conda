@@ -8,7 +8,6 @@ import re
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
 from typing import TYPE_CHECKING
@@ -30,6 +29,7 @@ from ..common.path import (
     url_to_path,
     win_path_ok,
 )
+from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -1431,7 +1431,7 @@ class ExtractPackageAction(PathAction):
 
         try:
             raw_index_json = read_index_json(self.target_full_path)
-        except (OSError, JSONDecodeError, FileNotFoundError):
+        except (OSError, json.JSONDecodeError, FileNotFoundError):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print(

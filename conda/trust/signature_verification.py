@@ -4,13 +4,14 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import warnings
 from functools import cache
 from logging import getLogger
 from pathlib import Path
+
+from ..common.serialize import json
 
 try:
     from conda_content_trust.authentication import verify_delegation, verify_root
@@ -254,7 +255,7 @@ class _SignatureVerification:
         # this function only have to worry about a ValueError being raised.
         try:
             return resp.json()
-        except json.decoder.JSONDecodeError as err:  # noqa
+        except json.JSONDecodeError as err:  # noqa
             # TODO: additional loading and error handling improvements?
             raise ValueError(
                 f"Invalid JSON returned from {signing_data_url}/{filename}"

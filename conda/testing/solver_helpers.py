@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import collections
 import functools
-import json
 import pathlib
 import time
 from tempfile import TemporaryDirectory
@@ -14,6 +13,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from ..base.context import context
+from ..common.serialize import json
 from ..core.solve import Solver
 from ..exceptions import (
     PackagesNotFoundError,
