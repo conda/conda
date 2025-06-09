@@ -186,3 +186,58 @@ def test_environments_merge_colliding_prefix():
     merged = Environment.merge(env1, env2)
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
+
+
+def test_merge_configs_primitive_values_order():
+    config1 = EnvironmentConfig(
+        aggressive_update_packages=True,
+    )
+    config2 = EnvironmentConfig(
+        aggressive_update_packages=False,
+    )
+
+    result = EnvironmentConfig.merge(config1, config2)
+    assert result.aggressive_update_packages is False
+
+    result = EnvironmentConfig.merge(config2, config1)
+    assert result.aggressive_update_packages is True
+
+
+def test_merge_configs_primitive_none_values_order():
+    config1 = EnvironmentConfig(
+        aggressive_update_packages=True,
+    )
+    config2 = EnvironmentConfig()
+
+    result = EnvironmentConfig.merge(config1, config2)
+    assert result.aggressive_update_packages is True
+
+    result = EnvironmentConfig.merge(config2, config1)
+    assert result.aggressive_update_packages is True
+
+
+def test_merge_configs_deduplicate_values():
+    config1 = EnvironmentConfig(
+        channels=["defaults", "conda-forge"],
+        disallowed_packages=["a"],
+        pinned_packages=["b"],
+        repodata_fns=["repodata.json"],
+        track_features=["track"],
+    )
+    config2 = EnvironmentConfig(
+        channels=["defaults", "my-channel"],
+        disallowed_packages=["a"],
+        pinned_packages=["b"],
+        repodata_fns=["repodata.json"],
+        track_features=["track"],
+    )
+    config3 = EnvironmentConfig(
+        channels=["conda-forge", "b-channel"],
+    )
+
+    result = EnvironmentConfig.merge(config1, config2, config3)
+    assert result.channels == ["defaults", "conda-forge", "my-channel", "b-channel"]
+    assert result.disallowed_packages == ["a"]
+    assert result.pinned_packages == ["b"]
+    assert result.repodata_fns == ["repodata.json"]
+    assert result.track_features == ["track"]

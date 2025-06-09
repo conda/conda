@@ -60,13 +60,22 @@ class EnvironmentConfig:
 
     use_only_tar_bz2: bool | None = None
 
-    def merge(self, other):
+    def _append_without_duplicates(self, first: list, second: list) -> list:
+        first.extend(second)
+        return list(
+            dict.fromkeys(
+                item
+                for item in first
+            )
+        )
+
+    def _merge(self, other: EnvironmentConfig) -> EnvironmentConfig:
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
 
         Merges an EnvironmentConfig into this one. Merging rules are:
-        * Primitive types get clobbered
-        * Lists get appended to
+        * Primitive types get clobbered if subsequent configs have a value, otherwise keep the last set value
+        * Lists get appended to and deduplicated
         * Dicts get updated
         """
         # Return early if there is nothing to merge
@@ -79,19 +88,64 @@ class EnvironmentConfig:
                 "Cannot merge EnvironmentConfig with non-EnvironmentConfig"
             )
 
-        self.aggressive_update_packages = other.aggressive_update_packages
-        self.channel_priority = other.channel_priority
-        self.channels.extend(other.channels)
+        if other.aggressive_update_packages is not None:
+            self.aggressive_update_packages = other.aggressive_update_packages
+
+        if other.channel_priority is not None:
+            self.channel_priority = other.channel_priority
+
+        self.channels = self._append_without_duplicates(self.channels, other.channels)
+
         self.channel_settings.update(other.channel_settings)
-        self.deps_modifier = other.deps_modifier
-        self.disallowed_packages.extend(other.disallowed_packages)
-        self.pinned_packages.extend(other.pinned_packages)
-        self.repodata_fns.extend(other.repodata_fns)
-        self.solver = other.solver
-        self.track_features.extend(other.track_features)
-        self.update_modifier = other.update_modifier
-        self.use_only_tar_bz2 = other.use_only_tar_bz2
+
+        if other.deps_modifier is not None:
+            self.deps_modifier = other.deps_modifier
+
+        self.disallowed_packages = self._append_without_duplicates(self.disallowed_packages, other.disallowed_packages)
+
+        self.pinned_packages = self._append_without_duplicates(self.pinned_packages, other.pinned_packages)
+
+        self.repodata_fns = self._append_without_duplicates(self.repodata_fns, other.repodata_fns)
+
+        if other.sat_solver is not None:
+            self.sat_solver = other.sat_solver
+
+        if other.solver is not None:
+            self.solver = other.solver
+
+        self.track_features = self._append_without_duplicates(self.track_features, other.track_features)
+
+        if other.update_modifier is not None:
+            self.update_modifier = other.update_modifier
+
+        if other.use_only_tar_bz2 is not None:
+            self.use_only_tar_bz2 = other.use_only_tar_bz2
+
         return self
+
+    @classmethod
+    def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Merges a list of EnvironmentConfigs into a single one. Merging rules are:
+        * Primitive types get clobbered if subsequent configs have a value, otherwise keep the last set value
+        * Lists get appended to and deduplicated
+        * Dicts get updated
+        """
+
+        # Don't try to merge if there is nothing to merge
+        if len(configs) == 0:
+            return
+
+        # If there is only one config, there is nothing to merge, return the lone config
+        if len(configs) == 1:
+            return configs[0]
+
+        result = EnvironmentConfig()
+        for config in configs:
+            result._merge(config)
+        return result
 
 
 @dataclass
@@ -117,7 +171,7 @@ class Environment:
     external_packages: dict[str, list[str]] = field(default_factory=dict)
 
     #: The complete list of specs for the environment.
-    #: eg. after a solve, or from an explicit environemnt spec
+    #: eg. after a solve, or from an explicit environment spec
     explicit_packages: list[PackageRecord] = field(default_factory=list)
 
     #: Environment name
@@ -216,11 +270,7 @@ class Environment:
         variables = {k: v for env in environments for (k, v) in env.variables.items()}
 
         external_packages = {}
-        config = EnvironmentConfig()
         for env in environments:
-            # Merge configs
-            config = config.merge(env.config)
-
             # External packages map values are always lists of strings. So,
             # we'll want to concatenate each list.
             for k, v in env.external_packages.items():
@@ -230,6 +280,8 @@ class Environment:
                             external_packages[k].append(val)
                 elif isinstance(v, list):
                     external_packages[k] = v
+
+        config = EnvironmentConfig.merge(*[env.config for env in environments if env.config is not None])
 
         return cls(
             config=config,
