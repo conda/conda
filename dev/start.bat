@@ -180,7 +180,9 @@
 
 :: initialize conda command
 @ECHO Initializing shell integration...
+@SET "CONDA_AUTO_ACTIVATE=0"
 @CALL "%_CONDAHOOK%"
+@SET CONDA_AUTO_ACTIVATE=
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to initialize shell integration 1>&2
     @EXIT /B 1

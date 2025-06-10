@@ -415,6 +415,8 @@ class CondaPrefixDataLoader:
 
 class EnvironmentSpecBase(ABC):
     """
+    **EXPERIMENTAL**
+
     Base class for all env specs.
     """
 
@@ -442,6 +444,8 @@ class EnvironmentSpecBase(ABC):
 @dataclass
 class CondaEnvironmentSpecifier:
     """
+    **EXPERIMENTAL**
+
     Return type to use when defining a conda env spec plugin hook.
 
     For details on how this is used, see
