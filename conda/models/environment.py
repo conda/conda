@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""EXPERIMENTAL Conda environment data model"""
+"""Conda environment data model"""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS
+from ..deprecations import experimental
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -20,12 +21,16 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
+# Mark this entire module as experimental
+experimental.module(
+    until="25.9",
+    addendum="Environment data model is still being developed and may change",
+)
+
 
 @dataclass
 class Environment:
     """
-    **Experimental** While experimental, expect both major and minor changes across minor releases.
-
     Data model for a conda environment.
     """
 
@@ -87,10 +92,12 @@ class Environment:
                     )
 
     @classmethod
+    @experimental(
+        until="25.9",
+        addendum="Merge functionality may change as the environment model evolves",
+    )
     def merge(cls, *environments):
         """
-        **Experimental** While experimental, expect both major and minor changes across minor releases.
-
         Merges multiple environments into a single environment following the rules:
         * Keeps first name and/or prefix.
         * Concatenates and deduplicates requirements.
@@ -173,8 +180,8 @@ class Environment:
             external_packages=external_packages,
             explicit_packages=explicit_packages,
             name=name,
-            platform=platform,
-            prefix=prefix,
+            platform=platform or "",
+            prefix=prefix or "",
             requested_packages=requested_packages,
             variables=variables,
         )
