@@ -102,7 +102,6 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..env import specs
     from ..exceptions import SpecNotFound
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
     from .common import stdout_json
@@ -118,7 +117,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         else:
             filename = abspath(expanduser(expandvars(args.file)))
 
-        spec = specs.detect(name=args.name, filename=filename, directory=os.getcwd())
+        spec_hook = context.plugin_manager.get_environment_specifier(
+            source=filename,
+            name=context.environment_specifier,
+        )
+        spec = spec_hook.environment_spec(filename)
         env = spec.environment
 
         if args.prefix is None and args.name is None:
