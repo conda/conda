@@ -361,8 +361,27 @@ class DeprecationHandler(BaseHandler):
                 deprecation_type=deprecation_type,
             )
 
+            # Get the function signature to determine parameter positions
+            import inspect
+            sig = inspect.signature(func)
+            param_names = list(sig.parameters.keys())
+            
+            # Find the position of the deprecated argument
+            deprecated_param_index = None
+            if argument in param_names:
+                deprecated_param_index = param_names.index(argument)
+
             @wraps(func)
             def inner(*args: P.args, **kwargs: P.kwargs) -> T:
+                # If the deprecated parameter can be passed positionally and too many positional args are given
+                if (deprecated_param_index is not None and 
+                    len(args) > deprecated_param_index):
+                    raise TypeError(
+                        f"{func.__name__}() got {len(args)} positional argument{'s' if len(args) > 1 else ''} "
+                        f"but expected at most {deprecated_param_index} "
+                        f"('{argument}' is deprecated and must be passed as keyword argument)"
+                    )
+
                 # only warn about argument deprecations if the argument is used
                 if argument in kwargs:
                     warnings.warn(message, category, stacklevel=2 + stack)
