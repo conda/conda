@@ -13,7 +13,7 @@ import pytest
 from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CondaEnvironmentError, CorruptedEnvironmentError
+from conda.exceptions import CondaError, CorruptedEnvironmentError
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
@@ -423,7 +423,7 @@ def test_prefix_insertion_error(tmp_env: TmpEnvFixture):
             "in the prefix. This can often be resolved by running `conda clean --all`. "
         )
 
-        with pytest.raises(CondaEnvironmentError, match=expected_error_message):
+        with pytest.raises(CondaError, match=expected_error_message):
             prefix_data.insert(
                 record(
                     name="ca-certificates",
