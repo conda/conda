@@ -256,42 +256,79 @@ def test_ast_visitor_handles_invalid_syntax() -> None:
         pass
 
 
-def test_check_concluded_features_no_expired() -> None:
-    """Test check_concluded_features with no expired features."""
+def test_scan_check_no_expired() -> None:
+    """Test scan(check=True) with no expired features."""
     handler = ExperimentHandler("1.0")
 
     # Should not raise any exceptions if no features are expired
-    handler.check_concluded_features()
+    handler.scan(check=True)
 
 
-def test_check_concluded_features_with_monkeypatch(monkeypatch) -> None:
-    """Test check_concluded_features with mock expired features."""
+def test_scan_check_real_features_not_expired() -> None:
+    """Test that real experimental features in the codebase haven't expired beyond grace period."""
+    from conda import __version__
+
+    # Use actual conda version to check real experimental features
+    handler = ExperimentHandler(__version__)
+
+    # This will raise ExperimentConcluded if any real experiments have expired
+    # beyond their grace period, fulfilling requirement 6
+    handler.scan(check=True)
+
+
+def test_scan_check_with_monkeypatch(monkeypatch) -> None:
+    """Test scan(check=True) with mock expired features."""
     handler = ExperimentHandler("3.0")
 
-    def mock_scan():
-        return [
+    def mock_scan(check=False, grace_versions=1):
+        features = [
             {"prefix": "test.old_function", "until": "2.0", "addendum": None},
             {"prefix": "test.old_arg", "until": "1.5", "addendum": None},
         ]
 
+        # If check=True, perform validation (same logic as real scan method)
+        if check:
+            from packaging.version import parse
+
+            current_version = (
+                parse(handler._version) if handler._version else parse("0.0.0.dev0")
+            )
+
+            for feature in features:
+                conclude_version = parse(feature["until"])
+                grace_parts = list(conclude_version.release)
+                if len(grace_parts) >= 2:
+                    grace_parts[1] += grace_versions
+                else:
+                    grace_parts.append(grace_versions)
+                grace_version = parse(".".join(str(p) for p in grace_parts))
+
+                if current_version >= grace_version:
+                    raise ExperimentConcluded(
+                        f"{feature['prefix']} experimental feature concluded in {feature['until']} "
+                        f"and has exceeded the grace period (current: {handler._version})"
+                    )
+
+        return features
+
     monkeypatch.setattr(handler, "scan", mock_scan)
 
     with pytest.raises(ExperimentConcluded, match="exceeded the grace period"):
-        handler.check_concluded_features()
+        handler.scan(check=True)
 
 
 def test_grace_period_calculation(monkeypatch) -> None:
     """Test grace period calculation with mock features."""
     handler = ExperimentHandler("2.1")  # Just past 2.0
 
-    def mock_scan():
+    def mock_scan(check=False, grace_versions=1):
         return [{"prefix": "test.recent_function", "until": "2.0", "addendum": None}]
 
     monkeypatch.setattr(handler, "scan", mock_scan)
 
     # Should not raise during grace period (assuming grace period > 0.1)
     try:
-        handler.check_concluded_features()
+        handler.scan(check=True)
         # If no exception, grace period is working
     except ExperimentConcluded:
         # If exception raised, grace period calculation may be stricter

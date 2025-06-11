@@ -657,8 +657,15 @@ class ExperimentHandler(BaseHandler):
         """Handle function decoration for experimental features."""
         return func  # Return unchanged
 
-    def scan(self: Self) -> list[dict[str, Any]]:
-        """Scan for experimental features using proper Python module discovery."""
+    def scan(
+        self: Self, check: bool = False, grace_versions: int = 1
+    ) -> list[dict[str, Any]]:
+        """Scan for experimental features using proper Python module discovery.
+
+        :param check: If True, validate that no features have expired beyond grace period
+        :param grace_versions: Number of grace versions to allow past conclusion (only used if check=True)
+        :return: List of experimental features found
+        """
         # Import conda to get its package path
         import conda
 
@@ -677,6 +684,29 @@ class ExperimentHandler(BaseHandler):
             if spec and spec.origin and spec.origin.endswith(".py"):
                 file_path = Path(spec.origin)
                 features.extend(self._scan_file(file_path, module_name))
+
+        # Optionally validate that no features have expired
+        if check:
+            from packaging.version import parse
+
+            current_version = (
+                parse(self._version) if self._version else parse("0.0.0.dev0")
+            )
+
+            for feature in features:
+                conclude_version = parse(feature["until"])
+                grace_parts = list(conclude_version.release)
+                if len(grace_parts) >= 2:
+                    grace_parts[1] += grace_versions
+                else:
+                    grace_parts.append(grace_versions)
+                grace_version = parse(".".join(str(p) for p in grace_parts))
+
+                if current_version >= grace_version:
+                    raise ExperimentConcluded(
+                        f"{feature['prefix']} experimental feature concluded in {feature['until']} "
+                        f"and has exceeded the grace period (current: {self._version})"
+                    )
 
         return features
 
@@ -781,27 +811,6 @@ class ExperimentHandler(BaseHandler):
             if keyword.arg == arg_name and isinstance(keyword.value, ast.Constant):
                 return keyword.value.value
         return None
-
-    def check_concluded_features(self: Self, grace_versions: int = 1) -> None:
-        """Check if any experimental features have concluded beyond grace period."""
-        from packaging.version import parse
-
-        current_version = parse(self._version) if self._version else parse("0.0.0.dev0")
-
-        for feature in self.scan():
-            conclude_version = parse(feature["until"])
-            grace_parts = list(conclude_version.release)
-            if len(grace_parts) >= 2:
-                grace_parts[1] += grace_versions
-            else:
-                grace_parts.append(grace_versions)
-            grace_version = parse(".".join(str(p) for p in grace_parts))
-
-            if current_version >= grace_version:
-                raise ExperimentConcluded(
-                    f"{feature['prefix']} experimental feature concluded in {feature['until']} "
-                    f"and has exceeded the grace period (current: {self._version})"
-                )
 
     # Consolidated decorator method
     def __call__(

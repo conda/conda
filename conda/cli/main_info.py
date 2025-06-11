@@ -513,10 +513,11 @@ class InfoRenderer:
     def _experiments_component(self) -> str | dict[str, list[dict[str, str]]]:
         """Render experimental features component."""
         from conda.deprecations import experimental
+        experiments = experimental.scan(check=True)
 
         if self._context.json:
             rv = {"experiments": []}
-            for experiment in experimental.scan():
+            for experiment in experiments:
                 rv["experiments"].append(
                     {
                         "name": experiment["prefix"],
@@ -526,13 +527,14 @@ class InfoRenderer:
                 )
             return rv
         else:
-            experiments = experimental.scan()
             if not experiments:
                 return "No experimental features currently active."
 
             lines = ["Experimental Features:"]
             for experiment in experiments:
-                lines.append(f"  • {experiment['prefix']} (until {experiment['until']})")
+                lines.append(
+                    f"  • {experiment['prefix']} (until {experiment['until']})"
+                )
                 if experiment["addendum"]:
                     lines.append(f"    {experiment['addendum']}")
             return "\n".join(lines)
@@ -564,7 +566,7 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     if args.unsafe_channels:
         yield "channels"
 
-    if args.experiments:
+    if getattr(args, "experiments", False):
         yield "experiments"
 
     if (
