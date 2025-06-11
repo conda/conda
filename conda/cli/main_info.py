@@ -513,30 +513,37 @@ class InfoRenderer:
     def _experiments_component(self) -> str | dict[str, list[dict[str, str]]]:
         """Render experimental features component."""
         from conda.deprecations import experimental
+
         experiments = experimental.scan(check=True)
 
         if self._context.json:
-            rv = {"experiments": []}
-            for experiment in experiments:
-                rv["experiments"].append(
+            return {
+                "experiments": [
                     {
                         "name": experiment["prefix"],
                         "until": experiment["until"],
                         "addendum": experiment["addendum"] or "",
                     }
-                )
-            return rv
+                    for experiment in experiments
+                ]
+            }
         else:
             if not experiments:
                 return "No experimental features currently active."
 
-            lines = ["Experimental Features:"]
-            for experiment in experiments:
-                lines.append(
-                    f"  • {experiment['prefix']} (until {experiment['until']})"
-                )
+            def format_experiment(experiment):
+                yield f"  • {experiment['prefix']} (until {experiment['until']})"
                 if experiment["addendum"]:
-                    lines.append(f"    {experiment['addendum']}")
+                    yield f"    {experiment['addendum']}"
+
+            lines = [
+                "Experimental Features:",
+                *[
+                    line
+                    for experiment in experiments
+                    for line in format_experiment(experiment)
+                ],
+            ]
             return "\n".join(lines)
 
     def _json_all_component(self) -> dict[str, Any]:

@@ -6,17 +6,24 @@ from __future__ import annotations
 
 import ast
 import sys
+from argparse import Action
 
 import pytest
+from packaging.version import parse
 
-from conda.deprecations import ExperimentConcluded, ExperimentHandler
+from conda import __version__
+from conda.deprecations import (
+    ExperimentalFeatureVisitor,
+    ExperimentConcluded,
+    ExperimentHandler,
+)
 
 
 def test_function_decorator_active_version() -> None:
     """Test @experimental decorator on function with active version."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
-    @handler(until="2.0")
+    @experimental(until="2.0")
     def test_function() -> str:
         return "success"
 
@@ -27,22 +34,22 @@ def test_function_decorator_active_version() -> None:
 
 def test_function_decorator_concluded_version() -> None:
     """Test @experimental decorator raises exception when concluded."""
-    handler = ExperimentHandler("3.0")  # Version after conclusion
+    experimental = ExperimentHandler("3.0")  # Version after conclusion
 
     with pytest.raises(
         ExperimentConcluded, match="experimental feature concluded in 2.0"
     ):
 
-        @handler(until="2.0")
+        @experimental(until="2.0")
         def test_function() -> str:
             return "should not work"
 
 
 def test_function_decorator_with_addendum() -> None:
     """Test @experimental decorator with addendum."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
-    @handler(until="2.0", addendum="This is a test feature")
+    @experimental(until="2.0", addendum="This is a test feature")
     def test_function() -> str:
         return "success"
 
@@ -52,10 +59,10 @@ def test_function_decorator_with_addendum() -> None:
 
 def test_method_decorator() -> None:
     """Test @experimental decorator on class methods."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
     class TestClass:
-        @handler(until="2.0")
+        @experimental(until="2.0")
         def test_method(self) -> str:
             return "method success"
 
@@ -66,9 +73,9 @@ def test_method_decorator() -> None:
 
 def test_argument_decorator_active() -> None:
     """Test @experimental.argument decorator with active version."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
-    @handler.argument(until="2.0", argument="experimental_arg")
+    @experimental.argument(until="2.0", argument="experimental_arg")
     def test_function(normal_arg: str, experimental_arg: str | None = None) -> str:
         return f"normal: {normal_arg}, experimental: {experimental_arg}"
 
@@ -82,34 +89,34 @@ def test_argument_decorator_active() -> None:
 
 def test_argument_decorator_concluded() -> None:
     """Test @experimental.argument decorator raises when concluded."""
-    handler = ExperimentHandler("3.0")
+    experimental = ExperimentHandler("3.0")
 
     with pytest.raises(ExperimentConcluded):
 
-        @handler.argument(until="2.0", argument="old_arg")
+        @experimental.argument(until="2.0", argument="old_arg")
         def test_function(normal_arg: str, old_arg: str | None = None) -> str:
             return f"{normal_arg}, {old_arg}"
 
 
 def test_module_active() -> None:
     """Test experimental.module() with active version."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
     # Should not raise exception
-    handler.module(until="2.0", addendum="Test module")
+    experimental.module(until="2.0", addendum="Test module")
 
 
 def test_module_concluded() -> None:
     """Test experimental.module() raises when concluded."""
-    handler = ExperimentHandler("3.0")
+    experimental = ExperimentHandler("3.0")
 
     with pytest.raises(ExperimentConcluded):
-        handler.module(until="2.0")
+        experimental.module(until="2.0")
 
 
 def test_constant_creation() -> None:
     """Test experimental.constant() creates module constant."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
     module = sys.modules[__name__]
 
     # Ensure constant doesn't exist before
@@ -118,7 +125,7 @@ def test_constant_creation() -> None:
         delattr(module, constant_name)
 
     # Create experimental constant
-    handler.constant(until="2.0", constant=constant_name, value=42)
+    experimental.constant(until="2.0", constant=constant_name, value=42)
 
     # Constant should be created
     assert hasattr(module, constant_name)
@@ -130,48 +137,44 @@ def test_constant_creation() -> None:
 
 def test_constant_concluded() -> None:
     """Test experimental.constant() raises when concluded."""
-    handler = ExperimentHandler("3.0")
+    experimental = ExperimentHandler("3.0")
 
     with pytest.raises(ExperimentConcluded):
-        handler.constant(until="2.0", constant="OLD_CONSTANT", value=123)
+        experimental.constant(until="2.0", constant="OLD_CONSTANT", value=123)
 
 
 def test_topic_active() -> None:
     """Test experimental.topic() with active version."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
     # Should not raise exception
-    handler.topic(until="2.0", topic="Test Topic")
+    experimental.topic(until="2.0", topic="Test Topic")
 
 
 def test_topic_concluded() -> None:
     """Test experimental.topic() raises when concluded."""
-    handler = ExperimentHandler("3.0")
+    experimental = ExperimentHandler("3.0")
 
     with pytest.raises(ExperimentConcluded):
-        handler.topic(until="2.0", topic="Old Topic")
+        experimental.topic(until="2.0", topic="Old Topic")
 
 
 def test_action_decorator() -> None:
     """Test experimental action decorator works."""
-    from argparse import Action
-
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
     class TestAction(Action):
         def __call__(self, parser, namespace, values, option_string=None):
             setattr(namespace, self.dest, values)
 
     # Should create experimental action without error
-    experimental_action = handler.action(until="2.0", action=TestAction)
+    experimental_action = experimental.action(until="2.0", action=TestAction)
     assert issubclass(experimental_action, Action)
 
 
 def test_action_decorator_concluded() -> None:
     """Test experimental action decorator raises when concluded."""
-    from argparse import Action
-
-    handler = ExperimentHandler("3.0")
+    experimental = ExperimentHandler("3.0")
 
     class TestAction(Action):
         def __call__(self, parser, namespace, values, option_string=None):
@@ -180,7 +183,7 @@ def test_action_decorator_concluded() -> None:
     # Note: Actions may not raise immediately like functions, depends on implementation
     # Test that action creation works (may validate later)
     try:
-        experimental_action = handler.action(until="2.0", action=TestAction)
+        experimental_action = experimental.action(until="2.0", action=TestAction)
         # If it doesn't raise, that's ok for actions
         assert issubclass(experimental_action, Action)
     except ExperimentConcluded:
@@ -190,8 +193,8 @@ def test_action_decorator_concluded() -> None:
 
 def test_scan_experimental_features_finds_decorators() -> None:
     """Test that AST scanning finds experimental decorators in real files."""
-    handler = ExperimentHandler("1.0")
-    features = handler.scan()
+    experimental = ExperimentHandler("1.0")
+    features = experimental.scan()
 
     # Should find actual experimental features in the conda codebase
     # (This test may pass even with 0 features if none exist)
@@ -206,8 +209,6 @@ def test_scan_experimental_features_finds_decorators() -> None:
 
 def test_ast_visitor_with_test_code() -> None:
     """Test AST visitor can parse experimental decorators from string code."""
-    from conda.deprecations import ExperimentalFeatureVisitor
-
     test_code = """
 from conda.deprecations import experimental
 
@@ -221,8 +222,8 @@ def another_function(test_arg=None):
 """
 
     tree = ast.parse(test_code)
-    handler = ExperimentHandler("1.0")
-    visitor = ExperimentalFeatureVisitor("test_module", handler)
+    experimental = ExperimentHandler("1.0")
+    visitor = ExperimentalFeatureVisitor("test_module", experimental)
     visitor.visit(tree)
 
     features = visitor.features
@@ -239,16 +240,14 @@ def another_function(test_arg=None):
 
 def test_ast_visitor_handles_invalid_syntax() -> None:
     """Test AST visitor gracefully handles invalid Python syntax."""
-    from conda.deprecations import ExperimentalFeatureVisitor
-
     # This will cause parse error but should be handled gracefully
     invalid_code = "def invalid_function(: pass"
 
     try:
         tree = ast.parse(invalid_code)
         # If parsing succeeds somehow, visitor should handle it
-        handler = ExperimentHandler("1.0")
-        visitor = ExperimentalFeatureVisitor("test_module", handler)
+        experimental = ExperimentHandler("1.0")
+        visitor = ExperimentalFeatureVisitor("test_module", experimental)
         visitor.visit(tree)
         assert isinstance(visitor.features, list)
     except SyntaxError:
@@ -258,27 +257,25 @@ def test_ast_visitor_handles_invalid_syntax() -> None:
 
 def test_scan_check_no_expired() -> None:
     """Test scan(check=True) with no expired features."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
     # Should not raise any exceptions if no features are expired
-    handler.scan(check=True)
+    experimental.scan(check=True)
 
 
 def test_scan_check_real_features_not_expired() -> None:
     """Test that real experimental features in the codebase haven't expired beyond grace period."""
-    from conda import __version__
-
     # Use actual conda version to check real experimental features
-    handler = ExperimentHandler(__version__)
+    experimental = ExperimentHandler(__version__)
 
     # This will raise ExperimentConcluded if any real experiments have expired
     # beyond their grace period, fulfilling requirement 6
-    handler.scan(check=True)
+    experimental.scan(check=True)
 
 
 def test_scan_check_with_monkeypatch(monkeypatch) -> None:
     """Test scan(check=True) with mock expired features."""
-    handler = ExperimentHandler("3.0")
+    experimental = ExperimentHandler("3.0")
 
     def mock_scan(check=False, grace_versions=1):
         features = [
@@ -288,10 +285,10 @@ def test_scan_check_with_monkeypatch(monkeypatch) -> None:
 
         # If check=True, perform validation (same logic as real scan method)
         if check:
-            from packaging.version import parse
-
             current_version = (
-                parse(handler._version) if handler._version else parse("0.0.0.dev0")
+                parse(experimental._version)
+                if experimental._version
+                else parse("0.0.0.dev0")
             )
 
             for feature in features:
@@ -306,29 +303,29 @@ def test_scan_check_with_monkeypatch(monkeypatch) -> None:
                 if current_version >= grace_version:
                     raise ExperimentConcluded(
                         f"{feature['prefix']} experimental feature concluded in {feature['until']} "
-                        f"and has exceeded the grace period (current: {handler._version})"
+                        f"and has exceeded the grace period (current: {experimental._version})"
                     )
 
         return features
 
-    monkeypatch.setattr(handler, "scan", mock_scan)
+    monkeypatch.setattr(experimental, "scan", mock_scan)
 
     with pytest.raises(ExperimentConcluded, match="exceeded the grace period"):
-        handler.scan(check=True)
+        experimental.scan(check=True)
 
 
 def test_grace_period_calculation(monkeypatch) -> None:
     """Test grace period calculation with mock features."""
-    handler = ExperimentHandler("2.1")  # Just past 2.0
+    experimental = ExperimentHandler("2.1")  # Just past 2.0
 
     def mock_scan(check=False, grace_versions=1):
         return [{"prefix": "test.recent_function", "until": "2.0", "addendum": None}]
 
-    monkeypatch.setattr(handler, "scan", mock_scan)
+    monkeypatch.setattr(experimental, "scan", mock_scan)
 
     # Should not raise during grace period (assuming grace period > 0.1)
     try:
-        handler.scan(check=True)
+        experimental.scan(check=True)
         # If no exception, grace period is working
     except ExperimentConcluded:
         # If exception raised, grace period calculation may be stricter
@@ -338,9 +335,9 @@ def test_grace_period_calculation(monkeypatch) -> None:
 
 def test_version_comparison_active() -> None:
     """Test version comparison for active experimental features."""
-    handler = ExperimentHandler("1.5")
+    experimental = ExperimentHandler("1.5")
 
-    @handler(until="2.0")
+    @experimental(until="2.0")
     def active_function() -> str:
         return "active"
 
@@ -350,31 +347,31 @@ def test_version_comparison_active() -> None:
 
 def test_version_comparison_concluded() -> None:
     """Test version comparison for concluded experimental features."""
-    handler = ExperimentHandler("2.1")
+    experimental = ExperimentHandler("2.1")
 
     with pytest.raises(ExperimentConcluded):
 
-        @handler(until="2.0")
+        @experimental(until="2.0")
         def concluded_function() -> str:
             return "should not work"
 
 
 def test_version_edge_cases() -> None:
     """Test version handling edge cases."""
-    handler = ExperimentHandler("2.0")  # Exact version match
+    experimental = ExperimentHandler("2.0")  # Exact version match
 
     with pytest.raises(ExperimentConcluded):
 
-        @handler(until="2.0")
+        @experimental(until="2.0")
         def exact_version_function() -> str:
             return "should not work"
 
 
 def test_dev_version_handling() -> None:
     """Test handling of development versions."""
-    handler = ExperimentHandler("1.5.dev0")
+    experimental = ExperimentHandler("1.5.dev0")
 
-    @handler(until="2.0")
+    @experimental(until="2.0")
     def dev_function() -> str:
         return "dev version works"
 
@@ -384,12 +381,12 @@ def test_dev_version_handling() -> None:
 
 def test_invalid_until_version_format() -> None:
     """Test handling of invalid until version formats."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
     # Some invalid version formats should be handled gracefully
     try:
 
-        @handler(until="invalid.version.format")
+        @experimental(until="invalid.version.format")
         def test_function() -> str:
             return "test"
 
@@ -403,9 +400,9 @@ def test_invalid_until_version_format() -> None:
 
 def test_empty_until_version() -> None:
     """Test handling of empty until version."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
-    @handler(until="")
+    @experimental(until="")
     def test_function() -> str:
         return "empty version"
 
@@ -416,10 +413,10 @@ def test_empty_until_version() -> None:
 
 def test_multiple_decorators_same_function() -> None:
     """Test multiple experimental decorators on same function."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
-    @handler(until="2.0")
-    @handler.argument(until="3.0", argument="test_arg")
+    @experimental(until="2.0")
+    @experimental.argument(until="3.0", argument="test_arg")
     def multi_decorated_function(test_arg: str | None = None) -> str:
         return f"result: {test_arg}"
 
@@ -433,18 +430,14 @@ def test_multiple_decorators_same_function() -> None:
 
 def test_nested_class_method_decoration() -> None:
     """Test experimental decoration of nested class methods."""
-    handler = ExperimentHandler("1.0")
+    experimental = ExperimentHandler("1.0")
 
     class OuterClass:
         class InnerClass:
-            @handler(until="2.0")
+            @experimental(until="2.0")
             def nested_method(self) -> str:
                 return "nested success"
 
     instance = OuterClass.InnerClass()
     result = instance.nested_method()
     assert result == "nested success"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

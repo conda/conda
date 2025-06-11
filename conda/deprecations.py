@@ -605,9 +605,7 @@ class ExperimentalFeatureVisitor(ast.NodeVisitor):
 
     def visit_Expr(self, node: ast.Expr) -> None:
         if isinstance(node.value, ast.Call):
-            feature = self._parse_experimental_method_call(
-                node.value, self.module_name
-            )
+            feature = self._parse_experimental_method_call(node.value, self.module_name)
             if feature:
                 self.features.append(feature)
         self.generic_visit(node)
@@ -811,8 +809,6 @@ class ExperimentHandler(BaseHandler):
         visitor = ExperimentalFeatureVisitor(module_name, self)
         visitor.visit(tree)
         return visitor.features
-
-
 
     # Consolidated decorator method
     def __call__(
