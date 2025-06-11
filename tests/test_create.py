@@ -1052,6 +1052,14 @@ def test_allow_softlinks(
         assert (prefix / "fonts" / "Inconsolata-Bold.ttf").is_symlink()
 
 
+def test_clone_env_with_conda(tmp_env: TmpEnvFixture):
+    # Regression test for #14917
+    with tmp_env("--channel=conda-forge", "conda") as prefix:
+        assert package_is_installed(prefix, "conda-forge::conda")
+        with tmp_env(f"--clone={prefix}") as clone:
+            assert package_is_installed(clone, "conda-forge::conda")
+
+
 def test_channel_usage_replacing_python(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
