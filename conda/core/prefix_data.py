@@ -36,7 +36,7 @@ from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
-    CondaEnvironmentError,
+    CondaError,
     CondaValueError,
     CorruptedEnvironmentError,
     DirectoryNotACondaEnvironmentError,
