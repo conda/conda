@@ -605,7 +605,7 @@ class ExperimentalFeatureVisitor(ast.NodeVisitor):
 
     def visit_Expr(self, node: ast.Expr) -> None:
         if isinstance(node.value, ast.Call):
-            feature = self.handler._parse_experimental_method_call(
+            feature = self._parse_experimental_method_call(
                 node.value, self.module_name
             )
             if feature:
@@ -614,7 +614,7 @@ class ExperimentalFeatureVisitor(ast.NodeVisitor):
 
     def _check_decorators(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         for decorator in node.decorator_list:
-            feature = self.handler._parse_experimental_decorator(
+            feature = self._parse_experimental_decorator(
                 decorator, node.name, self.module_name
             )
             if feature:
@@ -624,6 +624,83 @@ class ExperimentalFeatureVisitor(ast.NodeVisitor):
                 else:
                     feature["prefix"] = f"{self.module_name}.{node.name}"
                 self.features.append(feature)
+
+    def _parse_experimental_decorator(
+        self, decorator: ast.AST, name: str, module_name: str
+    ) -> dict[str, Any] | None:
+        """Parse an @experimental decorator."""
+        if not isinstance(decorator, ast.Call):
+            return None
+
+        # Check if it's @experimental(...) or @experimental.method(...)
+        until = None
+        addendum = None
+
+        if isinstance(decorator.func, ast.Name) and decorator.func.id == "experimental":
+            # @experimental(until="...")
+            until = self._get_call_arg(decorator, "until") or (
+                decorator.args[0].value
+                if decorator.args and isinstance(decorator.args[0], ast.Constant)
+                else None
+            )  # type: ignore[attr-defined]
+            addendum = self._get_call_arg(decorator, "addendum")
+        elif (
+            isinstance(decorator.func, ast.Attribute)
+            and isinstance(decorator.func.value, ast.Name)
+            and decorator.func.value.id == "experimental"
+        ):
+            # @experimental.argument(...) etc
+            until = self._get_call_arg(decorator, "until")
+            addendum = self._get_call_arg(decorator, "addendum")
+
+        if until:
+            return {
+                "prefix": f"{module_name}.{name}",
+                "until": until,
+                "addendum": addendum,
+            }
+        return None
+
+    def _parse_experimental_method_call(
+        self, call: ast.Call, module_name: str
+    ) -> dict[str, Any] | None:
+        """Parse experimental.method() calls."""
+        if not (
+            isinstance(call.func, ast.Attribute)
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == "experimental"
+        ):
+            return None
+
+        method = call.func.attr
+        if method not in ("module", "constant", "topic"):
+            return None
+
+        until = self._get_call_arg(call, "until")
+        addendum = self._get_call_arg(call, "addendum")
+
+        if method == "module":
+            prefix = module_name
+        elif method == "topic":
+            topic = self._get_call_arg(call, "topic")
+            prefix = topic or f"{module_name}.topic"
+        else:  # constant
+            constant = self._get_call_arg(call, "constant")
+            prefix = (
+                f"{module_name}.{constant}" if constant else f"{module_name}.constant"
+            )
+
+        return (
+            {"prefix": prefix, "until": until, "addendum": addendum} if until else None
+        )
+
+    def _get_call_arg(self, call: ast.Call, arg_name: str) -> str | None:
+        """Get argument value from call - simplified for conda's controlled decorators."""
+        # Check keyword arguments
+        for keyword in call.keywords:
+            if keyword.arg == arg_name and isinstance(keyword.value, ast.Constant):
+                return keyword.value.value
+        return None
 
 
 class ExperimentHandler(BaseHandler):
@@ -735,82 +812,7 @@ class ExperimentHandler(BaseHandler):
         visitor.visit(tree)
         return visitor.features
 
-    def _parse_experimental_decorator(
-        self: Self, decorator: ast.AST, name: str, module_name: str
-    ) -> dict[str, Any] | None:
-        """Parse an @experimental decorator."""
-        if not isinstance(decorator, ast.Call):
-            return None
 
-        # Check if it's @experimental(...) or @experimental.method(...)
-        until = None
-        addendum = None
-
-        if isinstance(decorator.func, ast.Name) and decorator.func.id == "experimental":
-            # @experimental(until="...")
-            until = self._get_call_arg(decorator, "until") or (
-                decorator.args[0].value
-                if decorator.args and isinstance(decorator.args[0], ast.Constant)
-                else None
-            )  # type: ignore[attr-defined]
-            addendum = self._get_call_arg(decorator, "addendum")
-        elif (
-            isinstance(decorator.func, ast.Attribute)
-            and isinstance(decorator.func.value, ast.Name)
-            and decorator.func.value.id == "experimental"
-        ):
-            # @experimental.argument(...) etc
-            until = self._get_call_arg(decorator, "until")
-            addendum = self._get_call_arg(decorator, "addendum")
-
-        if until:
-            return {
-                "prefix": f"{module_name}.{name}",
-                "until": until,
-                "addendum": addendum,
-            }
-        return None
-
-    def _parse_experimental_method_call(
-        self: Self, call: ast.Call, module_name: str
-    ) -> dict[str, Any] | None:
-        """Parse experimental.method() calls."""
-        if not (
-            isinstance(call.func, ast.Attribute)
-            and isinstance(call.func.value, ast.Name)
-            and call.func.value.id == "experimental"
-        ):
-            return None
-
-        method = call.func.attr
-        if method not in ("module", "constant", "topic"):
-            return None
-
-        until = self._get_call_arg(call, "until")
-        addendum = self._get_call_arg(call, "addendum")
-
-        if method == "module":
-            prefix = module_name
-        elif method == "topic":
-            topic = self._get_call_arg(call, "topic")
-            prefix = topic or f"{module_name}.topic"
-        else:  # constant
-            constant = self._get_call_arg(call, "constant")
-            prefix = (
-                f"{module_name}.{constant}" if constant else f"{module_name}.constant"
-            )
-
-        return (
-            {"prefix": prefix, "until": until, "addendum": addendum} if until else None
-        )
-
-    def _get_call_arg(self: Self, call: ast.Call, arg_name: str) -> str | None:
-        """Get argument value from call - simplified for conda's controlled decorators."""
-        # Check keyword arguments
-        for keyword in call.keywords:
-            if keyword.arg == arg_name and isinstance(keyword.value, ast.Constant):
-                return keyword.value.value
-        return None
 
     # Consolidated decorator method
     def __call__(
