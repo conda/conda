@@ -4,7 +4,7 @@
 import pytest
 
 from conda.exceptions import CondaValueError
-from conda.models.environment import Environment
+from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 
@@ -69,7 +69,11 @@ def test_environments_merge():
     env1 = Environment(
         prefix="/path/to/env1",
         platform="linux-64",
-        config={"primitive_one": "yes", "list_one": [1, 2, 4], "map": {"a": 1}},
+        config=EnvironmentConfig(
+            aggressive_update_packages=True,
+            channels=["defaults"],
+            channel_settings={"a": 1},
+        ),
         external_packages={
             "pip": ["one", "two", {"special": "type"}],
             "other": ["three"],
@@ -81,12 +85,12 @@ def test_environments_merge():
     env2 = Environment(
         prefix="/path/to/env1",
         platform="linux-64",
-        config={
-            "primitive_one": "no",
-            "primitive_two": "yes",
-            "list_one": [3],
-            "map": {"b": 1},
-        },
+        config=EnvironmentConfig(
+            aggressive_update_packages=False,
+            channels=["conda-forge"],
+            channel_settings={"b": 2},
+            repodata_fns=["repodata2.json"],
+        ),
         external_packages={"pip": ["two", "flask"], "a": ["nother"]},
         explicit_packages=[],
         requested_packages=[MatchSpec("numpy"), MatchSpec("flask")],
@@ -95,12 +99,12 @@ def test_environments_merge():
     merged = Environment.merge(env1, env2)
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
-    assert merged.config == {
-        "primitive_one": "no",
-        "primitive_two": "yes",
-        "list_one": [1, 2, 4, 3],
-        "map": {"a": 1, "b": 1},
-    }
+    assert merged.config == EnvironmentConfig(
+        aggressive_update_packages=False,
+        channels=["defaults", "conda-forge"],
+        channel_settings={"a": 1, "b": 2},
+        repodata_fns=["repodata2.json"],
+    )
     assert merged.external_packages == {
         "pip": ["one", "two", {"special": "type"}, "flask"],
         "other": ["three"],
@@ -182,3 +186,58 @@ def test_environments_merge_colliding_prefix():
     merged = Environment.merge(env1, env2)
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
+
+
+def test_merge_configs_primitive_values_order():
+    config1 = EnvironmentConfig(
+        aggressive_update_packages=True,
+    )
+    config2 = EnvironmentConfig(
+        aggressive_update_packages=False,
+    )
+
+    result = EnvironmentConfig.merge(config1, config2)
+    assert result.aggressive_update_packages is False
+
+    result = EnvironmentConfig.merge(config2, config1)
+    assert result.aggressive_update_packages is True
+
+
+def test_merge_configs_primitive_none_values_order():
+    config1 = EnvironmentConfig(
+        aggressive_update_packages=True,
+    )
+    config2 = EnvironmentConfig()
+
+    result = EnvironmentConfig.merge(config1, config2)
+    assert result.aggressive_update_packages is True
+
+    result = EnvironmentConfig.merge(config2, config1)
+    assert result.aggressive_update_packages is True
+
+
+def test_merge_configs_deduplicate_values():
+    config1 = EnvironmentConfig(
+        channels=["defaults", "conda-forge"],
+        disallowed_packages=["a"],
+        pinned_packages=["b"],
+        repodata_fns=["repodata.json"],
+        track_features=["track"],
+    )
+    config2 = EnvironmentConfig(
+        channels=["defaults", "my-channel"],
+        disallowed_packages=["a"],
+        pinned_packages=["b"],
+        repodata_fns=["repodata.json"],
+        track_features=["track"],
+    )
+    config3 = EnvironmentConfig(
+        channels=["conda-forge", "b-channel"],
+    )
+
+    result = EnvironmentConfig.merge(config1, config2, config3)
+    assert result.channels == ["defaults", "conda-forge", "my-channel", "b-channel"]
+    assert result.disallowed_packages == ["a"]
+    assert result.pinned_packages == ["b"]
+    assert result.repodata_fns == ["repodata.json"]
+    assert result.track_features == ["track"]
