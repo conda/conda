@@ -604,7 +604,7 @@ class DeprecationHandler(BaseHandler):
 
 
 class ExperimentalFeatureVisitor(ast.NodeVisitor):
-    """Simple AST visitor to find experimental decorators."""
+    """An AST visitor to find experimental decorators."""
 
     def __init__(self, module_name: str, handler: ExperimentHandler):
         self.module_name = module_name

@@ -532,7 +532,7 @@ class InfoRenderer:
                 return "No experimental features currently active."
 
             def format_experiment(experiment):
-                yield f"  • {experiment['prefix']} (until {experiment['until']})"
+                yield f"  - {experiment['prefix']} (until {experiment['until']})"
                 if experiment["addendum"]:
                     yield f"    {experiment['addendum']}"
 
