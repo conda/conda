@@ -564,6 +564,8 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         hooks = self.get_hook_results("environment_specifiers")
         found = []
+        available_hooks = []
+        autodetect_disabled_plugins = []
         for hook in hooks:
             log.debug("EnvironmentSpec hook: checking %s", hook.name)
             if not hook.environment_spec.detection_supported():
@@ -571,6 +573,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     "EnvironmentSpec hook '%s' does not support autodetection, skipping",
                     hook.name,
                 )
+                autodetect_disabled_plugins.append(hook)
             elif hook.environment_spec(source).can_handle():
                 log.debug(
                     "EnvironmentSpec hook: %s can be %s",
@@ -578,17 +581,21 @@ class CondaPluginManager(pluggy.PluginManager):
                     hook.name,
                 )
                 found.append(hook)
+                available_hooks.append(hook)
             else:
                 log.debug(
                     "EnvironmentSpec hook: %s can NOT be handled by %s",
                     source,
                     hook.name,
                 )
+                available_hooks.append(hook)
 
         if len(found) == 0:
             # raise error if no plugins found that can read the environment file
             raise EnvironmentSpecPluginNotDetected(
-                name=source, plugin_names=[hook.name for hook in hooks]
+                name=source,
+                plugin_names=[hook.name for hook in available_hooks],
+                autodetect_disabled_plugins=[hook.name for hook in autodetect_disabled_plugins],
             )
         elif len(found) == 1:
             # return the plugin if only one is found
