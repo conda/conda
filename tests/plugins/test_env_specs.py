@@ -28,6 +28,12 @@ class RandomSpec(EnvironmentSpecBase):
         return Environment(name="random-environment", dependencies=["python", "numpy"])
 
 
+class RandomSpecNoAutoDetect(RandomSpec):
+    @classmethod
+    def detection_supported(cls):
+        return False
+
+
 class RandomSpecPlugin:
     @plugins.hookimpl
     def conda_environment_specifiers(self):
@@ -51,8 +57,7 @@ class RandomSpecPluginNoAutodetect:
     def conda_environment_specifiers(self):
         yield CondaEnvironmentSpecifier(
             name="rand-spec-no-autodetect",
-            environment_spec=RandomSpec,
-            enable_autodetection=False,
+            environment_spec=RandomSpecNoAutoDetect,
         )
 
 
@@ -163,4 +168,4 @@ def test_explicitly_select_a_non_autodetect_plugin(
         "test.random", name="rand-spec-no-autodetect"
     )
     assert env_spec.name == "rand-spec-no-autodetect"
-    assert env_spec.enable_autodetection is False
+    assert env_spec.environment_spec.detection_supported() is False

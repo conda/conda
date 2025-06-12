@@ -420,6 +420,21 @@ class EnvironmentSpecBase(ABC):
     Base class for all env specs.
     """
 
+    @classmethod
+    def detection_supported(cls) -> bool:
+        """
+        Determines if the EnvSpec plugin should be included in the set
+        of available plugins checked during environment_spec plugin detection.
+        If set to False, the only way to use the plugin will be through explicitly
+        requesting it as a cli argument or setting in .condarc. By default,
+        autodetection is enabled.
+
+        :returns bool: returns True if the plugin should be included in
+                       autodetection. Default value is True, unless overridden
+                       in the subclass.
+        """
+        return True
+
     @abstractmethod
     def can_handle(self) -> bool:
         """
@@ -452,13 +467,7 @@ class CondaEnvironmentSpecifier:
 
     :param name: name of the spec (e.g., ``environment_yaml``)
     :param environment_spec: EnvironmentSpecBase subclass handler
-    :param enable_autodetection: whether to include the plugin in the list of available plugins
-                                 during plugin detection. If set to False, the only way to use
-                                 the plugin will be through explicitly requesting it as a cli
-                                 argument or setting in .condarc. By default, autodetection is
-                                 enabled.
     """
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
-    enable_autodetection: bool = True
