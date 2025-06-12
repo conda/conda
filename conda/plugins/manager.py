@@ -595,7 +595,9 @@ class CondaPluginManager(pluggy.PluginManager):
             raise EnvironmentSpecPluginNotDetected(
                 name=source,
                 plugin_names=[hook.name for hook in available_hooks],
-                autodetect_disabled_plugins=[hook.name for hook in autodetect_disabled_plugins],
+                autodetect_disabled_plugins=[
+                    hook.name for hook in autodetect_disabled_plugins
+                ],
             )
         elif len(found) == 1:
             # return the plugin if only one is found

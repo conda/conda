@@ -1298,7 +1298,13 @@ class SpecNotFound(CondaError):
 
 class EnvironmentSpecPluginNotDetected(SpecNotFound):
     def __init__(
-            self, name: str, plugin_names: Iterable[str], autodetect_disabled_plugins: Iterable[str] = [], *args, **kwargs):
+        self,
+        name: str,
+        plugin_names: Iterable[str],
+        autodetect_disabled_plugins: Iterable[str] = [],
+        *args,
+        **kwargs,
+    ):
         self.name = name
         msg = dals(
             f"""

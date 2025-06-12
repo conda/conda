@@ -14,13 +14,10 @@ from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import (
     CondaValueError,
-    EnvironmentSpecPluginNotDetected,
     PluginError,
 )
 from conda.plugins import virtual_packages
 from conda.plugins.manager import CondaPluginManager
-from conda.plugins.types import EnvironmentSpecBase
-
 
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
