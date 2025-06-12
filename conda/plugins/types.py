@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
-    from ..env.env import Environment
+    from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
 
