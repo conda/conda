@@ -20,6 +20,8 @@ from ..gateways.connection.download import download_text
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..history import History
 from ..models.enums import PackageType
+from ..models.environment import Environment as EnvironmentModel
+from ..models.environment import EnvironmentConfig
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 
@@ -265,7 +267,30 @@ class Environment:
         """Save the ``Environment`` data to a ``yaml`` file"""
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
+    
+    def to_environment_model(self):
+        """Convert the ``Environment`` into a ``model.Environment`` object"""
+        config = EnvironmentConfig(
+            channels=self.channels
+        )
+        
+        external_packages = {}
+        if "pip" in self.dependencies.keys():
+            external_packages["pip"] = self.dependencies.get("pip")
 
+        if self.prefix is None:
+            self.prefix = PrefixData.from_name(self.name).prefix_path
+
+        return EnvironmentModel(
+            prefix=self.prefix,
+            platform=context.subdir,
+            name=self.name,
+            config=config,
+            variables=self.variables,
+            external_packages=external_packages,
+            requested_packages=self.dependencies.get("conda"),
+        )
+        
 
 @deprecated("25.9", "26.3")
 def get_filename(filename):
