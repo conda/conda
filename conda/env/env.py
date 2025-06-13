@@ -275,11 +275,11 @@ class Environment:
         )
         
         external_packages = {}
-        if "pip" in self.dependencies.keys():
+        if "pip" in self.dependencies.keys() and len(self.dependencies.get("pip")) > 0:
             external_packages["pip"] = self.dependencies.get("pip")
 
         if self.prefix is None:
-            self.prefix = PrefixData.from_name(self.name).prefix_path
+            self.prefix = context.target_prefix
 
         return EnvironmentModel(
             prefix=self.prefix,
@@ -288,7 +288,7 @@ class Environment:
             config=config,
             variables=self.variables,
             external_packages=external_packages,
-            requested_packages=self.dependencies.get("conda"),
+            requested_packages=self.dependencies.get("conda", []),
         )
         
 
