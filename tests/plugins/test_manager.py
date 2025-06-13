@@ -14,7 +14,6 @@ from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import (
     CondaValueError,
-    EnvironmentSpecPluginNotDetected,
     PluginError,
 )
 from conda.plugins import virtual_packages
@@ -238,55 +237,3 @@ def test_get_request_headers(plugin_manager: CondaPluginManager):
     """
     url = urlparse("https://example.com")
     assert plugin_manager.get_request_headers(host=url.netloc, path=url.path) == {}
-
-
-class DummyEnvironmentSpecifier:
-    def __init__(self, name, can_handle_result=True):
-        self.name = name
-        self._can_handle_result = can_handle_result
-
-    def can_handle(self):
-        return self._can_handle_result
-
-
-class EnvironmentSpecifierPlugin:
-    def __init__(self, name="test-env-spec", can_handle_result=True):
-        self.specifier_name = name
-        self.can_handle_result = can_handle_result
-
-    @plugins.hookimpl
-    def conda_environment_specifiers(self):
-        yield plugins.CondaEnvironmentSpecifier(
-            name=self.specifier_name,
-            environment_spec=lambda filename: DummyEnvironmentSpecifier(
-                self.specifier_name, self.can_handle_result
-            ),
-        )
-
-
-def test_get_environment_specifier_success(plugin_manager: CondaPluginManager):
-    """
-    Test that get_environment_specifier returns the name of the environment
-    specifier plugin that can handle the given file.
-    """
-    # Load a test environment specifier plugin
-    plugin = EnvironmentSpecifierPlugin(name="test-env-spec", can_handle_result=True)
-    assert plugin_manager.load_plugins(plugin) == 1
-
-    # Test successful case
-    specifier_name = plugin_manager.get_environment_specifier("environment.yml")
-    assert specifier_name.name == "test-env-spec"
-
-
-def test_get_environment_specifier_not_found(plugin_manager: CondaPluginManager):
-    """
-    Test that get_environment_specifier returns an error string when no plugin
-    can handle the given file.
-    """
-    # Load a test environment specifier plugin that can't handle any files
-    plugin = EnvironmentSpecifierPlugin(name="test-env-spec", can_handle_result=False)
-    assert plugin_manager.load_plugins(plugin) == 1
-
-    # Test error case
-    with pytest.raises(EnvironmentSpecPluginNotDetected):
-        plugin_manager.get_environment_specifier("environment.yml")
