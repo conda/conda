@@ -568,7 +568,7 @@ class CondaPluginManager(pluggy.PluginManager):
         autodetect_disabled_plugins = []
         for hook in hooks:
             log.debug("EnvironmentSpec hook: checking %s", hook.name)
-            if not hook.environment_spec.detection_supported():
+            if not hook.environment_spec.detection_supported:
                 log.debug(
                     "EnvironmentSpec hook '%s' does not support autodetection, skipping",
                     hook.name,

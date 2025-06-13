@@ -29,9 +29,7 @@ class RandomSpec(EnvironmentSpecBase):
 
 
 class RandomSpecNoAutoDetect(RandomSpec):
-    @classmethod
-    def detection_supported(cls):
-        return False
+    detection_supported = False
 
 
 class RandomSpecPlugin:
@@ -168,4 +166,4 @@ def test_explicitly_select_a_non_autodetect_plugin(
         "test.random", name="rand-spec-no-autodetect"
     )
     assert env_spec.name == "rand-spec-no-autodetect"
-    assert env_spec.environment_spec.detection_supported() is False
+    assert env_spec.environment_spec.detection_supported is False

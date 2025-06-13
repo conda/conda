@@ -420,20 +420,12 @@ class EnvironmentSpecBase(ABC):
     Base class for all env specs.
     """
 
-    @classmethod
-    def detection_supported(cls) -> bool:
-        """
-        Determines if the EnvSpec plugin should be included in the set
-        of available plugins checked during environment_spec plugin detection.
-        If set to False, the only way to use the plugin will be through explicitly
-        requesting it as a cli argument or setting in .condarc. By default,
-        autodetection is enabled.
-
-        :returns bool: returns True if the plugin should be included in
-                       autodetection. Default value is True, unless overridden
-                       in the subclass.
-        """
-        return True
+    # Determines if the EnvSpec plugin should be included in the set
+    # of available plugins checked during environment_spec plugin detection.
+    # If set to False, the only way to use the plugin will be through explicitly
+    # requesting it as a cli argument or setting in .condarc. By default,
+    # autodetection is enabled.
+    detection_supported: bool = True
 
     @abstractmethod
     def can_handle(self) -> bool:
