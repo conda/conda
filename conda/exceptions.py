@@ -1316,7 +1316,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         )
         if len(autodetect_disabled_plugins) > 0:
             msg += dals(
-                f"""
+                """
                 Found compatible plugins but they must be explicitly selected.
                 Request conda to use these plugins by providing
                 the cli argument `--environment-spec PLUGIN_NAME`:
