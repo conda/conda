@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from argparse import (
     SUPPRESS,
+    Action,
     BooleanOptionalAction,
     _HelpAction,
     _StoreAction,
@@ -17,6 +18,21 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+
+class LazyChoicesAction(Action):
+    def __init__(self, option_strings, dest, choices_func, **kwargs):
+        self.choices_func = choices_func
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        valid_choices = self.choices_func()
+        if values not in valid_choices:
+            choices_string = ", ".join(f"'{val}'" for val in valid_choices.keys())
+            parser.error(
+                f"argument '{option_string}': invalid choice: {values!r} (choose from {choices_string})"
+            )
+        setattr(namespace, self.dest, values)
 
 
 class _ValidatePackages(_StoreAction):
@@ -420,7 +436,8 @@ def add_parser_solver(p: ArgumentParser) -> None:
     group.add_argument(
         "--solver",
         dest="solver",
-        choices=context.plugin_manager.get_solvers(),
+        action=LazyChoicesAction,
+        choices_func=context.plugin_manager.get_solvers,
         help="Choose which solver backend to use.",
         default=NULL,
     )
@@ -583,7 +600,8 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
-        choices=context.plugin_manager.get_environment_specifiers(),
+        action=LazyChoicesAction,
+        choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
         help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
     )
