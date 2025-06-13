@@ -10,7 +10,7 @@ from boltons.setutils import IndexedSet
 from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
-from ...env.env import Environment
+from ...env.env import Environment as EnvironmentYaml
 from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 
@@ -19,9 +19,9 @@ def _solve(prefix, specs, args, env, *_, **kwargs):
     """Solve the environment"""
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
-    channel_urls = [chan for chan in env.channels if chan != "nodefaults"]
+    channel_urls = [chan for chan in env.config.channels if chan != "nodefaults"]
 
-    if "nodefaults" not in env.channels:
+    if "nodefaults" not in env.config.channels:
         channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
 
@@ -37,8 +37,8 @@ def dry_run(specs, args, env, *_, **kwargs):
     """Do a dry run of the environment solve"""
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
-    solved_env = Environment(
-        name=env.name, dependencies=[str(p) for p in pkgs], channels=env.channels
+    solved_env = EnvironmentYaml(
+        name=env.name, dependencies=[str(p) for p in pkgs], channels=env.config.channels
     )
     return solved_env
 
