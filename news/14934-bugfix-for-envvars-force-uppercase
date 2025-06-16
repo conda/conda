@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes a bug discovered when setting `envvars_force_uppercase = False`
+* Fixes a bug discovered when setting `envvars_force_uppercase = False`. (#14934 via #14942)
 
 ### Deprecations
 
