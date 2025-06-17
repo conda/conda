@@ -24,6 +24,22 @@ def test_shell_available(shell: Shell) -> None:
     pass
 
 
+@PARAMETRIZE_FISH
+@pytest.mark.parametrize("force_uppercase", [True, False])
+def test_envvars_force_uppercase_integration(
+    shell: Shell,
+    force_uppercase: bool,
+    test_envvars_case,
+):
+    """
+    Integration test for envvars_force_uppercase for Fish shell.
+
+    Regression test for: https://github.com/conda/conda/issues/14934
+    Fixed in: https://github.com/conda/conda/pull/14942
+    """
+    test_envvars_case(shell, force_uppercase)
+
+
 @pytest.mark.xfail(reason="fish and pexpect don't seem to work together?")
 @PARAMETRIZE_FISH
 def test_fish_basic_integration(

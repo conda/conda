@@ -21,7 +21,7 @@ PARAMETRIZE_XONSH = pytest.mark.parametrize("shell", ["xonsh"], indirect=True)
 
 
 @PARAMETRIZE_XONSH
-def test_shell_available(shell: str) -> None:
+def test_shell_available(shell: Shell) -> None:
     # the `shell` fixture does all the work
     pass
 
@@ -50,3 +50,19 @@ def test_basic_integration(
 
         sh.sendline("conda deactivate")
         sh.assert_env_var("CONDA_SHLVL", "0")
+
+
+@PARAMETRIZE_XONSH
+@pytest.mark.parametrize("force_uppercase", [True, False])
+def test_envvars_force_uppercase_integration(
+    shell: Shell,
+    force_uppercase: bool,
+    test_envvars_case,
+):
+    """
+    Integration test for envvars_force_uppercase for XonSH shell.
+
+    Regression test for: https://github.com/conda/conda/issues/14934
+    Fixed in: https://github.com/conda/conda/pull/14942
+    """
+    test_envvars_case(shell, force_uppercase)

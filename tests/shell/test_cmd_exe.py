@@ -14,7 +14,7 @@ import pytest
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as CONDA_VERSION
 from conda.base.context import context
-from conda.common.compat import on_linux, on_mac
+from conda.common.compat import on_win
 
 from . import activate, deactivate, dev_arg, install
 
@@ -24,8 +24,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(on_linux, reason="unavailable on Linux"),
-    pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
+    pytest.mark.skipif(not on_win, reason="cmd.exe only available on Windows"),
 ]
 PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=True)
 
@@ -34,6 +33,22 @@ PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=Tru
 def test_shell_available(shell: Shell) -> None:
     # the `shell` fixture does all the work
     pass
+
+
+@PARAMETRIZE_CMD_EXE
+@pytest.mark.parametrize("force_uppercase", [True, False])
+def test_envvars_force_uppercase_integration(
+    shell: Shell,
+    force_uppercase: bool,
+    test_envvars_case,
+):
+    """
+    Integration test for envvars_force_uppercase for CMD.exe shell.
+
+    Regression test for: https://github.com/conda/conda/issues/14934
+    Fixed in: https://github.com/conda/conda/pull/14942
+    """
+    test_envvars_case(shell, force_uppercase)
 
 
 @PARAMETRIZE_CMD_EXE

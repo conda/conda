@@ -359,3 +359,19 @@ def test_legacy_activate_deactivate_bash(
 
         sh.sendline(f'. "{deactivate}"')
         sh.assert_env_var("CONDA_SHLVL", "0")
+
+
+@PARAMETRIZE_POSIX
+@pytest.mark.parametrize("force_uppercase", [True, False])
+def test_envvars_force_uppercase_integration(
+    shell: Shell,
+    force_uppercase: bool,
+    test_envvars_case,
+):
+    """
+    Integration test for envvars_force_uppercase across POSIX shells.
+
+    Regression test for: https://github.com/conda/conda/issues/14934
+    Fixed in: https://github.com/conda/conda/pull/14942
+    """
+    test_envvars_case(shell, force_uppercase)

@@ -45,6 +45,22 @@ def test_shell_available(shell: Shell) -> None:
 
 
 @PARAMETRIZE_POWERSHELL
+@pytest.mark.parametrize("force_uppercase", [True, False])
+def test_envvars_force_uppercase_integration(
+    shell: Shell,
+    force_uppercase: bool,
+    test_envvars_case,
+):
+    """
+    Integration test for envvars_force_uppercase for PowerShell.
+
+    Regression test for: https://github.com/conda/conda/issues/14934
+    Fixed in: https://github.com/conda/conda/pull/14942
+    """
+    test_envvars_case(shell, force_uppercase)
+
+
+@PARAMETRIZE_POWERSHELL
 def test_powershell_basic_integration(
     shell_wrapper_integration: tuple[str, str, str],
     shell: Shell,

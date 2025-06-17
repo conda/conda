@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
 import os
 import sys
 from contextlib import contextmanager
@@ -12,16 +13,20 @@ from signal import SIGINT
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+import pytest
 from pexpect.popen_spawn import PopenSpawn
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.activate import activator_map
+from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.path import unix_path_to_win, win_path_to_unix
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from conda.testing.fixtures import PathFactoryFixture
 
 
 # Here, by removing --dev you can try weird situations that you may want to test, upgrade paths
@@ -288,3 +293,83 @@ class InteractiveShell(metaclass=InteractiveShellType):
 
     def path_conversion(self, *args, **kwargs):
         return self.activator.path_conversion(*args, **kwargs)
+
+
+def get_env_var_safe(sh: InteractiveShell, varname: str) -> str:
+    """Safely get environment variable, handling different shell behaviors."""
+    try:
+        value = sh.get_env_var(varname, "")
+        # Return "UNSET" if variable is empty/undefined
+        return value if value else "UNSET"
+    except Exception:
+        return "UNSET"
+
+
+@pytest.fixture
+def test_envvars_case(path_factory: PathFactoryFixture, monkeypatch):
+    """
+    Pytest fixture that returns a function to test envvars_force_uppercase across shells.
+
+    Regression test for: https://github.com/conda/conda/issues/14934
+    Fixed in: https://github.com/conda/conda/pull/14942
+    """
+
+    def _test_envvars_case(shell: Shell, force_uppercase: bool):
+        # Create test environment with mixed-case environment variables
+        env_path = path_factory() / "testenv"
+        env_path.mkdir(parents=True, exist_ok=True)
+
+        # Create conda-meta directory and history file
+        conda_meta = env_path / "conda-meta"
+        conda_meta.mkdir(parents=True, exist_ok=True)
+        (conda_meta / "history").touch()
+
+        # Simple test variables that capture the core issue
+        env_vars = {
+            "myapp_debug": "true",  # lowercase - key test case for the regression
+            "MyApp_Version": "1.2.3",  # mixed case - another key test case
+        }
+
+        # Create state file
+        with open(conda_meta / "state", "w") as f:
+            json.dump({"env_vars": env_vars}, f)
+
+        test_env_path = str(env_path)
+
+        # Set the configuration
+        monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase))
+        reset_context()
+        assert context.envvars_force_uppercase == force_uppercase
+
+        with shell.interactive(
+            env={"CONDA_ENVVARS_FORCE_UPPERCASE": str(force_uppercase)}
+        ) as sh:
+            # Activate environment
+            sh.sendline(f'conda {activate} "{test_env_path}"')
+            sh.assert_env_var("CONDA_SHLVL", "1")
+
+            # Check environment variables based on force_uppercase setting
+            if force_uppercase:
+                # When True, variables should be uppercase
+                sh.assert_env_var("MYAPP_DEBUG", "true")
+                sh.assert_env_var("MYAPP_VERSION", "1.2.3")
+                # Original case should not exist
+                assert get_env_var_safe(sh, "myapp_debug") == "UNSET"
+                assert get_env_var_safe(sh, "MyApp_Version") == "UNSET"
+            else:
+                # When False, variables should preserve original case
+                sh.assert_env_var("myapp_debug", "true")
+                sh.assert_env_var("MyApp_Version", "1.2.3")
+                # Uppercase versions should not exist
+                assert get_env_var_safe(sh, "MYAPP_DEBUG") == "UNSET"
+                assert get_env_var_safe(sh, "MYAPP_VERSION") == "UNSET"
+
+            # Deactivate and verify cleanup
+            sh.sendline(f"conda {deactivate}")
+            sh.assert_env_var("CONDA_SHLVL", "0")
+
+            # Variables should be cleaned up
+            assert get_env_var_safe(sh, "myapp_debug") == "UNSET"
+            assert get_env_var_safe(sh, "MYAPP_DEBUG") == "UNSET"
+
+    return _test_envvars_case
