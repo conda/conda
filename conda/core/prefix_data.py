@@ -394,8 +394,8 @@ class PrefixData(metaclass=PrefixDataType):
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
         if prefix_record.name in self._prefix_records:
             raise CondaError(
-                f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
-                "in the prefix. This can often be resolved by running `conda clean --all`. "
+                f"Prefix record '{prefix_record.name}' already exists. "
+                f"Try `conda clean --all` to fix."
             )
 
         prefix_record_json_path = (

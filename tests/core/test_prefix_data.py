@@ -410,23 +410,26 @@ def test_prefix_data_equality(
     assert (prefix_data1 == prefix_data2) is equals
 
 
-def test_prefix_insertion_error(tmp_env: TmpEnvFixture):
+def test_prefix_insertion_error(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+) -> None:
     """
     Ensure that the right error message is displayed when trying to insert a prefix record
     that already exists in the prefix.
     """
-    with tmp_env("ca-certificates") as prefix:
+    package_name = "small-executable"
+    with tmp_env(package_name) as prefix:
         prefix_data = PrefixData(prefix)
 
         expected_error_message = (
-            "Prefix record insertion error: a record with name ca-certificates already exists "
-            "in the prefix. This can often be resolved by running `conda clean --all`. "
+            f"Prefix record '{package_name}' already exists. "
+            f"Try `conda clean --all` to fix."
         )
 
         with pytest.raises(CondaError, match=expected_error_message):
             prefix_data.insert(
                 record(
-                    name="ca-certificates",
+                    name=package_name,
                     version="1.0.0",
                     build="0",
                     build_number=0,
