@@ -815,6 +815,7 @@ def test_proxy_error_default_message() -> None:
     assert ".netrc" in default_message
     assert "_PROXY" in default_message
 
+
 def test_proxy_error_custom_message() -> None:
     """Test ProxyError with custom message."""
     custom_message = "Could not find a proxy for 'https'. Custom error message."
