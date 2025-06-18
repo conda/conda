@@ -84,14 +84,14 @@ def test_explicit_file_spec_is_registered(
     env = env_spec_backend.environment_spec(support_explicit_file).environment
 
     # Check environment structure and content
-    assert "conda" in env.dependencies
-    assert len(env.dependencies.raw) == 3  # @EXPLICIT + 2 package URLs
-    assert len(env.dependencies["conda"]) == 3  # @EXPLICIT + 2 packages
+    assert env.dependencies.explicit
+    assert len(env.dependencies.raw or []) == 3  # @EXPLICIT + 2 package URLs
 
     # Verify expected packages are present
-    conda_pkgs = [str(dep).lower() for dep in env.dependencies["conda"]]
-    assert any("python" in pkg for pkg in conda_pkgs), "No Python package found"
-    assert any("numpy" in pkg for pkg in conda_pkgs), "No NumPy package found"
+    raw_deps = env.dependencies.raw or []
+    deps_str = [str(dep).lower() for dep in raw_deps]
+    assert any("python" in pkg for pkg in deps_str), "No Python package found"
+    assert any("numpy" in pkg for pkg in deps_str), "No NumPy package found"
 
 
 def test_raises_error_if_not_explicit_file(
