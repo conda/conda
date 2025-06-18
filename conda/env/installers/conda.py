@@ -15,7 +15,7 @@ from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
 from ...env.env import Environment
-from ...exceptions import UnsatisfiableError
+from ...exceptions import CondaValueError, UnsatisfiableError
 from ...gateways.disk.read import yield_lines
 from ...models.channel import Channel, prioritize_channels
 
@@ -48,7 +48,8 @@ def _solve(
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
 
     solver_backend = context.plugin_manager.get_cached_solver_backend()
-    assert solver_backend is not None  # get_cached_solver_backend never returns None
+    if solver_backend is None:
+        raise CondaValueError("No solver backend found")
     solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 
