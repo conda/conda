@@ -84,15 +84,10 @@ def install(
        package set before installation.
 
     :param prefix: The target installation path for the environment
-    :type prefix: str
     :param specs: Package specifications to install
-    :type specs: list
     :param args: Command-line arguments from the conda command
-    :type args: Namespace
     :param env: Environment object containing dependencies and channels
-    :type env: Environment
     :return: Installation result information
-    :rtype: dict
 
     .. note::
         This implementation follows CEP-23, which states: "When an explicit input file is
@@ -115,9 +110,11 @@ def install(
         if filename:
             explicit_specs = list(yield_lines(filename))
             if explicit_specs:
-                log.debug(f"Using package specs from explicit file: {filename}")
+                log.debug("Using package specs from explicit file: %s", filename)
             else:
-                log.warning(f"Could not read explicit file {filename} or file is empty")
+                log.warning(
+                    "Could not read explicit file %s or file is empty", filename
+                )
 
         # 2-3. Fall back to provided specs or dependencies from environment
         if not explicit_specs:
