@@ -24,92 +24,85 @@ def explicit_urls():
     ]
 
 
-@pytest.fixture(scope="function")
-def explicit_env(explicit_urls):
-    """Create an Environment instance with explicit specs for testing."""
-    return Environment(
-        name="test-explicit",
-        dependencies=["@EXPLICIT"] + explicit_urls,
-        filename="/path/to/explicit-file.txt",
-    )
+def test_explicit_environment_detection():
+    """Test that Environment correctly detects explicit vs regular dependencies."""
+    explicit_env = Environment(dependencies=["@EXPLICIT", "test-package"])
+    regular_env = Environment(dependencies=["numpy", "pandas"])
 
-
-def test_explicit_environment_is_explicit():
-    """Test that Environment with @EXPLICIT marker returns True for explicit()."""
-    env = Environment(dependencies=["@EXPLICIT", "test"])
-    assert env.dependencies.explicit
-
-    regular_env = Environment()
+    assert explicit_env.dependencies.explicit
     assert not regular_env.dependencies.explicit
 
 
-def test_explicit_environment_initialization(explicit_urls):
+def test_explicit_environment_initialization(explicit_urls: list[str]) -> None:
     """Test Environment initialization with explicit parameters."""
     explicit_deps = ["@EXPLICIT"] + explicit_urls
+    expected_name = "test-env"
+    expected_filename = "/path/to/test.txt"
+
     env = Environment(
-        name="test-env",
+        name=expected_name,
         dependencies=explicit_deps,
-        filename="/path/to/test.txt",
+        filename=expected_filename,
     )
 
-    # Check standard Environment properties
-    assert env.name == "test-env"
-    assert len(env.dependencies.raw) == 3  # @EXPLICIT + 2 URLs
-
-    # Check explicit-specific properties
-    assert env.dependencies.raw == explicit_deps
-    assert env.filename == "/path/to/test.txt"
+    assert env.name == expected_name
+    assert env.filename == expected_filename
     assert env.dependencies.explicit
+    assert env.dependencies.raw == explicit_deps
+    assert len(env.dependencies.raw or []) == 3  # Handle potential None
 
 
-def test_explicit_marker_in_middle(explicit_urls):
-    """Test that @EXPLICIT marker works when it's in the middle of dependencies."""
-    # Test with @EXPLICIT in the middle
-    deps_with_middle_explicit = explicit_urls[:1] + ["@EXPLICIT"] + explicit_urls[1:]
-    env_middle = Environment(
-        name="test-explicit-middle",
-        dependencies=deps_with_middle_explicit,
+@pytest.mark.parametrize(
+    "deps_arrangement",
+    [
+        # @EXPLICIT at start
+        lambda urls: ["@EXPLICIT"] + urls,
+        # @EXPLICIT in middle
+        lambda urls: urls[:1] + ["@EXPLICIT"] + urls[1:],
+        # @EXPLICIT at end
+        lambda urls: urls + ["@EXPLICIT"],
+    ],
+    ids=["explicit_at_start", "explicit_in_middle", "explicit_at_end"],
+)
+def test_explicit_marker_position(explicit_urls: list[str], deps_arrangement) -> None:
+    """Test that @EXPLICIT marker works regardless of position in dependencies."""
+    dependencies = deps_arrangement(explicit_urls)
+
+    env = Environment(
+        name="test-explicit-position",
+        dependencies=dependencies,
         filename="/path/to/explicit-file.txt",
     )
-    assert env_middle.dependencies.explicit
-    assert "@EXPLICIT" in env_middle.dependencies.raw
+
+    assert env.dependencies.explicit
+    assert "@EXPLICIT" in (env.dependencies.raw or [])
+    assert len(env.dependencies.raw or []) == 3  # @EXPLICIT + 2 URLs
 
 
-def test_explicit_marker_at_end(explicit_urls):
-    """Test that @EXPLICIT marker works when it's at the end of dependencies."""
-    # Test with @EXPLICIT at the end
-    deps_with_end_explicit = explicit_urls + ["@EXPLICIT"]
-    env_end = Environment(
-        name="test-explicit-end",
-        dependencies=deps_with_end_explicit,
-        filename="/path/to/explicit-file.txt",
-    )
-    assert env_end.dependencies.explicit
-    assert "@EXPLICIT" in env_end.dependencies.raw
-
-
-def test_requirements_spec_returns_explicit_environment(support_explicit_file):
-    """Test that RequirementsSpec returns an Environment instance with explicit specs."""
+def test_requirements_spec_creates_explicit_environment(
+    support_explicit_file: str,
+) -> None:
+    """Test that RequirementsSpec correctly creates explicit Environment instances."""
     spec = RequirementsSpec(filename=support_explicit_file)
     env = spec.environment
 
-    # Verify it's the right type
     assert isinstance(env, Environment)
     assert env.dependencies.explicit
-
-    # Check expected attributes
     assert env.filename == support_explicit_file
-    assert len(env.dependencies.raw) == 3  # @EXPLICIT + 2 package URLs
+    assert len(env.dependencies.raw or []) == 3  # @EXPLICIT + 2 package URLs
 
 
-def test_explicit_environment_for_cep23_compliance(explicit_env):
-    """Test that Environment with explicit specs follows CEP-23 by detecting explicit format in dependencies."""
-    # The environment should have dependencies with @EXPLICIT marker
-    assert explicit_env.dependencies is not None
-    assert "@EXPLICIT" in explicit_env.dependencies.raw
+def test_explicit_environment_cep23_compliance(explicit_urls: list[str]) -> None:
+    """Test that explicit Environment follows CEP-23 requirements."""
+    explicit_deps = ["@EXPLICIT"] + explicit_urls
 
-    # Filename should be stored
-    assert explicit_env.filename is not None
+    env = Environment(
+        name="test-cep23",
+        dependencies=explicit_deps,
+        filename="/path/to/explicit-file.txt",
+    )
 
-    # Should be identified as explicit
-    assert explicit_env.dependencies.explicit
+    assert env.dependencies is not None
+    assert env.dependencies.explicit
+    assert "@EXPLICIT" in (env.dependencies.raw or [])
+    assert env.filename is not None
