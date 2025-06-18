@@ -533,11 +533,17 @@ class _Activator(metaclass=abc.ABCMeta):
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
+        # Handle environment variables that need to be unset during deactivation
         for env_var in old_conda_environment_env_vars.keys():
             if save_value := os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"):
                 export_vars[env_var] = save_value
             else:
-                unset_vars.append(env_var)
+                # Apply case conversion for environment variables that need to be unset
+                if context.envvars_force_uppercase:
+                    unset_vars.append(env_var.upper())
+                else:
+                    unset_vars.append(env_var)
+
         return {
             "unset_vars": unset_vars,
             "set_vars": set_vars,
