@@ -1301,7 +1301,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         self,
         name: str,
         plugin_names: Iterable[str],
-        autodetect_disabled_plugins: Iterable[str] = [],
+        autodetect_disabled_plugins: Iterable[str] = (),
         *args,
         **kwargs,
     ):

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Allow env spec plugins to enable/disable auto detection. (#14914)
+* Allow env spec plugins to opt-out of auto detection. (#14914)
 
 ### Bug fixes
 

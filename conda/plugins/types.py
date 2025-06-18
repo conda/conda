@@ -21,7 +21,7 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, TypeAlias
+    from typing import Any, Callable, ClassVar, TypeAlias
 
     from ..common.configuration import Parameter
     from ..common.path import PathType
@@ -425,7 +425,7 @@ class EnvironmentSpecBase(ABC):
     # If set to False, the only way to use the plugin will be through explicitly
     # requesting it as a cli argument or setting in .condarc. By default,
     # autodetection is enabled.
-    detection_supported: bool = True
+    detection_supported: ClassVar[bool] = True
 
     @abstractmethod
     def can_handle(self) -> bool:
