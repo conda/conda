@@ -16,7 +16,7 @@ def support_explicit_file():
     return support_file("explicit.txt")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def explicit_urls():
     """Return a list of explicit URLs for testing."""
     return [
@@ -156,3 +156,59 @@ def test_installer_handles_missing_filename(
     mock_explicit.assert_called_once()
     args, kwargs = mock_explicit.call_args
     assert args[0] == explicit_urls
+
+
+@pytest.mark.parametrize(
+    "explicit_deps",
+    [
+        # @EXPLICIT at the beginning
+        [
+            "@EXPLICIT",
+            "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2",
+            "https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.21.0-py39h2a9ead8_0.tar.bz2",
+        ],
+        # @EXPLICIT in the middle
+        [
+            "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2",
+            "@EXPLICIT",
+            "https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.21.0-py39h2a9ead8_0.tar.bz2",
+        ],
+        # @EXPLICIT at the end
+        [
+            "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2",
+            "https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.21.0-py39h2a9ead8_0.tar.bz2",
+            "@EXPLICIT",
+        ],
+    ],
+    ids=["explicit_at_start", "explicit_in_middle", "explicit_at_end"],
+)
+def test_explicit_marker_position_with_user_specs(
+    explicit_deps: list[str], mock_explicit, tmp_path, monkeypatch
+) -> None:
+    """Test that @EXPLICIT marker works at any position and user specs are tracked separately."""
+    # Arrange
+    env = Environment(dependencies=explicit_deps, filename="/path/to/test.txt")
+    user_specs = ["numpy>=1.20"]
+
+    # Mock file reading to return the explicit specs
+    monkeypatch.setattr(
+        "conda.env.installers.conda.yield_lines", lambda *args: explicit_deps
+    )
+
+    # Act
+    install(tmp_path, user_specs, tmp_path, env)
+
+    # Assert
+    mock_explicit.assert_called_once()
+
+    args, kwargs = mock_explicit.call_args
+
+    # Verify user-requested specs are tracked separately
+    assert kwargs.get("requested_specs") == user_specs
+
+    # Verify all explicit specs are still passed for installation
+    assert "@EXPLICIT" in args[0]
+    assert len(args[0]) == 3  # @EXPLICIT + 2 package URLs
+
+    # Verify that the original order is preserved
+    assert args[0] == explicit_deps

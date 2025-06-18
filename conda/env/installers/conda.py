@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 def _solve(
-    prefix: str, specs: list, args: Namespace, env: Environment, *_, **kwargs
+    prefix: str, specs: list[str], args: Namespace, env: Environment, *_, **kwargs
 ) -> Solver:
     """Solve the environment.
 
@@ -55,7 +55,7 @@ def _solve(
 
 
 def dry_run(
-    specs: list, args: Namespace, env: Environment, *_, **kwargs
+    specs: list[str], args: Namespace, env: Environment, *_, **kwargs
 ) -> Environment:
     """Do a dry run of the environment solve.
 
@@ -73,7 +73,7 @@ def dry_run(
 
 
 def install(
-    prefix: str, specs: list, args: Namespace, env: Environment, *_, **kwargs
+    prefix: str, specs: list[str], args: Namespace, env: Environment, *_, **kwargs
 ) -> dict | None:
     """Install packages into a conda environment.
 
@@ -102,11 +102,11 @@ def install(
         # Use verbose output if not in quiet mode
         verbose = not context.quiet
 
-        # Determine which package specs to use (priority order):
+        # Determine which package specs to use:
         explicit_specs = None
         filename = env.filename
 
-        # 1. Try to read from original file if available (most reliable source)
+        # Try to read from original file if available (most reliable source)
         if filename:
             explicit_specs = list(yield_lines(filename))
             if explicit_specs:
@@ -116,18 +116,31 @@ def install(
                     "Could not read explicit file %s or file is empty", filename
                 )
 
-        # 2-3. Fall back to provided specs or dependencies from environment
+        # If we can't read the explicit file, we can't proceed safely
         if not explicit_specs:
-            explicit_specs = specs if specs else env.dependencies.raw
-            log_msg = (
-                "Using specs provided to installer"
-                if specs
-                else "Using dependencies from environment"
-            )
-            log.debug(log_msg)
+            if filename:
+                raise CondaValueError(
+                    f"Explicit file {filename} is empty or unreadable"
+                )
+            else:
+                # Fall back to using environment dependencies for programmatically created envs
+                explicit_specs = env.dependencies.raw
+                log.debug(
+                    "Using dependencies from programmatically created environment"
+                )
+
+        # For explicit environments, we consider any provided specs as user-requested
+        # All packages in the explicit file are installed, but only user-provided specs
+        # are recorded in history as explicitly requested
+        requested_specs = specs if specs else ()
 
         # Install using explicit() - bypassing the solver completely
-        return explicit(explicit_specs, prefix, verbose=verbose)
+        return explicit(
+            explicit_specs,
+            prefix,
+            verbose=verbose,
+            requested_specs=requested_specs,
+        )
 
     # For regular environments, proceed with the normal solve-based installation
     solver = _solve(prefix, specs, args, env, *_, **kwargs)
