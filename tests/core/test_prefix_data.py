@@ -13,7 +13,7 @@ import pytest
 from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CorruptedEnvironmentError
+from conda.exceptions import CondaError, CorruptedEnvironmentError
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
@@ -408,3 +408,31 @@ def test_prefix_data_equality(
     prefix_data1 = PrefixData(prefix1.format(path=tmp_path))
     prefix_data2 = PrefixData(prefix2.format(path=tmp_path)) if prefix2 else prefix2
     assert (prefix_data1 == prefix_data2) is equals
+
+
+def test_prefix_insertion_error(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+) -> None:
+    """
+    Ensure that the right error message is displayed when trying to insert a prefix record
+    that already exists in the prefix.
+    """
+    package_name = "small-executable"
+    with tmp_env(package_name) as prefix:
+        prefix_data = PrefixData(prefix)
+
+        expected_error_message = (
+            f"Prefix record '{package_name}' already exists. "
+            f"Try `conda clean --all` to fix."
+        )
+
+        with pytest.raises(CondaError, match=expected_error_message):
+            prefix_data.insert(
+                record(
+                    name=package_name,
+                    version="1.0.0",
+                    build="0",
+                    build_number=0,
+                    channel="test-channel",
+                )
+            )
