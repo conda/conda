@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Improve the error message that appears when duplicate records are found in the prefix. (#14927)
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Change the error message that appears when inserted duplicate records into the prefix
+* <news item>
 
 ### Other
 
