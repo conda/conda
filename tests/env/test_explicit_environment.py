@@ -62,6 +62,32 @@ def test_explicit_environment_initialization(explicit_urls):
     assert env.dependencies.explicit
 
 
+def test_explicit_marker_in_middle(explicit_urls):
+    """Test that @EXPLICIT marker works when it's in the middle of dependencies."""
+    # Test with @EXPLICIT in the middle
+    deps_with_middle_explicit = explicit_urls[:1] + ["@EXPLICIT"] + explicit_urls[1:]
+    env_middle = Environment(
+        name="test-explicit-middle",
+        dependencies=deps_with_middle_explicit,
+        filename="/path/to/explicit-file.txt",
+    )
+    assert env_middle.dependencies.explicit
+    assert "@EXPLICIT" in env_middle.dependencies.raw
+
+
+def test_explicit_marker_at_end(explicit_urls):
+    """Test that @EXPLICIT marker works when it's at the end of dependencies."""
+    # Test with @EXPLICIT at the end
+    deps_with_end_explicit = explicit_urls + ["@EXPLICIT"]
+    env_end = Environment(
+        name="test-explicit-end",
+        dependencies=deps_with_end_explicit,
+        filename="/path/to/explicit-file.txt",
+    )
+    assert env_end.dependencies.explicit
+    assert "@EXPLICIT" in env_end.dependencies.raw
+
+
 def test_requirements_spec_returns_explicit_environment(support_explicit_file):
     """Test that RequirementsSpec returns an Environment instance with explicit specs."""
     spec = RequirementsSpec(filename=support_explicit_file)
