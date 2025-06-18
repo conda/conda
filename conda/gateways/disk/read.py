@@ -50,16 +50,13 @@ def yield_lines(path):
 
     """
     try:
-        # Convert to Path object for consistent handling
         path = Path(path)
-        # Use try/except to avoid race condition between exists() check and open()
         with path.open() as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#"):
                     yield line
     except FileNotFoundError:
-        # Return an empty generator when file doesn't exist
         pass
     except OSError as e:
         if e.errno == ENOENT:
