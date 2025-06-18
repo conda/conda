@@ -811,7 +811,7 @@ def test_proxy_error_default_message() -> None:
     # Test default message
     exc_default = ProxyError()
     default_message = str(exc_default)
-    assert "proxy configuration" in default_message.lower()
+    assert "proxy configuration" in default_message
     assert ".netrc" in default_message
     assert "_PROXY" in default_message
 
