@@ -404,11 +404,19 @@ def test_env_consistency_constrains_not_met(
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
-@pytest.mark.parametrize("verbose", [True, False])
+@pytest.mark.parametrize(
+    "verbose, no_lock_bool",
+    [(True, True), (True, False), (False, True), (False, False)],
+)
 def test_file_locking_supported_windows(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, verbose
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    verbose,
+    no_lock_bool,
 ):
     with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_NO_LOCK", no_lock_bool)
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{OK_MARK} File locking is supported" in out
         if verbose:
@@ -419,9 +427,19 @@ def test_file_locking_supported_windows(
 
 
 @pytest.mark.skipif(on_win, reason="test for unix like systems")
-@pytest.mark.parametrize("verbose", [True, False])
-def test_file_locking_unix(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, verbose):
+@pytest.mark.parametrize(
+    "verbose, no_lock_bool",
+    [(True, True), (True, False), (False, True), (False, False)],
+)
+def test_file_locking_unix(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    verbose,
+    no_lock_bool,
+):
     with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_NO_LOCK", no_lock_bool)
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{OK_MARK} File locking is supported" in out
         if verbose:
