@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 from requests import Response
 
+from conda.common.compat import on_win
 from conda.common.serialize import yaml_safe_dump
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
@@ -400,3 +401,31 @@ def test_env_consistency_constrains_not_met(
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out
         assert expected_output_yaml in out
+
+
+@pytest.mark.skipif(not on_win, reason="windows-specific test")
+@pytest.mark.parametrize("verbose", [True, False])
+def test_file_locking_supported_windows(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, verbose
+):
+    with tmp_env() as prefix:
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{OK_MARK} File locking is supported" in out
+        if verbose:
+            assert (
+                f"{OK_MARK} File locking is supported using `msvcrt` (Windows).\n"
+                in out
+            )
+
+
+@pytest.mark.skipif(on_win, reason="test for unix like systems")
+@pytest.mark.parametrize("verbose", [True, False])
+def test_file_locking_unix(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, verbose):
+    with tmp_env() as prefix:
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{OK_MARK} File locking is supported" in out
+        if verbose:
+            assert (
+                f"{OK_MARK} File locking is supported using `fcntl` (Unix-like systems).\n"
+                in out
+            )
