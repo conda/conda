@@ -31,6 +31,8 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
+from .models.records import PackageCacheRecord, PackageRecord
+
 
 log = getLogger(__name__)
 
@@ -90,6 +92,26 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
         yield MatchSpec(url, **checksums)
 
 
+def get_package_record_from_explicit(specs: list[str]) -> Iterable[PackageCacheRecord]:
+    fetch_specs = list(_match_specs_from_explicit(specs))
+
+    if context.dry_run:
+        raise DryRunExit()
+    
+    pfe = ProgressiveFetchExtract(fetch_specs)
+    pfe.execute()
+
+    if context.download_only:
+        raise CondaExitZero(
+            "Package caches prepared. "
+            "UnlinkLinkTransaction cancelled with --download-only option."
+        )
+
+    return tuple(
+        next(PackageCacheData.query_all(spec), None) for spec in fetch_specs
+    )
+
+
 @deprecated.argument("25.3", "25.9", "index_args")
 def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
     actions = defaultdict(list)
@@ -127,6 +149,42 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
             raise AssertionError(
                 f"Missing package cache records for: {missing_precs_list}"
             )
+
+    precs_to_remove = []
+    prefix_data = PrefixData(prefix)
+    for q, (spec, pcrec) in enumerate(specs_pcrecs):
+        new_spec = MatchSpec(spec, name=pcrec.name)
+        specs_pcrecs[q][0] = new_spec
+
+        prec = prefix_data.get(pcrec.name, None)
+        if prec:
+            # If we've already got matching specifications, then don't bother re-linking it
+            if next(prefix_data.query(new_spec), None):
+                specs_pcrecs[q][0] = None
+            else:
+                precs_to_remove.append(prec)
+
+    stp = PrefixSetup(
+        prefix,
+        precs_to_remove,
+        tuple(sp[1] for sp in specs_pcrecs if sp[0]),
+        (),
+        tuple(sp[0] for sp in specs_pcrecs if sp[0]),
+        (),
+    )
+
+    txn = UnlinkLinkTransaction(stp)
+    if not context.json and not context.quiet:
+        txn.print_transaction_summary()
+    txn.execute()
+
+
+def install_explicit_packages(precs: list[PackageRecord], prefix: str):
+    # now make an UnlinkLinkTransaction with the PackageCacheRecords as inputs
+    # need to add package name to fetch_specs so that history parsing keeps track of them correctly
+    specs_pcrecs = tuple(
+        [rec.to_match_spec(), rec] for rec in precs
+    )
 
     precs_to_remove = []
     prefix_data = PrefixData(prefix)
