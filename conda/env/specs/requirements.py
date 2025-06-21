@@ -80,4 +80,4 @@ class RequirementsSpec(EnvironmentSpecBase):
                 if not line or line.startswith("#"):
                     continue
                 dependencies.append(line)
-        return Environment(dependencies=dependencies)
+        return Environment(dependencies=dependencies).to_environment_model()
