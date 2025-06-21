@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import sys
+import time
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
+
+import pytest
 
 from conda.common.io import (
     CaptureTarget,
     attach_stderr_handler,
     captured,
+    timeout
 )
 
 
@@ -87,3 +91,23 @@ def test_attach_stderr_handler():
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message in c.stderr
+
+
+@pytest.mark.parametrize("on_win", (True, False))
+def test_io_timeout(on_win, monkeypatch):
+    """
+    Coverage for timeout handler code.
+    """
+    if sys.platform.startswith("win") and not on_win:
+        pytest.skip("signal API is not available on windows")
+
+    def erroneous():
+        raise KeyboardInterrupt()
+
+    assert timeout(0.1, erroneous, default_return=42) == 42
+
+    def slow():
+        time.sleep(3)
+
+    with pytest.raises(TimeoutError):
+        assert timeout(0.1, slow, default_return=42) != 42
