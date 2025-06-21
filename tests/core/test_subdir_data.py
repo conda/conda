@@ -12,7 +12,7 @@ import pytest
 from conda import CondaError
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_var, env_vars
-from conda.core.index import get_index
+from conda.core.index import Index
 from conda.core.subdir_data import SubdirData, cache_fn_url
 from conda.exceptions import CondaUpgradeError
 from conda.gateways.repodata import (
@@ -53,40 +53,36 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
         channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
 
         this_platform = context.subdir
-        index = get_index(channel_urls=channel_urls, prepend=False)
+        index = Index(channels=channel_urls, prepend=False)
         for dist, record in index.items():
             assert platform_in_record(this_platform, record), (
                 this_platform,
                 record.url,
             )
 
-    # When unknown=True (which is implicitly engaged when context.offline is
+    # When use_cache=True (which is implicitly engaged when context.offline is
     # True), there may be additional items in the cache that are included in
     # the index. But where those items coincide with entries already in the
     # cache, they must not change the record in any way. TODO: add one or
     # more packages to the cache so these tests affirmatively exercise
     # supplement_index_from_cache on CI?
 
-    for unknown in (None, False, True):
+    for use_cache in (None, False, True):
         with env_var(
             "CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
         ):
-            index2 = get_index(
-                channel_urls=channel_urls, prepend=False, unknown=unknown
-            )
+            index2 = Index(channels=channel_urls, prepend=False, use_cache=use_cache)
             assert all(index2.get(k) == rec for k, rec in index.items())
-            assert unknown is not False or len(index) == len(index2)
+            assert use_cache is not False or len(index) == len(index2)
 
-    for unknown in (False, True):
+    for use_cache in (False, True):
         with env_vars(
             {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": "linux-64"},
             stack_callback=conda_tests_ctxt_mgmt_def_pol,
         ):
-            index3 = get_index(
-                channel_urls=channel_urls, prepend=False, unknown=unknown
-            )
+            index3 = Index(channels=channel_urls, prepend=False, use_cache=use_cache)
             assert all(index3.get(k) == rec for k, rec in index.items())
-            assert unknown or len(index) == len(index3)
+            assert use_cache or len(index) == len(index3)
 
     # only works if CONDA_PLATFORM exists in tests/data/conda_format_repo
     # (test will not pass on newer platforms with default CONDA_PLATFORM =
