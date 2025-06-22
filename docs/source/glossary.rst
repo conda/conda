@@ -19,7 +19,7 @@ information, see :doc:`user-guide/configuration/use-condarc`
 and :doc:`user-guide/configuration/admin-multi-user-install`.
 Pronounced "conda r-c".
 
-.. _activate-deactivate-glossary:
+.. _activate-deactivate-glossary:conda install -c conda-forge -c bioconda -c defaults legsta
 
 Activate/Deactivate environment
 ===============================
