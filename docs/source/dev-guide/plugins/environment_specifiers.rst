@@ -39,7 +39,7 @@ of its abstract methods:
 
 The class may also define the boolean class variable `detection_supported`. When set to
 ``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
-the plugin will only be able to be used when it is specifically selected. By default, this 
+the plugin will only be able to be used when it is specifically selected. By default, this
 value is ``True``.`
 
 Be sure to be very specific when implementing the ``can_handle`` method. It should only
