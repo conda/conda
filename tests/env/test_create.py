@@ -36,30 +36,6 @@ def get_env_vars(prefix):
     return env_vars
 
 
-@pytest.fixture
-def recipes_channel_env_file(
-    test_recipes_channel: str, path_factory: PathFactoryFixture
-):
-    """
-    Returns a path to an environment file that uses the test recipes channel.
-
-    This is a local channel that contains a package named 'dependency' and it
-    runs much quicker than channels that have to be downloaded from the internet (e.g.
-    'default' or 'conda-forge').
-    """
-    env_file = path_factory("test_recipes_channel.yml")
-    env_file.write_text(
-        f"""
-        name: test-env
-        channels:
-          - {test_recipes_channel}
-        dependencies:
-          - dependency
-        """
-    )
-    return env_file
-
-
 @pytest.mark.integration
 def test_create_update(
     conda_cli: CondaCLIFixture,
@@ -353,16 +329,30 @@ def test_create_env_from_non_existent_plugin(
 
 
 def test_create_env_custom_platform(
-    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, recipes_channel_env_file: Path
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+    test_recipes_channel: str,
 ):
     """
     Ensures that the `--platform` option works correctly when creating an environment by
     creating a `.condarc` file with `subir: osx-64`.
     """
-    if context._native_subdir == "osx-64":
-        platform = "osx-arm64"
+    env_file = path_factory("test_recipes_channel.yml")
+    env_file.write_text(
+        f"""
+        name: test-env
+        channels:
+          - {test_recipes_channel}
+        dependencies:
+          - dependency
+        """
+    )
+
+    if context._native_subdir() == "osx-arm64":
+        platform = "linux-64"
     else:
-        platform = "osx-64"
+        platform = "osx-arm64"
 
     with tmp_env() as prefix:
         conda_cli(
@@ -370,7 +360,7 @@ def test_create_env_custom_platform(
             "create",
             f"--prefix={prefix}",
             "--file",
-            str(recipes_channel_env_file),
+            str(env_file),
             f"--platform={platform}",
         )
         prefix_data = PrefixData(prefix)
