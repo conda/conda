@@ -542,13 +542,10 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"{', '.join([hook.name for hook in hooks])}"
             )
         if len(found) == 1:
+            # Try to load the plugin and check if it can handle the environment spec
             try:
                 if found[0].environment_spec(source).can_handle():
                     return found[0]
-                else:
-                    raise PluginError(
-                        f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
-                    )
             except Exception as e:
                 raise PluginError(
                     dals(
@@ -558,6 +555,11 @@ class CondaPluginManager(pluggy.PluginManager):
                         {type(e).__name__}: {e}
                         """
                     )
+                )
+            else:
+                # If the plugin was not able to handle the environment spec, raise an error
+                raise PluginError(
+                    f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
                 )
         elif len(found) > 1:
             raise PluginError(

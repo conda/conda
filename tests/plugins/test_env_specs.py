@@ -157,9 +157,13 @@ def test_raises_an_error_if_named_plugin_can_not_be_handled(
     """
     Ensures that an error is raised if the user requests a plugin exists, but can't be handled
     """
-    with pytest.raises(PluginError):
+    with pytest.raises(PluginError) as e:
         dummy_random_spec_plugin.get_environment_specifier_by_name(
             name="rand-spec", source="test.random-not-so-much"
+        )
+        assert (
+            "Requested plugin 'rand-spec' is unable to handle environment spec"
+            in str(e)
         )
 
 
