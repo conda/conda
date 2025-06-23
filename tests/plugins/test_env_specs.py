@@ -157,13 +157,12 @@ def test_raises_an_error_if_named_plugin_can_not_be_handled(
     """
     Ensures that an error is raised if the user requests a plugin exists, but can't be handled
     """
-    with pytest.raises(PluginError) as e:
+    with pytest.raises(
+        PluginError,
+        match=r"Requested plugin 'rand-spec' is unable to handle environment spec",
+    ):
         dummy_random_spec_plugin.get_environment_specifier_by_name(
             name="rand-spec", source="test.random-not-so-much"
-        )
-        assert (
-            "Requested plugin 'rand-spec' is unable to handle environment spec"
-            in str(e)
         )
 
 
@@ -211,12 +210,11 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     Ensures that explicitly selecting a plugin that has errors is handled appropriately
     """
     filename = "test.random"
-    with pytest.raises(PluginError) as e:
+    with pytest.raises(
+        PluginError,
+        match=rf"An error occured when handling '{filename}' with plugin 'naughty'.",
+    ):
         plugin_manager.get_environment_specifier_by_name(filename, "naughty")
-        assert (
-            "An error occured when handling '{filename}' with plugin 'naughty'."
-            in str(e)
-        )
 
 
 def test_naught_plugin_does_not_cause_unhandled_errors_during_detection(
