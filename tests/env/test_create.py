@@ -359,6 +359,11 @@ def test_create_env_custom_platform(
     Ensures that the `--platform` option works correctly when creating an environment by
     creating a `.condarc` file with `subir: osx-64`.
     """
+    if context._native_subdir == "osx-64":
+        platform = "osx-arm64"
+    else:
+        platform = "osx-64"
+
     with tmp_env() as prefix:
         conda_cli(
             "env",
@@ -366,7 +371,7 @@ def test_create_env_custom_platform(
             f"--prefix={prefix}",
             "--file",
             str(recipes_channel_env_file),
-            "--platform=osx-64",
+            f"--platform={platform}",
         )
         prefix_data = PrefixData(prefix)
 
@@ -376,4 +381,4 @@ def test_create_env_custom_platform(
         config = prefix / ".condarc"
 
         assert config.is_file()
-        assert "subdir: osx-64" in config.read_text()
+        assert f"subdir: {platform}" in config.read_text()
