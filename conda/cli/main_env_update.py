@@ -72,7 +72,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             "24.7",
             "25.9",
             _StoreAction,
-            addendum="Use `conda env create --file=URL` instead.",
+            addendum="Use `conda env update --file=URL` instead.",
         ),
         default=NULL,
         nargs="?",
