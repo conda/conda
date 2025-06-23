@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes issue where `--platform` option was not being respected on subsequent environment operations after initial `conda env create` call (#14949 via #14956)
+* Respect `--platform` option on subsequent environment operations after initial `conda env create` call. (#14949 via #14956)
 
 ### Deprecations
 
