@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from logging import getLogger
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
+from ....gateways.disk.lock import _lock_impl, lock
 from ....gateways.disk.read import compute_sum
 from ....models.match_spec import MatchSpec
 from ... import CondaHealthCheck, hookimpl
@@ -239,6 +241,39 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         print(f"{OK_MARK} The environment is consistent.\n")
 
 
+def file_locking_check(prefix: str, verbose: bool):
+    """
+    Report if file locking is supported or not.
+    """
+    import contextlib
+
+    with tempfile.TemporaryFile() as tmp_file:
+        lock_obj = lock(tmp_file)
+        if isinstance(lock_obj, _lock_impl):
+            print(f"{OK_MARK} File locking is supported.\n")
+        elif isinstance(
+            lock_obj, contextlib._GeneratorContextManager
+        ):  # _lock_noop case
+            if not context.no_lock:
+                print(f"{X_MARK} File locking is not supported.\n")
+            else:
+                try:
+                    import msvcrt  # noqa: F401
+
+                    print(
+                        f"{OK_MARK} File locking is supported.\n *Note that it is currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+                    )
+                except ImportError:
+                    try:
+                        import fcntl  # noqa: F401
+
+                        print(
+                            f"{OK_MARK} File locking is supported.\n *Note that it is currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+                        )
+                    except ImportError:
+                        print(f"{X_MARK} File locking is not supported.\n")
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
@@ -250,3 +285,4 @@ def conda_health_checks():
     yield CondaHealthCheck(
         name="Consistent Environment Check", action=consistent_env_check
     )
+    yield CondaHealthCheck(name="File Locking Check", action=file_locking_check)
