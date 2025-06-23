@@ -726,7 +726,7 @@ class ExperimentalFeatureVisitor(ast.NodeVisitor):
 class ExperimentHandler(BaseHandler):
     """Handler for experimental features that tracks usage without warning users."""
 
-    def __init__(self: Self, version: str) -> None:
+    def __init__(self, version: str):
         """Initialize the experimental handler with a version for comparison."""
         super().__init__(version)
 
