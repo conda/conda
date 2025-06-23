@@ -245,33 +245,29 @@ def file_locking_check(prefix: str, verbose: bool):
     """
     Report if file locking is supported or not.
     """
-    import contextlib
+    if context.no_lock:
+        try:
+            import msvcrt  # noqa: F401
 
-    with tempfile.TemporaryFile() as tmp_file:
-        lock_obj = lock(tmp_file)
-        if isinstance(lock_obj, _lock_impl):
-            print(f"{OK_MARK} File locking is supported.\n")
-        elif isinstance(
-            lock_obj, contextlib._GeneratorContextManager
-        ):  # _lock_noop case
-            if not context.no_lock:
+            print(
+                f"{OK_MARK} File locking is supported.\n *Note that it is currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+            )
+        except ImportError:
+            try:
+                import fcntl  # noqa: F401
+
+                print(
+                    f"{OK_MARK} File locking is supported.\n *Note that it is currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+                )
+            except ImportError:
                 print(f"{X_MARK} File locking is not supported.\n")
+    else:
+        with tempfile.TemporaryFile() as tmp_file:
+            lock_obj = lock(tmp_file)
+            if isinstance(lock_obj, _lock_impl):
+                print(f"{OK_MARK} File locking is supported.\n")
             else:
-                try:
-                    import msvcrt  # noqa: F401
-
-                    print(
-                        f"{OK_MARK} File locking is supported.\n *Note that it is currently disabled using the CONDA_NO_LOCK=1 setting.\n"
-                    )
-                except ImportError:
-                    try:
-                        import fcntl  # noqa: F401
-
-                        print(
-                            f"{OK_MARK} File locking is supported.\n *Note that it is currently disabled using the CONDA_NO_LOCK=1 setting.\n"
-                        )
-                    except ImportError:
-                        print(f"{X_MARK} File locking is not supported.\n")
+                print(f"{X_MARK} File locking is not supported.\n")
 
 
 @hookimpl
