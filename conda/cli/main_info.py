@@ -512,7 +512,7 @@ class InfoRenderer:
 
     def _experiments_component(self) -> str | dict[str, list[dict[str, str]]]:
         """Render experimental features component."""
-        from conda.deprecations import experimental
+        from ..deprecations import experimental
 
         experiments = experimental.scan(check=True)
 
