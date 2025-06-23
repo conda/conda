@@ -1298,16 +1298,31 @@ class SpecNotFound(CondaError):
 
 
 class EnvironmentSpecPluginNotDetected(SpecNotFound):
-    def __init__(self, name: str, plugin_names: Iterable[str], *args, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        plugin_names: Iterable[str],
+        autodetect_disabled_plugins: Iterable[str] = (),
+        *args,
+        **kwargs,
+    ):
         self.name = name
         msg = dals(
             f"""
-            Environment at {name} is not readable by any installed
-            environment specifier plugins.
+            Environment at {name} is not readable by any installed environment specifier plugins.
 
-            Available plugins: {dashlist(plugin_names, 4)}
+            Available plugins: {dashlist(plugin_names, 16)}
+
             """
         )
+        if len(autodetect_disabled_plugins) > 0:
+            msg += dals(
+                """
+                Found compatible plugins but they must be explicitly selected.
+                Request conda to use these plugins by providing
+                the cli argument `--environment-spec PLUGIN_NAME`:
+                """
+            ) + dashlist(autodetect_disabled_plugins, 4)
         super().__init__(msg, *args, **kwargs)
 
 
