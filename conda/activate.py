@@ -122,38 +122,27 @@ class _Activator(metaclass=abc.ABCMeta):
         # split provided environment variables into exports vs unsets
         for name, value in kwargs.items():
             if value is None:
-                if context.envvars_force_uppercase:
-                    unset_vars.append(name.upper())
-                else:
-                    unset_vars.append(name)
-
+                unset_vars.append(name)
             else:
-                if context.envvars_force_uppercase:
-                    export_vars[name.upper()] = value
-                else:
-                    export_vars[name] = value
+                export_vars[name] = value
 
         if export_metavars:
             # split meta variables into exports vs unsets
             for name, value in context.conda_exe_vars_dict.items():
                 if value is None:
-                    if context.envvars_force_uppercase:
-                        unset_vars.append(name.upper())
-                    else:
-                        unset_vars.append(name)
+                    unset_vars.append(name)
                 elif "/" in value or "\\" in value:
-                    if context.envvars_force_uppercase:
-                        export_vars[name.upper()] = self.path_conversion(value)
-                    else:
-                        export_vars[name] = self.path_conversion(value)
+                    export_vars[name] = self.path_conversion(value)
                 else:
-                    if context.envvars_force_uppercase:
-                        export_vars[name.upper()] = value
-                    else:
-                        export_vars[name] = value
+                    export_vars[name] = value
         else:
             # unset all meta variables
             unset_vars.extend(context.conda_exe_vars_dict)
+
+        # normalize case if requested
+        if context.envvars_force_uppercase:
+            export_vars = {k.upper(): v for k, v in export_vars.items()}
+            unset_vars = [k.upper() for k in unset_vars]
 
         return export_vars, unset_vars
 
