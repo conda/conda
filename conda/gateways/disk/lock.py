@@ -23,8 +23,6 @@ def _lock_noop(fd):
     yield
 
 
-_lock_noop.locking = False
-
 try:  # pragma: no cover
     import msvcrt
 
@@ -40,8 +38,6 @@ try:  # pragma: no cover
             fd.seek(LOCK_BYTE)
             msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
 
-    _lock_impl.locking = True
-
 except ImportError:
     try:
         import fcntl
@@ -54,8 +50,6 @@ except ImportError:
     else:
 
         class _lock_impl:
-            locking = True
-
             def __init__(self, fd):
                 self.fd = fd
 
