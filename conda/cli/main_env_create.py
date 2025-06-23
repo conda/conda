@@ -12,8 +12,10 @@ from argparse import (
     _StoreAction,
     _SubParsersAction,
 )
+from pathlib import Path
 
 from .. import CondaError
+from ..cli.main_config import set_keys
 from ..deprecations import deprecated
 from ..notices import notices
 
@@ -208,6 +210,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                             """
                         )
                     )
+
+        if context.subdir != context._native_subdir():
+            set_keys(
+                ("subdir", context.subdir),
+                path=Path(prefix, ".condarc"),
+            )
 
         if env.variables:
             prefix_data.set_environment_env_vars(env.variables)

@@ -326,3 +326,49 @@ def test_create_env_from_non_existent_plugin(
             "You have chosen an unrecognized environment specifier type (nonexistent_plugin)"
             in str(excinfo.value)
         )
+
+
+def test_create_env_custom_platform(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+    test_recipes_channel: str,
+):
+    """
+    Ensures that the `--platform` option works correctly when creating an environment by
+    creating a `.condarc` file with `subir: osx-64`.
+    """
+    env_file = path_factory("test_recipes_channel.yml")
+    env_file.write_text(
+        f"""
+        name: test-env
+        channels:
+          - {test_recipes_channel}
+        dependencies:
+          - dependency
+        """
+    )
+
+    if context._native_subdir() == "osx-arm64":
+        platform = "linux-64"
+    else:
+        platform = "osx-arm64"
+
+    with tmp_env() as prefix:
+        conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            str(env_file),
+            f"--platform={platform}",
+        )
+        prefix_data = PrefixData(prefix)
+
+        assert prefix_data.exists()
+        assert prefix_data.is_environment()
+
+        config = prefix / ".condarc"
+
+        assert config.is_file()
+        assert f"subdir: {platform}" in config.read_text()
