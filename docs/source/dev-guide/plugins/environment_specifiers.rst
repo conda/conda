@@ -37,6 +37,11 @@ of its abstract methods:
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
 * ``environment`` Expresses the provided environment file as a conda environment object.
 
+The class may also define the boolean class variable `detection_supported`. When set to
+``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
+the plugin will only be able to be used when it is specifically selected. By default, this 
+value is ``True``.`
+
 Be sure to be very specific when implementing the ``can_handle`` method. It should only
 return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle``
 method too permissive in the types of files it handles may lead to conflicts with other
@@ -58,7 +63,6 @@ autodetection is enabled.
        yield plugins.CondaEnvSpec(
            name="random",
            environment_spec=RandomSpec,
-           enable_autodetection=True,
        )
 
 Using the Plugin
@@ -80,18 +84,21 @@ registered plugins and call their ``can_handle`` function. If one (and only one)
 plugins are detected an error will be raised.
 
 Plugin authors may explicitly disable their plugin from being detected by disabling autodetection
-as part of their plugin registration. For these types of plugins, they may only be used by conda
-when a user explicitly requests them. For example:
+in their plugin class
 
 .. code-block:: python
 
-   @plugins.hookimpl
-   def conda_environment_specifiers():
-       yield plugins.CondaEnvSpec(
-           name="random",
-           environment_spec=RandomSpec,
-           enable_autodetection=False,
-       )
+    class RandomSpec(EnvironmentSpecBase):
+        detection_supported = False
+
+        def __init__(self, filename: str):
+            self.filename = filename
+
+        def can_handle(self):
+            return True
+
+        def environment(self):
+            return Environment(name="random-environment", dependencies=["python", "numpy"])
 
 End users can bypass environment spec plugin detection and explicitly request a plugin to be used
 by configuring conda to use a particular installed plugin. This can be done by either:
