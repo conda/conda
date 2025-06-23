@@ -31,6 +31,7 @@ class NaughtySpecPlugin:
             environment_spec=NaughtySpec,
         )
 
+
 class RandomSpec(EnvironmentSpecBase):
     extensions = {".random"}
 
@@ -100,6 +101,7 @@ def dummy_random_spec_plugin_no_autodetect(plugin_manager):
     plugin_manager.register(random_spec_plugin)
 
     return plugin_manager
+
 
 @pytest.fixture()
 def naughty_spec_plugin(plugin_manager):
@@ -199,7 +201,7 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     plugin_manager,
     dummy_random_spec_plugin,
     dummy_random_spec_plugin_no_autodetect,
-    naughty_spec_plugin
+    naughty_spec_plugin,
 ):
     """
     Ensures that explicitly selecting a plugin that has errors is handled appropriately
@@ -207,7 +209,10 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     filename = "test.random"
     with pytest.raises(PluginError) as e:
         plugin_manager.get_environment_specifier_by_name(filename, "naughty")
-        assert "An error occured when handling '{filename}' with plugin 'naughty'." in str(e)
+        assert (
+            "An error occured when handling '{filename}' with plugin 'naughty'."
+            in str(e)
+        )
 
 
 def test_naught_plugin_does_not_cause_unhandled_errors_during_detection(

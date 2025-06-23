@@ -595,7 +595,12 @@ class CondaPluginManager(pluggy.PluginManager):
                             hook.name,
                         )
                 except Exception as e:
-                    log.error("EnvironmentSpec hook: an error occurred when handling '%s' with plugin '%s'. %s", source, hook.name, e)
+                    log.error(
+                        "EnvironmentSpec hook: an error occurred when handling '%s' with plugin '%s'. %s",
+                        source,
+                        hook.name,
+                        e,
+                    )
             else:
                 log.debug(
                     "EnvironmentSpec hook: %s can NOT be handled by %s",
