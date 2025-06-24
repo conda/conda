@@ -231,6 +231,42 @@ def get_scripts_export_unset_vars(
     )
 
 
+@pytest.mark.parametrize("envvars_force_uppercase", [True, False])
+def test_get_export_unset_vars(
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    envvars_force_uppercase: bool,
+) -> None:
+    vars_dict = {"conda_lower": "value", "CONDA_UPPER": "value"}
+    kwargs = {"lower": "value", "UPPER": "value"}
+
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(envvars_force_uppercase))
+    reset_context()
+    assert context.envvars_force_uppercase == envvars_force_uppercase
+    mocker.patch(
+        "conda.base.context.Context.conda_exe_vars_dict",
+        new_callable=mocker.PropertyMock,
+        return_value=vars_dict,
+    )
+
+    case = str.upper if envvars_force_uppercase else str
+    activator = PosixActivator()
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        export_metavars=True,
+        **kwargs,
+    )
+    assert set(export_vars) == {*map(case, vars_dict), *map(case, kwargs)}
+    assert not unset_vars
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        export_metavars=False,
+        **kwargs,
+    )
+    assert set(export_vars) == set(map(case, kwargs))
+    assert set(unset_vars) == set(map(case, vars_dict))
+
+
 def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
