@@ -15,6 +15,7 @@ from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.base.context import context, reset_context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
+from conda.common.url import path_to_url
 from conda.exceptions import CondaError, PackagesNotFoundError
 from conda.notices import fetch
 from conda.testing.notices.helpers import (
@@ -334,8 +335,9 @@ def test_notices_appear_once_when_running_decorated_commands(
     # If we did this correctly, args should be an empty list because our local channel has not
     # been initialized. This causes no network traffic because there are no URLs to fetch which
     # is what we want.
-    notices_path = str(test_recipes_channel / "notices.json")
-    assert args == ([(f"file://{notices_path}", "test-recipes")],)
+    notices_path = test_recipes_channel / "notices.json"
+    notices_url = path_to_url(str(notices_path))
+    assert args == ([(notices_url, "test-recipes")],)
 
     # Reset our mock for another call to "conda install"
     fetch_mock.reset_mock()
