@@ -141,8 +141,8 @@ class _Activator(metaclass=abc.ABCMeta):
 
         # normalize case if requested
         if context.envvars_force_uppercase:
-            export_vars = {k.upper(): v for k, v in export_vars.items()}
-            unset_vars = [k.upper() for k in unset_vars]
+            export_vars = {name.upper(): value for name, value in export_vars.items()}
+            unset_vars = [name.upper() for name in unset_vars]
 
         return export_vars, unset_vars
 
