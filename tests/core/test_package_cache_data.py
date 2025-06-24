@@ -13,7 +13,7 @@ from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core import package_cache_data
-from conda.core.index import get_index
+from conda.core.index import Index
 from conda.core.package_cache_data import (
     PackageCacheData,
     PackageCacheRecord,
@@ -86,7 +86,7 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatc
     assert not context.use_only_tar_bz2
     assert context.subdir == "linux-64"
 
-    index = get_index([CONDA_PKG_REPO], prepend=False)
+    index = Index(channels=[CONDA_PKG_REPO], prepend=False)
     rec = next(iter(index))
     for rec in index:
         # zlib is the one package in the test index that has a .conda file record

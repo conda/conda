@@ -14,7 +14,9 @@ See the :download:`conda cheatsheet <conda-cheatsheet.pdf>` PDF (3 MB) for a dow
     version as well, to keep the URL of the conda cheetsheet the same.
     Thank you!
 
-- :download:`conda 24.4.0 <cheatsheets/conda-24.4.0.pdf>` (latest)
+- :download:`conda 25.3.1 <cheatsheets/conda-25.3.1.pdf>` (latest)
+
+- :download:`conda 24.4.0 <cheatsheets/conda-24.4.0.pdf>`
 
 - :download:`conda 4.14.x <cheatsheets/conda-4.14.pdf>`
 

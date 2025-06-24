@@ -7,10 +7,11 @@ from __future__ import annotations
 import json
 import os
 import sys
+from collections import defaultdict
 from datetime import timedelta
 from logging import getLogger
 from os.path import join
-from textwrap import dedent
+from textwrap import dedent, indent
 from traceback import format_exception, format_exception_only
 from typing import TYPE_CHECKING
 
@@ -31,7 +32,15 @@ from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa
 from .models.channel import Channel
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from types import TracebackType
+    from typing import Any
+
     import requests
+
+    from conda.base.context import Context
+    from conda.models.match_spec import MatchSpec
+    from conda.models.records import PackageRecord
 
 log = getLogger(__name__)
 
@@ -39,7 +48,7 @@ log = getLogger(__name__)
 # TODO: for conda-build compatibility only
 # remove in conda 4.4
 class ResolvePackageNotFound(CondaError):
-    def __init__(self, bad_deps):
+    def __init__(self, bad_deps: Iterable[Iterable[MatchSpec]]):
         # bad_deps is a list of lists
         # bad_deps should really be named 'invalid_chains'
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
@@ -57,15 +66,15 @@ NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 
 class LockError(CondaError):
-    def __init__(self, message):
-        msg = f"{message}"
+    def __init__(self, message: str):
+        msg = str(message)
         super().__init__(msg)
 
 
 class ArgumentError(CondaError):
     return_code = 2
 
-    def __init__(self, message, **kwargs):
+    def __init__(self, message: str, **kwargs):
         super().__init__(message, **kwargs)
 
 
@@ -121,13 +130,13 @@ class DeactivateHelp(Help):
 
 
 class GenericHelp(Help):
-    def __init__(self, command):
+    def __init__(self, command: str):
         message = f"help requested for {command}"
         super().__init__(message)
 
 
 class CondaSignalInterrupt(CondaError):
-    def __init__(self, signum):
+    def __init__(self, signum: int):
         signal_name = get_signal_name(signum)
         super().__init__(
             "Signal interrupt %(signal_name)s", signal_name=signal_name, signum=signum
@@ -136,7 +145,12 @@ class CondaSignalInterrupt(CondaError):
 
 class TooManyArgumentsError(ArgumentError):
     def __init__(
-        self, expected, received, offending_arguments, optional_message="", *args
+        self,
+        expected: int,
+        received: int,
+        offending_arguments: Iterable[str],
+        optional_message: str = "",
+        *args,
     ):
         self.expected = expected
         self.received = received
@@ -155,7 +169,7 @@ class TooManyArgumentsError(ArgumentError):
 
 
 class ClobberError(CondaError):
-    def __init__(self, message, path_conflict, **kwargs):
+    def __init__(self, message: str, path_conflict: PathConflict, **kwargs):
         self.path_conflict = path_conflict
         super().__init__(message, **kwargs)
 
@@ -169,7 +183,9 @@ class ClobberError(CondaError):
 
 
 class BasicClobberError(ClobberError):
-    def __init__(self, source_path, target_path, context):
+    def __init__(
+        self, source_path: os.PathLike, target_path: os.PathLike, context: Context
+    ):
         message = dals(
             """
         Conda was asked to clobber an existing path.
@@ -192,7 +208,11 @@ class BasicClobberError(ClobberError):
 
 class KnownPackageClobberError(ClobberError):
     def __init__(
-        self, target_path, colliding_dist_being_linked, colliding_linked_dist, context
+        self,
+        target_path: os.PathLike,
+        colliding_dist_being_linked: PackageRecord | str,
+        colliding_linked_dist: PackageRecord | str,
+        context: Context,
     ):
         message = dals(
             """
@@ -218,7 +238,12 @@ class KnownPackageClobberError(ClobberError):
 
 
 class UnknownPackageClobberError(ClobberError):
-    def __init__(self, target_path, colliding_dist_being_linked, context):
+    def __init__(
+        self,
+        target_path: os.PathLike,
+        colliding_dist_being_linked: PackageRecord | str,
+        context: Context,
+    ):
         message = dals(
             """
         The package '%(colliding_dist_being_linked)s' cannot be installed due to a
@@ -242,7 +267,12 @@ class UnknownPackageClobberError(ClobberError):
 
 
 class SharedLinkPathClobberError(ClobberError):
-    def __init__(self, target_path, incompatible_package_dists, context):
+    def __init__(
+        self,
+        target_path: os.PathLike,
+        incompatible_package_dists: Iterable[PackageRecord | str],
+        context: Context,
+    ):
         message = dals(
             """
         This transaction has incompatible packages due to a shared path.
@@ -264,7 +294,7 @@ class SharedLinkPathClobberError(ClobberError):
 
 
 class CommandNotFoundError(CondaError):
-    def __init__(self, command):
+    def __init__(self, command: str):
         activate_commands = {
             "activate",
             "deactivate",
@@ -352,25 +382,25 @@ class CommandNotFoundError(CondaError):
 
 
 class PathNotFoundError(CondaError, OSError):
-    def __init__(self, path):
+    def __init__(self, path: os.PathLike):
         message = "%(path)s"
         super().__init__(message, path=path)
 
 
 class DirectoryNotFoundError(CondaError):
-    def __init__(self, path):
+    def __init__(self, path: os.PathLike):
         message = "%(path)s"
         super().__init__(message, path=path)
 
 
 class EnvironmentLocationNotFound(CondaError):
-    def __init__(self, location):
+    def __init__(self, location: os.PathLike):
         message = "Not a conda environment: %(location)s"
         super().__init__(message, location=location)
 
 
 class EnvironmentNameNotFound(CondaError):
-    def __init__(self, environment_name):
+    def __init__(self, environment_name: str):
         message = dals(
             """
         Could not find conda environment: %(environment_name)s
@@ -393,7 +423,7 @@ class NoBaseEnvironmentError(CondaError):
 
 
 class DirectoryNotACondaEnvironmentError(CondaError):
-    def __init__(self, target_directory):
+    def __init__(self, target_directory: os.PathLike):
         message = dals(
             """
         The target directory exists, but it is not a conda environment.
@@ -405,7 +435,7 @@ class DirectoryNotACondaEnvironmentError(CondaError):
 
 
 class CondaEnvironmentError(CondaError, EnvironmentError):
-    def __init__(self, message, *args):
+    def __init__(self, message: str, *args):
         msg = f"{message}"
         super().__init__(msg, *args)
 
@@ -423,7 +453,7 @@ class CondaSystemExit(CondaExitZero, SystemExit):
 
 
 class PaddingError(CondaError):
-    def __init__(self, dist, placeholder, placeholder_length):
+    def __init__(self, dist: str, placeholder: str, placeholder_length: int):
         msg = (
             "Placeholder of length '%d' too short in package %s.\n"
             "The package must be rebuilt with conda-build > 2.0."
@@ -433,37 +463,38 @@ class PaddingError(CondaError):
 
 
 class LinkError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__(message)
 
 
 class CondaOSError(CondaError, OSError):
-    def __init__(self, message, **kwargs):
+    def __init__(self, message: str, **kwargs):
         msg = f"{message}"
         super().__init__(msg, **kwargs)
 
 
 class ProxyError(CondaError):
-    def __init__(self):
-        message = dals(
-            """
-        Conda cannot proceed due to an error in your proxy configuration.
-        Check for typos and other configuration errors in any '.netrc' file in your home directory,
-        any environment variables ending in '_PROXY', and any other system-wide proxy
-        configuration settings.
-        """
-        )
+    def __init__(self, message: str | None = None):
+        if message is None:
+            message = dals(
+                """
+                Conda cannot proceed due to an error in your proxy configuration.
+                Check for typos and other configuration errors in any '.netrc' file in your home directory,
+                any environment variables ending in '_PROXY', and any other system-wide proxy
+                configuration settings.
+                """
+            )
         super().__init__(message)
 
 
 class CondaIOError(CondaError, IOError):
-    def __init__(self, message, *args):
+    def __init__(self, message: str, *args):
         msg = f"{message}"
         super().__init__(msg)
 
 
 class CondaFileIOError(CondaIOError):
-    def __init__(self, filepath, message, *args):
+    def __init__(self, filepath: os.PathLike, message: str, *args):
         self.filepath = filepath
 
         msg = f"'{filepath}'. {message}"
@@ -471,7 +502,7 @@ class CondaFileIOError(CondaIOError):
 
 
 class CondaKeyError(CondaError, KeyError):
-    def __init__(self, key, message, *args):
+    def __init__(self, key: Any, message: str, *args):
         self.key = key
         self.msg = f"{key!r}: {message}"
         super().__init__(self.msg, *args)
@@ -484,7 +515,7 @@ class ChannelError(CondaError):
 class ChannelNotAllowed(ChannelError):
     warning = "Channel not included in allowlist"
 
-    def __init__(self, channel):
+    def __init__(self, channel: Channel):
         channel_name = channel.name
         channel_url = maybe_unquote(channel.base_url)
         message = dals(
@@ -510,7 +541,10 @@ class UnavailableInvalidChannel(ChannelError):
     status_code: str | int
 
     def __init__(
-        self, channel, status_code, response: requests.models.Response | None = None
+        self,
+        channel: Channel | str,
+        status_code: str | int,
+        response: requests.models.Response | None = None,
     ):
         # parse channel
         channel = Channel(channel)
@@ -568,24 +602,24 @@ class UnavailableInvalidChannel(ChannelError):
 
 
 class OperationNotAllowed(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__(message)
 
 
 class CondaImportError(CondaError, ImportError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         msg = f"{message}"
         super().__init__(msg)
 
 
 class ParseError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         msg = f"{message}"
         super().__init__(msg)
 
 
 class CouldntParseError(ParseError):
-    def __init__(self, reason):
+    def __init__(self, reason: str):
         self.reason = reason
         super().__init__(self.args[0])
 
@@ -593,12 +627,12 @@ class CouldntParseError(ParseError):
 class ChecksumMismatchError(CondaError):
     def __init__(
         self,
-        url,
-        target_full_path,
-        checksum_type,
-        expected_checksum,
-        actual_checksum,
-        partial_download=False,
+        url: str,
+        target_full_path: os.PathLike,
+        checksum_type: str,
+        expected_checksum: str,
+        actual_checksum: str,
+        partial_download: bool = False,
     ):
         message = dals(
             """
@@ -622,7 +656,7 @@ class ChecksumMismatchError(CondaError):
 
 
 class PackageNotInstalledError(CondaError):
-    def __init__(self, prefix, package_name):
+    def __init__(self, prefix: os.PathLike, package_name: str):
         message = dals(
             """
         Package is not installed in prefix.
@@ -636,13 +670,13 @@ class PackageNotInstalledError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(
         self,
-        message,
-        url,
-        status_code,
-        reason,
-        elapsed_time,
-        response=None,
-        caused_by=None,
+        message: str,
+        url: str,
+        status_code: int | str,
+        reason: str,
+        elapsed_time: timedelta | str,
+        response: requests.Response | None = None,
+        caused_by: Any = None,
     ):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
@@ -700,7 +734,11 @@ class AuthenticationError(CondaError):
 
 
 class PackagesNotFoundError(CondaError):
-    def __init__(self, packages, channel_urls=()):
+    def __init__(
+        self,
+        packages: Iterable[MatchSpec | PackageRecord | str],
+        channel_urls: Iterable[str] = (),
+    ):
         format_list = lambda iterable: "  - " + "\n  - ".join(str(x) for x in iterable)
 
         if channel_urls:
@@ -766,7 +804,7 @@ class UnsatisfiableError(CondaError):
         unsatisfiable specifications.
     """
 
-    def _format_chain_str(self, bad_deps):
+    def _format_chain_str(self, bad_deps: Iterable[Iterable[MatchSpec]]):
         chains = {}
         for dep in sorted(bad_deps, key=len, reverse=True):
             dep1 = [s.partition(" ") for s in dep[1:]]
@@ -798,7 +836,12 @@ class UnsatisfiableError(CondaError):
             chains[key] = " -> ".join(deps)
         return [chains[key] for key in sorted(chains.keys())]
 
-    def __init__(self, bad_deps, chains=True, strict=False):
+    def __init__(
+        self,
+        bad_deps: Iterable[Iterable[MatchSpec]],
+        chains: bool = True,
+        strict: bool = False,
+    ):
         from .models.match_spec import MatchSpec
 
         messages = {
@@ -901,13 +944,13 @@ conda config --set unsatisfiable_hints True
 
 
 class RemoveError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         msg = f"{message}"
         super().__init__(msg)
 
 
 class DisallowedPackageError(CondaError):
-    def __init__(self, package_ref, **kwargs):
+    def __init__(self, package_ref: PackageRecord, **kwargs):
         from .models.records import PackageRecord
 
         package_ref = PackageRecord.from_objects(package_ref)
@@ -921,7 +964,12 @@ class DisallowedPackageError(CondaError):
 
 
 class SpecsConfigurationConflictError(CondaError):
-    def __init__(self, requested_specs, pinned_specs, prefix):
+    def __init__(
+        self,
+        requested_specs: Iterable[MatchSpec],
+        pinned_specs: Iterable[MatchSpec],
+        prefix: os.PathLike,
+    ):
         message = dals(
             """
         Requested specs conflict with configured specs.
@@ -945,18 +993,18 @@ class SpecsConfigurationConflictError(CondaError):
 
 
 class CondaIndexError(CondaError, IndexError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         msg = f"{message}"
         super().__init__(msg)
 
 
 class CondaValueError(CondaError, ValueError):
-    def __init__(self, message, *args, **kwargs):
+    def __init__(self, message: str, *args, **kwargs):
         super().__init__(message, *args, **kwargs)
 
 
 class CyclicalDependencyError(CondaError, ValueError):
-    def __init__(self, packages_with_cycles, **kwargs):
+    def __init__(self, packages_with_cycles: Iterable[PackageRecord], **kwargs):
         from .models.records import PackageRecord
 
         packages_with_cycles = tuple(
@@ -967,7 +1015,9 @@ class CyclicalDependencyError(CondaError, ValueError):
 
 
 class CorruptedEnvironmentError(CondaError):
-    def __init__(self, environment_location, corrupted_file, **kwargs):
+    def __init__(
+        self, environment_location: os.PathLike, corrupted_file: os.PathLike, **kwargs
+    ):
         message = dals(
             """
         The target environment has been corrupted. Corrupted environments most commonly
@@ -986,35 +1036,35 @@ class CorruptedEnvironmentError(CondaError):
 
 
 class CondaHistoryError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         msg = f"{message}"
         super().__init__(msg)
 
 
 class CondaUpgradeError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         msg = f"{message}"
         super().__init__(msg)
 
 
 class CondaVerificationError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__(message)
 
 
 class SafetyError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__(message)
 
 
 class CondaMemoryError(CondaError, MemoryError):
-    def __init__(self, caused_by, **kwargs):
+    def __init__(self, caused_by: Any, **kwargs):
         message = "The conda process ran out of memory. Increase system memory and/or try again."
         super().__init__(message, caused_by=caused_by, **kwargs)
 
 
 class NotWritableError(CondaError, OSError):
-    def __init__(self, path, errno, **kwargs):
+    def __init__(self, path: os.PathLike, errno: int, **kwargs):
         kwargs.update(
             {
                 "path": path,
@@ -1055,19 +1105,30 @@ class NotWritableError(CondaError, OSError):
 
 
 class NoWritableEnvsDirError(CondaError):
-    def __init__(self, envs_dirs, **kwargs):
+    def __init__(self, envs_dirs: Iterable[os.PathLike], **kwargs):
         message = f"No writeable envs directories configured.{dashlist(envs_dirs)}"
         super().__init__(message, envs_dirs=envs_dirs, **kwargs)
 
 
 class NoWritablePkgsDirError(CondaError):
-    def __init__(self, pkgs_dirs, **kwargs):
+    def __init__(self, pkgs_dirs: Iterable[os.PathLike], **kwargs):
         message = f"No writeable pkgs directories configured.{dashlist(pkgs_dirs)}"
         super().__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
 
+class EnvironmentIsFrozenError(CondaError):
+    def __init__(self, prefix: os.PathLike, message: str = "", **kwargs):
+        error = f"Cannot not modify '{prefix}'. The environment is marked as frozen. "
+        if message:
+            error += "Reason:\n\n"
+            error += indent(message, "    ")
+            error += "\n\n"
+        error += "You can ignore this error with the `--override-frozen` flag, at your own risk."
+        super().__init__(error, **kwargs)
+
+
 class EnvironmentNotWritableError(CondaError):
-    def __init__(self, environment_location, **kwargs):
+    def __init__(self, environment_location: os.PathLike, **kwargs):
         kwargs.update(
             {
                 "environment_location": environment_location,
@@ -1099,13 +1160,18 @@ class EnvironmentNotWritableError(CondaError):
 
 
 class CondaDependencyError(CondaError):
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__(message)
 
 
 class BinaryPrefixReplacementError(CondaError):
     def __init__(
-        self, path, placeholder, new_prefix, original_data_length, new_data_length
+        self,
+        path: os.PathLike,
+        placeholder: str,
+        new_prefix: os.PathLike,
+        original_data_length: int,
+        new_data_length: int,
     ):
         message = dals(
             """
@@ -1133,19 +1199,19 @@ class InvalidSpec(CondaError, ValueError):
 
 
 class InvalidVersionSpec(InvalidSpec):
-    def __init__(self, invalid_spec: str, details: str):
+    def __init__(self, invalid_spec: str | MatchSpec, details: str):
         message = "Invalid version '%(invalid_spec)s': %(details)s"
         super().__init__(message, invalid_spec=invalid_spec, details=details)
 
 
 class InvalidMatchSpec(InvalidSpec):
-    def __init__(self, invalid_spec: str, details: str):
+    def __init__(self, invalid_spec: str | MatchSpec, details: str):
         message = "Invalid spec '%(invalid_spec)s': %(details)s"
         super().__init__(message, invalid_spec=invalid_spec, details=details)
 
 
 class EncodingError(CondaError):
-    def __init__(self, caused_by, **kwargs):
+    def __init__(self, caused_by: Any, **kwargs):
         message = (
             dals(
                 """
@@ -1168,48 +1234,57 @@ class EncodingError(CondaError):
 
 
 class NoSpaceLeftError(CondaError):
-    def __init__(self, caused_by, **kwargs):
+    def __init__(self, caused_by: Any, **kwargs):
         message = "No space left on devices."
         super().__init__(message, caused_by=caused_by, **kwargs)
 
 
 class CondaEnvException(CondaError):
-    def __init__(self, message, *args, **kwargs):
+    def __init__(self, message: str, *args, **kwargs):
         msg = f"{message}"
         super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileNotFound(CondaEnvException):
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename: os.PathLike, *args, **kwargs):
         msg = f"'{filename}' file not found"
         self.filename = filename
         super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileExtensionNotValid(CondaEnvException):
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename: os.PathLike, *args, **kwargs):
         msg = f"'{filename}' file extension must be one of '.txt', '.yaml' or '.yml'"
         self.filename = filename
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileTypeMismatchError(CondaError):
+    def __init__(self, file_types: dict[str, str], *args, **kwargs):
+        type_groups = defaultdict(list)
+        for file, file_type in file_types.items():
+            type_groups[file_type].append(file)
+
+        lines = ["Cannot mix environment file formats.\n"]
+
+        for file_type, files in type_groups.items():
+            lines.extend(f"'{file}' is a {file_type} format file" for file in files)
+
+        super().__init__("\n".join(lines), *args, **kwargs)
+
+
 class EnvironmentFileEmpty(CondaEnvException):
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename: os.PathLike, *args, **kwargs):
         self.filename = filename
-        msg = f"'{filename}' is empty"
+        msg = f"Environment file '{filename}' is empty."
         super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileNotDownloaded(CondaError):
-    def __init__(self, username, packagename, *args, **kwargs):
+    def __init__(self, username: str, packagename: str, *args, **kwargs):
         msg = f"{username}/{packagename} file not downloaded"
         self.username = username
         self.packagename = packagename
-        super().__init__(msg, *args, **kwargs)
-
-
-class SpecNotFound(CondaError):
-    def __init__(self, msg, *args, **kwargs):
         super().__init__(msg, *args, **kwargs)
 
 
@@ -1217,7 +1292,41 @@ class PluginError(CondaError):
     pass
 
 
-def maybe_raise(error, context):
+class SpecNotFound(CondaError):
+    def __init__(self, msg: str, *args, **kwargs):
+        super().__init__(msg, *args, **kwargs)
+
+
+class EnvironmentSpecPluginNotDetected(SpecNotFound):
+    def __init__(
+        self,
+        name: str,
+        plugin_names: Iterable[str],
+        autodetect_disabled_plugins: Iterable[str] = (),
+        *args,
+        **kwargs,
+    ):
+        self.name = name
+        msg = dals(
+            f"""
+            Environment at {name} is not readable by any installed environment specifier plugins.
+
+            Available plugins: {dashlist(plugin_names, 16)}
+
+            """
+        )
+        if len(autodetect_disabled_plugins) > 0:
+            msg += dals(
+                """
+                Found compatible plugins but they must be explicitly selected.
+                Request conda to use these plugins by providing
+                the cli argument `--environment-spec PLUGIN_NAME`:
+                """
+            ) + dashlist(autodetect_disabled_plugins, 4)
+        super().__init__(msg, *args, **kwargs)
+
+
+def maybe_raise(error: BaseException, context: Context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
         clobber_errors = groups.get(True, ())
@@ -1258,7 +1367,7 @@ def maybe_raise(error, context):
         raise error
 
 
-def print_conda_exception(exc_val, exc_tb=None):
+def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
 
     rc = getattr(exc_val, "return_code", None)
@@ -1281,7 +1390,9 @@ def print_conda_exception(exc_val, exc_tb=None):
         # stderrlog.error("\n" + exc_val.__repr__() + \n")
 
 
-def _format_exc(exc_val=None, exc_tb=None):
+def _format_exc(
+    exc_val: BaseException | None = None, exc_tb: TracebackType | None = None
+):
     if exc_val is None:
         exc_type, exc_val, exc_tb = sys.exc_info()
     else:
@@ -1294,6 +1405,10 @@ def _format_exc(exc_val=None, exc_tb=None):
 
 
 class InvalidInstaller(Exception):
-    def __init__(self, name):
+    def __init__(self, name: str):
         msg = f"Unable to load installer for {name}"
         super().__init__(msg)
+
+
+class OfflineError(CondaError, RuntimeError):
+    pass

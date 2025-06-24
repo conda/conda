@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Lazily evaluate cli options originating from the plugin manager. (#14925)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.common.io._logger_lock` as pending deprecation. Use `logging._lock` instead. (#14584)
+* <news item>
 
 ### Docs
 

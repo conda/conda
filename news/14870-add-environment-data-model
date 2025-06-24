@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add an experimental data model to represent an environment. (#14870)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Remove `conda.cli.main_env.configure_parser(sub_parsers=None)`. (#14600)
+* <news item>
 
 ### Docs
 

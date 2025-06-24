@@ -21,11 +21,20 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable
+    from typing import Any, Callable, ClassVar, TypeAlias
 
     from ..common.configuration import Parameter
+    from ..common.path import PathType
+    from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..env.env import Environment
     from ..models.match_spec import MatchSpec
+    from ..models.records import PrefixRecord
+
+    CondaPrefixDataLoaderCallable: TypeAlias = Callable[
+        [PathType, dict[str, PrefixRecord]],
+        dict[str, PrefixRecord],
+    ]
 
 
 @dataclass
@@ -347,3 +356,110 @@ class CondaRequestHeader:
 
     name: str
     value: str
+
+
+@dataclass
+class CondaPreTransactionAction:
+    """
+    Return type to use when defining a pre-transaction action hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_transaction_actions`.
+
+    :param name: Pre transaction name (this is just a label)
+    :param action: Action class which implements
+        plugin behavior. See
+        :class:`~conda.core.path_actions.Action` for
+        implementation details
+    """
+
+    name: str
+    action: type[Action]
+
+
+@dataclass
+class CondaPostTransactionAction:
+    """
+    Return type to use when defining a post-transaction action hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_transaction_actions`.
+
+    :param name: Post transaction name (this is just a label)
+    :param action: Action class which implements
+        plugin behavior. See
+        :class:`~conda.core.path_actions.Action` for
+        implementation details
+    """
+
+    name: str
+    action: type[Action]
+
+
+@dataclass
+class CondaPrefixDataLoader:
+    """
+    Define new loaders to expose non-conda packages in a given prefix
+    as ``PrefixRecord`` objects.
+
+    :param name: name of the loader
+    :param loader: a function that takes a prefix and a dictionary that maps
+        package names to ``PrefixRecord`` objects. The newly loaded packages
+        must be inserted in the passed dictionary accordingly, and also
+        returned as a separate dictionary.
+    """
+
+    name: str
+    loader: CondaPrefixDataLoaderCallable
+
+
+class EnvironmentSpecBase(ABC):
+    """
+    **EXPERIMENTAL**
+
+    Base class for all env specs.
+    """
+
+    # Determines if the EnvSpec plugin should be included in the set
+    # of available plugins checked during environment_spec plugin detection.
+    # If set to False, the only way to use the plugin will be through explicitly
+    # requesting it as a cli argument or setting in .condarc. By default,
+    # autodetection is enabled.
+    detection_supported: ClassVar[bool] = True
+
+    @abstractmethod
+    def can_handle(self) -> bool:
+        """
+        Determines if the EnvSpec plugin can read and operate on the
+        environment described by the `filename`.
+
+        :returns bool: returns True, if the plugin can interpret the file.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def environment(self) -> Environment:
+        """
+        Express the provided environment file as a conda environment object.
+
+        :returns Environment: the conda environment represented by the file.
+        """
+        raise NotImplementedError()
+
+
+@dataclass
+class CondaEnvironmentSpecifier:
+    """
+    **EXPERIMENTAL**
+
+    Return type to use when defining a conda env spec plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
+
+    :param name: name of the spec (e.g., ``environment_yaml``)
+    :param environment_spec: EnvironmentSpecBase subclass handler
+    """
+
+    name: str
+    environment_spec: type[EnvironmentSpecBase]

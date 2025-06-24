@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Allow env spec plugins to opt-out of auto detection. (#14914)
 
 ### Bug fixes
 
@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Remove `conda.auxlib.collection.make_immutable`. Use `frozendict.deepfreeze` instead. (#14586)
+* <news item>
 
 ### Docs
 

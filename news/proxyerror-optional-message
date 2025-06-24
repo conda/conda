@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Make `conda.gateways.logging.TokenURLFilter.TOKEN_REPLACE` a staticmethod for future Python compatibility. (#14590)
+* `ProxyError` now accepts an optional custom message parameter to provide more specific error details. (#14945)
 
 ### Deprecations
 

@@ -12,6 +12,7 @@ from ...deprecations import deprecated
 from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
+from ...plugins.types import EnvironmentSpecBase
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -23,8 +24,7 @@ deprecated.module("24.7", "25.9")
 deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
 
 
-@deprecated("24.7", "25.9")
-class BinstarSpec:
+class BinstarSpec(EnvironmentSpecBase):
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
@@ -35,6 +35,7 @@ class BinstarSpec:
 
     msg = None
 
+    @deprecated("24.7", "25.9")
     def __init__(self, name=None):
         self.name = name
 
@@ -60,7 +61,12 @@ class BinstarSpec:
         Validates name
         :return: True or False
         """
-        if re.match("^(.+)/(.+)$", str(self.name)) is not None:
+        if (
+            re.match(
+                r"^[a-z0-9_\.][a-z0-9_\-\.]+/[_A-Za-z0-9][\s.\w-]*$", str(self.name)
+            )
+            is not None
+        ):
             return True
         elif self.name is None:
             self.msg = "Can't process without a name"

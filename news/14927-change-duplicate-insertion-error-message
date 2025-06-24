@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Improve the error message that appears when duplicate records are found in the prefix. (#14927)
 
 ### Bug fixes
 
-* Fix variable deletion in xonsh. (#14543 via #14550)
+* <news item>
 
 ### Deprecations
 

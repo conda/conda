@@ -20,35 +20,48 @@ import pluggy
 
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
-from ..base.context import add_plugin_setting, context
+from ..base.context import context
 from ..deprecations import deprecated
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import (
+    CondaValueError,
+    EnvironmentSpecPluginNotDetected,
+    PluginError,
+)
 from . import (
+    environment_specifiers,
     post_solves,
+    prefix_data_loaders,
     reporter_backends,
     solvers,
     subcommands,
     virtual_packages,
 )
+from .config import PluginConfig
 from .hookspec import CondaSpecs, spec_name
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from typing import Literal
 
     from requests.auth import AuthBase
 
-    from ..common.configuration import ParameterLoader
+    from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
+        CondaPostTransactionAction,
         CondaPreCommand,
+        CondaPrefixDataLoader,
+        CondaPrefixDataLoaderCallable,
         CondaPreSolve,
+        CondaPreTransactionAction,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -223,6 +236,26 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["reporter_backends"]
     ) -> list[CondaReporterBackend]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["pre_transaction_actions"]
+    ) -> list[CondaPreTransactionAction]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["post_transaction_actions"]
+    ) -> list[CondaPostTransactionAction]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["prefix_data_loaders"]
+    ) -> list[CondaPrefixDataLoader]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["environment_specifiers"]
+    ) -> list[CondaEnvironmentSpecifier]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -321,14 +354,14 @@ class CondaPluginManager(pluggy.PluginManager):
             return matches[0].handler
         return None
 
-    def get_settings(self) -> dict[str, ParameterLoader]:
+    def get_settings(self) -> dict[str, CondaSetting]:
         """
-        Return a mapping of plugin setting name to ParameterLoader class
+        Return a mapping of plugin setting name to CondaSetting objects.
 
         This method intentionally overwrites any duplicates that may be present
         """
         return {
-            config_param.name.lower(): (config_param.parameter, config_param.aliases)
+            config_param.name.lower(): config_param
             for config_param in self.get_hook_results("settings")
         }
 
@@ -417,6 +450,10 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
 
+    def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
+        for hook in self.get_hook_results("prefix_data_loaders"):
+            yield hook.loader
+
     def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
         for hook in self.get_hook_results("health_checks"):
             try:
@@ -460,8 +497,217 @@ class CondaPluginManager(pluggy.PluginManager):
         Iterates through all registered settings and adds them to the
         :class:`conda.common.configuration.PluginConfig` class.
         """
-        for name, (parameter, aliases) in self.get_settings().items():
-            add_plugin_setting(name, parameter, aliases)
+        for name, setting in self.get_settings().items():
+            PluginConfig.add_plugin_setting(name, setting.parameter, setting.aliases)
+
+    def get_config(self, data) -> PluginConfig:
+        """
+        Retrieve the configuration for the plugin.
+        Returns:
+            PluginConfig: The configuration object for the plugin, initialized with raw data from the context.
+        """
+        return PluginConfig(data)
+
+    def get_environment_specifiers(self) -> dict[str, CondaEnvironmentSpecifier]:
+        """
+        Returns a mapping from environment specifier name to environment specifier.
+        """
+        return {
+            hook.name.lower(): hook
+            for hook in self.get_hook_results("environment_specifiers")
+        }
+
+    def get_environment_specifier_by_name(
+        self,
+        source: str,
+        name: str,
+    ) -> CondaEnvironmentSpecifier:
+        """Get an environment specifier plugin by name
+
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises CondaValueError if the requested plugin is not available.
+
+        :param source: full path to the environment spec file/source
+        :param name: name of the environment plugin to load
+        :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
+        """
+        name = name.lower()
+        hooks = self.get_hook_results("environment_specifiers")
+        found = [hook for hook in hooks if hook.name == name]
+
+        if len(found) == 0:
+            raise CondaValueError(
+                f"You have chosen an unrecognized environment"
+                f" specifier type ({name}). Choose one of: "
+                f"{', '.join([hook.name for hook in hooks])}"
+            )
+        if len(found) == 1:
+            if found[0].environment_spec(source).can_handle():
+                return found[0]
+            else:
+                raise PluginError(
+                    f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
+                )
+        elif len(found) > 1:
+            raise PluginError(
+                f"More than one environment_spec plugin named {name} found: {found}"
+            )
+
+    def detect_environment_specifier(self, source: str) -> CondaEnvironmentSpecifier:
+        """Detect the environment specifier plugin for a given spec source
+
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+
+        :param source: full path to the environment spec file or source
+        :returns: an environment specifier plugin that can handle the provided file
+        """
+        hooks = self.get_hook_results("environment_specifiers")
+        found = []
+        available_hooks = []
+        autodetect_disabled_plugins = []
+        for hook in hooks:
+            log.debug("EnvironmentSpec hook: checking %s", hook.name)
+            if not hook.environment_spec.detection_supported:
+                log.debug(
+                    "EnvironmentSpec hook '%s' does not support autodetection, skipping",
+                    hook.name,
+                )
+                autodetect_disabled_plugins.append(hook)
+            elif hook.environment_spec(source).can_handle():
+                log.debug(
+                    "EnvironmentSpec hook: %s can be %s",
+                    source,
+                    hook.name,
+                )
+                found.append(hook)
+                available_hooks.append(hook)
+            else:
+                log.debug(
+                    "EnvironmentSpec hook: %s can NOT be handled by %s",
+                    source,
+                    hook.name,
+                )
+                available_hooks.append(hook)
+
+        if len(found) == 0:
+            # raise error if no plugins found that can read the environment file
+            raise EnvironmentSpecPluginNotDetected(
+                name=source,
+                plugin_names=[hook.name for hook in available_hooks],
+                autodetect_disabled_plugins=[
+                    hook.name for hook in autodetect_disabled_plugins
+                ],
+            )
+        elif len(found) == 1:
+            # return the plugin if only one is found
+            return found[0]
+        elif len(found) > 1:
+            # raise an error if there is more than one plugin found
+            raise PluginError(
+                dals(
+                    f"""
+                    Too many plugins found that can handle the environment file '{source}':
+
+                    {", ".join([hook.name for hook in found])}
+
+                    Please make sure that you don't have any overlapping plugins installed.
+                """
+                )
+            )
+
+    def get_environment_specifier(
+        self,
+        source: str,
+        name: str = None,
+    ) -> CondaEnvironmentSpecifier:
+        """Get the environment specifier plugin for a given spec source, or given a plugin name
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+        Raises CondaValueError if the requested plugin is not available.
+
+        :param filename: full path to the environment spec file/source
+        :param name: name of the environment plugin to load
+        :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
+        """
+        if name is None or name == "":
+            return self.detect_environment_specifier(source)
+        else:
+            return self.get_environment_specifier_by_name(source=source, name=name)
+
+    def get_pre_transaction_actions(
+        self,
+        transaction_context: dict[str, str] | None = None,
+        target_prefix: str | None = None,
+        unlink_precs: Iterable[PackageRecord] | None = None,
+        link_precs: Iterable[PackageRecord] | None = None,
+        remove_specs: Iterable[MatchSpec] | None = None,
+        update_specs: Iterable[MatchSpec] | None = None,
+        neutered_specs: Iterable[MatchSpec] | None = None,
+    ) -> list[Action]:
+        """Get the plugin-defined pre-transaction actions.
+
+        :param transaction_context: Mapping between target prefixes and PrefixActions
+            instances
+        :param target_prefix: Target prefix for the action
+        :param unlink_precs: Package records to be unlinked
+        :param link_precs: Package records to link
+        :param remove_specs: Specs to be removed
+        :param update_specs: Specs to be updated
+        :param neutered_specs: Specs to be neutered
+        :return: The plugin-defined pre-transaction actions
+        """
+        actions = []
+        for hook in self.get_hook_results("pre_transaction_actions"):
+            actions.append(
+                hook.action(
+                    transaction_context,
+                    target_prefix,
+                    unlink_precs,
+                    link_precs,
+                    remove_specs,
+                    update_specs,
+                    neutered_specs,
+                )
+            )
+        return actions
+
+    def get_post_transaction_actions(
+        self,
+        transaction_context: dict[str, str] | None = None,
+        target_prefix: str | None = None,
+        unlink_precs: Iterable[PackageRecord] | None = None,
+        link_precs: Iterable[PackageRecord] | None = None,
+        remove_specs: Iterable[MatchSpec] | None = None,
+        update_specs: Iterable[MatchSpec] | None = None,
+        neutered_specs: Iterable[MatchSpec] | None = None,
+    ) -> list[Action]:
+        """Get the plugin-defined post-transaction actions.
+
+        :param transaction_context: Mapping between target prefixes and PrefixActions
+            instances
+        :param target_prefix: Target prefix for the action
+        :param unlink_precs: Package records to be unlinked
+        :param link_precs: Package records to link
+        :param remove_specs: Specs to be removed
+        :param update_specs: Specs to be updated
+        :param neutered_specs: Specs to be neutered
+        :return: The plugin-defined post-transaction actions
+        """
+        actions = []
+        for hook in self.get_hook_results("post_transaction_actions"):
+            actions.append(
+                hook.action(
+                    transaction_context,
+                    target_prefix,
+                    unlink_precs,
+                    link_precs,
+                    remove_specs,
+                    update_specs,
+                    neutered_specs,
+                )
+            )
+        return actions
 
 
 @functools.cache
@@ -479,6 +725,8 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *prefix_data_loaders.plugins,
+        *environment_specifiers.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

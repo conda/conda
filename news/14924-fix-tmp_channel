@@ -4,12 +4,11 @@
 
 ### Bug fixes
 
-* <news item>
+* Fix `tmp_channel` fixture to also include dependencies in the temporary channel. (#14924)
 
 ### Deprecations
 
-* Mark `conda.testing.fixtures.session_capsys` as pending deprecation. (#14575)
-
+* <news item>
 
 ### Docs
 

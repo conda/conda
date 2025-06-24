@@ -7,12 +7,9 @@ Creates new conda environments with the specified packages.
 
 from __future__ import annotations
 
-from argparse import _StoreTrueAction
 from logging import getLogger
-from os.path import isdir
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
 from ..notices import notices
 
 if TYPE_CHECKING:
@@ -73,16 +70,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_platform(channel_options)
     add_parser_solver(solver_mode_options)
     p.add_argument(
-        "-m",
-        "--mkdir",
-        action=deprecated.action(
-            "24.9",
-            "25.3",
-            _StoreTrueAction,
-            addendum="Redundant argument.",
-        ),
-    )
-    p.add_argument(
         "--dev",
         action=NullCountAction,
         help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
@@ -103,14 +90,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
-    from ..cli.main_rename import check_protected_dirs
-    from ..common.path import paths_equal
-    from ..exceptions import ArgumentError, CondaValueError
+    from ..core.prefix_data import PrefixData
+    from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
-    from ..gateways.disk.test import is_conda_environment
     from ..reporters import confirm_yn
-    from .install import check_prefix, install
+    from .common import (
+        print_activate,
+        validate_environment_files_consistency,
+        validate_subdir_config,
+    )
+    from .install import install, install_clone
 
+    # Ensure provided combination of command line argments are valid
+    # At least one of the arguments -n/--name -p/--prefix is required
     if not args.name and not args.prefix:
         if context.dry_run:
             args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
@@ -120,11 +112,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
-    check_protected_dirs(context.target_prefix)
+    # Only one of the arguments --clone and packages is allowed
+    if args.clone and args.packages:
+        raise TooManyArgumentsError(
+            0,
+            len(args.packages),
+            list(args.packages),
+            "did not expect any arguments for --clone",
+        )
+    prefix_data = PrefixData.from_context(validate=True)
 
-    if is_conda_environment(context.target_prefix):
-        if paths_equal(context.target_prefix, context.root_prefix):
-            raise CondaValueError("The target prefix is the base prefix. Aborting.")
+    if prefix_data.is_environment():
         if context.dry_run:
             # Taking the "easy" way out, rather than trying to fake removing
             # the existing environment before creating a new one.
@@ -140,9 +138,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
         log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
-    elif isdir(context.target_prefix):
-        check_prefix(context.target_prefix)
-
+    elif prefix_data.exists():
         confirm_yn(
             f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
             "but it is not a conda environment.\n"
@@ -151,4 +147,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             dry_run=False,
         )
 
-    return install(args, parser, "create")
+    # Ensure the subdir config is valid
+    validate_subdir_config()
+
+    # Validate that input files are of the same format type
+    validate_environment_files_consistency(args.file)
+
+    # Run appropriate install
+    if args.clone:
+        install_clone(args, parser)
+    else:
+        install(args, parser, "create")
+    # Run post-install steps applicable to all new environments
+    prefix_data.set_nonadmin()
+    print_activate(args.name or context.target_prefix)
+
+    return 0
