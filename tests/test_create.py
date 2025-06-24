@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import re
 import sys
@@ -14,7 +15,7 @@ from logging import getLogger
 from os.path import basename, isdir
 from pathlib import Path
 from shutil import rmtree
-from subprocess import check_call, check_output
+from subprocess import CalledProcessError, check_call, check_output, run
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
@@ -2309,6 +2310,59 @@ def test_dont_remove_conda_2(
         assert any(isinstance(e, RemoveError) for e in exc.value.errors)
         assert package_is_installed(prefix, "conda")
         assert package_is_installed(prefix, "pycosat")
+
+
+def test_dont_remove_conda_3(
+    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch
+):
+    """
+    If conda thinks its core dependency is uninstalled (happens when pip
+    upgrades a dependency) it could produce spurious RemoveError, blocking
+    further use of conda.
+    """
+    with tmp_env("conda") as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
+        monkeypatch.setenv("CONDA_PREFIX", str(prefix))
+        reset_context()
+        assert context.root_prefix == str(prefix)
+
+        # conda-package-handling may be a more durable dependency than pycosat
+        conda_dependency = "conda-package-handling"
+        assert package_is_installed(prefix, conda_dependency)
+        next((prefix / "conda-meta").glob(f"{conda_dependency}-*.json")).unlink()
+
+        # this list is cached
+        PrefixData(str(prefix)).reload()
+        assert not package_is_installed(prefix, conda_dependency)
+
+        lightweight_dependency = "setuptools-scm"
+        assert not package_is_installed(prefix, lightweight_dependency)
+
+        exe = "conda.exe" if on_win else "conda"
+
+        with pytest.raises(CalledProcessError):
+            try:
+                run(
+                    [
+                        prefix / "bin" / exe,
+                        "install",
+                        "--yes",
+                        lightweight_dependency,
+                    ],
+                    capture_output=False,
+                    check=True,
+                    encoding="utf-8",
+                )
+            except (CalledProcessError, FileNotFoundError) as e:
+                listdir = []
+                for path in prefix, prefix / "bin", prefix / "Scripts":
+                    try:
+                        listdir += os.listdir(path)
+                    except FileNotFoundError:
+                        pass
+                listdir.append(f"sys.executable={sys.executable}")
+                # assert "RemoveError" in e.stderr
+                raise Exception(repr(listdir)) from e
 
 
 def test_force_remove(
