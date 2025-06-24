@@ -155,8 +155,8 @@ def explicit(
             else:
                 precs_to_remove.append(prec)
 
-    # Only record user-requested specs in history, not all packages
-    # This prevents dependencies from polluting the user's request history
+    # Record user-requested specs in history when provided, otherwise fall back to
+    # all processed specs for backwards compatibility
     if requested_specs:
         update_specs_for_history = tuple(MatchSpec(spec) for spec in requested_specs)
     else:
