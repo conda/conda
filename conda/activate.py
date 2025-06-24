@@ -407,21 +407,21 @@ class _Activator(metaclass=abc.ABCMeta):
 
         if old_conda_shlvl == 0:
             export_vars, unset_vars = self.get_export_unset_vars(
-                path=self.pathsep_join(self._add_prefix_to_path(prefix)),
-                conda_prefix=prefix,
-                conda_shlvl=conda_shlvl,
-                conda_default_env=conda_default_env,
-                conda_prompt_modifier=conda_prompt_modifier,
+                PATH=self.pathsep_join(self._add_prefix_to_path(prefix)),
+                CONDA_PREFIX=prefix,
+                CONDA_SHLVL=conda_shlvl,
+                CONDA_DEFAULT_ENV=conda_default_env,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
                 **env_vars,
             )
             deactivate_scripts = ()
         elif stack:
             export_vars, unset_vars = self.get_export_unset_vars(
-                path=self.pathsep_join(self._add_prefix_to_path(prefix)),
-                conda_prefix=prefix,
-                conda_shlvl=conda_shlvl,
-                conda_default_env=conda_default_env,
-                conda_prompt_modifier=conda_prompt_modifier,
+                PATH=self.pathsep_join(self._add_prefix_to_path(prefix)),
+                CONDA_PREFIX=prefix,
+                CONDA_SHLVL=conda_shlvl,
+                CONDA_DEFAULT_ENV=conda_default_env,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
                 **env_vars,
                 **{
                     f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
@@ -431,13 +431,13 @@ class _Activator(metaclass=abc.ABCMeta):
             deactivate_scripts = ()
         else:
             export_vars, unset_vars = self.get_export_unset_vars(
-                path=self.pathsep_join(
+                PATH=self.pathsep_join(
                     self._replace_prefix_in_path(old_conda_prefix, prefix)
                 ),
-                conda_prefix=prefix,
-                conda_shlvl=conda_shlvl,
-                conda_default_env=conda_default_env,
-                conda_prompt_modifier=conda_prompt_modifier,
+                CONDA_PREFIX=prefix,
+                CONDA_SHLVL=conda_shlvl,
+                CONDA_DEFAULT_ENV=conda_default_env,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
                 **env_vars,
                 **{
                     f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
@@ -490,10 +490,10 @@ class _Activator(metaclass=abc.ABCMeta):
             # deactivated conda and anything at all in my env still references it (apart from the
             # shell script, we need something I suppose!)
             export_vars, unset_vars = self.get_export_unset_vars(
-                conda_prefix=None,
-                conda_shlvl=new_conda_shlvl,
-                conda_default_env=None,
-                conda_prompt_modifier=None,
+                CONDA_PREFIX=None,
+                CONDA_SHLVL=new_conda_shlvl,
+                CONDA_DEFAULT_ENV=None,
+                CONDA_PROMPT_MODIFIER=None,
             )
             conda_prompt_modifier = ""
             activate_scripts = ()
@@ -520,10 +520,10 @@ class _Activator(metaclass=abc.ABCMeta):
                 )
 
             export_vars, unset_vars2 = self.get_export_unset_vars(
-                conda_prefix=new_prefix,
-                conda_shlvl=new_conda_shlvl,
-                conda_default_env=conda_default_env,
-                conda_prompt_modifier=conda_prompt_modifier,
+                CONDA_PREFIX=new_prefix,
+                CONDA_SHLVL=new_conda_shlvl,
+                CONDA_DEFAULT_ENV=conda_default_env,
+                CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
                 **new_conda_environment_env_vars,
             )
             unset_vars += unset_vars2
@@ -533,11 +533,17 @@ class _Activator(metaclass=abc.ABCMeta):
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
+        # Handle environment variables that need to be unset during deactivation
         for env_var in old_conda_environment_env_vars.keys():
             if save_value := os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"):
                 export_vars[env_var] = save_value
             else:
-                unset_vars.append(env_var)
+                # Apply case conversion for environment variables that need to be unset
+                if context.envvars_force_uppercase:
+                    unset_vars.append(env_var.upper())
+                else:
+                    unset_vars.append(env_var)
+
         return {
             "unset_vars": unset_vars,
             "set_vars": set_vars,

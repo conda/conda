@@ -1349,11 +1349,17 @@ def test_unix_path_to_native(
     assert unix_path_to_native(paths, windows_prefix) == expected
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_posix_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1449,11 +1455,17 @@ def test_posix_basic(
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_cmd_exe_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = CmdExeActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1561,11 +1573,17 @@ def test_cmd_exe_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_csh_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1681,11 +1699,17 @@ def test_csh_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_xonsh_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1812,11 +1836,17 @@ def test_xonsh_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_fish_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1913,11 +1943,17 @@ def test_fish_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_powershell_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1999,11 +2035,17 @@ def test_powershell_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_json_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
