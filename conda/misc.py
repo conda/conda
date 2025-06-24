@@ -5,7 +5,6 @@
 import os
 import re
 import shutil
-import sys
 from collections import defaultdict
 from collections.abc import Iterable
 from logging import getLogger
@@ -16,7 +15,7 @@ from .common.compat import on_mac, on_win, open_utf8
 from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
-from .core.index import get_index
+from .core.index import Index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
@@ -239,45 +238,7 @@ def touch_nonadmin(prefix):
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
-
-    # Discard conda, conda-env and any package that depends on them
-    filter = {}
-    found = True
-    while found:
-        found = False
-        for prec in PrefixData(prefix1).iter_records():
-            name = prec["name"]
-            if name in filter:
-                continue
-            if name == "conda":
-                filter["conda"] = prec
-                found = True
-                break
-            if name == "conda-env":
-                filter["conda-env"] = prec
-                found = True
-                break
-            for dep in prec.combined_depends:
-                if MatchSpec(dep).name in filter:
-                    filter[name] = prec
-                    found = True
-
-    if filter:
-        if not quiet:
-            fh = sys.stderr if context.json else sys.stdout
-            print(
-                "The following packages cannot be cloned out of the root environment:",
-                file=fh,
-            )
-            for prec in filter.values():
-                print(" - " + prec.dist_str(), file=fh)
-        drecs = {
-            prec
-            for prec in PrefixData(prefix1).iter_records()
-            if prec["name"] not in filter
-        }
-    else:
-        drecs = {prec for prec in PrefixData(prefix1).iter_records()}
+    drecs = {prec for prec in PrefixData(prefix1).iter_records()}
 
     # Resolve URLs for packages that do not have URLs
     index = {}
@@ -285,7 +246,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     notfound = []
     if unknowns:
         index_args = index_args or {}
-        index = get_index(**index_args)
+        index_args["channels"] = index_args.pop("channel_urls")
+        index = Index(**index_args)
 
         for prec in unknowns:
             spec = MatchSpec(name=prec.name, version=prec.version, build=prec.build)

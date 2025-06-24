@@ -131,7 +131,7 @@ Authors are sorted alphabetically.
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
-* Faith
+* Faith Rider
 * Faustin Carter
 * FelisNivalis
 * Filipe Laíns

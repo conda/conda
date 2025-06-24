@@ -245,6 +245,12 @@ class Context(Configuration):
     clobber = ParameterLoader(PrimitiveParameter(False))
     changeps1 = ParameterLoader(PrimitiveParameter(True))
     env_prompt = ParameterLoader(PrimitiveParameter("({default_env}) "))
+
+    # environment_specifier is an EXPERIMENTAL config parameter
+    environment_specifier = ParameterLoader(
+        PrimitiveParameter(None, element_type=(str, NoneType)), aliases=("env_spec",)
+    )
+
     create_default_packages = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str))
     )
@@ -859,23 +865,33 @@ class Context(Configuration):
         None means unset it.
         """
         if context.dev:
+            if pythonpath := os.environ.get("PYTHONPATH", ""):
+                pythonpath = os.pathsep.join((CONDA_SOURCE_ROOT, pythonpath))
+            else:
+                pythonpath = CONDA_SOURCE_ROOT
             return {
                 "CONDA_EXE": sys.executable,
+                "_CONDA_EXE": sys.executable,
                 # do not confuse with os.path.join, we are joining paths with ; or : delimiters
-                "PYTHONPATH": os.pathsep.join(
-                    (CONDA_SOURCE_ROOT, os.environ.get("PYTHONPATH", ""))
-                ),
+                "PYTHONPATH": pythonpath,
                 "_CE_M": "-m",
                 "_CE_CONDA": "conda",
                 "CONDA_PYTHON_EXE": sys.executable,
+                "_CONDA_ROOT": self.conda_prefix,
             }
         else:
-            exe = "conda.exe" if on_win else "conda"
+            exe = os.path.join(
+                self.conda_prefix,
+                BIN_DIRECTORY,
+                "conda.exe" if on_win else "conda",
+            )
             return {
-                "CONDA_EXE": os.path.join(sys.prefix, BIN_DIRECTORY, exe),
+                "CONDA_EXE": exe,
+                "_CONDA_EXE": exe,
                 "_CE_M": None,
                 "_CE_CONDA": None,
                 "CONDA_PYTHON_EXE": sys.executable,
+                "_CONDA_ROOT": self.conda_prefix,
             }
 
     @memoizedproperty
@@ -1373,6 +1389,7 @@ class Context(Configuration):
                 # prevent modifications to envs marked with conda-meta/frozen
             ),
             "Plugin Configuration": ("no_plugins",),
+            "Experimental": ("environment_specifier",),
         }
 
     def get_descriptions(self) -> dict[str, str]:
@@ -1624,6 +1641,14 @@ class Context(Configuration):
                 of '{name}' if the active environment is a conda named environment ('-n'
                 flag), or otherwise holds the value of '{prefix}'. Templating uses python's
                 str.format() method.
+                """
+            ),
+            environment_specifier=dals(
+                """
+                **EXPERIMENTAL** While experimental, expect both major and minor changes across minor releases.
+
+                The name of the environment specifier plugin that should be used for this context.
+                If not specified, the plugin manager will try to detect the plugin to use.
                 """
             ),
             execute_threads=dals(

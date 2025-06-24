@@ -210,7 +210,7 @@ def get_info_dict() -> dict[str, Any]:
     )
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
-    from ..core.index import _supplement_index_with_system
+    from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
 
     try:
@@ -223,8 +223,7 @@ def get_info_dict() -> dict[str, Any]:
         log.error("Error importing conda-build: %s", err)
         conda_build_version = "error"
 
-    virtual_pkg_index = {}
-    _supplement_index_with_system(virtual_pkg_index)
+    virtual_pkg_index = Index().system_packages
     virtual_pkgs = [[p.name, p.version, p.build] for p in virtual_pkg_index.values()]
 
     channels = list(all_channel_urls(context.channels))

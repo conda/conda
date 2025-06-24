@@ -1,6 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Register the conda env spec for requirements.txt files."""
+"""
+**EXPERIMENTAL**
+Register the conda env spec for binstar specs.
+"""
 
 from .. import CondaEnvironmentSpecifier, hookimpl
 

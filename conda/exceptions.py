@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from collections import defaultdict
 from datetime import timedelta
 from logging import getLogger
 from os.path import join
@@ -473,15 +474,16 @@ class CondaOSError(CondaError, OSError):
 
 
 class ProxyError(CondaError):
-    def __init__(self):
-        message = dals(
-            """
-        Conda cannot proceed due to an error in your proxy configuration.
-        Check for typos and other configuration errors in any '.netrc' file in your home directory,
-        any environment variables ending in '_PROXY', and any other system-wide proxy
-        configuration settings.
-        """
-        )
+    def __init__(self, message: str | None = None):
+        if message is None:
+            message = dals(
+                """
+                Conda cannot proceed due to an error in your proxy configuration.
+                Check for typos and other configuration errors in any '.netrc' file in your home directory,
+                any environment variables ending in '_PROXY', and any other system-wide proxy
+                configuration settings.
+                """
+            )
         super().__init__(message)
 
 
@@ -1257,10 +1259,24 @@ class EnvironmentFileExtensionNotValid(CondaEnvException):
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileTypeMismatchError(CondaError):
+    def __init__(self, file_types: dict[str, str], *args, **kwargs):
+        type_groups = defaultdict(list)
+        for file, file_type in file_types.items():
+            type_groups[file_type].append(file)
+
+        lines = ["Cannot mix environment file formats.\n"]
+
+        for file_type, files in type_groups.items():
+            lines.extend(f"'{file}' is a {file_type} format file" for file in files)
+
+        super().__init__("\n".join(lines), *args, **kwargs)
+
+
 class EnvironmentFileEmpty(CondaEnvException):
     def __init__(self, filename: os.PathLike, *args, **kwargs):
         self.filename = filename
-        msg = f"'{filename}' is empty"
+        msg = f"Environment file '{filename}' is empty."
         super().__init__(msg, *args, **kwargs)
 
 
@@ -1272,18 +1288,8 @@ class EnvironmentFileNotDownloaded(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
-class EnvironmentSpecPluginNotDetected(CondaError):
-    def __init__(self, name, plugin_names, *args, **kwargs):
-        self.name = name
-        msg = dals(
-            f"""
-            Environment at {name} is not readable by any installed
-            environment specifier plugins.
-
-            Available plugins: {dashlist(plugin_names, 4)}
-            """
-        )
-        super().__init__(msg, *args, **kwargs)
+class PluginError(CondaError):
+    pass
 
 
 class SpecNotFound(CondaError):
@@ -1291,8 +1297,33 @@ class SpecNotFound(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
-class PluginError(CondaError):
-    pass
+class EnvironmentSpecPluginNotDetected(SpecNotFound):
+    def __init__(
+        self,
+        name: str,
+        plugin_names: Iterable[str],
+        autodetect_disabled_plugins: Iterable[str] = (),
+        *args,
+        **kwargs,
+    ):
+        self.name = name
+        msg = dals(
+            f"""
+            Environment at {name} is not readable by any installed environment specifier plugins.
+
+            Available plugins: {dashlist(plugin_names, 16)}
+
+            """
+        )
+        if len(autodetect_disabled_plugins) > 0:
+            msg += dals(
+                """
+                Found compatible plugins but they must be explicitly selected.
+                Request conda to use these plugins by providing
+                the cli argument `--environment-spec PLUGIN_NAME`:
+                """
+            ) + dashlist(autodetect_disabled_plugins, 4)
+        super().__init__(msg, *args, **kwargs)
 
 
 def maybe_raise(error: BaseException, context: Context):
