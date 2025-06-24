@@ -201,6 +201,9 @@ class Dependencies(dict):
             if not any(MatchSpec(s).name == "pip" for s in self["conda"]):
                 self["conda"].append("pip")
 
+        if "conda" in self and not self["conda"]:
+            del self["conda"]
+
     # TODO only append when it's not already present
     def add(self, package_name):
         """Add a package to the ``Environment``"""
