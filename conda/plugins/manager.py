@@ -603,6 +603,7 @@ class CondaPluginManager(pluggy.PluginManager):
                         hook.name,
                         e,
                     )
+                    log.debug("%r", e, exc_info=e)
             else:
                 log.debug(
                     "EnvironmentSpec hook: %s can NOT be handled by %s",
