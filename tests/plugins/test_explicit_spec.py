@@ -75,7 +75,7 @@ def test_explicit_file_spec_is_registered(
 ):
     """Ensures that the explicit spec has been registered and can handle explicit files"""
     # Verify plugin registration and correct name
-    env_spec_backend = explicit_file_spec_plugin.get_environment_specifiers(
+    env_spec_backend = explicit_file_spec_plugin.get_environment_specifier(
         support_explicit_file
     )
     assert env_spec_backend.name == "explicit-test"
@@ -100,7 +100,7 @@ def test_raises_error_if_not_explicit_file(
     """Ensures explicit spec plugin accepts all .txt files (distinction happens at Environment level)"""
     # In our unified architecture, RequirementsSpec handles all .txt files
     # The explicit detection happens at the Environment.dependencies.explicit level
-    env_spec_backend = explicit_file_spec_plugin.get_environment_specifiers(
+    env_spec_backend = explicit_file_spec_plugin.get_environment_specifier(
         support_non_explicit_file
     )
     assert env_spec_backend.name == "explicit-test"
