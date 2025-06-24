@@ -157,7 +157,10 @@ def explicit(
 
     # Only record user-requested specs in history, not all packages
     # This prevents dependencies from polluting the user's request history
-    update_specs_for_history = tuple(requested_specs) if requested_specs else ()
+    if requested_specs:
+        update_specs_for_history = tuple(MatchSpec(spec) for spec in requested_specs)
+    else:
+        update_specs_for_history = tuple(sp[0] for sp in specs_pcrecs if sp[0])
 
     stp = PrefixSetup(
         prefix,
