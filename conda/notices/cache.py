@@ -90,9 +90,10 @@ def get_notices_cache_file() -> Path:
     """
     Return path of notices cache
 
-    If the file does not exist, we create it and set the "created_at" time stamp
-    of the file so that it is in the past. This forces the notices to be checked
-    for and read later.
+    If the file does not exist, we create it with natural filesystem timestamps,
+    then set only the modification time to be in the past. This ensures notices
+    are checked and displayed immediately rather than waiting for the full
+    display interval.
     """
     cache_dir = get_notices_cache_dir()
     cache_file = cache_dir.joinpath(NOTICES_CACHE_FN)
@@ -101,9 +102,10 @@ def get_notices_cache_file() -> Path:
         with open(cache_file, "w") as fp:
             fp.write("")
 
-        current_time = time.time()
-        create_time = current_time - NOTICES_DECORATOR_DISPLAY_INTERVAL
-        os.utime(cache_file, (create_time, create_time))
+        # Keep natural access time, set only mtime to past for immediate notice display
+        stat = cache_file.stat()
+        past_mtime = stat.st_mtime - NOTICES_DECORATOR_DISPLAY_INTERVAL
+        os.utime(cache_file, (stat.st_atime, past_mtime))
 
     return cache_file
 
