@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Handle exceptions coming from environment spec plugins can_handle functions. (#14916)
+* Handle exceptions coming from environment spec plugins `can_handle` functions. (#14916)
 
 ### Bug fixes
 
