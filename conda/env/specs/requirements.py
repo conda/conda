@@ -20,11 +20,6 @@ class RequirementsSpec(EnvironmentSpecBase):
     """
     Reads dependencies from requirements files (including explicit files)
     and returns an Environment object from it.
-
-    This unified spec handles both regular requirements.txt files and explicit
-    environment files marked with @EXPLICIT. The Environment class automatically
-    detects whether dependencies are explicit based on the presence of the
-    @EXPLICIT marker.
     """
 
     msg: str | None = None
@@ -97,6 +92,12 @@ class RequirementsSpec(EnvironmentSpecBase):
             self.msg = f"File {self.filename} does not have a supported extension: {', '.join(self.extensions)}"
             return False
 
+        # Ensure this is not an explicit file. Requirements.txt and explicit files
+        # may sometimes share file extension.
+        dependencies_list = list(yield_lines(self.filename))
+        if "@EXPLICIT" in dependencies_list:
+            return False
+
         return True
 
     @property
@@ -104,8 +105,7 @@ class RequirementsSpec(EnvironmentSpecBase):
         """
         Build an environment from the requirements file.
 
-        This method reads the file as a generator and passes it directly to Environment,
-        which will automatically detect if it's an explicit file and set the appropriate flags.
+        This method reads the file as a generator and passes it directly to Environment.
 
         :return: An Environment object containing the package specifications
         :raises ValueError: If the file cannot be read

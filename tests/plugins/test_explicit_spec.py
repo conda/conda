@@ -5,7 +5,8 @@
 import pytest
 
 from conda import plugins
-from conda.env.specs.requirements import RequirementsSpec
+from conda.env.specs.explicit import ExplicitSpec
+from conda.exceptions import EnvironmentSpecPluginNotDetected
 from conda.plugins.types import CondaEnvironmentSpecifier
 from tests.env import support_file
 
@@ -23,21 +24,20 @@ def support_non_explicit_file():
 
 
 def test_can_handle_explicit_file(support_explicit_file):
-    """Ensures RequirementsSpec can handle a file with @EXPLICIT marker"""
-    assert RequirementsSpec(filename=support_explicit_file).can_handle()
+    """Ensures ExplicitSpec can handle a file with @EXPLICIT marker"""
+    spec = ExplicitSpec(filename=support_explicit_file)
+    assert spec.can_handle()
 
 
 def test_explicit_file_spec_rejects_non_explicit_file(support_non_explicit_file):
-    """Ensures RequirementsSpec can handle any .txt file (explicit detection happens at Environment level)"""
-    spec = RequirementsSpec(filename=support_non_explicit_file)
-    # In our unified architecture, RequirementsSpec handles both types
-    assert spec.can_handle()
-    # The distinction happens at Environment.dependencies.explicit level
+    """Ensures ExplicitSpec does not handle non-explicit files"""
+    spec = ExplicitSpec(filename=support_non_explicit_file)
+    assert not spec.can_handle()
 
 
 def test_environment_creation(support_explicit_file):
     """Test that environment is correctly created from explicit file"""
-    spec = RequirementsSpec(filename=support_explicit_file)
+    spec = ExplicitSpec(filename=support_explicit_file)
 
     # Get the environment and check if it's detected as explicit
     env = spec.environment
@@ -59,7 +59,7 @@ class ExplicitSpecPlugin:
     def conda_environment_specifiers(self):
         yield CondaEnvironmentSpecifier(
             name="explicit-test",
-            environment_spec=RequirementsSpec,
+            environment_spec=ExplicitSpec,
         )
 
 
@@ -97,14 +97,6 @@ def test_explicit_file_spec_is_registered(
 def test_raises_error_if_not_explicit_file(
     explicit_file_spec_plugin, support_non_explicit_file
 ):
-    """Ensures explicit spec plugin accepts all .txt files (distinction happens at Environment level)"""
-    # In our unified architecture, RequirementsSpec handles all .txt files
-    # The explicit detection happens at the Environment.dependencies.explicit level
-    env_spec_backend = explicit_file_spec_plugin.get_environment_specifier(
-        support_non_explicit_file
-    )
-    assert env_spec_backend.name == "explicit-test"
-
-    # Verify it creates an environment but it's not marked as explicit
-    env = env_spec_backend.environment_spec(support_non_explicit_file).environment
-    assert env.dependencies.explicit is False
+    """Ensures explicit spec plugin does not accept non-explicit files**"""
+    with pytest.raises(EnvironmentSpecPluginNotDetected):
+        explicit_file_spec_plugin.get_environment_specifier(support_non_explicit_file)
