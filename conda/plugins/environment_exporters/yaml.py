@@ -10,7 +10,7 @@ from .. import hookimpl
 from ..types import CondaEnvironmentExporter, EnvironmentExporter
 
 if TYPE_CHECKING:
-    from ...env.env import Environment
+    from ...models.environment import Environment
 
 
 class YAMLExporter(EnvironmentExporter):
@@ -27,8 +27,10 @@ class YAMLExporter(EnvironmentExporter):
         """Export Environment to YAML format."""
         self.validate(format)
 
-        # Use the existing YAML export functionality
-        yaml_content = env.to_yaml()
+        from ...common.serialize import yaml_safe_dump
+
+        env_dict = env.to_dict()
+        yaml_content = yaml_safe_dump(env_dict)
         if yaml_content is None:
             raise ValueError("Failed to export environment to YAML")
         return yaml_content

@@ -15,6 +15,75 @@ from ..common.constants import NULL
 from ..exceptions import CondaValueError
 
 
+def _create_environment_from_prefix(prefix, env_name, args):
+    """Create a models.Environment directly from prefix and arguments."""
+    from ..base.context import context
+    from ..core.prefix_data import PrefixData
+    from ..history import History
+    from ..models.environment import Environment, EnvironmentConfig
+    from ..models.match_spec import MatchSpec
+
+    # Get the current platform with proper subdir format
+    platform = context.subdir
+
+    # Build requested packages from installed packages or history
+    requested_packages = []
+
+    if args.from_history:
+        # Use explicit specs from history
+        history = History(prefix)
+        spec_map = history.get_requested_specs_map()
+        requested_packages = list(spec_map.values())
+    else:
+        # Get prefix data to read all installed packages
+        prefix_data = PrefixData(prefix)
+
+        for prefix_record in prefix_data.iter_records():
+            # Create MatchSpec from installed package
+            if args.no_builds:
+                spec_str = f"{prefix_record.name}={prefix_record.version}"
+            else:
+                spec_str = f"{prefix_record.name}={prefix_record.version}={prefix_record.build}"
+
+            if (
+                not args.ignore_channels
+                and prefix_record.channel
+                and prefix_record.channel.name
+            ):
+                spec_str = f"{prefix_record.channel.name}::{spec_str}"
+
+            requested_packages.append(MatchSpec(spec_str))
+
+    # Build channels list
+    channels = []
+
+    # Add explicitly requested channels first
+    if args.channel:
+        channels.extend(args.channel)
+
+    # Add default channels unless overridden
+    if not args.override_channels:
+        # Only add defaults that aren't already in the list
+        for channel in context.channels:
+            if channel not in channels:
+                channels.append(channel)
+
+    # Create environment config with channels if present
+    config = None
+    if channels:
+        config = EnvironmentConfig(channels=channels)
+
+    # Create models.Environment
+    return Environment(
+        name=env_name,
+        prefix=prefix,
+        platform=platform,
+        requested_packages=requested_packages,
+        variables={},  # TODO: Extract environment variables if needed
+        config=config,
+    )
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
@@ -115,7 +184,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix, env_name
-    from ..env.env import from_environment
     from ..plugins.manager import get_plugin_manager
     from .common import stdout_json
 
@@ -161,19 +229,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     prefix = determine_target_prefix(context, args)
-    env = from_environment(
-        env_name(prefix),
-        prefix,
-        no_builds=args.no_builds,
-        ignore_channels=args.ignore_channels,
-        from_history=args.from_history,
-    )
 
-    if args.override_channels:
-        env.remove_channels()
-
-    if args.channel is not None:
-        env.add_channels(args.channel)
+    # Create models.Environment directly
+    env = _create_environment_from_prefix(prefix, env_name(prefix), args)
 
     # Export the environment - use JSON format if --json flag without file
     export_format = "json" if (args.json and not args.file) else target_format

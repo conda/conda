@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Tests for environment exporter plugins."""
 
+import json
+
 import pytest
 
-from conda.env.env import Environment
 from conda.exceptions import CondaValueError
+from conda.models.environment import Environment
+from conda.models.match_spec import MatchSpec
 from conda.plugins.manager import get_plugin_manager
 from conda.plugins.types import EnvironmentExporter
 
@@ -13,7 +16,12 @@ from conda.plugins.types import EnvironmentExporter
 @pytest.fixture
 def test_env():
     """Create a test environment for exporter testing."""
-    return Environment(name="test-env", dependencies=["python=3.9", "numpy"])
+    return Environment(
+        name="test-env",
+        prefix="/tmp/test-env",
+        platform="linux-64",
+        requested_packages=[MatchSpec("python=3.9"), MatchSpec("numpy")],
+    )
 
 
 @pytest.fixture
@@ -49,7 +57,12 @@ def test_environment_exporter_base_class():
     assert not exporter.can_handle("env.yaml")
 
     # Test export functionality
-    env = Environment(name="test-env")
+    env = Environment(
+        name="test-env",
+        prefix="/tmp/test-env",
+        platform="linux-64",
+        requested_packages=[MatchSpec("python")],
+    )
     result = exporter.export(env, "test")
     assert result == "TEST FORMAT: test-env"
 
@@ -82,8 +95,6 @@ def test_builtin_exporters(
             assert content in result
     elif format_name == "json":
         # Verify it's valid JSON with correct structure
-        import json
-
         parsed = json.loads(result)
         assert parsed["name"] == "test-env"
         assert "python=3.9" in parsed["dependencies"]
@@ -162,17 +173,23 @@ def test_exporter_error_handling(loaded_plugin_manager, test_env):
         exporter.export(test_env, "unsupported")
 
 
-def test_yaml_exporter_handles_none_content(loaded_plugin_manager, mocker):
-    """Test YAML exporter handles case where env.to_yaml() returns None."""
+def test_yaml_exporter_handles_missing_name(loaded_plugin_manager):
+    """Test YAML exporter handles case where environment has no name."""
     exporter_config = loaded_plugin_manager.get_environment_exporter_by_format("yaml")
     assert exporter_config is not None
 
     exporter = exporter_config.handler()
-    mock_env = mocker.Mock()
-    mock_env.to_yaml.return_value = None
+    # Create environment without name
+    env = Environment(
+        name=None,
+        prefix="/tmp/test-env",
+        platform="linux-64",
+        requested_packages=[MatchSpec("python")],
+    )
 
-    with pytest.raises(ValueError, match="Failed to export environment to YAML"):
-        exporter.export(mock_env, "yaml")
+    result = exporter.export(env, "yaml")
+    # Should still work, just with name: None
+    assert "name:" in result
 
 
 def test_get_environment_exporter_unified(loaded_plugin_manager):

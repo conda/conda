@@ -27,7 +27,8 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
-    from ..env.env import Environment
+    from ..env.env import Environment as LegacyEnvironment
+    from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
 
@@ -443,11 +444,11 @@ class EnvironmentSpecBase(ABC):
 
     @property
     @abstractmethod
-    def environment(self) -> Environment:
+    def environment(self) -> LegacyEnvironment:
         """
         Express the provided environment file as a conda environment object.
 
-        :returns Environment: the conda environment represented by the file.
+        :returns LegacyEnvironment: the conda environment represented by the file.
         """
         raise NotImplementedError()
 
@@ -500,7 +501,7 @@ class EnvironmentExporter(ABC):
         """
         Export an Environment object to the specified format.
 
-        :param env: The conda Environment object to export
+        :param env: The conda Environment object to export (models.Environment)
         :param format: The target format name
         :returns str: The environment data in the target format
         """

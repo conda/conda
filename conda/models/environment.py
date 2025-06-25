@@ -215,6 +215,39 @@ class Environment:
                         f"Requested package '{requested_package}' is not found in 'explicit_packages'."
                     )
 
+    def to_dict(self):
+        """
+        Convert the Environment to a dictionary suitable for serialization.
+
+        Returns a dictionary representation of the environment that can be
+        used by exporters to serialize to various formats (YAML, JSON, etc.).
+        """
+        env_dict = {"name": self.name}
+
+        # Add channels if present
+        if self.config and self.config.channels:
+            env_dict["channels"] = self.config.channels
+
+        # Convert requested_packages to dependencies list
+        if self.requested_packages:
+            env_dict["dependencies"] = [str(spec) for spec in self.requested_packages]
+        elif self.explicit_packages:
+            # Fall back to explicit packages if no requested packages
+            env_dict["dependencies"] = [
+                f"{pkg.name}={pkg.version}={pkg.build}"
+                for pkg in self.explicit_packages
+            ]
+
+        # Add variables if present
+        if self.variables:
+            env_dict["variables"] = self.variables
+
+        # Add prefix if present
+        if self.prefix:
+            env_dict["prefix"] = self.prefix
+
+        return env_dict
+
     @classmethod
     def merge(cls, *environments):
         """

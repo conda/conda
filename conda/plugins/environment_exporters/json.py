@@ -11,7 +11,7 @@ from .. import hookimpl
 from ..types import CondaEnvironmentExporter, EnvironmentExporter
 
 if TYPE_CHECKING:
-    from ...env.env import Environment
+    from ...models.environment import Environment
 
 
 class JSONExporter(EnvironmentExporter):
@@ -28,7 +28,6 @@ class JSONExporter(EnvironmentExporter):
         """Export Environment to JSON format."""
         self.validate(format)
 
-        # Convert environment to dictionary and serialize as JSON
         env_dict = env.to_dict()
         return json.dumps(env_dict, indent=2, ensure_ascii=False)
 
