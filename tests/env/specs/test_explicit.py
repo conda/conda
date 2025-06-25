@@ -26,4 +26,7 @@ def test_environment():
     spec = ExplicitSpec(filename=support_file("explicit.txt"))
     assert isinstance(spec.environment, Environment)
     assert spec.environment.dependencies.explicit is True
-    assert "defaults/linux-64::python==3.9.0=h8bdb77d_3"  in spec.environment.dependencies["conda"]
+    assert (
+        "defaults/linux-64::python==3.9.0=h8bdb77d_3"
+        in spec.environment.dependencies["conda"]
+    )

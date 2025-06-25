@@ -70,7 +70,7 @@ class RequirementsSpec(EnvironmentSpecBase):
             return True
         self.msg = "The environment does not have a name"
         return False
-    
+
     def can_handle(self) -> bool:
         """
         Validates that this spec can process the environment definition.

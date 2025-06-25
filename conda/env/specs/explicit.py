@@ -15,7 +15,7 @@ class ExplicitSpec(EnvironmentSpecBase):
     which are marked with the @EXPLICIT marker.
     """
 
-    def __init__(self, filename: str | None = None,  **kwargs) -> None:
+    def __init__(self, filename: str | None = None, **kwargs) -> None:
         """Initialize the explicit specification.
 
         :param filename: Path to the requirements file
@@ -42,7 +42,7 @@ class ExplicitSpec(EnvironmentSpecBase):
             return True
         else:
             return False
-    
+
     @property
     def environment(self) -> Environment:
         """

@@ -6,8 +6,8 @@ import pytest
 
 from conda import plugins
 from conda.env.specs.explicit import ExplicitSpec
-from conda.plugins.types import CondaEnvironmentSpecifier
 from conda.exceptions import EnvironmentSpecPluginNotDetected
+from conda.plugins.types import CondaEnvironmentSpecifier
 from tests.env import support_file
 
 
