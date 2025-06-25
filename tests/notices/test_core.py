@@ -129,7 +129,6 @@ def test__conda_user_story__disable_notices(
     capsys,
     notices_cache_dir,
     notices_mock_fetch_get_session,
-    disable_channel_notices,
     monkeypatch,
 ):
     """
@@ -137,10 +136,9 @@ def test__conda_user_story__disable_notices(
     I do not want to see notifications while running commands like,  "install",
     "update" or "create".
     """
-    # The disable_channel_notices fixture has already set number_channel_notices to 0
-    # We just need to set the channels without resetting the context
+    monkeypatch.setenv("CONDA_NUMBER_CHANNEL_NOTICES", "0")
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
-    # Don't call reset_context() here as it would override the fixture's settings
+    reset_context()
     messages = ("Test One", "Test Two")
     dummy_mesg = "Dummy Mesg"
     messages_json = get_test_notices(messages)

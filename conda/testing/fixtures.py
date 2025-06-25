@@ -23,13 +23,10 @@ from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.entity import EntityEncoder
-from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.main import main_subshell
-from ..common.configuration import YamlRawParameter
 from ..common.io import env_vars
-from ..common.serialize import yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -76,32 +73,6 @@ def tmpdir(tmpdir, request):
 @pytest.fixture(autouse=True)
 def clear_subdir_cache():
     SubdirData.clear_cached_local_channel_data()
-
-
-@pytest.fixture(scope="function")
-def disable_channel_notices():
-    """
-    Fixture that will set "context.number_channel_notices" to 0 and then set
-    it back to its original value.
-
-    This is also a good example of how to override values in the context object.
-    """
-    yaml_str = dals(
-        """
-        number_channel_notices: 0
-        """
-    )
-    reset_context(())
-    rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(yaml_str)
-        )
-    }
-    context._set_raw_data(rd)
-
-    yield
-
-    reset_context(())
 
 
 @pytest.fixture(scope="function")
