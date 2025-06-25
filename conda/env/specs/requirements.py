@@ -121,6 +121,3 @@ class RequirementsSpec(EnvironmentSpecBase):
             dependencies=dependencies_list,
             filename=self.filename,
         )
-
-
-

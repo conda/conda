@@ -32,7 +32,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         """
         if not self.filename:
             return False
-            
+
         # Extract the file extension (e.g., '.txt' or '' if no extension)
         _, file_ext = os.path.splitext(self.filename)
 
@@ -53,7 +53,7 @@ class YamlFileSpec(EnvironmentSpecBase):
             if not self.can_handle():
                 raise ValueError(f"Cannot handle environment file: {self.msg}")
             # can_handle() succeeded and set self._environment, so it should not be None
-        
+
         if self._environment is None:
             raise ValueError("Environment could not be loaded")
         return self._environment
