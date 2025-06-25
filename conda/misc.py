@@ -184,15 +184,16 @@ def get_package_records_from_explicit(specs: list[str]) -> Iterable[PackageCache
     if context.dry_run:
         raise DryRunExit()
 
+    # Try to get the specs from cache first
+    specs_in_cache = tuple(
+        next(PackageCacheData.query_all(spec), None) for spec in fetch_specs
+    )
+    if len(specs_in_cache) == len(specs):
+        return specs_in_cache
+    
+    # If not found in cache, fetch them from the network
     pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
-
-    if context.download_only:
-        raise CondaExitZero(
-            "Package caches prepared. "
-            "UnlinkLinkTransaction cancelled with --download-only option."
-        )
-
     return tuple(
         next(PackageCacheData.query_all(spec), None) for spec in fetch_specs
     )
