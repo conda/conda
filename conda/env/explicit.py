@@ -45,6 +45,7 @@ class ExplicitEnvironment(Environment):
             dependencies=dependencies,
             channels=channels,
             prefix=prefix,
+            filename=filename,
             **kwargs,
         )
         self.explicit_specs = dependencies or []

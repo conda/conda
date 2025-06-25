@@ -202,6 +202,7 @@ class ExplicitRequirementsSpec(RequirementsSpec):
         processed_lines = []
         for line in lines:
             if line == "@EXPLICIT":
+                processed_lines.append(line)  # Keep the marker for dependencies.explicit detection
                 continue
 
             # Strip any channel and platform-specific prefixes (e.g., 'conda-forge/osx-64::')

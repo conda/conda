@@ -31,6 +31,7 @@ def explicit_urls():
 def explicit_env():
     """Create an ExplicitEnvironment instance for testing."""
     urls = [
+        "@EXPLICIT",
         "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2"
     ]
     return ExplicitEnvironment(dependencies=urls)

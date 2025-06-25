@@ -42,16 +42,17 @@ def test_environment_creation(support_explicit_file):
     # Test the raw parsed packages
     packages = spec._parse_explicit_file()
     assert packages is not None
-    assert len(packages) == 2
+    assert len(packages) == 3  # @EXPLICIT marker + 2 packages
 
-    # Verify we have both Python and NumPy packages
-    pkg_names = [str(pkg).lower() for pkg in packages]
+    # Verify we have both Python and NumPy packages (excluding @EXPLICIT marker)
+    pkg_names = [str(pkg).lower() for pkg in packages if pkg != "@EXPLICIT"]
+    assert len(pkg_names) == 2, "Should have 2 actual packages"
     assert any("python" in pkg for pkg in pkg_names), "No Python package found"
     assert any("numpy" in pkg for pkg in pkg_names), "No NumPy package found"
 
     # Check raw dependencies length and content
     raw_deps = spec.environment.dependencies.raw
-    assert len(raw_deps) == 2
+    assert len(raw_deps) == 3  # @EXPLICIT marker + 2 packages
 
     # Verify environment dependencies include both packages
     env_pkgs = [str(dep).lower() for dep in raw_deps]
@@ -80,7 +81,7 @@ def test_explicit_file_spec_is_registered(
 ):
     """Ensures that the explicit spec has been registered and can handle explicit files"""
     # Verify plugin registration and correct name
-    env_spec_backend = explicit_file_spec_plugin.get_environment_specifiers(
+    env_spec_backend = explicit_file_spec_plugin.detect_environment_specifier(
         support_explicit_file
     )
     assert env_spec_backend.name == "explicit-test"
@@ -90,11 +91,12 @@ def test_explicit_file_spec_is_registered(
 
     # Check environment structure and content
     assert "conda" in env.dependencies
-    assert len(env.dependencies.raw) == 2
-    assert len(env.dependencies["conda"]) == 2
+    assert len(env.dependencies.raw) == 3  # @EXPLICIT marker + 2 packages
+    assert len(env.dependencies["conda"]) == 3  # @EXPLICIT marker + 2 packages
 
-    # Verify expected packages are present
-    conda_pkgs = [str(dep).lower() for dep in env.dependencies["conda"]]
+    # Verify expected packages are present (excluding @EXPLICIT marker)
+    conda_pkgs = [str(dep).lower() for dep in env.dependencies["conda"] if str(dep).lower() != "@explicit"]
+    assert len(conda_pkgs) == 2, "Should have 2 actual packages"
     assert any("python" in pkg for pkg in conda_pkgs), "No Python package found"
     assert any("numpy" in pkg for pkg in conda_pkgs), "No NumPy package found"
 
@@ -104,4 +106,4 @@ def test_raises_error_if_not_explicit_file(
 ):
     """Ensures explicit spec plugin rejects non-explicit files"""
     with pytest.raises(EnvironmentSpecPluginNotDetected):
-        explicit_file_spec_plugin.get_environment_specifiers(support_non_explicit_file)
+        explicit_file_spec_plugin.detect_environment_specifier(support_non_explicit_file)

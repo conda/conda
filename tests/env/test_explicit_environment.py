@@ -66,7 +66,7 @@ def test_requirements_spec_returns_explicit_environment(support_explicit_file):
     # Check expected attributes
     assert env.explicit_filename == support_explicit_file
     assert hasattr(env, "explicit_specs")
-    assert len(env.explicit_specs) == 2
+    assert len(env.explicit_specs) == 3  # @EXPLICIT marker + 2 packages
 
 
 def test_explicit_environment_for_cep23_compliance(explicit_env):
