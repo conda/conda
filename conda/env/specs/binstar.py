@@ -109,7 +109,7 @@ class BinstarSpec(EnvironmentSpecBase):
         )
         if req is None:
             raise EnvironmentFileNotDownloaded(self.username, self.packagename)
-        return from_yaml(req.text)
+        return from_yaml(req.text).to_environment_model()
 
     @cached_property
     def package(self):
