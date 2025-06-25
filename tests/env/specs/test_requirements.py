@@ -23,6 +23,11 @@ def test_req_file_and_name():
     assert spec.can_handle()
 
 
+def test_can_not_handle_explicit():
+    spec = RequirementsSpec(filename=support_file("explicit.txt"))
+    assert not spec.can_handle()
+
+
 def test_environment():
     spec = RequirementsSpec(filename=support_file("requirements.txt"), name="env")
     assert isinstance(spec.environment, Environment)
