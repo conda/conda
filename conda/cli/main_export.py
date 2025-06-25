@@ -69,7 +69,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     def _get_available_export_formats():
         from ..plugins.manager import get_plugin_manager
 
-        return get_plugin_manager().get_available_export_formats()
+        return list(get_plugin_manager().get_environment_exporters().keys())
 
     p.add_argument(
         "--format",
@@ -121,7 +121,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Validate export format early before doing expensive environment operations
     plugin_manager = get_plugin_manager()
-    available_formats = plugin_manager.get_available_export_formats()
+    available_formats = list(plugin_manager.get_environment_exporters().keys())
 
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
@@ -129,7 +129,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Try to find exporter by filename first
     if args.file:
-        file_exporter = plugin_manager.find_exporter_by_filename(args.file)
+        file_exporter = plugin_manager.detect_environment_exporter(args.file)
         if file_exporter:
             exporter_instance = file_exporter.handler()
             target_format = exporter_instance.format
@@ -148,7 +148,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Find appropriate exporter if we don't already have one
     if not environment_exporter:
-        environment_exporter = plugin_manager.find_exporter_by_format(target_format)
+        environment_exporter = plugin_manager.get_environment_exporter_by_format(
+            target_format
+        )
 
     if not environment_exporter:
         # No exporter found for the requested format
@@ -176,7 +178,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # Export the environment - use JSON format if --json flag without file
     export_format = "json" if (args.json and not args.file) else target_format
     if export_format == "json" and target_format != "json":
-        json_exporter = plugin_manager.find_exporter_by_format("json")
+        json_exporter = plugin_manager.get_environment_exporter_by_format("json")
         if not json_exporter:
             raise CondaValueError("JSON exporter plugin not available")
         exporter = json_exporter.handler()

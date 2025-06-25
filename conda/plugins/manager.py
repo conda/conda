@@ -664,11 +664,21 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
 
-    def find_exporter_by_format(
+    def get_environment_exporters(self) -> dict[str, CondaEnvironmentExporter]:
+        """
+        Returns a mapping from export format name to environment exporter.
+        """
+        return {
+            exporter.handler().format: exporter
+            for exporter in self.get_hook_results("environment_exporters")
+            if exporter.handler().format
+        }
+
+    def get_environment_exporter_by_format(
         self, format_name: str
     ) -> CondaEnvironmentExporter | None:
         """
-        Find an environment exporter that supports the given format.
+        Get an environment exporter that supports the given format.
 
         :param format_name: Format name to find exporter for (e.g., 'json', 'yaml')
         :return: Environment exporter config or None if not found
@@ -679,11 +689,11 @@ class CondaPluginManager(pluggy.PluginManager):
                 return exporter_config
         return None
 
-    def find_exporter_by_filename(
+    def detect_environment_exporter(
         self, filename: str
     ) -> CondaEnvironmentExporter | None:
         """
-        Find an environment exporter based on the filename extension.
+        Detect an environment exporter based on the filename extension.
 
         :param filename: Filename to find an exporter for (extension is used for detection)
         :return: CondaEnvironmentExporter that supports the file extension, or None if none found
@@ -712,19 +722,25 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return None
 
-    def get_available_export_formats(self) -> list[str]:
-        """
-        Returns a list of all available export format names.
+    def get_environment_exporter(
+        self,
+        filename: str = None,
+        format_name: str = None,
+    ) -> CondaEnvironmentExporter | None:
+        """Get the environment exporter plugin for a given filename or format name
 
-        :return: List of format names that have working export plugins
+        :param filename: Filename to detect exporter for (extension is used for detection)
+        :param format_name: Format name to find exporter for
+        :raises CondaValueError: If both or neither parameters are provided
         """
-        formats = set()
-        for exporter_config in self.get_hook_results("environment_exporters"):
-            exporter = exporter_config.handler()
-            if exporter.format:
-                formats.add(exporter.format)
-
-        return sorted(formats)
+        if format_name and filename:
+            raise CondaValueError("Cannot specify both filename and format_name")
+        elif format_name:
+            return self.get_environment_exporter_by_format(format_name)
+        elif filename:
+            return self.detect_environment_exporter(filename)
+        else:
+            raise CondaValueError("Must provide either filename or format_name")
 
     def get_pre_transaction_actions(
         self,
