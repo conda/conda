@@ -484,15 +484,18 @@ class EnvironmentExporter(ABC):
     extensions: set[str] = set()
 
     @abstractmethod
-    def can_handle(self, filename: str) -> bool:
+    def can_handle(
+        self, filename: str | None = None, format: str | None = None
+    ) -> bool:
         """
-        Check if this exporter can handle the given filename.
+        Check if this exporter can handle the given filename and/or format.
 
         Subclasses should implement their own detection logic, which may include
-        checking file extensions, content validation, or other criteria.
+        checking file extensions, format names, content validation, or other criteria.
 
-        :param filename: Filename to check (e.g., 'env.json')
-        :return: True if this exporter can handle the filename
+        :param filename: Optional filename to check (e.g., 'env.json')
+        :param format: Optional format name to check (e.g., 'json', 'yaml')
+        :return: True if this exporter can handle the request
         """
         raise NotImplementedError()
 
@@ -504,20 +507,9 @@ class EnvironmentExporter(ABC):
         :param env: The conda Environment object to export (models.Environment)
         :param format: The target format name
         :returns str: The environment data in the target format
+        :raises ValueError: If format is not supported by this exporter
         """
         raise NotImplementedError()
-
-    def validate(self, format: str) -> None:
-        """
-        Validate that this exporter supports the requested format.
-
-        :param format: Format name to validate
-        :raises ValueError: If format is not supported
-        """
-        if format != self.format:
-            raise ValueError(
-                f"{self.__class__.__name__} doesn't support format: {format}"
-            )
 
 
 @dataclass

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Tests for environment exporter plugins."""
 
+from __future__ import annotations
+
 import json
 
 import pytest
@@ -36,12 +38,28 @@ class TestEnvironmentExporter(EnvironmentExporter):
     format = "test"
     extensions = {".test"}
 
-    def can_handle(self, filename: str) -> bool:
-        """Check if this exporter can handle the given filename."""
-        return any(filename.endswith(ext) for ext in self.extensions)
+    def can_handle(
+        self, filename: str | None = None, format: str | None = None
+    ) -> bool:
+        """Check if this exporter can handle the given filename and/or format."""
+        # Check format if provided
+        if format is not None:
+            if format != self.format:
+                return False
+
+        # Check filename if provided
+        if filename is not None:
+            if not any(filename.endswith(ext) for ext in self.extensions):
+                return False
+
+        # If we get here, all provided criteria matched
+        return True
 
     def export(self, env: Environment, format: str) -> str:
-        self.validate(format)
+        if not self.can_handle(format=format):
+            raise ValueError(
+                f"{self.__class__.__name__} doesn't support format: {format}"
+            )
         return f"TEST FORMAT: {env.name}"
 
 
@@ -53,8 +71,17 @@ def test_environment_exporter_base_class():
     assert exporter.format == "test"
 
     # Test filename support
-    assert exporter.can_handle("env.test")
-    assert not exporter.can_handle("env.yaml")
+    assert exporter.can_handle(filename="env.test")
+    assert not exporter.can_handle(filename="env.yaml")
+
+    # Test format support
+    assert exporter.can_handle(format="test")
+    assert not exporter.can_handle(format="yaml")
+
+    # Test combined filename and format support
+    assert exporter.can_handle(filename="env.test", format="test")
+    assert not exporter.can_handle(filename="env.test", format="yaml")
+    assert not exporter.can_handle(filename="env.yaml", format="test")
 
     # Test export functionality
     env = Environment(
