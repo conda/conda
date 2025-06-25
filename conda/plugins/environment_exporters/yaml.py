@@ -19,6 +19,10 @@ class YAMLExporter(EnvironmentExporter):
     format = "yaml"
     extensions = {".yaml", ".yml"}
 
+    def can_handle(self, filename: str) -> bool:
+        """Check if this exporter can handle the given filename."""
+        return any(filename.endswith(ext) for ext in self.extensions)
+
     def export(self, env: Environment, format: str) -> str:
         """Export Environment to YAML format."""
         self.validate(format)

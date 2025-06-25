@@ -482,14 +482,18 @@ class EnvironmentExporter(ABC):
     # File extensions this exporter supports
     extensions: set[str] = set()
 
+    @abstractmethod
     def can_handle(self, filename: str) -> bool:
         """
-        Check if this exporter can handle the given filename based on extension.
+        Check if this exporter can handle the given filename.
+
+        Subclasses should implement their own detection logic, which may include
+        checking file extensions, content validation, or other criteria.
 
         :param filename: Filename to check (e.g., 'env.json')
-        :return: True if filename extension is supported
+        :return: True if this exporter can handle the filename
         """
-        return any(filename.endswith(ext) for ext in self.extensions)
+        raise NotImplementedError()
 
     @abstractmethod
     def export(self, env: Environment, format: str) -> str:
