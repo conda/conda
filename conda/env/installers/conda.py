@@ -69,7 +69,7 @@ def dry_run(
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
     return EnvironmentYaml(
-        name=env.name, dependencies=[str(p) for p in pkgs], channels=env.channels
+        name=env.name, dependencies=[str(p) for p in pkgs], channels=env.config.channels
     )
 
 
@@ -95,7 +95,7 @@ def install(
         processed, the conda client SHOULD NOT invoke a solver."
     """
     # Handle explicit environments separately per CEP-23 requirements
-    if env.dependencies.explicit:
+    if env.explicit_packages:
         from ...misc import explicit
 
         log = logging.getLogger(__name__)
