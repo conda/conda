@@ -118,4 +118,4 @@ class RequirementsSpec(EnvironmentSpecBase):
         return Environment(
             dependencies=dependencies_list,
             filename=self.filename,
-        )
+        ).to_environment_model()

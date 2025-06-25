@@ -50,4 +50,4 @@ class YamlFileSpec(EnvironmentSpecBase):
     def environment(self):
         if not self._environment:
             self.can_handle()
-        return self._environment
+        return self._environment.to_environment_model()
