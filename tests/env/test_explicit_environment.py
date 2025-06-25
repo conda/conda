@@ -1,80 +1,80 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Tests for the ExplicitEnvironment class."""
+"""Tests for explicit environment handling."""
 
 import pytest
 
 from conda.env.env import Environment
-from conda.env.explicit import ExplicitEnvironment
 from conda.env.specs.explicit import ExplicitSpec
 from tests.env import support_file
 
 
-@pytest.fixture(scope="module")
-def support_explicit_file():
-    """Path to the explicit environment file in the test support directory"""
-    return support_file("explicit.txt")
-
-
-@pytest.fixture(scope="module")
+@pytest.fixture
 def explicit_urls():
-    """Sample URLs for testing explicit environments."""
+    """Fixture providing sample explicit package URLs."""
     return [
-        "https://conda.anaconda.org/conda-forge/linux-64/numpy-1.21.5-py39h2a9ead8_0.tar.bz2",
-        "https://conda.anaconda.org/conda-forge/linux-64/python-3.9.10-h85951f9_5_cpython.tar.bz2",
+        "@EXPLICIT",
+        "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2",
+        "https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.19.2-py39h89c1606_0.tar.bz2",
     ]
 
 
-@pytest.fixture(scope="function")
-def explicit_env(explicit_urls):
-    """Create an ExplicitEnvironment instance for testing."""
-    return ExplicitEnvironment(
+@pytest.fixture
+def explicit_environment(explicit_urls):
+    """Create an Environment instance for explicit testing."""
+    return Environment(
         name="test-explicit",
         dependencies=explicit_urls,
-        filename="/path/to/explicit-file.txt",
+        filename="/path/to/explicit.txt",
     )
 
 
-def test_explicit_environment_is_environment_subclass():
-    """Test that ExplicitEnvironment is a subclass of Environment."""
-    assert issubclass(ExplicitEnvironment, Environment)
+def test_environment_with_explicit_dependencies():
+    """Test that regular Environment can handle explicit dependencies."""
+    urls = [
+        "@EXPLICIT",
+        "https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2",
+    ]
+    env = Environment(dependencies=urls)
+    
+    # Should detect as explicit
+    assert env.dependencies.explicit is True
 
 
-def test_explicit_environment_initialization(explicit_urls):
-    """Test ExplicitEnvironment initialization with typical parameters."""
-    env = ExplicitEnvironment(
-        name="test-env", dependencies=explicit_urls, filename="/path/to/test.txt"
-    )
+def test_explicit_environment_initialization(explicit_environment):
+    """Test Environment initialization with explicit parameters."""
+    env = explicit_environment
+    
+    # Check basic properties
+    assert env.name == "test-explicit"
+    assert env.filename == "/path/to/explicit.txt"
+    
+    # Check explicit detection
+    assert env.dependencies.explicit is True
+    
+    # Check dependencies include @EXPLICIT marker
+    assert "@EXPLICIT" in env.dependencies.raw
 
-    # Check standard Environment properties
-    assert env.name == "test-env"
-    assert len(env.dependencies.raw) == 2
 
-    # Check ExplicitEnvironment-specific properties
-    assert env.explicit_specs == explicit_urls
-    assert env.explicit_filename == "/path/to/test.txt"
-
-
-def test_requirements_spec_returns_explicit_environment(support_explicit_file):
-    """Test that ExplicitSpec returns an Environment with explicit detection."""
-    spec = ExplicitSpec(filename=support_explicit_file)
+def test_explicit_spec_returns_environment():
+    """Test that ExplicitSpec returns regular Environment."""
+    explicit_file = support_file("explicit.txt")
+    spec = ExplicitSpec(filename=explicit_file)
+    
     env = spec.environment
-
-    # Verify it's a regular Environment but marked as explicit
-    assert isinstance(env, Environment)
-    assert env.dependencies.explicit
-    assert env.filename == support_explicit_file
-    assert len(env.dependencies.raw) == 3  # @EXPLICIT marker + 2 packages
+    
+    # Should be regular Environment, not special subclass
+    assert type(env) is Environment
+    assert env.dependencies.explicit is True
 
 
-def test_explicit_environment_for_cep23_compliance(explicit_env):
-    """Test that ExplicitEnvironment follows CEP-23 by storing explicit specs separately."""
-    # The environment should have both regular dependencies and explicit_specs
-    assert explicit_env.dependencies is not None
-    assert explicit_env.explicit_specs is not None
-
-    # Dependencies and explicit_specs should match in this test case
-    assert len(explicit_env.dependencies.raw) == len(explicit_env.explicit_specs)
-
-    # Explicit filename should be stored
-    assert explicit_env.explicit_filename is not None
+def test_explicit_environment_for_cep23_compliance(explicit_environment):
+    """Test that explicit environments follow CEP-23 by being marked as explicit."""
+    env = explicit_environment
+    
+    # The environment should be marked as explicit for solver bypass
+    assert env.dependencies.explicit is True
+    
+    # Dependencies should contain the explicit marker
+    raw_deps = env.dependencies.raw or []
+    assert "@EXPLICIT" in raw_deps
