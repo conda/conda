@@ -119,25 +119,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..plugins.manager import get_plugin_manager
     from .common import stdout_json
 
-    prefix = determine_target_prefix(context, args)
-    env = from_environment(
-        env_name(prefix),
-        prefix,
-        no_builds=args.no_builds,
-        ignore_channels=args.ignore_channels,
-        from_history=args.from_history,
-    )
-
-    if args.override_channels:
-        env.remove_channels()
-
-    if args.channel is not None:
-        env.add_channels(args.channel)
-
-    # Determine export format and handle via environment exporter plugins
+    # Validate export format early before doing expensive environment operations
     plugin_manager = get_plugin_manager()
     available_formats = plugin_manager.get_available_export_formats()
 
+    # Early format validation - fail fast if format is unsupported
     target_format = args.format
     environment_exporter = None
 
@@ -171,6 +157,21 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             f"Unknown export format '{target_format}'{file_context}. "
             f"Available formats: {', '.join(available_formats)}."
         )
+
+    prefix = determine_target_prefix(context, args)
+    env = from_environment(
+        env_name(prefix),
+        prefix,
+        no_builds=args.no_builds,
+        ignore_channels=args.ignore_channels,
+        from_history=args.from_history,
+    )
+
+    if args.override_channels:
+        env.remove_channels()
+
+    if args.channel is not None:
+        env.add_channels(args.channel)
 
     # Export the environment - use JSON format if --json flag without file
     export_format = "json" if (args.json and not args.file) else target_format
