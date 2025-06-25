@@ -566,10 +566,9 @@ class UnavailableInvalidChannel(ChannelError):
             url = join_url(channel.location, channel.name)
             message += dedent(
                 f"""
-                As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-                associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                As of conda 4.3, a valid channel must contain a
+                `noarch/repodata.json` even if `noarch/repodata.json` is
                 empty. Use `conda index {url}`, or create `noarch/repodata.json`
-                and associated `noarch/repodata.json.bz2`.
                 """
             )
 
