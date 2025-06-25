@@ -50,12 +50,14 @@ def yield_lines(path):
 
     """
     try:
-        with open_utf8(path) as fh:
-            for line in fh:
+        path = Path(path)
+        with path.open() as f:
+            for line in f:
                 line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                yield line
+                if line and not line.startswith("#"):
+                    yield line
+    except FileNotFoundError:
+        pass
     except OSError as e:
         if e.errno == ENOENT:
             pass
