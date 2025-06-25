@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test conda explicit installer functionality."""
 
-from unittest.mock import Mock, patch
-
 import pytest
 
 from conda.env.env import Environment
@@ -28,9 +26,11 @@ def explicit_env(explicit_urls):
 @pytest.fixture
 def mock_args():
     """Mock args object for testing."""
-    args = Mock()
-    args.prune = False
-    return args
+
+    class MockArgs:
+        prune = False
+
+    return MockArgs()
 
 
 def test_installer_handles_explicit_environment(explicit_env, mock_args):
@@ -39,32 +39,37 @@ def test_installer_handles_explicit_environment(explicit_env, mock_args):
     assert explicit_env.dependencies.explicit is True
 
 
-@patch("conda.misc.explicit")
 def test_installer_uses_explicit_function(
-    mock_explicit, explicit_env, mock_args, tmp_path
+    monkeypatch, explicit_env, mock_args, tmp_path
 ):
     """Test that installer calls explicit() function for explicit environments."""
-    # Mock the explicit function to return success
-    mock_explicit.return_value = {"success": True}
+    # Track calls to explicit function
+    explicit_calls = []
+
+    def mock_explicit(*args, **kwargs):
+        explicit_calls.append((args, kwargs))
+        return {"success": True}
+
+    # Mock the explicit function
+    monkeypatch.setattr("conda.misc.explicit", mock_explicit)
 
     # Call installer with Environment
     install(str(tmp_path), [], mock_args, explicit_env)
 
     # Verify explicit() was called
-    mock_explicit.assert_called_once()
+    assert len(explicit_calls) == 1
 
     # Check the arguments passed to explicit()
-    call_args = mock_explicit.call_args
-    explicit_specs = call_args[0][0]  # First positional argument
-    prefix = call_args[0][1]  # Second positional argument
+    call_args, call_kwargs = explicit_calls[0]
+    explicit_specs = call_args[0]  # First positional argument
+    prefix = call_args[1]  # Second positional argument
 
     # Should include @EXPLICIT marker
     assert "@EXPLICIT" in explicit_specs
     assert prefix == str(tmp_path)
 
 
-@patch("conda.misc.explicit")
-def test_installer_preserves_original_file(mock_explicit, tmp_path, mock_args):
+def test_installer_preserves_original_file(monkeypatch, tmp_path, mock_args):
     """Test installer preserves the original explicit file."""
     # Create a temporary explicit file
     explicit_file = tmp_path / "test.txt"
@@ -76,14 +81,21 @@ def test_installer_preserves_original_file(mock_explicit, tmp_path, mock_args):
         filename=str(explicit_file),
     )
 
+    # Track calls to explicit function
+    explicit_calls = []
+
+    def mock_explicit(*args, **kwargs):
+        explicit_calls.append((args, kwargs))
+        return {"success": True}
+
     # Mock the explicit function
-    mock_explicit.return_value = {"success": True}
+    monkeypatch.setattr("conda.misc.explicit", mock_explicit)
 
     # Call installer
     install(str(tmp_path), [], mock_args, env)
 
     # Verify explicit() was called
-    mock_explicit.assert_called_once()
+    assert len(explicit_calls) == 1
 
 
 def test_installer_handles_missing_filename(explicit_urls, mock_args):
@@ -95,19 +107,31 @@ def test_installer_handles_missing_filename(explicit_urls, mock_args):
     assert env.dependencies.explicit is True
 
 
-@patch("conda.env.installers.conda._solve")
 def test_installer_bypasses_solver_for_explicit(
-    mock_solve, explicit_env, mock_args, tmp_path
+    monkeypatch, explicit_env, mock_args, tmp_path
 ):
     """Test that installer bypasses solver for explicit environments."""
-    with patch("conda.misc.explicit") as mock_explicit:
-        mock_explicit.return_value = {"success": True}
+    # Track calls to functions
+    solve_calls = []
+    explicit_calls = []
 
-        # Call installer with explicit environment
-        install(str(tmp_path), [], mock_args, explicit_env)
+    def mock_solve(*args, **kwargs):
+        solve_calls.append((args, kwargs))
+        return None
 
-        # Solver should not be called for explicit environments
-        mock_solve.assert_not_called()
+    def mock_explicit(*args, **kwargs):
+        explicit_calls.append((args, kwargs))
+        return {"success": True}
 
-        # But explicit() should be called
-        mock_explicit.assert_called_once()
+    # Mock both functions
+    monkeypatch.setattr("conda.env.installers.conda._solve", mock_solve)
+    monkeypatch.setattr("conda.misc.explicit", mock_explicit)
+
+    # Call installer with explicit environment
+    install(str(tmp_path), [], mock_args, explicit_env)
+
+    # Solver should not be called for explicit environments
+    assert len(solve_calls) == 0
+
+    # But explicit() should be called
+    assert len(explicit_calls) == 1
