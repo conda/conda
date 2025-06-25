@@ -67,11 +67,10 @@ class RequirementsSpec(EnvironmentSpecBase):
         :return: True if the name is valid, False otherwise
         """
         if self.name is None:
+            self.msg = "The environment does not have a name"
             return False
         else:
             return True
-        self.msg = "The environment does not have a name"
-        return False
 
     def can_handle(self) -> bool:
         """
