@@ -100,10 +100,6 @@ class RequirementsSpec(EnvironmentSpecBase):
         dependencies_list = list(yield_lines(self.filename))
         if "@EXPLICIT" in dependencies_list:
             return False
-<<<<<<< env-exporter-hook -- Incoming Change
-=======
-
->>>>>>> main -- Current Change
         return True
 
     @property
