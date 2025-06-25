@@ -15,46 +15,25 @@ from ..common.constants import NULL
 from ..exceptions import CondaValueError
 
 
-def _generate_format_help_and_examples():
-    """
-    Generate dynamic help text and examples based on available export formats.
-
-    :return: Tuple of (format_help, examples_epilog)
-    """
-    from ..plugins.manager import get_plugin_manager
-
-    plugin_manager = get_plugin_manager()
-    available_formats = plugin_manager.get_available_export_formats()
-
-    # Generate help text
-    format_examples = ", ".join(available_formats[:3]) if available_formats else "yaml"
-    format_help = (
-        f"Format for the exported environment (e.g., {format_examples}). "
-        "If not specified, format will be determined by file extension or default to YAML."
-    )
-
-    # Generate examples
-    example_format = available_formats[0] if available_formats else "yaml"
-    example_ext = available_formats[0] if available_formats else "yaml"
-    examples = f"""
-    Examples::
-
-        conda export
-        conda export --file FILE_NAME
-        conda export --format {example_format}
-        conda export --file environment.{example_ext}
-
-    """
-
-    return format_help, examples
-
-
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import add_parser_json, add_parser_prefix
 
-    # Get dynamic help text and examples
-    format_help, examples = _generate_format_help_and_examples()
+    # Use static help text - plugin manager not initialized during CLI setup
+    format_help = (
+        "Format for the exported environment (e.g., yaml, json). "
+        "If not specified, format will be determined by file extension or default to YAML."
+    )
+
+    examples = """
+    Examples::
+
+        conda export
+        conda export --file FILE_NAME
+        conda export --format yaml
+        conda export --file environment.yaml
+
+    """
 
     summary = "Export a given environment"
     description = summary
