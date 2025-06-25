@@ -10,10 +10,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import ClassVar
 
+from ...base.context import context
 from ...deprecations import deprecated
 from ...gateways.disk.read import yield_lines
 from ...plugins.types import EnvironmentSpecBase
-from ..env import Environment
+from ...models.environment import Environment
+from ...models.match_spec import MatchSpec
 
 
 class RequirementsSpec(EnvironmentSpecBase):
@@ -105,8 +107,6 @@ class RequirementsSpec(EnvironmentSpecBase):
         """
         Build an environment from the requirements file.
 
-        This method reads the file as a generator and passes it directly to Environment.
-
         :return: An Environment object containing the package specifications
         :raises ValueError: If the file cannot be read
         """
@@ -115,7 +115,10 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))
+        requested_packages = [MatchSpec(dep) for dep in dependencies_list],
+
         return Environment(
-            dependencies=dependencies_list,
-            filename=self.filename,
-        ).to_environment_model()
+            prefix=context.prefix,
+            platform=context.subdir,
+            requested_packages=requested_packages,
+        )

@@ -32,6 +32,7 @@ from .exceptions import (
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
+from .models.records import PackageCacheRecord, PackageRecord
 from .models.prefix_graph import PrefixGraph
 
 if TYPE_CHECKING:
@@ -176,6 +177,25 @@ def explicit(
         txn.print_transaction_summary()
     txn.execute()
 
+
+def get_package_records_from_explicit(specs: list[str]) -> Iterable[PackageCacheRecord]:
+    fetch_specs = list(_match_specs_from_explicit(specs))
+
+    if context.dry_run:
+        raise DryRunExit()
+
+    pfe = ProgressiveFetchExtract(fetch_specs)
+    pfe.execute()
+
+    if context.download_only:
+        raise CondaExitZero(
+            "Package caches prepared. "
+            "UnlinkLinkTransaction cancelled with --download-only option."
+        )
+
+    return tuple(
+        next(PackageCacheData.query_all(spec), None) for spec in fetch_specs
+    )
 
 @deprecated("25.3", "25.9")
 def rel_path(prefix, path, windows_forward_slashes=True):

@@ -281,6 +281,8 @@ class Environment:
         if self.prefix is None:
             self.prefix = context.target_prefix
 
+        requested_packages = [MatchSpec(spec) for spec in self.dependencies.get("conda", [])]
+
         return EnvironmentModel(
             prefix=self.prefix,
             platform=context.subdir,
@@ -288,7 +290,7 @@ class Environment:
             config=config,
             variables=self.variables,
             external_packages=external_packages,
-            requested_packages=self.dependencies.get("conda", []),
+            requested_packages=requested_packages,
         )
         
 
