@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fixes bug with notices cache (#14229)
+* Improve conda notices cache handling for better user experience. (#14229)
 
 ### Deprecations
 
