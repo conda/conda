@@ -6,7 +6,7 @@ import pytest
 
 from conda.env.env import Environment
 from conda.env.explicit import ExplicitEnvironment
-from conda.env.specs.requirements import ExplicitRequirementsSpec
+from conda.env.specs.explicit import ExplicitSpec
 from tests.env import support_file
 
 
@@ -56,17 +56,15 @@ def test_explicit_environment_initialization(explicit_urls):
 
 
 def test_requirements_spec_returns_explicit_environment(support_explicit_file):
-    """Test that ExplicitRequirementsSpec returns an ExplicitEnvironment instance."""
-    spec = ExplicitRequirementsSpec(filename=support_explicit_file)
+    """Test that ExplicitSpec returns an Environment with explicit detection."""
+    spec = ExplicitSpec(filename=support_explicit_file)
     env = spec.environment
 
-    # Verify it's the right type
-    assert isinstance(env, ExplicitEnvironment)
-
-    # Check expected attributes
-    assert env.explicit_filename == support_explicit_file
-    assert hasattr(env, "explicit_specs")
-    assert len(env.explicit_specs) == 3  # @EXPLICIT marker + 2 packages
+    # Verify it's a regular Environment but marked as explicit
+    assert isinstance(env, Environment)
+    assert env.dependencies.explicit
+    assert env.filename == support_explicit_file
+    assert len(env.dependencies.raw) == 3  # @EXPLICIT marker + 2 packages
 
 
 def test_explicit_environment_for_cep23_compliance(explicit_env):
