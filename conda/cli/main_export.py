@@ -136,6 +136,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Determine export format and handle via environment exporter plugins
     plugin_manager = get_plugin_manager()
+    available_formats = plugin_manager.get_available_export_formats()
 
     target_format = args.format
     environment_exporter = None
@@ -149,10 +150,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             environment_exporter = file_exporter
         elif target_format is NULL:
             # No exporter found for file extension and no explicit format
-            available_formats = plugin_manager.get_available_export_formats()
             raise CondaValueError(
-                f"'{args.file}' is not recognized as a valid format. "
-                f"Try one of {{{', '.join(available_formats)}}} or specify `--format` explicitly."
+                f"File extension in '{args.file}' is not recognized. "
+                f"Supported extensions: {', '.join(f'.{format}' for format in available_formats)}. "
+                f"Or specify the format explicitly with --format."
             )
 
     # If format is still NULL, default to yaml
@@ -165,10 +166,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if not environment_exporter:
         # No exporter found for the requested format
-        available_formats = plugin_manager.get_available_export_formats()
+        file_context = f" for file '{args.file}'" if args.file else ""
         raise CondaValueError(
-            f"Unknown export format '{target_format}'. "
-            f"Available formats: {', '.join(available_formats)}"
+            f"Unknown export format '{target_format}'{file_context}. "
+            f"Available formats: {', '.join(available_formats)}."
         )
 
     # Export the environment - use JSON format if --json flag without file

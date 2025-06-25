@@ -83,7 +83,7 @@ def test_export_yaml_file_extension(
     path = path_factory(suffix=".txt")
 
     # This should now fail without explicit format
-    with pytest.raises(CondaValueError, match="is not recognized as a valid format"):
+    with pytest.raises(CondaValueError, match="File extension.*is not recognized"):
         conda_cli("export", f"--name={name}", f"--file={path}")
 
     # But should work with explicit format
