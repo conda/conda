@@ -32,34 +32,11 @@ from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
 
 if TYPE_CHECKING:
-    from os import PathLike
     from typing import Literal
 
 log = getLogger(__name__)
 
 listdir = lambda d: list(entry.name for entry in os.scandir(d))
-
-
-def read_non_comment_lines(filename: str | PathLike | Path) -> list[str]:
-    """
-    Read non-empty, non-comment lines from a file.
-
-    :param filename: Path to the file
-    :return: List of non-empty, non-comment lines
-    :raises OSError: If the file cannot be read
-    :raises FileNotFoundError: If the file does not exist
-    """
-    # Convert to Path object for consistent handling
-    path = Path(filename)
-    if not path.exists():
-        raise FileNotFoundError(f"File {path} does not exist")
-    # Use Path.read_text() to read the file content
-    content = path.read_text()
-    return [
-        line.strip()
-        for line in content.splitlines()
-        if line.strip() and not line.strip().startswith("#")
-    ]
 
 
 def yield_lines(path):
@@ -73,10 +50,13 @@ def yield_lines(path):
 
     """
     try:
-        # Use the read_non_comment_lines function but convert to a generator
-        yield from read_non_comment_lines(path)
+        path = Path(path)
+        with path.open() as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    yield line
     except FileNotFoundError:
-        # Return an empty generator when file doesn't exist
         pass
     except OSError as e:
         if e.errno == ENOENT:

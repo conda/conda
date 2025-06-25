@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 from ...common.url import path_to_url
 from ...deprecations import deprecated
-from ...gateways.disk.read import read_non_comment_lines
+from ...gateways.disk.read import yield_lines
 from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
 from ..explicit import ExplicitEnvironment
@@ -21,7 +21,7 @@ from ..explicit import ExplicitEnvironment
 
 class RequirementsSpec(EnvironmentSpecBase):
     """
-    Reads dependencies from a requirements.txt file
+    Reads dependencies from requirements files (including explicit files)
     and returns an Environment object from it.
     """
 
@@ -43,12 +43,12 @@ class RequirementsSpec(EnvironmentSpecBase):
 
     @property
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self):
+    def name(self):  # type: ignore[misc]
         return self._name
 
-    @name.setter
+    @name.setter  # type: ignore[misc]
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self, value):
+    def name(self, value):  # type: ignore[misc]
         self._name = value
 
     @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
@@ -57,7 +57,7 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         :return: True if the file exists, False otherwise
         """
-        if os.path.exists(self.filename):
+        if self.filename and os.path.exists(self.filename):
             return True
         else:
             self.msg = "There is no requirements.txt"
@@ -73,6 +73,8 @@ class RequirementsSpec(EnvironmentSpecBase):
             return False
         else:
             return True
+        self.msg = "The environment does not have a name"
+        return False
 
     def can_handle(self) -> bool:
         """
@@ -117,7 +119,7 @@ class RequirementsSpec(EnvironmentSpecBase):
             return None
 
         try:
-            return read_non_comment_lines(self.filename)
+            return list(yield_lines(self.filename))
         except Exception as e:
             self.msg = f"Error reading file {self.filename}: {str(e)}"
             return None
@@ -258,6 +260,8 @@ class ExplicitRequirementsSpec(RequirementsSpec):
             # Create an explicit environment with the packages
             # Using the typed ExplicitEnvironment class signals that this is from an explicit file
             # and should bypass the solver according to CEP-23
+            if self.filename is None:
+                raise ValueError("Filename is required for explicit environment")
             return ExplicitEnvironment(dependencies=packages, filename=self.filename)
         except Exception as e:
             self.msg = f"Error creating environment from {self.filename}: {str(e)}"

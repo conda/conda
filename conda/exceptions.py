@@ -474,15 +474,16 @@ class CondaOSError(CondaError, OSError):
 
 
 class ProxyError(CondaError):
-    def __init__(self):
-        message = dals(
-            """
-        Conda cannot proceed due to an error in your proxy configuration.
-        Check for typos and other configuration errors in any '.netrc' file in your home directory,
-        any environment variables ending in '_PROXY', and any other system-wide proxy
-        configuration settings.
-        """
-        )
+    def __init__(self, message: str | None = None):
+        if message is None:
+            message = dals(
+                """
+                Conda cannot proceed due to an error in your proxy configuration.
+                Check for typos and other configuration errors in any '.netrc' file in your home directory,
+                any environment variables ending in '_PROXY', and any other system-wide proxy
+                configuration settings.
+                """
+            )
         super().__init__(message)
 
 
@@ -1287,18 +1288,8 @@ class EnvironmentFileNotDownloaded(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
-class EnvironmentSpecPluginNotDetected(CondaError):
-    def __init__(self, name, plugin_names, *args, **kwargs):
-        self.name = name
-        msg = dals(
-            f"""
-            Environment at {name} is not readable by any installed
-            environment specifier plugins.
-
-            Available plugins: {dashlist(plugin_names, 4)}
-            """
-        )
-        super().__init__(msg, *args, **kwargs)
+class PluginError(CondaError):
+    pass
 
 
 class SpecNotFound(CondaError):
@@ -1306,8 +1297,33 @@ class SpecNotFound(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
-class PluginError(CondaError):
-    pass
+class EnvironmentSpecPluginNotDetected(SpecNotFound):
+    def __init__(
+        self,
+        name: str,
+        plugin_names: Iterable[str],
+        autodetect_disabled_plugins: Iterable[str] = (),
+        *args,
+        **kwargs,
+    ):
+        self.name = name
+        msg = dals(
+            f"""
+            Environment at {name} is not readable by any installed environment specifier plugins.
+
+            Available plugins: {dashlist(plugin_names, 16)}
+
+            """
+        )
+        if len(autodetect_disabled_plugins) > 0:
+            msg += dals(
+                """
+                Found compatible plugins but they must be explicitly selected.
+                Request conda to use these plugins by providing
+                the cli argument `--environment-spec PLUGIN_NAME`:
+                """
+            ) + dashlist(autodetect_disabled_plugins, 4)
+        super().__init__(msg, *args, **kwargs)
 
 
 def maybe_raise(error: BaseException, context: Context):

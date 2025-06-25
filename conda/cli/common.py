@@ -376,7 +376,7 @@ def validate_environment_files_consistency(files: list[str]) -> None:
 
     # Get types for all files using the plugin manager
     file_types = {
-        file: context.plugin_manager.get_environment_specifier_name(file)
+        file: context.plugin_manager.get_environment_specifier(file).name
         for file in files
     }
     # If there's more than one unique type, raise an error

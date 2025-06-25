@@ -28,6 +28,7 @@ version = release = conda.__version__
 extensions = [
     "autoapi.extension",
     "conda_umls",
+    "conda_sphinx_theme.version_anchors",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
