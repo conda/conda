@@ -228,6 +228,42 @@ def get_scripts_export_unset_vars(
     )
 
 
+@pytest.mark.parametrize("envvars_force_uppercase", [True, False])
+def test_get_export_unset_vars(
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    envvars_force_uppercase: bool,
+) -> None:
+    vars_dict = {"conda_lower": "value", "CONDA_UPPER": "value"}
+    kwargs = {"lower": "value", "UPPER": "value"}
+
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(envvars_force_uppercase))
+    reset_context()
+    assert context.envvars_force_uppercase == envvars_force_uppercase
+    mocker.patch(
+        "conda.base.context.Context.conda_exe_vars_dict",
+        new_callable=mocker.PropertyMock,
+        return_value=vars_dict,
+    )
+
+    case = str.upper if envvars_force_uppercase else str
+    activator = PosixActivator()
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        export_metavars=True,
+        **kwargs,
+    )
+    assert set(export_vars) == {*map(case, vars_dict), *map(case, kwargs)}
+    assert not unset_vars
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        export_metavars=False,
+        **kwargs,
+    )
+    assert set(export_vars) == set(map(case, kwargs))
+    assert set(unset_vars) == set(map(case, vars_dict))
+
+
 def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
@@ -1066,11 +1102,17 @@ def make_dot_d_files(prefix: str | os.PathLike, extension: str) -> None:
     (deactivated / f"deactivate1{extension}").touch()
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_posix_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1166,11 +1208,17 @@ def test_posix_basic(
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_cmd_exe_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = CmdExeActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1278,11 +1326,17 @@ def test_cmd_exe_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_csh_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1398,11 +1452,17 @@ def test_csh_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_xonsh_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1529,11 +1589,17 @@ def test_xonsh_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_fish_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1630,11 +1696,17 @@ def test_fish_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_powershell_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1716,11 +1788,17 @@ def test_powershell_basic(
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_json_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 

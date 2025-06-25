@@ -273,7 +273,7 @@ fi
 
 # initialize conda command
 echo "Initializing shell integration..."
-eval "$("${_ENVEXE}" shell.bash hook)" > /dev/null
+eval "$(CONDA_AUTO_ACTIVATE=0 "${_ENVEXE}" shell.bash hook)" > /dev/null
 if ! [ $? = 0 ]; then
     echo "Error: failed to initialize shell integration" 1>&2
     return 1
