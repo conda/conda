@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test conda explicit installer functionality."""
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -41,22 +40,24 @@ def test_installer_handles_explicit_environment(explicit_env, mock_args):
 
 
 @patch("conda.misc.explicit")
-def test_installer_uses_explicit_function(mock_explicit, explicit_env, mock_args, tmp_path):
+def test_installer_uses_explicit_function(
+    mock_explicit, explicit_env, mock_args, tmp_path
+):
     """Test that installer calls explicit() function for explicit environments."""
     # Mock the explicit function to return success
     mock_explicit.return_value = {"success": True}
-    
+
     # Call installer with Environment
     install(str(tmp_path), [], mock_args, explicit_env)
-    
+
     # Verify explicit() was called
     mock_explicit.assert_called_once()
-    
+
     # Check the arguments passed to explicit()
     call_args = mock_explicit.call_args
     explicit_specs = call_args[0][0]  # First positional argument
     prefix = call_args[0][1]  # Second positional argument
-    
+
     # Should include @EXPLICIT marker
     assert "@EXPLICIT" in explicit_specs
     assert prefix == str(tmp_path)
@@ -66,21 +67,21 @@ def test_installer_uses_explicit_function(mock_explicit, explicit_env, mock_args
 def test_installer_preserves_original_file(mock_explicit, tmp_path, mock_args):
     """Test installer preserves the original explicit file."""
     # Create a temporary explicit file
-    explicit_file = tmp_path / "test.txt" 
+    explicit_file = tmp_path / "test.txt"
     explicit_file.write_text("@EXPLICIT\nhttps://example.com/package.tar.bz2\n")
-    
+
     # Create environment with filename
     env = Environment(
         dependencies=["@EXPLICIT", "https://example.com/package.tar.bz2"],
-        filename=str(explicit_file)
+        filename=str(explicit_file),
     )
-    
+
     # Mock the explicit function
     mock_explicit.return_value = {"success": True}
-    
+
     # Call installer
     install(str(tmp_path), [], mock_args, env)
-    
+
     # Verify explicit() was called
     mock_explicit.assert_called_once()
 
@@ -89,22 +90,24 @@ def test_installer_handles_missing_filename(explicit_urls, mock_args):
     """Test that the installer handles Environment with no filename."""
     # Create Environment without a filename
     env = Environment(dependencies=explicit_urls)
-    
+
     # Should still detect as explicit
     assert env.dependencies.explicit is True
 
 
 @patch("conda.env.installers.conda._solve")
-def test_installer_bypasses_solver_for_explicit(mock_solve, explicit_env, mock_args, tmp_path):
+def test_installer_bypasses_solver_for_explicit(
+    mock_solve, explicit_env, mock_args, tmp_path
+):
     """Test that installer bypasses solver for explicit environments."""
     with patch("conda.misc.explicit") as mock_explicit:
         mock_explicit.return_value = {"success": True}
-        
+
         # Call installer with explicit environment
         install(str(tmp_path), [], mock_args, explicit_env)
-        
+
         # Solver should not be called for explicit environments
         mock_solve.assert_not_called()
-        
+
         # But explicit() should be called
         mock_explicit.assert_called_once()

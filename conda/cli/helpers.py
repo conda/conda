@@ -28,7 +28,7 @@ class LazyChoicesAction(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         valid_choices = self.choices_func()
         if values not in valid_choices:
-            choices_string = ", ".join(f"'{val}'" for val in valid_choices.keys())
+            choices_string = ", ".join(f"'{val}'" for val in valid_choices)
             parser.error(
                 f"argument '{option_string}': invalid choice: {values!r} (choose from {choices_string})"
             )

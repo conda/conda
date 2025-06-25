@@ -78,15 +78,19 @@ def test_export_yaml_file_extension(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactory,
 ) -> None:
-    # Note: With the plugin system, we no longer restrict file extensions
-    # Any extension is allowed, and format is determined by --format flag or detected from known extensions
+    # With the plugin system, unrecognized file extensions require explicit format specification
     name = uuid.uuid4().hex
     path = path_factory(suffix=".txt")
-    # This should now work fine - it will default to YAML format
-    conda_cli("export", f"--name={name}", f"--file={path}")
+
+    # This should now fail without explicit format
+    with pytest.raises(CondaValueError, match="is not recognized as a valid format"):
+        conda_cli("export", f"--name={name}", f"--file={path}")
+
+    # But should work with explicit format
+    conda_cli("export", f"--name={name}", f"--file={path}", "--format=yaml")
     assert path.exists()
 
-    # Content should be YAML format (default)
+    # Content should be YAML format
     data = yaml_safe_load(path.read_text())
     assert data["name"] == name
 
@@ -184,19 +188,11 @@ def test_export_yaml_format(conda_cli: CondaCLIFixture) -> None:
 
 
 def test_export_toml_format(conda_cli: CondaCLIFixture) -> None:
-    """Test exporting with --format toml (if TOML dependencies available)."""
+    """Test exporting with --format toml (TOML format not supported)."""
     name = uuid.uuid4().hex
-    try:
-        stdout, stderr, code = conda_cli("export", f"--name={name}", "--format=toml")
-        if code == 0:  # TOML export succeeded
-            assert not stderr
-            assert stdout
-            assert name in stdout  # Basic check that the content looks reasonable
-        else:
-            # TOML dependencies might not be available, which is okay
-            pytest.skip("TOML dependencies not available")
-    except Exception:
-        pytest.skip("TOML format not supported")
+    # TOML format is not supported, so this should be caught at argument parsing level
+    with pytest.raises(SystemExit):
+        conda_cli("export", f"--name={name}", "--format=toml")
 
 
 def test_export_toml_file_extension(
@@ -219,18 +215,18 @@ def test_export_toml_file_extension(
 
 
 def test_export_unknown_format(conda_cli: CondaCLIFixture) -> None:
-    """Test that unknown export formats raise CondaValueError."""
+    """Test that unknown export formats are caught at argument parsing level."""
     name = uuid.uuid4().hex
-    # Should raise error for unknown formats
-    with pytest.raises(CondaValueError, match="Unknown export format 'unknown'"):
+    # Should raise SystemExit for unknown formats (caught by argument parser)
+    with pytest.raises(SystemExit):
         conda_cli("export", f"--name={name}", "--format=unknown")
 
 
 def test_export_unknown_format_verbose(conda_cli: CondaCLIFixture) -> None:
-    """Test that unknown export formats raise CondaValueError in verbose mode too."""
+    """Test that unknown export formats are caught at argument parsing level in verbose mode too."""
     name = uuid.uuid4().hex
-    # Should raise error for unknown formats in verbose mode
-    with pytest.raises(CondaValueError, match="Unknown export format 'unknown'"):
+    # Should raise SystemExit for unknown formats in verbose mode (caught by argument parser)
+    with pytest.raises(SystemExit):
         conda_cli("export", f"--name={name}", "--format=unknown", "-v")
 
 

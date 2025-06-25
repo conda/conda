@@ -17,7 +17,7 @@ from ..exceptions import CondaValueError
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from .helpers import add_parser_json, add_parser_prefix, LazyChoicesAction
+    from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
 
     summary = "Export a given environment"
     description = summary
@@ -68,6 +68,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     def _get_available_export_formats():
         from ..plugins.manager import get_plugin_manager
+
         return get_plugin_manager().get_available_export_formats()
 
     p.add_argument(
@@ -146,6 +147,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             exporter_instance = file_exporter.handler()
             target_format = exporter_instance.format
             environment_exporter = file_exporter
+        elif target_format is NULL:
+            # No exporter found for file extension and no explicit format
+            available_formats = plugin_manager.get_available_export_formats()
+            raise CondaValueError(
+                f"'{args.file}' is not recognized as a valid format. "
+                f"Try one of {{{', '.join(available_formats)}}} or specify `--format` explicitly."
+            )
 
     # If format is still NULL, default to yaml
     if target_format is NULL:
