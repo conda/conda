@@ -507,7 +507,7 @@ class EnvironmentExporter(ABC):
         :param env: The conda Environment object to export (models.Environment)
         :param format: The target format name
         :returns str: The environment data in the target format
-        :raises ValueError: If format is not supported by this exporter
+        :raises CondaValueError: If format is not supported by this exporter
         """
         raise NotImplementedError()
 

@@ -57,7 +57,7 @@ class TestEnvironmentExporter(EnvironmentExporter):
 
     def export(self, env: Environment, format: str) -> str:
         if not self.can_handle(format=format):
-            raise ValueError(
+            raise CondaValueError(
                 f"{self.__class__.__name__} doesn't support format: {format}"
             )
         return f"TEST FORMAT: {env.name}"
@@ -196,7 +196,7 @@ def test_exporter_error_handling(loaded_plugin_manager, test_env):
     assert exporter_config is not None
 
     exporter = exporter_config.handler()
-    with pytest.raises(ValueError, match="doesn't support format"):
+    with pytest.raises(CondaValueError, match="doesn't support format"):
         exporter.export(test_env, "unsupported")
 
 

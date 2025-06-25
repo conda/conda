@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
+from ...exceptions import CondaValueError
 from .. import hookimpl
 from ..types import CondaEnvironmentExporter, EnvironmentExporter
 
@@ -40,7 +41,7 @@ class JSONExporter(EnvironmentExporter):
     def export(self, env: Environment, format: str) -> str:
         """Export Environment to JSON format."""
         if not self.can_handle(format=format):
-            raise ValueError(
+            raise CondaValueError(
                 f"{self.__class__.__name__} doesn't support format: {format}"
             )
 
