@@ -61,7 +61,7 @@ class ExplicitSpec(EnvironmentSpecBase):
         explicit_packages = get_package_records_from_explicit(dependencies_list )
         
         return Environment(
-            prefix=context.prefix,
+            prefix=context.target_prefix,
             platform=context.subdir,
             explicit_packages=explicit_packages,
         )
