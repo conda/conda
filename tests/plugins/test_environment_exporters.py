@@ -41,8 +41,8 @@ def test_environment_exporter_base_class():
     assert exporter.format == "test"
 
     # Test filename support
-    assert exporter.supports("env.test")
-    assert not exporter.supports("env.yaml")
+    assert exporter.can_handle("env.test")
+    assert not exporter.can_handle("env.yaml")
 
     # Test export functionality
     env = Environment(name="test-env")

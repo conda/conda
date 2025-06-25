@@ -702,7 +702,7 @@ class CondaPluginManager(pluggy.PluginManager):
         matches = []
         for exporter_config in self.get_hook_results("environment_exporters"):
             exporter = exporter_config.handler()
-            if exporter.supports(filename):
+            if exporter.can_handle(filename):
                 matches.append(exporter_config)
 
         if len(matches) == 1:

@@ -482,7 +482,7 @@ class EnvironmentExporter(ABC):
     # File extensions this exporter supports
     extensions: set[str] = set()
 
-    def supports(self, filename: str) -> bool:
+    def can_handle(self, filename: str) -> bool:
         """
         Check if this exporter can handle the given filename based on extension.
 
