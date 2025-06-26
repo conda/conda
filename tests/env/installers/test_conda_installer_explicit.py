@@ -9,7 +9,6 @@ from conda.env.specs.explicit import ExplicitSpec
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
-
 from tests.env import support_file
 
 
@@ -29,7 +28,7 @@ def explicit_env():
         channel="main",
         subdir="linux-64",
         build_number=4,
-        url="https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2"
+        url="https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.0-h2a148a8_4.tar.bz2",
     )
     return Environment(
         prefix="/path/to/env",
@@ -42,10 +41,10 @@ def explicit_env():
 def regular_env():
     """Create a regular Environment instance for testing."""
     return Environment(
-            prefix="/path/to/env",
-            platform="linux-64",
-            requested_packages=[MatchSpec("python=3.9")],
-        )
+        prefix="/path/to/env",
+        platform="linux-64",
+        requested_packages=[MatchSpec("python=3.9")],
+    )
 
 
 @pytest.fixture(scope="function")
@@ -88,7 +87,12 @@ def mock_solver(mocker):
 
 
 def test_installer_type_checking_for_explicit(
-    explicit_env, regular_env, mock_install_explicit_packages, mock_solver, tmp_path, mocker
+    explicit_env,
+    regular_env,
+    mock_install_explicit_packages,
+    mock_solver,
+    tmp_path,
+    mocker,
 ):
     """Test that the installer uses type checking to identify explicit environments."""
     # Create a mock args object

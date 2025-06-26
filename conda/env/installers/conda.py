@@ -14,7 +14,6 @@ from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
 from ...env.env import Environment as EnvironmentYaml
-from ...models.environment import Environment
 from ...exceptions import CondaValueError, UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from argparse import Namespace
 
     from ...core.solve import Solver
+    from ...models.environment import Environment
 
 
 def _solve(

@@ -7,8 +7,8 @@ from __future__ import annotations
 from ...base.context import context
 from ...gateways.disk.read import yield_lines
 from ...misc import get_package_records_from_explicit
-from ...plugins.types import EnvironmentSpecBase
 from ...models.environment import Environment
+from ...plugins.types import EnvironmentSpecBase
 
 
 class ExplicitSpec(EnvironmentSpecBase):
@@ -59,7 +59,7 @@ class ExplicitSpec(EnvironmentSpecBase):
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))
         explicit_packages = get_package_records_from_explicit(dependencies_list)
-        
+
         return Environment(
             prefix=context.target_prefix,
             platform=context.subdir,

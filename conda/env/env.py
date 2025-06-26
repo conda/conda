@@ -266,13 +266,11 @@ class Environment:
         """Save the ``Environment`` data to a ``yaml`` file"""
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
-    
+
     def to_environment_model(self):
         """Convert the ``Environment`` into a ``model.Environment`` object"""
-        config = EnvironmentConfig(
-            channels=self.channels
-        )
-        
+        config = EnvironmentConfig(channels=self.channels)
+
         external_packages = {}
         if "pip" in self.dependencies.keys() and len(self.dependencies.get("pip")) > 0:
             external_packages["pip"] = self.dependencies.get("pip")
@@ -280,7 +278,9 @@ class Environment:
         if self.prefix is None:
             self.prefix = context.target_prefix
 
-        requested_packages = [MatchSpec(spec) for spec in self.dependencies.get("conda", [])]
+        requested_packages = [
+            MatchSpec(spec) for spec in self.dependencies.get("conda", [])
+        ]
 
         return EnvironmentModel(
             prefix=self.prefix,
@@ -291,7 +291,7 @@ class Environment:
             external_packages=external_packages,
             requested_packages=requested_packages,
         )
-        
+
 
 @deprecated("25.9", "26.3")
 def get_filename(filename):
