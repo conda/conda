@@ -115,7 +115,7 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))
-        requested_packages = [MatchSpec(dep) for dep in dependencies_list],
+        requested_packages = [MatchSpec(dep) for dep in dependencies_list]
 
         return Environment(
             prefix=context.target_prefix,
