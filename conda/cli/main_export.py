@@ -12,19 +12,22 @@ from argparse import (
 )
 
 from ..common.constants import NULL
+from ..core.prefix_data import PrefixData
 from ..exceptions import CondaValueError
 
 
 def _create_environment_from_prefix(prefix, env_name, args):
     """Create a models.Environment directly from prefix and arguments."""
     from ..base.context import context
-    from ..core.prefix_data import PrefixData
     from ..history import History
     from ..models.environment import Environment, EnvironmentConfig
     from ..models.match_spec import MatchSpec
 
     # Get the current platform with proper subdir format
     platform = context.subdir
+
+    # Get prefix data - always needed for packages and/or variables
+    prefix_data = PrefixData(prefix)
 
     # Build requested packages from installed packages or history
     requested_packages = []
@@ -35,9 +38,7 @@ def _create_environment_from_prefix(prefix, env_name, args):
         spec_map = history.get_requested_specs_map()
         requested_packages = list(spec_map.values())
     else:
-        # Get prefix data to read all installed packages
-        prefix_data = PrefixData(prefix)
-
+        # Read all installed packages from prefix data
         for prefix_record in prefix_data.iter_records():
             # Create MatchSpec from installed package
             if args.no_builds:
@@ -73,13 +74,16 @@ def _create_environment_from_prefix(prefix, env_name, args):
     if channels:
         config = EnvironmentConfig(channels=channels)
 
+    # Extract environment variables from prefix
+    variables = prefix_data.get_environment_env_vars()
+
     # Create models.Environment
     return Environment(
         name=env_name,
         prefix=prefix,
         platform=platform,
         requested_packages=requested_packages,
-        variables={},  # TODO: Extract environment variables if needed
+        variables=variables,
         config=config,
     )
 
