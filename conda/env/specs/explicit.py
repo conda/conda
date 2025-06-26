@@ -58,7 +58,7 @@ class ExplicitSpec(EnvironmentSpecBase):
 
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))
-        explicit_packages = get_package_records_from_explicit(dependencies_list )
+        explicit_packages = get_package_records_from_explicit(dependencies_list)
         
         return Environment(
             prefix=context.target_prefix,
