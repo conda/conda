@@ -15,6 +15,7 @@ from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.base.context import context, reset_context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
+from conda.common.url import path_to_url
 from conda.exceptions import CondaError, PackagesNotFoundError
 from conda.notices import fetch
 from conda.testing.notices.helpers import (
@@ -298,10 +299,10 @@ def test_cache_names_appear_as_expected(
 
 def test_notices_appear_once_when_running_decorated_commands(
     tmpdir,
-    env_one,
     notices_cache_dir,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    test_recipes_channel,
 ):
     """
     As a user, I want to make sure when I run commands like "install" and "update"
@@ -316,36 +317,16 @@ def test_notices_appear_once_when_running_decorated_commands(
 
     This test intentionally does not make any external network calls and never should.
     """
+    env_one = "notices_test"
     offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
     fetch_mock = mocker.patch(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
     )
 
-    if context.solver == "libmamba":
-        PACKAGE_MISSING_MESSAGE = (
-            "The following packages are not available from current channels"
-        )
-    else:
-        # https://github.com/conda/conda/issues/12197
-        PACKAGE_MISSING_MESSAGE = (
-            "The following packages are missing from the target environment"
-        )
-
     # First run of install; notices should be retrieved; it's okay that this function fails
     # to install anything.
-    with pytest.raises(
-        PackagesNotFoundError,
-        match=PACKAGE_MISSING_MESSAGE,
-    ):
-        conda_cli(
-            "install",
-            *("--name", env_one),
-            *("--channel", "local"),
-            "--override-channels",
-            "--yes",
-            "does_not_exist",
-        )
+    conda_cli("create", "--name", env_one, "--yes", "--channel", test_recipes_channel)
 
     # make sure our fetch function was called correctly
     fetch_mock.assert_called_once()
@@ -354,24 +335,15 @@ def test_notices_appear_once_when_running_decorated_commands(
     # If we did this correctly, args should be an empty list because our local channel has not
     # been initialized. This causes no network traffic because there are no URLs to fetch which
     # is what we want.
-    assert args == ([],)
+    notices_path = test_recipes_channel / "notices.json"
+    notices_url = path_to_url(str(notices_path))
+    assert args == ([(notices_url, "test-recipes")],)
 
     # Reset our mock for another call to "conda install"
     fetch_mock.reset_mock()
 
     # Second run of install; notices should not be retrieved; also okay that this fails.
-    with pytest.raises(
-        PackagesNotFoundError,
-        match=PACKAGE_MISSING_MESSAGE,
-    ):
-        conda_cli(
-            "install",
-            *("--name", env_one),
-            *("--channel", "local"),
-            "--override-channels",
-            "--yes",
-            "does_not_exist",
-        )
+    conda_cli("remove", "--name", env_one, "--yes", "--all")
 
     fetch_mock.assert_not_called()
 
@@ -402,6 +374,7 @@ def test_notices_does_not_interrupt_command_on_failure(
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
     path_factory: PathFactoryFixture,
+    test_recipes_channel,
 ):
     """
     As a user, when I run conda in an environment where notice cache files might not be readable or
@@ -418,8 +391,7 @@ def test_notices_does_not_interrupt_command_on_failure(
         "create",
         f"--prefix={prefix}",
         "--yes",
-        *("--channel", "local"),
-        "--override-channels",
+        f"--channel={test_recipes_channel}",
     )
 
     assert exit_code == 0
@@ -431,9 +403,9 @@ def test_notices_does_not_interrupt_command_on_failure(
 
 def test_notices_cannot_read_cache_files(
     notices_cache_dir,
-    notices_mock_fetch_get_session,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    test_recipes_channel,
 ):
     """
     As a user, when I run `conda notices` and the cache file cannot be read or written, I want
@@ -446,4 +418,48 @@ def test_notices_cannot_read_cache_files(
     with pytest.raises(
         CondaError, match=f"Unable to retrieve notices: {error_message}"
     ):
-        conda_cli("notices", "--channel", "local", "--override-channels")
+        conda_cli("notices", "--channel", test_recipes_channel)
+
+
+def test_notices_shown_after_previous_command_error(
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel,
+):
+    """
+    As a user, when I run a command that generates an error (e.g. trying to install a package that
+    cannot be found), when notices are available, I want the subsequent run of the command to
+    show them.
+
+    Regression test for: https://github.com/conda/conda/issues/14072
+    """
+    env_one = "notices-test"
+
+    messages = ("Test One",)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
+
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli(
+            "create",
+            f"--name={env_one}",
+            f"--channel={test_recipes_channel}",
+            "--override-channels",
+            "--yes",
+            "package-does-not-exist",
+        )
+
+    messages = ("Test One",)
+    messages_json = get_test_notices(messages)
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
+
+    out, err, exc = conda_cli(
+        "create",
+        f"--name={env_one}",
+        f"--channel={test_recipes_channel}",
+        "--override-channels",
+        "--yes",
+    )
+
+    assert "Test One" in out

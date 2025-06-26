@@ -667,6 +667,7 @@ def get_python_version_for_prefix(prefix: os.PathLike) -> str | None:
             return record.version[:4]
         else:
             return record.version[:3]
+    return None
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

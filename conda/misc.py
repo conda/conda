@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Miscellaneous utility functions."""
 
+from __future__ import annotations
+
 import os
 import re
 import shutil
 from collections import defaultdict
-from collections.abc import Iterable
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from typing import TYPE_CHECKING
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
@@ -31,6 +33,10 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -91,7 +97,14 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
 
 
 @deprecated.argument("25.3", "25.9", "index_args")
-def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
+def explicit(
+    specs: Iterable[str],
+    prefix: str,
+    verbose: bool = False,
+    force_extract: bool = True,
+    index: Any = None,
+    requested_specs: Sequence[str] | None = None,
+) -> None:
     actions = defaultdict(list)
     actions["PREFIX"] = prefix
 
@@ -142,12 +155,19 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
             else:
                 precs_to_remove.append(prec)
 
+    # Record user-requested specs in history when provided, otherwise fall back to
+    # all processed specs for backwards compatibility
+    if requested_specs:
+        update_specs_for_history = tuple(MatchSpec(spec) for spec in requested_specs)
+    else:
+        update_specs_for_history = tuple(sp[0] for sp in specs_pcrecs if sp[0])
+
     stp = PrefixSetup(
         prefix,
         precs_to_remove,
         tuple(sp[1] for sp in specs_pcrecs if sp[0]),
         (),
-        tuple(sp[0] for sp in specs_pcrecs if sp[0]),
+        update_specs_for_history,
         (),
     )
 
