@@ -27,7 +27,8 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
-    from ..env.env import Environment
+    from ..env.env import Environment as LegacyEnvironment
+    from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
 
@@ -417,7 +418,11 @@ class EnvironmentSpecBase(ABC):
     """
     **EXPERIMENTAL**
 
-    Base class for all env specs.
+    Base class for all environment specifications.
+
+    Environment specs parse different types of environment definition files
+    (environment.yml, requirements.txt, pyproject.toml, etc.) into a common
+    Environment object model.
     """
 
     # Determines if the EnvSpec plugin should be included in the set
@@ -439,11 +444,11 @@ class EnvironmentSpecBase(ABC):
 
     @property
     @abstractmethod
-    def environment(self) -> Environment:
+    def environment(self) -> LegacyEnvironment:
         """
         Express the provided environment file as a conda environment object.
 
-        :returns Environment: the conda environment represented by the file.
+        :returns LegacyEnvironment: the conda environment represented by the file.
         """
         raise NotImplementedError()
 
@@ -464,3 +469,57 @@ class CondaEnvironmentSpecifier:
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
+
+
+class EnvironmentExporter(ABC):
+    """
+    Base class for environment exporters that serialize Environment objects
+    to different output formats.
+    """
+
+    # The canonical format name this exporter handles
+    format: str = ""
+
+    # File extensions this exporter supports
+    extensions: set[str] = set()
+
+    @abstractmethod
+    def can_handle(
+        self, filename: str | None = None, format: str | None = None
+    ) -> bool:
+        """
+        Check if this exporter can handle the given filename and/or format.
+
+        Subclasses should implement their own detection logic, which may include
+        checking file extensions, format names, content validation, or other criteria.
+
+        :param filename: Optional filename to check (e.g., 'env.json')
+        :param format: Optional format name to check (e.g., 'json', 'yaml')
+        :return: True if this exporter can handle the request
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def export(self, env: Environment, format: str) -> str:
+        """
+        Export an Environment object to the specified format.
+
+        :param env: The conda Environment object to export (models.Environment)
+        :param format: The target format name
+        :returns str: The environment data in the target format
+        :raises CondaValueError: If format is not supported by this exporter
+        """
+        raise NotImplementedError()
+
+
+@dataclass
+class CondaEnvironmentExporter:
+    """
+    Return type to use when defining a conda environment exporter plugin hook.
+
+    :param name: name of the exporter (e.g., ``json_exporter``)
+    :param handler: EnvironmentExporter subclass handler
+    """
+
+    name: str
+    handler: type[EnvironmentExporter]

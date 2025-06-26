@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from typing import ClassVar
 
 from ...deprecations import deprecated
+from ...exceptions import CondaValueError
 from ...gateways.disk.read import yield_lines
 from ...plugins.types import EnvironmentSpecBase
 from ..env import Environment
@@ -40,12 +41,12 @@ class RequirementsSpec(EnvironmentSpecBase):
 
     @property
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self):
+    def name(self):  # type: ignore[misc]
         return self._name
 
-    @name.setter
+    @name.setter  # type: ignore[misc]
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self, value):
+    def name(self, value):  # type: ignore[misc]
         self._name = value
 
     @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
@@ -54,7 +55,7 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         :return: True if the file exists, False otherwise
         """
-        if os.path.exists(self.filename):
+        if self.filename and os.path.exists(self.filename):
             return True
         else:
             self.msg = "There is no requirements.txt"
@@ -66,10 +67,11 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         :return: True if the name is valid, False otherwise
         """
-        if self._name:
+        if self.name is None:
+            self.msg = "The environment does not have a name"
+            return False
+        else:
             return True
-        self.msg = "The environment does not have a name"
-        return False
 
     def can_handle(self) -> bool:
         """
@@ -77,6 +79,8 @@ class RequirementsSpec(EnvironmentSpecBase):
         This checks if:
             * a filename was provided
             * the file has a supported extension
+            * the file exists
+            * the file content is valid for this specifier type
 
         :return: True if the file can be handled, False otherwise
         """
@@ -97,7 +101,6 @@ class RequirementsSpec(EnvironmentSpecBase):
         dependencies_list = list(yield_lines(self.filename))
         if "@EXPLICIT" in dependencies_list:
             return False
-
         return True
 
     @property
@@ -111,7 +114,7 @@ class RequirementsSpec(EnvironmentSpecBase):
         :raises ValueError: If the file cannot be read
         """
         if not self.filename:
-            raise ValueError("No filename provided")
+            raise CondaValueError("No filename provided")
 
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))
