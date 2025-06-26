@@ -25,17 +25,16 @@ class YAMLExporter(EnvironmentExporter):
     ) -> bool:
         """Check if this exporter can handle the given filename and/or format."""
         # Check format if provided
-        if format is not None:
-            if format != self.format:
-                return False
+        if format is not None and format != self.format:
+            return False
 
         # Check filename if provided
-        if filename is not None:
-            if not any(filename.endswith(ext) for ext in self.extensions):
-                return False
-
-        # If we get here, all provided criteria matched
-        return True
+        elif filename is not None and not any(
+            filename.endswith(ext) for ext in self.extensions
+        ):
+            return False
+        else:
+            return True
 
     def export(self, env: Environment, format: str) -> str:
         """Export Environment to YAML format."""
