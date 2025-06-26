@@ -98,38 +98,10 @@ def install(
     if env.explicit_packages:
         from ...misc import explicit
 
-        log = logging.getLogger(__name__)
-
         # Use verbose output if not in quiet mode
         verbose = not context.quiet
 
-        # Determine which package specs to use:
-        explicit_specs = None
-        filename = env.filename
-
-        # Try to read from original file if available (most reliable source)
-        if filename:
-            explicit_specs = list(yield_lines(filename))
-            if explicit_specs:
-                log.debug("Using package specs from explicit file: %s", filename)
-            else:
-                log.warning(
-                    "Could not read explicit file %s or file is empty", filename
-                )
-
-        # If we can't read the explicit file, we can't proceed safely
-        if not explicit_specs:
-            if filename:
-                raise CondaValueError(
-                    f"Explicit file {filename} is empty or unreadable"
-                )
-            else:
-                # Fall back to using environment dependencies for programmatically created envs
-                explicit_specs = env.dependencies.raw
-                log.debug(
-                    "Using dependencies from programmatically created environment"
-                )
-
+        explicit_specs = [spec.url for spec in env.explicit_packages]
         # For explicit environments, we consider any provided specs as user-requested
         # All packages in the explicit file are installed, but only user-provided specs
         # are recorded in history as explicitly requested
