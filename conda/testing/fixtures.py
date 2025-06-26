@@ -21,7 +21,6 @@ import pytest
 from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
-from ..auxlib.entity import EntityEncoder
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.main import main_subshell
