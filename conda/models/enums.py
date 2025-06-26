@@ -15,6 +15,7 @@ from ..exceptions import CondaUpgradeError
 class Arch(Enum):
     x86 = "x86"
     x86_64 = "x86_64"
+    AMD64 = "AMD64"
     # arm64 is for macOS and Windows
     arm64 = "arm64"
     armv6l = "armv6l"
@@ -25,6 +26,7 @@ class Arch(Enum):
     ppc64le = "ppc64le"
     riscv64 = "riscv64"
     s390x = "s390x"
+    unknown = "unknown"
     wasm32 = "wasm32"
     z = "z"
 
@@ -32,7 +34,10 @@ class Arch(Enum):
     def from_sys(cls):
         if sys.platform == "zos":
             return cls["z"]
-        return cls[machine()]
+        try:
+            return cls(machine())
+        except ValueError:
+            return Arch.unknown
 
     def __json__(self):
         return self.value
