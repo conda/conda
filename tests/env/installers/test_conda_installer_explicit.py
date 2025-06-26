@@ -49,13 +49,13 @@ def regular_env():
 
 
 @pytest.fixture(scope="function")
-def mock_explicit(mocker):
-    """Mock the explicit function from misc using mocker."""
+def mock_install_explicit_packages(mocker):
+    """Mock the install_explicit_packages function from misc using mocker."""
     # Create a mock with a success return value
     mock_func = mocker.Mock(return_value={"success": True})
 
     # Patch the function using mocker.patch
-    mocker.patch("conda.misc.explicit", mock_func)
+    mocker.patch("conda.misc.install_explicit_packages", mock_func)
     return mock_func
 
 
@@ -88,7 +88,7 @@ def mock_solver(mocker):
 
 
 def test_installer_type_checking_for_explicit(
-    explicit_env, regular_env, mock_explicit, mock_solver, tmp_path, mocker
+    explicit_env, regular_env, mock_install_explicit_packages, mock_solver, tmp_path, mocker
 ):
     """Test that the installer uses type checking to identify explicit environments."""
     # Create a mock args object
@@ -98,13 +98,13 @@ def test_installer_type_checking_for_explicit(
     install(tmp_path, [], args, explicit_env)
 
     # Verify explicit() was called for ExplicitEnvironment
-    mock_explicit.assert_called_once()
+    mock_install_explicit_packages.assert_called_once()
 
     # Verify _solve was not called for ExplicitEnvironment
     mock_solver.assert_not_called()
 
     # Reset mocks
-    mock_explicit.reset_mock()
+    mock_install_explicit_packages.reset_mock()
     mock_solver.reset_mock()
 
     # Call installer with regular Environment
@@ -114,11 +114,11 @@ def test_installer_type_checking_for_explicit(
     mock_solver.assert_called_once()
 
     # Verify explicit() was not called for regular Environment
-    mock_explicit.assert_not_called()
+    mock_install_explicit_packages.assert_not_called()
 
 
 def test_installer_installs_explicit(
-    support_explicit_file, mock_explicit, tmp_path, mocker
+    support_explicit_file, mock_install_explicit_packages, tmp_path, mocker
 ):
     """Test that the installer installs explicit packages"""
     # Create spec from a real file
@@ -129,20 +129,18 @@ def test_installer_installs_explicit(
     install(tmp_path, [], mocker.Mock(), env)
 
     # Get the args passed to explicit()
-    args, kwargs = mock_explicit.call_args
+    _, kwargs = mock_install_explicit_packages.call_args
 
-    # First arg should be a list of package URLs
-    assert isinstance(args[0], list)
+    package_cache_records_kwarg = kwargs.get("package_cache_records")
+    # Should be a list of package cache records
+    for kwarg in package_cache_records_kwarg:
+        assert isinstance(kwarg, PackageRecord)
 
-    assert len(args[0]) == 2  # 2 packages
-
-    # Verify that all lines are package URLs
-    for line in args[0]:
-        assert line.startswith("https://"), f"Expected URL but got: {line}"
+    assert len(package_cache_records_kwarg) == 2  # 2 packages
 
 
 def test_explicit_with_user_specs(
-    explicit_env, mock_explicit, tmp_path
+    explicit_env, mock_install_explicit_packages, tmp_path
 ) -> None:
     """Test that user specs are tracked separately."""
     user_specs = ["numpy>=1.20"]
@@ -151,16 +149,12 @@ def test_explicit_with_user_specs(
     install(tmp_path, user_specs, tmp_path, explicit_env)
 
     # Assert
-    mock_explicit.assert_called_once()
+    mock_install_explicit_packages.assert_called_once()
 
-    args, kwargs = mock_explicit.call_args
+    _, kwargs = mock_install_explicit_packages.call_args
 
     # Verify user-requested specs are tracked separately
     assert kwargs.get("requested_specs") == user_specs
 
     # Verify all explicit specs are still passed for installation
-    assert len(args[0]) == 1  # 1 package URL
-
-    # Verify that all lines are package URLs
-    for line in args[0]:
-        assert line.startswith("https://"), f"Expected URL but got: {line}"
+    assert len(kwargs.get("package_cache_records")) == 1  # 1 package URL

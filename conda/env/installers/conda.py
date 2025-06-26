@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import logging
 import tempfile
 from os.path import basename
 from typing import TYPE_CHECKING
@@ -17,7 +16,6 @@ from ...common.constants import NULL
 from ...env.env import Environment as EnvironmentYaml
 from ...models.environment import Environment
 from ...exceptions import CondaValueError, UnsatisfiableError
-from ...gateways.disk.read import yield_lines
 from ...models.channel import Channel, prioritize_channels
 
 if TYPE_CHECKING:
@@ -96,22 +94,17 @@ def install(
     """
     # Handle explicit environments separately per CEP-23 requirements
     if env.explicit_packages:
-        from ...misc import explicit
+        from ...misc import install_explicit_packages
 
-        # Use verbose output if not in quiet mode
-        verbose = not context.quiet
-
-        explicit_specs = [spec.url for spec in env.explicit_packages]
         # For explicit environments, we consider any provided specs as user-requested
         # All packages in the explicit file are installed, but only user-provided specs
         # are recorded in history as explicitly requested
         requested_specs = specs if specs else ()
 
-        # Install using explicit() - bypassing the solver completely
-        return explicit(
-            explicit_specs,
-            prefix,
-            verbose=verbose,
+        # Install explicit packages - bypassing the solver completely
+        return install_explicit_packages(
+            package_cache_records=env.explicit_packages,
+            prefix=prefix,
             requested_specs=requested_specs,
         )
 
