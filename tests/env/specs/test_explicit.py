@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from conda.models.environment import Environment
 from conda.env.specs.explicit import ExplicitSpec
+from conda.models.environment import Environment
 
 from .. import support_file
 
@@ -26,7 +26,4 @@ def test_environment():
     spec = ExplicitSpec(filename=support_file("explicit.txt"))
     assert isinstance(spec.environment, Environment)
     assert len(spec.environment.explicit_packages) > 0
-    assert (
-        "ca-certificates"
-        in [pkg.name for pkg in spec.environment.explicit_packages]
-    )
+    assert "ca-certificates" in [pkg.name for pkg in spec.environment.explicit_packages]

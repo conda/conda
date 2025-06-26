@@ -13,9 +13,9 @@ if TYPE_CHECKING:
 from ...base.context import context
 from ...deprecations import deprecated
 from ...gateways.disk.read import yield_lines
-from ...plugins.types import EnvironmentSpecBase
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
+from ...plugins.types import EnvironmentSpecBase
 
 
 class RequirementsSpec(EnvironmentSpecBase):

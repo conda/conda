@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from conda.models.environment import Environment
 from conda.env.specs.requirements import RequirementsSpec
+from conda.models.environment import Environment
 
 from .. import support_file
 

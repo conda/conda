@@ -197,7 +197,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             result[installer_type] = installer.install(
                 prefix, env.requested_packages, args, env
             )
-            
+
             # install all other external packages
             for installer_type, pkg_specs in env.external_packages.items():
                 try:

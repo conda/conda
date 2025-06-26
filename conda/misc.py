@@ -7,7 +7,6 @@ from __future__ import annotations
 import os
 import re
 import shutil
-from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 from typing import TYPE_CHECKING
@@ -23,7 +22,6 @@ from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
 from .deprecations import deprecated
 from .exceptions import (
-    CondaExitZero,
     DisallowedPackageError,
     DryRunExit,
     PackagesNotFoundError,
@@ -32,12 +30,14 @@ from .exceptions import (
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
-from .models.records import PackageCacheRecord, PackageRecord
 from .models.prefix_graph import PrefixGraph
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from typing import Any
+
+    from .models.records import PackageCacheRecord, PackageRecord
+
 
 log = getLogger(__name__)
 
@@ -106,7 +106,7 @@ def explicit(
     index: Any = None,
     requested_specs: Sequence[str] | None = None,
 ) -> None:
-    package_cache_records =  get_package_records_from_explicit(specs)
+    package_cache_records = get_package_records_from_explicit(specs)
     install_explicit_packages(
         package_cache_records=package_cache_records,
         prefix=prefix,
@@ -120,9 +120,7 @@ def install_explicit_packages(
     requested_specs: Sequence[str] | None = None,
 ):
     """Install a list of PackageRecords into a prefix"""
-    specs_pcrecs = tuple(
-        [rec.to_match_spec(), rec] for rec in package_cache_records
-    )
+    specs_pcrecs = tuple([rec.to_match_spec(), rec] for rec in package_cache_records)
 
     precs_to_remove = []
     prefix_data = PrefixData(prefix)
@@ -195,9 +193,9 @@ def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCache
         raise DryRunExit()
 
     # Try to get the specs from cache first
-    try: 
+    try:
         return _get_package_record_from_specs(fetch_specs)
-    except AssertionError as e:
+    except AssertionError:
         # If not found in cache, fetch them from the network and try again
         pfe = ProgressiveFetchExtract(fetch_specs)
         pfe.execute()
