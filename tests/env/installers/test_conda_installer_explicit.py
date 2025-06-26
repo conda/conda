@@ -134,7 +134,7 @@ def test_installer_installs_explicit(
     # First arg should be a list of package URLs
     assert isinstance(args[0], list)
 
-    assert len(args[0]) == 1  # 2 packages
+    assert len(args[0]) == 2  # 2 packages
 
     # Verify that all lines are package URLs
     for line in args[0]:

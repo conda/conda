@@ -31,4 +31,6 @@ def test_can_not_handle_explicit():
 def test_environment():
     spec = RequirementsSpec(filename=support_file("requirements.txt"), name="env")
     assert isinstance(spec.environment, Environment)
-    assert spec.environment.requested_packages[0] == "conda-package-handling==2.2.0"
+    pkg = spec.environment.requested_packages[0]
+    assert pkg.name == "conda-package-handling"
+    assert pkg.version == "2.2.0"
