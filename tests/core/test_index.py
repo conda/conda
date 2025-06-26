@@ -12,7 +12,6 @@ import pytest
 import conda
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.common.io import env_vars
 from conda.core.index import (
     Index,
     _make_virtual_package,
@@ -23,7 +22,6 @@ from conda.core.index import (
     check_allowlist,
     dist_str_in_index,
     fetch_index,
-    get_index,
     get_reduced_index,
 )
 from conda.core.prefix_data import PrefixData
@@ -40,7 +38,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-    from pytest import FixtureRequest
+    from pytest import FixtureRequest, MonkeyPatch
 
     from conda.core.index import ReducedIndex
 
@@ -147,9 +145,15 @@ def patch_pkg_cache(mocker, pkg_cache_entries):
     mocker.patch("conda.base.context.context.track_features", ("test_feature",))
 
 
-def test_supplement_index_with_system():
-    index = {}
-    _supplement_index_with_system(index)
+def test_deprecated_supplement_index_with_system() -> None:
+    index: dict[PackageRecord, PackageRecord] = {}
+    with pytest.deprecated_call():
+        _supplement_index_with_system(index)
+    assert index == Index().system_packages
+
+
+def test_supplement_index_with_system() -> None:
+    index = Index().system_packages
 
     has_virtual_pkgs = {
         rec.name for rec in index if rec.package_type == PackageType.VIRTUAL_SYSTEM
@@ -166,19 +170,19 @@ def test_supplement_index_with_system():
     context.subdir.split("-", 1)[1] not in {"32", "64", *non_x86_machines},
     reason=f"archspec not available for subdir {context.subdir}",
 )
-def test_supplement_index_with_system_archspec():
-    index = {}
-    _supplement_index_with_system(index)
+def test_supplement_index_with_system_archspec() -> None:
+    index = Index().system_packages
     assert any(
         rec.package_type == PackageType.VIRTUAL_SYSTEM and rec.name == "__archspec"
         for rec in index
     )
 
 
-def test_supplement_index_with_system_cuda(clear_cuda_version):
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_CUDA": "3.2"}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_cuda(
+    clear_cuda_version: None, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "3.2")
+    index = Index().system_packages
 
     cuda_pkg = next(iter(_ for _ in index if _.name == "__cuda"))
     assert cuda_pkg.version == "3.2"
@@ -186,10 +190,9 @@ def test_supplement_index_with_system_cuda(clear_cuda_version):
 
 
 @pytest.mark.skipif(not on_mac, reason="osx-only test")
-def test_supplement_index_with_system_osx():
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_OSX": "0.15"}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_osx(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_OSX", "0.15")
+    index = Index().system_packages
 
     osx_pkg = next(iter(_ for _ in index if _.name == "__osx"))
     assert osx_pkg.version == "0.15"
@@ -211,10 +214,11 @@ def test_supplement_index_with_system_osx():
         ("9.a.1", "0"),
     ],
 )
-def test_supplement_index_with_system_linux(release_str, version):
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_LINUX": release_str}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_linux(
+    release_str: str, version: str, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_LINUX", release_str)
+    index = Index().system_packages
 
     linux_pkg = next(iter(_ for _ in index if _.name == "__linux"))
     assert linux_pkg.version == version
@@ -222,10 +226,9 @@ def test_supplement_index_with_system_linux(release_str, version):
 
 
 @pytest.mark.skipif(on_win or on_mac, reason="linux-only test")
-def test_supplement_index_with_system_glibc():
-    index = {}
-    with env_vars({"CONDA_OVERRIDE_GLIBC": "2.10"}):
-        _supplement_index_with_system(index)
+def test_supplement_index_with_system_glibc(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.10")
+    index = Index().system_packages
 
     glibc_pkg = next(iter(_ for _ in index if _.name == "__glibc"))
     assert glibc_pkg.version == "2.10"
@@ -233,43 +236,32 @@ def test_supplement_index_with_system_glibc():
 
 
 @pytest.mark.integration
-def test_get_index_linux64_platform():
-    linux64 = "linux-64"
-    index = get_index(platform=linux64)
+@pytest.mark.parametrize("platform", ["linux-64", "osx-64", "win-64"])
+def test_get_index_platform(platform: str) -> None:
+    index = Index(platform=platform)
     for dist, record in index.items():
-        assert platform_in_record(linux64, record), (linux64, record.url)
-
-
-@pytest.mark.integration
-def test_get_index_osx64_platform():
-    osx64 = "osx-64"
-    index = get_index(platform=osx64)
-    for dist, record in index.items():
-        assert platform_in_record(osx64, record), (osx64, record.url)
-
-
-@pytest.mark.integration
-def test_get_index_win64_platform():
-    win64 = "win-64"
-    index = get_index(platform=win64)
-    for dist, record in index.items():
-        assert platform_in_record(win64, record), (win64, record.url)
+        assert platform_in_record(platform, record), (platform, record.url)
 
 
 @pytest.mark.integration
 def test_basic_get_reduced_index():
-    get_reduced_index(
-        None,
-        (Channel("defaults"), Channel("conda-test")),
-        context.subdirs,
-        (MatchSpec("flask"),),
-        "repodata.json",
-    )
+    """
+    TODO: test should be removed when `get_reduced_index` is removed.
+    """
+    with pytest.deprecated_call():
+        get_reduced_index(
+            None,
+            (Channel("defaults"), Channel("conda-test")),
+            context.subdirs,
+            (MatchSpec("flask"),),
+            "repodata.json",
+        )
 
 
 def test_fetch_index(test_recipes_channel: Path) -> None:
-    idx = fetch_index(Channel(str(test_recipes_channel)).urls())
-    assert len(idx) == 25
+    with pytest.deprecated_call():
+        idx = fetch_index(Channel(str(test_recipes_channel)).urls())
+        assert len(idx) == 25
 
 
 def test_dist_str_in_index(test_recipes_channel: Path) -> None:
@@ -293,10 +285,13 @@ def test__supplement_index_with_prefix(
     )
     pkg_spec = "dependent=2.0"
     index = {ref: ref}
-    with tmp_env(pkg_spec) as prefix:
-        _supplement_index_with_prefix(index, prefix)
-    with tmp_env(pkg_spec) as prefix:
-        _supplement_index_with_prefix(index, PrefixData(prefix))
+
+    with pytest.deprecated_call():
+        with tmp_env(pkg_spec) as prefix:
+            _supplement_index_with_prefix(index, prefix)
+        with tmp_env(pkg_spec) as prefix:
+            _supplement_index_with_prefix(index, PrefixData(prefix))
+
     pkg = index[ref]
     assert type(ref) is PackageRecord
     assert type(pkg) is PrefixRecord
@@ -318,12 +313,13 @@ def test__supplement_index_with_prefix_index_class(
     )
     index = Index()
     pkg_spec = "dependent=2.0"
-    with tmp_env(pkg_spec) as prefix:
-        with pytest.raises(OperationNotAllowed):
+    with pytest.deprecated_call():
+        with tmp_env(pkg_spec) as prefix:
+            with pytest.raises(OperationNotAllowed):
+                _supplement_index_with_prefix(index, prefix)
+        with tmp_env(pkg_spec) as prefix:
+            index = Index(prefix=prefix)
             _supplement_index_with_prefix(index, prefix)
-    with tmp_env(pkg_spec) as prefix:
-        index = Index(prefix=prefix)
-        _supplement_index_with_prefix(index, prefix)
     pkg = index[ref]
     assert type(ref) is PackageRecord
     assert type(pkg) is PrefixRecord
@@ -332,11 +328,14 @@ def test__supplement_index_with_prefix_index_class(
 
 def test__supplement_index_with_cache():
     idx = {}
-    _supplement_index_with_cache(idx)
+    with pytest.deprecated_call():
+        _supplement_index_with_cache(idx)
+        _supplement_index_with_cache(idx)
     tzdata = [p for p in idx.values() if p.name == "tzdata"][0]
     tzdata = PackageRecord.from_objects(tzdata)
     idx = {tzdata: tzdata}
-    _supplement_index_with_cache(idx)
+    with pytest.deprecated_call():
+        _supplement_index_with_cache(idx)
     augmented_tzdata = idx[tzdata]
     assert type(tzdata) is PackageRecord
     assert type(augmented_tzdata) is PackageCacheRecord
@@ -344,7 +343,13 @@ def test__supplement_index_with_cache():
 
 
 def test__make_virtual_package():
-    virtual_package = _make_virtual_package("name", "1.0", "0")
+    """
+    Ensures that the deprecated call and the new call are equivalent.
+
+    TODO: Remove this test when the deprecated call is removed.
+    """
+    with pytest.deprecated_call():
+        virtual_package = _make_virtual_package("name", "1.0", "0")
     ref = PackageRecord.virtual_package("name", "1.0", "0")
     assert virtual_package == ref
 
@@ -359,7 +364,7 @@ def test_calculate_channel_urls():
 @pytest.mark.integration
 def test_get_index_lazy():
     subdir = PLATFORMS[(platform.system(), platform.machine())]
-    index = get_index(channel_urls=["conda-forge"], platform=subdir)
+    index = Index(channels=["conda-forge"], platform=subdir)
     main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
     conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
 

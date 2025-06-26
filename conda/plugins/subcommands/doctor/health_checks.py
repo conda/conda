@@ -96,6 +96,9 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
 
         for path in paths:
             _path = path.get("_path")
+            if excluded_files_check(_path):
+                continue
+
             old_sha256 = path.get("sha256_in_prefix")
             if _path is None or old_sha256 is None:
                 continue

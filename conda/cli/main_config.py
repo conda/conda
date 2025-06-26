@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 
     from ..base.context import Context
 
+log = getLogger(__name__)
+
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -392,6 +394,8 @@ def _key_exists(key: str, warnings: list[str], context=None) -> bool:
         return True
 
     if first not in context.list_parameters():
+        if context.name_for_alias(first):
+            return True
         if context.json:
             warnings.append(f"Unknown key: {key!r}")
         else:
@@ -417,6 +421,10 @@ def _get_key(
     if not _key_exists(key, warnings, context):
         return
 
+    if alias := context.name_for_alias(key):
+        key = alias
+        key_parts = alias.split(".")
+
     sub_config = config
     try:
         for part in key_parts:
@@ -438,6 +446,10 @@ def _set_key(key: str, item: Any, config: dict) -> None:
         from ..exceptions import CondaKeyError
 
         raise CondaKeyError(key, "unknown parameter")
+
+    if aliased := context.name_for_alias(key):
+        log.warning("Key %s is an alias of %s; setting value with latter", key, aliased)
+        key = aliased
 
     first, *rest = key.split(".")
 
@@ -521,9 +533,15 @@ def _remove_key(key: str, config: dict) -> None:
             sub_config = sub_config[part]
         del sub_config[key_parts[-1]]
     except KeyError:
-        # KeyError: part not found, nothing to remove
+        # KeyError: part not found, nothing to remove, but maybe user passed an alias?
+        from ..base.context import context
         from ..exceptions import CondaKeyError
 
+        if alias := context.name_for_alias(key):
+            try:
+                return _remove_key(alias, config)
+            except CondaKeyError:
+                pass  # raise with originally passed key
         raise CondaKeyError(key, "undefined in config")
 
 
@@ -593,7 +611,7 @@ def _validate_provided_parameters(
     from ..common.io import dashlist
     from ..exceptions import ArgumentError
 
-    all_names = context.list_parameters()
+    all_names = context.list_parameters(aliases=True)
     all_plugin_names = context.plugins.list_parameters()
 
     not_params = set(parameters) - set(all_names)
@@ -626,6 +644,12 @@ def execute_config(args, parser):
     from ..common.iterators import groupby_to_dict as groupby
     from ..common.serialize import json, yaml_round_trip_load
     from ..core.prefix_data import PrefixData
+
+    # Override context for --file operations with --show/--describe
+    if args.file and (args.show is not None or args.describe is not None):
+        from ..base.context import Context
+
+        context = Context(search_path=(args.file,), argparse_args=args)
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -665,6 +689,11 @@ def execute_config(args, parser):
 
             _validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
+            )
+            provided_parameters = tuple(
+                dict.fromkeys(
+                    context.name_for_alias(name) or name for name in provided_parameters
+                )
             )
 
         else:
@@ -730,6 +759,11 @@ def execute_config(args, parser):
             )
             _validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
+            )
+            provided_parameters = tuple(
+                dict.fromkeys(
+                    context.name_for_alias(name) or name for name in provided_parameters
+                )
             )
 
             if context.json:

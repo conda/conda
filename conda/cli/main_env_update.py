@@ -20,7 +20,9 @@ from ..notices import notices
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..common.constants import NULL
     from .helpers import (
+        add_parser_environment_specifier,
         add_parser_frozen_env,
         add_parser_json,
         add_parser_prefix,
@@ -49,6 +51,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+
+    # Add environment spec plugin args
+    add_parser_environment_specifier(p)
+
     add_parser_frozen_env(p)
     add_parser_prefix(p)
     p.add_argument(
@@ -71,9 +77,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             "24.7",
             "25.9",
             _StoreAction,
-            addendum="Use `conda env create --file=URL` instead.",
+            addendum="Use `conda env update --file=URL` instead.",
         ),
-        default=None,
+        default=NULL,
         nargs="?",
     )
     add_parser_json(p)
@@ -88,7 +94,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
-    from ..env import specs as install_specs
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
@@ -98,7 +103,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    spec = install_specs.detect(filename=args.file)
+    spec_hook = context.plugin_manager.get_environment_specifier(
+        source=args.file,
+        name=context.environment_specifier,
+    )
+    spec = spec_hook.environment_spec(args.file)
     env = spec.environment
 
     if not (args.name or args.prefix):

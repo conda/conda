@@ -32,6 +32,7 @@ from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
+    CondaError,
     CondaValueError,
     CorruptedEnvironmentError,
     DirectoryNotACondaEnvironmentError,
@@ -387,11 +388,11 @@ class PrefixData(metaclass=PrefixDataType):
         return fn + ".json"
 
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
-        assert prefix_record.name not in self._prefix_records, (
-            f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
-            "in the prefix. This is a bug in conda. Please report it at "
-            "https://github.com/conda/conda/issues"
-        )
+        if prefix_record.name in self._prefix_records:
+            raise CondaError(
+                f"Prefix record '{prefix_record.name}' already exists. "
+                f"Try `conda clean --all` to fix."
+            )
 
         prefix_record_json_path = (
             self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
@@ -654,12 +655,13 @@ def get_python_version_for_prefix(prefix: os.PathLike) -> str | None:
     in that prefix.
     """
     # returns a string e.g. "2.7", "3.4", "3.5" or None
-    record = python_record_for_prefix(prefix)
+    record = PrefixData(prefix).get("python", None)
     if record is not None:
         if record.version[3].isdigit():
             return record.version[:4]
         else:
             return record.version[:3]
+    return None
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

@@ -76,8 +76,7 @@ CONDA_HOMEPAGE_URL: Final = "https://conda.io"
 ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
 DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
-KNOWN_SUBDIRS: Final = (
-    "noarch",
+PLATFORMS: Final = (
     "emscripten-wasm32",
     "wasi-wasm32",
     "freebsd-64",
@@ -97,6 +96,7 @@ KNOWN_SUBDIRS: Final = (
     "win-arm64",
     "zos-z",
 )
+KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
@@ -189,7 +189,7 @@ NOTICES_CACHE_FN: Final = "notices.cache"
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR: Final = "notices"
 
-#: Determines the subdir for notices cache
+#: Determines how often notices are displayed while running commands
 NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
 
 DRY_RUN_PREFIX: Final = "Dry run action:"

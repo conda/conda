@@ -9,6 +9,7 @@ import uuid
 import warnings
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
+from itertools import chain
 from logging import getLogger
 from pathlib import Path
 from shutil import copyfile
@@ -20,13 +21,12 @@ import pytest
 from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
-from ..auxlib.ish import dals
+from ..auxlib.entity import EntityEncoder
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.main import main_subshell
-from ..common.configuration import YamlRawParameter
 from ..common.io import env_vars
-from ..common.serialize import json, yaml_round_trip_load
+from ..common.serialize import json
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -73,32 +73,6 @@ def tmpdir(tmpdir, request):
 @pytest.fixture(autouse=True)
 def clear_subdir_cache():
     SubdirData.clear_cached_local_channel_data()
-
-
-@pytest.fixture(scope="function")
-def disable_channel_notices():
-    """
-    Fixture that will set "context.number_channel_notices" to 0 and then set
-    it back to its original value.
-
-    This is also a good example of how to override values in the context object.
-    """
-    yaml_str = dals(
-        """
-        number_channel_notices: 0
-        """
-    )
-    reset_context(())
-    rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(yaml_str)
-        )
-    }
-    context._set_raw_data(rd)
-
-    yield
-
-    reset_context(())
 
 
 @pytest.fixture(scope="function")
@@ -391,12 +365,12 @@ class TmpChannelFixture:
     conda_cli: CondaCLIFixture
 
     @contextmanager
-    def __call__(self, *packages: str) -> Iterator[tuple[Path, str]]:
+    def __call__(self, *specs: str) -> Iterator[tuple[Path, str]]:
         # download packages
         self.conda_cli(
             "create",
             f"--prefix={self.path_factory()}",
-            *packages,
+            *specs,
             "--yes",
             "--quiet",
             "--download-only",
@@ -413,25 +387,38 @@ class TmpChannelFixture:
         noarch.mkdir(parents=True)
 
         repodata = {"info": {}, "packages": {}}
-        for package in packages:
-            for pkg_data in pkgs_cache.query(package):
-                fname = pkg_data["fn"]
+        iter_specs = list(specs)
+        seen: dict[str, set[str]] = {}
+        while iter_specs:
+            spec = iter_specs.pop(0)
 
+            for package_record in pkgs_cache.query(spec):
+                # track which packages have already been copied to the channel
+                fname = package_record["fn"]
+                if fname in seen:
+                    seen[fname].add(spec)
+                seen[fname] = {spec}
+
+                # copy package to channel
                 copyfile(pkgs_dir / fname, subdir / fname)
 
+                # add package to repodata
                 repodata["packages"][fname] = PackageRecord(
                     **{
                         field: value
-                        for field, value in pkg_data.dump().items()
+                        for field, value in package_record.dump().items()
                         if field not in ("url", "channel", "schannel", "channel_name")
                     }
                 )
 
+                iter_specs.extend(package_record.depends)
+
         (subdir / "repodata.json").write_text(json.dumps(repodata))
         (noarch / "repodata.json").write_text(json.dumps({}))
 
-        for package in packages:
-            assert any(PackageCacheData.query_all(package))
+        # ensure all packages were copied to the channel
+        for spec in chain.from_iterable(seen.values()):
+            assert any(PackageCacheData(pkgs_dir).query(spec))
 
         yield channel, path_to_url(str(channel))
 

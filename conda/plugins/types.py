@@ -21,7 +21,7 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, TypeAlias
+    from typing import Any, Callable, ClassVar, TypeAlias
 
     from ..common.configuration import Parameter
     from ..common.path import PathType
@@ -415,8 +415,17 @@ class CondaPrefixDataLoader:
 
 class EnvironmentSpecBase(ABC):
     """
+    **EXPERIMENTAL**
+
     Base class for all env specs.
     """
+
+    # Determines if the EnvSpec plugin should be included in the set
+    # of available plugins checked during environment_spec plugin detection.
+    # If set to False, the only way to use the plugin will be through explicitly
+    # requesting it as a cli argument or setting in .condarc. By default,
+    # autodetection is enabled.
+    detection_supported: ClassVar[bool] = True
 
     @abstractmethod
     def can_handle(self) -> bool:
@@ -428,6 +437,7 @@ class EnvironmentSpecBase(ABC):
         """
         raise NotImplementedError()
 
+    @property
     @abstractmethod
     def environment(self) -> Environment:
         """
@@ -441,6 +451,8 @@ class EnvironmentSpecBase(ABC):
 @dataclass
 class CondaEnvironmentSpecifier:
     """
+    **EXPERIMENTAL**
+
     Return type to use when defining a conda env spec plugin hook.
 
     For details on how this is used, see

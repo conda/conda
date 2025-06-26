@@ -15,7 +15,6 @@ from ..common._os import is_admin
 from ..common.compat import ensure_text_type, on_win, open_utf8
 from ..common.path import expand
 from ..gateways.disk.read import yield_lines
-from ..gateways.disk.test import is_conda_environment
 from .prefix_data import PrefixData
 
 if TYPE_CHECKING:
@@ -201,7 +200,7 @@ def _clean_environments_txt(
     environments_txt_lines_cleaned = tuple(
         prefix
         for prefix in environments_txt_lines
-        if prefix != remove_location and is_conda_environment(prefix)
+        if prefix != remove_location and PrefixData(prefix).is_environment()
     )
     if environments_txt_lines_cleaned != environments_txt_lines:
         _rewrite_environments_txt(environments_txt_file, environments_txt_lines_cleaned)
