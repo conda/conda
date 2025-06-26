@@ -5,6 +5,7 @@
 import os
 from logging import getLogger
 
+from ...exceptions import CondaValueError
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
@@ -51,9 +52,9 @@ class YamlFileSpec(EnvironmentSpecBase):
     def environment(self) -> env.Environment:
         if not self._environment:
             if not self.can_handle():
-                raise ValueError(f"Cannot handle environment file: {self.msg}")
+                raise CondaValueError(f"Cannot handle environment file: {self.msg}")
             # can_handle() succeeded and set self._environment, so it should not be None
 
         if self._environment is None:
-            raise ValueError("Environment could not be loaded")
+            raise CondaValueError("Environment could not be loaded")
         return self._environment

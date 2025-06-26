@@ -48,7 +48,7 @@ class YAMLExporter(EnvironmentExporter):
         env_dict = env.to_dict()
         yaml_content = yaml_safe_dump(env_dict)
         if yaml_content is None:
-            raise ValueError("Failed to export environment to YAML")
+            raise CondaValueError("Failed to export environment to YAML")
         return yaml_content
 
 
