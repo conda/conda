@@ -41,9 +41,9 @@ def _create_environment_from_prefix(prefix, env_name, args):
         for prefix_record in prefix_data.iter_records():
             # Create MatchSpec from installed package
             if args.no_builds:
-                spec_str = f"{prefix_record.name}={prefix_record.version}"
+                spec_str = f"{prefix_record.name}=={prefix_record.version}"
             else:
-                spec_str = f"{prefix_record.name}={prefix_record.version}={prefix_record.build}"
+                spec_str = f"{prefix_record.name}=={prefix_record.version}={prefix_record.build}"
 
             if (
                 not args.ignore_channels
