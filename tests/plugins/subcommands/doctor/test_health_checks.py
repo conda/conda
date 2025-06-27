@@ -10,6 +10,7 @@ import pytest
 from requests import Response
 
 from conda.common.serialize import yaml_safe_dump
+from conda.gateways.disk.lock import _lock_impl, _lock_noop
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
@@ -400,3 +401,43 @@ def test_env_consistency_constrains_not_met(
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out
         assert expected_output_yaml in out
+
+
+def test_file_locking_supported_enabled(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
+    with tmp_env() as prefix:
+        monkeypatch.setattr(
+            "conda.plugins.subcommands.doctor.health_checks.lock", _lock_impl
+        )
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{OK_MARK} File locking is supported." in out
+
+
+def test_file_locking_supported_disabled(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_NO_LOCK", 1)
+        monkeypatch.setattr(
+            "conda.plugins.subcommands.doctor.health_checks.lock", _lock_impl
+        )
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert (
+            f"{OK_MARK} File locking is supported.\n *Note that it is currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+            in out
+        )
+
+
+def test_file_locking_not_supported(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
+):
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_NO_LOCK", 0)
+        monkeypatch.setattr(
+            "conda.plugins.subcommands.doctor.health_checks.lock", _lock_noop
+        )
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} File locking is not supported." in out
