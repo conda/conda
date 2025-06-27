@@ -35,13 +35,14 @@ from conda.common.io import stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
     BIN_DIRECTORY,
+    get_major_minor_version,
     get_python_site_packages_short_path,
     pyc_path,
 )
 from conda.common.serialize import json_dump, yaml_round_trip_load
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
-from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
@@ -536,7 +537,7 @@ def test_noarch_python_package_with_entry_points(
     entry point script, "pygmentize".
     """
     with tmp_env("pygments") as prefix:
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/pygments/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
@@ -568,7 +569,7 @@ def test_noarch_python_package_without_entry_points(
     has no entry point scripts.
     """
     with tmp_env("itsdangerous") as prefix:
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
@@ -593,7 +594,7 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         return
 
     with tmp_env("itsdangerous", "python=3.10") as prefix:
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         assert py_ver.startswith("3.10")
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
@@ -605,7 +606,7 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         # python 3.10 pyc file should be gone
         assert not (prefix / pyc_file_py310).is_file()
 
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         assert py_ver.startswith("3.11")
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
@@ -1749,7 +1750,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         )
         assert any(pkg.strip() == "six==1.9.0" for pkg in stdout.splitlines())
 
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         sp_dir = get_python_site_packages_short_path(py_ver)
 
         PrefixData._cache_.clear()
