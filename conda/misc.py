@@ -192,7 +192,7 @@ def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCache
 
     if context.dry_run:
         raise DryRunExit()
-    
+
     # Fetch the packages - if they are already cached nothing new will be downloaded
     pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
