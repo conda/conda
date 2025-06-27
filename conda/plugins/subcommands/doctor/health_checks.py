@@ -239,6 +239,36 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         print(f"{OK_MARK} The environment is consistent.\n")
 
 
+def file_locking_check(prefix: str, verbose: bool):
+    """
+    Report if file locking is supported or not.
+    """
+    try:
+        import msvcrt  # noqa: F401
+
+        if verbose:
+            print(f"{OK_MARK} File locking is supported using `msvcrt` (Windows).\n")
+        else:
+            print(f"{OK_MARK} File locking is supported.\n")
+    except ImportError:
+        try:
+            import fcntl  # noqa: F401
+
+            if verbose:
+                print(
+                    f"{OK_MARK} File locking is supported using `fcntl` (Unix-like systems).\n"
+                )
+            else:
+                print(f"{OK_MARK} File locking is supported.\n")
+        except ImportError:
+            if verbose:
+                print(
+                    f"{X_MARK} File locking is not supported. Neither `msvcrt` nor `fcntl` are available.\n"
+                )
+            else:
+                print(f"{X_MARK} File locking is not supported.\n")
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
@@ -250,3 +280,4 @@ def conda_health_checks():
     yield CondaHealthCheck(
         name="Consistent Environment Check", action=consistent_env_check
     )
+    yield CondaHealthCheck(name="File Locking", action=file_locking_check)
