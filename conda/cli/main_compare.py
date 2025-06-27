@@ -131,9 +131,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     active_pkgs = {pkg.name: pkg for pkg in get_packages(prefix)}
     specification_pkgs = env.requested_packages
-    if len(env.external_packages) > 0:
-        for package_type, packages in env.external_packages.items():
-            specification_pkgs = specification_pkgs + packages
+    for package_type, packages in env.external_packages.items():
+        specification_pkgs = specification_pkgs + packages
 
     exitcode, output = compare_packages(active_pkgs, specification_pkgs)
 

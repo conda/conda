@@ -185,7 +185,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             installer = get_installer(installer_type)
             result[installer_type] = installer.install(prefix, args_packages, args, env)
 
-        if len(env.external_packages.items()) == 0 and len(env.requested_packages) == 0:
+        if not env.external_packages and not env.requested_packages:
             installer_type = "conda"
             pkg_specs = []
             installer = get_installer(installer_type)

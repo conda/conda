@@ -154,7 +154,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # e.g. due to conda_env being upgraded or Python version switched.
     installers = {}
 
-    if len(env.requested_packages) > 0:
+    if env.requested_packages:
         installers["conda"] = get_installer("conda")
 
     for installer_type in env.external_packages:

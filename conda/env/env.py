@@ -267,7 +267,7 @@ class Environment:
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
 
-    def to_environment_model(self):
+    def to_environment_model(self) -> EnvironmentModel:
         """Convert the ``Environment`` into a ``model.Environment`` object"""
         config = EnvironmentConfig(channels=self.channels)
 
