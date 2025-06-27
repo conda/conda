@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from logging import getLogger
 
+import pytest
+
 from conda.base.constants import ChannelPriority
 from conda.common.constants import NULL
 
@@ -17,3 +19,5 @@ def test_ChannelPriority():
     assert ChannelPriority["STRICT"] == ChannelPriority.STRICT
     assert ChannelPriority(False) == ChannelPriority.DISABLED
     assert ChannelPriority("false") == ChannelPriority.DISABLED
+    with pytest.raises(ValueError):
+        ChannelPriority(None)
