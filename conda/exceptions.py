@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from collections import defaultdict
@@ -15,16 +14,14 @@ from textwrap import dedent, indent
 from traceback import format_exception, format_exception_only
 from typing import TYPE_CHECKING
 
-from requests.exceptions import JSONDecodeError
-
 from . import CondaError, CondaExitZero, CondaMultiError
-from .auxlib.entity import EntityEncoder
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.iterators import groupby_to_dict as groupby
+from .common.serialize import json
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
 from .deprecations import DeprecatedError  # noqa: F401
@@ -575,7 +572,7 @@ class UnavailableInvalidChannel(ChannelError):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, json.JSONDecodeError):
             body = {}
         else:
             reason = body.get("reason", None) or reason
@@ -680,7 +677,7 @@ class CondaHTTPError(CondaError):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, json.JSONDecodeError):
             body = {}
         else:
             reason = body.get("reason", None) or reason
@@ -1368,6 +1365,7 @@ def maybe_raise(error: BaseException, context: Context):
 
 def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
+    from .common.serialize import json
 
     rc = getattr(exc_val, "return_code", None)
     if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
@@ -1376,9 +1374,7 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
         if isinstance(exc_val, DryRunExit):
             return
         logger = getLogger("conda.stdout" if rc else "conda.stderr")
-        exc_json = json.dumps(
-            exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder
-        )
+        exc_json = json.dumps(exc_val.dump_map(), sort_keys=True)
         logger.info(f"{exc_json}\n")
     else:
         stderrlog = getLogger("conda.stderr")

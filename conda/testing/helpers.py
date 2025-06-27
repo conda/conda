@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -22,6 +21,7 @@ from ..base.constants import REPODATA_FN
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
 from ..common.io import captured as common_io_captured
 from ..common.io import env_var
+from ..common.serialize import json
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
 from ..gateways.disk.delete import rm_rf

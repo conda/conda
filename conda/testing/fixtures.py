@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import uuid
 import warnings
@@ -22,11 +21,11 @@ import pytest
 from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
-from ..auxlib.entity import EntityEncoder
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.main import main_subshell
 from ..common.io import env_vars
+from ..common.serialize import json
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -413,8 +412,8 @@ class TmpChannelFixture:
 
                 iter_specs.extend(package_record.depends)
 
-        (subdir / "repodata.json").write_text(json.dumps(repodata, cls=EntityEncoder))
-        (noarch / "repodata.json").write_text(json.dumps({}, cls=EntityEncoder))
+        (subdir / "repodata.json").write_text(json.dumps(repodata))
+        (noarch / "repodata.json").write_text(json.dumps({}))
 
         # ensure all packages were copied to the channel
         for spec in chain.from_iterable(seen.values()):
