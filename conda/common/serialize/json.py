@@ -26,8 +26,7 @@ class CondaJSONEncoder(json.JSONEncoder):
         # auxlib entity types
         for attr in ("dump", "__json__", "to_json", "as_json"):
             if method := getattr(obj, attr, None):
-                return method() 
-
+                return method()
 
         # default
         return super().default(obj)
