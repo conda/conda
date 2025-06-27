@@ -19,6 +19,7 @@ from ..common.compat import on_win
 
 if on_win:
     from pathlib import PureWindowsPath
+
     from platformdirs import site_config_dir
 
 if TYPE_CHECKING:
