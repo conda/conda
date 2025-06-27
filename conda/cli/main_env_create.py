@@ -170,7 +170,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         installer_type = "conda"
         installer = get_installer(installer_type)
 
-        pkg_specs = env.dependencies.get(installer_type, [])
+        pkg_specs = env.requested_packages
         pkg_specs.extend(args_packages)
 
         solved_env = installer.dry_run(pkg_specs, args, env)
@@ -185,13 +185,21 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             installer = get_installer(installer_type)
             result[installer_type] = installer.install(prefix, args_packages, args, env)
 
-        if len(env.dependencies.items()) == 0:
+        if not env.external_packages and not env.requested_packages:
             installer_type = "conda"
             pkg_specs = []
             installer = get_installer(installer_type)
             result[installer_type] = installer.install(prefix, pkg_specs, args, env)
         else:
-            for installer_type, pkg_specs in env.dependencies.items():
+            # install conda packages
+            installer_type = "conda"
+            installer = get_installer(installer_type)
+            result[installer_type] = installer.install(
+                prefix, env.requested_packages, args, env
+            )
+
+            # install all other external packages
+            for installer_type, pkg_specs in env.external_packages.items():
                 try:
                     installer = get_installer(installer_type)
                     result[installer_type] = installer.install(
