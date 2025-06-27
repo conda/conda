@@ -26,6 +26,7 @@ from .exceptions import (
     DryRunExit,
     PackagesNotFoundError,
     ParseError,
+    SpecNotFoundInPackageCache,
 )
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
@@ -172,10 +173,10 @@ def _get_package_record_from_specs(specs: list[str]) -> Iterable[PackageCacheRec
     ]
     if specs_with_missing_pcrecs:
         if len(specs_with_missing_pcrecs) == len(specs_pcrecs):
-            raise AssertionError("No package cache records found")
+            raise SpecNotFoundInPackageCache("No package cache records found")
         else:
             missing_precs_list = ", ".join(specs_with_missing_pcrecs)
-            raise AssertionError(
+            raise SpecNotFoundInPackageCache(
                 f"Missing package cache records for: {missing_precs_list}"
             )
     return [rec[1] for rec in specs_pcrecs]
@@ -195,7 +196,7 @@ def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCache
     # Try to get the specs from cache first
     try:
         return _get_package_record_from_specs(fetch_specs)
-    except AssertionError:
+    except SpecNotFoundInPackageCache:
         # If not found in cache, fetch them from the network and try again
         pfe = ProgressiveFetchExtract(fetch_specs)
         pfe.execute()
