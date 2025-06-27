@@ -192,15 +192,13 @@ def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCache
 
     if context.dry_run:
         raise DryRunExit()
+    
+    # Fetch the packages - if they are already cached nothing new will be downloaded
+    pfe = ProgressiveFetchExtract(fetch_specs)
+    pfe.execute()
 
-    # Try to get the specs from cache first
-    try:
-        return _get_package_record_from_specs(fetch_specs)
-    except SpecNotFoundInPackageCache:
-        # If not found in cache, fetch them from the network and try again
-        pfe = ProgressiveFetchExtract(fetch_specs)
-        pfe.execute()
-        return _get_package_record_from_specs(fetch_specs)
+    # Get the package records from the cache
+    return _get_package_record_from_specs(fetch_specs)
 
 
 @deprecated("25.3", "25.9")
