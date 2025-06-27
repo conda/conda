@@ -82,7 +82,9 @@ def test_explicit_no_cache(mocker: MockerFixture) -> None:
     # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
     mocker.patch("conda.misc.ProgressiveFetchExtract")
 
-    with pytest.raises(SpecNotFoundInPackageCache, match="No package cache records found"):
+    with pytest.raises(
+        SpecNotFoundInPackageCache, match="No package cache records found"
+    ):
         explicit(
             [
                 "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",
