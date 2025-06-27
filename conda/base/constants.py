@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import struct
 from enum import Enum, EnumMeta
-from os import environ
 from os.path import join
-from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
+
+if on_win:
+    from pathlib import PureWindowsPath
+    from platformdirs import site_config_dir
 
 if TYPE_CHECKING:
     from typing import Final
@@ -38,13 +40,13 @@ APP_NAME: Final = "conda"
 SEARCH_PATH: tuple[str, ...]
 
 if on_win:  # pragma: no cover
-    PROGRAMDATA = PureWindowsPath(
-        environ.get("ProgramData", r"C:\ProgramData")
+    CONDA_SITE_CONFIG_DIR = PureWindowsPath(
+        site_config_dir(appname="conda", appauthor=False)
     ).as_posix()
     SEARCH_PATH = (
-        f"{PROGRAMDATA}/conda/.condarc",
-        f"{PROGRAMDATA}/conda/condarc",
-        f"{PROGRAMDATA}/conda/condarc.d",
+        f"{CONDA_SITE_CONFIG_DIR}/.condarc",
+        f"{CONDA_SITE_CONFIG_DIR}/condarc",
+        f"{CONDA_SITE_CONFIG_DIR}/condarc.d",
     )
 else:
     SEARCH_PATH = (
