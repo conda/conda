@@ -24,32 +24,24 @@ class CondaJSONEncoder(json.JSONEncoder):
             return str(obj)
 
         # auxlib entity types
-        if hasattr(obj, "dump"):
-            return obj.dump()
-        elif hasattr(obj, "__json__"):
-            return obj.__json__()
-        elif hasattr(obj, "to_json"):
-            return obj.to_json()
-        elif hasattr(obj, "as_json"):
-            return obj.as_json()
+        for attr in ("dump", "__json__", "to_json", "as_json"):
+            if method := getattr(obj, attr, None):
+                return method() 
+
 
         # default
         return super().default(obj)
 
 
 def dump(*args, **kwargs):
-    if kwargs.get("cls") is None:
-        kwargs["cls"] = CondaJSONEncoder
-    if kwargs.get("indent") is None:
-        kwargs["indent"] = 2
+    kwargs.setdefault("cls", CondaJSONEncoder)
+    kwargs.setdefault("indent", 2)
     return json.dump(*args, **kwargs)
 
 
 def dumps(*args, **kwargs):
-    if kwargs.get("cls") is None:
-        kwargs["cls"] = CondaJSONEncoder
-    if kwargs.get("indent") is None:
-        kwargs["indent"] = 2
+    kwargs.setdefault("cls", CondaJSONEncoder)
+    kwargs.setdefault("indent", 2)
     return json.dumps(*args, **kwargs)
 
 
