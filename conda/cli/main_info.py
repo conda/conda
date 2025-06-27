@@ -81,6 +81,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="List environment variables.",
     )
     p.add_argument(
+        "--experiments",
+        action="store_true",
+        help="List experimental features and their expiration versions.",
+    )
+    p.add_argument(
         "--root",
         action=deprecated.action(
             "25.9",
@@ -408,7 +413,9 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
 
 
 #: Possible components for the info command to render
-InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
+InfoComponents = Literal[
+    "base", "channels", "envs", "system", "detail", "json_all", "experiments"
+]
 
 
 class InfoRenderer:
@@ -429,6 +436,7 @@ class InfoRenderer:
             "envs": "envs_list",
             "system": None,
             "json_all": None,
+            "experiments": None,
         }
 
     def render(self, components: Iterable[InfoComponents]):
@@ -501,6 +509,42 @@ class InfoRenderer:
 
         return "\n".join(output)
 
+    def _experiments_component(self) -> str | dict[str, list[dict[str, str]]]:
+        """Render experimental features component."""
+        from ..deprecations import experimental
+
+        experiments = experimental.scan(check=True)
+
+        if self._context.json:
+            return {
+                "experiments": [
+                    {
+                        "name": experiment["prefix"],
+                        "until": experiment["until"],
+                        "addendum": experiment["addendum"] or "",
+                    }
+                    for experiment in experiments
+                ]
+            }
+        else:
+            if not experiments:
+                return "No experimental features currently active."
+
+            def format_experiment(experiment):
+                yield f"  - {experiment['prefix']} (until {experiment['until']})"
+                if experiment["addendum"]:
+                    yield f"    {experiment['addendum']}"
+
+            lines = [
+                "Experimental Features:",
+                *[
+                    line
+                    for experiment in experiments
+                    for line in format_experiment(experiment)
+                ],
+            ]
+            return "\n".join(lines)
+
     def _json_all_component(self) -> dict[str, Any]:
         return self._info_dict
 
@@ -528,8 +572,11 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     if args.unsafe_channels:
         yield "channels"
 
+    if getattr(args, "experiments", False):
+        yield "experiments"
+
     if (
-        (args.all or (not args.envs and not args.system))
+        (args.all or (not args.envs and not args.system and not args.experiments))
         and not context.json
         and not args.base
         and not args.unsafe_channels
@@ -542,7 +589,12 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     if (args.system or args.all) and not context.json:
         yield "system"
 
-    if context.json and not args.base and not args.unsafe_channels:
+    if (
+        context.json
+        and not args.base
+        and not args.unsafe_channels
+        and not args.experiments
+    ):
         yield "json_all"
 
 
@@ -556,6 +608,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
      * ``conda info --unsafe-channels``
      * ``conda info --envs``
      * ``conda info --system``
+     * ``conda info --experiments``
     """
 
     from ..base.context import context
