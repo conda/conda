@@ -170,8 +170,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         installer_type = "conda"
         installer = get_installer(installer_type)
 
-        pkg_specs = env.requested_packages
-        pkg_specs.extend(args_packages)
+        pkg_specs = [*env.requested_packages, *args_packages]
 
         solved_env = installer.dry_run(pkg_specs, args, env)
         if args.json:

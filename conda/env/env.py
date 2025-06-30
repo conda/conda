@@ -272,8 +272,8 @@ class Environment:
         config = EnvironmentConfig(channels=self.channels)
 
         external_packages = {}
-        if "pip" in self.dependencies.keys() and len(self.dependencies.get("pip")) > 0:
-            external_packages["pip"] = self.dependencies.get("pip")
+        if (pip_dependencies := self.dependencies.get("pip")):
+            external_packages["pip"] = pip_dependencies
 
         if self.prefix is None:
             self.prefix = context.target_prefix
