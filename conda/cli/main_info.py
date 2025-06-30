@@ -10,11 +10,13 @@ from __future__ import annotations
 import os
 import re
 import sys
-from argparse import SUPPRESS
+from argparse import SUPPRESS, _StoreTrueAction
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -69,7 +71,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-l",
         "--license",
-        action="store_true",
+        action=deprecated.action("25.9", "26.3", _StoreTrueAction),
         help=SUPPRESS,
     )
     p.add_argument(
@@ -80,7 +82,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     p.add_argument(
         "--root",
-        action="store_true",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--base` instead.",
+        ),
         help=SUPPRESS,
         dest="base",
     )
@@ -203,7 +210,7 @@ def get_info_dict() -> dict[str, Any]:
     )
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
-    from ..core.index import _supplement_index_with_system
+    from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
 
     try:
@@ -216,8 +223,7 @@ def get_info_dict() -> dict[str, Any]:
         log.error("Error importing conda-build: %s", err)
         conda_build_version = "error"
 
-    virtual_pkg_index = {}
-    _supplement_index_with_system(virtual_pkg_index)
+    virtual_pkg_index = Index().system_packages
     virtual_pkgs = [[p.name, p.version, p.build] for p in virtual_pkg_index.values()]
 
     channels = list(all_channel_urls(context.channels))
@@ -499,43 +505,45 @@ class InfoRenderer:
         return self._info_dict
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.cli.main_info.iter_info_components` instead.",
+)
 def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
-    """
-    Based on values in ``args`` and ``context`` determine which components need to be displayed
-    and return them as a ``set``
-    """
-    components: set[InfoComponents] = set()
+    return set(iter_info_components(args, context))
 
+
+def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
+    """
+    Determine which components to display.
+
+    :param args: The parsed command line arguments.
+    :param context: The conda context.
+    :returns: An iterable of components to display.
+    """
     if args.base:
-        components.add("base")
+        yield "base"
 
     if args.unsafe_channels:
-        components.add("channels")
-
-    options = "envs", "system"
-
-    if args.all or context.json:
-        for option in options:
-            setattr(args, option, True)
+        yield "channels"
 
     if (
-        (args.all or all(not getattr(args, opt) for opt in options))
+        (args.all or (not args.envs and not args.system))
         and not context.json
         and not args.base
         and not args.unsafe_channels
     ):
-        components.add("detail")
+        yield "detail"
 
-    if args.envs and not context.json:
-        components.add("envs")
+    if (args.envs or args.all) and not context.json:
+        yield "envs"
 
-    if args.system and not context.json:
-        components.add("system")
+    if (args.system or args.all) and not context.json:
+        yield "system"
 
     if context.json and not args.base and not args.unsafe_channels:
-        components.add("json_all")
-
-    return components
+        yield "json_all"
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
@@ -552,7 +560,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.context import context
 
-    components = get_info_components(args, context)
+    components = iter_info_components(args, context)
     renderer = InfoRenderer(context)
     renderer.render(components)
 

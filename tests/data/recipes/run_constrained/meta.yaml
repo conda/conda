@@ -1,0 +1,12 @@
+package:
+  name: run_constrained
+  version: 1.0
+
+build:
+  noarch: generic
+
+requirements:
+  run_constrained: "dependency>=2.0"
+
+about:
+  summary: A package with a run contrain

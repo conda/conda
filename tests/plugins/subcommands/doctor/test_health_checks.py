@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 from requests import Response
 
+from conda.common.serialize import yaml_safe_dump
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
@@ -27,6 +28,9 @@ if TYPE_CHECKING:
 
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from tests.conftest import test_recipes_channel
 
 
 @pytest.fixture(params=[".pyo", ".pyc"])
@@ -100,10 +104,12 @@ def env_altered_files(
     env_ok: tuple[Path, str, str, str, str],
 ) -> tuple[Path, str, str, str, str]:
     """Fixture that returns a testing environment with altered files"""
-    prefix, _, lib_doctor, _, _ = env_ok
+    prefix, _, lib_doctor, ignored_doctor, _ = env_ok
     # Altering the lib_doctor.py file so that it's sha256 checksum will change
     with open(prefix / lib_doctor, "w") as f:
         f.write("print('Hello, World!')")
+    with open(prefix / ignored_doctor, "w") as f:
+        f.write("nonsense")
 
     return env_ok
 
@@ -188,11 +194,12 @@ def test_no_missing_files_action(
 def test_altered_files_action(
     env_altered_files: tuple[Path, str, str, str, str], capsys, verbose
 ):
-    prefix, _, lib_doctor, _, package = env_altered_files
+    prefix, _, lib_doctor, ignored_doctor, package = env_altered_files
     altered_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(lib_doctor) in captured.out
+        assert str(ignored_doctor) not in captured.out
     else:
         assert f"{package}: 1" in captured.out
 
@@ -326,3 +333,70 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     prefix, _, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(prefix) == {}
+
+
+def test_env_consistency_check_passes(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    with tmp_env("dependent") as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+
+        assert f"{OK_MARK} The environment is consistent.\n" in out
+
+
+def test_env_consistency_check_fails(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+
+
+def test_env_consistency_check_fails_verbose(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    expected_output_dict = {
+        "dependent": {"missing": ["dependency[version='>=1.0,<2.0a0']"]}
+    }
+    expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out
+
+
+def test_env_consistency_constrains_not_met(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_1_to_install = test_recipes_channel / "noarch" / "run_constrained-1.0-0.conda"
+    pkg_2_to_install = test_recipes_channel / "noarch" / "dependency-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_1_to_install, pkg_2_to_install) as prefix:
+        expected_output_dict = {
+            "run_constrained": {
+                "inconsistent": [
+                    {
+                        "expected": "dependency[version='>=2.0']",
+                        "installed": "dependency[version='1.0']",
+                    }
+                ]
+            }
+        }
+        expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out

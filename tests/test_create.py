@@ -17,6 +17,7 @@ from shutil import rmtree
 from subprocess import check_call, check_output
 from typing import TYPE_CHECKING
 from unittest.mock import patch
+from uuid import uuid4
 
 import menuinst
 import pytest
@@ -38,7 +39,7 @@ from conda.common.path import (
     pyc_path,
 )
 from conda.common.serialize import json_dump, yaml_round_trip_load
-from conda.core.index import get_reduced_index
+from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.exceptions import (
@@ -47,7 +48,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
-    EnvironmentLocationNotFound,
+    EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
     LinkError,
     OperationNotAllowed,
@@ -55,6 +56,7 @@ from conda.exceptions import (
     PackagesNotFoundError,
     RemoveError,
     SpecsConfigurationConflictError,
+    TooManyArgumentsError,
     UnsatisfiableError,
 )
 from conda.gateways.disk.create import compile_multiple_pyc
@@ -68,7 +70,7 @@ from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
 from conda.resolve import Resolve
-from conda.testing.helpers import CHANNEL_DIR_V2
+from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
 from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
@@ -76,6 +78,8 @@ from conda.testing.integration import (
     package_is_installed,
     which_or_where,
 )
+
+from .env import support_file
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -171,18 +175,21 @@ def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         assert not code
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_create_install_update_remove_smoketest(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    request: pytest.FixtureRequest,
 ):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
     with tmp_env("python=3") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "python=3")
 
         conda_cli("install", f"--prefix={prefix}", "flask=2.0.1", "--yes")
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         conda_cli(
             "install",
@@ -191,20 +198,17 @@ def test_create_install_update_remove_smoketest(
             "flask=2.0.1",
             "--yes",
         )
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         conda_cli("update", f"--prefix={prefix}", "flask", "--yes")
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "flask", reload_records=False)
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}", "--revisions")
         assert not stderr
@@ -212,9 +216,8 @@ def test_create_install_update_remove_smoketest(
         assert " (rev 5)\n" not in stdout
 
         conda_cli("install", f"--prefix={prefix}", "--revision", "0", "--yes")
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
+        assert package_is_installed(prefix, "python=3", reload_records=False)
 
 
 def test_install_broken_post_install_keeps_existing_folders(
@@ -353,11 +356,15 @@ def test_safety_checks_disabled(
         assert package_is_installed(prefix, "spiffy-test-app=0.5")
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_json_create_install_update_remove(
     tmp_path: Path,
     conda_cli: CondaCLIFixture,
+    request: pytest.FixtureRequest,
 ):
     # regression test for #5384
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
 
     def is_json_parsable(content: str) -> bool:
         for string in content and content.split("\0") or ():
@@ -485,16 +492,17 @@ def test_not_writable_env_raises_EnvironmentNotWritableError(
     with tmp_env() as prefix:
         make_read_only(prefix / PREFIX_MAGIC_FILE)
 
-        _, _, exc = conda_cli(
+        stdout, stderr, exc = conda_cli(
             "install",
             f"--prefix={prefix}",
             "ca-certificates",
             "--yes",
-            raises=CondaMultiError,
+            raises=EnvironmentNotWritableError,
         )
 
-        assert len(exc.value.errors) == 1
-        assert isinstance(exc.value.errors[0], EnvironmentNotWritableError)
+        assert stdout == ""
+        assert stderr == ""
+        assert isinstance(exc.value, EnvironmentNotWritableError)
 
 
 def test_conda_update_package_not_installed(
@@ -573,13 +581,17 @@ def test_noarch_python_package_without_entry_points(
         assert not (prefix / pyc_file).is_file()
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_noarch_python_package_reinstall_on_pyver_change(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
 ):
     """
     When Python changes versions (e.g. from 3.10 to 3.11) it is important to verify that all the previous
     dependencies were transferred over to the new version in ``lib/python3.x/site-packages/*``.
     """
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
+
     with tmp_env("itsdangerous", "python=3.10") as prefix:
         py_ver = get_python_version_for_prefix(prefix)
         assert py_ver.startswith("3.10")
@@ -719,7 +731,7 @@ def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
             f"""
             # packages in environment at {prefix}:
             #
-            # Name                    Version                   Build  Channel
+            # Name                     Version          Build            Channel
             """
         )
         assert not stderr
@@ -779,7 +791,17 @@ def test_strict_channel_priority(
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
-    index = get_reduced_index(None, channels, context.subdirs, specs, "repodata.json")
+    index = ReducedIndex(
+        specs,
+        channels=channels,
+        prepend=False,
+        subdirs=context.subdirs,
+        use_local=False,
+        use_cache=None,
+        prefix=None,
+        repodata_fn="repodata.json",
+        use_system=True,
+    )
     r = Resolve(index, channels=channels)
 
     monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
@@ -826,12 +848,19 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
 
         # regression test for #5847
         #   when using rm_rf on a directory
-        assert prefix in PrefixData._cache_
+        # cache key is prefix, interoperability, which is default=True on conda list
+        assert (prefix, True) in PrefixData._cache_
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver))
         assert prefix not in PrefixData._cache_
 
 
-def test_list_with_pip_wheel(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+def test_list_with_pip_wheel(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
+):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
+
     with tmp_env("python=3.10", "pip") as prefix:
         check_call(
             f"{PYTHON_BINARY} -m pip install flask==1.0.2",
@@ -862,21 +891,21 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
     with tmp_env(f"python={py_ver}") as prefix:
         # regression test for #5847
         #   when using rm_rf on a file
-        assert prefix in PrefixData._cache_
+        assert any(prefix in key for key in PrefixData._cache_)
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
         assert prefix not in PrefixData._cache_
 
     with tmp_env() as prefix:
         assert isdir(prefix)
-        assert prefix in PrefixData._cache_
+        assert any(prefix in key for key in PrefixData._cache_)
 
         rmtree(prefix)
         assert not isdir(prefix)
-        assert prefix in PrefixData._cache_
+        assert any(prefix in key for key in PrefixData._cache_)
 
         _rm_rf(prefix)
         assert not isdir(prefix)
-        assert prefix not in PrefixData._cache_
+        assert all(prefix not in key for key in PrefixData._cache_)
 
 
 def test_install_tarball_from_file_based_channel(
@@ -1033,6 +1062,14 @@ def test_allow_softlinks(
         assert (prefix / "fonts" / "Inconsolata-Bold.ttf").is_symlink()
 
 
+def test_clone_env_with_conda(tmp_env: TmpEnvFixture):
+    # Regression test for #14917
+    with tmp_env("--channel=conda-forge", "conda") as prefix:
+        assert package_is_installed(prefix, "conda-forge::conda")
+        with tmp_env(f"--clone={prefix}") as clone:
+            assert package_is_installed(clone, "conda-forge::conda")
+
+
 def test_channel_usage_replacing_python(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -1062,7 +1099,7 @@ def test_channel_usage_replacing_python(
         data = {
             field: value
             for field, value in json.loads(fn.read_text()).items()
-            if field not in ("url", "channel", "schannel")
+            if field not in ("url", "channel", "schannel", "channel_name")
         }
         fn.write_text(json.dumps(data))
         PrefixData._cache_.clear()
@@ -1310,9 +1347,9 @@ def test_update_all_updates_pip_pkg(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env("python", "pip", "pytz<2023") as prefix:
         # install an old version of itsdangerous from pip
@@ -1682,9 +1719,9 @@ def test_conda_pip_interop_pip_clobbers_conda(
     #   File "C:\Users\builder\AppData\Local\Temp\f903_固ō한ñђáγßê家ôç_35\lib\site-packages\pip\_vendor\urllib3\util\ssl_.py", line 313, in ssl_wrap_socket
     #     context.load_verify_locations(ca_certs, ca_cert_dir)
     #   TypeError: cafile should be a valid filesystem path
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env(
         "--channel=https://repo.anaconda.com/pkgs/free",
@@ -1890,9 +1927,9 @@ def test_conda_pip_interop_conda_editable_package(
         )
     )
 
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env("python=3.12", "pip", "git") as prefix:
         assert package_is_installed(prefix, "python")
@@ -2016,9 +2053,9 @@ def test_conda_pip_interop_compatible_release_operator(
         pytest.skip("This test is too slow with conda-forge as default channel.")
     # Regression test for #7776
     # important to start the env with six 1.9.  That version forces an upgrade later in the test
-    monkeypatch.setenv("CONDA_PIP_INTEROP_ENABLED", "true")
+    monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
-    assert context.pip_interop_enabled
+    assert context.prefix_data_interoperability
 
     with tmp_env(
         "--channel=https://repo.anaconda.com/pkgs/free",
@@ -2053,10 +2090,8 @@ def test_conda_pip_interop_compatible_release_operator(
 
         stdout, stderr, _ = conda_cli("list", f"--prefix={prefix}")
         assert not stderr
-        assert (
-            "fs                        2.1.0                    pypi_0    pypi"
-            in stdout
-        )
+        split_stdout = [tuple(line.split()) for line in stdout.splitlines()]
+        assert ("fs", "2.1.0", "pypi_0", "pypi") in split_stdout
 
         with pytest.raises(DryRunExit):
             conda_cli(
@@ -2349,6 +2384,11 @@ def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFi
     (tmp_path / "tempfile.txt").write_text("hello world")
 
     with pytest.raises(DirectoryNotACondaEnvironmentError):
+        conda_cli("install", "python", f"--prefix={tmp_path}", "--yes")
+
+
+def test_must_provide_args_to_install(tmp_path: Path, conda_cli: CondaCLIFixture):
+    with pytest.raises(CondaValueError):
         conda_cli("install", f"--prefix={tmp_path}", "--yes")
 
 
@@ -2609,7 +2649,7 @@ def test_remove_ignore_nonenv(tmp_path: Path, conda_cli: CondaCLIFixture):
     filename = tmp_path / "file.dat"
     filename.touch()
 
-    with pytest.raises(EnvironmentLocationNotFound):
+    with pytest.raises(DirectoryNotACondaEnvironmentError):
         conda_cli("remove", f"--prefix={tmp_path}", "--all", "--yes")
 
     assert filename.exists()
@@ -2671,6 +2711,20 @@ def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture)
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
 
 
+def test_create_without_clone_and_packages_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+):
+    conda_cli(
+        "create",
+        "--prefix",
+        "/tmp/idontexist",
+        "--clone",
+        "idontexist",
+        "ca-certificates",
+        raises=TooManyArgumentsError,
+    )
+
+
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -2708,3 +2762,22 @@ def test_python_site_packages_path(
     with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
         sp_dir = "lib/python3.99t/site-packages"
         assert (prefix / sp_dir / "sample.py").is_file()
+
+
+def test_dont_allow_mixed_file_arguments(
+    conda_cli: CondaCLIFixture,
+):
+    """
+    Test that conda will return an error when multiple --file arguments of different
+    types are specified
+    """
+    _, _, exc = conda_cli(
+        "create",
+        *("--name", uuid4().hex[:8]),
+        *("--file", support_file("requirements.txt")),
+        *("--file", support_file("simple.yml")),
+        "--yes",
+        raises=EnvironmentFileTypeMismatchError,
+    )
+
+    assert exc.match("Cannot mix environment file formats")

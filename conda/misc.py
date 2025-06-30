@@ -2,21 +2,22 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Miscellaneous utility functions."""
 
+from __future__ import annotations
+
 import os
 import re
 import shutil
-import sys
 from collections import defaultdict
-from collections.abc import Iterable
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from typing import TYPE_CHECKING
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
 from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
-from .core.index import get_index
+from .core.index import Index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
@@ -32,6 +33,10 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -92,7 +97,14 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
 
 
 @deprecated.argument("25.3", "25.9", "index_args")
-def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
+def explicit(
+    specs: Iterable[str],
+    prefix: str,
+    verbose: bool = False,
+    force_extract: bool = True,
+    index: Any = None,
+    requested_specs: Sequence[str] | None = None,
+) -> None:
     actions = defaultdict(list)
     actions["PREFIX"] = prefix
 
@@ -143,12 +155,19 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
             else:
                 precs_to_remove.append(prec)
 
+    # Record user-requested specs in history when provided, otherwise fall back to
+    # all processed specs for backwards compatibility
+    if requested_specs:
+        update_specs_for_history = tuple(MatchSpec(spec) for spec in requested_specs)
+    else:
+        update_specs_for_history = tuple(sp[0] for sp in specs_pcrecs if sp[0])
+
     stp = PrefixSetup(
         prefix,
         precs_to_remove,
         tuple(sp[1] for sp in specs_pcrecs if sp[0]),
         (),
-        tuple(sp[0] for sp in specs_pcrecs if sp[0]),
+        update_specs_for_history,
         (),
     )
 
@@ -226,6 +245,7 @@ def untracked(prefix, exclude_self_build=False):
     }
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.set_nonadmin()")
 def touch_nonadmin(prefix):
     """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
     if on_win and exists(join(context.root_prefix, ".nonadmin")):
@@ -238,45 +258,7 @@ def touch_nonadmin(prefix):
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
-
-    # Discard conda, conda-env and any package that depends on them
-    filter = {}
-    found = True
-    while found:
-        found = False
-        for prec in PrefixData(prefix1).iter_records():
-            name = prec["name"]
-            if name in filter:
-                continue
-            if name == "conda":
-                filter["conda"] = prec
-                found = True
-                break
-            if name == "conda-env":
-                filter["conda-env"] = prec
-                found = True
-                break
-            for dep in prec.combined_depends:
-                if MatchSpec(dep).name in filter:
-                    filter[name] = prec
-                    found = True
-
-    if filter:
-        if not quiet:
-            fh = sys.stderr if context.json else sys.stdout
-            print(
-                "The following packages cannot be cloned out of the root environment:",
-                file=fh,
-            )
-            for prec in filter.values():
-                print(" - " + prec.dist_str(), file=fh)
-        drecs = {
-            prec
-            for prec in PrefixData(prefix1).iter_records()
-            if prec["name"] not in filter
-        }
-    else:
-        drecs = {prec for prec in PrefixData(prefix1).iter_records()}
+    drecs = {prec for prec in PrefixData(prefix1).iter_records()}
 
     # Resolve URLs for packages that do not have URLs
     index = {}
@@ -284,7 +266,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     notfound = []
     if unknowns:
         index_args = index_args or {}
-        index = get_index(**index_args)
+        index_args["channels"] = index_args.pop("channel_urls")
+        index = Index(**index_args)
 
         for prec in unknowns:
             spec = MatchSpec(name=prec.name, version=prec.version, build=prec.build)

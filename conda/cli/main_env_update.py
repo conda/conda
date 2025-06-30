@@ -20,7 +20,10 @@ from ..notices import notices
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..common.constants import NULL
     from .helpers import (
+        add_parser_environment_specifier,
+        add_parser_frozen_env,
         add_parser_json,
         add_parser_prefix,
         add_parser_solver,
@@ -48,6 +51,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+
+    # Add environment spec plugin args
+    add_parser_environment_specifier(p)
+
+    add_parser_frozen_env(p)
     add_parser_prefix(p)
     p.add_argument(
         "-f",
@@ -69,9 +77,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             "24.7",
             "25.9",
             _StoreAction,
-            addendum="Use `conda env create --file=URL` instead.",
+            addendum="Use `conda env update --file=URL` instead.",
         ),
-        default=None,
+        default=NULL,
         nargs="?",
     )
     add_parser_json(p)
@@ -86,35 +94,39 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
-    from ..env import specs as install_specs
-    from ..env.env import get_filename, print_result
+    from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
-    from ..misc import touch_nonadmin
+    from .common import validate_file_exists
 
-    spec = install_specs.detect(
-        name=args.name,
-        filename=get_filename(args.file),
-        directory=os.getcwd(),
+    # validate incoming arguments
+    validate_file_exists(args.file)
+
+    # detect the file format and get the env representation
+    spec_hook = context.plugin_manager.get_environment_specifier(
+        source=args.file,
+        name=context.environment_specifier,
     )
+    spec = spec_hook.environment_spec(args.file)
     env = spec.environment
 
     if not (args.name or args.prefix):
         if not env.name:
-            # Note, this is a hack fofr get_prefix that assumes argparse results
+            # Note, this is a hack for get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
             name = os.environ.get("CONDA_DEFAULT_ENV", False)
             if not name:
-                msg = "Unable to determine environment\n\n"
-                instuctions = dals(
+                msg = dals(
                     """
+                    Unable to determine environment
+
                     Please re-run this command with one of the following options:
 
                     * Provide an environment name via --name or -n
+                    * Provide an environment path via --prefix or -p
                     * Re-run this command inside an activated conda environment.
                     """
                 )
-                msg += instuctions
                 # TODO Add json support
                 raise CondaEnvException(msg)
 
@@ -124,6 +136,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.name = env.name
 
     prefix = determine_target_prefix(context, args)
+    prefix_data = PrefixData(prefix)
+    if prefix_data.is_environment():
+        prefix_data.assert_writable()
+        if context.protect_frozen_envs:
+            prefix_data.assert_not_frozen()
+
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
@@ -161,10 +179,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         result[installer_type] = installer.install(prefix, specs, args, env)
 
     if env.variables:
-        pd = PrefixData(prefix)
-        pd.set_environment_env_vars(env.variables)
+        prefix_data.set_environment_env_vars(env.variables)
 
-    touch_nonadmin(prefix)
+    prefix_data.set_nonadmin()
     print_result(args, prefix, result)
 
     return 0

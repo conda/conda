@@ -12,7 +12,10 @@ from pytest_mock import MockerFixture
 from conda import plugins
 from conda.common.url import urlparse
 from conda.core import solve
-from conda.exceptions import CondaValueError, PluginError
+from conda.exceptions import (
+    CondaValueError,
+    PluginError,
+)
 from conda.plugins import virtual_packages
 from conda.plugins.manager import CondaPluginManager
 
