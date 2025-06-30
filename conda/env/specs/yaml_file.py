@@ -5,6 +5,7 @@
 import os
 from logging import getLogger
 
+from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
@@ -47,7 +48,7 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
     @property
-    def environment(self):
+    def environment(self) -> Environment:
         if not self._environment:
             self.can_handle()
         return self._environment.to_environment_model()

@@ -17,7 +17,7 @@ from ...plugins.types import EnvironmentSpecBase
 if TYPE_CHECKING:
     from types import ModuleType
 
-    from ...env.env import Environment
+    from ...models.environment import Environment
 
 deprecated.module("24.7", "25.9")
 

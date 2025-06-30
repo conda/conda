@@ -275,15 +275,12 @@ class Environment:
         if (pip_dependencies := self.dependencies.get("pip")):
             external_packages["pip"] = pip_dependencies
 
-        if self.prefix is None:
-            self.prefix = context.target_prefix
-
         requested_packages = [
             MatchSpec(spec) for spec in self.dependencies.get("conda", [])
         ]
 
         return EnvironmentModel(
-            prefix=self.prefix,
+            prefix=self.prefix or context.target_prefix,
             platform=context.subdir,
             name=self.name,
             config=config,
