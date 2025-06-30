@@ -15,7 +15,7 @@ from ..exceptions import CondaUpgradeError
 class Arch(Enum):
     x86 = "x86"
     x86_64 = "x86_64"
-    AMD64 = "AMD64"
+    AMD64 = "x86_64"
     # arm64 is for macOS and Windows
     arm64 = "arm64"
     armv6l = "armv6l"
