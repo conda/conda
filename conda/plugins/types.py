@@ -439,7 +439,7 @@ class EnvironmentSpecBase(ABC):
 
     @property
     @abstractmethod
-    def environment(self) -> Environment:
+    def env(self) -> Environment:
         """
         Express the provided environment file as a conda environment object.
 

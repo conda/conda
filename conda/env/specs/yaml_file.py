@@ -5,6 +5,8 @@
 import os
 from logging import getLogger
 
+from ...deprecations import deprecated
+from ..env import Environment as EnvironmentYaml
 from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
@@ -48,7 +50,14 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
     @property
-    def environment(self) -> Environment:
+    @deprecated("25.9", "26.3", addendum="This method is not used anymore, use 'env'")
+    def environment(self) -> EnvironmentYaml:
+        if not self._environment:
+            self.can_handle()
+        return self._environment
+    
+    @property
+    def env(self) -> Environment:
         if not self._environment:
             self.can_handle()
         return self._environment.to_environment_model()

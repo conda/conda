@@ -130,7 +130,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
-    env = spec.environment
+    env = spec.env
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254

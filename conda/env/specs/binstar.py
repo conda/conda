@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 from ...env.env import from_yaml
+from ..env import Environment as EnvironmentYaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
 from ...plugins.types import EnvironmentSpecBase
@@ -29,6 +30,7 @@ class BinstarSpec(EnvironmentSpecBase):
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
     spec.environment # => YAML string
+    spec.env # => conda.models.environment.Environment model
     spec.msg # => Error messages
     :raises: EnvironmentFileNotDownloaded
     """
@@ -95,7 +97,25 @@ class BinstarSpec(EnvironmentSpecBase):
         return [data for data in self.package["files"] if data["type"] == "env"]
 
     @cached_property
-    def environment(self) -> Environment:
+    @deprecated("25.9", "26.3", addendum="This method is not used anymore, use 'env'")
+    def environment(self) -> EnvironmentYaml:
+        versions = [
+            {"normalized": normalized_version(d["version"]), "original": d["version"]}
+            for d in self.file_data
+        ]
+        latest_version = max(versions, key=lambda x: x["normalized"])["original"]
+        file_data = [
+            data for data in self.package["files"] if data["version"] == latest_version
+        ]
+        req = self.binstar.download(
+            self.username, self.packagename, latest_version, file_data[0]["basename"]
+        )
+        if req is None:
+            raise EnvironmentFileNotDownloaded(self.username, self.packagename)
+        return from_yaml(req.text)
+    
+    @cached_property
+    def env(self) -> Environment:
         versions = [
             {"normalized": normalized_version(d["version"]), "original": d["version"]}
             for d in self.file_data

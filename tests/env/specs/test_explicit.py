@@ -24,6 +24,6 @@ def test_can_not_handle_requirements_txt():
 
 def test_environment():
     spec = ExplicitSpec(filename=support_file("explicit.txt"))
-    assert isinstance(spec.environment, Environment)
-    assert len(spec.environment.explicit_packages) > 0
-    assert "ca-certificates" in [pkg.name for pkg in spec.environment.explicit_packages]
+    assert isinstance(spec.env, Environment)
+    assert len(spec.env.explicit_packages) > 0
+    assert "ca-certificates" in [pkg.name for pkg in spec.env.explicit_packages]

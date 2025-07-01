@@ -122,7 +122,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             name=context.environment_specifier,
         )
         spec = spec_hook.environment_spec(filename)
-        env = spec.environment
+        env = spec.env
 
         if args.prefix is None and args.name is None:
             args.name = env.name

@@ -127,7 +127,7 @@ def test_installer_installs_explicit(
     """Test that the installer installs explicit packages"""
     # Create spec from a real file
     spec = ExplicitSpec(filename=support_explicit_file)
-    env = spec.environment
+    env = spec.env
 
     # Call installer with tmp_path as prefix
     install(tmp_path, [], mocker.Mock(), env)

@@ -46,7 +46,7 @@ class ExplicitSpec(EnvironmentSpecBase):
             return False
 
     @property
-    def environment(self) -> Environment:
+    def env(self) -> Environment:
         """
         Build an environment from the explicit file.
 

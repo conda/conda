@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 from ...base.context import context
 from ...deprecations import deprecated
+from ..env import Environment as EnvironmentYaml
 from ...gateways.disk.read import yield_lines
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
@@ -103,7 +104,28 @@ class RequirementsSpec(EnvironmentSpecBase):
         return True
 
     @property
-    def environment(self) -> Environment:
+    @deprecated("25.9", "26.3", addendum="This method is not used anymore, use 'env'")
+    def environment(self) -> EnvironmentYaml:
+        """
+        Build an environment from the requirements file.
+
+        This method reads the file as a generator and passes it directly to EnvironmentYaml.
+
+        :return: An Environment object containing the package specifications
+        :raises ValueError: If the file cannot be read
+        """
+        if not self.filename:
+            raise ValueError("No filename provided")
+
+        # Convert generator to list since Dependencies needs to access it multiple times
+        dependencies_list = list(yield_lines(self.filename))
+        return EnvironmentYaml(
+            dependencies=dependencies_list,
+            filename=self.filename,
+        )
+
+    @property
+    def env(self) -> Environment:
         """
         Build an environment from the requirements file.
 
