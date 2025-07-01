@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata.json.zst or repodata.jlap were unavailable, check again later.
+# if repodata_shards.msgpack.zst, repodata.json.zst or repodata.jlap were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
@@ -356,6 +356,7 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 class RepodataState(UserDict):
     """Load/save info file that accompanies cached `repodata.json`."""
+    # update to support bytes
 
     # Accept old keys for new serialization
     _aliased = {
@@ -493,6 +494,8 @@ class RepodataCache:
     (<hex-string>*.json inside `dir`)
 
     Avoid race conditions while loading, saving repodata.json and cache state.
+
+    Also support bytes as in repodata_shards.msgpack.zst
     """
 
     def __init__(self, base, repodata_fn):
@@ -521,7 +524,7 @@ class RepodataCache:
         """Out-of-band etag and other state needed by the RepoInterface."""
         return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
-    def load(self, *, state_only=False) -> str:
+    def load(self, *, state_only=False, binary=False) -> str | bytes:
         # read state and repodata.json with locking
 
         # lock {CACHE_STATE_SUFFIX} file
@@ -537,9 +540,12 @@ class RepodataCache:
             # json and state files should match. must read json before checking
             # stat (if json_data is to be trusted)
             if state_only:
-                json_data = ""
+                json_data = b"" if binary else ""
             else:
-                json_data = self.cache_path_json.read_text()
+                if binary:
+                    json_data = self.cache_path_json.read_bytes()
+                else:
+                    json_data = self.cache_path_json.read_text()
 
             json_stat = self.cache_path_json.stat()
             if not (
@@ -555,10 +561,11 @@ class RepodataCache:
                         "size": 0,
                     }
                 )
+            # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
             self.state.update(
                 state
-            )  # will aliased _mod, _etag (not cleared above) pass through as mod, etag?
+            )
 
         return json_data
 
@@ -577,7 +584,7 @@ class RepodataCache:
 
     def load_state(self):
         """
-        Update self.state without reading repodata.json.
+        Update self.state without reading repodata.
 
         Return self.state.
         """
@@ -589,12 +596,13 @@ class RepodataCache:
             self.state.clear()
         return self.state
 
-    def save(self, data: str):
-        """Write data to <repodata>.json cache path, synchronize state."""
+    def save(self, data: str | bytes):
+        """Write data to <repodata> cache path, without touching state."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
+        mode = "bx" if isinstance(data, bytes) else "x"
 
         try:
-            with temp_path.open("x") as temp:  # exclusive mode, error if exists
+            with temp_path.open(mode) as temp:  # exclusive mode, error if exists
                 temp.write(data)
 
             return self.replace(temp_path)
@@ -607,7 +615,7 @@ class RepodataCache:
 
     def replace(self, temp_path: Path):
         """
-        Rename path onto <repodata>.json path, synchronize state.
+        Rename path onto <repodata> path, synchronize state.
 
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
@@ -617,7 +625,6 @@ class RepodataCache:
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
-            # XXX make sure self.state has the correct etag, etc. for temp_path.
             # UserDict has inscrutable typing, which we ignore
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
