@@ -184,39 +184,31 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             installer = get_installer(installer_type)
             result[installer_type] = installer.install(prefix, args_packages, args, env)
 
-        if not env.external_packages and not env.requested_packages:
-            installer_type = "conda"
-            pkg_specs = []
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
-        else:
-            # install conda packages
-            installer_type = "conda"
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(
-                prefix, env.requested_packages, args, env
-            )
+        # install conda packages
+        installer_type = "conda"
+        installer = get_installer(installer_type)
+        result[installer_type] = installer.install(prefix, env.requested_packages, args, env)
+    
+        # install all other external packages
+        for installer_type, pkg_specs in env.external_packages.items():
+            try:
+                installer = get_installer(installer_type)
+                result[installer_type] = installer.install(
+                    prefix, pkg_specs, args, env
+                )
+            except InvalidInstaller:
+                raise CondaError(
+                    dals(
+                        f"""
+                        Unable to install package for {installer_type}.
 
-            # install all other external packages
-            for installer_type, pkg_specs in env.external_packages.items():
-                try:
-                    installer = get_installer(installer_type)
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
+                        Please double check and ensure your dependencies file has
+                        the correct spelling. You might also try installing the
+                        conda-env-{installer_type} package to see if provides
+                        the required installer.
+                        """
                     )
-                except InvalidInstaller:
-                    raise CondaError(
-                        dals(
-                            f"""
-                            Unable to install package for {installer_type}.
-
-                            Please double check and ensure your dependencies file has
-                            the correct spelling. You might also try installing the
-                            conda-env-{installer_type} package to see if provides
-                            the required installer.
-                            """
-                        )
-                    )
+                )
 
         if context.subdir != context._native_subdir():
             set_keys(
