@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 from ...env.env import from_yaml
-from ..env import Environment as EnvironmentYaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
 from ...plugins.types import EnvironmentSpecBase
@@ -19,6 +18,7 @@ if TYPE_CHECKING:
     from types import ModuleType
 
     from ...models.environment import Environment
+    from ..env import Environment as EnvironmentYaml
 
 deprecated.module("24.7", "25.9")
 
@@ -113,7 +113,7 @@ class BinstarSpec(EnvironmentSpecBase):
         if req is None:
             raise EnvironmentFileNotDownloaded(self.username, self.packagename)
         return from_yaml(req.text)
-    
+
     @cached_property
     def env(self) -> Environment:
         versions = [

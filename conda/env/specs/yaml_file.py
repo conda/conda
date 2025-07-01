@@ -6,10 +6,10 @@ import os
 from logging import getLogger
 
 from ...deprecations import deprecated
-from ..env import Environment as EnvironmentYaml
 from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
+from ..env import Environment as EnvironmentYaml
 
 log = getLogger(__name__)
 
@@ -55,7 +55,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         if not self._environment:
             self.can_handle()
         return self._environment
-    
+
     @property
     def env(self) -> Environment:
         if not self._environment:

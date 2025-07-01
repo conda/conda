@@ -12,11 +12,11 @@ if TYPE_CHECKING:
 
 from ...base.context import context
 from ...deprecations import deprecated
-from ..env import Environment as EnvironmentYaml
 from ...gateways.disk.read import yield_lines
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
 from ...plugins.types import EnvironmentSpecBase
+from ..env import Environment as EnvironmentYaml
 
 
 class RequirementsSpec(EnvironmentSpecBase):

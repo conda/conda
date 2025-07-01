@@ -187,15 +187,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         # install conda packages
         installer_type = "conda"
         installer = get_installer(installer_type)
-        result[installer_type] = installer.install(prefix, env.requested_packages, args, env)
-    
+        result[installer_type] = installer.install(
+            prefix, env.requested_packages, args, env
+        )
+
         # install all other external packages
         for installer_type, pkg_specs in env.external_packages.items():
             try:
                 installer = get_installer(installer_type)
-                result[installer_type] = installer.install(
-                    prefix, pkg_specs, args, env
-                )
+                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
             except InvalidInstaller:
                 raise CondaError(
                     dals(

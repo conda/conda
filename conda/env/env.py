@@ -272,7 +272,7 @@ class Environment:
         config = EnvironmentConfig(channels=self.channels)
 
         external_packages = {}
-        if (pip_dependencies := self.dependencies.get("pip")):
+        if pip_dependencies := self.dependencies.get("pip"):
             external_packages["pip"] = pip_dependencies
 
         requested_packages = [
