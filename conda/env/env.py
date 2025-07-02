@@ -19,6 +19,8 @@ from ..gateways.connection.download import download_text
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..history import History
 from ..models.enums import PackageType
+from ..models.environment import Environment as EnvironmentModel
+from ..models.environment import EnvironmentConfig
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 
@@ -179,7 +181,6 @@ class Dependencies(dict):
     def __init__(self, raw, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.raw = raw
-        self.explicit = bool(raw and "@EXPLICIT" in raw)
         self.parse()
 
     def parse(self):
@@ -264,6 +265,28 @@ class Environment:
         """Save the ``Environment`` data to a ``yaml`` file"""
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
+
+    def to_environment_model(self) -> EnvironmentModel:
+        """Convert the ``Environment`` into a ``model.Environment`` object"""
+        config = EnvironmentConfig(channels=self.channels)
+
+        external_packages = {}
+        if pip_dependencies := self.dependencies.get("pip"):
+            external_packages["pip"] = pip_dependencies
+
+        requested_packages = [
+            MatchSpec(spec) for spec in self.dependencies.get("conda", [])
+        ]
+
+        return EnvironmentModel(
+            prefix=self.prefix or context.target_prefix,
+            platform=context.subdir,
+            name=self.name,
+            config=config,
+            variables=self.variables,
+            external_packages=external_packages,
+            requested_packages=requested_packages,
+        )
 
 
 @deprecated("25.9", "26.3")

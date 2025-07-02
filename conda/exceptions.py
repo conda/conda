@@ -1323,6 +1323,11 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         super().__init__(msg, *args, **kwargs)
 
 
+class SpecNotFoundInPackageCache(CondaError):
+    def __init__(self, msg: str, *args, **kwargs):
+        super().__init__(msg, *args, **kwargs)
+
+
 def maybe_raise(error: BaseException, context: Context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)

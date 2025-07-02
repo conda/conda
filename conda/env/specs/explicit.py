@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
+from ...base.context import context
 from ...gateways.disk.read import yield_lines
+from ...misc import get_package_records_from_explicit
+from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
-from ..env import Environment
 
 
 class ExplicitSpec(EnvironmentSpecBase):
@@ -44,12 +46,9 @@ class ExplicitSpec(EnvironmentSpecBase):
             return False
 
     @property
-    def environment(self) -> Environment:
+    def env(self) -> Environment:
         """
         Build an environment from the explicit file.
-
-        This method reads the file as a generator and passes it directly to Environment,
-        which will automatically detect if it's an explicit file and set the appropriate flags.
 
         :return: An Environment object containing the package specifications
         :raises ValueError: If the file cannot be read
@@ -59,7 +58,10 @@ class ExplicitSpec(EnvironmentSpecBase):
 
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))
+        explicit_packages = get_package_records_from_explicit(dependencies_list)
+
         return Environment(
-            dependencies=dependencies_list,
-            filename=self.filename,
+            prefix=context.target_prefix,
+            platform=context.subdir,
+            explicit_packages=explicit_packages,
         )
