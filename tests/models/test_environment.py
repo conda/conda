@@ -81,6 +81,7 @@ def test_environments_merge():
         explicit_packages=[],
         requested_packages=[MatchSpec("numpy"), MatchSpec("pandas")],
         variables={"PATH": "/usr/bin"},
+        virtual_packages=[PackageRecord.virtual_package("vp", "1.2.3", "44")],
     )
     env2 = Environment(
         prefix="/path/to/env1",
@@ -95,6 +96,7 @@ def test_environments_merge():
         explicit_packages=[],
         requested_packages=[MatchSpec("numpy"), MatchSpec("flask")],
         variables={"VAR": "IABLE"},
+        virtual_packages=[PackageRecord.virtual_package("vp2", "3.2.1", "1")],
     )
     merged = Environment.merge(env1, env2)
     assert merged.prefix == "/path/to/env1"
@@ -114,6 +116,10 @@ def test_environments_merge():
         [MatchSpec("pandas"), MatchSpec("flask"), MatchSpec("numpy")]
     )
     assert merged.variables == {"PATH": "/usr/bin", "VAR": "IABLE"}
+    assert merged.virtual_packages == [
+        PackageRecord.virtual_package("vp", "1.2.3", "44"),
+        PackageRecord.virtual_package("vp2", "3.2.1", "1"),
+    ]
 
 
 def test_environments_merge_explicit_packages():

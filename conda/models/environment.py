@@ -185,6 +185,10 @@ class Environment:
     #: Environment variables to be applied to the environment.
     variables: dict[str, str] = field(default_factory=dict)
 
+    # Virtual packages for the environment. Either the default ones provided by
+    # the virtual_packages plugins or the overrides captured by CONDA_OVERRIDE_*.
+    virtual_packages: list[PackageRecord] = field(default_factory=list)
+
     def __post_init__(self):
         # an environment must have a name of prefix
         if not self.prefix:
@@ -269,6 +273,14 @@ class Environment:
             )
         )
 
+        virtual_packages = list(
+            dict.fromkeys(
+                virtual_package
+                for env in environments
+                for virtual_package in env.virtual_packages
+            )
+        )
+
         variables = {k: v for env in environments for (k, v) in env.variables.items()}
 
         external_packages = {}
@@ -296,4 +308,5 @@ class Environment:
             prefix=prefix,
             requested_packages=requested_packages,
             variables=variables,
+            virtual_packages=virtual_packages,
         )
