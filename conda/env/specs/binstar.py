@@ -97,7 +97,7 @@ class BinstarSpec(EnvironmentSpecBase):
         return [data for data in self.package["files"] if data["type"] == "env"]
 
     @cached_property
-    @deprecated("25.9", "26.3", addendum="This method is not used anymore, use 'env'")
+    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
     def environment(self) -> EnvironmentYaml:
         versions = [
             {"normalized": normalized_version(d["version"]), "original": d["version"]}

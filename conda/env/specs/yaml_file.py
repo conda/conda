@@ -50,7 +50,7 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
     @property
-    @deprecated("25.9", "26.3", addendum="This method is not used anymore, use 'env'")
+    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
     def environment(self) -> EnvironmentYaml:
         if not self._environment:
             self.can_handle()
