@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS
 from ..base.context import context
+from ..common.iterators import groupby_to_dict as groupby
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -40,7 +41,7 @@ class EnvironmentConfig:
 
     channels: list[str] = field(default_factory=list)
 
-    channel_settings: dict[str, str] = field(default_factory=dict)
+    channel_settings: list[dict[str, str]] = field(default_factory=list)
 
     deps_modifier: DepsModifier | None = None
 
@@ -64,14 +65,32 @@ class EnvironmentConfig:
         first.extend(second)
         return list(dict.fromkeys(item for item in first))
 
+    def _merge_channel_settings(self, first: list[dict[str, str]], second: list[dict[str, str]]) -> list[dict[str, str]]:
+        """Merge channel settings.
+
+        An individual channel setting is a dict that may have the key "channels". Settings
+        with matching "channels" should be merged together. 
+        """
+        grouped_channel_settings = groupby(lambda x: x.get("channel"), first+second)
+        result = []
+        for channel, config in grouped_channel_settings.items():
+            channel_config = {}
+            for c in config:
+                channel_config.update(c)
+            result.append(channel_config)
+        return result
+
     def _merge(self, other: EnvironmentConfig) -> EnvironmentConfig:
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
 
+        
         Merges an EnvironmentConfig into this one. Merging rules are:
         * Primitive types get clobbered if subsequent configs have a value, otherwise keep the last set value
         * Lists get appended to and deduplicated
         * Dicts get updated
+        * Special cases:
+          * channel settings is a list of dicts, it merges inner dicts, keyed on "channel"
         """
         # Return early if there is nothing to merge
         if other is None:
@@ -92,7 +111,9 @@ class EnvironmentConfig:
 
         self.channels = self._append_without_duplicates(self.channels, other.channels)
 
-        self.channel_settings.update(other.channel_settings)
+        self.channel_settings = self._merge_channel_settings(
+            self.channel_settings, other.channel_settings
+        )
 
         if other.deps_modifier is not None:
             self.deps_modifier = other.deps_modifier
@@ -157,13 +178,15 @@ class EnvironmentConfig:
         # Don't try to merge if there is nothing to merge
         if len(configs) == 0:
             return
-
+        
         # If there is only one config, there is nothing to merge, return the lone config
         if len(configs) == 1:
             return configs[0]
+        
 
-        result = EnvironmentConfig()
-        for config in configs:
+        # Iterate over all configs and merge them into the result
+        result = configs[0]
+        for config in configs[1:]:
             result._merge(config)
         return result
 
