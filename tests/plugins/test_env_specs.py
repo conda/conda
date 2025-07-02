@@ -3,12 +3,12 @@
 import pytest
 
 from conda import plugins
-from conda.models.environment import Environment
 from conda.exceptions import (
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
+from conda.models.environment import Environment
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 

@@ -14,8 +14,8 @@ from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
-    EnvironmentYaml,
     Environment,
+    EnvironmentYaml,
     from_environment,
     from_file,
 )
@@ -202,7 +202,9 @@ def test_channels_are_provided_by_kwarg():
 
 def test_to_dict_returns_dictionary_of_data():
     random_name = f"random{random.randint(100, 200)}"
-    e = EnvironmentYaml(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -220,7 +222,9 @@ def test_to_dict_returns_just_name_if_only_thing_present():
 
 def test_to_yaml_returns_yaml_parseable_string():
     random_name = f"random{random.randint(100, 200)}"
-    e = EnvironmentYaml(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -234,7 +238,9 @@ def test_to_yaml_returns_yaml_parseable_string():
 
 def test_to_yaml_returns_proper_yaml():
     random_name = f"random{random.randint(100, 200)}"
-    e = EnvironmentYaml(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = "\n".join(
         [
@@ -253,7 +259,9 @@ def test_to_yaml_returns_proper_yaml():
 
 def test_to_yaml_takes_stream():
     random_name = f"random{random.randint(100, 200)}"
-    e = EnvironmentYaml(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     s = FakeStream()
     e.to_yaml(stream=s)
