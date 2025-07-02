@@ -12,7 +12,6 @@ See conda.cli.main.main_sourced for the entry point into this module.
 from __future__ import annotations
 
 import abc
-import json
 import os
 import re
 import sys
@@ -43,6 +42,7 @@ from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import on_win
 from .common.path import _cygpath, paths_equal, unix_path_to_win, win_path_to_unix
 from .common.path import path_identity as _path_identity
+from .common.serialize import json
 from .deprecations import deprecated
 from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
 
@@ -1118,7 +1118,7 @@ class JSONFormatMixin(_Activator):
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
                 # command_join should account for that
-                json.dump(commands, tf, indent=2)
+                json.dump(commands, tf)
             return tf.name
         else:
             raise NotImplementedError()

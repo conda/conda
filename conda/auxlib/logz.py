@@ -1,9 +1,10 @@
 from itertools import islice
-from json import JSONEncoder, dumps, loads
 from logging import getLogger, INFO, Formatter, StreamHandler, DEBUG
 from sys import stderr
 
 from . import NullHandler
+from ..common.serialize import json
+from ..deprecations import deprecated
 
 log = getLogger(__name__)
 root_log = getLogger()
@@ -50,19 +51,30 @@ def initialize_logging(level=INFO):
     attach_stderr(level)
 
 
-class DumpEncoder(JSONEncoder):
-    def default(self, obj):
-        if hasattr(obj, 'dump'):
-            return obj.dump()
-        # Let the base class default method raise the TypeError
-        return super().default(obj)
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "DumpEncoder",
+    json.CondaJSONEncoder,
+    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+)
+_DUMPS = json.CondaJSONEncoder(indent=2, ensure_ascii=False, sort_keys=True).encode
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "_DUMPS",
+    _DUMPS,
+    addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
+)
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "jsondumps",
+    _DUMPS,
+    addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
+)
+del _DUMPS
 
-
-_DUMPS = DumpEncoder(indent=2, ensure_ascii=False, sort_keys=True).encode
-
-
-def jsondumps(obj):
-    return _DUMPS(obj)
 
 
 def fullname(obj):
@@ -142,9 +154,9 @@ def stringify(obj, content_max_len=0):
                 if len(text) > content_max_len:
                     content = text
                 else:
-                    resp = loads(text)
+                    resp = json.loads(text)
                     resp = dict(islice(resp.items(), content_max_len))
-                    content = dumps(resp, indent=2)
+                    content = json.dumps(resp)
                 content = content[:content_max_len] if len(content) > content_max_len else content
                 builder.append(content)
                 builder.append('')
