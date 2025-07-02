@@ -16,7 +16,7 @@ from ...gateways.disk.read import yield_lines
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
 from ...plugins.types import EnvironmentSpecBase
-from ..env import Environment as EnvironmentYaml
+from ..env import EnvironmentYaml
 
 
 class RequirementsSpec(EnvironmentSpecBase):

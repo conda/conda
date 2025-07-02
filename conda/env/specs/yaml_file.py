@@ -9,7 +9,7 @@ from ...deprecations import deprecated
 from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
-from ..env import Environment as EnvironmentYaml
+from ..env import EnvironmentYaml
 
 log = getLogger(__name__)
 
