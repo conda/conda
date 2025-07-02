@@ -1314,7 +1314,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
 
             """
         )
-        if len(autodetect_disabled_plugins) > 0:
+        if autodetect_disabled_plugins:
             msg += dals(
                 """
                 Found compatible plugins but they must be explicitly selected.
