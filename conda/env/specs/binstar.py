@@ -19,9 +19,9 @@ if TYPE_CHECKING:
 
     from ...env.env import Environment
 
-deprecated.module("24.7", "25.9")
+deprecated.module("24.7", "26.3")
 
-deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
+deprecated.constant("24.7", "26.3", "ENVIRONMENT_TYPE", "env")
 
 
 class BinstarSpec(EnvironmentSpecBase):
@@ -35,7 +35,7 @@ class BinstarSpec(EnvironmentSpecBase):
 
     msg = None
 
-    @deprecated("24.7", "25.9")
+    @deprecated("24.7", "26.3")
     def __init__(self, name=None):
         self.name = name
 
