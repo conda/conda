@@ -8,7 +8,9 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.env.specs.binstar.BinstarSpec.environment` as pending deprecation in 26.9. Use `conda.env.specs.binstar.BinstarSpec.env` instead. (#14397)
+* Mark `conda.env.specs.requirements.RequirementsSpec.environment` as pending deprecation in 26.9. Use `conda.env.specs.requirements.RequirementsSpec.env` instead. (#14397)
+* Mark `conda.env.specs.yaml_file.YamlFileSpec.environment` as pending deprecation in 26.9. Use `conda.env.specs.yaml_file.YamlFileSpec.env` instead. (#14397)
 
 ### Docs
 
