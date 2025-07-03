@@ -6,7 +6,6 @@ Provides some low-level tools for creating conda packages.
 """
 
 import hashlib
-import json
 import os
 import re
 import tarfile
@@ -173,7 +172,7 @@ def fix_shebang(tmp_dir, path):
 
 
 def _add_info_dir(t, tmp_dir, files, has_prefix, info):
-    from ..auxlib.entity import EntityEncoder
+    from ..common.serialize import json
 
     info_dir = join(tmp_dir, "info")
     os.mkdir(info_dir)
@@ -182,7 +181,7 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
             fo.write(f + "\n")
 
     with open(join(info_dir, "index.json"), "w") as fo:
-        json.dump(info, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+        json.dump(info, fo, sort_keys=True)
 
     if has_prefix:
         with open(join(info_dir, "has_prefix"), "w") as fo:

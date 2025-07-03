@@ -122,7 +122,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             name=context.environment_specifier,
         )
         spec = spec_hook.environment_spec(filename)
-        env = spec.environment
+        env = spec.env
 
         if args.prefix is None and args.name is None:
             args.name = env.name
@@ -130,11 +130,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         raise
 
     active_pkgs = {pkg.name: pkg for pkg in get_packages(prefix)}
-    specification_pkgs = []
-    if "conda" in env.dependencies:
-        specification_pkgs = specification_pkgs + env.dependencies["conda"]
-    if "pip" in env.dependencies:
-        specification_pkgs = specification_pkgs + env.dependencies["pip"]
+    specification_pkgs = env.requested_packages
+    for packages in env.external_packages.values():
+        specification_pkgs = specification_pkgs + packages
 
     exitcode, output = compare_packages(active_pkgs, specification_pkgs)
 

@@ -3,8 +3,8 @@
 
 import pytest
 
-from conda.env.env import Environment
 from conda.env.specs.requirements import RequirementsSpec
+from conda.models.environment import Environment
 
 from .. import support_file
 

@@ -8,7 +8,6 @@ import abc
 import datetime
 import errno
 import hashlib
-import json
 import logging
 import os
 import pathlib
@@ -24,6 +23,7 @@ from ... import CondaError
 from ...auxlib.logz import stringify
 from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from ...base.context import context
+from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
 from ...core.package_cache_data import PackageCacheData
 from ...exceptions import (
