@@ -110,7 +110,7 @@ class DeprecationHandler:
             if not category:
                 raise DeprecatedError(message)
 
-            # if func is a class, wrap the constructor
+            # if obj is a class, wrap the __init__
             isclass = False
             func: Callable[P, T]
             if isinstance(obj, type):
