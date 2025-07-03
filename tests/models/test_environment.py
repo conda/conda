@@ -246,5 +246,5 @@ def test_merge_configs_deduplicate_values():
 
 def test_environment_config_from_context(context_testdata):
     config = EnvironmentConfig.from_context()
-    # Check that some of the config values have been populated from the context 
+    # Check that some of the config values have been populated from the context
     assert config.channel_priority == ChannelPriority.DISABLED

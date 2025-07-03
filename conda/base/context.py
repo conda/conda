@@ -1277,10 +1277,7 @@ class Context(Configuration):
     @property
     def environment_settings(self) -> dict[str, Any]:
         """Returns a dict of environment related settings"""
-        return {
-            key: getattr(self, key)
-            for key in self.environment_context_keys
-        }
+        return {key: getattr(self, key) for key in self.environment_context_keys}
 
     @property
     def category_map(self) -> dict[str, tuple[str, ...]]:

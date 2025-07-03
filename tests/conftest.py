@@ -16,7 +16,7 @@ from conda.common.configuration import (
     Configuration,
     ParameterLoader,
     PrimitiveParameter,
-    YamlRawParameter
+    YamlRawParameter,
 )
 from conda.common.serialize import yaml_round_trip_load
 from conda.core.package_cache_data import PackageCacheData
