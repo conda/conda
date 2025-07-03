@@ -3,6 +3,7 @@
 
 import pytest
 
+from conda.base.constants import ChannelPriority
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
@@ -241,3 +242,9 @@ def test_merge_configs_deduplicate_values():
     assert result.pinned_packages == ["b"]
     assert result.repodata_fns == ["repodata.json"]
     assert result.track_features == ["track"]
+
+
+def test_environment_config_from_context(context_testdata):
+    config = EnvironmentConfig.from_context()
+    # Check that some of the config values have been populated from the context 
+    assert config.channel_priority == ChannelPriority.DISABLED

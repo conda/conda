@@ -4,11 +4,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS
+from ..base.context import context
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -125,6 +126,17 @@ class EnvironmentConfig:
             self.use_only_tar_bz2 = other.use_only_tar_bz2
 
         return self
+
+    @classmethod
+    def from_context(cls) -> EnvironmentConfig:
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Create an EnvironmentConfig from the current context
+        """
+        field_names = [f.name for f in fields(cls)]
+        environment_settings = {key: value for key, value in context.environment_settings.items() if key in field_names}
+        return cls(**environment_settings)
 
     @classmethod
     def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:
