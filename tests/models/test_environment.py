@@ -262,13 +262,16 @@ def test_merge_channel_settings():
     config1 = EnvironmentConfig(
         channel_settings=[
             {"channel": "one", "param_one": "val_one", "param_two": "val_two"},
-            {"channel": "two", "param_three": "val_three"}
+            {"channel": "two", "param_three": "val_three"},
         ],
     )
     config2 = EnvironmentConfig(
         channel_settings=[
-            {"channel": "one", "other_val": "yes",},
-            {"channel": "three", "param_three": "val_three"}
+            {
+                "channel": "one",
+                "other_val": "yes",
+            },
+            {"channel": "three", "param_three": "val_three"},
         ]
     )
     config3 = EnvironmentConfig(
@@ -279,7 +282,12 @@ def test_merge_channel_settings():
     result = EnvironmentConfig.merge(config1, config2, config3)
     expected = EnvironmentConfig(
         channel_settings=[
-            {"channel": "one", "param_one": "val_one", "param_two": "val_two", "other_val": "yes",},
+            {
+                "channel": "one",
+                "param_one": "val_one",
+                "param_two": "val_two",
+                "other_val": "yes",
+            },
             {"channel": "two", "param_three": "val_three"},
             {"channel": "three", "param_three": "val_three"},
             {"some": "stuff"},

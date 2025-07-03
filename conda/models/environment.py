@@ -65,13 +65,15 @@ class EnvironmentConfig:
         first.extend(second)
         return list(dict.fromkeys(item for item in first))
 
-    def _merge_channel_settings(self, first: list[dict[str, str]], second: list[dict[str, str]]) -> list[dict[str, str]]:
+    def _merge_channel_settings(
+        self, first: list[dict[str, str]], second: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
         """Merge channel settings.
 
         An individual channel setting is a dict that may have the key "channels". Settings
-        with matching "channels" should be merged together. 
+        with matching "channels" should be merged together.
         """
-        grouped_channel_settings = groupby(lambda x: x.get("channel"), first+second)
+        grouped_channel_settings = groupby(lambda x: x.get("channel"), first + second)
         result = []
         for channel, config in grouped_channel_settings.items():
             channel_config = {}
@@ -84,7 +86,7 @@ class EnvironmentConfig:
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
 
-        
+
         Merges an EnvironmentConfig into this one. Merging rules are:
         * Primitive types get clobbered if subsequent configs have a value, otherwise keep the last set value
         * Lists get appended to and deduplicated
@@ -178,11 +180,10 @@ class EnvironmentConfig:
         # Don't try to merge if there is nothing to merge
         if len(configs) == 0:
             return
-        
+
         # If there is only one config, there is nothing to merge, return the lone config
         if len(configs) == 1:
             return configs[0]
-        
 
         # Iterate over all configs and merge them into the result
         result = configs[0]
