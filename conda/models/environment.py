@@ -33,7 +33,7 @@ class EnvironmentConfig:
     Data model for a conda environment config.
     """
 
-    aggressive_update_packages: bool | None = None
+    aggressive_update_packages: list[str] = field(default_factory=list)
 
     channel_priority: ChannelPriority | None = None
 
@@ -82,8 +82,9 @@ class EnvironmentConfig:
                 "Cannot merge EnvironmentConfig with non-EnvironmentConfig"
             )
 
-        if other.aggressive_update_packages is not None:
-            self.aggressive_update_packages = other.aggressive_update_packages
+        self.aggressive_update_packages = self._append_without_duplicates(
+            self.aggressive_update_packages, other.aggressive_update_packages
+        )
 
         if other.channel_priority is not None:
             self.channel_priority = other.channel_priority
