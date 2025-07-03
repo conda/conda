@@ -13,7 +13,7 @@ from boltons.setutils import IndexedSet
 from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
-from ...env.env import Environment as EnvironmentYaml
+from ...env.env import EnvironmentYaml
 from ...exceptions import CondaValueError, UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 

@@ -3,12 +3,12 @@
 import pytest
 
 from conda import plugins
-from conda.env.env import Environment
 from conda.exceptions import (
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
+from conda.models.environment import Environment
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
@@ -45,7 +45,7 @@ class RandomSpec(EnvironmentSpecBase):
         return False
 
     def env(self):
-        return Environment(name="random-environment", dependencies=["python", "numpy"])
+        return Environment(prefix="/somewhere", platform=["linux-64"])
 
 
 class RandomSpecNoAutoDetect(RandomSpec):
