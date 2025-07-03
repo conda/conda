@@ -117,6 +117,7 @@ class DeprecationHandler:
                 try:
                     func = obj.__init__  # type: ignore[misc]
                 except AttributeError:
+                    # AttributeError: obj has no __init__
                     func = obj
                 else:
                     isclass = True
