@@ -1255,6 +1255,31 @@ class Context(Configuration):
         return self._default_activation_env or ROOT_ENV_NAME
 
     @property
+    def environment_context_keys(self) -> list[str]:
+        return [
+            "aggressive_update_packages",
+            "channel_priority",
+            "channels",
+            "channel_settings",
+            "custom_channels",
+            "custom_multichannels",
+            "deps_modifier",
+            "disallowed_packages",
+            "pinned_packages",
+            "repodata_fns",
+            "sat_solver",
+            "solver",
+            "track_features",
+            "update_modifier",
+            "use_only_tar_bz2",
+        ]
+
+    @property
+    def environment_settings(self) -> dict[str, Any]:
+        """Returns a dict of environment related settings"""
+        return {key: getattr(self, key) for key in self.environment_context_keys}
+
+    @property
     def category_map(self) -> dict[str, tuple[str, ...]]:
         return {
             "Channel Configuration": (
