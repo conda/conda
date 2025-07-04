@@ -24,6 +24,7 @@ from ..base.constants import (
     UpdateModifier,
 )
 from ..base.context import context
+from ..base.constants import  UNUSED_ENV_NAME
 from ..common.constants import NULL
 from ..common.path import is_package_file
 from ..core.index import (
@@ -52,13 +53,15 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, explicit
+from ..misc import _get_best_prec_match, clone_env, explicit, get_package_records_from_explicit
+from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+from tempfile import mktemp
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -315,6 +318,60 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
             raise PackageNotInstalledError(prefix, spec.name)
 
 
+def _assemble_environment(
+    name: str | None = None,
+    prefix: str | None = None,
+    specs: list[str] = (),
+    files: list[str] = (),
+    inject_default_packages: bool = True,  
+) -> Environment:
+    # First, let's create an 'Environment' for the information exposed in the CLI (no files)
+    if inject_default_packages:
+        names = {MatchSpec(pkg).name for pkg in specs}
+        for pkg in context.create_default_packages:
+            pkg_name = MatchSpec(pkg).name
+            if pkg_name not in names:
+                specs.append(pkg_name)
+
+    requested_packages = []
+    fetch_explicit_packages = []
+
+    for spec in specs:
+        if is_package_file(spec):
+            fetch_explicit_packages.append(spec)
+        else:
+            requested_packages.append(common.arg2spec(spec, json=context.json))
+
+    # transform explicit packages into package records
+    explicit_packages = []
+    if fetch_explicit_packages:
+        explicit_packages = get_package_records_from_explicit(fetch_explicit_packages)
+
+    cli_env = Environment(
+        name=name,
+        prefix=prefix,
+        platform=context.subdir,
+        requested_packages=requested_packages,
+        explicit_packages=explicit_packages,
+        # TODO: set the context for the environment
+        # config=context.environment_settings,
+    )
+
+    # Now let's process potential files passed via --file
+    file_envs = []
+    if files:
+        for path in files:
+            # parse the file
+            spec_hook = context.plugin_manager.get_environment_specifiers(path)
+            file_env = spec_hook.environment_spec(path).environment
+            file_envs.append(file_env)
+
+    if context.dry_run:
+        cli_env.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
+
+    return Environment.merge(cli_env, *file_envs)
+
+
 def install_clone(args, parser):
     """Executes an install of a new conda environment by cloning."""
     prefix = context.target_prefix
@@ -358,47 +415,25 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    # collect packages provided from the command line
-    args_packages = [s.strip("\"'") for s in args.packages]
-    if newenv and not args.no_default_packages:
-        # Override defaults if they are specified at the command line
-        names = [MatchSpec(pkg).name for pkg in args_packages]
-        for default_package in context.create_default_packages:
-            if MatchSpec(default_package).name not in names:
-                args_packages.append(default_package)
+    env = _assemble_environment(
+        name=args.name,
+        prefix=context.target_prefix,
+        specs=[s.strip("\"'") for s in args.packages],
+        files=args.file,
+        inject_default_packages=command == "create" and not args.no_default_packages,
+    )
 
-    num_cp = sum(is_package_file(s) for s in args_packages)
-    if num_cp:
-        if num_cp == len(args_packages):
-            # short circuit to installing explicit if all specs are direct files
-            explicit(args_packages, prefix, verbose=not context.quiet)
-            return
-        else:
-            raise CondaValueError(
-                "cannot mix specifications with conda package filenames"
-            )
+    # install explicit specs
+    if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
+        return explicit(env.explicit_packages, env.prefix, verbose=not context.quiet)
 
-    # collect specs provided by --file arguments
-    specs = []
-    if args.file:
-        for fpath in args.file:
-            try:
-                specs.extend(common.specs_from_url(fpath, json=context.json))
-            except UnicodeError:
-                raise CondaError(
-                    "Error reading file, file should be a text file containing"
-                    " packages \nconda create --help for details"
-                )
-        if "@EXPLICIT" in specs:
-            # short circuit to installing explicit if explicit specs are provided
-            explicit(specs, prefix, verbose=not context.quiet)
-            return
-    specs.extend(common.specs_from_args(args_packages))
+    # TODO: these calls to context should maybe actually be calls to the
+    #       environment configuration?
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
-        ensure_update_specs_exist(prefix=prefix, specs=specs)
+        ensure_update_specs_exist(prefix=prefix, specs=env.requested_packages)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
@@ -431,7 +466,7 @@ def install(args, parser, command="install"):
                 prefix,
                 context_channels,
                 context.subdirs,
-                specs_to_add=specs,
+                specs_to_add=env.requested_packages,
                 repodata_fn=repodata,
                 command=args.cmd,
             )
