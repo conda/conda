@@ -96,12 +96,12 @@ class DeprecationHandler:
         :param stack: Optional stacklevel increment.
         """
 
-        def deprecated_decorator(func: Callable[P, T]) -> Callable[P, T]:
+        def deprecated_decorator(obj: Callable[P, T]) -> Callable[P, T]:
             # detect function name and generate message
             category, message = self._generate_message(
                 deprecate_in=deprecate_in,
                 remove_in=remove_in,
-                prefix=f"{func.__module__}.{func.__qualname__}",
+                prefix=f"{obj.__module__}.{obj.__qualname__}",
                 addendum=addendum,
                 deprecation_type=deprecation_type,
             )
@@ -110,14 +110,32 @@ class DeprecationHandler:
             if not category:
                 raise DeprecatedError(message)
 
+            # if obj is a class, wrap the __init__
+            isclass = False
+            func: Callable[P, T]
+            if isinstance(obj, type):
+                try:
+                    func = obj.__init__  # type: ignore[misc]
+                except AttributeError:
+                    # AttributeError: obj has no __init__
+                    func = obj
+                else:
+                    isclass = True
+            else:
+                func = obj
+
             # alert user that it's time to remove something
-            @wraps(func)
+            @wraps(func)  # type: ignore[reportArgumentType]
             def inner(*args: P.args, **kwargs: P.kwargs) -> T:
                 warnings.warn(message, category, stacklevel=2 + stack)
 
                 return func(*args, **kwargs)
 
-            return inner
+            if isclass:
+                obj.__init__ = inner  # type: ignore[misc]
+                return obj
+            else:
+                return inner
 
         return deprecated_decorator
 
