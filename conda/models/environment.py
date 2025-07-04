@@ -33,7 +33,7 @@ class EnvironmentConfig:
     Data model for a conda environment config.
     """
 
-    aggressive_update_packages: bool | None = None
+    aggressive_update_packages: list[str] = field(default_factory=list)
 
     channel_priority: ChannelPriority | None = None
 
@@ -82,8 +82,9 @@ class EnvironmentConfig:
                 "Cannot merge EnvironmentConfig with non-EnvironmentConfig"
             )
 
-        if other.aggressive_update_packages is not None:
-            self.aggressive_update_packages = other.aggressive_update_packages
+        self.aggressive_update_packages = self._append_without_duplicates(
+            self.aggressive_update_packages, other.aggressive_update_packages
+        )
 
         if other.channel_priority is not None:
             self.channel_priority = other.channel_priority
@@ -167,7 +168,7 @@ class Environment:
     #: Environment level configuration, eg. channels, solver options, etc.
     #: TODO: may need to think more about the type of this field and how
     #:       conda should be merging configs between environments
-    config: EnvironmentConfig | None = None
+    config: EnvironmentConfig = field(default_factory=EnvironmentConfig)
 
     #: Map of other package types that conda can install. For example pypi packages.
     external_packages: dict[str, list[str]] = field(default_factory=dict)

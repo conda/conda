@@ -10,7 +10,7 @@ import pytest
 
 from conda.common.compat import on_mac, on_win
 from conda.core.subdir_data import cache_fn_url
-from conda.exceptions import CondaExitZero, ParseError
+from conda.exceptions import CondaExitZero, ParseError, SpecNotFoundInPackageCache
 from conda.misc import _match_specs_from_explicit, explicit, url_pat, walk_prefix
 from conda.utils import Utf8NamedTemporaryFile
 
@@ -82,7 +82,9 @@ def test_explicit_no_cache(mocker: MockerFixture) -> None:
     # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
     mocker.patch("conda.misc.ProgressiveFetchExtract")
 
-    with pytest.raises(AssertionError, match="No package cache records found"):
+    with pytest.raises(
+        SpecNotFoundInPackageCache, match="No package cache records found"
+    ):
         explicit(
             [
                 "http://test/pkgs/linux-64/foo-1.0.0-py_0.tar.bz2",
@@ -115,7 +117,7 @@ def test_explicit_missing_cache_entries(
     mocker.patch("conda.misc.ProgressiveFetchExtract")
 
     with pytest.raises(
-        AssertionError,
+        SpecNotFoundInPackageCache,
         match="Missing package cache records for: test-recipes/noarch::missing==1.0.0=0",
     ):
         schema = "file:///" if on_win else "file://"

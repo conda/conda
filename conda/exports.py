@@ -12,7 +12,6 @@ from io import StringIO  # noqa: F401, for conda-build
 from typing import TYPE_CHECKING
 
 from . import CondaError  # noqa: F401
-from .auxlib.entity import EntityEncoder  # noqa: F401
 from .base.constants import (  # noqa: F401
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
@@ -34,6 +33,7 @@ from .cli.helpers import (  # noqa: F401
 from .common import compat  # noqa: F401
 from .common.compat import on_win
 from .common.path import win_path_to_unix
+from .common.serialize.json import CondaJSONEncoder
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
 from .core.index import get_index as _get_index
@@ -116,6 +116,14 @@ def __getattr__(name: str) -> Any:
         return plan
 
 
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "EntityEncoder",
+    CondaJSONEncoder,
+    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+)
+del CondaJSONEncoder
 deprecated.constant(
     "25.3",
     "25.9",

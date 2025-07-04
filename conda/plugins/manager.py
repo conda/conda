@@ -532,23 +532,36 @@ class CondaPluginManager(pluggy.PluginManager):
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
         name = name.lower()
-        hooks = self.get_hook_results("environment_specifiers")
-        found = [hook for hook in hooks if hook.name == name]
+        hooks = self.get_environment_specifiers()
+        found = [hook for hook_name, hook in hooks.items() if hook_name == name]
 
-        if len(found) == 0:
+        if not found:
             raise CondaValueError(
                 f"You have chosen an unrecognized environment"
                 f" specifier type ({name}). Choose one of: "
-                f"{', '.join([hook.name for hook in hooks])}"
+                f"{', '.join(hooks)}"
             )
-        if len(found) == 1:
-            if found[0].environment_spec(source).can_handle():
-                return found[0]
+        elif len(found) == 1:
+            # Try to load the plugin and check if it can handle the environment spec
+            try:
+                if found[0].environment_spec(source).can_handle():
+                    return found[0]
+            except Exception as e:
+                raise PluginError(
+                    dals(
+                        f"""
+                        An error occured when handling '{source}' with plugin '{name}'.
+
+                        {type(e).__name__}: {e}
+                        """
+                    )
+                )
             else:
+                # If the plugin was not able to handle the environment spec, raise an error
                 raise PluginError(
                     f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
                 )
-        elif len(found) > 1:
+        else:
             raise PluginError(
                 f"More than one environment_spec plugin named {name} found: {found}"
             )
@@ -562,47 +575,53 @@ class CondaPluginManager(pluggy.PluginManager):
         :param source: full path to the environment spec file or source
         :returns: an environment specifier plugin that can handle the provided file
         """
-        hooks = self.get_hook_results("environment_specifiers")
+        hooks = self.get_environment_specifiers()
         found = []
-        available_hooks = []
         autodetect_disabled_plugins = []
-        for hook in hooks:
-            log.debug("EnvironmentSpec hook: checking %s", hook.name)
-            if not hook.environment_spec.detection_supported:
-                log.debug(
-                    "EnvironmentSpec hook '%s' does not support autodetection, skipping",
-                    hook.name,
-                )
-                autodetect_disabled_plugins.append(hook)
-            elif hook.environment_spec(source).can_handle():
-                log.debug(
-                    "EnvironmentSpec hook: %s can be %s",
-                    source,
-                    hook.name,
-                )
-                found.append(hook)
-                available_hooks.append(hook)
+        for hook_name, hook in hooks.items():
+            if hook.environment_spec.detection_supported:
+                log.debug("EnvironmentSpec hook: checking %s", hook_name)
+                try:
+                    if hook.environment_spec(source).can_handle():
+                        log.debug(
+                            "EnvironmentSpec hook: %s can be %s",
+                            source,
+                            hook_name,
+                        )
+                        found.append(hook)
+                    else:
+                        log.debug(
+                            "EnvironmentSpec hook: %s can NOT be handled by %s",
+                            source,
+                            hook_name,
+                        )
+                except Exception as e:
+                    log.error(
+                        "EnvironmentSpec hook: an error occurred when handling '%s' with plugin '%s'. %s",
+                        source,
+                        hook_name,
+                        e,
+                    )
+                    log.debug("%r", e, exc_info=e)
             else:
                 log.debug(
                     "EnvironmentSpec hook: %s can NOT be handled by %s",
                     source,
-                    hook.name,
+                    hook_name,
                 )
-                available_hooks.append(hook)
+                autodetect_disabled_plugins.append(hook_name)
 
-        if len(found) == 0:
+        if not found:
             # raise error if no plugins found that can read the environment file
             raise EnvironmentSpecPluginNotDetected(
                 name=source,
-                plugin_names=[hook.name for hook in available_hooks],
-                autodetect_disabled_plugins=[
-                    hook.name for hook in autodetect_disabled_plugins
-                ],
+                plugin_names=hooks,
+                autodetect_disabled_plugins=autodetect_disabled_plugins,
             )
         elif len(found) == 1:
             # return the plugin if only one is found
             return found[0]
-        elif len(found) > 1:
+        else:
             # raise an error if there is more than one plugin found
             raise PluginError(
                 dals(

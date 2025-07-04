@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Miscellaneous utility functions."""
 
+from __future__ import annotations
+
 import os
 import re
 import shutil
-from collections import defaultdict
-from collections.abc import Iterable
 from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from typing import TYPE_CHECKING
 
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
@@ -21,16 +22,23 @@ from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData
 from .deprecations import deprecated
 from .exceptions import (
-    CondaExitZero,
     DisallowedPackageError,
     DryRunExit,
     PackagesNotFoundError,
     ParseError,
+    SpecNotFoundInPackageCache,
 )
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from typing import Any
+
+    from .models.records import PackageCacheRecord, PackageRecord
+
 
 log = getLogger(__name__)
 
@@ -91,42 +99,29 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
 
 
 @deprecated.argument("25.3", "25.9", "index_args")
-def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
-    actions = defaultdict(list)
-    actions["PREFIX"] = prefix
-
-    fetch_specs = list(_match_specs_from_explicit(specs))
-
-    if context.dry_run:
-        raise DryRunExit()
-
-    pfe = ProgressiveFetchExtract(fetch_specs)
-    pfe.execute()
-
-    if context.download_only:
-        raise CondaExitZero(
-            "Package caches prepared. "
-            "UnlinkLinkTransaction cancelled with --download-only option."
-        )
-
-    # now make an UnlinkLinkTransaction with the PackageCacheRecords as inputs
-    # need to add package name to fetch_specs so that history parsing keeps track of them correctly
-    specs_pcrecs = tuple(
-        [spec, next(PackageCacheData.query_all(spec), None)] for spec in fetch_specs
+def explicit(
+    specs: Iterable[str],
+    prefix: str,
+    verbose: bool = False,
+    force_extract: bool = True,
+    index: Any = None,
+    requested_specs: Sequence[str] | None = None,
+) -> None:
+    package_cache_records = get_package_records_from_explicit(specs)
+    install_explicit_packages(
+        package_cache_records=package_cache_records,
+        prefix=prefix,
+        requested_specs=requested_specs,
     )
 
-    # Assert that every spec has a PackageCacheRecord
-    specs_with_missing_pcrecs = [
-        str(spec) for spec, pcrec in specs_pcrecs if pcrec is None
-    ]
-    if specs_with_missing_pcrecs:
-        if len(specs_with_missing_pcrecs) == len(specs_pcrecs):
-            raise AssertionError("No package cache records found")
-        else:
-            missing_precs_list = ", ".join(specs_with_missing_pcrecs)
-            raise AssertionError(
-                f"Missing package cache records for: {missing_precs_list}"
-            )
+
+def install_explicit_packages(
+    package_cache_records: list[PackageRecord],
+    prefix: str,
+    requested_specs: Sequence[str] | None = None,
+):
+    """Install a list of PackageRecords into a prefix"""
+    specs_pcrecs = tuple([rec.to_match_spec(), rec] for rec in package_cache_records)
 
     precs_to_remove = []
     prefix_data = PrefixData(prefix)
@@ -142,12 +137,19 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
             else:
                 precs_to_remove.append(prec)
 
+    # Record user-requested specs in history when provided, otherwise fall back to
+    # all processed specs for backwards compatibility
+    if requested_specs:
+        update_specs_for_history = tuple(MatchSpec(spec) for spec in requested_specs)
+    else:
+        update_specs_for_history = tuple(sp[0] for sp in specs_pcrecs if sp[0])
+
     stp = PrefixSetup(
         prefix,
         precs_to_remove,
         tuple(sp[1] for sp in specs_pcrecs if sp[0]),
         (),
-        tuple(sp[0] for sp in specs_pcrecs if sp[0]),
+        update_specs_for_history,
         (),
     )
 
@@ -155,6 +157,48 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index=None):
     if not context.json and not context.quiet:
         txn.print_transaction_summary()
     txn.execute()
+
+
+def _get_package_record_from_specs(specs: list[str]) -> Iterable[PackageCacheRecord]:
+    """Given a list of specs, find the corresponding PackageCacheRecord. If
+    some PackageCacheRecords are missing, raise an error.
+    """
+    specs_pcrecs = tuple(
+        [spec, next(PackageCacheData.query_all(spec), None)] for spec in specs
+    )
+
+    # Assert that every spec has a PackageCacheRecord
+    specs_with_missing_pcrecs = [
+        str(spec) for spec, pcrec in specs_pcrecs if pcrec is None
+    ]
+    if specs_with_missing_pcrecs:
+        if len(specs_with_missing_pcrecs) == len(specs_pcrecs):
+            raise SpecNotFoundInPackageCache("No package cache records found")
+        else:
+            missing_precs_list = ", ".join(specs_with_missing_pcrecs)
+            raise SpecNotFoundInPackageCache(
+                f"Missing package cache records for: {missing_precs_list}"
+            )
+    return [rec[1] for rec in specs_pcrecs]
+
+
+def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCacheRecord]:
+    """Given the lines from an explicit.txt, create the PackageRecords for each of the
+    specified packages. This may require downloading the package, if it does not already
+    exist in the package cache.
+    """
+    # Extract the list of specs
+    fetch_specs = list(_match_specs_from_explicit(lines))
+
+    if context.dry_run:
+        raise DryRunExit()
+
+    # Fetch the packages - if they are already cached nothing new will be downloaded
+    pfe = ProgressiveFetchExtract(fetch_specs)
+    pfe.execute()
+
+    # Get the package records from the cache
+    return _get_package_record_from_specs(fetch_specs)
 
 
 @deprecated("25.3", "25.9")

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
 
-import json
 import logging
 import os
 import signal
@@ -24,6 +23,7 @@ from time import sleep, time
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
+from ..common.serialize import json
 from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL

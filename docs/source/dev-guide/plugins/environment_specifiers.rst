@@ -35,7 +35,7 @@ base class is an abstract base class which requires us to define our own impleme
 of its abstract methods:
 
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
-* ``environment`` Expresses the provided environment file as a conda environment object.
+* ``env`` Expresses the provided environment file as a conda environment object.
 
 The class may also define the boolean class variable `detection_supported`. When set to
 ``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
@@ -97,7 +97,7 @@ in their plugin class
         def can_handle(self):
             return True
 
-        def environment(self):
+        def env(self):
             return Environment(name="random-environment", dependencies=["python", "numpy"])
 
 End users can bypass environment spec plugin detection and explicitly request a plugin to be used
@@ -167,7 +167,7 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
            return True
 
        @property
-       def environment(self) -> Environment:
+       def env(self) -> Environment:
            """Returns the Environment representation of the environment spec file"""
            data = self._parse_data()
            return Environment(
