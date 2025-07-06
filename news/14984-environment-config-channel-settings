@@ -6,7 +6,6 @@
 
 * Fix `EnvironmentConfig.channel_settings` type. It is a list of dicts, not a dict. (#14984)
 
-
 ### Deprecations
 
 * <news item>

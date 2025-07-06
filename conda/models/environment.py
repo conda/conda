@@ -86,7 +86,6 @@ class EnvironmentConfig:
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
 
-
         Merges an EnvironmentConfig into this one. Merging rules are:
         * Primitive types get clobbered if subsequent configs have a value, otherwise keep the last set value
         * Lists get appended to and deduplicated
