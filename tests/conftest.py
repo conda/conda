@@ -10,15 +10,12 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda
-from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
     Configuration,
     ParameterLoader,
     PrimitiveParameter,
-    YamlRawParameter
 )
-from conda.common.serialize import yaml_round_trip_load
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
 from conda.plugins.config import PluginConfig
@@ -41,56 +38,6 @@ pytest_plugins = (
     "conda.testing.fixtures",
     "tests.fixtures_jlap",
 )
-
-TEST_CONDARC = dals(
-    """
-    custom_channels:
-      darwin: https://some.url.somewhere/stuff
-      chuck: http://another.url:8080/with/path
-    custom_multichannels:
-      michele:
-        - https://do.it.with/passion
-        - learn_from_every_thing
-      steve:
-        - more-downloads
-    channel_settings:
-      - channel: darwin
-        param_one: value_one
-        param_two: value_two
-      - channel: "http://localhost"
-        param_one: value_one
-        param_two: value_two
-    migrated_custom_channels:
-      darwin: s3://just/cant
-      chuck: file:///var/lib/repo/
-    migrated_channel_aliases:
-      - https://conda.anaconda.org
-    channel_alias: ftp://new.url:8082
-    conda-build:
-      root-dir: /some/test/path
-    proxy_servers:
-      http: http://user:pass@corp.com:8080
-      https: none
-      ftp:
-      sftp: ''
-      ftps: false
-      rsync: 'false'
-    aggressive_update_packages: []
-    channel_priority: false
-    """
-)
-
-
-@pytest.fixture
-def context_testdata() -> None:
-    reset_context()
-    context._set_raw_data(
-        {
-            "testdata": YamlRawParameter.make_raw_parameters(
-                "testdata", yaml_round_trip_load(TEST_CONDARC)
-            )
-        }
-    )
 
 
 @pytest.hookimpl
