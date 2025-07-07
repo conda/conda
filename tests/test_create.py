@@ -2398,11 +2398,12 @@ def test_create_env_different_platform(
 ):
     platform = f"{context.subdir.split('-')[0]}-fake"
 
+    # the platform must match the defined known platforms, patch to use fake subdir
+    monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
+    monkeypatch.setattr("conda.models.environment.PLATFORMS", [platform])
+
     # either set CONDA_SUBDIR or pass --platform
     if style == "cli":
-        # --platforms has explicit choices, patch to use fake subdir
-        monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
-
         args = [f"--platform={platform}"]
     else:
         monkeypatch.setenv("CONDA_SUBDIR", platform)
