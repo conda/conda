@@ -135,7 +135,11 @@ class EnvironmentConfig:
         Create an EnvironmentConfig from the current context
         """
         field_names = [f.name for f in fields(cls)]
-        environment_settings = {key: value for key, value in context.environment_settings.items() if key in field_names}
+        environment_settings = {
+            key: value
+            for key, value in context.environment_settings.items()
+            if key in field_names
+        }
         return cls(**environment_settings)
 
     @classmethod
