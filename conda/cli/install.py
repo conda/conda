@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
+from tempfile import mktemp
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
@@ -22,10 +23,10 @@ from .. import CondaError
 from ..base.constants import (
     REPODATA_FN,
     ROOT_ENV_NAME,
+    UNUSED_ENV_NAME,
     UpdateModifier,
 )
 from ..base.context import context
-from ..base.constants import UNUSED_ENV_NAME
 from ..common.constants import NULL
 from ..common.path import is_package_file
 from ..core.index import (
@@ -54,7 +55,12 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, install_explicit_packages, get_package_records_from_explicit
+from ..misc import (
+    _get_best_prec_match,
+    clone_env,
+    get_package_records_from_explicit,
+    install_explicit_packages,
+)
 from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
@@ -62,7 +68,6 @@ from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
-from tempfile import mktemp
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -327,7 +332,7 @@ def _assemble_environment(
     prefix: str | None = None,
     specs: Iterable[str] = (),
     files: Iterable[str] = (),
-    inject_default_packages: bool = True,  
+    inject_default_packages: bool = True,
 ) -> Environment:
     # First, let's create an 'Environment' for the information exposed in the CLI (no files)
     if inject_default_packages:
