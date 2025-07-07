@@ -95,6 +95,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
+
+    if args.executable_call[0] == "--":
+        # Used to separate subcommand from 'conda run' options
+        # e.g. conda run -v -- tar -tvf file.tar
+        args.executable_call = args.executable_call[1:]
+
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
