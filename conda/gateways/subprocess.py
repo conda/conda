@@ -18,6 +18,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import encode_environment, isiterable
 from ..common.constants import TRACE
+from ..common.signals import signal_handler
 from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
@@ -115,11 +116,17 @@ def subprocess_call(
         env=env,
         text=True,  # open streams in text mode so that we don't have to decode
         errors="replace",
+        start_new_session=True,
     )
     ACTIVE_SUBPROCESSES.add(process)
 
-    # decode output, if not PIPE, stdout/stderr will be None
-    stdout, stderr = process.communicate(input=stdin)
+    def _handler(signum, frame):
+        os.killpg(os.getpgid(process.pid), signum)
+
+    with signal_handler(_handler):
+        # decode output, if not PIPE, stdout/stderr will be None
+        stdout, stderr = process.communicate(input=stdin)
+
     rc = process.returncode
     ACTIVE_SUBPROCESSES.remove(process)
 
