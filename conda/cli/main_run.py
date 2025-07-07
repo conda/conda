@@ -66,6 +66,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=os.getcwd(),
     )
     p.add_argument(
+        "-s",
         "--no-capture-output",
         "--live-stream",
         action="store_true",
