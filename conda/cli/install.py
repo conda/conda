@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -24,7 +25,7 @@ from ..base.constants import (
     UpdateModifier,
 )
 from ..base.context import context
-from ..base.constants import  UNUSED_ENV_NAME
+from ..base.constants import UNUSED_ENV_NAME
 from ..common.constants import NULL
 from ..common.path import is_package_file
 from ..core.index import (
@@ -62,6 +63,9 @@ from . import common
 from .common import check_non_admin
 from .main_config import set_keys
 from tempfile import mktemp
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -321,8 +325,8 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
 def _assemble_environment(
     name: str | None = None,
     prefix: str | None = None,
-    specs: list[str] = (),
-    files: list[str] = (),
+    specs: Iterable[str] = (),
+    files: Iterable[str] = (),
     inject_default_packages: bool = True,  
 ) -> Environment:
     # First, let's create an 'Environment' for the information exposed in the CLI (no files)
@@ -331,7 +335,7 @@ def _assemble_environment(
         for pkg in context.create_default_packages:
             pkg_name = MatchSpec(pkg).name
             if pkg_name not in names:
-                specs.append(pkg_name)
+                specs.append(pkg)
 
     requested_packages = []
     fetch_explicit_packages = []
@@ -359,12 +363,11 @@ def _assemble_environment(
 
     # Now let's process potential files passed via --file
     file_envs = []
-    if files:
-        for path in files:
-            # parse the file
-            spec_hook = context.plugin_manager.get_environment_specifiers(path)
-            file_env = spec_hook.environment_spec(path).environment
-            file_envs.append(file_env)
+    for path in files:
+        # parse the file
+        spec_hook = context.plugin_manager.get_environment_specifier(path)
+        file_env = spec_hook.environment_spec(path).env
+        file_envs.append(file_env)
 
     if context.dry_run:
         cli_env.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
