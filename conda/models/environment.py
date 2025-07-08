@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from itertools import chain
+from itertools import chain, reduce
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -179,18 +179,17 @@ class EnvironmentConfig:
         """
 
         # Don't try to merge if there is nothing to merge
-        if len(configs) == 0:
+        if not configs:
             return
 
         # If there is only one config, there is nothing to merge, return the lone config
         if len(configs) == 1:
             return configs[0]
 
-        # Iterate over all configs and merge them into the result
-        result = configs[0]
-        for config in configs[1:]:
-            result._merge(config)
-        return result
+        # Use reduce to merge all configs into the first one
+        return reduce(
+            lambda result, config: result._merge(config), configs[1:], configs[0]
+        )
 
 
 @dataclass
