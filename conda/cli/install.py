@@ -433,17 +433,14 @@ def install(args, parser, command="install"):
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
         return install_explicit_packages(env.explicit_packages, env.prefix)
 
-    # TODO: these calls to context should maybe actually be calls to the
-    #       environment configuration?
-
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
-    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
+    if isupdate and env.config.update_modifier != UpdateModifier.UPDATE_ALL:
         ensure_update_specs_exist(prefix=prefix, specs=env.requested_packages)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
-        repodata_fns = list(context.repodata_fns)
+        repodata_fns = list(env.config.repodata_fns)
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
@@ -456,10 +453,10 @@ def install(args, parser, command="install"):
         not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
 
-    update_modifier = context.update_modifier
+    update_modifier = env.config.update_modifier
     if isinstall and args.update_modifier == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
-    deps_modifier = context.deps_modifier
+    deps_modifier = env.config.deps_modifier
 
     for repodata_fn in Repodatas(
         repodata_fns,
