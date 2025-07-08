@@ -134,7 +134,8 @@ class EnvironmentConfig:
 
         Create an EnvironmentConfig from the current context
         """
-        field_names = [f.name for f in fields(cls)]
+        field_names = {field.name for field in fields(cls)}
+
         environment_settings = {
             key: value
             for key, value in context.environment_settings.items()
