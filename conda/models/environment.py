@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from itertools import chain, reduce
+from functools import reduce
+from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
