@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
+from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -73,14 +74,15 @@ class EnvironmentConfig:
         An individual channel setting is a dict that may have the key "channels". Settings
         with matching "channels" should be merged together.
         """
-        grouped_channel_settings = groupby(lambda x: x.get("channel"), first + second)
-        result = []
-        for channel, config in grouped_channel_settings.items():
-            channel_config = {}
-            for c in config:
-                channel_config.update(c)
-            result.append(channel_config)
-        return result
+
+        grouped_channel_settings = groupby(
+            lambda x: x.get("channel"), chain(first, second)
+        )
+
+        return [
+            {k: v for config in configs for k, v in config.items()}
+            for channel, configs in grouped_channel_settings.items()
+        ]
 
     def _merge(self, other: EnvironmentConfig) -> EnvironmentConfig:
         """
