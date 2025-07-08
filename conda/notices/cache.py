@@ -9,7 +9,6 @@ Handles all caching logic including:
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from datetime import datetime, timezone
@@ -25,6 +24,7 @@ from ..base.constants import (
     NOTICES_CACHE_SUBDIR,
     NOTICES_DECORATOR_DISPLAY_INTERVAL,
 )
+from ..common.serialize import json
 from ..utils import ensure_dir_exists
 from .types import ChannelNoticeResponse
 

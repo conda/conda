@@ -3,6 +3,7 @@
 
 import pytest
 
+from conda.base.constants import ChannelPriority
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
@@ -70,7 +71,7 @@ def test_environments_merge():
         prefix="/path/to/env1",
         platform="linux-64",
         config=EnvironmentConfig(
-            aggressive_update_packages=True,
+            aggressive_update_packages=["abc"],
             channels=["defaults"],
             channel_settings={"a": 1},
         ),
@@ -87,7 +88,7 @@ def test_environments_merge():
         prefix="/path/to/env1",
         platform="linux-64",
         config=EnvironmentConfig(
-            aggressive_update_packages=False,
+            aggressive_update_packages=["two"],
             channels=["conda-forge"],
             channel_settings={"b": 2},
             repodata_fns=["repodata2.json"],
@@ -102,7 +103,7 @@ def test_environments_merge():
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
     assert merged.config == EnvironmentConfig(
-        aggressive_update_packages=False,
+        aggressive_update_packages=["abc", "two"],
         channels=["defaults", "conda-forge"],
         channel_settings={"a": 1, "b": 2},
         repodata_fns=["repodata2.json"],
@@ -196,30 +197,30 @@ def test_environments_merge_colliding_prefix():
 
 def test_merge_configs_primitive_values_order():
     config1 = EnvironmentConfig(
-        aggressive_update_packages=True,
+        use_only_tar_bz2=True,
     )
     config2 = EnvironmentConfig(
-        aggressive_update_packages=False,
+        use_only_tar_bz2=False,
     )
 
     result = EnvironmentConfig.merge(config1, config2)
-    assert result.aggressive_update_packages is False
+    assert result.use_only_tar_bz2 is False
 
     result = EnvironmentConfig.merge(config2, config1)
-    assert result.aggressive_update_packages is True
+    assert result.use_only_tar_bz2 is True
 
 
 def test_merge_configs_primitive_none_values_order():
     config1 = EnvironmentConfig(
-        aggressive_update_packages=True,
+        use_only_tar_bz2=True,
     )
     config2 = EnvironmentConfig()
 
     result = EnvironmentConfig.merge(config1, config2)
-    assert result.aggressive_update_packages is True
+    assert result.use_only_tar_bz2 is True
 
     result = EnvironmentConfig.merge(config2, config1)
-    assert result.aggressive_update_packages is True
+    assert result.use_only_tar_bz2 is True
 
 
 def test_merge_configs_deduplicate_values():
@@ -247,3 +248,9 @@ def test_merge_configs_deduplicate_values():
     assert result.pinned_packages == ["b"]
     assert result.repodata_fns == ["repodata.json"]
     assert result.track_features == ["track"]
+
+
+def test_environment_config_from_context(context_testdata):
+    config = EnvironmentConfig.from_context()
+    # Check that some of the config values have been populated from the context
+    assert config.channel_priority == ChannelPriority.DISABLED

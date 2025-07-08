@@ -4,11 +4,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS
+from ..base.context import context
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ class EnvironmentConfig:
     Data model for a conda environment config.
     """
 
-    aggressive_update_packages: bool | None = None
+    aggressive_update_packages: list[str] = field(default_factory=list)
 
     channel_priority: ChannelPriority | None = None
 
@@ -82,8 +83,9 @@ class EnvironmentConfig:
                 "Cannot merge EnvironmentConfig with non-EnvironmentConfig"
             )
 
-        if other.aggressive_update_packages is not None:
-            self.aggressive_update_packages = other.aggressive_update_packages
+        self.aggressive_update_packages = self._append_without_duplicates(
+            self.aggressive_update_packages, other.aggressive_update_packages
+        )
 
         if other.channel_priority is not None:
             self.channel_priority = other.channel_priority
@@ -124,6 +126,22 @@ class EnvironmentConfig:
             self.use_only_tar_bz2 = other.use_only_tar_bz2
 
         return self
+
+    @classmethod
+    def from_context(cls) -> EnvironmentConfig:
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Create an EnvironmentConfig from the current context
+        """
+        field_names = {field.name for field in fields(cls)}
+
+        environment_settings = {
+            key: value
+            for key, value in context.environment_settings.items()
+            if key in field_names
+        }
+        return cls(**environment_settings)
 
     @classmethod
     def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:
@@ -167,7 +185,7 @@ class Environment:
     #: Environment level configuration, eg. channels, solver options, etc.
     #: TODO: may need to think more about the type of this field and how
     #:       conda should be merging configs between environments
-    config: EnvironmentConfig | None = None
+    config: EnvironmentConfig = field(default_factory=EnvironmentConfig)
 
     #: Map of other package types that conda can install. For example pypi packages.
     external_packages: dict[str, list[str]] = field(default_factory=dict)
