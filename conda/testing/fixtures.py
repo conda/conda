@@ -21,11 +21,13 @@ import pytest
 from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
+from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from ..cli.main import main_subshell
+from ..common.configuration import YamlRawParameter
 from ..common.io import env_vars
-from ..common.serialize import json
+from ..common.serialize import json, yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -48,6 +50,45 @@ if TYPE_CHECKING:
 
 
 log = getLogger(__name__)
+
+
+TEST_CONDARC = dals(
+    """
+    custom_channels:
+      darwin: https://some.url.somewhere/stuff
+      chuck: http://another.url:8080/with/path
+    custom_multichannels:
+      michele:
+        - https://do.it.with/passion
+        - learn_from_every_thing
+      steve:
+        - more-downloads
+    channel_settings:
+      - channel: darwin
+        param_one: value_one
+        param_two: value_two
+      - channel: "http://localhost"
+        param_one: value_one
+        param_two: value_two
+    migrated_custom_channels:
+      darwin: s3://just/cant
+      chuck: file:///var/lib/repo/
+    migrated_channel_aliases:
+      - https://conda.anaconda.org
+    channel_alias: ftp://new.url:8082
+    conda-build:
+      root-dir: /some/test/path
+    proxy_servers:
+      http: http://user:pass@corp.com:8080
+      https: none
+      ftp:
+      sftp: ''
+      ftps: false
+      rsync: 'false'
+    aggressive_update_packages: []
+    channel_priority: false
+    """
+)
 
 
 @pytest.fixture(autouse=True)
@@ -507,3 +548,15 @@ def PYTHONPATH():
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
             yield
+
+
+@pytest.fixture
+def context_testdata() -> None:
+    reset_context()
+    context._set_raw_data(
+        {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(TEST_CONDARC)
+            )
+        }
+    )
