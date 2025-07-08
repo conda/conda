@@ -379,23 +379,6 @@ def _assemble_environment(
     return Environment.merge(cli_env, *file_envs)
 
 
-def install_clone(args, parser):
-    """Executes an install of a new conda environment by cloning."""
-    prefix = context.target_prefix
-    index_args = get_index_args(args)
-
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, command="create")
-
-    clone(
-        args.clone,
-        prefix,
-        json=context.json,
-        quiet=context.quiet,
-        index_args=index_args,
-    )
-
-
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
     newenv = command == "create"
@@ -502,6 +485,23 @@ def install(args, parser, command="install"):
                 raise e
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning."""
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command="create")
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
 
 
 def install_revision(args, parser):
