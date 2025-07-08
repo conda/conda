@@ -4,11 +4,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
+from functools import reduce
+from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS
+from ..base.context import context
+from ..common.iterators import groupby_to_dict as groupby
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -39,7 +43,7 @@ class EnvironmentConfig:
 
     channels: list[str] = field(default_factory=list)
 
-    channel_settings: dict[str, str] = field(default_factory=dict)
+    channel_settings: list[dict[str, str]] = field(default_factory=list)
 
     deps_modifier: DepsModifier | None = None
 
@@ -63,6 +67,24 @@ class EnvironmentConfig:
         first.extend(second)
         return list(dict.fromkeys(item for item in first))
 
+    def _merge_channel_settings(
+        self, first: list[dict[str, str]], second: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
+        """Merge channel settings.
+
+        An individual channel setting is a dict that may have the key "channels". Settings
+        with matching "channels" should be merged together.
+        """
+
+        grouped_channel_settings = groupby(
+            lambda x: x.get("channel"), chain(first, second)
+        )
+
+        return [
+            {k: v for config in configs for k, v in config.items()}
+            for channel, configs in grouped_channel_settings.items()
+        ]
+
     def _merge(self, other: EnvironmentConfig) -> EnvironmentConfig:
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
@@ -71,6 +93,8 @@ class EnvironmentConfig:
         * Primitive types get clobbered if subsequent configs have a value, otherwise keep the last set value
         * Lists get appended to and deduplicated
         * Dicts get updated
+        * Special cases:
+          * channel settings is a list of dicts, it merges inner dicts, keyed on "channel"
         """
         # Return early if there is nothing to merge
         if other is None:
@@ -91,7 +115,9 @@ class EnvironmentConfig:
 
         self.channels = self._append_without_duplicates(self.channels, other.channels)
 
-        self.channel_settings.update(other.channel_settings)
+        self.channel_settings = self._merge_channel_settings(
+            self.channel_settings, other.channel_settings
+        )
 
         if other.deps_modifier is not None:
             self.deps_modifier = other.deps_modifier
@@ -127,6 +153,22 @@ class EnvironmentConfig:
         return self
 
     @classmethod
+    def from_context(cls) -> EnvironmentConfig:
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Create an EnvironmentConfig from the current context
+        """
+        field_names = {field.name for field in fields(cls)}
+
+        environment_settings = {
+            key: value
+            for key, value in context.environment_settings.items()
+            if key in field_names
+        }
+        return cls(**environment_settings)
+
+    @classmethod
     def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
@@ -138,17 +180,17 @@ class EnvironmentConfig:
         """
 
         # Don't try to merge if there is nothing to merge
-        if len(configs) == 0:
+        if not configs:
             return
 
         # If there is only one config, there is nothing to merge, return the lone config
         if len(configs) == 1:
             return configs[0]
 
-        result = EnvironmentConfig()
-        for config in configs:
-            result._merge(config)
-        return result
+        # Use reduce to merge all configs into the first one
+        return reduce(
+            lambda result, config: result._merge(config), configs[1:], configs[0]
+        )
 
 
 @dataclass
