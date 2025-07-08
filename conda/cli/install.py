@@ -61,7 +61,7 @@ from ..misc import (
     get_package_records_from_explicit,
     install_explicit_packages,
 )
-from ..models.environment import Environment
+from ..models.environment import Environment, EnvironmentConfig
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
@@ -362,8 +362,7 @@ def _assemble_environment(
         platform=context.subdir,
         requested_packages=requested_packages,
         explicit_packages=explicit_packages,
-        # TODO: set the context for the environment
-        # config=context.environment_settings,
+        config=EnvironmentConfig.from_context(),
     )
 
     # Now let's process potential files passed via --file
