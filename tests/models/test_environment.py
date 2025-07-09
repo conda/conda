@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from dataclasses import fields
+
 import pytest
 
 from conda.base.constants import ChannelPriority
@@ -260,8 +262,16 @@ def test_merge_configs_deduplicate_values():
 
 def test_environment_config_from_context(context_testdata):
     config = EnvironmentConfig.from_context()
+
     # Check that some of the config values have been populated from the context
     assert config.channel_priority == ChannelPriority.DISABLED
+
+    # Check that the types are matching up with the default type
+    for field in fields(EnvironmentConfig):
+        if field.default:
+            assert isinstance(getattr(config, field.name), field.default_factory), (
+                f"{field.name} expected to be a {field.default_factory} but is a {type(getattr(config, field.name))}"
+            )
 
 
 def test_merge_channel_settings():
