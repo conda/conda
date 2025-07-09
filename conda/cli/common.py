@@ -145,8 +145,7 @@ def arg2spec(arg: str, update: bool = False) -> str:
             f"    conda update  {name:<{len(arg)}}  or\n"
             f"    conda install {arg:<{len(name)}}"
         )
-
-    return str(spec)
+    return spec
 
 
 @deprecated.argument("26.3", "26.9", "json")

@@ -349,7 +349,7 @@ def _assemble_environment(
         if is_package_file(spec):
             fetch_explicit_packages.append(spec)
         else:
-            requested_packages.append(common.arg2spec(spec, json=context.json))
+            requested_packages.append(MatchSpec(spec))
 
     # transform explicit packages into package records
     explicit_packages = []
