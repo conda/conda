@@ -39,8 +39,8 @@ try:  # pragma: no cover
             finally:
                 fd.seek(LOCK_BYTE)
                 msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
-        except OSError as e:
-            raise LockError("Failed to acquire lock.") from e
+        except LockError as e:
+            print("Failed to acquire lock.", e)
 
 except ImportError:
     try:
@@ -65,9 +65,9 @@ except ImportError:
                             self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE
                         )
                         break
-                    except OSError as e:
+                    except LockError as e:
                         if attempt > LOCK_ATTEMPTS - 2:
-                            raise LockError("Failed to acquire lock.") from e
+                            print("Failed to acquire lock.", e)
                         time.sleep(LOCK_SLEEP)
 
             def __exit__(self, *exc):
