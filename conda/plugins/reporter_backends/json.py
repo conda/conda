@@ -4,7 +4,7 @@
 Defines a JSON reporter backend
 
 This reporter backend is used to provide JSON strings for output rendering. It is
-essentially just a wrapper around ``conda.common.serialize.json_dump``.
+essentially just a wrapper around ``conda.common.serialize.json.dumps``.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from ...base.constants import DEFAULT_JSON_REPORTER_BACKEND
 from ...common.io import swallow_broken_pipe
-from ...common.serialize import json_dump
+from ...common.serialize import json
 from .. import CondaReporterBackend, hookimpl
 from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
 
@@ -72,13 +72,13 @@ class JSONReporterRenderer(ReporterRendererBase):
     """
 
     def render(self, data: Any, **kwargs) -> str:
-        return json_dump(data)
+        return json.dumps(data)
 
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
-        return json_dump(data)
+        return json.dumps(data)
 
     def envs_list(self, data, **kwargs) -> str:
-        return json_dump({"envs": data})
+        return json.dumps({"envs": data})
 
     def progress_bar(
         self,

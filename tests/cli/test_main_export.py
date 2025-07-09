@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, reset_context
-from conda.common.serialize import json_load, yaml_safe_load
+from conda.common.serialize import json, yaml_safe_load
 from conda.exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -120,7 +120,7 @@ def test_export_with_json(
     assert not stderr
     assert not code
 
-    data = json_load(stdout)
+    data = json.loads(stdout)
     assert data["name"] == name
 
     assert path.exists()

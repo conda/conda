@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import json
 import platform
 import re
 import sys
@@ -38,7 +37,7 @@ from conda.common.path import (
     get_python_site_packages_short_path,
     pyc_path,
 )
-from conda.common.serialize import json_dump, yaml_round_trip_load
+from conda.common.serialize import json, yaml_round_trip_load
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
@@ -1779,7 +1778,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         )
         assert any(pkg.strip() == "six==1.10.0" for pkg in stdout.splitlines())
 
-        assert json.loads(json_dump(PrefixData(prefix).get("six"))) == {
+        assert json.loads(json.dumps(PrefixData(prefix).get("six"))) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
@@ -1957,7 +1956,7 @@ def test_conda_pip_interop_conda_editable_package(
         prec_dump = PrefixData(prefix).get("urllib3").dump()
         prec_dump.pop("files")
         prec_dump.pop("paths_data")
-        assert json.loads(json_dump(prec_dump)) == {
+        assert json.loads(json.dumps(prec_dump)) == {
             "build": "dev_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/<develop>",
@@ -2007,7 +2006,7 @@ def test_conda_pip_interop_conda_editable_package(
         prec_dump = PrefixData(prefix).get("urllib3").dump()
         prec_dump.pop("files")
         prec_dump.pop("paths_data")
-        assert json.loads(json_dump(prec_dump)) == {
+        assert json.loads(json.dumps(prec_dump)) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
