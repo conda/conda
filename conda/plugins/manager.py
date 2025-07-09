@@ -676,20 +676,18 @@ class CondaPluginManager(pluggy.PluginManager):
         :param neutered_specs: Specs to be neutered
         :return: The plugin-defined pre-transaction actions
         """
-        actions = []
-        for hook in self.get_hook_results("pre_transaction_actions"):
-            actions.append(
-                hook.action(
-                    transaction_context,
-                    target_prefix,
-                    unlink_precs,
-                    link_precs,
-                    remove_specs,
-                    update_specs,
-                    neutered_specs,
-                )
+        return [
+            hook.action(
+                transaction_context,
+                target_prefix,
+                unlink_precs,
+                link_precs,
+                remove_specs,
+                update_specs,
+                neutered_specs,
             )
-        return actions
+            for hook in self.get_hook_results("pre_transaction_actions")
+        ]
 
     def get_post_transaction_actions(
         self,
@@ -713,20 +711,18 @@ class CondaPluginManager(pluggy.PluginManager):
         :param neutered_specs: Specs to be neutered
         :return: The plugin-defined post-transaction actions
         """
-        actions = []
-        for hook in self.get_hook_results("post_transaction_actions"):
-            actions.append(
-                hook.action(
-                    transaction_context,
-                    target_prefix,
-                    unlink_precs,
-                    link_precs,
-                    remove_specs,
-                    update_specs,
-                    neutered_specs,
-                )
+        return [
+            hook.action(
+                transaction_context,
+                target_prefix,
+                unlink_precs,
+                link_precs,
+                remove_specs,
+                update_specs,
+                neutered_specs,
             )
-        return actions
+            for hook in self.get_hook_results("post_transaction_actions")
+        ]
 
 
 @functools.cache
