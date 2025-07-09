@@ -169,7 +169,7 @@ class EnvironmentConfig:
         field_names = {field.name for field in fields(cls)}
 
         environment_settings = {
-            key: value
+            key: list(value) if isinstance(value, tuple) else value
             for key, value in context.environment_settings.items()
             if key in field_names
         }
