@@ -6,6 +6,7 @@ between conda processes. Try to acquire a lock on a single byte in the metadat
 file; modify both files; then release the lock.
 """
 
+import errno
 import time
 import warnings
 from contextlib import contextmanager
@@ -39,8 +40,9 @@ try:  # pragma: no cover
             finally:
                 fd.seek(LOCK_BYTE)
                 msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
-        except LockError as e:
-            print("Failed to acquire lock.", e)
+        except OSError as e:
+            if e.errno in (errno.EACCES, errno.EAGAIN):
+                raise LockError("Failed to acquire lock.") from e
 
 except ImportError:
     try:
@@ -65,9 +67,10 @@ except ImportError:
                             self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE
                         )
                         break
-                    except LockError as e:
-                        if attempt > LOCK_ATTEMPTS - 2:
-                            print("Failed to acquire lock.", e)
+                    except OSError as e:
+                        if e.errno in (errno.EACCES, errno.EAGAIN):
+                            if attempt > LOCK_ATTEMPTS - 2:
+                                raise LockError("Failed to acquire lock.") from e
                         time.sleep(LOCK_SLEEP)
 
             def __exit__(self, *exc):
