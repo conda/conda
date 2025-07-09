@@ -42,7 +42,7 @@ from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Literal
+    from typing import Callable, Literal
 
     from requests.auth import AuthBase
 
@@ -80,13 +80,24 @@ class CondaPluginManager(pluggy.PluginManager):
 
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
     #: method.
-    get_cached_solver_backend = None
+    get_cached_solver_backend: Callable[[str | None], type[Solver]]
 
-    def __init__(self, project_name: str | None = None, *args, **kwargs) -> None:
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
+    #: method.
+    get_cached_session_headers: Callable[[str], dict[str, str]]
+
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers`
+    #: method.
+    get_cached_request_headers: Callable[[str, str], dict[str, str]]
+
+    def __init__(self, project_name: str | None = None, *args, **kwargs):
         # Setting the default project name to the spec name for ease of use
         if project_name is None:
             project_name = spec_name
         super().__init__(project_name, *args, **kwargs)
+        self.cache_init()
+
+    def cache_init(self) -> None:
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -268,15 +279,20 @@ class CondaPluginManager(pluggy.PluginManager):
 
         plugins = [item for items in hook(**kwargs) for item in items]
 
-        # Check for invalid names
-        invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
+        # Validate plugin names since plugins may not properly inherit from CondaPluginBase
+        invalid = [
+            plugin
+            for plugin in plugins
+            if not isinstance(plugin.name, str)
+            or plugin.name != plugin.name.lower().strip()
+        ]
         if invalid:
             raise PluginError(
                 dals(
                     f"""
                     Invalid plugin names found:
 
-                    {", ".join([str(plugin) for plugin in invalid])}
+                    {", ".join([f"{plugin}:{plugin.name}" for plugin in invalid])}
 
                     Please report this issue to the plugin author(s).
                     """
@@ -284,7 +300,7 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         plugins = sorted(plugins, key=lambda plugin: plugin.name)
 
-        # Check for conflicts
+        # Check for conflicts since no two plugins can have the same name
         seen = set()
         conflicts = [
             plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
@@ -295,7 +311,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"""
                     Conflicting `{name}` plugins found:
 
-                    {", ".join([str(conflict) for conflict in conflicts])}
+                    {", ".join([f"{plugin}:{plugin.name}" for plugin in conflicts])}
 
                     Multiple conda plugins are registered via the `{specname}` hook.
                     Please make sure that you don't have any incompatible plugins installed.

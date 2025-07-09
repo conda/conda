@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 from requests.auth import AuthBase
 
+from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
@@ -46,7 +47,13 @@ class CondaBasePlugin:
     name: str
 
     def __post_init__(self):
-        self.name = self.name.lower().strip()
+        try:
+            self.name = self.name.lower().strip()
+        except AttributeError:
+            # AttributeError: 'NoneType' object has no attribute 'lower'
+            raise PluginError(
+                f"Invalid plugin name for {type(self)}: ({type(self.name)}) {self.name}"
+            )
 
 
 @dataclass
