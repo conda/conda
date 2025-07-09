@@ -307,7 +307,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_solvers(self) -> dict[str, CondaSolver]:
         """Return a mapping from solver name to solver class."""
         return {
-            solver_plugin.name.lower(): solver_plugin
+            solver_plugin.name: solver_plugin
             for solver_plugin in self.get_hook_results("solvers")
         }
 
@@ -323,9 +323,7 @@ class CondaPluginManager(pluggy.PluginManager):
         which is set up as a instance-specific LRU cache.
         """
         # Some light data validation in case name isn't given.
-        if name is None:
-            name = context.solver
-        name = name.lower()
+        name = (name or context.solver).lower().strip()
 
         solvers_mapping = self.get_solvers()
 
@@ -345,10 +343,9 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Get the auth handler with the given name or None
         """
+        name = name.lower().strip()
         auth_handlers = self.get_hook_results("auth_handlers")
-        matches = tuple(
-            item for item in auth_handlers if item.name.lower() == name.lower().strip()
-        )
+        matches = [item for item in auth_handlers if item.name == name]
 
         if len(matches) > 0:
             return matches[0].handler
@@ -361,7 +358,7 @@ class CondaPluginManager(pluggy.PluginManager):
         This method intentionally overwrites any duplicates that may be present
         """
         return {
-            config_param.name.lower(): config_param
+            config_param.name: config_param
             for config_param in self.get_hook_results("settings")
         }
 
@@ -395,7 +392,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
         return {
-            subcommand.name.lower(): subcommand
+            subcommand.name: subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
 
@@ -513,8 +510,7 @@ class CondaPluginManager(pluggy.PluginManager):
         Returns a mapping from environment specifier name to environment specifier.
         """
         return {
-            hook.name.lower(): hook
-            for hook in self.get_hook_results("environment_specifiers")
+            hook.name: hook for hook in self.get_hook_results("environment_specifiers")
         }
 
     def get_environment_specifier_by_name(
@@ -531,7 +527,7 @@ class CondaPluginManager(pluggy.PluginManager):
         :param name: name of the environment plugin to load
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
-        name = name.lower()
+        name = name.lower().strip()
         hooks = self.get_environment_specifiers()
         found = [hook for hook_name, hook in hooks.items() if hook_name == name]
 
