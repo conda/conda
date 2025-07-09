@@ -43,6 +43,9 @@ try:  # pragma: no cover
         except OSError as e:
             if e.errno in (errno.EACCES, errno.EAGAIN):
                 raise LockError("Failed to acquire lock.") from e
+            else:
+                raise
+
 
 except ImportError:
     try:
@@ -71,6 +74,8 @@ except ImportError:
                         if e.errno in (errno.EACCES, errno.EAGAIN):
                             if attempt > LOCK_ATTEMPTS - 2:
                                 raise LockError("Failed to acquire lock.") from e
+                        else:
+                            raise
                         time.sleep(LOCK_SLEEP)
 
             def __exit__(self, *exc):
