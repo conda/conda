@@ -2772,9 +2772,7 @@ def test_python_site_packages_path(
         "update",
     ],
 )
-def test_dont_allow_mixed_file_arguments(
-    conda_cli: CondaCLIFixture, cmd
-):
+def test_dont_allow_mixed_file_arguments(conda_cli: CondaCLIFixture, cmd):
     """
     Test that conda will return an error when multiple --file arguments of different
     types are specified
