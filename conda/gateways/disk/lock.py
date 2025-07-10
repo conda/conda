@@ -6,7 +6,6 @@ between conda processes. Try to acquire a lock on a single byte in the metadat
 file; modify both files; then release the lock.
 """
 
-import errno
 import time
 import warnings
 from contextlib import contextmanager
@@ -34,17 +33,18 @@ try:  # pragma: no cover
         fd.seek(LOCK_BYTE)
         try:
             msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore
+        except OSError:
+            raise LockError("Failed to acquire lock.")
+        else:
             try:
                 fd.seek(tell)
                 yield
             finally:
                 fd.seek(LOCK_BYTE)
-                msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
-        except OSError as e:
-            if e.errno in (errno.EACCES, errno.EAGAIN):
-                raise LockError("Failed to acquire lock.") from e
-            else:
-                raise
+                try:
+                    msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
+                except OSError:
+                    raise LockError("Failed to release lock.")
 
 
 except ImportError:
@@ -71,15 +71,15 @@ except ImportError:
                         )
                         break
                     except OSError as e:
-                        if e.errno in (errno.EACCES, errno.EAGAIN):
-                            if attempt > LOCK_ATTEMPTS - 2:
-                                raise LockError("Failed to acquire lock.") from e
-                        else:
-                            raise
+                        if attempt > LOCK_ATTEMPTS - 2:
+                            raise LockError("Failed to acquire lock.") from e
                         time.sleep(LOCK_SLEEP)
 
             def __exit__(self, *exc):
-                fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
+                try:
+                    fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
+                except OSError as e:
+                    raise LockError("Failed to acquire lock.") from e
 
 
 def lock(fd):
