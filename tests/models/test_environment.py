@@ -105,9 +105,18 @@ def test_environments_merge():
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
     assert merged.config == EnvironmentConfig(
-        aggressive_update_packages=("abc", "two",),
-        channels=("defaults", "conda-forge",),
-        channel_settings=({"channel": "one", "a": 1}, {"channel": "two", "b": 2},),
+        aggressive_update_packages=(
+            "abc",
+            "two",
+        ),
+        channels=(
+            "defaults",
+            "conda-forge",
+        ),
+        channel_settings=(
+            {"channel": "one", "a": 1},
+            {"channel": "two", "b": 2},
+        ),
         repodata_fns=("repodata2.json",),
     )
     assert merged.external_packages == {
@@ -235,25 +244,39 @@ def test_merge_configs_primitive_none_values_order():
 
 def test_merge_configs_deduplicate_values():
     config1 = EnvironmentConfig(
-        channels=("defaults", "conda-forge",),
+        channels=(
+            "defaults",
+            "conda-forge",
+        ),
         disallowed_packages=("a",),
         pinned_packages=("b",),
         repodata_fns=("repodata.json",),
         track_features=("track",),
     )
     config2 = EnvironmentConfig(
-        channels=("defaults", "my-channel",),
+        channels=(
+            "defaults",
+            "my-channel",
+        ),
         disallowed_packages=("a",),
         pinned_packages=("b",),
         repodata_fns=("repodata.json",),
         track_features=("track",),
     )
     config3 = EnvironmentConfig(
-        channels=("conda-forge", "b-channel",),
+        channels=(
+            "conda-forge",
+            "b-channel",
+        ),
     )
 
     result = EnvironmentConfig.merge(config1, config2, config3)
-    assert result.channels == ("defaults", "conda-forge", "my-channel", "b-channel",)
+    assert result.channels == (
+        "defaults",
+        "conda-forge",
+        "my-channel",
+        "b-channel",
+    )
     assert result.disallowed_packages == ("a",)
     assert result.pinned_packages == ("b",)
     assert result.repodata_fns == ("repodata.json",)
@@ -290,11 +313,7 @@ def test_merge_channel_settings():
             {"channel": "three", "param_three": "val_three"},
         )
     )
-    config3 = EnvironmentConfig(
-        channel_settings=(
-            {"some": "stuff"},
-        )
-    )
+    config3 = EnvironmentConfig(channel_settings=({"some": "stuff"},))
     result = EnvironmentConfig.merge(config1, config2, config3)
     expected = EnvironmentConfig(
         channel_settings=(
