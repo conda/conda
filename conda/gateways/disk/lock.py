@@ -79,7 +79,7 @@ except ImportError:
                 try:
                     fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
                 except OSError as e:
-                    raise LockError("Failed to acquire lock.") from e
+                    raise LockError("Failed to release lock.") from e
 
 
 def lock(fd):
