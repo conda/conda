@@ -144,9 +144,9 @@ def arg2matchspec(arg: str, update: bool = False) -> MatchSpec:
     return spec
 
 
-def arg2spec(arg:str, json: bool = False, update: bool = False) -> str:
+def arg2spec(arg: str, json: bool = False, update: bool = False) -> str:
     """
-    Ensure that an input package argument can be converted into 
+    Ensure that an input package argument can be converted into
     a MatchSpec. Will raise an error if the package can not be converted
     or is malformed.
 
