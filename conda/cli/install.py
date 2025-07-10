@@ -380,7 +380,7 @@ def _assemble_environment(
 
 
 def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
+    """Logic for `conda install`, `conda update`, and `conda create`."""
     newenv = command == "create"
     isupdate = command == "update"
     isinstall = command == "install"
