@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
 
+from collections.abc import Iterable
 import re
 import sys
 from logging import getLogger
@@ -159,7 +160,7 @@ def arg2spec(arg: str, json: bool = False, update: bool = False) -> str:
     return str(spec)
 
 
-def specs_from_args(args: list[str], json: bool = False):
+def specs_from_args(args: Iterable[str], json: bool = False) -> list[str]:
     return [arg2spec(arg, json=json) for arg in args]
 
 
