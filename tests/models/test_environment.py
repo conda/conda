@@ -239,6 +239,13 @@ def test_merge_configs_primitive_none_values_order():
     result = EnvironmentConfig.merge(config1, config2)
     assert result.use_only_tar_bz2 is True
 
+
+def test_merge_configs_primitive_none_values_order_two():
+    config1 = EnvironmentConfig(
+        use_only_tar_bz2=True,
+    )
+    config2 = EnvironmentConfig()
+
     result = EnvironmentConfig.merge(config2, config1)
     assert result.use_only_tar_bz2 is True
 
