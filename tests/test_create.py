@@ -2763,15 +2763,21 @@ def test_python_site_packages_path(
         assert (prefix / sp_dir / "sample.py").is_file()
 
 
-def test_dont_allow_mixed_file_arguments(
-    conda_cli: CondaCLIFixture,
-):
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "create",
+        "install",
+        "update",
+    ],
+)
+def test_dont_allow_mixed_file_arguments(conda_cli: CondaCLIFixture, cmd):
     """
     Test that conda will return an error when multiple --file arguments of different
     types are specified
     """
     _, _, exc = conda_cli(
-        "create",
+        cmd,
         *("--name", uuid4().hex[:8]),
         *("--file", support_file("requirements.txt")),
         *("--file", support_file("simple.yml")),
