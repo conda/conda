@@ -21,6 +21,7 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
+from ..common.io import dashlist
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
@@ -524,28 +525,27 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> CondaEnvironmentSpecifier:
         """Get an environment specifier plugin by name
 
-        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
-        Raises CondaValueError if the requested plugin is not available.
+        Raises PluginError if the requested plugin is not available or unable to handle the provided file.
 
         :param source: full path to the environment spec file/source
         :param name: name of the environment plugin to load
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
         name = name.lower()
-        hooks = self.get_environment_specifiers()
-        found = [hook for hook_name, hook in hooks.items() if hook_name == name]
-
-        if not found:
-            raise CondaValueError(
+        plugins = self.get_environment_specifiers()
+        try:
+            plugin = plugins[name]
+        except KeyError:
+            raise PluginError(
                 f"You have chosen an unrecognized environment"
                 f" specifier type ({name}). Choose one of: "
-                f"{', '.join(hooks)}"
+                f"{dashlist(plugins)}"
             )
-        elif len(found) == 1:
+        else:
             # Try to load the plugin and check if it can handle the environment spec
             try:
-                if found[0].environment_spec(source).can_handle():
-                    return found[0]
+                if plugin.environment_spec(source).can_handle():
+                    return plugin
             except Exception as e:
                 raise PluginError(
                     dals(
@@ -561,10 +561,6 @@ class CondaPluginManager(pluggy.PluginManager):
                 raise PluginError(
                     f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
                 )
-        else:
-            raise PluginError(
-                f"More than one environment_spec plugin named {name} found: {found}"
-            )
 
     def detect_environment_specifier(self, source: str) -> CondaEnvironmentSpecifier:
         """Detect the environment specifier plugin for a given spec source
