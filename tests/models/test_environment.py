@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from dataclasses import fields
+
 import pytest
 
 from conda.base.constants import ChannelPriority
@@ -71,9 +73,9 @@ def test_environments_merge():
         prefix="/path/to/env1",
         platform="linux-64",
         config=EnvironmentConfig(
-            aggressive_update_packages=["abc"],
-            channels=["defaults"],
-            channel_settings=[{"channel": "one", "a": 1}],
+            aggressive_update_packages=("abc",),
+            channels=("defaults",),
+            channel_settings=({"channel": "one", "a": 1},),
         ),
         external_packages={
             "pip": ["one", "two", {"special": "type"}],
@@ -88,10 +90,10 @@ def test_environments_merge():
         prefix="/path/to/env1",
         platform="linux-64",
         config=EnvironmentConfig(
-            aggressive_update_packages=["two"],
-            channels=["conda-forge"],
-            channel_settings=[{"channel": "two", "b": 2}],
-            repodata_fns=["repodata2.json"],
+            aggressive_update_packages=("two",),
+            channels=("conda-forge",),
+            channel_settings=({"channel": "two", "b": 2},),
+            repodata_fns=("repodata2.json",),
         ),
         external_packages={"pip": ["two", "flask"], "a": ["nother"]},
         explicit_packages=[],
@@ -103,10 +105,19 @@ def test_environments_merge():
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
     assert merged.config == EnvironmentConfig(
-        aggressive_update_packages=["abc", "two"],
-        channels=["defaults", "conda-forge"],
-        channel_settings=[{"channel": "one", "a": 1}, {"channel": "two", "b": 2}],
-        repodata_fns=["repodata2.json"],
+        aggressive_update_packages=(
+            "abc",
+            "two",
+        ),
+        channels=(
+            "defaults",
+            "conda-forge",
+        ),
+        channel_settings=(
+            {"channel": "one", "a": 1},
+            {"channel": "two", "b": 2},
+        ),
+        repodata_fns=("repodata2.json",),
     )
     assert merged.external_packages == {
         "pip": ["one", "two", {"special": "type"}, "flask"],
@@ -233,61 +244,79 @@ def test_merge_configs_primitive_none_values_order():
 
 def test_merge_configs_deduplicate_values():
     config1 = EnvironmentConfig(
-        channels=["defaults", "conda-forge"],
-        disallowed_packages=["a"],
-        pinned_packages=["b"],
-        repodata_fns=["repodata.json"],
-        track_features=["track"],
+        channels=(
+            "defaults",
+            "conda-forge",
+        ),
+        disallowed_packages=("a",),
+        pinned_packages=("b",),
+        repodata_fns=("repodata.json",),
+        track_features=("track",),
     )
     config2 = EnvironmentConfig(
-        channels=["defaults", "my-channel"],
-        disallowed_packages=["a"],
-        pinned_packages=["b"],
-        repodata_fns=["repodata.json"],
-        track_features=["track"],
+        channels=(
+            "defaults",
+            "my-channel",
+        ),
+        disallowed_packages=("a",),
+        pinned_packages=("b",),
+        repodata_fns=("repodata.json",),
+        track_features=("track",),
     )
     config3 = EnvironmentConfig(
-        channels=["conda-forge", "b-channel"],
+        channels=(
+            "conda-forge",
+            "b-channel",
+        ),
     )
 
     result = EnvironmentConfig.merge(config1, config2, config3)
-    assert result.channels == ["defaults", "conda-forge", "my-channel", "b-channel"]
-    assert result.disallowed_packages == ["a"]
-    assert result.pinned_packages == ["b"]
-    assert result.repodata_fns == ["repodata.json"]
-    assert result.track_features == ["track"]
+    assert result.channels == (
+        "defaults",
+        "conda-forge",
+        "my-channel",
+        "b-channel",
+    )
+    assert result.disallowed_packages == ("a",)
+    assert result.pinned_packages == ("b",)
+    assert result.repodata_fns == ("repodata.json",)
+    assert result.track_features == ("track",)
 
 
 def test_environment_config_from_context(context_testdata):
     config = EnvironmentConfig.from_context()
+
     # Check that some of the config values have been populated from the context
     assert config.channel_priority == ChannelPriority.DISABLED
+
+    # Check that the types are matching up with the default type
+    for field in fields(EnvironmentConfig):
+        if field.default:
+            assert isinstance(getattr(config, field.name), field.default_factory), (
+                f"{field.name} expected to be a {field.default_factory} but is a {type(getattr(config, field.name))}"
+            )
 
 
 def test_merge_channel_settings():
     config1 = EnvironmentConfig(
-        channel_settings=[
+        channel_settings=(
             {"channel": "one", "param_one": "val_one", "param_two": "val_two"},
             {"channel": "two", "param_three": "val_three"},
-        ],
+        ),
     )
     config2 = EnvironmentConfig(
-        channel_settings=[
+        channel_settings=(
             {
                 "channel": "one",
                 "other_val": "yes",
             },
             {"channel": "three", "param_three": "val_three"},
-        ]
+        )
     )
-    config3 = EnvironmentConfig(
-        channel_settings=[
-            {"some": "stuff"},
-        ]
-    )
+    config3 = EnvironmentConfig(channel_settings=({"some": "stuff"},))
     result = EnvironmentConfig.merge(config1, config2, config3)
     expected = EnvironmentConfig(
-        channel_settings=[
+        channel_settings=(
             {
                 "channel": "one",
                 "param_one": "val_one",
@@ -297,6 +326,6 @@ def test_merge_channel_settings():
             {"channel": "two", "param_three": "val_three"},
             {"channel": "three", "param_three": "val_three"},
             {"some": "stuff"},
-        ],
+        ),
     )
     assert result == expected
