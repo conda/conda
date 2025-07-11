@@ -10,7 +10,7 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import PackagesNotFoundError
+from conda.exceptions import CondaValueError, PackagesNotFoundError
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
@@ -136,3 +136,18 @@ def test_build_version_shows_as_changed(
         assert "The following packages will be UPDATED" in out
         assert "The following packages will be REVISED" in out
         assert "The following packages will be DOWNGRADED" not in out
+
+
+def test_too_many_arguments(
+    conda_cli: CondaCLIFixture,
+):
+    with pytest.raises(CondaValueError) as excinfo:
+        conda_cli(
+            "install",
+            "--revision",
+            "0",
+            "another_dependent",
+            "--freeze-installed",
+            "--yes",
+        )
+    assert "too many arguments" in excinfo.value.message
