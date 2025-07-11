@@ -1,13 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import logging
 import re
 import sys
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pluggy
 import pytest
 from packaging.version import Version
-from pytest_mock import MockerFixture
 
 from conda import plugins
 from conda.common.url import urlparse
@@ -17,7 +21,13 @@ from conda.exceptions import (
     PluginError,
 )
 from conda.plugins import virtual_packages
-from conda.plugins.manager import CondaPluginManager
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from pytest_mock import MockerFixture
+
+    from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
@@ -46,18 +56,29 @@ class VerboseSolverPlugin:
 
 
 DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
-NoNameVirtualPackage = plugins.CondaVirtualPackage(None, None, None)
+
+
+@dataclass
+class SpecialVirtualPackage(plugins.CondaVirtualPackage):
+    name: str | None  # type: ignore[assignment]
+
+    def __post_init__(self):
+        # do not normalize the name
+        pass
+
+
+NoNameVirtualPackage = SpecialVirtualPackage(None, None, None)
 
 
 class DummyVirtualPackagePlugin:
     @plugins.hookimpl
-    def conda_virtual_packages(*args):
+    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
         yield DummyVirtualPackage
 
 
 class NoNameVirtualPackagePlugin:
     @plugins.hookimpl
-    def conda_virtual_packages(*args):
+    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
         yield NoNameVirtualPackage
 
 

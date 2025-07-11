@@ -59,7 +59,7 @@ def test_get_solver_backend(plugin_manager, solver_classic):
 def test_get_cached_solver_backend(plugin_manager, mocker):
     mocked = mocker.patch(
         "conda.plugins.manager.CondaPluginManager.get_solver_backend",
-        side_effect=classic_solver,
+        return_value=classic_solver,
     )
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
