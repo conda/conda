@@ -87,8 +87,6 @@ class RepodataOnDisk(Exception):
 
 
 class RepoInterface(abc.ABC):
-    # TODO: Support async operations
-    # TODO: Support progress bars
     def repodata(self, state: dict) -> str:
         """
         Given a mutable state dictionary with information about the cache,
@@ -356,6 +354,7 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 class RepodataState(UserDict):
     """Load/save info file that accompanies cached `repodata.json`."""
+
     # update to support bytes
 
     # Accept old keys for new serialization
@@ -520,6 +519,13 @@ class RepodataCache:
         )
 
     @property
+    def cache_path_shards(self):
+        return pathlib.Path(
+            self.cache_dir,
+            self.name + ("1" if context.use_only_tar_bz2 else "") + ".msgpack.zst",
+        )
+
+    @property
     def cache_path_state(self):
         """Out-of-band etag and other state needed by the RepoInterface."""
         return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
@@ -543,7 +549,7 @@ class RepodataCache:
                 json_data = b"" if binary else ""
             else:
                 if binary:
-                    json_data = self.cache_path_json.read_bytes()
+                    json_data = self.cache_path_shards.read_bytes()
                 else:
                     json_data = self.cache_path_json.read_text()
 
@@ -563,24 +569,9 @@ class RepodataCache:
                 )
             # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
-            self.state.update(
-                state
-            )
+            self.state.update(state)
 
         return json_data
-
-        # check repodata.json stat(); mtime_ns must equal value in
-        # {CACHE_STATE_SUFFIX} file, or it is stale.
-        # read repodata.json
-        # check repodata.json stat() again: st_size, st_mtime_ns must be equal
-
-        # repodata.json is okay - use it somewhere
-
-        # repodata.json is not okay - maybe use it, but don't allow cache updates
-
-        # unlock {CACHE_STATE_SUFFIX} file
-
-        # also, add refresh_ns instead of touching repodata.json file
 
     def load_state(self):
         """
@@ -600,12 +591,13 @@ class RepodataCache:
         """Write data to <repodata> cache path, without touching state."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
         mode = "bx" if isinstance(data, bytes) else "x"
+        target = self.cache_path_shards if isinstance(data, bytes) else self.cache_path_json
 
         try:
             with temp_path.open(mode) as temp:  # exclusive mode, error if exists
                 temp.write(data)
 
-            return self.replace(temp_path)
+            return self.replace(temp_path, target)
 
         finally:
             try:
@@ -613,13 +605,15 @@ class RepodataCache:
             except OSError:
                 pass
 
-    def replace(self, temp_path: Path):
+    def replace(self, temp_path: Path, target=None):
         """
         Rename path onto <repodata> path, synchronize state.
 
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
+        if not target:
+            target = self.cache_path_json
         with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
@@ -630,10 +624,10 @@ class RepodataCache:
             self.state["size"] = stat.st_size  # type: ignore
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
             try:
-                temp_path.rename(self.cache_path_json)
+                temp_path.rename(target)
             except FileExistsError:  # Windows
                 self.cache_path_json.unlink()
-                temp_path.rename(self.cache_path_json)
+                temp_path.rename(target)
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):
