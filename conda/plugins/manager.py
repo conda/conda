@@ -95,9 +95,6 @@ class CondaPluginManager(pluggy.PluginManager):
         if project_name is None:
             project_name = spec_name
         super().__init__(project_name, *args, **kwargs)
-        self.cache_init()
-
-    def cache_init(self) -> None:
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
