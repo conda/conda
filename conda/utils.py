@@ -498,6 +498,7 @@ def wrap_subprocess_call(
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
                 fh.write(f"{quote_for_shell(*arguments)}\n")
+            fh.write(f"conda deactivate {dev_arg}\n")
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]
