@@ -7,6 +7,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 import re
 import sys
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import (
     dirname,
