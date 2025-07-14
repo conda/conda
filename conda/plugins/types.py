@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class CondaBasePlugin:
+class CondaPlugin:
     """
     Base class for all conda plugins.
     """
@@ -57,7 +57,7 @@ class CondaBasePlugin:
 
 
 @dataclass
-class CondaSubcommand(CondaBasePlugin):
+class CondaSubcommand(CondaPlugin):
     """
     Return type to use when defining a conda subcommand plugin hook.
 
@@ -80,7 +80,7 @@ class CondaSubcommand(CondaBasePlugin):
 
 
 @dataclass
-class CondaVirtualPackage(CondaBasePlugin):
+class CondaVirtualPackage(CondaPlugin):
     """
     Return type to use when defining a conda virtual package plugin hook.
 
@@ -101,7 +101,7 @@ class CondaVirtualPackage(CondaBasePlugin):
 
 
 @dataclass
-class CondaSolver(CondaBasePlugin):
+class CondaSolver(CondaPlugin):
     """
     Return type to use when defining a conda solver plugin hook.
 
@@ -117,7 +117,7 @@ class CondaSolver(CondaBasePlugin):
 
 
 @dataclass
-class CondaPreCommand(CondaBasePlugin):
+class CondaPreCommand(CondaPlugin):
     """
     Return type to use when defining a conda pre-command plugin hook.
 
@@ -135,7 +135,7 @@ class CondaPreCommand(CondaBasePlugin):
 
 
 @dataclass
-class CondaPostCommand(CondaBasePlugin):
+class CondaPostCommand(CondaPlugin):
     """
     Return type to use when defining a conda post-command plugin hook.
 
@@ -176,7 +176,7 @@ class ChannelAuthBase(ChannelNameMixin, AuthBase):
 
 
 @dataclass
-class CondaAuthHandler(CondaBasePlugin):
+class CondaAuthHandler(CondaPlugin):
     """
     Return type to use when the defining the conda auth handlers hook.
 
@@ -191,7 +191,7 @@ class CondaAuthHandler(CondaBasePlugin):
 
 
 @dataclass
-class CondaHealthCheck(CondaBasePlugin):
+class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
     """
@@ -201,7 +201,7 @@ class CondaHealthCheck(CondaBasePlugin):
 
 
 @dataclass
-class CondaPreSolve(CondaBasePlugin):
+class CondaPreSolve(CondaPlugin):
     """
     Return type to use when defining a conda pre-solve plugin hook.
 
@@ -217,7 +217,7 @@ class CondaPreSolve(CondaBasePlugin):
 
 
 @dataclass
-class CondaPostSolve(CondaBasePlugin):
+class CondaPostSolve(CondaPlugin):
     """
     Return type to use when defining a conda post-solve plugin hook.
 
@@ -233,7 +233,7 @@ class CondaPostSolve(CondaBasePlugin):
 
 
 @dataclass
-class CondaSetting(CondaBasePlugin):
+class CondaSetting(CondaPlugin):
     """
     Return type to use when defining a conda setting plugin hook.
 
@@ -347,7 +347,7 @@ class ReporterRendererBase(ABC):
 
 
 @dataclass
-class CondaReporterBackend(CondaBasePlugin):
+class CondaReporterBackend(CondaPlugin):
     """
     Return type to use when defining a conda reporter backend plugin hook.
 
@@ -367,7 +367,7 @@ class CondaReporterBackend(CondaBasePlugin):
 
 
 @dataclass
-class CondaRequestHeader(CondaBasePlugin):
+class CondaRequestHeader(CondaPlugin):
     """
     Define vendor specific headers to include HTTP requests
 
@@ -384,7 +384,7 @@ class CondaRequestHeader(CondaBasePlugin):
 
 
 @dataclass
-class CondaPreTransactionAction(CondaBasePlugin):
+class CondaPreTransactionAction(CondaPlugin):
     """
     Return type to use when defining a pre-transaction action hook.
 
@@ -403,7 +403,7 @@ class CondaPreTransactionAction(CondaBasePlugin):
 
 
 @dataclass
-class CondaPostTransactionAction(CondaBasePlugin):
+class CondaPostTransactionAction(CondaPlugin):
     """
     Return type to use when defining a post-transaction action hook.
 
@@ -422,7 +422,7 @@ class CondaPostTransactionAction(CondaBasePlugin):
 
 
 @dataclass
-class CondaPrefixDataLoader(CondaBasePlugin):
+class CondaPrefixDataLoader(CondaPlugin):
     """
     Define new loaders to expose non-conda packages in a given prefix
     as ``PrefixRecord`` objects.
@@ -474,7 +474,7 @@ class EnvironmentSpecBase(ABC):
 
 
 @dataclass
-class CondaEnvironmentSpecifier(CondaBasePlugin):
+class CondaEnvironmentSpecifier(CondaPlugin):
     """
     **EXPERIMENTAL**
 
