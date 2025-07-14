@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
 
-from collections.abc import Iterable
 import re
 import sys
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import (
     dirname,

@@ -355,7 +355,9 @@ def _assemble_environment(
     explicit_packages = []
     if fetch_explicit_packages:
         if len(fetch_explicit_packages) == len(specs):
-            explicit_packages = get_package_records_from_explicit(fetch_explicit_packages)
+            explicit_packages = get_package_records_from_explicit(
+                fetch_explicit_packages
+            )
         else:
             raise CondaValueError(
                 "cannot mix specifications with conda package filenames"
