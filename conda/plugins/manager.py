@@ -21,6 +21,7 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
+from ..common.io import dashlist
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
@@ -266,28 +267,27 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = [item for items in hook(**kwargs) for item in items]
+        # hook() returns a generator of all plugins for a given specname,
+        # unfortunately this generator does not offer any information about which
+        # package/module the plugin is defined in, this makes reporting errors in
+        # a meaningful way to users difficult
+        plugins = [plugin for plugins in hook(**kwargs) for plugin in plugins]
 
         # Validate plugin names since plugins may not properly inherit from CondaPluginBase
         invalid = [
             plugin
             for plugin in plugins
-            if not isinstance(plugin.name, str)
+            if not hasattr(plugin, "name")
+            or not isinstance(plugin.name, str)
             or plugin.name != plugin.name.lower().strip()
         ]
         if invalid:
             raise PluginError(
-                dals(
-                    f"""
-                    Invalid plugin names found:
-
-                    {", ".join([f"{plugin}:{plugin.name}" for plugin in invalid])}
-
-                    Please report this issue to the plugin author(s).
-                    """
-                )
+                f"Invalid plugin names found for `{name}`:\n"
+                f"{dashlist(map(str, invalid))}\n"
+                f"\n"
+                f"Please report this issue to the plugin author(s)."
             )
-        plugins = sorted(plugins, key=lambda plugin: plugin.name)
 
         # Check for conflicts since no two plugins can have the same name
         seen = set()
@@ -296,18 +296,14 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
         if conflicts:
             raise PluginError(
-                dals(
-                    f"""
-                    Conflicting `{name}` plugins found:
-
-                    {", ".join([f"{plugin}:{plugin.name}" for plugin in conflicts])}
-
-                    Multiple conda plugins are registered via the `{specname}` hook.
-                    Please make sure that you don't have any incompatible plugins installed.
-                    """
-                )
+                f"Conflicting plugins found for `{name}`:\n"
+                f"{dashlist(map(str, conflicts))}\n"
+                f"\n"
+                f"Multiple conda plugins are registered via the `{specname}` hook. "
+                f"Please make sure that you don't have any incompatible plugins installed."
             )
-        return plugins
+
+        return sorted(plugins, key=lambda plugin: plugin.name)
 
     def get_solvers(self) -> dict[str, CondaSolver]:
         """Return a mapping from solver name to solver class."""
