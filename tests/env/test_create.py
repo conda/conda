@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -17,8 +19,6 @@ from conda.testing.integration import package_is_installed
 from . import support_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import (
@@ -104,14 +104,19 @@ def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
+    tmp_path: Path,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
+    # avoid pip touching support_file paths inside source checkout
+    environment_yml = Path(tmp_path, "advanced-pip", "environment.yml")
+    shutil.copytree(support_file("advanced-pip"), tmp_path / "advanced-pip")
+
     stdout, stderr, _ = conda_cli(
         *("env", "create"),
         *("--name", env_name),
-        *("--file", support_file("advanced-pip/environment.yml")),
+        *("--file", str(environment_yml)),
     )
 
     PrefixData._cache_.clear()
