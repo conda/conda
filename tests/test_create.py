@@ -62,7 +62,6 @@ from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
-    subprocess_call,
     subprocess_call_with_clean_env,
 )
 from conda.models.channel import Channel
@@ -2458,7 +2457,6 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_VERBOSE", "2")
 
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
-        python_exe = str(prefix / PYTHON_BINARY)
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
         assert (py_prec := package_is_installed(prefix, "python"))
         assert (conda_prec := package_is_installed(prefix, "conda"))
@@ -2475,20 +2473,10 @@ def test_conda_downgrade(
         )  # rev 2
         assert package_is_installed(prefix, "itsdangerous")
 
-        # downgrade the version of conda in the env, using our dev version of conda
+        # downgrade the version of conda in the env (using our current outer conda version)
         PrefixData._cache_.clear()
-        subprocess_call(
-            [
-                python_exe,
-                "-m",
-                "conda",
-                "install",
-                f"--prefix={prefix}",
-                f"conda<{conda_prec.version}",
-                "--yes",
-            ],
-            path=prefix,
-            raise_on_error=True,
+        conda_cli(
+            "install", f"--prefix={prefix}", f"conda<{conda_prec.version}", "--yes"
         )  # rev 3
         assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
