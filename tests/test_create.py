@@ -2488,7 +2488,7 @@ def test_conda_downgrade(
                 "--yes",
             ],
             path=prefix,
-            raise_on_error=False,
+            raise_on_error=True,
         )  # rev 3
         assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
