@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import random
 from io import StringIO
+from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -26,8 +27,6 @@ from conda.testing.integration import package_is_installed
 from . import support_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
@@ -324,20 +323,26 @@ def test_creates_file_on_save(tmp_path: Path):
 
 
 @pytest.mark.integration
-def test_create_advanced_pip(
+def test_env_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
+    tmp_path: Path,
     tmp_envs_dir: Path,
 ):
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "true")
 
     prefix = path_factory()
     assert not prefix.exists()
+
+    # copy to avoid writing to source checkout
+    pip_argh = tmp_path / "pip_argh.yml"
+    pip_argh.write_text(Path(support_file("pip_argh.yml")).read_text())
+
     conda_cli(
         *("env", "create"),
         *("--prefix", prefix),
-        *("--file", support_file("pip_argh.yml")),
+        *("--file", str(pip_argh)),
     )
     assert prefix.exists()
     PrefixData._cache_.clear()
