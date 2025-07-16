@@ -42,7 +42,7 @@ from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Literal
+    from typing import Callable, Literal
 
     from requests.auth import AuthBase
 
@@ -78,11 +78,17 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
-    #: method.
-    get_cached_solver_backend = None
+    get_cached_solver_backend: Callable[[str | None], type[Solver]]
 
-    def __init__(self, project_name: str | None = None, *args, **kwargs) -> None:
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
+    #: method.
+    get_cached_session_headers: Callable[[str], dict[str, str]]
+
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers`
+    #: method.
+    get_cached_request_headers: Callable[[str, str], dict[str, str]]
+
+    def __init__(self, project_name: str | None = None, *args, **kwargs):
         # Setting the default project name to the spec name for ease of use
         if project_name is None:
             project_name = spec_name
