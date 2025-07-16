@@ -273,7 +273,7 @@ class CondaPluginManager(pluggy.PluginManager):
         # a meaningful way to users difficult
         plugins = [plugin for plugins in hook(**kwargs) for plugin in plugins]
 
-        # Validate plugin names since plugins may not properly inherit from CondaPluginBase
+        # Validate plugin names since plugins may not properly inherit from CondaPlugin
         invalid = [
             plugin
             for plugin in plugins
