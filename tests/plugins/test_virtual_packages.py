@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import platform
-import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -76,7 +75,7 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(VirtualPackagesPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting `virtual_packages` plugins found")
+        PluginError, match=r"Conflicting plugins found for `virtual_packages`"
     ):
         conda.core.index.ReducedIndex(
             prefix=context.default_prefix,
