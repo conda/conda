@@ -252,7 +252,6 @@ from .compat import isiterable, odict
 from .collection import AttrDict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
-from .logz import DumpEncoder
 from .type_coercion import maybecall
 from ..common.serialize import json
 from ..deprecations import deprecated
