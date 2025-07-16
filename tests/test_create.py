@@ -2476,7 +2476,10 @@ def test_conda_downgrade(
         # downgrade the version of conda in the env (using our current outer conda version)
         PrefixData._cache_.clear()
         conda_cli(
-            "install", f"--prefix={prefix}", f"conda<{conda_prec.version}", "--yes"
+            "install",
+            f"--prefix={prefix}",
+            f"conda<{conda_prec.version}",
+            "--yes",
         )  # rev 3
         assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
