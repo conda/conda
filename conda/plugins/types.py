@@ -51,7 +51,7 @@ class CondaPlugin:
         try:
             self.name = self.name.lower().strip()
         except AttributeError:
-            # AttributeError: 'NoneType' object has no attribute 'lower'
+            # AttributeError: name is not a string
             raise PluginError(f"Invalid plugin name for {self!r}")
 
 

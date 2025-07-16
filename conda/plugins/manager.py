@@ -284,7 +284,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if invalid:
             raise PluginError(
                 f"Invalid plugin names found for `{name}`:\n"
-                f"{dashlist(map(str, invalid))}\n"
+                f"{dashlist(map(repr, invalid))}\n"
                 f"\n"
                 f"Please report this issue to the plugin author(s)."
             )
@@ -297,7 +297,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if conflicts:
             raise PluginError(
                 f"Conflicting plugins found for `{name}`:\n"
-                f"{dashlist(map(str, conflicts))}\n"
+                f"{dashlist(map(repr, conflicts))}\n"
                 f"\n"
                 f"Multiple conda plugins are registered via the `{specname}` hook. "
                 f"Please make sure that you don't have any incompatible plugins installed."
