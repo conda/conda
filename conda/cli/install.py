@@ -14,7 +14,6 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
-from tempfile import mktemp
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
@@ -23,8 +22,6 @@ from .. import CondaError
 from ..base.constants import (
     REPODATA_FN,
     ROOT_ENV_NAME,
-    UNUSED_ENV_NAME,
-    DepsModifier,
     UpdateModifier,
 )
 from ..base.context import context
@@ -71,8 +68,10 @@ from .common import check_non_admin
 from .main_config import set_keys
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
     from argparse import Namespace
+    from collections.abc import Iterable
+
+    from ..base.constants import DepsModifier
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -389,16 +388,16 @@ def _assemble_environment(
 
 
 def retry_for_transaction(
-        prefix: str,
-        specs: list[MatchSpec],
-        repodata_fns: list[str], 
-        index_args: dict[str, any],
-        channels: list[str],
-        subdirs: list[str],
-        update_modifier: UpdateModifier,
-        deps_modifier: DepsModifier,
-        cmd: str = "install",
-        retry_unfrozen: bool = True,
+    prefix: str,
+    specs: list[MatchSpec],
+    repodata_fns: list[str],
+    index_args: dict[str, any],
+    channels: list[str],
+    subdirs: list[str],
+    update_modifier: UpdateModifier,
+    deps_modifier: DepsModifier,
+    cmd: str = "install",
+    retry_unfrozen: bool = True,
 ):
     unlink_link_transaction = None
     _should_retry_unfrozen = retry_unfrozen
@@ -418,7 +417,7 @@ def retry_for_transaction(
                 command=cmd,
             )
             try:
-                unlink_link_transaction =  solver.solve_for_transaction(
+                unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,
                     update_modifier=update_modifier,
                     force_reinstall=context.force_reinstall or context.force,
@@ -459,7 +458,7 @@ def update(args: Namespace):
 
     # collect packages provided from the command line
     args_packages = [s.strip("\"'") for s in args.packages]
-     # collect specs provided by --file arguments
+    # collect specs provided by --file arguments
     specs = []
     if args.file:
         for fpath in args.file:
@@ -501,11 +500,11 @@ def update(args: Namespace):
     unlink_link_transaction = retry_for_transaction(
         prefix=prefix,
         specs=specs,
-        repodata_fns=repodata_fns, 
+        repodata_fns=repodata_fns,
         index_args=get_index_args(args=args),
         subdirs=context.subdirs,
         channels=context.channels,
-        update_modifier= context.update_modifier,
+        update_modifier=context.update_modifier,
         deps_modifier=context.deps_modifier,
         retry_unfrozen=should_retry_unfrozen,
         cmd="update",
@@ -527,7 +526,7 @@ def install(args, parser, command="install"):
             addendum="Use `conda.cli.install.install_clone()` instead",
         )
         return install_clone(args, parser)
-    
+
     if isupdate:
         deprecated.topic(
             "26.3",
@@ -538,7 +537,7 @@ def install(args, parser, command="install"):
         return update(args)
 
     # common validations for all types of installs
-    validate_install_command(prefix= context.target_prefix, command=command)
+    validate_install_command(prefix=context.target_prefix, command=command)
 
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
@@ -573,7 +572,7 @@ def install(args, parser, command="install"):
     update_modifier = env.config.update_modifier
     if isinstall and args.update_modifier == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
-    
+
     unlink_link_transaction = retry_for_transaction(
         prefix=env.prefix,
         specs=env.requested_packages,
@@ -582,7 +581,7 @@ def install(args, parser, command="install"):
         index_args=get_index_args(args=args),
         channels=env.config.channels,
         update_modifier=update_modifier,
-        deps_modifier= env.config.deps_modifier,
+        deps_modifier=env.config.deps_modifier,
         retry_unfrozen=should_retry_unfrozen,
         cmd=args.cmd,
     )
