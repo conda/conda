@@ -142,7 +142,7 @@ warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 addopts = [
-  "--color=yes",
+  "--color=auto",
   # "--cov=conda",   # passed in test runner scripts instead (avoid debugger)
   "--cov-append",
   "--cov-branch",
@@ -192,7 +192,7 @@ exclude = [
 target-version = "py39"
 
 [tool.ruff.lint]
-extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1"]}
+extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1", "TID251"]}
 flake8-type-checking = {exempt-modules = [], strict = true}
 ignore = [
   "D101",  # Missing docstring in public class
@@ -219,6 +219,10 @@ select = [
   "RUF100",  # Unused noqa directive
   "T10",  # flake8-debugger
   "TCH",  # flake8-type-checking
+  "TID251",  # flake8-tidy-imports
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
 ]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"json".msg = "Use `conda.common.serialize.json` instead."

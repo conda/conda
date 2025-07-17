@@ -128,6 +128,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..exceptions import CondaValueError
+    from .common import validate_environment_files_consistency
     from .install import get_revision, install, install_revision
 
     if context.force:
@@ -140,12 +141,22 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
+    # Validate that input files are of the same format type
+    validate_environment_files_consistency(args.file)
+
+    # Ensure that users do not provide incompatible arguments.
+    # revision and packages can not be specified together
+    if args.revision and (args.file or args.packages):
+        raise CondaValueError(
+            "too many arguments, must supply one of command line packages, --file or --revision"
+        )
+
     # Ensure provided combination of command line arguments are valid
     if args.revision:
         get_revision(args.revision, json=context.json)
     elif not (args.file or args.packages):
         raise CondaValueError(
-            "too few arguments, must supply command line packages, --file or --revision"
+            "too few arguments, must supply one of command line packages, --file or --revision"
         )
 
     if args.revision:

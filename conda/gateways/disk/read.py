@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 from base64 import b64encode
 from collections import namedtuple
@@ -22,6 +21,7 @@ from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import open_utf8
+from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
@@ -50,12 +50,14 @@ def yield_lines(path):
 
     """
     try:
-        with open_utf8(path) as fh:
-            for line in fh:
+        path = Path(path)
+        with path.open() as f:
+            for line in f:
                 line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                yield line
+                if line and not line.startswith("#"):
+                    yield line
+    except FileNotFoundError:
+        pass
     except OSError as e:
         if e.errno == ENOENT:
             pass

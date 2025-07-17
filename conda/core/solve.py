@@ -37,7 +37,7 @@ from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..reporters import get_spinner
 from ..resolve import Resolve
-from .index import _supplement_index_with_system, get_reduced_index
+from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
@@ -64,6 +64,9 @@ class Solver:
       * :meth:`solve_for_diff`
       * :meth:`solve_for_transaction`
     """
+
+    _index: ReducedIndex | None
+    _r: Resolve | None
 
     def __init__(
         self,
@@ -536,8 +539,7 @@ class Solver:
                     ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
             # Add virtual packages so they are taken into account by the solver
-            virtual_pkg_index = {}
-            _supplement_index_with_system(virtual_pkg_index)
+            virtual_pkg_index = Index().system_packages
             virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
             for virtual_pkgs_name in virtual_pkgs:
                 if virtual_pkgs_name not in ssc.specs_map:
@@ -1261,7 +1263,7 @@ class Solver:
                     file=sys.stderr,
                 )
 
-    def _prepare(self, prepared_specs):
+    def _prepare(self, prepared_specs) -> tuple[ReducedIndex, Resolve]:
         # All of this _prepare() method is hidden away down here. Someday we may want to further
         # abstract away the use of `index` or the Resolve object.
 
@@ -1271,7 +1273,6 @@ class Solver:
         if hasattr(self, "_index") and self._index:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
-            _supplement_index_with_system(self._index)
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list
@@ -1288,17 +1289,18 @@ class Solver:
 
             self.channels.update(additional_channels)
 
-            reduced_index = get_reduced_index(
-                self.prefix,
-                self.channels,
-                self.subdirs,
-                prepared_specs,
-                self._repodata_fn,
-            )
-            _supplement_index_with_system(reduced_index)
-
             self._prepared_specs = prepared_specs
-            self._index = reduced_index
+            self._index = reduced_index = ReducedIndex(
+                prepared_specs,
+                channels=self.channels,
+                prepend=False,
+                subdirs=self.subdirs,
+                use_local=False,
+                use_cache=False,
+                prefix=self.prefix,
+                repodata_fn=self._repodata_fn,
+                use_system=True,
+            )
             self._r = Resolve(reduced_index, channels=self.channels)
 
         self._prepared = True

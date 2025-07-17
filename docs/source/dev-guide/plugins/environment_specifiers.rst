@@ -35,7 +35,12 @@ base class is an abstract base class which requires us to define our own impleme
 of its abstract methods:
 
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
-* ``environment`` Expresses the provided environment file as a conda environment object.
+* ``env`` Expresses the provided environment file as a conda environment object.
+
+The class may also define the boolean class variable `detection_supported`. When set to
+``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
+the plugin will only be able to be used when it is specifically selected. By default, this
+value is ``True``.`
 
 Be sure to be very specific when implementing the ``can_handle`` method. It should only
 return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle``
@@ -48,7 +53,8 @@ Registering the plugin hook
 In order to make the plugin available to conda, it must be registered with the plugin
 manager. Define a function with the ``plugins.hookimpl`` decorator to register
 our plugin which returns our class wrapped in a
-:class:`~conda.plugins.types.CondaEnvironmentSpecifier` object.
+:class:`~conda.plugins.types.CondaEnvironmentSpecifier` object. Note, that by default
+autodetection is enabled.
 
 .. code-block:: python
 
@@ -69,6 +75,37 @@ using the plugin defined above:
 
    conda env create --file /doesnt/matter/any/way.random
 
+Plugin detection
+----------------
+
+When conda is trying to determine which environment spec plugin to use it will loop through all
+registered plugins and call their ``can_handle`` function. If one (and only one) plugin returns a
+``True`` value, conda will use that plugin to read the provided environment spec. However, if multiple
+plugins are detected an error will be raised.
+
+Plugin authors may explicitly disable their plugin from being detected by disabling autodetection
+in their plugin class
+
+.. code-block:: python
+
+    class RandomSpec(EnvironmentSpecBase):
+        detection_supported = False
+
+        def __init__(self, filename: str):
+            self.filename = filename
+
+        def can_handle(self):
+            return True
+
+        def env(self):
+            return Environment(name="random-environment", dependencies=["python", "numpy"])
+
+End users can bypass environment spec plugin detection and explicitly request a plugin to be used
+by configuring conda to use a particular installed plugin. This can be done by either:
+
+* cli by providing the ``--env-spec`` flag, or
+* environment variable by setting the ``CONDA_ENV_SPEC`` environment variable, or
+* ``.condarc`` by setting the ``environment_specifier`` config field
 
 Another example plugin
 -----------------------
@@ -130,7 +167,7 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
            return True
 
        @property
-       def environment(self) -> Environment:
+       def env(self) -> Environment:
            """Returns the Environment representation of the environment spec file"""
            data = self._parse_data()
            return Environment(

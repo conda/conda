@@ -4,11 +4,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
+from functools import reduce
+from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS
+from ..base.context import context
+from ..common.iterators import groupby_to_dict as groupby
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -33,35 +37,52 @@ class EnvironmentConfig:
     Data model for a conda environment config.
     """
 
-    aggressive_update_packages: bool | None = None
+    aggressive_update_packages: tuple[str] = field(default_factory=tuple)
 
     channel_priority: ChannelPriority | None = None
 
-    channels: list[str] = field(default_factory=list)
+    channels: tuple[str] = field(default_factory=tuple)
 
-    channel_settings: dict[str, str] = field(default_factory=dict)
+    channel_settings: tuple[dict[str, str]] = field(default_factory=tuple)
 
     deps_modifier: DepsModifier | None = None
 
-    disallowed_packages: list[str] = field(default_factory=list)
+    disallowed_packages: tuple[str] = field(default_factory=tuple)
 
-    pinned_packages: list[str] = field(default_factory=list)
+    pinned_packages: tuple[str] = field(default_factory=tuple)
 
-    repodata_fns: list[str] = field(default_factory=list)
+    repodata_fns: tuple[str] = field(default_factory=tuple)
 
     sat_solver: SatSolverChoice | None = None
 
     solver: str | None = None
 
-    track_features: list[str] = field(default_factory=list)
+    track_features: tuple[str] = field(default_factory=tuple)
 
     update_modifier: UpdateModifier | None = None
 
     use_only_tar_bz2: bool | None = None
 
-    def _append_without_duplicates(self, first: list, second: list) -> list:
-        first.extend(second)
-        return list(dict.fromkeys(item for item in first))
+    def _append_without_duplicates(self, first: tuple, second: tuple) -> tuple:
+        return tuple(dict.fromkeys(item for item in first + second))
+
+    def _merge_channel_settings(
+        self, first: tuple[dict[str, str]], second: tuple[dict[str, str]]
+    ) -> tuple[dict[str, str]]:
+        """Merge channel settings.
+
+        An individual channel setting is a dict that may have the key "channels". Settings
+        with matching "channels" should be merged together.
+        """
+
+        grouped_channel_settings = groupby(
+            lambda x: x.get("channel"), chain(first, second)
+        )
+
+        return tuple(
+            {k: v for config in configs for k, v in config.items()}
+            for channel, configs in grouped_channel_settings.items()
+        )
 
     def _merge(self, other: EnvironmentConfig) -> EnvironmentConfig:
         """
@@ -71,6 +92,8 @@ class EnvironmentConfig:
         * Primitive types get clobbered if subsequent configs have a value, otherwise keep the last set value
         * Lists get appended to and deduplicated
         * Dicts get updated
+        * Special cases:
+          * channel settings is a list of dicts, it merges inner dicts, keyed on "channel"
         """
         # Return early if there is nothing to merge
         if other is None:
@@ -82,15 +105,18 @@ class EnvironmentConfig:
                 "Cannot merge EnvironmentConfig with non-EnvironmentConfig"
             )
 
-        if other.aggressive_update_packages is not None:
-            self.aggressive_update_packages = other.aggressive_update_packages
+        self.aggressive_update_packages = self._append_without_duplicates(
+            self.aggressive_update_packages, other.aggressive_update_packages
+        )
 
         if other.channel_priority is not None:
             self.channel_priority = other.channel_priority
 
         self.channels = self._append_without_duplicates(self.channels, other.channels)
 
-        self.channel_settings.update(other.channel_settings)
+        self.channel_settings = self._merge_channel_settings(
+            self.channel_settings, other.channel_settings
+        )
 
         if other.deps_modifier is not None:
             self.deps_modifier = other.deps_modifier
@@ -126,6 +152,22 @@ class EnvironmentConfig:
         return self
 
     @classmethod
+    def from_context(cls) -> EnvironmentConfig:
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Create an EnvironmentConfig from the current context
+        """
+        field_names = {field.name for field in fields(cls)}
+
+        environment_settings = {
+            key: value
+            for key, value in context.environment_settings.items()
+            if key in field_names
+        }
+        return cls(**environment_settings)
+
+    @classmethod
     def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
@@ -137,17 +179,17 @@ class EnvironmentConfig:
         """
 
         # Don't try to merge if there is nothing to merge
-        if len(configs) == 0:
+        if not configs:
             return
 
         # If there is only one config, there is nothing to merge, return the lone config
         if len(configs) == 1:
             return configs[0]
 
-        result = EnvironmentConfig()
-        for config in configs:
-            result._merge(config)
-        return result
+        # Use reduce to merge all configs into the first one
+        return reduce(
+            lambda result, config: result._merge(config), configs[1:], configs[0]
+        )
 
 
 @dataclass
@@ -167,7 +209,7 @@ class Environment:
     #: Environment level configuration, eg. channels, solver options, etc.
     #: TODO: may need to think more about the type of this field and how
     #:       conda should be merging configs between environments
-    config: EnvironmentConfig | None = None
+    config: EnvironmentConfig = field(default_factory=EnvironmentConfig)
 
     #: Map of other package types that conda can install. For example pypi packages.
     external_packages: dict[str, list[str]] = field(default_factory=dict)
@@ -184,6 +226,10 @@ class Environment:
 
     #: Environment variables to be applied to the environment.
     variables: dict[str, str] = field(default_factory=dict)
+
+    # Virtual packages for the environment. Either the default ones provided by
+    # the virtual_packages plugins or the overrides captured by CONDA_OVERRIDE_*.
+    virtual_packages: list[PackageRecord] = field(default_factory=list)
 
     def __post_init__(self):
         # an environment must have a name of prefix
@@ -269,6 +315,14 @@ class Environment:
             )
         )
 
+        virtual_packages = list(
+            dict.fromkeys(
+                virtual_package
+                for env in environments
+                for virtual_package in env.virtual_packages
+            )
+        )
+
         variables = {k: v for env in environments for (k, v) in env.variables.items()}
 
         external_packages = {}
@@ -296,4 +350,5 @@ class Environment:
             prefix=prefix,
             requested_packages=requested_packages,
             variables=variables,
+            virtual_packages=virtual_packages,
         )

@@ -21,13 +21,13 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, TypeAlias
+    from typing import Any, Callable, ClassVar, TypeAlias
 
     from ..common.configuration import Parameter
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
-    from ..env.env import Environment
+    from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
 
@@ -420,6 +420,13 @@ class EnvironmentSpecBase(ABC):
     Base class for all env specs.
     """
 
+    # Determines if the EnvSpec plugin should be included in the set
+    # of available plugins checked during environment_spec plugin detection.
+    # If set to False, the only way to use the plugin will be through explicitly
+    # requesting it as a cli argument or setting in .condarc. By default,
+    # autodetection is enabled.
+    detection_supported: ClassVar[bool] = True
+
     @abstractmethod
     def can_handle(self) -> bool:
         """
@@ -430,8 +437,9 @@ class EnvironmentSpecBase(ABC):
         """
         raise NotImplementedError()
 
+    @property
     @abstractmethod
-    def environment(self) -> Environment:
+    def env(self) -> Environment:
         """
         Express the provided environment file as a conda environment object.
 

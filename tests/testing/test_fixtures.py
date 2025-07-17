@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from conda.base.context import context, reset_context
-from conda.gateways.disk.test import is_conda_environment
+from conda.core.prefix_data import PrefixData
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -44,12 +44,12 @@ def test_path_factory(path_factory: PathFactoryFixture) -> None:
 
 def test_tmp_env(tmp_env: TmpEnvFixture) -> None:
     with tmp_env() as prefix:
-        is_conda_environment(prefix)
+        assert PrefixData(prefix).is_environment()
 
 
 def test_session_tmp_env(session_tmp_env: TmpEnvFixture) -> None:
     with session_tmp_env() as prefix:
-        is_conda_environment(prefix)
+        assert PrefixData(prefix).is_environment()
 
 
 def test_env(pytester: Pytester) -> None:

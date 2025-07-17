@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import json
 import platform
 import re
 import sys
@@ -38,8 +37,8 @@ from conda.common.path import (
     get_python_site_packages_short_path,
     pyc_path,
 )
-from conda.common.serialize import json_dump, yaml_round_trip_load
-from conda.core.index import get_reduced_index
+from conda.common.serialize import json, yaml_round_trip_load
+from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.exceptions import (
@@ -791,7 +790,17 @@ def test_strict_channel_priority(
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
-    index = get_reduced_index(None, channels, context.subdirs, specs, "repodata.json")
+    index = ReducedIndex(
+        specs,
+        channels=channels,
+        prepend=False,
+        subdirs=context.subdirs,
+        use_local=False,
+        use_cache=None,
+        prefix=None,
+        repodata_fn="repodata.json",
+        use_system=True,
+    )
     r = Resolve(index, channels=channels)
 
     monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
@@ -1769,7 +1778,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         )
         assert any(pkg.strip() == "six==1.10.0" for pkg in stdout.splitlines())
 
-        assert json.loads(json_dump(PrefixData(prefix).get("six"))) == {
+        assert json.loads(json.dumps(PrefixData(prefix).get("six"))) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
@@ -1947,7 +1956,7 @@ def test_conda_pip_interop_conda_editable_package(
         prec_dump = PrefixData(prefix).get("urllib3").dump()
         prec_dump.pop("files")
         prec_dump.pop("paths_data")
-        assert json.loads(json_dump(prec_dump)) == {
+        assert json.loads(json.dumps(prec_dump)) == {
             "build": "dev_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/<develop>",
@@ -1997,7 +2006,7 @@ def test_conda_pip_interop_conda_editable_package(
         prec_dump = PrefixData(prefix).get("urllib3").dump()
         prec_dump.pop("files")
         prec_dump.pop("paths_data")
-        assert json.loads(json_dump(prec_dump)) == {
+        assert json.loads(json.dumps(prec_dump)) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
@@ -2754,15 +2763,21 @@ def test_python_site_packages_path(
         assert (prefix / sp_dir / "sample.py").is_file()
 
 
-def test_dont_allow_mixed_file_arguments(
-    conda_cli: CondaCLIFixture,
-):
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "create",
+        "install",
+        "update",
+    ],
+)
+def test_dont_allow_mixed_file_arguments(conda_cli: CondaCLIFixture, cmd):
     """
     Test that conda will return an error when multiple --file arguments of different
     types are specified
     """
     _, _, exc = conda_cli(
-        "create",
+        cmd,
         *("--name", uuid4().hex[:8]),
         *("--file", support_file("requirements.txt")),
         *("--file", support_file("simple.yml")),

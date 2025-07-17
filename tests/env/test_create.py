@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -14,11 +15,9 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing.integration import package_is_installed
 
-from . import support_file
+from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import (
@@ -104,14 +103,18 @@ def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
+    support_file_isolated,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
+    # avoid pip touching support_file paths inside source checkout
+    environment_yml = support_file_isolated(Path("advanced-pip", "environment.yml"))
+
     stdout, stderr, _ = conda_cli(
         *("env", "create"),
         *("--name", env_name),
-        *("--file", support_file("advanced-pip/environment.yml")),
+        *("--file", str(environment_yml)),
     )
 
     PrefixData._cache_.clear()
@@ -208,9 +211,8 @@ def test_create_update_remote_env_file(
         *("--name", env_name),
         *(
             "--file",
-            support_file(
+            remote_support_file(
                 "example/environment_pinned.yml",
-                remote=True,
                 port=support_file_server_port,
             ),
         ),
@@ -230,9 +232,8 @@ def test_create_update_remote_env_file(
         *("--name", env_name),
         *(
             "--file",
-            support_file(
+            remote_support_file(
                 "example/environment_pinned_updated.yml",
-                remote=True,
                 port=support_file_server_port,
             ),
         ),
@@ -326,3 +327,49 @@ def test_create_env_from_non_existent_plugin(
             "You have chosen an unrecognized environment specifier type (nonexistent_plugin)"
             in str(excinfo.value)
         )
+
+
+def test_create_env_custom_platform(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+    test_recipes_channel: str,
+):
+    """
+    Ensures that the `--platform` option works correctly when creating an environment by
+    creating a `.condarc` file with `subir: osx-64`.
+    """
+    env_file = path_factory("test_recipes_channel.yml")
+    env_file.write_text(
+        f"""
+        name: test-env
+        channels:
+          - {test_recipes_channel}
+        dependencies:
+          - dependency
+        """
+    )
+
+    if context._native_subdir() == "osx-arm64":
+        platform = "linux-64"
+    else:
+        platform = "osx-arm64"
+
+    with tmp_env() as prefix:
+        conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            str(env_file),
+            f"--platform={platform}",
+        )
+        prefix_data = PrefixData(prefix)
+
+        assert prefix_data.exists()
+        assert prefix_data.is_environment()
+
+        config = prefix / ".condarc"
+
+        assert config.is_file()
+        assert f"subdir: {platform}" in config.read_text()

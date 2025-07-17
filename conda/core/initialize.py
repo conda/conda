@@ -29,7 +29,6 @@ how that strategy is implemented.
 
 """
 
-import json
 import os
 import re
 import struct
@@ -71,6 +70,7 @@ from ..common.path import (
     get_python_site_packages_short_path,
     win_path_ok,
 )
+from ..common.serialize import json
 from ..exceptions import CondaValueError
 from ..gateways.disk.create import copy, mkdir_p
 from ..gateways.disk.delete import rm_rf
@@ -1044,6 +1044,12 @@ def run_plan_elevated(plan):
     for the individual operation execution results, and then deletes the file.
     """
     if any(step["result"] == Result.NEEDS_SUDO for step in plan):
+        plan_input = json.dumps(
+            plan,
+            ensure_ascii=False,
+            default=lambda x: x.__dict__,
+        )
+
         if on_win:
             from ..common._os.windows import run_as_admin
 
@@ -1051,11 +1057,7 @@ def run_plan_elevated(plan):
             try:
                 with Utf8NamedTemporaryFile("w+", suffix=".json", delete=False) as tf:
                     # the default mode is 'w+b', and universal new lines don't work in that mode
-                    tf.write(
-                        json.dumps(
-                            plan, ensure_ascii=False, default=lambda x: x.__dict__
-                        )
-                    )
+                    tf.write(plan_input)
                     temp_path = tf.name
                 python_exe = f'"{abspath(sys.executable)}"'
                 hinstance, error_code = run_as_admin(
@@ -1068,27 +1070,25 @@ def run_plan_elevated(plan):
                     )
 
                 with open_utf8(temp_path) as fh:
-                    _plan = json.loads(ensure_text_type(fh.read()))
+                    plan_output = ensure_text_type(fh.read())
 
             finally:
                 if temp_path and lexists(temp_path):
                     rm_rf(temp_path)
 
         else:
-            stdin = json.dumps(plan, ensure_ascii=False, default=lambda x: x.__dict__)
             result = subprocess_call(
                 f"sudo {sys.executable} -m conda.core.initialize",
                 env={},
                 path=os.getcwd(),
-                stdin=stdin,
+                stdin=plan_input,
             )
             stderr = result.stderr.strip()
             if stderr:
                 print(stderr, file=sys.stderr)
-            _plan = json.loads(result.stdout.strip())
+            plan_output = result.stdout.strip()
 
-        del plan[:]
-        plan.extend(_plan)
+        plan[:] = json.loads(plan_output)
 
 
 def run_plan_from_stdin():
@@ -1403,9 +1403,9 @@ def install_conda_csh(target_path, conda_prefix):
 def _config_fish_content(conda_prefix):
     conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        conda_exe = native_path_to_unix(conda_exe)
+        conda_exe = win_path_to_unix(conda_exe)
     conda_initialize_content = dals(
         """
         # >>> conda initialize >>>
@@ -1547,9 +1547,9 @@ def init_fish_user(
 def _config_xonsh_content(conda_prefix):
     conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        conda_exe = native_path_to_unix(conda_exe)
+        conda_exe = win_path_to_unix(conda_exe)
     conda_initialize_content = dals(
         """
     # >>> conda initialize >>>
@@ -1665,9 +1665,9 @@ def init_xonsh_user(
 def _bashrc_content(conda_prefix, shell):
     conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
-        from ..activate import native_path_to_unix
+        from ..common.path import win_path_to_unix
 
-        conda_exe = native_path_to_unix(conda_exe)
+        conda_exe = win_path_to_unix(conda_exe)
         conda_initialize_content = dals(
             """
         # >>> conda initialize >>>

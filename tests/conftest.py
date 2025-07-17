@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -87,7 +88,23 @@ def support_file_server_port(
 
 
 @pytest.fixture
-def clear_cuda_version():
+def support_file_isolated(tmp_path):
+    """
+    Copy support files to temporary path, avoid polluting source checkout.
+    """
+    source = Path(__file__).parents[0] / "env" / "support"
+    base = tmp_path / "support"
+    if not base.exists():  # tmp_path is session scoped
+        shutil.copytree(source, base)
+
+    def inner(path):
+        return base / path
+
+    return inner
+
+
+@pytest.fixture
+def clear_cuda_version() -> None:
     from conda.plugins.virtual_packages import cuda
 
     cuda.cached_cuda_version.cache_clear()

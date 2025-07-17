@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from logging import getLogger
@@ -25,17 +24,15 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
-from ..common.path import (
-    expand,
-    paths_equal,
-)
-from ..common.serialize import json_load
+from ..common.path import expand, paths_equal
+from ..common.serialize import json
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
 from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
     CondaDependencyError,
+    CondaError,
     CondaValueError,
     CorruptedEnvironmentError,
     DirectoryNotACondaEnvironmentError,
@@ -391,11 +388,11 @@ class PrefixData(metaclass=PrefixDataType):
         return fn + ".json"
 
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
-        assert prefix_record.name not in self._prefix_records, (
-            f"Prefix record insertion error: a record with name {prefix_record.name} already exists "
-            "in the prefix. This is a bug in conda. Please report it at "
-            "https://github.com/conda/conda/issues"
-        )
+        if prefix_record.name in self._prefix_records:
+            raise CondaError(
+                f"Prefix record '{prefix_record.name}' already exists. "
+                f"Try `conda clean --all` to fix."
+            )
 
         prefix_record_json_path = (
             self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
@@ -486,10 +483,10 @@ class PrefixData(metaclass=PrefixDataType):
         log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
-                json_data = json_load(fh.read())
+                json_data = json.load(fh)
             except (UnicodeDecodeError, json.JSONDecodeError):
                 # UnicodeDecodeError: catch horribly corrupt files
-                # JSONDecodeError: catch bad json format files
+                # json.JSONDecodeError: catch bad json format files
                 raise CorruptedEnvironmentError(
                     self.prefix_path, prefix_record_json_path
                 )
@@ -557,9 +554,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def _write_environment_state_file(self, state: dict[str, dict[str, str]]) -> None:
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
-        env_vars_file.write_text(
-            json.dumps(state, ensure_ascii=False, default=lambda x: x.__dict__)
-        )
+        env_vars_file.write_text(json.dumps(state, ensure_ascii=False))
 
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
         prefix_state = self._get_environment_state_file()
@@ -660,12 +655,13 @@ def get_python_version_for_prefix(prefix: os.PathLike) -> str | None:
     in that prefix.
     """
     # returns a string e.g. "2.7", "3.4", "3.5" or None
-    record = python_record_for_prefix(prefix)
+    record = PrefixData(prefix).get("python", None)
     if record is not None:
         if record.version[3].isdigit():
             return record.version[:4]
         else:
             return record.version[:3]
+    return None
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

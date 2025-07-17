@@ -3,13 +3,13 @@
 """YAML and JSON serialization and deserialization functions."""
 
 import functools
-import json
 from io import StringIO
 from logging import getLogger
 
 import ruamel.yaml as yaml
 
-from ..auxlib.entity import EntityEncoder
+from ...deprecations import deprecated
+from .json import CondaJSONEncoder, loads
 
 log = getLogger(__name__)
 
@@ -60,11 +60,30 @@ def yaml_safe_dump(object, stream=None):
         return ostream.getvalue()
 
 
-def json_load(string):
-    return json.loads(string)
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "EntityEncoder",
+    CondaJSONEncoder,
+    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+)
+del CondaJSONEncoder
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "json_load",
+    loads,
+    addendum="Use `conda.common.serialize.json.loads(sort_keys=True)` instead.",
+)
+del loads
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.common.serialize.json.dumps(sort_keys=True)` instead.",
+)
 def json_dump(object):
-    return json.dumps(
-        object, indent=2, sort_keys=True, separators=(",", ": "), cls=EntityEncoder
-    )
+    from .json import dumps
+
+    return dumps(object, sort_keys=True)

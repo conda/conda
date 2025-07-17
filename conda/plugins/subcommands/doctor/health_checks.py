@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 from logging import getLogger
 from pathlib import Path
@@ -12,7 +11,7 @@ from pathlib import Path
 from requests.exceptions import RequestException
 
 from ....base.context import context
-from ....common.serialize import yaml_safe_dump
+from ....common.serialize import json, yaml_safe_dump
 from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
