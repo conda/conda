@@ -381,9 +381,6 @@ def _assemble_environment(
         file_env = spec_hook.environment_spec(path).env
         file_envs.append(file_env)
 
-    # if context.dry_run:
-    #     cli_env.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
-
     return Environment.merge(cli_env, *file_envs)
 
 
