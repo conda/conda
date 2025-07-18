@@ -4,6 +4,7 @@
 
 import re
 import sys
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import (
     dirname,
@@ -117,7 +118,14 @@ def is_active_prefix(prefix: str) -> bool:
     )
 
 
-def arg2spec(arg, json=False, update=False):
+def arg2matchspec(arg: str, update: bool = False) -> MatchSpec:
+    """
+    Transform an input package argument to a MatchSpec
+
+    :param arg: the package provided as an argument on the cli
+    :param update: whether the command being run is an update command
+    :returns: MatchSpec for the provided arg
+    """
     try:
         spec = MatchSpec(arg)
     except:
@@ -134,11 +142,25 @@ def arg2spec(arg, json=False, update=False):
             f"    conda update  {name:<{len(arg)}}  or\n"
             f"    conda install {arg:<{len(name)}}"
         )
+    return spec
 
+
+def arg2spec(arg: str, json: bool = False, update: bool = False) -> str:
+    """
+    Ensure that an input package argument can be converted into
+    a MatchSpec. Will raise an error if the package can not be converted
+    or is malformed.
+
+    :param arg: the package provided as an argument on the cli
+    :param json: unused
+    :param update: whether the command being run is an update command
+    :returns: str
+    """
+    spec = arg2matchspec(arg, update=update)
     return str(spec)
 
 
-def specs_from_args(args, json=False):
+def specs_from_args(args: Iterable[str], json: bool = False) -> list[str]:
     return [arg2spec(arg, json=json) for arg in args]
 
 

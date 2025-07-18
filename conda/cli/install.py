@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -52,13 +53,25 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, explicit
+from ..misc import (
+    _get_best_prec_match,
+    clone_env,
+    get_package_records_from_explicit,
+    install_explicit_packages,
+)
+from ..models.environment import Environment, EnvironmentConfig
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+
+if TYPE_CHECKING:
+    from argparse import Namespace
+    from collections.abc import Iterable
+
+    from ..base.constants import DepsModifier
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -315,111 +328,76 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
             raise PackageNotInstalledError(prefix, spec.name)
 
 
-def install_clone(args, parser):
-    """Executes an install of a new conda environment by cloning."""
-    prefix = context.target_prefix
-    index_args = get_index_args(args)
+def _assemble_environment(
+    name: str | None = None,
+    prefix: str | None = None,
+    specs: Iterable[str] = (),
+    files: Iterable[str] = (),
+    inject_default_packages: bool = True,
+) -> Environment:
+    # First, let's create an 'Environment' for the information exposed in the CLI (no files)
+    if inject_default_packages:
+        names = {MatchSpec(pkg).name for pkg in specs}
+        for pkg in context.create_default_packages:
+            pkg_name = MatchSpec(pkg).name
+            if pkg_name not in names:
+                specs.append(pkg)
 
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, command="create")
+    requested_packages = []
+    fetch_explicit_packages = []
 
-    clone(
-        args.clone,
-        prefix,
-        json=context.json,
-        quiet=context.quiet,
-        index_args=index_args,
-    )
+    for spec in specs:
+        if is_package_file(spec):
+            fetch_explicit_packages.append(spec)
+        else:
+            requested_packages.append(common.arg2matchspec(spec))
 
-
-def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
-    prefix = context.target_prefix
-
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, command=command)
-
-    if context.use_only_tar_bz2:
-        args.repodata_fns = ("repodata.json",)
-
-    newenv = command == "create"
-    isupdate = command == "update"
-    isinstall = command == "install"
-    isremove = command == "remove"
-
-    # collect packages provided from the command line
-    args_packages = [s.strip("\"'") for s in args.packages]
-    if newenv and not args.no_default_packages:
-        # Override defaults if they are specified at the command line
-        names = [MatchSpec(pkg).name for pkg in args_packages]
-        for default_package in context.create_default_packages:
-            if MatchSpec(default_package).name not in names:
-                args_packages.append(default_package)
-
-    index_args = get_index_args(args=args)
-    context_channels = context.channels
-
-    num_cp = sum(is_package_file(s) for s in args_packages)
-    if num_cp:
-        if num_cp == len(args_packages):
-            # short circuit to installing explicit if all specs are direct files
-            explicit(args_packages, prefix, verbose=not context.quiet)
-            return
+    # transform explicit packages into package records
+    explicit_packages = []
+    if fetch_explicit_packages:
+        if len(fetch_explicit_packages) == len(specs):
+            explicit_packages = get_package_records_from_explicit(
+                fetch_explicit_packages
+            )
         else:
             raise CondaValueError(
                 "cannot mix specifications with conda package filenames"
             )
 
-    # collect specs provided by --file arguments
-    specs = []
-    if args.file:
-        for fpath in args.file:
-            try:
-                specs.extend(common.specs_from_url(fpath, json=context.json))
-            except UnicodeError:
-                raise CondaError(
-                    "Error reading file, file should be a text file containing"
-                    " packages \nconda create --help for details"
-                )
-        if "@EXPLICIT" in specs:
-            # short circuit to installing explicit if explicit specs are provided
-            explicit(specs, prefix, verbose=not context.quiet)
-            return
-    specs.extend(common.specs_from_args(args_packages, json=context.json))
+    cli_env = Environment(
+        name=name,
+        prefix=prefix,
+        platform=context.subdir,
+        requested_packages=requested_packages,
+        explicit_packages=explicit_packages,
+        config=EnvironmentConfig.from_context(),
+    )
 
-    # for 'conda update', make sure the requested specs actually exist in the prefix
-    # and that they are name-only specs
-    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
-        ensure_update_specs_exist(prefix=prefix, specs=specs)
-    if newenv and args.clone:
-        deprecated.topic(
-            "25.9",
-            "26.3",
-            topic="This function will not handle clones anymore.",
-            addendum="Use `conda.cli.install.install_clone()` instead",
-        )
-        return install_clone(args, parser)
+    # Now let's process potential files passed via --file
+    file_envs = []
+    for path in files:
+        # parse the file
+        spec_hook = context.plugin_manager.get_environment_specifier(path)
+        file_env = spec_hook.environment_spec(path).env
+        file_envs.append(file_env)
 
-    repodata_fns = args.repodata_fns
-    if not repodata_fns:
-        repodata_fns = list(context.repodata_fns)
-    if REPODATA_FN not in repodata_fns:
-        repodata_fns.append(REPODATA_FN)
+    return Environment.merge(cli_env, *file_envs)
 
-    args_set_update_modifier = getattr(args, "update_modifier", NULL) != NULL
-    # This helps us differentiate between an update, the --freeze-installed option, and the retry
-    # behavior in our initial fast frozen solve
-    _should_retry_unfrozen = (
-        not args_set_update_modifier
-        or args.update_modifier
-        not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
-    ) and not newenv
 
-    update_modifier = context.update_modifier
-    if (isinstall or isremove) and args.update_modifier == NULL:
-        update_modifier = UpdateModifier.FREEZE_INSTALLED
-    deps_modifier = context.deps_modifier
-
+def retry_for_transaction(
+    prefix: str,
+    specs: list[MatchSpec],
+    repodata_fns: list[str],
+    index_args: dict[str, any],
+    channels: list[str],
+    subdirs: list[str],
+    update_modifier: UpdateModifier,
+    deps_modifier: DepsModifier,
+    cmd: str = "install",
+    retry_unfrozen: bool = True,
+):
+    unlink_link_transaction = None
+    _should_retry_unfrozen = retry_unfrozen
     for repodata_fn in Repodatas(
         repodata_fns,
         index_args,
@@ -429,11 +407,11 @@ def install(args, parser, command="install"):
             solver_backend = context.plugin_manager.get_cached_solver_backend()
             solver = solver_backend(
                 prefix,
-                context_channels,
-                context.subdirs,
+                channels,
+                subdirs,
                 specs_to_add=specs,
                 repodata_fn=repodata,
-                command=args.cmd,
+                command=cmd,
             )
             try:
                 unlink_link_transaction = solver.solve_for_transaction(
@@ -462,8 +440,166 @@ def install(args, parser, command="install"):
                 if e.args and "could not import" in e.args[0]:
                     raise CondaImportError(str(e))
                 raise e
+    return unlink_link_transaction
 
-    handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+def update(args: Namespace):
+    """Logic for `conda update`."""
+    prefix = context.target_prefix
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command="update")
+
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ("repodata.json",)
+
+    # collect packages provided from the command line
+    args_packages = [s.strip("\"'") for s in args.packages]
+    # collect specs provided by --file arguments
+    specs = []
+    if args.file:
+        for fpath in args.file:
+            try:
+                specs.extend(common.specs_from_url(fpath, json=context.json))
+            except UnicodeError:
+                raise CondaError(
+                    "Error reading file, file should be a text file containing"
+                    " packages \nconda update --help for details"
+                )
+        if "@EXPLICIT" in specs:
+            # short circuit to installing explicit if explicit specs are provided
+            raise CondaError(
+                "Cannot update packages from an explicit file. Please try"
+                "\n`conda install` instead"
+            )
+    specs.extend(common.specs_from_args(args_packages, json=context.json))
+
+    # make sure the requested specs actually exist in the prefix
+    # and that they are name-only specs
+    if context.update_modifier != UpdateModifier.UPDATE_ALL:
+        ensure_update_specs_exist(prefix=prefix, specs=specs)
+
+    repodata_fns = args.repodata_fns
+    if not repodata_fns:
+        repodata_fns = list(context.repodata_fns)
+    if REPODATA_FN not in repodata_fns:
+        repodata_fns.append(REPODATA_FN)
+
+    args_set_update_modifier = getattr(args, "update_modifier", NULL) != NULL
+    # This helps us differentiate between an update, the --freeze-installed option, and the retry
+    # behavior in our initial fast frozen solve
+    should_retry_unfrozen = (
+        not args_set_update_modifier
+        or args.update_modifier
+        not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
+    )
+
+    unlink_link_transaction = retry_for_transaction(
+        prefix=prefix,
+        specs=specs,
+        repodata_fns=repodata_fns,
+        index_args=get_index_args(args=args),
+        subdirs=context.subdirs,
+        channels=context.channels,
+        update_modifier=context.update_modifier,
+        deps_modifier=context.deps_modifier,
+        retry_unfrozen=should_retry_unfrozen,
+        cmd="update",
+    )
+    handle_txn(unlink_link_transaction, prefix, args, newenv=False)
+
+
+def install(args, parser, command="install"):
+    """Logic for `conda install`, and `conda create`."""
+    newenv = command == "create"
+    isupdate = command == "update"
+    isinstall = command == "install"
+
+    if newenv and args.clone:
+        deprecated.topic(
+            "25.9",
+            "26.3",
+            topic="This function will not handle clones anymore.",
+            addendum="Use `conda.cli.install.install_clone()` instead",
+        )
+        return install_clone(args, parser)
+
+    if isupdate:
+        deprecated.topic(
+            "26.3",
+            "26.9",
+            topic="This function will not handle updates anymore.",
+            addendum="Use `conda.cli.install.update()` instead",
+        )
+        return update(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=context.target_prefix, command=command)
+
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ("repodata.json",)
+
+    env = _assemble_environment(
+        name=args.name,
+        prefix=context.target_prefix,
+        specs=[s.strip("\"'") for s in args.packages],
+        files=args.file,
+        inject_default_packages=command == "create" and not args.no_default_packages,
+    )
+
+    # install explicit specs
+    if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
+        return install_explicit_packages(env.explicit_packages, env.prefix)
+
+    repodata_fns = args.repodata_fns
+    if not repodata_fns:
+        repodata_fns = list(env.config.repodata_fns)
+    if REPODATA_FN not in repodata_fns:
+        repodata_fns.append(REPODATA_FN)
+
+    # This helps us differentiate between an update, the --freeze-installed option, and the retry
+    # behavior in our initial fast frozen solve
+    args_set_update_modifier = getattr(args, "update_modifier", NULL) != NULL
+    should_retry_unfrozen = (
+        not args_set_update_modifier
+        or args.update_modifier
+        not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
+    ) and not newenv
+
+    update_modifier = env.config.update_modifier
+    if isinstall and args.update_modifier == NULL:
+        update_modifier = UpdateModifier.FREEZE_INSTALLED
+
+    unlink_link_transaction = retry_for_transaction(
+        prefix=env.prefix,
+        specs=env.requested_packages,
+        repodata_fns=repodata_fns,
+        subdirs=context.subdirs,
+        index_args=get_index_args(args=args),
+        channels=env.config.channels,
+        update_modifier=update_modifier,
+        deps_modifier=env.config.deps_modifier,
+        retry_unfrozen=should_retry_unfrozen,
+        cmd=args.cmd,
+    )
+    handle_txn(unlink_link_transaction, env.prefix, args, newenv)
+
+
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning."""
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command="create")
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
 
 
 def install_revision(args, parser):
