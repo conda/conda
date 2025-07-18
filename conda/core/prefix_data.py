@@ -638,10 +638,8 @@ class PrefixData(metaclass=PrefixDataType):
         else:
             from_file = ()
 
-        return tuple(
-            MatchSpec(spec, optional=True)
-            for spec in from_file
-        )
+        return tuple(MatchSpec(spec, optional=True) for spec in from_file)
+
     # endregion
 
 

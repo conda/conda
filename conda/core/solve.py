@@ -8,7 +8,6 @@ import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
-from os.path import exists, join
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -1390,8 +1389,7 @@ class SolverStateContainer:
 def get_pinned_specs(prefix: str) -> tuple[MatchSpec]:
     """Find pinned specs from file and return a tuple of MatchSpec."""
     context_pinned_packages = tuple(
-        MatchSpec(spec, optional=True)
-        for spec in context.pinned_packages
+        MatchSpec(spec, optional=True) for spec in context.pinned_packages
     )
     prefix_data = PrefixData(prefix_path=prefix)
     return context_pinned_packages + prefix_data.get_pinned_specs()

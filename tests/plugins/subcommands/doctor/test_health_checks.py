@@ -401,21 +401,22 @@ def test_env_consistency_constrains_not_met(
         assert f"{X_MARK} The environment is not consistent.\n" in out
         assert expected_output_yaml in out
 
+
 @pytest.mark.parametrize(
-        "pinned_file,expected_output", 
-        [
-            ("", OK_MARK),
-            ("conda 1.11", OK_MARK),
-            ("conda 1.11, otherpackages==1", X_MARK),
-            ("\"conda\"", X_MARK),
-            ("imnotinstalledyet", X_MARK),
-        ]
+    "pinned_file,expected_output",
+    [
+        ("", OK_MARK),
+        ("conda 1.11", OK_MARK),
+        ("conda 1.11, otherpackages==1", X_MARK),
+        ('"conda"', X_MARK),
+        ("imnotinstalledyet", X_MARK),
+    ],
 )
 def test_pinned_will_formatted_check(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pinned_file: str,
-    expected_output: str
+    expected_output: str,
 ):
     with tmp_env() as prefix:
         (prefix / "conda-meta" / "pinned").write_text(pinned_file)
