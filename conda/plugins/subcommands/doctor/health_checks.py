@@ -11,8 +11,8 @@ from pathlib import Path
 from requests.exceptions import RequestException
 
 from ....base.context import context
-from ....common.serialize import json, yaml_safe_dump
 from ....common.io import dashlist
+from ....common.serialize import json, yaml_safe_dump
 from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
@@ -245,7 +245,9 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
     try:
         pinned_specs = prefix_data.get_pinned_specs()
     except Exception as err:
-        print(f"{X_MARK} Unable to read pinned file at {prefix}/conda-meta/pinned:\n\t{err}")
+        print(
+            f"{X_MARK} Unable to read pinned file at {prefix}/conda-meta/pinned:\n\t{err}"
+        )
         return
 
     # If there are no pinned specs, exit early
@@ -255,18 +257,22 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
 
     # If there is a pinned package that does not exist in the prefix, that
     # is an indication that it might be a typo.
-    maybe_malformed =  [
+    maybe_malformed = [
         pinned for pinned in pinned_specs if not any(prefix_data.query(pinned.name))
     ]
 
     # Inform the user of any packages that might be malformed
     if maybe_malformed:
-        print(f"{X_MARK} The following specs in {prefix}/conda-meta/pinned are maybe malformed:")
+        print(
+            f"{X_MARK} The following specs in {prefix}/conda-meta/pinned are maybe malformed:"
+        )
         print(dashlist((spec.name for spec in maybe_malformed), indent=4))
         return
 
     # If there are no malformed packages, the pinned file is well formatted
-    print(f"{OK_MARK} The pinned file in {prefix}/conda-meta/pinned is seems well formatted.")
+    print(
+        f"{OK_MARK} The pinned file in {prefix}/conda-meta/pinned is seems well formatted."
+    )
 
 
 @hookimpl
@@ -281,5 +287,6 @@ def conda_health_checks():
         name="Consistent Environment Check", action=consistent_env_check
     )
     yield CondaHealthCheck(
-        name="conda-meta/pinned Well Formatted Check", action=pinned_well_formatted_check
+        name="conda-meta/pinned Well Formatted Check",
+        action=pinned_well_formatted_check,
     )
