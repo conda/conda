@@ -28,8 +28,7 @@ First, let's define what each object does:
   This query language has its own syntax and rules, detailed [here][conda_package_spec]. The
   most important fields of a `MatchSpec` object are:
   * `name`: the name of the package (e.g. `pytorch`); always expected.
-  * `version`: the version constraints (e.g. `1.8.*`); can be empty but if `build` is set, set it to
-    `*` to avoid issues with the `.conda_build_form()` method.
+  * `version`: the version constraints (e.g. `1.8.*`); can be empty. If `build` is set and `version` is not, `*` will be used as default
   * `build`: the build string constraints (e.g. `*cuda*`); can be empty.
 
 ```{admonition} Create a MatchSpec object from a PackageRecord instance
