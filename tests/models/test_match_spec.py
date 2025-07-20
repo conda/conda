@@ -1422,3 +1422,21 @@ def test_invalid_version_reports_spec(spec):
     with pytest.raises(InvalidMatchSpec) as exc:
         MatchSpec(spec)
     assert spec in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "build,version,expected_result",
+    [
+        (None, None, "python"),
+        ("*123*", None, "python * *123*"),
+        (None, "3.*", "python 3.*"),
+        ("*123*", "3.17", "python 3.17 *123*"),
+    ],
+    ids=["name_only", "build_only", "version_only", "build_version"],
+)
+def test_conda_build_form(build, version, expected_result):
+    """conda_build_form method handles missing values for build and/or version gracefully"""
+    kwargs = {"build": build, "version": version}
+    # only pass values that are not None
+    kwargs = {key: value for key, value in kwargs.items() if value is not None}
+    assert MatchSpec("python", **kwargs).conda_build_form() == expected_result
