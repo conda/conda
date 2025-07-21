@@ -4,6 +4,7 @@
 
 import re
 import sys
+from collections.abc import Iterable
 from logging import getLogger
 from os.path import (
     dirname,
@@ -117,7 +118,8 @@ def is_active_prefix(prefix: str) -> bool:
     )
 
 
-def arg2spec(arg, json=False, update=False):
+@deprecated.argument("26.3", "26.9", "json")
+def arg2spec(arg: str, json: bool = False, update: bool = False) -> str:
     try:
         spec = MatchSpec(arg)
     except:
@@ -138,8 +140,9 @@ def arg2spec(arg, json=False, update=False):
     return str(spec)
 
 
-def specs_from_args(args, json=False):
-    return [arg2spec(arg, json=json) for arg in args]
+@deprecated.argument("26.3", "26.9", "json")
+def specs_from_args(args: Iterable[str], json: bool = False) -> list[str]:
+    return [arg2spec(arg) for arg in args]
 
 
 spec_pat = re.compile(
