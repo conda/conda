@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
 
+from __future__ import annotations
+
 import re
 import sys
-from collections.abc import Iterable
 from logging import getLogger
 from os.path import (
     dirname,
@@ -14,6 +15,7 @@ from os.path import (
     join,
     normcase,
 )
+from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_MAGIC_FILE
@@ -35,6 +37,9 @@ from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 log = getLogger(__name__)
 
