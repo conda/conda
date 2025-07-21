@@ -119,7 +119,7 @@ def is_active_prefix(prefix: str) -> bool:
 
 
 @deprecated.argument("26.3", "26.9", "json")
-def arg2spec(arg: str, json: bool = False, update: bool = False) -> str:
+def arg2spec(arg: str, update: bool = False) -> str:
     try:
         spec = MatchSpec(arg)
     except:
@@ -141,7 +141,7 @@ def arg2spec(arg: str, json: bool = False, update: bool = False) -> str:
 
 
 @deprecated.argument("26.3", "26.9", "json")
-def specs_from_args(args: Iterable[str], json: bool = False) -> list[str]:
+def specs_from_args(args: Iterable[str]) -> list[str]:
     return [arg2spec(arg) for arg in args]
 
 
