@@ -67,7 +67,9 @@ class EnvironmentConfig:
 
     use_only_tar_bz2: bool | None = None
 
-    def _append_without_duplicates(self, first: Iterable[T], second: Iterable[T]) -> tuple[T, ...]:
+    def _append_without_duplicates(
+        self, first: Iterable[T], second: Iterable[T]
+    ) -> tuple[T, ...]:
         return tuple(dict.fromkeys(item for item in chain(first, second)))
 
     def _merge_channel_settings(
