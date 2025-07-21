@@ -268,7 +268,7 @@ class EnvironmentYaml:
 
     def to_environment_model(self) -> EnvironmentModel:
         """Convert the ``Environment`` into a ``model.Environment`` object"""
-        config = EnvironmentConfig(channels=self.channels)
+        config = EnvironmentConfig(channels=tuple(self.channels))
 
         external_packages = {}
         if pip_dependencies := self.dependencies.get("pip"):
