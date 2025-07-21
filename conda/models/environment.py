@@ -16,6 +16,9 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import TypeVar
+
     from ..base.constants import (
         ChannelPriority,
         DepsModifier,
@@ -25,6 +28,7 @@ if TYPE_CHECKING:
     from .match_spec import MatchSpec
     from .records import PackageRecord
 
+    T = TypeVar("T")
 
 log = getLogger(__name__)
 
@@ -63,7 +67,7 @@ class EnvironmentConfig:
 
     use_only_tar_bz2: bool | None = None
 
-    def _append_without_duplicates(self, first: tuple, second: tuple) -> tuple:
+    def _append_without_duplicates(self, first: Iterable[T], second: Iterable[T]) -> tuple[T, ...]:
         return tuple(dict.fromkeys(item for item in chain(first, second)))
 
     def _merge_channel_settings(
