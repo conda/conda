@@ -510,7 +510,7 @@ def test_conda_update_package_not_installed(
     Runs the update command twice with invalid input:
 
     1. Package is not currently installed (package should not exist)
-    2. Invalid specification for a packaage
+    2. Invalid specification for a package
     """
     with tmp_env() as prefix:
         conda_cli(
@@ -520,7 +520,12 @@ def test_conda_update_package_not_installed(
             raises=PackageNotInstalledError,
         )
 
-        with pytest.raises(CondaError, match="Invalid spec for 'conda update'"):
+
+def test_conda_update_package_is_not_name_only_spec(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    with tmp_env() as prefix:
+        with pytest.raises(CondaError, match="'conda update' only supports name-only spec"):
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
 
