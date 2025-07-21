@@ -8,7 +8,8 @@
 
 ### Deprecations
 
-* Deprecate unused `arg2spec` and `specs_from_args` `json` argument. (#15028)
+* Mark `conda.cli.common.arg2spec` keyword argument `json` as pending deprecation, to be removed in 26.9. (#15028)
+* Mark `conda.cli.common.specs_from_args` keyword argument `json` as pending deprecation, to be removed in 26.9. (#15028)
 
 ### Docs
 
