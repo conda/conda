@@ -2152,8 +2152,10 @@ def plugin(
     ["activate", "deactivate", "reactivate", "hook", "commands"],
 )
 def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
-    activator = PosixActivator([command])
-    activator.execute()
+    # FUTURE: conda 25.9+ remove "commands"
+    with pytest.deprecated_call() if command == "commands" else nullcontext():
+        activator = PosixActivator([command])
+        activator.execute()
 
     assert len(plugin.pre_command_action.mock_calls) == 1
     assert len(plugin.post_command_action.mock_calls) == 1
@@ -2171,7 +2173,9 @@ def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> 
 
     activator = PosixActivator([command])
     with pytest.raises(Exception, match=exc_message):
-        activator.execute()
+        # FUTURE: conda 25.9+ remove "commands"
+        with pytest.deprecated_call() if command == "commands" else nullcontext():
+            activator.execute()
 
     assert len(plugin.pre_command_action.mock_calls) == 1
     assert len(plugin.post_command_action.mock_calls) == 1
