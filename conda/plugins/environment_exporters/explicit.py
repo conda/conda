@@ -34,12 +34,12 @@ class ExplicitEnvironmentExporter(EnvironmentExporter):
                     lines.append(f"{pkg.name}={pkg.version}={pkg.build}")
         elif env.requested_packages:
             # If no explicit packages, use requested packages
-            # Note: This isn't truly explicit format but provides something useful
+            # Note: Converting from requested packages to explicit format
             lines.append(
                 "# Note: Converting from requested packages to explicit format"
             )
             for spec in env.requested_packages:
-                lines.append(f"# {spec}")
+                lines.append(str(spec))
 
         return "\n".join(lines)
 

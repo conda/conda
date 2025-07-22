@@ -59,38 +59,76 @@ def test_environment_exporter_base_class():
     assert result == "TEST FORMAT: test-env"
 
 
-@pytest.mark.parametrize(
-    "format_name,expected_content",
-    [
-        ("environment-yaml", ["name: test-env", "python=3.9", "numpy"]),
-        ("environment-json", None),  # JSON will be validated separately
-    ],
-)
-def test_builtin_exporters(
-    loaded_plugin_manager, test_env, format_name, expected_content
-):
-    """Test the built-in environment exporters."""
+def test_builtin_yaml_exporter(loaded_plugin_manager, test_env):
+    """Test the built-in YAML environment exporter."""
     # Test that exporter is available
     exporter_config = loaded_plugin_manager.get_environment_exporter_by_format(
-        format_name=format_name
+        format_name="environment-yaml"
     )
     assert exporter_config is not None
-    assert exporter_config.name == format_name
+    assert exporter_config.name == "environment-yaml"
 
     # Test export functionality
     exporter = exporter_config.handler()
-    result = exporter.export(test_env, format_name)
+    result = exporter.export(test_env, "environment-yaml")
 
-    if format_name == "environment-yaml":
-        # Verify YAML content
-        for content in expected_content:
-            assert content in result
-    elif format_name == "environment-json":
-        # Verify it's valid JSON with correct structure
-        parsed = json.loads(result)
-        assert parsed["name"] == "test-env"
-        assert "python=3.9" in parsed["dependencies"]
-        assert "numpy" in parsed["dependencies"]
+    # Verify YAML content
+    expected_content = ["name: test-env", "python=3.9", "numpy"]
+    for content in expected_content:
+        assert content in result
+
+
+def test_builtin_json_exporter(loaded_plugin_manager, test_env):
+    """Test the built-in JSON environment exporter."""
+    # Test that exporter is available
+    exporter_config = loaded_plugin_manager.get_environment_exporter_by_format(
+        format_name="environment-json"
+    )
+    assert exporter_config is not None
+    assert exporter_config.name == "environment-json"
+
+    # Test export functionality
+    exporter = exporter_config.handler()
+    result = exporter.export(test_env, "environment-json")
+
+    # Verify it's valid JSON with correct structure
+    parsed = json.loads(result)
+    assert parsed["name"] == "test-env"
+    assert "python=3.9" in parsed["dependencies"]
+    assert "numpy" in parsed["dependencies"]
+
+
+def test_builtin_explicit_exporter(loaded_plugin_manager, test_env):
+    """Test the built-in explicit environment exporter."""
+    # Test that exporter is available
+    exporter_config = loaded_plugin_manager.get_environment_exporter_by_format(
+        format_name="explicit"
+    )
+    assert exporter_config is not None
+    assert exporter_config.name == "explicit"
+
+    # Test export functionality
+    exporter = exporter_config.handler()
+    result = exporter.export(test_env, "explicit")
+
+    # Verify explicit format content
+    expected_content = ["@EXPLICIT", "python=3.9", "numpy"]
+    for content in expected_content:
+        assert content in result
+
+    # Critically important: ensure package specs are NOT commented out
+    lines = result.split("\n")
+    package_lines = [
+        line
+        for line in lines
+        if line and not line.startswith("#") and line != "@EXPLICIT"
+    ]
+    assert "python=3.9" in package_lines, (
+        "python=3.9 should be an installable spec, not a comment"
+    )
+    assert "numpy" in package_lines, (
+        "numpy should be an installable spec, not a comment"
+    )
 
 
 def test_get_environment_exporters(loaded_plugin_manager):
