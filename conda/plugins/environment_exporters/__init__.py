@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Register the built-in environment exporter hook implementations."""
+"""Built-in conda environment exporter plugins."""
 
-from . import json, yaml
+from . import explicit, json, yaml
 
 #: The list of environment exporter plugins for easier registration with pluggy
-plugins = [json, yaml]
+plugins = [explicit, json, yaml]

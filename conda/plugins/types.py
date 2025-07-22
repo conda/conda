@@ -454,6 +454,20 @@ class EnvironmentSpecBase(ABC):
 
 
 @dataclass
+class CondaEnvironmentExporter:
+    """
+    Return type to use when defining a conda environment exporter plugin hook.
+
+    :param name: name of the exporter (e.g., ``json_exporter``)
+    :param handler: EnvironmentExporter subclass handler
+    """
+
+    name: str
+    handler: type[EnvironmentExporter]
+    default_filenames: Iterable[str]
+
+
+@dataclass
 class CondaEnvironmentSpecifier:
     """
     **EXPERIMENTAL**
@@ -477,6 +491,9 @@ class EnvironmentExporter(ABC):
     to different output formats.
     """
 
+    # Class attribute for format aliases - override in subclasses
+    aliases: list[str] = []  # User-friendly format aliases (e.g., ["yaml"])
+
     @abstractmethod
     def export(self, env: Environment, format: str) -> str:
         """
@@ -488,17 +505,3 @@ class EnvironmentExporter(ABC):
         :raises CondaValueError: If format is not supported by this exporter
         """
         raise NotImplementedError()
-
-
-@dataclass
-class CondaEnvironmentExporter:
-    """
-    Return type to use when defining a conda environment exporter plugin hook.
-
-    :param name: name of the exporter (e.g., ``json_exporter``)
-    :param handler: EnvironmentExporter subclass handler
-    """
-
-    name: str
-    handler: type[EnvironmentExporter]
-    default_filenames: Iterable[str]

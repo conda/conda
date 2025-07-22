@@ -142,10 +142,19 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     def _get_available_export_formats():
         from ..plugins.manager import get_plugin_manager
 
-        return list(
-            exporter.name
-            for exporter in get_plugin_manager().get_environment_exporters()
-        )
+        plugin_manager = get_plugin_manager()
+        formats = []
+
+        for exporter_config in plugin_manager.get_environment_exporters():
+            # Add the canonical format name
+            formats.append(exporter_config.name)
+
+            # Add any aliases this exporter defines
+            exporter_instance = exporter_config.handler()
+            formats.extend(exporter_instance.aliases)
+
+        # Return all formats sorted for consistent display
+        return sorted(formats)
 
     p.add_argument(
         "--format",
@@ -155,6 +164,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         choices_func=_get_available_export_formats,
         help=(
             "Format for the exported environment. "
+            "Available formats include 'yaml', 'json', 'explicit' (and their full names). "
             "If not specified, format will be determined by file extension or default to YAML."
         ),
     )
@@ -204,37 +214,39 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     target_format = args.format
     environment_exporter = None
 
-    # Try to find exporter by filename first
-    if args.file:
-        file_exporter = plugin_manager.detect_environment_exporter(args.file)
-        if file_exporter:
-            exporter_instance = file_exporter.handler()
-            target_format = exporter_instance.format
-            environment_exporter = file_exporter
-        elif target_format is NULL:
-            # No exporter found for file extension and no explicit format
-            raise CondaValueError(
-                f"File extension in '{args.file}' is not recognized. "
-                f"Supported extensions: {', '.join(f'.{format}' for format in available_formats)}. "
-                f"Or specify the format explicitly with --format."
-            )
-
-    # If format is still NULL, default to yaml
-    if target_format is NULL:
-        target_format = "yaml"
-
-    # Find appropriate exporter if we don't already have one
-    if not environment_exporter:
+    # If explicit format provided, use it and find the appropriate exporter
+    if target_format is not NULL:
         environment_exporter = plugin_manager.get_environment_exporter_by_format(
             target_format
         )
+        if not environment_exporter:
+            raise CondaValueError(
+                f"Unknown export format '{target_format}'. "
+                f"Available formats: {', '.join(available_formats)}."
+            )
+    # Otherwise, try to detect format by filename
+    elif args.file:
+        file_exporter = plugin_manager.detect_environment_exporter(args.file)
+        if file_exporter:
+            target_format = file_exporter.name
+            environment_exporter = file_exporter
+        else:
+            # No exporter found for filename and no explicit format
+            # Get default filenames from all exporters
+            default_filenames = []
+            for exporter in plugin_manager.get_environment_exporters():
+                default_filenames.extend(exporter.default_filenames)
 
-    if not environment_exporter:
-        # No exporter found for the requested format
-        file_context = f" for file '{args.file}'" if args.file else ""
-        raise CondaValueError(
-            f"Unknown export format '{target_format}'{file_context}. "
-            f"Available formats: {', '.join(available_formats)}."
+            raise CondaValueError(
+                f"Filename '{args.file}' is not recognized. "
+                f"Supported filenames: {', '.join(sorted(default_filenames))}. "
+                f"Or specify the format explicitly with --format."
+            )
+    else:
+        # No file and no explicit format, default to environment-yaml
+        target_format = "environment-yaml"
+        environment_exporter = plugin_manager.get_environment_exporter_by_format(
+            target_format
         )
 
     prefix = determine_target_prefix(context, args)
@@ -243,9 +255,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     env = _create_environment_from_prefix(prefix, env_name(prefix), args)
 
     # Export the environment - use JSON format if --json flag without file
-    export_format = "json" if (args.json and not args.file) else target_format
-    if export_format == "json" and target_format != "json":
-        json_exporter = plugin_manager.get_environment_exporter_by_format("json")
+    export_format = (
+        "environment-json" if (args.json and not args.file) else target_format
+    )
+    if export_format == "environment-json" and target_format != "environment-json":
+        json_exporter = plugin_manager.get_environment_exporter_by_format(
+            "environment-json"
+        )
         if not json_exporter:
             raise CondaValueError("JSON exporter plugin not available")
         exporter = json_exporter.handler()

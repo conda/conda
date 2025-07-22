@@ -671,23 +671,22 @@ class CondaPluginManager(pluggy.PluginManager):
         self, filename: str
     ) -> CondaEnvironmentExporter | None:
         """
-        Detect an environment exporter based on the filename extension.
+        Detect an environment exporter based on exact filename matching against default_filenames.
 
-        :param filename: Filename to find an exporter for (extension is used for detection)
-        :return: CondaEnvironmentExporter that supports the file extension, or None if none found
-        :raises PluginError: If multiple exporters claim to support the same file extension
+        :param filename: Filename to find an exporter for (basename is used for detection)
+        :return: CondaEnvironmentExporter that supports the filename, or None if none found
+        :raises PluginError: If multiple exporters claim to support the same filename
         """
+        import os
+
+        # Extract just the basename for matching
+        basename = os.path.basename(filename)
+
         matches = []
         for exporter_config in self.get_environment_exporters():
-            # Get the exporter instance to check its extensions
-            exporter_instance = exporter_config.handler()
-            if hasattr(exporter_instance, "extensions"):
-                # Check if filename ends with any of the supported extensions
-                if any(
-                    filename.lower().endswith(ext.lower())
-                    for ext in exporter_instance.extensions
-                ):
-                    matches.append(exporter_config)
+            # Check if basename exactly matches any of the default filenames
+            if basename in exporter_config.default_filenames:
+                matches.append(exporter_config)
 
         if len(matches) == 1:
             return matches[0]
@@ -697,7 +696,7 @@ class CondaPluginManager(pluggy.PluginManager):
             raise PluginError(
                 dals(
                     f"""
-                    Multiple environment exporters found that can handle filename '{filename}':
+                    Multiple environment exporters found that can handle filename '{basename}':
 
                     {", ".join([match.name for match in matches])}
 
@@ -714,12 +713,19 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Get an environment exporter based on the format name.
 
-        :param format_name: Format name to find an exporter for (e.g., 'yaml', 'json')
+        :param format_name: Format name to find an exporter for (e.g., 'yaml', 'json', 'environment-yaml')
         :return: CondaEnvironmentExporter that supports the format, or None if none found
         """
         for exporter_config in self.get_environment_exporters():
+            # Check exact format name match first
             if exporter_config.name == format_name:
                 return exporter_config
+
+            # Check if format_name is an alias for this exporter
+            exporter_instance = exporter_config.handler()
+            if format_name in exporter_instance.aliases:
+                return exporter_config
+
         return None
 
     def get_environment_exporter(

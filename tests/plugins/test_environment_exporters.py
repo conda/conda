@@ -36,52 +36,14 @@ class TestEnvironmentExporter(EnvironmentExporter):
     """Test environment exporter for testing purposes."""
 
     format = "test"
-    extensions = {".test"}
-
-    def can_handle(
-        self, filename: str | None = None, format: str | None = None
-    ) -> bool:
-        """Check if this exporter can handle the given filename and/or format."""
-        # Check format if provided
-        if format is not None:
-            if format != self.format:
-                return False
-
-        # Check filename if provided
-        if filename is not None:
-            if not any(filename.endswith(ext) for ext in self.extensions):
-                return False
-
-        # If we get here, all provided criteria matched
-        return True
 
     def export(self, env: Environment, format: str) -> str:
-        if not self.can_handle(format=format):
-            raise CondaValueError(
-                f"{self.__class__.__name__} doesn't support format: {format}"
-            )
         return f"TEST FORMAT: {env.name}"
 
 
 def test_environment_exporter_base_class():
     """Test the EnvironmentExporter abstract class."""
     exporter = TestEnvironmentExporter()
-
-    # Test format attribute
-    assert exporter.format == "test"
-
-    # Test filename support
-    assert exporter.can_handle(filename="env.test")
-    assert not exporter.can_handle(filename="env.yaml")
-
-    # Test format support
-    assert exporter.can_handle(format="test")
-    assert not exporter.can_handle(format="yaml")
-
-    # Test combined filename and format support
-    assert exporter.can_handle(filename="env.test", format="test")
-    assert not exporter.can_handle(filename="env.test", format="yaml")
-    assert not exporter.can_handle(filename="env.yaml", format="test")
 
     # Test export functionality
     env = Environment(
@@ -97,8 +59,8 @@ def test_environment_exporter_base_class():
 @pytest.mark.parametrize(
     "format_name,expected_content",
     [
-        ("yaml", ["name: test-env", "python=3.9", "numpy"]),
-        ("json", None),  # JSON will be validated separately
+        ("environment-yaml", ["name: test-env", "python=3.9", "numpy"]),
+        ("environment-json", None),  # JSON will be validated separately
     ],
 )
 def test_builtin_exporters(
@@ -106,7 +68,7 @@ def test_builtin_exporters(
 ):
     """Test the built-in environment exporters."""
     # Test that exporter is available
-    exporter_config = loaded_plugin_manager.get_environment_exporter(
+    exporter_config = loaded_plugin_manager.get_environment_exporter_by_format(
         format_name=format_name
     )
     assert exporter_config is not None
@@ -116,11 +78,11 @@ def test_builtin_exporters(
     exporter = exporter_config.handler()
     result = exporter.export(test_env, format_name)
 
-    if format_name == "yaml":
+    if format_name == "environment-yaml":
         # Verify YAML content
         for content in expected_content:
             assert content in result
-    elif format_name == "json":
+    elif format_name == "environment-json":
         # Verify it's valid JSON with correct structure
         parsed = json.loads(result)
         assert parsed["name"] == "test-env"
@@ -137,8 +99,9 @@ def test_get_environment_exporters(loaded_plugin_manager):
     exporter_names = [exporter.name for exporter in exporter_list]
 
     # Should include expected formats
-    assert "yaml" in exporter_names
-    assert "json" in exporter_names
+    assert "environment-yaml" in exporter_names
+    assert "environment-json" in exporter_names
+    assert "explicit" in exporter_names
     assert isinstance(exporter_list, list)
     assert all(hasattr(exporter, "name") for exporter in exporter_list)
 
@@ -146,14 +109,16 @@ def test_get_environment_exporters(loaded_plugin_manager):
 @pytest.mark.parametrize(
     "filename,expected_format",
     [
-        ("env.yaml", "yaml"),
-        ("env.yml", "yaml"),
-        ("env.json", "json"),
+        ("environment.yaml", "environment-yaml"),
+        ("environment.yml", "environment-yaml"),
+        ("environment.json", "environment-json"),
+        ("requirements.txt", "explicit"),
+        ("my-env.yaml", None),  # Not a recognized default filename
         ("env.unknown", None),
     ],
 )
 def test_detect_environment_exporter(loaded_plugin_manager, filename, expected_format):
-    """Test detecting exporter by filename extension."""
+    """Test detecting exporter by exact filename matching."""
     exporter = loaded_plugin_manager.detect_environment_exporter(filename)
 
     if expected_format is None:
@@ -166,47 +131,42 @@ def test_detect_environment_exporter(loaded_plugin_manager, filename, expected_f
 @pytest.mark.parametrize(
     "format_name,should_exist",
     [
-        ("yaml", True),
-        ("json", True),
+        ("environment-yaml", True),
+        ("environment-json", True),
+        ("explicit", True),
+        ("yaml", True),  # Test alias
+        ("json", True),  # Test alias
         ("unknown", False),
     ],
 )
 def test_get_environment_exporter_by_format(
     loaded_plugin_manager, format_name, should_exist
 ):
-    """Test getting exporter by format name."""
+    """Test getting exporter by format name including aliases."""
     exporter = loaded_plugin_manager.get_environment_exporter_by_format(format_name)
 
     if should_exist:
         assert exporter is not None
-        assert exporter.name == format_name
+        # For aliases, verify that an exporter was found and has a valid canonical name
+        assert exporter.name is not None
+        assert len(exporter.name) > 0
+
+        # If format_name is an alias, verify it actually resolves to the exporter
+        exporter_instance = exporter.handler()
+        is_alias = format_name in exporter_instance.aliases
+        is_canonical = format_name == exporter.name
+        assert is_alias or is_canonical, (
+            f"Format '{format_name}' should be either canonical name or alias"
+        )
     else:
         assert exporter is None
 
 
-def test_yaml_exporter_extensions(loaded_plugin_manager):
-    """Test that YAML exporter supports expected file extensions."""
-    yaml_exporter = loaded_plugin_manager.get_environment_exporter_by_format("yaml")
-    assert yaml_exporter is not None
-
-    yaml_instance = yaml_exporter.handler()
-    assert ".yaml" in yaml_instance.extensions
-    assert ".yml" in yaml_instance.extensions
-
-
-def test_exporter_error_handling(loaded_plugin_manager, test_env):
-    """Test exporter error handling for unsupported formats."""
-    exporter_config = loaded_plugin_manager.get_environment_exporter_by_format("yaml")
-    assert exporter_config is not None
-
-    exporter = exporter_config.handler()
-    with pytest.raises(CondaValueError, match="doesn't support format"):
-        exporter.export(test_env, "unsupported")
-
-
 def test_yaml_exporter_handles_missing_name(loaded_plugin_manager):
     """Test YAML exporter handles case where environment has no name."""
-    exporter_config = loaded_plugin_manager.get_environment_exporter_by_format("yaml")
+    exporter_config = loaded_plugin_manager.get_environment_exporter_by_format(
+        "environment-yaml"
+    )
     assert exporter_config is not None
 
     exporter = exporter_config.handler()
@@ -218,22 +178,96 @@ def test_yaml_exporter_handles_missing_name(loaded_plugin_manager):
         requested_packages=[MatchSpec("python")],
     )
 
-    result = exporter.export(env, "yaml")
+    result = exporter.export(env, "environment-yaml")
     # Should still work, just with name: None
     assert "name:" in result
+
+
+def test_custom_exporter_aliases():
+    """Test that custom exporters can define their own aliases."""
+    from conda.plugins.types import EnvironmentExporter
+
+    class CustomExporter(EnvironmentExporter):
+        format = "custom-format"
+        aliases = ["custom", "cf", "my-format"]
+
+        def export(self, env, format):
+            return f"Custom export: {env.name}"
+
+    # Test that the exporter defines its aliases correctly
+    exporter = CustomExporter()
+    assert exporter.aliases == ["custom", "cf", "my-format"]
+
+    # Test that base class default is empty (check class attribute directly)
+    assert EnvironmentExporter.aliases == []
+
+
+def test_dynamic_alias_resolution():
+    """Test that alias resolution works dynamically without hardcoded mappings."""
+    from conda.plugins.manager import get_plugin_manager
+
+    plugin_manager = get_plugin_manager()
+
+    # Test that yaml alias resolves correctly
+    yaml_exporter = plugin_manager.get_environment_exporter_by_format("yaml")
+    assert yaml_exporter is not None
+
+    # Test that the resolved exporter actually defines "yaml" as an alias
+    yaml_instance = yaml_exporter.handler()
+    assert "yaml" in yaml_instance.aliases
+
+    # Test that json alias resolves correctly
+    json_exporter = plugin_manager.get_environment_exporter_by_format("json")
+    assert json_exporter is not None
+
+    # Test that the resolved exporter actually defines "json" as an alias
+    json_instance = json_exporter.handler()
+    assert "json" in json_instance.aliases
+
+    # Test that canonical names still work
+    canonical_yaml = plugin_manager.get_environment_exporter_by_format(
+        "environment-yaml"
+    )
+    canonical_json = plugin_manager.get_environment_exporter_by_format(
+        "environment-json"
+    )
+
+    # Verify aliases resolve to the same exporters as canonical names
+    assert yaml_exporter.name == canonical_yaml.name
+    assert json_exporter.name == canonical_json.name
+
+
+def test_builtin_exporters_define_expected_aliases():
+    """Test that built-in exporters define their expected aliases."""
+    from conda.plugins.environment_exporters.explicit import ExplicitEnvironmentExporter
+    from conda.plugins.environment_exporters.json import JsonEnvironmentExporter
+    from conda.plugins.environment_exporters.yaml import YamlEnvironmentExporter
+
+    yaml_exporter = YamlEnvironmentExporter()
+    assert "yaml" in yaml_exporter.aliases
+
+    json_exporter = JsonEnvironmentExporter()
+    assert "json" in json_exporter.aliases
+
+    explicit_exporter = ExplicitEnvironmentExporter()
+    assert explicit_exporter.aliases == []  # No aliases for explicit
 
 
 def test_get_environment_exporter_unified(loaded_plugin_manager):
     """Test the unified get_environment_exporter entry point."""
     # Test by format
-    exporter = loaded_plugin_manager.get_environment_exporter(format_name="yaml")
+    exporter = loaded_plugin_manager.get_environment_exporter(
+        format_name="environment-yaml"
+    )
     assert exporter is not None
-    assert exporter.name == "yaml"
+    assert exporter.name == "environment-yaml"
 
     # Test by filename
-    exporter = loaded_plugin_manager.get_environment_exporter(filename="env.json")
+    exporter = loaded_plugin_manager.get_environment_exporter(
+        filename="environment.json"
+    )
     assert exporter is not None
-    assert exporter.name == "json"
+    assert exporter.name == "environment-json"
 
     # Test error cases
     with pytest.raises(
@@ -245,5 +279,5 @@ def test_get_environment_exporter_unified(loaded_plugin_manager):
         CondaValueError, match="Cannot specify both filename and format_name"
     ):
         loaded_plugin_manager.get_environment_exporter(
-            filename="env.yaml", format_name="json"
+            filename="environment.yaml", format_name="environment-json"
         )

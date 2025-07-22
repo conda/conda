@@ -300,6 +300,38 @@ class Environment:
             else None,
         }
 
+    def to_yaml_dict(self):
+        """
+        Convert Environment model to environment.yaml dictionary format.
+
+        Follows the same pattern as EnvironmentYaml.to_dict() for consistency.
+        """
+        d = {"name": self.name}
+
+        # Add channels if present
+        if self.config and self.config.channels:
+            d["channels"] = list(self.config.channels)
+
+        # Convert requested_packages to dependencies list
+        if self.requested_packages:
+            d["dependencies"] = [str(spec) for spec in self.requested_packages]
+        elif self.explicit_packages:
+            # Fall back to explicit packages if no requested packages
+            d["dependencies"] = [
+                f"{pkg.name}={pkg.version}={pkg.build}"
+                for pkg in self.explicit_packages
+            ]
+
+        # Add variables if present
+        if self.variables:
+            d["variables"] = self.variables
+
+        # Add prefix if present (though this is less common in environment.yaml)
+        if self.prefix:
+            d["prefix"] = self.prefix
+
+        return d
+
     @classmethod
     def merge(cls, *environments):
         """
