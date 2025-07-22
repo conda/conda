@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ... import __version__
 from ..hookspec import hookimpl
 from ..types import CondaEnvironmentExporter
 
@@ -16,7 +17,9 @@ if TYPE_CHECKING:
 def export_explicit(env: Environment) -> str:
     """Export Environment to explicit format."""
     lines = ["# This file may be used to create an environment using:"]
-    lines.append(f"# $ conda env create --name {env.name} --file <this file>")
+    lines.append(f"# $ conda create --name {env.name} --file <this file>")
+    lines.append(f"# platform: {env.platform}")
+    lines.append(f"# created-by: conda {__version__}")
     lines.append("@EXPLICIT")
     lines.append("")
 

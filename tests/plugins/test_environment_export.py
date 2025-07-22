@@ -99,6 +99,12 @@ def test_builtin_explicit_exporter(plugin_manager_with_exporters, test_env):
     # Verify it's an @EXPLICIT format
     assert "@EXPLICIT" in result
 
+    # Verify platform information is included (like conda list --export)
+    assert f"# platform: {test_env.platform}" in result
+
+    # Verify created-by information is included
+    assert "# created-by: conda" in result
+
     # Verify it contains package specifications that are NOT commented out
     # This is the critical bug we fixed - package specs were being commented with "#"
     lines = result.split("\n")
