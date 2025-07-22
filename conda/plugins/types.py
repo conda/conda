@@ -472,7 +472,7 @@ class EnvironmentSpecBase(ABC):
         """
         Express the provided environment file as a conda environment object.
 
-        :returns LegacyEnvironment: the conda environment represented by the file.
+        :returns Environment: the conda environment represented by the file.
         """
         raise NotImplementedError()
 
