@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 from base64 import b64encode
 from collections import namedtuple
@@ -22,6 +21,7 @@ from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import open_utf8
+from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel

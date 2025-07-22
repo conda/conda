@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
-    from ..env.env import Environment as LegacyEnvironment
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
@@ -444,7 +443,7 @@ class EnvironmentSpecBase(ABC):
 
     @property
     @abstractmethod
-    def environment(self) -> LegacyEnvironment:
+    def env(self) -> Environment:
         """
         Express the provided environment file as a conda environment object.
 

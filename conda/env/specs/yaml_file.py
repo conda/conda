@@ -6,8 +6,11 @@ import os
 from logging import getLogger
 
 from ...exceptions import CondaValueError
+from ...deprecations import deprecated
+from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
+from ..env import EnvironmentYaml
 
 log = getLogger(__name__)
 
@@ -49,7 +52,8 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
     @property
-    def environment(self) -> env.Environment:
+    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
+    def environment(self) -> EnvironmentYaml:
         if not self._environment:
             if not self.can_handle():
                 raise CondaValueError(f"Cannot handle environment file: {self.msg}")
@@ -58,3 +62,9 @@ class YamlFileSpec(EnvironmentSpecBase):
         if self._environment is None:
             raise CondaValueError("Environment could not be loaded")
         return self._environment
+
+    @property
+    def env(self) -> Environment:
+        if not self._environment:
+            self.can_handle()
+        return self._environment.to_environment_model()

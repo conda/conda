@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import json
 import platform
 import re
 import sys
@@ -38,7 +37,7 @@ from conda.common.path import (
     get_python_site_packages_short_path,
     pyc_path,
 )
-from conda.common.serialize import json_dump, yaml_round_trip_load
+from conda.common.serialize import json, yaml_round_trip_load
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
@@ -63,7 +62,6 @@ from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
-    subprocess_call,
     subprocess_call_with_clean_env,
 )
 from conda.models.channel import Channel
@@ -1779,7 +1777,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         )
         assert any(pkg.strip() == "six==1.10.0" for pkg in stdout.splitlines())
 
-        assert json.loads(json_dump(PrefixData(prefix).get("six"))) == {
+        assert json.loads(json.dumps(PrefixData(prefix).get("six"))) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
@@ -1957,7 +1955,7 @@ def test_conda_pip_interop_conda_editable_package(
         prec_dump = PrefixData(prefix).get("urllib3").dump()
         prec_dump.pop("files")
         prec_dump.pop("paths_data")
-        assert json.loads(json_dump(prec_dump)) == {
+        assert json.loads(json.dumps(prec_dump)) == {
             "build": "dev_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/<develop>",
@@ -2007,7 +2005,7 @@ def test_conda_pip_interop_conda_editable_package(
         prec_dump = PrefixData(prefix).get("urllib3").dump()
         prec_dump.pop("files")
         prec_dump.pop("paths_data")
-        assert json.loads(json_dump(prec_dump)) == {
+        assert json.loads(json.dumps(prec_dump)) == {
             "build": "pypi_0",
             "build_number": 0,
             "channel": "https://conda.anaconda.org/pypi",
@@ -2459,7 +2457,6 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_VERBOSE", "2")
 
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
-        python_exe = str(prefix / PYTHON_BINARY)
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
         assert (py_prec := package_is_installed(prefix, "python"))
         assert (conda_prec := package_is_installed(prefix, "conda"))
@@ -2476,20 +2473,13 @@ def test_conda_downgrade(
         )  # rev 2
         assert package_is_installed(prefix, "itsdangerous")
 
-        # downgrade the version of conda in the env, using our dev version of conda
+        # downgrade the version of conda in the env (using our current outer conda version)
         PrefixData._cache_.clear()
-        subprocess_call(
-            [
-                python_exe,
-                "-m",
-                "conda",
-                "install",
-                f"--prefix={prefix}",
-                f"conda<{conda_prec.version}",
-                "--yes",
-            ],
-            path=prefix,
-            raise_on_error=False,
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            f"conda<{conda_prec.version}",
+            "--yes",
         )  # rev 3
         assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
@@ -2764,15 +2754,21 @@ def test_python_site_packages_path(
         assert (prefix / sp_dir / "sample.py").is_file()
 
 
-def test_dont_allow_mixed_file_arguments(
-    conda_cli: CondaCLIFixture,
-):
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "create",
+        "install",
+        "update",
+    ],
+)
+def test_dont_allow_mixed_file_arguments(conda_cli: CondaCLIFixture, cmd):
     """
     Test that conda will return an error when multiple --file arguments of different
     types are specified
     """
     _, _, exc = conda_cli(
-        "create",
+        cmd,
         *("--name", uuid4().hex[:8]),
         *("--file", support_file("requirements.txt")),
         *("--file", support_file("simple.yml")),

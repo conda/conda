@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, reset_context
-from conda.common.serialize import json_load, yaml_safe_load
+from conda.common.serialize import json, yaml_safe_load
 from conda.exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -129,7 +129,7 @@ def test_export_with_json(
     assert not code
 
     # With --json and --file, output should be success info in JSON format
-    data = json_load(stdout)
+    data = json.load(stdout)
     assert data["success"]
     assert data["file"] == str(path)
     assert data["format"] == "yaml"
@@ -149,7 +149,7 @@ def test_export_json_format(conda_cli: CondaCLIFixture) -> None:
     assert stdout
 
     # Verify it's valid JSON
-    data = json_load(stdout)
+    data = json.loads(stdout)
     assert data["name"] == name
     # dependencies might not be present in empty environments
     assert "channels" in data
@@ -166,7 +166,7 @@ def test_export_json_file_extension(
     assert path.exists()
 
     # Verify it's valid JSON
-    data = json_load(path.read_text())
+    data = json.load(path.read_text())
     assert data["name"] == name
     # dependencies might not be present in empty environments
     assert "channels" in data
@@ -243,7 +243,7 @@ def test_export_format_priority_over_extension(
 
     # The file should contain JSON despite .yaml extension
     try:
-        data = json_load(path.read_text())
+        data = json.load(path.read_text())
         assert data["name"] == name
     except Exception:
         # If JSON parsing fails, check if it fell back to YAML

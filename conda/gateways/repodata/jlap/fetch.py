@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import io
-import json
 import logging
 import pprint
 import re
@@ -18,9 +17,9 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
-from conda.common.url import mask_anaconda_token
-
 from ....base.context import context
+from ....common.serialize import json
+from ....common.url import mask_anaconda_token
 from .. import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
 from .core import JLAP
 

@@ -658,7 +658,7 @@ class CondaSpecs:
                         for spec_ext in RandomSpec.extensions
                     )
 
-                def environment(self):
+                def env(self):
                     return Environment(
                         name="".join(random.choice("0123456789abcdef") for i in range(6)),
                         dependencies=[random.choice(packages) for i in range(6)],
