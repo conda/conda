@@ -269,36 +269,36 @@ class Environment:
 
     def to_dict(self):
         """
-        Convert the Environment to a dictionary suitable for serialization.
+        Serialize the Environment model to its native dictionary representation.
 
-        Returns a dictionary representation of the environment that can be
-        used by exporters to serialize to various formats (YAML, JSON, etc.).
+        Returns a dictionary containing all model fields in their native form,
+        without any format-specific transformations.
         """
-        env_dict = {"name": self.name}
-
-        # Add channels if present
-        if self.config and self.config.channels:
-            env_dict["channels"] = self.config.channels
-
-        # Convert requested_packages to dependencies list
-        if self.requested_packages:
-            env_dict["dependencies"] = [str(spec) for spec in self.requested_packages]
-        elif self.explicit_packages:
-            # Fall back to explicit packages if no requested packages
-            env_dict["dependencies"] = [
-                f"{pkg.name}={pkg.version}={pkg.build}"
-                for pkg in self.explicit_packages
-            ]
-
-        # Add variables if present
-        if self.variables:
-            env_dict["variables"] = self.variables
-
-        # Add prefix if present
-        if self.prefix:
-            env_dict["prefix"] = self.prefix
-
-        return env_dict
+        return {
+            "prefix": self.prefix,
+            "platform": self.platform,
+            "name": self.name,
+            "config": {
+                field.name: getattr(self.config, field.name)
+                for field in fields(self.config)
+                if getattr(self.config, field.name) != field.default
+            }
+            if self.config
+            else None,
+            "external_packages": self.external_packages
+            if self.external_packages
+            else None,
+            "explicit_packages": [pkg.dump() for pkg in self.explicit_packages]
+            if self.explicit_packages
+            else None,
+            "requested_packages": [str(spec) for spec in self.requested_packages]
+            if self.requested_packages
+            else None,
+            "variables": self.variables if self.variables else None,
+            "virtual_packages": [pkg.dump() for pkg in self.virtual_packages]
+            if self.virtual_packages
+            else None,
+        }
 
     @classmethod
     def merge(cls, *environments):

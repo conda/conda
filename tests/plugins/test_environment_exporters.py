@@ -106,8 +106,8 @@ def test_builtin_exporters(
 ):
     """Test the built-in environment exporters."""
     # Test that exporter is available
-    exporter_config = loaded_plugin_manager.get_environment_exporter_by_format(
-        format_name
+    exporter_config = loaded_plugin_manager.get_environment_exporter(
+        format_name=format_name
     )
     assert exporter_config is not None
     assert exporter_config.name == format_name
@@ -132,11 +132,15 @@ def test_get_environment_exporters(loaded_plugin_manager):
     """Test getting environment exporters mapping."""
     exporters = loaded_plugin_manager.get_environment_exporters()
 
+    # Convert to list to work with the iterable
+    exporter_list = list(exporters)
+    exporter_names = [exporter.name for exporter in exporter_list]
+
     # Should include expected formats
-    assert "yaml" in exporters
-    assert "json" in exporters
-    assert isinstance(exporters, dict)
-    assert all(isinstance(fmt, str) for fmt in exporters.keys())
+    assert "yaml" in exporter_names
+    assert "json" in exporter_names
+    assert isinstance(exporter_list, list)
+    assert all(hasattr(exporter, "name") for exporter in exporter_list)
 
 
 @pytest.mark.parametrize(

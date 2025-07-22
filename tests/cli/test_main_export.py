@@ -129,7 +129,7 @@ def test_export_with_json(
     assert not code
 
     # With --json and --file, output should be success info in JSON format
-    data = json.load(stdout)
+    data = json.loads(stdout)
     assert data["success"]
     assert data["file"] == str(path)
     assert data["format"] == "yaml"
@@ -166,7 +166,7 @@ def test_export_json_file_extension(
     assert path.exists()
 
     # Verify it's valid JSON
-    data = json.load(path.read_text())
+    data = json.loads(path.read_text())
     assert data["name"] == name
     # dependencies might not be present in empty environments
     assert "channels" in data

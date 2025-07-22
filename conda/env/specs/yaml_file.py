@@ -5,8 +5,8 @@
 import os
 from logging import getLogger
 
-from ...exceptions import CondaValueError
 from ...deprecations import deprecated
+from ...exceptions import CondaValueError
 from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env

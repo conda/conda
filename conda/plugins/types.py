@@ -20,6 +20,7 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Iterable
     from contextlib import AbstractContextManager
     from typing import Any, Callable, ClassVar, TypeAlias
 
@@ -475,7 +476,6 @@ class EnvironmentExporter(ABC):
     Base class for environment exporters that serialize Environment objects
     to different output formats.
     """
-
 
     @abstractmethod
     def export(self, env: Environment, format: str) -> str:

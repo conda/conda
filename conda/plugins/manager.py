@@ -665,9 +665,7 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Yields all detected environment exporters.
         """
-        for exporter in self.get_hook_results("environment_exporters"):
-            yield exporter
-
+        yield from self.get_hook_results("environment_exporters")
 
     def detect_environment_exporter(
         self, filename: str
@@ -680,23 +678,21 @@ class CondaPluginManager(pluggy.PluginManager):
         :raises PluginError: If multiple exporters claim to support the same file extension
         """
         matches = []
-        for exporter_config in self.get_environment_exporters:
-            if filename in exporter_config.default_filenames:
-                matches.append(exporter_config)
+        for exporter_config in self.get_environment_exporters():
+            # Get the exporter instance to check its extensions
+            exporter_instance = exporter_config.handler()
+            if hasattr(exporter_instance, "extensions"):
+                # Check if filename ends with any of the supported extensions
+                if any(
+                    filename.lower().endswith(ext.lower())
+                    for ext in exporter_instance.extensions
+                ):
+                    matches.append(exporter_config)
 
         if len(matches) == 1:
             return matches[0]
         elif len(matches) == 0:
-            raise PluginError(
-                dals(
-                     """
-                     No environment exporters detected for filename '{filename}'.
-                     Choose one exporter explicitly from this list:
-                     
-                     {", ".join([exporter.name for exporter in self.get_environment_exporters])}
-                     """
-                )
-            )
+            return None  # No match found, return None instead of raising error
         elif len(matches) > 1:
             raise PluginError(
                 dals(
@@ -710,6 +706,20 @@ class CondaPluginManager(pluggy.PluginManager):
                 )
             )
 
+        return None
+
+    def get_environment_exporter_by_format(
+        self, format_name: str
+    ) -> CondaEnvironmentExporter | None:
+        """
+        Get an environment exporter based on the format name.
+
+        :param format_name: Format name to find an exporter for (e.g., 'yaml', 'json')
+        :return: CondaEnvironmentExporter that supports the format, or None if none found
+        """
+        for exporter_config in self.get_environment_exporters():
+            if exporter_config.name == format_name:
+                return exporter_config
         return None
 
     def get_environment_exporter(

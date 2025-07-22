@@ -142,7 +142,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     def _get_available_export_formats():
         from ..plugins.manager import get_plugin_manager
 
-        return list(get_plugin_manager().get_environment_exporters().keys())
+        return list(
+            exporter.name
+            for exporter in get_plugin_manager().get_environment_exporters()
+        )
 
     p.add_argument(
         "--format",
@@ -193,7 +196,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Validate export format early before doing expensive environment operations
     plugin_manager = get_plugin_manager()
-    available_formats = list(plugin_manager.get_environment_exporters().keys())
+    available_formats = list(
+        exporter.name for exporter in plugin_manager.get_environment_exporters()
+    )
 
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
