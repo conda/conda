@@ -543,17 +543,19 @@ class RepodataCache:
             # it will release the lock early
             state = json.loads(state_file.read())
 
+            cache_path = self.cache_path_shards if binary else self.cache_path_json
+
             # json and state files should match. must read json before checking
             # stat (if json_data is to be trusted)
             if state_only:
                 json_data = b"" if binary else ""
             else:
                 if binary:
-                    json_data = self.cache_path_shards.read_bytes()
+                    json_data = cache_path.read_bytes()
                 else:
-                    json_data = self.cache_path_json.read_text()
+                    json_data = cache_path.read_text()
 
-            json_stat = self.cache_path_json.stat()
+            json_stat = cache_path.stat()
             if not (
                 state.get("mtime_ns") == json_stat.st_mtime_ns
                 and state.get("size") == json_stat.st_size
@@ -591,7 +593,9 @@ class RepodataCache:
         """Write data to <repodata> cache path, without touching state."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
         mode = "bx" if isinstance(data, bytes) else "x"
-        target = self.cache_path_shards if isinstance(data, bytes) else self.cache_path_json
+        target = (
+            self.cache_path_shards if isinstance(data, bytes) else self.cache_path_json
+        )
 
         try:
             with temp_path.open(mode) as temp:  # exclusive mode, error if exists
