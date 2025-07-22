@@ -9,25 +9,20 @@ from typing import TYPE_CHECKING
 from ...common.serialize import yaml_safe_dump
 from ...exceptions import CondaValueError
 from ..hookspec import hookimpl
-from ..types import CondaEnvironmentExporter, EnvironmentExporter
+from ..types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
     from ...models.environment import Environment
 
 
-class YamlEnvironmentExporter(EnvironmentExporter):
+def export_yaml(env: Environment) -> str:
     """Export Environment to YAML format."""
-
-    aliases = ["yaml"]
-
-    def export(self, env: Environment, format: str) -> str:
-        """Export Environment to YAML format."""
-        # Use the model's own method that follows EnvironmentYaml.to_dict() pattern
-        env_dict = env.to_yaml_dict()
-        yaml_content = yaml_safe_dump(env_dict)
-        if yaml_content is None:
-            raise CondaValueError("Failed to export environment to YAML")
-        return yaml_content
+    # Use the model's own method that follows EnvironmentYaml.to_dict() pattern
+    env_dict = env.to_yaml_dict()
+    yaml_content = yaml_safe_dump(env_dict)
+    if yaml_content is None:
+        raise CondaValueError("Failed to export environment to YAML")
+    return yaml_content
 
 
 @hookimpl(tryfirst=True)  # Ensure built-in YAML exporter loads first and has priority
@@ -35,6 +30,7 @@ def conda_environment_exporters():
     """Register the built-in YAML environment exporter."""
     yield CondaEnvironmentExporter(
         name="environment-yaml",
-        handler=YamlEnvironmentExporter,
-        default_filenames=["environment.yaml", "environment.yml"],
+        aliases=("yaml",),
+        default_filenames=("environment.yaml", "environment.yml"),
+        export=export_yaml,
     )

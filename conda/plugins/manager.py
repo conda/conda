@@ -674,7 +674,7 @@ class CondaPluginManager(pluggy.PluginManager):
         return {
             format_name: plugin
             for plugin in self.get_environment_exporters()
-            for format_name in (plugin.name, *plugin.handler.aliases)
+            for format_name in (plugin.name, *plugin.aliases)
         }
 
     def detect_environment_exporter(

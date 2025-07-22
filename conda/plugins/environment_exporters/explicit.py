@@ -7,41 +7,36 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ..hookspec import hookimpl
-from ..types import CondaEnvironmentExporter, EnvironmentExporter
+from ..types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
     from ...models.environment import Environment
 
 
-class ExplicitEnvironmentExporter(EnvironmentExporter):
-    """Export Environment to explicit format (@EXPLICIT)."""
+def export_explicit(env: Environment) -> str:
+    """Export Environment to explicit format."""
+    lines = ["# This file may be used to create an environment using:"]
+    lines.append(f"# $ conda env create --name {env.name} --file <this file>")
+    lines.append("@EXPLICIT")
+    lines.append("")
 
-    def export(self, env: Environment, format: str) -> str:
-        """Export Environment to explicit format."""
-        lines = ["# This file may be used to create an environment using:"]
-        lines.append(f"# $ conda env create --name {env.name} --file <this file>")
-        lines.append("@EXPLICIT")
-        lines.append("")
+    # Add explicit packages if available
+    if env.explicit_packages:
+        for pkg in env.explicit_packages:
+            # Format as full URL or package specification
+            if hasattr(pkg, "url") and pkg.url:
+                lines.append(pkg.url)
+            else:
+                # Fallback to name=version=build format
+                lines.append(f"{pkg.name}={pkg.version}={pkg.build}")
+    elif env.requested_packages:
+        # If no explicit packages, use requested packages
+        # Note: Converting from requested packages to explicit format
+        lines.append("# Note: Converting from requested packages to explicit format")
+        for spec in env.requested_packages:
+            lines.append(str(spec))
 
-        # Add explicit packages if available
-        if env.explicit_packages:
-            for pkg in env.explicit_packages:
-                # Format as full URL or package specification
-                if hasattr(pkg, "url") and pkg.url:
-                    lines.append(pkg.url)
-                else:
-                    # Fallback to name=version=build format
-                    lines.append(f"{pkg.name}={pkg.version}={pkg.build}")
-        elif env.requested_packages:
-            # If no explicit packages, use requested packages
-            # Note: Converting from requested packages to explicit format
-            lines.append(
-                "# Note: Converting from requested packages to explicit format"
-            )
-            for spec in env.requested_packages:
-                lines.append(str(spec))
-
-        return "\n".join(lines)
+    return "\n".join(lines)
 
 
 @hookimpl
@@ -49,6 +44,7 @@ def conda_environment_exporters():
     """Register the built-in explicit environment exporter."""
     yield CondaEnvironmentExporter(
         name="explicit",
-        handler=ExplicitEnvironmentExporter,
-        default_filenames=["requirements.txt"],
+        aliases=(),
+        default_filenames=("requirements.txt",),
+        export=export_explicit,
     )

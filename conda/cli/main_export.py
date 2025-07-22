@@ -193,11 +193,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
         if not json_exporter:
             raise CondaValueError("JSON exporter plugin not available")
-        exporter = json_exporter.handler()
+        exported_content = json_exporter.export(env)
     else:
-        exporter = environment_exporter.handler()
-
-    exported_content = exporter.export(env, export_format)
+        # Use the detected or default exporter
+        exported_content = environment_exporter.export(env)
 
     # Output the content
     if args.file:

@@ -12,7 +12,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
@@ -21,7 +21,6 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from collections.abc import Iterable
     from contextlib import AbstractContextManager
     from typing import Any, Callable, ClassVar, TypeAlias
 
@@ -495,28 +494,6 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     environment_spec: type[EnvironmentSpecBase]
 
 
-class EnvironmentExporter(ABC):
-    """
-    Base class for environment exporters that serialize Environment objects
-    to different output formats.
-    """
-
-    # Class attribute for format aliases - override in subclasses
-    aliases: list[str] = []  # User-friendly format aliases (e.g., ["yaml"])
-
-    @abstractmethod
-    def export(self, env: Environment, format: str) -> str:
-        """
-        Export an Environment object to the specified format.
-
-        :param env: The conda Environment object to export (models.Environment)
-        :param format: The target format name
-        :returns str: The environment data in the target format
-        :raises CondaValueError: If format is not supported by this exporter
-        """
-        raise NotImplementedError()
-
-
 @dataclass
 class CondaEnvironmentExporter(CondaPlugin):
     """
@@ -524,10 +501,13 @@ class CondaEnvironmentExporter(CondaPlugin):
 
     Return type to use when defining a conda environment exporter plugin hook.
 
-    :param name: name of the exporter (e.g., ``json_exporter``)
-    :param handler: EnvironmentExporter subclass handler
+    :param name: name of the exporter (e.g., ``environment-yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",))
+    :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
+    :param export: callable that exports an Environment to string format
     """
 
     name: str
-    handler: type[EnvironmentExporter]
-    default_filenames: Iterable[str]
+    aliases: tuple[str, ...]
+    default_filenames: tuple[str, ...]
+    export: Callable[[Environment], str]
