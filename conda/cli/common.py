@@ -123,7 +123,11 @@ def is_active_prefix(prefix: str) -> bool:
     )
 
 
-@deprecated("26.3", "26.9", addendum="Use `spec = str(MatchSpec(arg))` instead",)
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `spec = str(MatchSpec(arg))` instead",
+)
 def arg2spec(arg: str, update: bool = False) -> str:
     try:
         spec = MatchSpec(arg)

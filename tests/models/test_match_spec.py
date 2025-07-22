@@ -611,6 +611,7 @@ def test_license_match():
     assert MatchSpec("*[license='*gpl*']").match(record)
     assert MatchSpec("*[license='*v3+']").match(record)
 
+
 @pytest.mark.parametrize(
     "spec,expected_result",
     [
@@ -621,7 +622,7 @@ def test_license_match():
         ("ipython=0.13.0", "ipython=0.13.0"),
         ("ipython==0.13.0", "ipython==0.13.0"),
         ("foo=1.3.0=3", "foo==1.3.0=3"),
-    ]
+    ],
 )
 def test_simple(spec, expected_result):
     assert str(MatchSpec(spec)) == expected_result
@@ -633,7 +634,7 @@ def test_simple(spec, expected_result):
         ("foo>=1.3", "foo[version='>=1.3']"),
         ("zope.int>=1.3,<3.0", "zope.int[version='>=1.3,<3.0']"),
         ("numpy >=1.9", "numpy[version='>=1.9']"),
-    ]
+    ],
 )
 def test_pip_style(spec, expected_result):
     assert str(MatchSpec(spec)) == expected_result
