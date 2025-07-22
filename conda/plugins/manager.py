@@ -664,30 +664,13 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
 
-    def get_environment_exporters(self) -> dict[str, CondaEnvironmentExporter]:
+    def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         """
-        Returns a mapping from export format name to environment exporter.
+        Yields all detected environment exporters.
         """
-        return {
-            exporter.handler().format: exporter
-            for exporter in self.get_hook_results("environment_exporters")
-            if exporter.handler().format
-        }
+        for exporter in self.get_hook_results("environment_exporters"):
+            yield exporter
 
-    def get_environment_exporter_by_format(
-        self, format_name: str
-    ) -> CondaEnvironmentExporter | None:
-        """
-        Get an environment exporter that supports the given format.
-
-        :param format_name: Format name to find exporter for (e.g., 'json', 'yaml')
-        :return: Environment exporter config or None if not found
-        """
-        for exporter_config in self.get_hook_results("environment_exporters"):
-            exporter = exporter_config.handler()
-            if exporter.format == format_name:
-                return exporter_config
-        return None
 
     def detect_environment_exporter(
         self, filename: str
@@ -700,13 +683,23 @@ class CondaPluginManager(pluggy.PluginManager):
         :raises PluginError: If multiple exporters claim to support the same file extension
         """
         matches = []
-        for exporter_config in self.get_hook_results("environment_exporters"):
-            exporter = exporter_config.handler()
-            if exporter.can_handle(filename=filename):
+        for exporter_config in self.get_environment_exporters:
+            if filename in exporter_config.default_filenames:
                 matches.append(exporter_config)
 
         if len(matches) == 1:
             return matches[0]
+        elif len(matches) == 0:
+            raise PluginError(
+                dals(
+                     """
+                     No environment exporters detected for filename '{filename}'.
+                     Choose one exporter explicitly from this list:
+                     
+                     {", ".join([exporter.name for exporter in self.get_environment_exporters])}
+                     """
+                )
+            )
         elif len(matches) > 1:
             raise PluginError(
                 dals(

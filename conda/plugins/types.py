@@ -477,27 +477,6 @@ class EnvironmentExporter(ABC):
     to different output formats.
     """
 
-    # The canonical format name this exporter handles
-    format: str = ""
-
-    # File extensions this exporter supports
-    extensions: set[str] = set()
-
-    @abstractmethod
-    def can_handle(
-        self, filename: str | None = None, format: str | None = None
-    ) -> bool:
-        """
-        Check if this exporter can handle the given filename and/or format.
-
-        Subclasses should implement their own detection logic, which may include
-        checking file extensions, format names, content validation, or other criteria.
-
-        :param filename: Optional filename to check (e.g., 'env.json')
-        :param format: Optional format name to check (e.g., 'json', 'yaml')
-        :return: True if this exporter can handle the request
-        """
-        raise NotImplementedError()
 
     @abstractmethod
     def export(self, env: Environment, format: str) -> str:
@@ -523,3 +502,4 @@ class CondaEnvironmentExporter:
 
     name: str
     handler: type[EnvironmentExporter]
+    default_filenames: Iterable[str]
