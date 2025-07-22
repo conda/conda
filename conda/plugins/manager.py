@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import os
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
@@ -677,8 +678,6 @@ class CondaPluginManager(pluggy.PluginManager):
         :return: CondaEnvironmentExporter that supports the filename, or None if none found
         :raises PluginError: If multiple exporters claim to support the same filename
         """
-        import os
-
         # Extract just the basename for matching
         basename = os.path.basename(filename)
 

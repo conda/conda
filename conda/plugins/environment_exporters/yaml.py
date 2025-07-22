@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ...common.serialize import yaml_safe_dump
 from ...exceptions import CondaValueError
 from ..hookspec import hookimpl
 from ..types import CondaEnvironmentExporter, EnvironmentExporter
@@ -21,8 +22,6 @@ class YamlEnvironmentExporter(EnvironmentExporter):
 
     def export(self, env: Environment, format: str) -> str:
         """Export Environment to YAML format."""
-        from ...common.serialize import yaml_safe_dump
-
         # Use the model's own method that follows EnvironmentYaml.to_dict() pattern
         env_dict = env.to_yaml_dict()
         yaml_content = yaml_safe_dump(env_dict)

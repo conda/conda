@@ -11,6 +11,9 @@ import pytest
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
+from conda.plugins.environment_exporters.explicit import ExplicitEnvironmentExporter
+from conda.plugins.environment_exporters.json import JsonEnvironmentExporter
+from conda.plugins.environment_exporters.yaml import YamlEnvironmentExporter
 from conda.plugins.manager import get_plugin_manager
 from conda.plugins.types import EnvironmentExporter
 
@@ -185,7 +188,6 @@ def test_yaml_exporter_handles_missing_name(loaded_plugin_manager):
 
 def test_custom_exporter_aliases():
     """Test that custom exporters can define their own aliases."""
-    from conda.plugins.types import EnvironmentExporter
 
     class CustomExporter(EnvironmentExporter):
         format = "custom-format"
@@ -204,7 +206,6 @@ def test_custom_exporter_aliases():
 
 def test_dynamic_alias_resolution():
     """Test that alias resolution works dynamically without hardcoded mappings."""
-    from conda.plugins.manager import get_plugin_manager
 
     plugin_manager = get_plugin_manager()
 
@@ -239,9 +240,6 @@ def test_dynamic_alias_resolution():
 
 def test_builtin_exporters_define_expected_aliases():
     """Test that built-in exporters define their expected aliases."""
-    from conda.plugins.environment_exporters.explicit import ExplicitEnvironmentExporter
-    from conda.plugins.environment_exporters.json import JsonEnvironmentExporter
-    from conda.plugins.environment_exporters.yaml import YamlEnvironmentExporter
 
     yaml_exporter = YamlEnvironmentExporter()
     assert "yaml" in yaml_exporter.aliases
