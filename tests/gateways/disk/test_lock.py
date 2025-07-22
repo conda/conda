@@ -9,7 +9,13 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
-from conda.gateways.disk.lock import _lock_impl, _lock_noop, lock
+from conda.common.compat import on_win
+from conda.exceptions import LockError
+from conda.gateways.disk.lock import (
+    _lock_impl,
+    _lock_noop,
+    lock,
+)
 
 
 # A function mocking the signature of the real import method in the builtein module
@@ -28,7 +34,35 @@ def test_locking_not_supported(monkeypatch: MonkeyPatch):
         lock(tmp_file)
 
 
-def test_lock_acquired(mocker: MockerFixture, capsys: CaptureFixture):
+@pytest.mark.skipif(not on_win, reason="windows-specific test")
+def test_LockError_raised_windows(mocker: MockerFixture, monkeypatch: MonkeyPatch):
+    tmp_file = TemporaryFile()
+    mocker.patch("msvcrt.locking", side_effect=OSError)
+    monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
+    with pytest.raises(LockError):
+        with _lock_impl(tmp_file):
+            pass
+
+
+def test_LockError_raised_not_windows(mocker: MockerFixture, monkeypatch: MonkeyPatch):
+    tmp_file = TemporaryFile()
+    mocker.patch("fcntl.lockf", side_effect=OSError)
+    monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
+    with pytest.raises(LockError):
+        with _lock_impl(tmp_file):
+            pass
+
+
+def test_lock_acquired_success(mocker: MockerFixture, capsys: CaptureFixture):
+    tmp_file = TemporaryFile()
+    mocker.patch("conda.gateways.disk.lock.lock", return_value=_lock_impl)
+    with _lock_impl(tmp_file):
+        pass
+    stdout, stderr = capsys.readouterr()
+    assert "Failed to acquire lock." not in stdout
+
+
+def test_lock_again(mocker: MockerFixture, capsys: CaptureFixture):
     tmp_file = TemporaryFile()
     print(tmp_file)
     assert _lock_impl != _lock_noop
@@ -40,13 +74,7 @@ def test_lock_acquired(mocker: MockerFixture, capsys: CaptureFixture):
     assert "Failed to acquire lock." in stdout
 
 
-def test_lock_not_acquired(): ...
-
-
 def test_lock_released(): ...
 
 
 def test_lock_not_released(): ...
-
-
-def test_lock_again(): ...
