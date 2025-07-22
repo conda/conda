@@ -436,6 +436,53 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
+def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch) -> None:
+    msg = ""
+    url = "https://download.url/path/to/something.tar.gz"
+    status_code = "403"
+    reason = "-->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------"
+    elapsed_time = 1.25
+    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
+
+    json_obj = json.loads(c.stdout)
+    assert not c.stderr
+    assert json_obj["exception_type"] == "<class 'conda.exceptions.CondaHTTPError'>"
+    assert json_obj["exception_name"] == "CondaHTTPError"
+    assert json_obj["message"] == str(exc)
+    assert json_obj["error"] == repr(exc)
+    assert json_obj["url"] == url
+    assert json_obj["status_code"] == status_code
+    assert json_obj["reason"] == reason
+    assert json_obj["elapsed_time"] == elapsed_time
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
+
+    assert not c.stdout
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "CondaHTTPError: HTTP -->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------ for url <https://download.url/path/to/something.tar.gz>",
+            "Elapsed: 1.25",
+            "",
+            "",
+            "",
+            "",
+        )
+    )
+
+
 def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
     cmd = "instate"
     exc = CommandNotFoundError(cmd)
