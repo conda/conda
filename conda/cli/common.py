@@ -325,9 +325,9 @@ def validate_subdir_config():
         # prevent a non-base env configured for a non-native subdir from leaking
         # its subdir to a newer env.
         context_sources = context.collect_all()
-        if context_sources.get("cmd_line", {}).get("subdir") == context.subdir:
+        if context_sources.pop("cmd_line", {}).get("subdir") == context.subdir:
             pass  # this is ok
-        elif context_sources.get("envvars", {}).get("subdir") == context.subdir:
+        elif context_sources.pop("envvars", {}).get("subdir") == context.subdir:
             pass  # this is ok too
         # config does not come from envvars or cmd_line, it must be a file
         # that's ok as long as it's a base env or a global file
@@ -339,7 +339,7 @@ def validate_subdir_config():
                     for path, config in context_sources.items()
                     if paths_equal(context.active_prefix, path.parent)
                 ),
-                None,
+                {},
             )
             if active_env_config.get("subdir") == context.subdir:
                 # In practice this never happens; the subdir info is not even
