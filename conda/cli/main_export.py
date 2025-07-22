@@ -20,21 +20,12 @@ from ..models.environment import Environment
 
 def _get_available_export_formats() -> tuple[str, ...]:
     """Get a tuple of available export formats."""
-    from ..plugins.manager import get_plugin_manager
 
-    plugin_manager = get_plugin_manager()
-    formats = []
+    # Get all format names (including aliases) from the plugin manager
+    format_mapping = context.plugin_manager.get_exporter_format_mapping()
 
-    for exporter_config in plugin_manager.get_environment_exporters():
-        # Add the canonical format name
-        formats.append(exporter_config.name)
-
-        # Add any aliases this exporter defines
-        exporter_instance = exporter_config.handler()
-        formats.extend(exporter_instance.aliases)
-
-    # Return all formats sorted for consistent display
-    return sorted(formats)
+    # Return all format names sorted for consistent display
+    return tuple(sorted(format_mapping.keys()))
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -132,13 +123,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import determine_target_prefix, env_name
-    from ..plugins.manager import get_plugin_manager
     from .common import stdout_json
 
     # Validate export format early before doing expensive environment operations
-    plugin_manager = get_plugin_manager()
     available_formats = list(
-        exporter.name for exporter in plugin_manager.get_environment_exporters()
+        exporter.name for exporter in context.plugin_manager.get_environment_exporters()
     )
 
     # Early format validation - fail fast if format is unsupported
@@ -147,8 +136,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # If explicit format provided, use it and find the appropriate exporter
     if target_format is not NULL:
-        environment_exporter = plugin_manager.get_environment_exporter_by_format(
-            target_format
+        environment_exporter = (
+            context.plugin_manager.get_environment_exporter_by_format(target_format)
         )
         if not environment_exporter:
             raise CondaValueError(
@@ -157,7 +146,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             )
     # Otherwise, try to detect format by filename
     elif args.file:
-        file_exporter = plugin_manager.detect_environment_exporter(args.file)
+        file_exporter = context.plugin_manager.detect_environment_exporter(args.file)
         if file_exporter:
             target_format = file_exporter.name
             environment_exporter = file_exporter
@@ -165,7 +154,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             # No exporter found for filename and no explicit format
             # Get default filenames from all exporters
             default_filenames = []
-            for exporter in plugin_manager.get_environment_exporters():
+            for exporter in context.plugin_manager.get_environment_exporters():
                 default_filenames.extend(exporter.default_filenames)
 
             raise CondaValueError(
@@ -176,8 +165,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         # No file and no explicit format, default to environment-yaml
         target_format = "environment-yaml"
-        environment_exporter = plugin_manager.get_environment_exporter_by_format(
-            target_format
+        environment_exporter = (
+            context.plugin_manager.get_environment_exporter_by_format(target_format)
         )
 
     prefix = determine_target_prefix(context, args)
@@ -199,7 +188,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         "environment-json" if (args.json and not args.file) else target_format
     )
     if export_format == "environment-json" and target_format != "environment-json":
-        json_exporter = plugin_manager.get_environment_exporter_by_format(
+        json_exporter = context.plugin_manager.get_environment_exporter_by_format(
             "environment-json"
         )
         if not json_exporter:

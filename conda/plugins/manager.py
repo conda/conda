@@ -665,6 +665,18 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         yield from self.get_hook_results("environment_exporters")
 
+    def get_exporter_format_mapping(self) -> dict[str, CondaEnvironmentExporter]:
+        """
+        Get a mapping from format names (including aliases) to environment exporters.
+
+        :return: Dict mapping format name to CondaEnvironmentExporter
+        """
+        return {
+            format_name: plugin
+            for plugin in self.get_environment_exporters()
+            for format_name in (plugin.name, *plugin.handler.aliases)
+        }
+
     def detect_environment_exporter(
         self, filename: str
     ) -> CondaEnvironmentExporter | None:
@@ -712,17 +724,8 @@ class CondaPluginManager(pluggy.PluginManager):
         :param format_name: Format name to find an exporter for (e.g., 'yaml', 'json', 'environment-yaml')
         :return: CondaEnvironmentExporter that supports the format, or None if none found
         """
-        for exporter_config in self.get_environment_exporters():
-            # Check exact format name match first
-            if exporter_config.name == format_name:
-                return exporter_config
-
-            # Check if format_name is an alias for this exporter
-            exporter_instance = exporter_config.handler()
-            if format_name in exporter_instance.aliases:
-                return exporter_config
-
-        return None
+        format_mapping = self.get_exporter_format_mapping()
+        return format_mapping.get(format_name)
 
     def get_environment_exporter(
         self,

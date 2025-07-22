@@ -242,13 +242,11 @@ def test_custom_exporter_aliases():
     assert EnvironmentExporter.aliases == []
 
 
-def test_dynamic_alias_resolution():
+def test_dynamic_alias_resolution(loaded_plugin_manager):
     """Test that alias resolution works dynamically without hardcoded mappings."""
 
-    plugin_manager = get_plugin_manager()
-
     # Test that yaml alias resolves correctly
-    yaml_exporter = plugin_manager.get_environment_exporter_by_format("yaml")
+    yaml_exporter = loaded_plugin_manager.get_environment_exporter_by_format("yaml")
     assert yaml_exporter is not None
 
     # Test that the resolved exporter actually defines "yaml" as an alias
@@ -256,7 +254,7 @@ def test_dynamic_alias_resolution():
     assert "yaml" in yaml_instance.aliases
 
     # Test that json alias resolves correctly
-    json_exporter = plugin_manager.get_environment_exporter_by_format("json")
+    json_exporter = loaded_plugin_manager.get_environment_exporter_by_format("json")
     assert json_exporter is not None
 
     # Test that the resolved exporter actually defines "json" as an alias
@@ -264,10 +262,10 @@ def test_dynamic_alias_resolution():
     assert "json" in json_instance.aliases
 
     # Test that canonical names still work
-    canonical_yaml = plugin_manager.get_environment_exporter_by_format(
+    canonical_yaml = loaded_plugin_manager.get_environment_exporter_by_format(
         "environment-yaml"
     )
-    canonical_json = plugin_manager.get_environment_exporter_by_format(
+    canonical_json = loaded_plugin_manager.get_environment_exporter_by_format(
         "environment-json"
     )
 
