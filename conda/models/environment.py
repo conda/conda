@@ -28,7 +28,6 @@ if TYPE_CHECKING:
         SatSolverChoice,
         UpdateModifier,
     )
-    from .match_spec import MatchSpec
     from .records import PackageRecord
 
     T = TypeVar("T")
