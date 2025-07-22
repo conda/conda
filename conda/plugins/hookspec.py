@@ -691,60 +691,39 @@ class CondaSpecs:
             from conda import plugins
             from conda.exceptions import CondaValueError
             from conda.models.environment import Environment
-            from conda.plugins.types import EnvironmentExporter
+            from conda.plugins.types import CondaEnvironmentExporter
 
 
-            class TOMLExporter(EnvironmentExporter):
-                format = "toml"
-                extensions = {".toml"}
+            def export_toml(env: Environment) -> str:
+                # Export Environment to TOML format
+                # Convert environment to TOML format using tomlkit
+                env_dict = env.to_yaml_dict()
 
-                def can_handle(
-                    self, filename: str | None = None, format: str | None = None
-                ) -> bool:
-                    # Check format if provided
-                    if format is not None:
-                        if format != self.format:
-                            return False
+                # Create TOML document
+                toml_doc = tomlkit.document()
 
-                    # Check filename if provided
-                    if filename is not None:
-                        if not any(filename.endswith(ext) for ext in self.extensions):
-                            return False
+                if env_dict.get("name"):
+                    toml_doc["name"] = env_dict["name"]
 
-                    return True
+                if env_dict.get("channels"):
+                    toml_doc["channels"] = env_dict["channels"]
 
-                def export(self, env: Environment, format: str) -> str:
-                    if not self.can_handle(format=format):
-                        raise CondaValueError(
-                            f"{self.__class__.__name__} doesn't support format: {format}"
-                        )
+                if env_dict.get("dependencies"):
+                    toml_doc["dependencies"] = env_dict["dependencies"]
 
-                    # Convert environment to TOML format using tomlkit
-                    env_dict = env.to_dict()
+                if env_dict.get("variables"):
+                    toml_doc["variables"] = env_dict["variables"]
 
-                    # Create TOML document
-                    toml_doc = tomlkit.document()
-
-                    if env_dict.get("name"):
-                        toml_doc["name"] = env_dict["name"]
-
-                    if env_dict.get("channels"):
-                        toml_doc["channels"] = env_dict["channels"]
-
-                    if env_dict.get("dependencies"):
-                        toml_doc["dependencies"] = env_dict["dependencies"]
-
-                    if env_dict.get("variables"):
-                        toml_doc["variables"] = env_dict["variables"]
-
-                    return tomlkit.dumps(toml_doc)
+                return tomlkit.dumps(toml_doc)
 
 
             @plugins.hookimpl
             def conda_environment_exporters():
-                yield plugins.CondaEnvironmentExporter(
-                    name="toml",
-                    handler=TOMLExporter,
+                yield CondaEnvironmentExporter(
+                    name="environment-toml",
+                    aliases=("toml",),
+                    default_filenames=("environment.toml",),
+                    export=export_toml,
                 )
         """
         yield from ()

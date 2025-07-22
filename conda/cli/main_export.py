@@ -122,7 +122,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import determine_target_prefix, env_name
+    from ..base.context import env_name
     from .common import stdout_json
 
     # Validate export format early before doing expensive environment operations
