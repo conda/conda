@@ -638,7 +638,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_environment_specifier(
         self,
         source: str,
-        name: str = None,
+        name: str | None = None,
     ) -> CondaEnvironmentSpecifier:
         """Get the environment specifier plugin for a given spec source, or given a plugin name
         Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
@@ -649,7 +649,7 @@ class CondaPluginManager(pluggy.PluginManager):
         :param name: name of the environment plugin to load
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
-        if name is None or name == "":
+        if not name:
             return self.detect_environment_specifier(source)
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
@@ -676,20 +676,18 @@ class CondaPluginManager(pluggy.PluginManager):
         :param neutered_specs: Specs to be neutered
         :return: The plugin-defined pre-transaction actions
         """
-        actions = []
-        for hook in self.get_hook_results("pre_transaction_actions"):
-            actions.append(
-                hook.action(
-                    transaction_context,
-                    target_prefix,
-                    unlink_precs,
-                    link_precs,
-                    remove_specs,
-                    update_specs,
-                    neutered_specs,
-                )
+        return [
+            hook.action(
+                transaction_context,
+                target_prefix,
+                unlink_precs,
+                link_precs,
+                remove_specs,
+                update_specs,
+                neutered_specs,
             )
-        return actions
+            for hook in self.get_hook_results("pre_transaction_actions")
+        ]
 
     def get_post_transaction_actions(
         self,
@@ -713,20 +711,18 @@ class CondaPluginManager(pluggy.PluginManager):
         :param neutered_specs: Specs to be neutered
         :return: The plugin-defined post-transaction actions
         """
-        actions = []
-        for hook in self.get_hook_results("post_transaction_actions"):
-            actions.append(
-                hook.action(
-                    transaction_context,
-                    target_prefix,
-                    unlink_precs,
-                    link_precs,
-                    remove_specs,
-                    update_specs,
-                    neutered_specs,
-                )
+        return [
+            hook.action(
+                transaction_context,
+                target_prefix,
+                unlink_precs,
+                link_precs,
+                remove_specs,
+                update_specs,
+                neutered_specs,
             )
-        return actions
+            for hook in self.get_hook_results("post_transaction_actions")
+        ]
 
 
 @functools.cache
