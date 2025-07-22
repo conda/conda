@@ -247,7 +247,10 @@ def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> No
             yield NoNamePlugin(None)
 
     plugin_manager.load_plugins(SpecialPlugin)
-    with pytest.raises(PluginError, match="Invalid plugin names found"):
+    with pytest.raises(
+        PluginError,
+        match=r"(?s)Invalid plugin names found.+NoNameCondaPlugin.+NoNamePlugin",
+    ):
         plugin_manager.get_virtual_packages()
 
 
