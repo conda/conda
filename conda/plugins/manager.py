@@ -333,7 +333,7 @@ class CondaPluginManager(pluggy.PluginManager):
         # find the requested solver.
         solver_plugin = solvers_mapping.get(name, None)
         if solver_plugin is None:
-            raise CondaValueError(
+            raise PluginError(
                 f"You have chosen a non-default solver backend ({name}) "
                 f"but it was not recognized. Choose one of: "
                 f"{', '.join(solvers_mapping)}"
