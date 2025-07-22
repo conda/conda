@@ -169,7 +169,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             context.plugin_manager.get_environment_exporter_by_format(target_format)
         )
 
-    prefix = determine_target_prefix(context, args)
+    prefix = context.target_prefix
 
     # Create models.Environment directly
     env = Environment.from_prefix(
