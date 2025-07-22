@@ -1,17 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import os
+from pathlib import Path
 
 import pytest
-from pathlib import Path
 from pytest import raises
 from pytest_mock import MockerFixture
 
-from conda.auxlib.collection import AttrDict
-from conda.auxlib.ish import dals
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.configuration import YamlRawParameter
-from conda.common.serialize import yaml_round_trip_load
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.common import (
     check_non_admin,
     is_active_prefix,
@@ -133,16 +129,14 @@ def test_validate_subdir_config(mocker: MockerFixture):
     # Simulate the context having config only coming from the command line
     mocker.patch(
         "conda.base.context.Context.collect_all",
-        return_value={
-            "cmd_line": {"channels":["conda-forge"]}
-        },
+        return_value={"cmd_line": {"channels": ["conda-forge"]}},
     )
 
     validate_subdir_config()
 
 
 def test_validate_subdir_config_invalid_subdir(mocker: MockerFixture):
-    """Test conda will validate the subdir config. The configuration is 
+    """Test conda will validate the subdir config. The configuration is
     invalid if it is coming from the active prefix"""
     # Set dummy subdir to something that is not the native subdir
     subdir = "idontexist"
@@ -159,14 +153,13 @@ def test_validate_subdir_config_invalid_subdir(mocker: MockerFixture):
         return_value="/something/that/does/not/exist",
     )
 
-
     # Simulate config coming from the active prefix's condarc file and the command line
-    dummy_conda_rc =  Path(context.active_prefix) / "condarc"
+    dummy_conda_rc = Path(context.active_prefix) / "condarc"
     mocker.patch(
         "conda.base.context.Context.collect_all",
         return_value={
-            "cmd_line": {"channels":["conda-forge"]},
-            dummy_conda_rc: {"subdir": subdir}
+            "cmd_line": {"channels": ["conda-forge"]},
+            dummy_conda_rc: {"subdir": subdir},
         },
     )
 
