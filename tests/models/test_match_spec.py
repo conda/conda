@@ -4,10 +4,10 @@ import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.cli.common import arg2spec, spec_from_line
+from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
 from conda.common.io import env_unmodified
-from conda.exceptions import CondaValueError, InvalidMatchSpec, InvalidSpec
+from conda.exceptions import InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
@@ -611,26 +611,37 @@ def test_license_match():
     assert MatchSpec("*[license='*gpl*']").match(record)
     assert MatchSpec("*[license='*v3+']").match(record)
 
+@pytest.mark.parametrize(
+    "spec,expected_result",
+    [
+        ("python", "python"),
+        ("python=2.6", "python=2.6"),
+        ("python=2.6*", "python=2.6"),
+        ("ipython=0.13.2", "ipython=0.13.2"),
+        ("ipython=0.13.0", "ipython=0.13.0"),
+        ("ipython==0.13.0", "ipython==0.13.0"),
+        ("foo=1.3.0=3", "foo==1.3.0=3"),
+    ]
+)
+def test_simple(spec, expected_result):
+    assert str(MatchSpec(spec)) == expected_result
 
-def test_simple():
-    assert arg2spec("python") == "python"
-    assert arg2spec("python=2.6") == "python=2.6"
-    assert arg2spec("python=2.6*") == "python=2.6"
-    assert arg2spec("ipython=0.13.2") == "ipython=0.13.2"
-    assert arg2spec("ipython=0.13.0") == "ipython=0.13.0"
-    assert arg2spec("ipython==0.13.0") == "ipython==0.13.0"
-    assert arg2spec("foo=1.3.0=3") == "foo==1.3.0=3"
+
+@pytest.mark.parametrize(
+    "spec,expected_result",
+    [
+        ("foo>=1.3", "foo[version='>=1.3']"),
+        ("zope.int>=1.3,<3.0", "zope.int[version='>=1.3,<3.0']"),
+        ("numpy >=1.9", "numpy[version='>=1.9']"),
+    ]
+)
+def test_pip_style(spec, expected_result):
+    assert str(MatchSpec(spec)) == expected_result
 
 
-def test_pip_style():
-    assert arg2spec("foo>=1.3") == "foo[version='>=1.3']"
-    assert arg2spec("zope.int>=1.3,<3.0") == "zope.int[version='>=1.3,<3.0']"
-    assert arg2spec("numpy >=1.9") == "numpy[version='>=1.9']"
-
-
-def test_invalid_arg2spec():
-    with pytest.raises(CondaValueError):
-        arg2spec("!xyz 1.3")
+def test_invalid_match_spec():
+    with pytest.raises(InvalidMatchSpec):
+        str(MatchSpec("!xyz 1.3"))
 
 
 def cb_form(spec_str):
