@@ -4,7 +4,6 @@ import pytest
 
 from conda import plugins
 from conda.exceptions import (
-    CondaValueError,
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
@@ -145,9 +144,10 @@ def test_raises_an_error_if_plugin_name_does_not_exist(dummy_random_spec_plugin)
     """
     Ensures that an error is raised if the user requests a plugin that doesn't exist
     """
-    with pytest.raises(CondaValueError):
+    with pytest.raises(PluginError):
         dummy_random_spec_plugin.get_environment_specifier_by_name(
-            name="uhoh", source="test.random"
+            name="uhoh",
+            source="test.random",
         )
 
 
