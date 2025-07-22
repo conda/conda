@@ -11,85 +11,33 @@ from argparse import (
     _SubParsersAction,
 )
 
+from ..auxlib.ish import dals
+from ..base.context import context
 from ..common.constants import NULL
-from ..core.prefix_data import PrefixData
 from ..exceptions import CondaValueError
+from ..models.environment import Environment
 
 
-def _create_environment_from_prefix(prefix, env_name, args):
-    """Create a models.Environment directly from prefix and arguments."""
-    from ..base.context import context
-    from ..history import History
-    from ..models.environment import Environment, EnvironmentConfig
-    from ..models.match_spec import MatchSpec
+def _get_available_export_formats() -> tuple[str, ...]:
+    """Get a tuple of available export formats."""
+    from ..plugins.manager import get_plugin_manager
 
-    # Get the current platform with proper subdir format
-    platform = context.subdir
+    plugin_manager = get_plugin_manager()
+    formats = []
 
-    # Get prefix data - always needed for packages and/or variables
-    prefix_data = PrefixData(prefix)
+    for exporter_config in plugin_manager.get_environment_exporters():
+        # Add the canonical format name
+        formats.append(exporter_config.name)
 
-    # Build requested packages from installed packages or history
-    requested_packages = []
+        # Add any aliases this exporter defines
+        exporter_instance = exporter_config.handler()
+        formats.extend(exporter_instance.aliases)
 
-    if args.from_history:
-        # Use explicit specs from history
-        history = History(prefix)
-        spec_map = history.get_requested_specs_map()
-        requested_packages = list(spec_map.values())
-    else:
-        # Read all installed packages from prefix data
-        for prefix_record in prefix_data.iter_records():
-            # Create MatchSpec from installed package
-            if args.no_builds:
-                spec_str = f"{prefix_record.name}=={prefix_record.version}"
-            else:
-                spec_str = f"{prefix_record.name}=={prefix_record.version}={prefix_record.build}"
-
-            if (
-                not args.ignore_channels
-                and prefix_record.channel
-                and prefix_record.channel.name
-            ):
-                spec_str = f"{prefix_record.channel.name}::{spec_str}"
-
-            requested_packages.append(MatchSpec(spec_str))
-
-    # Build channels list
-    channels = []
-
-    # Add explicitly requested channels first
-    if args.channel:
-        channels.extend(args.channel)
-
-    # Add default channels unless overridden
-    if not args.override_channels:
-        # Only add defaults that aren't already in the list
-        for channel in context.channels:
-            if channel not in channels:
-                channels.append(channel)
-
-    # Create environment config with channels if present
-    config = None
-    if channels:
-        config = EnvironmentConfig(channels=channels)
-
-    # Extract environment variables from prefix
-    variables = prefix_data.get_environment_env_vars()
-
-    # Create models.Environment
-    return Environment(
-        name=env_name,
-        prefix=prefix,
-        platform=platform,
-        requested_packages=requested_packages,
-        variables=variables,
-        config=config,
-    )
+    # Return all formats sorted for consistent display
+    return sorted(formats)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
     from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
 
     summary = "Export a given environment"
@@ -139,23 +87,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         ),
     )
 
-    def _get_available_export_formats():
-        from ..plugins.manager import get_plugin_manager
-
-        plugin_manager = get_plugin_manager()
-        formats = []
-
-        for exporter_config in plugin_manager.get_environment_exporters():
-            # Add the canonical format name
-            formats.append(exporter_config.name)
-
-            # Add any aliases this exporter defines
-            exporter_instance = exporter_config.handler()
-            formats.extend(exporter_instance.aliases)
-
-        # Return all formats sorted for consistent display
-        return sorted(formats)
-
     p.add_argument(
         "--format",
         default=NULL,
@@ -200,7 +131,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context, determine_target_prefix, env_name
+    from ..base.context import determine_target_prefix, env_name
     from ..plugins.manager import get_plugin_manager
     from .common import stdout_json
 
@@ -252,7 +183,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = determine_target_prefix(context, args)
 
     # Create models.Environment directly
-    env = _create_environment_from_prefix(prefix, env_name(prefix), args)
+    env = Environment.from_prefix(
+        prefix=prefix,
+        name=env_name(prefix),
+        platform=context.subdir,
+        from_history=args.from_history,
+        no_builds=args.no_builds,
+        ignore_channels=args.ignore_channels,
+        channels=args.channel,
+        override_channels=args.override_channels,
+    )
 
     # Export the environment - use JSON format if --json flag without file
     export_format = (

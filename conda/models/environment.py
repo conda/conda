@@ -13,7 +13,10 @@ from typing import TYPE_CHECKING
 from ..base.constants import PLATFORMS
 from ..base.context import context
 from ..common.iterators import groupby_to_dict as groupby
+from ..core.prefix_data import PrefixData
 from ..exceptions import CondaValueError
+from ..history import History
+from .match_spec import MatchSpec
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -422,4 +425,103 @@ class Environment:
             requested_packages=requested_packages,
             variables=variables,
             virtual_packages=virtual_packages,
+        )
+
+    @classmethod
+    def from_prefix(
+        cls,
+        prefix: str,
+        name: str,
+        platform: str,
+        *,
+        from_history: bool = False,
+        no_builds: bool = False,
+        ignore_channels: bool = False,
+        channels: list[str] | None = None,
+        override_channels: bool = False,
+    ) -> Environment:
+        """
+        Create an Environment model from an existing conda prefix.
+
+        This method analyzes an installed conda environment and creates
+        an Environment model that can be used for exporting or other operations.
+
+        :param prefix: Path to the conda environment prefix
+        :param name: Name for the environment
+        :param platform: Target platform (e.g., 'linux-64', 'osx-64')
+        :param from_history: Use explicit specs from history instead of installed packages
+        :param no_builds: Exclude build strings from package specs
+        :param ignore_channels: Don't include channel information in package specs
+        :param channels: Additional channels to include in environment config
+        :param override_channels: Whether to override default channels
+        :return: Environment model representing the prefix
+        """
+        prefix_data = PrefixData(prefix)
+
+        # Build requested packages from installed packages or history
+        requested_packages = []
+
+        if from_history:
+            # Use explicit specs from history
+            history = History(prefix)
+            spec_map = history.get_requested_specs_map()
+            requested_packages = list(spec_map.values())
+        else:
+            # Read all installed packages from prefix data
+            for prefix_record in prefix_data.iter_records():
+                # Create MatchSpec from installed package
+                if no_builds:
+                    spec_str = f"{prefix_record.name}=={prefix_record.version}"
+                else:
+                    spec_str = f"{prefix_record.name}=={prefix_record.version}={prefix_record.build}"
+
+                if (
+                    not ignore_channels
+                    and prefix_record.channel
+                    and prefix_record.channel.name
+                ):
+                    spec_str = f"{prefix_record.channel.name}::{spec_str}"
+
+                requested_packages.append(MatchSpec(spec_str))
+
+        # Build channels list
+        environment_channels = []
+
+        # Add explicitly requested channels first
+        if channels:
+            environment_channels.extend(channels)
+
+        # Add default channels unless overridden
+        if not override_channels:
+            # Only add defaults that aren't already in the list
+            for channel in context.channels:
+                if channel not in environment_channels:
+                    environment_channels.append(channel)
+
+        # Create environment config with comprehensive context settings
+        # Try to use from_context() which is cleaner, but handle validation errors
+        try:
+            config = EnvironmentConfig.from_context()
+        except Exception:
+            # If from_context() fails (e.g., due to --override-channels validation),
+            # create a minimal config and we'll populate it with channels from packages
+            config = EnvironmentConfig()
+
+        # Override/set channels with those extracted from installed packages if any were found
+        if environment_channels:
+            # Merge context config with channels from installed packages
+            channels_config = EnvironmentConfig(channels=tuple(environment_channels))
+            config = EnvironmentConfig.merge(config, channels_config)
+
+        # Extract environment variables from prefix
+        variables = prefix_data.get_environment_env_vars()
+
+        # Create models.Environment
+        return cls(
+            name=name,
+            prefix=prefix,
+            platform=platform,
+            requested_packages=requested_packages,
+            variables=variables,
+            config=config,
         )
