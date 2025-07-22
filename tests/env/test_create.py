@@ -11,7 +11,7 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, PluginError
 from conda.testing.integration import package_is_installed
 
 from . import support_file
@@ -312,8 +312,9 @@ def test_create_env_from_non_existent_plugin(
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "nonexistent_plugin")
     with tmp_env() as prefix:
         with pytest.raises(
-            CondaValueError,
-        ) as excinfo:
+            PluginError,
+            match=r"You have chosen an unrecognized environment specifier type \(nonexistent_plugin\)",
+        ):
             conda_cli(
                 "env",
                 "create",
@@ -321,11 +322,6 @@ def test_create_env_from_non_existent_plugin(
                 "--file",
                 support_file("example/environment_pinned.yml"),
             )
-
-        assert (
-            "You have chosen an unrecognized environment specifier type (nonexistent_plugin)"
-            in str(excinfo.value)
-        )
 
 
 def test_create_env_custom_platform(
