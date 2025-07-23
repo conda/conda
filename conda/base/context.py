@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 
 from frozendict import frozendict
 
+from .constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
@@ -1054,7 +1055,7 @@ class Context(Configuration):
         return tuple(
             path
             for path in context.collect_all()
-            if path not in ("envvars", "cmd_line")
+            if path not in (ENV_VARS_SOURCE, CMD_LINE_SOURCE)
         )
 
     @property
