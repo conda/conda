@@ -483,6 +483,61 @@ def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch) -> None:
     )
 
 
+def test_http_error_rfc_9457(monkeypatch: MonkeyPatch) -> None:
+    msg = ""
+    url = "https://download.url/path/to/something.tar.gz"
+    status_code = "403"
+    # in HTTP/2, reason will be empty
+    reason = ""
+    # in a RFC 9457 compliant response, the "detail" field is what we want to capture
+    detail = "-->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------"
+    # Create a mock Response object
+    class MockResponse:
+        def __init__(self, json_data):
+            self.json_data = json_data
+            self.headers = {}
+
+        def json(self):
+            return self.json_data
+
+    # Create the response with a detail field
+    response = MockResponse({"detail": detail})
+
+    elapsed_time = 1.26
+    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
+
+    json_obj = json.loads(c.stdout)
+    assert not c.stderr
+    assert json_obj["detail"] == detail
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    with captured() as c:
+        conda_exception_handler(_raise_helper, exc)
+
+    assert not c.stdout
+    assert c.stderr == "\n".join(
+        (
+            "",
+            "CondaHTTPError: HTTP 403 for url <https://download.url/path/to/something.tar.gz>",
+            "Elapsed: 1.26",
+            "",
+            detail,
+            "",
+            "",
+        )
+    )
+
+
 def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
     cmd = "instate"
     exc = CommandNotFoundError(cmd)
