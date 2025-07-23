@@ -473,7 +473,7 @@ def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch) -> None:
     assert c.stderr == "\n".join(
         (
             "",
-            "CondaHTTPError: HTTP -->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------ for url <https://download.url/path/to/something.tar.gz>",
+            "CondaHTTPError: HTTP 403 -->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------ for url <https://download.url/path/to/something.tar.gz>",
             "Elapsed: 1.25",
             "",
             "",
