@@ -342,7 +342,8 @@ def validate_subdir_config():
                 (
                     config
                     for path, config in context_sources.items()
-                    if path not in NON_PATH_CONTEXT_SOURCES and paths_equal(context.active_prefix, path.parent)
+                    if path not in NON_PATH_CONTEXT_SOURCES
+                    and paths_equal(context.active_prefix, path.parent)
                 ),
                 {},
             )
