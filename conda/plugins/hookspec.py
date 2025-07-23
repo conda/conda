@@ -696,8 +696,11 @@ class CondaSpecs:
 
             def export_toml(env: Environment) -> str:
                 # Export Environment to TOML format
-                # Convert environment to TOML format using tomlkit
-                env_dict = env.to_yaml_dict()
+                # For formats that use the standard dictionary structure,
+                # you can use the shared utility:
+                from conda.plugins.environment_exporters.standard import to_dict
+
+                env_dict = to_dict(env)
 
                 # Create TOML document
                 toml_doc = tomlkit.document()

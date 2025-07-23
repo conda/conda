@@ -17,9 +17,9 @@ from conda.models.match_spec import MatchSpec
 @pytest.fixture
 def plugin_manager_with_exporters(plugin_manager):
     """Get plugin manager with environment exporter plugins loaded."""
-    from conda.plugins.environment_exporters import explicit, json, yaml
+    from conda.plugins.environment_exporters import explicit, standard
 
-    plugin_manager.load_plugins(explicit, json, yaml)
+    plugin_manager.load_plugins(explicit, standard)
     return plugin_manager
 
 
