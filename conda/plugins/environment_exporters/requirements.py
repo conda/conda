@@ -38,7 +38,7 @@ def export_requirements(env: Environment) -> str:
     lines.append("# Note: This is a conda requirements file (MatchSpec format)")
     lines.append("# Contains conda package specifications, not pip requirements")
     lines.append("")
-    
+
     for spec in env.requested_packages:
         # Use MatchSpec string representation (CEP 23 compliant)
         lines.append(str(spec))
@@ -54,4 +54,4 @@ def conda_environment_exporters():
         aliases=("reqs", "txt"),
         export=export_requirements,
         default_filenames=("requirements.txt", "spec.txt"),
-    ) 
+    )

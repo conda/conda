@@ -216,7 +216,7 @@ def test_requirements_exporter_with_explicit_packages(
 
     # Test export functionality with explicit packages only (should fail for requirements exporter)
     try:
-        result = exporter_config.export(test_env_with_explicit_packages)
+        exporter_config.export(test_env_with_explicit_packages)
         assert False, (
             "Expected CondaValueError for requirements exporter with explicit packages only"
         )
