@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Set default value for `version` parameter when `build` is set in `MatchSpec.conda_build_form()` (#11200)
+* Set default value for `version` parameter when `build` is set in `MatchSpec.conda_build_form()`. (#11200 via #15025)
 
 ### Deprecations
 

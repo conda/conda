@@ -393,7 +393,6 @@ class MatchSpec(metaclass=MatchSpecType):
 
         if build:
             version = version or "*"
-            assert version
             builder += [version, build]
         elif version:
             builder.append(version)
