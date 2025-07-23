@@ -18,7 +18,12 @@ from os.path import (
 from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
-from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE, PREFIX_MAGIC_FILE
+from ..base.constants import (
+    CMD_LINE_SOURCE,
+    ENV_VARS_SOURCE,
+    NON_PATH_CONTEXT_SOURCES,
+    PREFIX_MAGIC_FILE,
+)
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
@@ -325,9 +330,9 @@ def validate_subdir_config():
         # prevent a non-base env configured for a non-native subdir from leaking
         # its subdir to a newer env.
         context_sources = context.collect_all()
-        if context_sources.pop(CMD_LINE_SOURCE, {}).get("subdir") == context.subdir:
+        if context_sources.get(CMD_LINE_SOURCE, {}).get("subdir") == context.subdir:
             pass  # this is ok
-        elif context_sources.pop(ENV_VARS_SOURCE, {}).get("subdir") == context.subdir:
+        elif context_sources.get(ENV_VARS_SOURCE, {}).get("subdir") == context.subdir:
             pass  # this is ok too
         # config does not come from envvars or cmd_line, it must be a file
         # that's ok as long as it's a base env or a global file
@@ -337,7 +342,7 @@ def validate_subdir_config():
                 (
                     config
                     for path, config in context_sources.items()
-                    if paths_equal(context.active_prefix, path.parent)
+                    if path not in NON_PATH_CONTEXT_SOURCES and paths_equal(context.active_prefix, path.parent)
                 ),
                 {},
             )
