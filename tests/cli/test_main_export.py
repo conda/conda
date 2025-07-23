@@ -208,7 +208,6 @@ def test_export_format_consistency(conda_cli: CondaCLIFixture) -> None:
     available_formats = _get_available_export_formats()
 
     # Verify the function returns both canonical names and aliases
-    # (This would have failed before our DRY fix)
     canonical_formats = {"environment-yaml", "environment-json", "explicit"}
     alias_formats = {"yaml", "json"}
 
@@ -216,9 +215,6 @@ def test_export_format_consistency(conda_cli: CondaCLIFixture) -> None:
 
     assert canonical_formats.issubset(available_set), "Missing canonical format names"
     assert alias_formats.issubset(available_set), "Missing user-friendly aliases"
-
-    # Test that argparse uses the same choices (implicitly tested by CLI working)
-    # and that error messages would show these same formats (fixed by our refactoring)
 
 
 def test_export_format_priority_over_extension(
