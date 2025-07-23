@@ -126,9 +126,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .common import stdout_json
 
     # Validate export format early before doing expensive environment operations
-    available_formats = list(
-        exporter.name for exporter in context.plugin_manager.get_environment_exporters()
-    )
+    available_formats = list(_get_available_export_formats())
 
     # Early format validation - fail fast if format is unsupported
     target_format = args.format

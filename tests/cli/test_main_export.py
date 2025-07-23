@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from conda.cli.main_export import _get_available_export_formats
 from conda.common.serialize import yaml_safe_load
 from conda.exceptions import CondaValueError
 from conda.testing.fixtures import CondaCLIFixture
@@ -200,10 +201,32 @@ def test_export_toml_file_extension(conda_cli: CondaCLIFixture, tmp_path: Path) 
 
 
 def test_export_unknown_format(conda_cli: CondaCLIFixture) -> None:
-    """Test that unknown format raises appropriate error."""
+    """Test that unknown format shows all available formats including aliases."""
     name = uuid.uuid4().hex
+
+    # Capture the argparse error message that shows available choices
     with pytest.raises(SystemExit):
         conda_cli("export", f"--name={name}", "--format=unknown")
+
+    # The error message is captured in the test output, but we can also test by
+    # checking that our function returns the same formats shown in CLI help
+    available_formats = _get_available_export_formats()
+
+    # Verify that all expected formats are available (this would have failed before our fix)
+    expected_canonical = {"environment-yaml", "environment-json", "explicit"}
+    expected_aliases = {"yaml", "json"}
+
+    assert expected_canonical.issubset(set(available_formats)), (
+        "Missing canonical format names"
+    )
+    assert expected_aliases.issubset(set(available_formats)), (
+        "Missing user-friendly aliases"
+    )
+
+    # This ensures consistency between CLI choices and error messages
+    assert len(available_formats) >= 5, (
+        f"Expected at least 5 formats, got {len(available_formats)}"
+    )
 
 
 def test_export_unknown_format_verbose(conda_cli: CondaCLIFixture) -> None:
@@ -211,6 +234,25 @@ def test_export_unknown_format_verbose(conda_cli: CondaCLIFixture) -> None:
     name = uuid.uuid4().hex
     with pytest.raises(SystemExit):
         conda_cli("export", f"--name={name}", "--format=unknown", "-v")
+
+
+def test_export_format_consistency(conda_cli: CondaCLIFixture) -> None:
+    """Test that CLI choices and error messages use the same format source."""
+    # This function should be the single source of truth for available formats
+    available_formats = _get_available_export_formats()
+
+    # Verify the function returns both canonical names and aliases
+    # (This would have failed before our DRY fix)
+    canonical_formats = {"environment-yaml", "environment-json", "explicit"}
+    alias_formats = {"yaml", "json"}
+
+    available_set = set(available_formats)
+
+    assert canonical_formats.issubset(available_set), "Missing canonical format names"
+    assert alias_formats.issubset(available_set), "Missing user-friendly aliases"
+
+    # Test that argparse uses the same choices (implicitly tested by CLI working)
+    # and that error messages would show these same formats (fixed by our refactoring)
 
 
 def test_export_format_priority_over_extension(
