@@ -403,36 +403,6 @@ def test_builtin_exporters_define_expected_aliases(plugin_manager_with_exporters
     assert "reqs" in requirements_exporter.aliases
 
 
-def test_get_environment_exporter_unified(plugin_manager_with_exporters):
-    """Test the unified get_environment_exporter entry point."""
-    # Test by format
-    exporter = plugin_manager_with_exporters.get_environment_exporter(
-        format_name="environment-yaml"
-    )
-    assert exporter is not None
-    assert exporter.name == "environment-yaml"
-
-    # Test by filename
-    exporter = plugin_manager_with_exporters.get_environment_exporter(
-        filename="environment.json"
-    )
-    assert exporter is not None
-    assert exporter.name == "environment-json"
-
-    # Test error cases
-    with pytest.raises(
-        CondaValueError, match="Must provide either filename or format_name"
-    ):
-        plugin_manager_with_exporters.get_environment_exporter()
-
-    with pytest.raises(
-        CondaValueError, match="Cannot specify both filename and format_name"
-    ):
-        plugin_manager_with_exporters.get_environment_exporter(
-            filename="environment.yaml", format_name="environment-json"
-        )
-
-
 def test_alias_normalization_and_collision_detection():
     """Test that aliases are normalized and collision detection works."""
     # Test alias normalization

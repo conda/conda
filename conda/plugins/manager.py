@@ -736,26 +736,6 @@ class CondaPluginManager(pluggy.PluginManager):
         format_mapping = self.get_exporter_format_mapping()
         return format_mapping.get(format_name)
 
-    def get_environment_exporter(
-        self,
-        filename: str = None,
-        format_name: str = None,
-    ) -> CondaEnvironmentExporter | None:
-        """Get the environment exporter plugin for a given filename or format name
-
-        :param filename: Filename to detect exporter for (extension is used for detection)
-        :param format_name: Format name to find exporter for
-        :raises CondaValueError: If both or neither parameters are provided
-        """
-        if format_name and filename:
-            raise CondaValueError("Cannot specify both filename and format_name")
-        elif format_name:
-            return self.get_environment_exporter_by_format(format_name)
-        elif filename:
-            return self.detect_environment_exporter(filename)
-        else:
-            raise CondaValueError("Must provide either filename or format_name")
-
     def get_pre_transaction_actions(
         self,
         transaction_context: dict[str, str] | None = None,
