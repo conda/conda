@@ -75,74 +75,39 @@ def test_env_with_explicit_packages():
     )
 
 
-def test_builtin_yaml_exporter(plugin_manager_with_exporters, test_env):
-    """Test the built-in YAML environment exporter."""
+@pytest.mark.parametrize(
+    "format_name,parser_func",
+    [
+        ("environment-yaml", yaml.safe_load),
+        ("environment-json", json.loads),
+    ],
+)
+def test_builtin_structured_exporters(
+    plugin_manager_with_exporters, test_env, format_name, parser_func
+):
+    """Test built-in exporters that produce structured output (YAML/JSON)."""
     # Test that exporter is available
-    exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        format_name="environment-yaml"
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name
     )
-    assert exporter_config is not None
-    assert exporter_config.name == "environment-yaml"
+    assert exporter is not None
+    assert exporter.name == format_name
 
-    # Test export functionality using the export callable directly
-    result = exporter_config.export(test_env)
+    # Test export functionality
+    result = exporter.export(test_env)
 
-    # Verify it's valid YAML by parsing it
-    parsed = yaml.safe_load(result)
+    # Parse using appropriate parser
+    parsed = parser_func(result)
 
-    # Check actual structure, not exact formatting
+    # Verify structure
     assert parsed["name"] == "test-env"
     assert "dependencies" in parsed
-    assert len(parsed["dependencies"]) >= 2  # At least the packages we put in
+    assert len(parsed["dependencies"]) >= 2
 
-    # Verify our test packages are represented somehow in dependencies
+    # Verify test packages are present
     deps_str = str(parsed["dependencies"])
     assert "python" in deps_str
     assert "numpy" in deps_str
-
-
-def test_builtin_json_exporter(plugin_manager_with_exporters, test_env):
-    """Test the built-in JSON environment exporter."""
-    # Test that exporter is available
-    exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        format_name="environment-json"
-    )
-    assert exporter_config is not None
-    assert exporter_config.name == "environment-json"
-
-    # Test export functionality using the export callable directly
-    result = exporter_config.export(test_env)
-
-    # Parse JSON to verify structure
-    parsed = json.loads(result)
-    assert parsed["name"] == "test-env"
-    assert "dependencies" in parsed
-    assert len(parsed["dependencies"]) >= 2  # At least the packages we put in
-
-    # Verify our test packages are present
-    deps_str = str(parsed["dependencies"])
-    assert "python" in deps_str
-    assert "numpy" in deps_str
-
-
-def test_builtin_explicit_exporter(plugin_manager_with_exporters, test_env):
-    """Test the built-in explicit environment exporter with requested packages only."""
-    # Test that exporter is available
-    exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        format_name="explicit"
-    )
-    assert exporter_config is not None
-    assert exporter_config.name == "explicit"
-
-    # Test export functionality with requested packages only (should fail for explicit exporter)
-    try:
-        exporter_config.export(test_env)
-        assert False, (
-            "Expected CondaValueError for explicit exporter with requested packages only"
-        )
-    except CondaValueError as e:
-        assert "Cannot export explicit format" in str(e)
-        assert "requirements" in str(e)
 
 
 def test_builtin_requirements_exporter(plugin_manager_with_exporters, test_env):
@@ -209,25 +174,37 @@ def test_builtin_explicit_exporter_with_urls(
     assert "numpy-1.21.0-py39hdbf815f_0.conda" in result
 
 
-def test_requirements_exporter_with_explicit_packages(
-    plugin_manager_with_exporters, test_env_with_explicit_packages
+@pytest.mark.parametrize(
+    "format_name,test_env_fixture,expected_error_fragment",
+    [
+        ("explicit", "test_env", "Cannot export explicit format"),
+        (
+            "requirements",
+            "test_env_with_explicit_packages",
+            "Cannot export requirements format",
+        ),
+    ],
+)
+def test_exporter_error_conditions(
+    plugin_manager_with_exporters,
+    request,
+    format_name,
+    test_env_fixture,
+    expected_error_fragment,
 ):
-    """Test the requirements exporter fails appropriately when only explicit packages are available."""
-    # Test that exporter is available
-    exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        format_name="requirements"
-    )
-    assert exporter_config is not None
+    """Test exporters fail appropriately with incompatible environment data."""
+    # Get the test environment from fixture name
+    test_env = request.getfixturevalue(test_env_fixture)
 
-    # Test export functionality with explicit packages only (should fail for requirements exporter)
-    try:
-        exporter_config.export(test_env_with_explicit_packages)
-        assert False, (
-            "Expected CondaValueError for requirements exporter with explicit packages only"
-        )
-    except CondaValueError as e:
-        assert "Cannot export requirements format" in str(e)
-        assert "explicit" in str(e)
+    # Get exporter
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name
+    )
+    assert exporter is not None
+
+    # Test export should fail with appropriate error
+    with pytest.raises(CondaValueError, match=expected_error_fragment):
+        exporter.export(test_env)
 
 
 def test_get_environment_exporters(plugin_manager_with_exporters):
@@ -336,71 +313,34 @@ def test_yaml_exporter_handles_missing_name(plugin_manager_with_exporters):
     assert "name" in parsed
 
 
-def test_dynamic_alias_resolution(plugin_manager_with_exporters):
-    """Test that alias resolution works dynamically without hardcoded mappings."""
-
-    # Test that yaml alias resolves correctly
-    yaml_exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "yaml"
-    )
-    assert yaml_exporter is not None
-
-    # Test that the resolved exporter actually defines "yaml" as an alias
-    assert "yaml" in yaml_exporter.aliases
-
-    # Test that json alias resolves correctly
-    json_exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "json"
-    )
-    assert json_exporter is not None
-
-    # Test that the resolved exporter actually defines "json" as an alias
-    assert "json" in json_exporter.aliases
-
-    # Test that canonical names still work
-    canonical_yaml = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "environment-yaml"
-    )
-    canonical_json = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "environment-json"
-    )
-
-    # Verify aliases resolve to the same exporters as canonical names
-    assert yaml_exporter.name == canonical_yaml.name
-    assert json_exporter.name == canonical_json.name
-
-
-def test_builtin_exporters_define_expected_aliases(plugin_manager_with_exporters):
+@pytest.mark.parametrize(
+    "format_name,expected_aliases",
+    [
+        ("environment-yaml", ("yaml", "yml")),
+        ("environment-json", ("json",)),
+        ("explicit", ()),
+        ("requirements", ("reqs", "txt")),
+    ],
+)
+def test_builtin_exporters_define_expected_aliases(
+    plugin_manager_with_exporters, format_name, expected_aliases
+):
     """Test that built-in exporters define their expected aliases."""
-
-    # Test YAML exporter aliases
-    yaml_exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "environment-yaml"
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name
     )
-    assert yaml_exporter is not None
-    assert "yaml" in yaml_exporter.aliases
+    assert exporter is not None
 
-    # Test JSON exporter aliases
-    json_exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "environment-json"
-    )
-    assert json_exporter is not None
-    assert "json" in json_exporter.aliases
+    # Check that all expected aliases are present
+    for alias in expected_aliases:
+        assert alias in exporter.aliases
 
-    # Test explicit exporter has no aliases
-    explicit_exporter = (
-        plugin_manager_with_exporters.get_environment_exporter_by_format("explicit")
-    )
-    assert explicit_exporter is not None
-    assert explicit_exporter.aliases == ()
-
-    # Test requirements exporter has txt and reqs aliases
-    requirements_exporter = (
-        plugin_manager_with_exporters.get_environment_exporter_by_format("requirements")
-    )
-    assert requirements_exporter is not None
-    assert "txt" in requirements_exporter.aliases
-    assert "reqs" in requirements_exporter.aliases
+    # Verify alias resolution works - each alias should resolve back to this exporter
+    for alias in expected_aliases:
+        alias_resolved = (
+            plugin_manager_with_exporters.get_environment_exporter_by_format(alias)
+        )
+        assert alias_resolved.name == exporter.name
 
 
 def test_alias_normalization_and_collision_detection():
