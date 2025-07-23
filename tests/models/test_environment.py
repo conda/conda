@@ -10,6 +10,7 @@ from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.testing.fixtures import TmpEnvFixture
 
 
 def test_create_environment_missing_required_fields():
@@ -329,3 +330,55 @@ def test_merge_channel_settings():
         ),
     )
     assert result == expected
+
+
+@pytest.mark.integration
+def test_from_prefix_package_population_semantics(tmp_env: TmpEnvFixture):
+    """Test that explicit_packages and requested_packages are populated with correct semantics."""
+    with tmp_env("zlib") as prefix:
+        env_history = Environment.from_prefix(
+            str(prefix), "test", "linux-64", from_history=True
+        )
+        env_normal = Environment.from_prefix(
+            str(prefix), "test", "linux-64", from_history=False
+        )
+
+        # explicit_packages: always PackageRecords from prefix (regardless of from_history)
+        for env in [env_history, env_normal]:
+            assert len(env.explicit_packages) > 0
+            assert all(isinstance(pkg, PackageRecord) for pkg in env.explicit_packages)
+            assert "zlib" in {pkg.name for pkg in env.explicit_packages}
+
+        # requested_packages: always MatchSpecs, both populated
+        for env in [env_history, env_normal]:
+            assert len(env.requested_packages) > 0
+            assert all(isinstance(spec, MatchSpec) for spec in env.requested_packages)
+
+
+@pytest.mark.integration
+def test_from_prefix_options_affect_correct_packages(tmp_env: TmpEnvFixture):
+    """Test that command-line options affect requested_packages but not explicit_packages."""
+    with tmp_env("zlib") as prefix:
+        env_default = Environment.from_prefix(str(prefix), "test", "linux-64")
+        env_no_builds = Environment.from_prefix(
+            str(prefix), "test", "linux-64", no_builds=True
+        )
+        env_no_channels = Environment.from_prefix(
+            str(prefix), "test", "linux-64", ignore_channels=True
+        )
+
+        # explicit_packages identical across all options (always PackageRecords)
+        pkg_count = len(env_default.explicit_packages)
+        assert len(env_no_builds.explicit_packages) == pkg_count
+        assert len(env_no_channels.explicit_packages) == pkg_count
+
+        # Options affect requested_packages format
+        default_spec = str(env_default.requested_packages[0])
+        no_builds_spec = str(env_no_builds.requested_packages[0])
+        no_channels_specs = [str(s) for s in env_no_channels.requested_packages]
+
+        # no_builds: fewer "=" signs (no build string)
+        assert default_spec.count("=") > no_builds_spec.count("=")
+
+        # ignore_channels: no "::" in specs
+        assert not any("::" in spec for spec in no_channels_specs)
