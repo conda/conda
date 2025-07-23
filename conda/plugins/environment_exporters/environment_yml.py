@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Final, Literal
+from typing import TYPE_CHECKING, Literal
 
 from ...common.serialize import json, yaml_safe_dump
 from ...exceptions import CondaValueError
@@ -12,7 +12,7 @@ from ..hookspec import hookimpl
 from ..types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Final
 
     from ...models.environment import Environment
 
@@ -83,7 +83,7 @@ def conda_environment_exporters():
     """Register the built-in YAML and JSON environment exporters."""
     yield CondaEnvironmentExporter(
         name=ENVIRONMENT_YAML_FORMAT,
-        aliases=("yaml",),
+        aliases=("yaml", "yml"),
         default_filenames=("environment.yaml", "environment.yml"),
         export=export_yaml,
     )

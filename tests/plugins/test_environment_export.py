@@ -19,9 +19,13 @@ from conda.models.records import PackageRecord
 @pytest.fixture
 def plugin_manager_with_exporters(plugin_manager):
     """Get plugin manager with environment exporter plugins loaded."""
-    from conda.plugins.environment_exporters import explicit, requirements, standard
+    from conda.plugins.environment_exporters import (
+        environment_yml,
+        explicit,
+        requirements_txt,
+    )
 
-    plugin_manager.load_plugins(explicit, requirements, standard)
+    plugin_manager.load_plugins(environment_yml, explicit, requirements_txt)
     return plugin_manager
 
 

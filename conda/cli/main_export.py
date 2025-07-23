@@ -16,7 +16,10 @@ from ..base.context import context
 from ..common.constants import NULL
 from ..exceptions import CondaValueError
 from ..models.environment import Environment
-from ..plugins.environment_exporters.standard import ENVIRONMENT_JSON_FORMAT, ENVIRONMENT_YAML_FORMAT
+from ..plugins.environment_exporters.environment_yml import (
+    ENVIRONMENT_JSON_FORMAT,
+    ENVIRONMENT_YAML_FORMAT,
+)
 
 
 def _get_available_export_formats() -> tuple[str, ...]:
@@ -186,7 +189,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     export_format = (
         ENVIRONMENT_JSON_FORMAT if (args.json and not args.file) else target_format
     )
-    if export_format == ENVIRONMENT_JSON_FORMAT and target_format != ENVIRONMENT_JSON_FORMAT:
+    if (
+        export_format == ENVIRONMENT_JSON_FORMAT
+        and target_format != ENVIRONMENT_JSON_FORMAT
+    ):
         json_exporter = context.plugin_manager.get_environment_exporter_by_format(
             ENVIRONMENT_JSON_FORMAT
         )

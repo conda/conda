@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Built-in conda environment exporter plugins."""
 
-from . import explicit, requirements, standard
+from . import environment_yml, explicit, requirements_txt
 
 #: The list of environment exporter plugins for easier registration with pluggy
-plugins = [explicit, requirements, standard]
+plugins = [environment_yml, explicit, requirements_txt]
