@@ -16,6 +16,7 @@ from ..base.context import context
 from ..common.constants import NULL
 from ..exceptions import CondaValueError
 from ..models.environment import Environment
+from ..plugins.environment_exporters.standard import ENVIRONMENT_JSON_FORMAT, ENVIRONMENT_YAML_FORMAT
 
 
 def _get_available_export_formats() -> tuple[str, ...]:
@@ -162,7 +163,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             )
     else:
         # No file and no explicit format, default to environment-yaml
-        target_format = "environment-yaml"
+        target_format = ENVIRONMENT_YAML_FORMAT
         environment_exporter = (
             context.plugin_manager.get_environment_exporter_by_format(target_format)
         )
@@ -183,11 +184,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Export the environment - use JSON format if --json flag without file
     export_format = (
-        "environment-json" if (args.json and not args.file) else target_format
+        ENVIRONMENT_JSON_FORMAT if (args.json and not args.file) else target_format
     )
-    if export_format == "environment-json" and target_format != "environment-json":
+    if export_format == ENVIRONMENT_JSON_FORMAT and target_format != ENVIRONMENT_JSON_FORMAT:
         json_exporter = context.plugin_manager.get_environment_exporter_by_format(
-            "environment-json"
+            ENVIRONMENT_JSON_FORMAT
         )
         if not json_exporter:
             raise CondaValueError("JSON exporter plugin not available")

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final, Literal
 
 from ...common.serialize import json, yaml_safe_dump
 from ...exceptions import CondaValueError
@@ -15,6 +15,13 @@ if TYPE_CHECKING:
     from typing import Any
 
     from ...models.environment import Environment
+
+# Modern Python constants using Final annotations
+ENVIRONMENT_JSON_FORMAT: Final = "environment-json"
+ENVIRONMENT_YAML_FORMAT: Final = "environment-yaml"
+
+# Type alias for format validation
+EnvironmentFormatType = Literal["environment-json", "environment-yaml"]
 
 
 def to_dict(env: Environment) -> dict[str, Any]:
@@ -75,14 +82,14 @@ def export_json(env: Environment) -> str:
 def conda_environment_exporters():
     """Register the built-in YAML and JSON environment exporters."""
     yield CondaEnvironmentExporter(
-        name="environment-yaml",
+        name=ENVIRONMENT_YAML_FORMAT,
         aliases=("yaml",),
         default_filenames=("environment.yaml", "environment.yml"),
         export=export_yaml,
     )
 
     yield CondaEnvironmentExporter(
-        name="environment-json",
+        name=ENVIRONMENT_JSON_FORMAT,
         aliases=("json",),
         default_filenames=("environment.json",),
         export=export_json,
