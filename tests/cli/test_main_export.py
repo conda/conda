@@ -10,7 +10,7 @@ import pytest
 
 from conda.cli.main_export import _get_available_export_formats
 from conda.common.serialize import yaml_safe_load
-from conda.exceptions import CondaValueError
+from conda.exceptions import ArgumentError, CondaValueError
 from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -28,20 +28,21 @@ def test_export(conda_cli: CondaCLIFixture) -> None:
 
 
 def test_export_override_channels(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:
-    """Test export with override channels."""
+    """Test export with override channels requires channel specification."""
     name = uuid.uuid4().hex
     path = tmp_path / "environment.yaml"  # Use exact default filename
 
-    conda_cli(
-        "export",
-        f"--name={name}",
-        "--override-channels",
-        f"--file={path}",
-    )
-    assert path.exists()
-
-    data = yaml_safe_load(path.read_text())
-    assert data["name"] == name
+    # Using --override-channels without specifying channels should raise ArgumentError
+    with pytest.raises(
+        ArgumentError,
+        match="At least one -c / --channel flag must be supplied when using --override-channels",
+    ):
+        conda_cli(
+            "export",
+            f"--name={name}",
+            "--override-channels",
+            f"--file={path}",
+        )
 
 
 def test_export_add_channels(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:

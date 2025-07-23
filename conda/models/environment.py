@@ -471,13 +471,7 @@ class Environment:
                     environment_channels.append(channel)
 
         # Create environment config with comprehensive context settings
-        # Try to use from_context() which is cleaner, but handle validation errors
-        try:
-            config = EnvironmentConfig.from_context()
-        except Exception:
-            # If from_context() fails (e.g., due to --override-channels validation),
-            # create a minimal config and we'll populate it with channels from packages
-            config = EnvironmentConfig()
+        config = EnvironmentConfig.from_context()
 
         # Override/set channels with those extracted from installed packages if any were found
         if environment_channels:
