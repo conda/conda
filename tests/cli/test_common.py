@@ -131,8 +131,8 @@ def test_validate_subdir_config(mocker: MockerFixture):
         "conda.base.context.Context.collect_all",
         return_value={
             "cmd_line": {"channels": ["conda-forge"]},
-            Path("/path/to/a/condarc"):  {"channels": ["defaults"]},
-            Path("/path/to/another/condarc"):  {"override_channels_enabled": "True"},
+            Path("/path/to/a/condarc"): {"channels": ["defaults"]},
+            Path("/path/to/another/condarc"): {"override_channels_enabled": "True"},
         },
     )
 
@@ -164,7 +164,7 @@ def test_validate_subdir_config_invalid_subdir(mocker: MockerFixture):
         return_value={
             "cmd_line": {"channels": ["conda-forge"]},
             dummy_conda_rc: {"subdir": subdir},
-            Path("/path/to/a/condarc"):  {"channels": ["defaults"]},
+            Path("/path/to/a/condarc"): {"channels": ["defaults"]},
         },
     )
 

@@ -23,7 +23,6 @@ from typing import TYPE_CHECKING
 
 from frozendict import frozendict
 
-from .constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
@@ -47,6 +46,7 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
 from .constants import (
     APP_NAME,
+    CMD_LINE_SOURCE,
     CONDA_LIST_FIELDS,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNEL_ALIAS,
@@ -59,6 +59,7 @@ from .constants import (
     DEFAULT_JSON_REPORTER_BACKEND,
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
+    ENV_VARS_SOURCE,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
     NO_PLUGINS,
