@@ -63,25 +63,6 @@ def test_export_add_channels(conda_cli: CondaCLIFixture, tmp_path: Path) -> None
     assert data["name"] == name
 
 
-def test_export_yaml_file_extension(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:
-    """Test export with YAML file using exact filename match."""
-    name = uuid.uuid4().hex
-    path = tmp_path / "environment.yaml"  # Use exact default filename
-
-    # This should work without explicit format because filename is recognized
-    conda_cli("export", f"--name={name}", f"--file={path}")
-    assert path.exists()
-
-    # Content should be YAML format
-    data = yaml_safe_load(path.read_text())
-    assert data["name"] == name
-
-    # Test with .yml extension too
-    path_yml = tmp_path / "environment.yml"
-    conda_cli("export", f"--name={name}", f"--file={path_yml}")
-    assert path_yml.exists()
-
-
 def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture) -> None:
     """Test that missing default format works (should default to environment-yaml)."""
     name = uuid.uuid4().hex
@@ -95,99 +76,112 @@ def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture) -> None:
     assert yaml_data["name"] == name
 
 
-def test_export_with_json(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:
-    """Test JSON export using exact filename."""
-    name = uuid.uuid4().hex
-    path = tmp_path / "environment.json"  # Use exact default filename
-
-    stdout, stderr, code = conda_cli(
-        "export",
-        f"--name={name}",
-        f"--file={path}",
-    )
-    assert not stderr
-    assert not code
-    assert path.exists()
-
-    # Verify it's valid JSON
-    json_data = json.loads(path.read_text())
-    assert json_data["name"] == name
-
-
-def test_export_json_format(conda_cli: CondaCLIFixture) -> None:
-    """Test exporting with --format environment-json."""
+@pytest.mark.parametrize(
+    "format_name,parser_func",
+    [
+        ("environment-yaml", yaml_safe_load),
+        ("environment-json", json.loads),
+        ("yaml", yaml_safe_load),  # Test alias
+        ("json", json.loads),  # Test alias
+    ],
+)
+def test_export_format_to_stdout(conda_cli: CondaCLIFixture, format_name, parser_func):
+    """Test exporting with different formats to stdout (canonical names and aliases)."""
     name = uuid.uuid4().hex
     stdout, stderr, code = conda_cli(
-        "export", f"--name={name}", "--format=environment-json"
+        "export", f"--name={name}", f"--format={format_name}"
     )
     assert not stderr
     assert not code
     assert stdout
 
-    # Verify it's valid JSON
-    json_data = json.loads(stdout)
-    assert json_data["name"] == name
+    # Parse with appropriate parser and verify content
+    parsed_data = parser_func(stdout)
+    assert parsed_data["name"] == name
 
 
-def test_export_json_file_extension(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:
-    """Test export with JSON file using exact filename."""
+@pytest.mark.parametrize(
+    "filename,parser_func",
+    [
+        ("environment.yaml", yaml_safe_load),
+        ("environment.yml", yaml_safe_load),
+        ("environment.json", json.loads),
+    ],
+)
+def test_export_structured_file_extension_detection(
+    conda_cli: CondaCLIFixture, tmp_path: Path, filename, parser_func
+):
+    """Test export with structured format file extension detection."""
     name = uuid.uuid4().hex
-    path = tmp_path / "environment.json"  # Use exact default filename
+    path = tmp_path / filename
 
     conda_cli("export", f"--name={name}", f"--file={path}")
     assert path.exists()
 
-    json_data = json.loads(path.read_text())
-    assert json_data["name"] == name
+    # Parse with appropriate parser and verify content
+    parsed_data = parser_func(path.read_text())
+    assert parsed_data["name"] == name
 
 
-def test_export_yaml_format(conda_cli: CondaCLIFixture) -> None:
-    """Test exporting with --format environment-yaml."""
+@pytest.mark.parametrize(
+    "format_name,expected_error_fragment",
+    [
+        ("explicit", "Cannot export explicit format"),
+        ("requirements", "Cannot export requirements format"),
+        ("reqs", "Cannot export requirements format"),  # Test alias
+        ("txt", "Cannot export requirements format"),  # Test alias
+    ],
+)
+def test_export_text_formats_fail_on_empty_environments(
+    conda_cli: CondaCLIFixture, format_name, expected_error_fragment
+):
+    """Test that text-based formats appropriately fail for empty environments."""
     name = uuid.uuid4().hex
-    stdout, stderr, code = conda_cli(
-        "export", f"--name={name}", "--format=environment-yaml"
-    )
-    assert not stderr
-    assert not code
-    assert stdout
 
-    yaml_data = yaml_safe_load(stdout)
-    assert yaml_data["name"] == name
+    # These formats should fail because empty environments have no package data
+    with pytest.raises(CondaValueError, match=expected_error_fragment):
+        conda_cli("export", f"--name={name}", f"--format={format_name}")
 
 
-def test_export_yaml_alias(conda_cli: CondaCLIFixture) -> None:
-    """Test exporting with --format yaml (alias)."""
+@pytest.mark.parametrize(
+    "filename,expected_error_fragment",
+    [
+        ("explicit.txt", "Cannot export explicit format"),
+        ("requirements.txt", "Cannot export requirements format"),
+        ("spec.txt", "Cannot export requirements format"),
+    ],
+)
+def test_export_text_file_extensions_fail_on_empty_environments(
+    conda_cli: CondaCLIFixture, tmp_path: Path, filename, expected_error_fragment
+):
+    """Test that text-based file extensions appropriately fail for empty environments."""
     name = uuid.uuid4().hex
-    stdout, stderr, code = conda_cli("export", f"--name={name}", "--format=yaml")
-    assert not stderr
-    assert not code
-    assert stdout
+    path = tmp_path / filename
 
-    yaml_data = yaml_safe_load(stdout)
-    assert yaml_data["name"] == name
+    # These should fail because empty environments have no package data
+    with pytest.raises(CondaValueError, match=expected_error_fragment):
+        conda_cli("export", f"--name={name}", f"--file={path}")
 
 
-def test_export_json_alias(conda_cli: CondaCLIFixture) -> None:
-    """Test exporting with --format json (alias)."""
+@pytest.mark.parametrize(
+    "format_name,expected_exception",
+    [
+        ("toml", SystemExit),  # Unsupported format
+        ("unknown", SystemExit),  # Unknown format
+    ],
+)
+def test_export_unsupported_formats(
+    conda_cli: CondaCLIFixture, format_name, expected_exception
+):
+    """Test that unsupported/unknown formats raise appropriate errors."""
     name = uuid.uuid4().hex
-    stdout, stderr, code = conda_cli("export", f"--name={name}", "--format=json")
-    assert not stderr
-    assert not code
-    assert stdout
-
-    # Verify it's valid JSON
-    json_data = json.loads(stdout)
-    assert json_data["name"] == name
+    with pytest.raises(expected_exception):
+        conda_cli("export", f"--name={name}", f"--format={format_name}")
 
 
-def test_export_toml_format(conda_cli: CondaCLIFixture) -> None:
-    """Test that unsupported format raises appropriate error."""
-    name = uuid.uuid4().hex
-    with pytest.raises(SystemExit):
-        conda_cli("export", f"--name={name}", "--format=toml")
-
-
-def test_export_toml_file_extension(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:
+def test_export_unrecognized_file_extension(
+    conda_cli: CondaCLIFixture, tmp_path: Path
+) -> None:
     """Test that unrecognized filename requires explicit format."""
     name = uuid.uuid4().hex
     path = tmp_path / "environment.toml"  # Non-default filename
@@ -199,35 +193,6 @@ def test_export_toml_file_extension(conda_cli: CondaCLIFixture, tmp_path: Path) 
     # Should work with explicit format
     conda_cli("export", f"--name={name}", f"--file={path}", "--format=environment-yaml")
     assert path.exists()
-
-
-def test_export_unknown_format(conda_cli: CondaCLIFixture) -> None:
-    """Test that unknown format shows all available formats including aliases."""
-    name = uuid.uuid4().hex
-
-    # Capture the argparse error message that shows available choices
-    with pytest.raises(SystemExit):
-        conda_cli("export", f"--name={name}", "--format=unknown")
-
-    # The error message is captured in the test output, but we can also test by
-    # checking that our function returns the same formats shown in CLI help
-    available_formats = _get_available_export_formats()
-
-    # Verify that all expected formats are available (this would have failed before our fix)
-    expected_canonical = {"environment-yaml", "environment-json", "explicit"}
-    expected_aliases = {"yaml", "json"}
-
-    assert expected_canonical.issubset(set(available_formats)), (
-        "Missing canonical format names"
-    )
-    assert expected_aliases.issubset(set(available_formats)), (
-        "Missing user-friendly aliases"
-    )
-
-    # This ensures consistency between CLI choices and error messages
-    assert len(available_formats) >= 5, (
-        f"Expected at least 5 formats, got {len(available_formats)}"
-    )
 
 
 def test_export_unknown_format_verbose(conda_cli: CondaCLIFixture) -> None:
