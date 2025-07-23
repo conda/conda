@@ -142,7 +142,7 @@ warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 addopts = [
-  "--color=yes",
+  "--color=auto",
   # "--cov=conda",   # passed in test runner scripts instead (avoid debugger)
   "--cov-append",
   "--cov-branch",

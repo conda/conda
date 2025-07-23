@@ -15,7 +15,8 @@ dependencies:
 
     # Install in editable mode.
     # More natural than - "--editable=git+https://github.com/neithere/argh.git#egg=argh
-    - -e git+https://github.com/neithere/argh.git#egg=argh
+    # Version 0.29.0, oldest version with a tag. Preferred to "newest version" for stable tests.
+    - -e "git+https://github.com/neithere/argh.git@4ee7fd55050f6c49cc44f947241d9c9577ada0e2#egg=argh"
 
     # You could also specify a package in a directory.
     # The directory can be relative to this environment file.

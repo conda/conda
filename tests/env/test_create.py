@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -14,11 +15,9 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing.integration import package_is_installed
 
-from . import support_file
+from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import (
@@ -104,14 +103,18 @@ def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
+    support_file_isolated,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
+    # avoid pip touching support_file paths inside source checkout
+    environment_yml = support_file_isolated(Path("advanced-pip", "environment.yml"))
+
     stdout, stderr, _ = conda_cli(
         *("env", "create"),
         *("--name", env_name),
-        *("--file", support_file("advanced-pip/environment.yml")),
+        *("--file", str(environment_yml)),
     )
 
     PrefixData._cache_.clear()
@@ -208,9 +211,8 @@ def test_create_update_remote_env_file(
         *("--name", env_name),
         *(
             "--file",
-            support_file(
+            remote_support_file(
                 "example/environment_pinned.yml",
-                remote=True,
                 port=support_file_server_port,
             ),
         ),
@@ -230,9 +232,8 @@ def test_create_update_remote_env_file(
         *("--name", env_name),
         *(
             "--file",
-            support_file(
+            remote_support_file(
                 "example/environment_pinned_updated.yml",
-                remote=True,
                 port=support_file_server_port,
             ),
         ),
