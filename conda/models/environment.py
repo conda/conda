@@ -425,18 +425,23 @@ class Environment:
         """
         prefix_data = PrefixData(prefix)
 
-        # Build requested packages from installed packages or history
+        # Build requested packages and explicit packages from installed packages or history
         requested_packages = []
+        explicit_packages = []
 
         if from_history:
             # Use explicit specs from history
             history = History(prefix)
             spec_map = history.get_requested_specs_map()
             requested_packages = list(spec_map.values())
+            # No explicit packages when using history
         else:
             # Read all installed packages from prefix data
             for prefix_record in prefix_data.iter_records():
-                # Create MatchSpec from installed package
+                # Add to explicit_packages (for explicit export with URLs)
+                explicit_packages.append(prefix_record)
+
+                # Also create MatchSpec for requested_packages (for yaml/json export)
                 if no_builds:
                     spec_str = f"{prefix_record.name}=={prefix_record.version}"
                 else:
@@ -489,6 +494,7 @@ class Environment:
             prefix=prefix,
             platform=platform,
             requested_packages=requested_packages,
+            explicit_packages=explicit_packages,
             variables=variables,
             config=config,
         )

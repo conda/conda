@@ -10,16 +10,18 @@ import pytest
 import yaml
 
 from conda.exceptions import CondaValueError
+from conda.models.channel import Channel
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
 
 
 @pytest.fixture
 def plugin_manager_with_exporters(plugin_manager):
     """Get plugin manager with environment exporter plugins loaded."""
-    from conda.plugins.environment_exporters import explicit, standard
+    from conda.plugins.environment_exporters import explicit, requirements, standard
 
-    plugin_manager.load_plugins(explicit, standard)
+    plugin_manager.load_plugins(explicit, requirements, standard)
     return plugin_manager
 
 
@@ -31,6 +33,40 @@ def test_env():
         prefix="/tmp/test-env",
         platform="linux-64",
         requested_packages=[MatchSpec("python=3.9"), MatchSpec("numpy")],
+    )
+
+
+@pytest.fixture
+def test_env_with_explicit_packages():
+    """Create a test environment with explicit packages (URLs) for explicit exporter testing."""
+    # Create mock PackageRecord objects with proper URLs
+    python_pkg = PackageRecord(
+        name="python",
+        version="3.9.7",
+        build="h12debd9_0",
+        build_number=0,
+        channel=Channel("https://repo.anaconda.com/pkgs/main"),
+        subdir="linux-64",
+        fn="python-3.9.7-h12debd9_0.conda",
+        url="https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.7-h12debd9_0.conda",
+    )
+
+    numpy_pkg = PackageRecord(
+        name="numpy",
+        version="1.21.0",
+        build="py39hdbf815f_0",
+        build_number=0,
+        channel=Channel("https://repo.anaconda.com/pkgs/main"),
+        subdir="linux-64",
+        fn="numpy-1.21.0-py39hdbf815f_0.conda",
+        url="https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.21.0-py39hdbf815f_0.conda",
+    )
+
+    return Environment(
+        name="test-env",
+        prefix="/tmp/test-env",
+        platform="linux-64",
+        explicit_packages=[python_pkg, numpy_pkg],
     )
 
 
@@ -85,7 +121,7 @@ def test_builtin_json_exporter(plugin_manager_with_exporters, test_env):
 
 
 def test_builtin_explicit_exporter(plugin_manager_with_exporters, test_env):
-    """Test the built-in explicit environment exporter."""
+    """Test the built-in explicit environment exporter with requested packages only."""
     # Test that exporter is available
     exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
         format_name="explicit"
@@ -93,35 +129,100 @@ def test_builtin_explicit_exporter(plugin_manager_with_exporters, test_env):
     assert exporter_config is not None
     assert exporter_config.name == "explicit"
 
-    # Test export functionality using the export callable directly
+    # Test export functionality with requested packages only (should fail for explicit exporter)
+    try:
+        exporter_config.export(test_env)
+        assert False, (
+            "Expected CondaValueError for explicit exporter with requested packages only"
+        )
+    except CondaValueError as e:
+        assert "Cannot export explicit format" in str(e)
+        assert "requirements" in str(e)
+
+
+def test_builtin_requirements_exporter(plugin_manager_with_exporters, test_env):
+    """Test the built-in requirements environment exporter with requested packages."""
+    # Test that exporter is available
+    exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name="requirements"
+    )
+    assert exporter_config is not None
+    assert exporter_config.name == "requirements"
+
+    # Test export functionality with requested packages (should create requirements file)
     result = exporter_config.export(test_env)
 
-    # Verify it's an @EXPLICIT format
-    assert "@EXPLICIT" in result
+    # Verify it's NOT an @EXPLICIT format (CEP 23 compliance)
+    assert "@EXPLICIT" not in result
 
-    # Verify platform information is included (like conda list --export)
+    # Verify it's a requirements file with MatchSpec strings
+    assert "# Note: This is a conda requirements file (MatchSpec format)" in result
+    assert "# Contains conda package specifications, not pip requirements" in result
+
+    # Verify platform information is included
     assert f"# platform: {test_env.platform}" in result
 
-    # Verify created-by information is included
-    assert "# created-by: conda" in result
-
-    # Verify it contains package specifications that are NOT commented out
-    # This is the critical bug we fixed - package specs were being commented with "#"
+    # Check that MatchSpec strings are preserved (not converted)
     lines = result.split("\n")
-    package_specs = [
-        line
-        for line in lines
-        if line and not line.startswith("#") and line != "@EXPLICIT"
-    ]
+    package_specs = [line for line in lines if line and not line.startswith("#")]
 
-    # Should have actual package specifications
-    assert len(package_specs) > 0, "Should contain package specifications"
+    # Should have 2 package specifications
+    assert len(package_specs) == 2
 
-    # Verify none of our package specs got accidentally commented out
-    for spec in package_specs:
-        assert not spec.strip().startswith("# "), (
-            f"Package spec should not be commented out: {spec}"
+    # Check the MatchSpec format (should use original MatchSpec string representation)
+    specs_text = "\n".join(package_specs)
+    assert "python" in specs_text
+    assert "numpy" in specs_text
+
+
+def test_builtin_explicit_exporter_with_urls(
+    plugin_manager_with_exporters, test_env_with_explicit_packages
+):
+    """Test the built-in explicit environment exporter with actual package URLs."""
+    # Test that exporter is available
+    exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name="explicit"
+    )
+    assert exporter_config is not None
+
+    # Test export functionality with explicit packages (should create true explicit file)
+    result = exporter_config.export(test_env_with_explicit_packages)
+
+    # Verify it IS an @EXPLICIT format (CEP 23 compliance)
+    assert "@EXPLICIT" in result
+
+    # Verify platform information is included
+    assert f"# platform: {test_env_with_explicit_packages.platform}" in result
+
+    # Check that URLs are included
+    lines = result.split("\n")
+    url_lines = [line for line in lines if line.startswith("https://")]
+
+    # Should have URLs for both packages
+    assert len(url_lines) == 2
+    assert "python-3.9.7-h12debd9_0.conda" in result
+    assert "numpy-1.21.0-py39hdbf815f_0.conda" in result
+
+
+def test_requirements_exporter_with_explicit_packages(
+    plugin_manager_with_exporters, test_env_with_explicit_packages
+):
+    """Test the requirements exporter fails appropriately when only explicit packages are available."""
+    # Test that exporter is available
+    exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name="requirements"
+    )
+    assert exporter_config is not None
+
+    # Test export functionality with explicit packages only (should fail for requirements exporter)
+    try:
+        result = exporter_config.export(test_env_with_explicit_packages)
+        assert False, (
+            "Expected CondaValueError for requirements exporter with explicit packages only"
         )
+    except CondaValueError as e:
+        assert "Cannot export requirements format" in str(e)
+        assert "explicit" in str(e)
 
 
 def test_get_environment_exporters(plugin_manager_with_exporters):
@@ -136,6 +237,7 @@ def test_get_environment_exporters(plugin_manager_with_exporters):
     assert "environment-yaml" in exporter_names
     assert "environment-json" in exporter_names
     assert "explicit" in exporter_names
+    assert "requirements" in exporter_names
     assert isinstance(exporter_list, list)
     assert all(hasattr(exporter, "name") for exporter in exporter_list)
 
@@ -146,7 +248,9 @@ def test_get_environment_exporters(plugin_manager_with_exporters):
         ("environment.yaml", "environment-yaml"),
         ("environment.yml", "environment-yaml"),
         ("environment.json", "environment-json"),
-        ("requirements.txt", "explicit"),
+        ("explicit.txt", "explicit"),
+        ("requirements.txt", "requirements"),
+        ("spec.txt", "requirements"),
         ("my-env.yaml", None),  # Not a recognized default filename
         ("env.unknown", None),
     ],
@@ -170,8 +274,11 @@ def test_detect_environment_exporter(
         ("environment-yaml", True),
         ("environment-json", True),
         ("explicit", True),
+        ("requirements", True),
         ("yaml", True),  # Test alias
         ("json", True),  # Test alias
+        ("txt", True),  # Test alias for requirements
+        ("reqs", True),  # Test alias for requirements
         ("unknown", False),
     ],
 )
@@ -281,6 +388,14 @@ def test_builtin_exporters_define_expected_aliases(plugin_manager_with_exporters
     )
     assert explicit_exporter is not None
     assert explicit_exporter.aliases == ()
+
+    # Test requirements exporter has txt and reqs aliases
+    requirements_exporter = (
+        plugin_manager_with_exporters.get_environment_exporter_by_format("requirements")
+    )
+    assert requirements_exporter is not None
+    assert "txt" in requirements_exporter.aliases
+    assert "reqs" in requirements_exporter.aliases
 
 
 def test_get_environment_exporter_unified(plugin_manager_with_exporters):
