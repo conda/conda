@@ -511,3 +511,12 @@ class CondaEnvironmentExporter(CondaPlugin):
     aliases: tuple[str, ...]
     default_filenames: tuple[str, ...]
     export: Callable[[Environment], str]
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(alias.lower().strip() for alias in self.aliases)
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")

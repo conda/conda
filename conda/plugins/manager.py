@@ -671,11 +671,20 @@ class CondaPluginManager(pluggy.PluginManager):
 
         :return: Dict mapping format name to CondaEnvironmentExporter
         """
-        return {
-            format_name: plugin
-            for plugin in self.get_environment_exporters()
-            for format_name in (plugin.name, *plugin.aliases)
-        }
+        mapping = {}
+        seen_formats = set()
+
+        for plugin in self.get_environment_exporters():
+            for format_name in (plugin.name, *plugin.aliases):
+                if format_name in seen_formats:
+                    raise PluginError(
+                        f"Conflicting format name '{format_name}' found in environment exporters. "
+                        f"Multiple plugins cannot use the same format name or alias."
+                    )
+                seen_formats.add(format_name)
+                mapping[format_name] = plugin
+
+        return mapping
 
     def detect_environment_exporter(
         self, filename: str

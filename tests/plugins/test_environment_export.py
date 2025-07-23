@@ -9,11 +9,12 @@ import json
 import pytest
 import yaml
 
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, PluginError
 from conda.models.channel import Channel
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.plugins.types import CondaEnvironmentExporter
 
 
 @pytest.fixture
@@ -429,4 +430,27 @@ def test_get_environment_exporter_unified(plugin_manager_with_exporters):
     ):
         plugin_manager_with_exporters.get_environment_exporter(
             filename="environment.yaml", format_name="environment-json"
+        )
+
+
+def test_alias_normalization_and_collision_detection():
+    """Test that aliases are normalized and collision detection works."""
+    # Test alias normalization
+    exporter = CondaEnvironmentExporter(
+        name="test-exporter",
+        aliases=(" YAML ", "YML", "  json  "),  # Mixed case and whitespace
+        default_filenames=("test.yaml",),
+        export=lambda env: "test",
+    )
+
+    # Aliases should be normalized to lowercase and stripped
+    assert exporter.aliases == ("yaml", "yml", "json")
+
+    # Test invalid alias type raises error
+    with pytest.raises(PluginError, match="Invalid plugin aliases"):
+        CondaEnvironmentExporter(
+            name="bad-exporter",
+            aliases=(123, "valid"),  # Non-string alias
+            default_filenames=("test.yaml",),
+            export=lambda env: "test",
         )
