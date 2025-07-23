@@ -491,6 +491,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch) -> None:
     reason = ""
     # in a RFC 9457 compliant response, the "detail" field is what we want to capture
     detail = "-->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------"
+
     # Create a mock Response object
     class MockResponse:
         def __init__(self, json_data):
