@@ -4,8 +4,8 @@
 
 from __future__ import annotations
 
-from ...base.context import context
 from ...base.constants import EXPLICIT_MARKER
+from ...base.context import context
 from ...gateways.disk.read import yield_lines
 from ...misc import get_package_records_from_explicit
 from ...models.environment import Environment

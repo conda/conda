@@ -19,12 +19,12 @@ from boltons.setutils import IndexedSet
 
 from .. import CondaError
 from ..base.constants import (
+    EXPLICIT_MARKER,
     REPODATA_FN,
     ROOT_ENV_NAME,
     UpdateModifier,
 )
 from ..base.context import context
-from ..base.constants import EXPLICIT_MARKER
 from ..common.constants import NULL
 from ..common.path import is_package_file
 from ..core.index import (
@@ -56,8 +56,8 @@ from ..history import History
 from ..misc import (
     _get_best_prec_match,
     clone_env,
-    install_explicit_packages,
     get_package_records_from_explicit,
+    install_explicit_packages,
 )
 from ..models.environment import Environment, EnvironmentConfig
 from ..models.match_spec import MatchSpec
@@ -344,7 +344,13 @@ def _assemble_environment(
     # extract specs from files
     for fpath in files:
         try:
-            specs.extend([spec for spec in common.specs_from_url(fpath) if spec != EXPLICIT_MARKER])
+            specs.extend(
+                [
+                    spec
+                    for spec in common.specs_from_url(fpath)
+                    if spec != EXPLICIT_MARKER
+                ]
+            )
         except UnicodeError:
             raise CondaError(
                 "Error reading file, file should be a text file containing"
@@ -368,7 +374,6 @@ def _assemble_environment(
             raise CondaValueError(
                 "cannot mix specifications with conda package filenames"
             )
-
 
     return Environment(
         name=name,
@@ -412,7 +417,7 @@ def install(args, parser, command="install"):
             addendum="Use `conda.cli.install.install_clone()` instead",
         )
         return install_clone(args, parser)
-    
+
     prefix = context.target_prefix
     index_args = get_index_args(args=args)
 
