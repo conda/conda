@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from ...base.context import context
+from ...base.constants import EXPLICIT_MARKER
 from ...gateways.disk.read import yield_lines
 from ...misc import get_package_records_from_explicit
 from ...models.environment import Environment
@@ -40,7 +41,7 @@ class ExplicitSpec(EnvironmentSpecBase):
 
         # Ensure the file has the "@EXPLICIT" marker
         dependencies_list = list(yield_lines(self.filename))
-        if "@EXPLICIT" in dependencies_list:
+        if EXPLICIT_MARKER in dependencies_list:
             return True
         else:
             return False

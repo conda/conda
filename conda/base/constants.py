@@ -382,3 +382,7 @@ NAMESPACES: Final = frozenset(NAMESPACES_MAP.values())
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
 NO_PLUGINS: Final = False
+
+# When this string is present in an environment file, it indicates that the file
+# describes an explicit environment spec.
+EXPLICIT_MARKER: Final = "@EXPLICIT"
