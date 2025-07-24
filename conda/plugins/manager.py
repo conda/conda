@@ -525,10 +525,10 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> CondaEnvironmentSpecifier:
         """Get an environment specifier plugin by name
 
-        Raises PluginError if the requested plugin is not available or unable to handle the provided file.
-
         :param source: full path to the environment spec file/source
         :param name: name of the environment plugin to load
+        :raises CondaValueError: if the requested plugin is not available.
+        :raises PluginError: if the requested plugin is unable to handle the provided file.
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
         name = name.lower()
@@ -536,7 +536,7 @@ class CondaPluginManager(pluggy.PluginManager):
         try:
             plugin = plugins[name]
         except KeyError:
-            raise PluginError(
+            raise CondaValueError(
                 f"You have chosen an unrecognized environment"
                 f" specifier type ({name}). Choose one of: "
                 f"{dashlist(plugins)}"
