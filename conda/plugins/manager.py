@@ -78,6 +78,8 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
+    #: method.
     get_cached_solver_backend: Callable[[str | None], type[Solver]]
 
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
