@@ -194,7 +194,8 @@ def spec_from_line(line):
         return name
 
 
-def specs_from_url(url, json=False):
+@deprecated.argument("26.3", "26.9", "json")
+def specs_from_url(url):
     from ..gateways.connection.download import TmpDownload
 
     explicit = False
