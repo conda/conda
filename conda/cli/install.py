@@ -335,7 +335,7 @@ def install_clone(args, parser):
 
 
 def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
+    """Logic for `conda install`, `conda update`, and `conda create`."""
     prefix = context.target_prefix
 
     # common validations for all types of installs
@@ -347,7 +347,6 @@ def install(args, parser, command="install"):
     newenv = command == "create"
     isupdate = command == "update"
     isinstall = command == "install"
-    isremove = command == "remove"
 
     # collect packages provided from the command line
     args_packages = [s.strip("\"'") for s in args.packages]
@@ -418,7 +417,7 @@ def install(args, parser, command="install"):
     ) and not newenv
 
     update_modifier = context.update_modifier
-    if (isinstall or isremove) and args.update_modifier == NULL:
+    if (isinstall) and args.update_modifier == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
     deps_modifier = context.deps_modifier
 
