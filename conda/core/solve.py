@@ -1386,13 +1386,12 @@ class SolverStateContainer:
         self.final_environment_specs = None
 
 
-def get_pinned_specs(prefix: str) -> tuple[MatchSpec]:
+def get_pinned_specs(prefix: str) -> tuple[MatchSpec, ...]:
     """Find pinned specs from file and return a tuple of MatchSpec."""
-    context_pinned_packages = tuple(
-        MatchSpec(spec, optional=True) for spec in context.pinned_packages
+    return (
+        *(MatchSpec(spec, optional=True) for spec in context.pinned_packages),
+        *PrefixData(prefix_path=prefix).get_pinned_specs(),
     )
-    prefix_data = PrefixData(prefix_path=prefix)
-    return context_pinned_packages + prefix_data.get_pinned_specs()
 
 
 def diff_for_unlink_link_precs(
