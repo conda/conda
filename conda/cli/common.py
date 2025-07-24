@@ -4,10 +4,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 import re
 import sys
-from collections.abc import Iterable
 from logging import getLogger
 from os.path import (
     dirname,
@@ -147,7 +145,8 @@ def arg2spec(arg: str, update: bool = False) -> str:
             f"    conda update  {name:<{len(arg)}}  or\n"
             f"    conda install {arg:<{len(name)}}"
         )
-    return spec
+
+    return str(spec)
 
 
 @deprecated.argument("26.3", "26.9", "json")
