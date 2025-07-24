@@ -43,7 +43,7 @@ def test_LockError_raised_windows(mocker: MockerFixture, monkeypatch: MonkeyPatc
             pass
 
 
-@pytest.mark.skipif(on_win, reason="windows-specific test")
+@pytest.mark.skipif(on_win, reason="non windows test")
 def test_LockError_raised_not_windows(mocker: MockerFixture, monkeypatch: MonkeyPatch):
     tmp_file = TemporaryFile()
     mocker.patch("fcntl.lockf", side_effect=OSError)
