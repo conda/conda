@@ -377,7 +377,7 @@ def install(args, parser, command="install"):
     if args.file:
         for fpath in args.file:
             try:
-                specs.extend(common.specs_from_url(fpath, json=context.json))
+                specs.extend(common.specs_from_url(fpath))
             except UnicodeError:
                 raise CondaError(
                     "Error reading file, file should be a text file containing"
