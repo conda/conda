@@ -149,21 +149,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # Otherwise, try to detect format by filename
     elif args.file:
         file_exporter = context.plugin_manager.detect_environment_exporter(args.file)
-        if file_exporter:
-            target_format = file_exporter.name
-            environment_exporter = file_exporter
-        else:
-            # No exporter found for filename and no explicit format
-            # Get default filenames from all exporters
-            default_filenames = []
-            for exporter in context.plugin_manager.get_environment_exporters():
-                default_filenames.extend(exporter.default_filenames)
-
-            raise CondaValueError(
-                f"Filename '{args.file}' is not recognized. "
-                f"Supported filenames: {', '.join(sorted(default_filenames))}. "
-                f"Or specify the format explicitly with --format."
-            )
+        target_format = file_exporter.name
+        environment_exporter = file_exporter
     else:
         # No file and no explicit format, default to environment-yaml
         target_format = ENVIRONMENT_YAML_FORMAT

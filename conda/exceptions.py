@@ -1323,6 +1323,32 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentExporterNotDetected(CondaError):
+    def __init__(
+        self,
+        filename: str,
+        available_formats: Iterable[str],
+        supported_filenames: Iterable[str],
+        *args,
+        **kwargs,
+    ):
+        self.filename = filename
+
+        msg = dals(
+            f"""
+            No environment exporter plugin found for filename '{filename}'.
+
+            Supported filenames: {dashlist(supported_filenames, 16)}
+
+            Available formats: {dashlist(available_formats, 16)}
+
+            Use conda export --format=FORMAT to specify the export format explicitly,
+            or rename your file to match a supported filename pattern.
+            """
+        )
+        super().__init__(msg, *args, **kwargs)
+
+
 class SpecNotFoundInPackageCache(CondaError):
     def __init__(self, msg: str, *args, **kwargs):
         super().__init__(msg, *args, **kwargs)

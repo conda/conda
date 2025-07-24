@@ -9,7 +9,11 @@ import json
 import pytest
 import yaml
 
-from conda.exceptions import CondaValueError, PluginError
+from conda.exceptions import (
+    CondaValueError,
+    EnvironmentExporterNotDetected,
+    PluginError,
+)
 from conda.models.channel import Channel
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
@@ -241,11 +245,12 @@ def test_detect_environment_exporter(
     plugin_manager_with_exporters, filename, expected_format
 ):
     """Test detecting exporter by exact filename matching."""
-    exporter = plugin_manager_with_exporters.detect_environment_exporter(filename)
-
     if expected_format is None:
-        assert exporter is None
+        # Should raise exception for unrecognized filenames
+        with pytest.raises(EnvironmentExporterNotDetected):
+            plugin_manager_with_exporters.detect_environment_exporter(filename)
     else:
+        exporter = plugin_manager_with_exporters.detect_environment_exporter(filename)
         assert exporter is not None
         assert exporter.name == expected_format
 

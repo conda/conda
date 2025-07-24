@@ -10,7 +10,11 @@ import pytest
 
 from conda.cli.main_export import _get_available_export_formats
 from conda.common.serialize import yaml_safe_load
-from conda.exceptions import ArgumentError, CondaValueError
+from conda.exceptions import (
+    ArgumentError,
+    CondaValueError,
+    EnvironmentExporterNotDetected,
+)
 from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -187,7 +191,9 @@ def test_export_unrecognized_file_extension(
     path = tmp_path / "environment.toml"  # Non-default filename
 
     # Should fail because filename is not recognized
-    with pytest.raises(CondaValueError, match="Filename.*is not recognized"):
+    with pytest.raises(
+        EnvironmentExporterNotDetected, match="No environment exporter plugin found"
+    ):
         conda_cli("export", f"--name={name}", f"--file={path}")
 
     # Should work with explicit format

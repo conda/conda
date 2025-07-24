@@ -26,6 +26,7 @@ from ..common.io import dashlist
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
+    EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
@@ -686,14 +687,13 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return mapping
 
-    def detect_environment_exporter(
-        self, filename: str
-    ) -> CondaEnvironmentExporter | None:
+    def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """
         Detect an environment exporter based on exact filename matching against default_filenames.
 
         :param filename: Filename to find an exporter for (basename is used for detection)
-        :return: CondaEnvironmentExporter that supports the filename, or None if none found
+        :return: CondaEnvironmentExporter that supports the filename
+        :raises EnvironmentExporterNotDetected: If no exporter supports the filename
         :raises PluginError: If multiple exporters claim to support the same filename
         """
         # Extract just the basename for matching
@@ -708,7 +708,18 @@ class CondaPluginManager(pluggy.PluginManager):
         if len(matches) == 1:
             return matches[0]
         elif len(matches) == 0:
-            return None  # No match found, return None instead of raising error
+            # Collect all available formats and supported filenames for the error message
+            all_exporters = list(self.get_environment_exporters())
+            available_formats = [exporter.name for exporter in all_exporters]
+            supported_filenames = []
+            for exporter in all_exporters:
+                supported_filenames.extend(exporter.default_filenames)
+
+            raise EnvironmentExporterNotDetected(
+                filename=basename,
+                available_formats=available_formats,
+                supported_filenames=sorted(set(supported_filenames)),
+            )
         elif len(matches) > 1:
             raise PluginError(
                 dals(
