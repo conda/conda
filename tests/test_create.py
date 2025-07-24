@@ -507,7 +507,7 @@ def test_conda_update_package_not_installed(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     """
-    Runs the update, expecting a failure. The Package is not currently 
+    Runs the update, expecting a failure. The Package is not currently
     installed (package should not exist).
     """
     with tmp_env() as prefix:
@@ -526,10 +526,12 @@ def test_conda_update_package_is_not_name_only_spec(
     Runs the update, expecting a failure. Invalid specification for a package.
     """
     with tmp_env() as prefix:
-        with pytest.raises(CondaError, match="'conda update' only supports name-only spec"):
+        with pytest.raises(
+            CondaError, match="'conda update' only supports name-only spec"
+        ):
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
-    
+
 def test_noarch_python_package_with_entry_points(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
@@ -2405,11 +2407,10 @@ def test_create_env_different_platform(
     conda_cli: CondaCLIFixture,
 ):
     platform = f"{context.subdir.split('-')[0]}-fake"
-    
+
     # the platform must match the defined known platforms, patch to use fake subdir
     monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
     monkeypatch.setattr("conda.models.environment.PLATFORMS", [platform])
-
 
     # either set CONDA_SUBDIR or pass --platform
     if style == "cli":
