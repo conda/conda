@@ -1,3 +1,7 @@
-cross-platform compatible,``conda export --from-history>ENV.yml``
-platform + package specific,``conda export ENVNAME>ENV.yml``
-platform + package + channel specific,``conda list --explicit>ENV.txt``
+cross-platform compatible (YAML),``conda export --format=environment-yaml``
+cross-platform compatible (JSON),``conda export --format=environment-json``
+cross-platform from history,``conda export --from-history``
+platform + package specific (explicit),``conda export --format=explicit``
+platform + package specific (requirements),``conda export --format=requirements``
+auto-detect format by filename,``conda export --file=environment.yaml``
+traditional env export,``conda env export > environment.yml``
