@@ -24,6 +24,7 @@ from ..base.constants import (
     UpdateModifier,
 )
 from ..base.context import context
+from ..base.constants import EXPLICIT_MARKER
 from ..common.constants import NULL
 from ..common.path import is_package_file
 from ..core.index import (
@@ -382,7 +383,7 @@ def install(args, parser, command="install"):
                     "Error reading file, file should be a text file containing"
                     " packages \nconda create --help for details"
                 )
-        if "@EXPLICIT" in specs:
+        if EXPLICIT_MARKER in specs:
             # short circuit to installing explicit if explicit specs are provided
             explicit(specs, prefix, verbose=not context.quiet)
             return

@@ -18,7 +18,7 @@ from os.path import (
 from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
-from ..base.constants import PREFIX_MAGIC_FILE
+from ..base.constants import EXPLICIT_MARKER, PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
@@ -205,7 +205,7 @@ def specs_from_url(url, json=False):
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
-                if line == "@EXPLICIT":
+                if line == EXPLICIT_MARKER:
                     explicit = True
                 if explicit:
                     specs.append(line)
