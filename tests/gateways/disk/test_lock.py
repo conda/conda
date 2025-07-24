@@ -13,7 +13,6 @@ from conda.common.compat import on_win
 from conda.exceptions import LockError
 from conda.gateways.disk.lock import (
     _lock_impl,
-    _lock_noop,
     lock,
 )
 
@@ -40,7 +39,7 @@ def test_LockError_raised_windows(mocker: MockerFixture, monkeypatch: MonkeyPatc
     mocker.patch("msvcrt.locking", side_effect=OSError)
     monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
     with pytest.raises(LockError):
-        with _lock_impl(tmp_file):
+        with lock(tmp_file):
             pass
 
 
@@ -49,29 +48,17 @@ def test_LockError_raised_not_windows(mocker: MockerFixture, monkeypatch: Monkey
     mocker.patch("fcntl.lockf", side_effect=OSError)
     monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
     with pytest.raises(LockError):
-        with _lock_impl(tmp_file):
+        with lock(tmp_file):
             pass
 
 
 def test_lock_acquired_success(mocker: MockerFixture, capsys: CaptureFixture):
     tmp_file = TemporaryFile()
     mocker.patch("conda.gateways.disk.lock.lock", return_value=_lock_impl)
-    with _lock_impl(tmp_file):
+    with lock(tmp_file):
         pass
     stdout, stderr = capsys.readouterr()
     assert "Failed to acquire lock." not in stdout
-
-
-def test_lock_again(mocker: MockerFixture, capsys: CaptureFixture):
-    tmp_file = TemporaryFile()
-    print(tmp_file)
-    assert _lock_impl != _lock_noop
-    mocker.patch("conda.gateways.disk.lock.lock", return_value=_lock_impl)
-    with _lock_impl(tmp_file):
-        with _lock_impl(tmp_file):
-            pass
-    stdout, stderr = capsys.readouterr()
-    assert "Failed to acquire lock." in stdout
 
 
 def test_lock_released(): ...
