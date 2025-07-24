@@ -2777,3 +2777,40 @@ def test_dont_allow_mixed_file_arguments(conda_cli: CondaCLIFixture, cmd):
     )
 
     assert exc.match("Cannot mix environment file formats")
+
+
+@pytest.mark.parametrize("command", ["install", "create"])
+def test_mix_explicit_and_packages(
+    command: str,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        _, _, exc = conda_cli(
+            command,
+            *("--prefix", prefix),
+            "https://repo.anaconda.com/channel/subdir/mypackage-0.1.conda",
+            "python",
+            "--yes",
+            raises=CondaValueError,
+        )
+        assert "cannot mix specifications with conda package filenames" in str(exc)
+
+
+@pytest.mark.parametrize("command", ["install", "create"])
+def test_mix_explicit_file_and_packages(
+    command: str,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        _, _, exc = conda_cli(
+            command,
+            *("--prefix", prefix),
+            "--file",
+            support_file("explicit.txt"),
+            "python",
+            "--yes",
+            raises=CondaValueError,
+        )
+        assert "cannot mix specifications with conda package filenames" in str(exc)
