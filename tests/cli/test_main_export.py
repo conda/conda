@@ -237,3 +237,105 @@ def test_export_format_priority_over_extension(
     # Content should be JSON format despite .yaml extension
     json_data = json.loads(path.read_text())
     assert json_data["name"] == name
+
+
+def test_export_json_flag_backwards_compatibility(conda_cli: CondaCLIFixture) -> None:
+    """Test that --json without --format outputs JSON (backwards compatibility)."""
+    name = uuid.uuid4().hex
+    stdout, stderr, code = conda_cli("export", f"--name={name}", "--json")
+    assert not stderr
+    assert not code
+    assert stdout
+
+    # Should output JSON format for backwards compatibility
+    json_data = json.loads(stdout)
+    assert json_data["name"] == name
+
+
+@pytest.mark.parametrize(
+    "format_name,expected_result",
+    [
+        ("environment-yaml", ("contains", "name: ")),
+        ("yaml", ("contains", "name: ")),
+        ("explicit", ("raises", "Cannot export explicit format")),
+    ],
+)
+def test_export_format_precedence_over_json_flag(
+    conda_cli: CondaCLIFixture, format_name, expected_result
+) -> None:
+    """Test that --format takes precedence over --json flag for content."""
+    name = uuid.uuid4().hex
+    result_type, result_value = expected_result
+
+    if result_type == "contains":
+        # Should output the specified format, not JSON
+        stdout, stderr, code = conda_cli(
+            "export", f"--name={name}", f"--format={format_name}", "--json"
+        )
+        assert not stderr
+        assert not code
+        assert stdout
+        assert result_value in stdout
+
+        # Should not be JSON format
+        with pytest.raises((json.JSONDecodeError, ValueError)):
+            json.loads(stdout)
+
+    elif result_type == "raises":
+        # Should fail with the specified format error, not try JSON
+        with pytest.raises(CondaValueError, match=result_value):
+            conda_cli("export", f"--name={name}", f"--format={format_name}", "--json")
+
+
+@pytest.mark.parametrize(
+    "filename,expected_result",
+    [
+        ("environment.yaml", ("success", "name: ")),
+        ("environment.json", ("success", '"name":')),
+        ("explicit.txt", ("raises", "Cannot export explicit format")),
+    ],
+)
+def test_export_file_with_json_flag_behavior(
+    conda_cli: CondaCLIFixture, tmp_path: Path, filename, expected_result
+) -> None:
+    """Test --json with --file behavior: status messages for successful formats, appropriate failures for others."""
+    name = uuid.uuid4().hex
+    path = tmp_path / filename
+    result_type, result_value = expected_result
+
+    if result_type == "success":
+        # Should write to file and output JSON status
+        stdout, stderr, code = conda_cli(
+            "export", f"--name={name}", f"--file={path}", "--json"
+        )
+        assert not stderr
+        assert not code
+        assert path.exists()
+
+        # Stdout should contain JSON status message
+        status_data = json.loads(stdout)
+        assert status_data["success"] is True
+        assert status_data["file"] == str(path)
+
+        # File content should match the format determined by extension
+        file_content = path.read_text()
+        assert result_value in file_content
+
+    elif result_type == "raises":
+        # Should fail with the specified error, not try to output JSON
+        with pytest.raises(CondaValueError, match=result_value):
+            conda_cli("export", f"--name={name}", f"--file={path}", "--json")
+
+
+def test_export_json_flag_with_file_no_format_detection_error(
+    conda_cli: CondaCLIFixture, tmp_path: Path
+) -> None:
+    """Test --json with unrecognized file extension shows appropriate error."""
+    name = uuid.uuid4().hex
+    path = tmp_path / "test.unknown"
+
+    # Should fail with environment exporter not detected error
+    with pytest.raises(
+        EnvironmentExporterNotDetected, match="No environment exporter plugin found"
+    ):
+        conda_cli("export", f"--name={name}", f"--file={path}", "--json")

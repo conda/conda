@@ -155,14 +155,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         override_channels=args.override_channels,
     )
 
-    # Export the environment - use JSON format if --json flag without file
-    export_format = (
-        ENVIRONMENT_JSON_FORMAT if (args.json and not args.file) else target_format
-    )
-    if (
-        export_format == ENVIRONMENT_JSON_FORMAT
-        and target_format != ENVIRONMENT_JSON_FORMAT
-    ):
+    # Handle --json flag for backwards compatibility
+    # If --json is specified without explicit --format AND no file, use JSON format
+    # If both --json and --format are specified, --format takes precedence
+    # If --json with file, --json only affects status messages
+    if args.json and args.format is NULL and not args.file:
+        # Backwards compatibility: --json without --format and no file means JSON output
         json_exporter = context.plugin_manager.get_environment_exporter_by_format(
             ENVIRONMENT_JSON_FORMAT
         )
@@ -170,7 +168,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise CondaValueError("JSON exporter plugin not available")
         exported_content = json_exporter.export(env)
     else:
-        # Use the detected or default exporter
+        # Use the detected or default exporter for content
         exported_content = environment_exporter.export(env)
 
     # Output the content
