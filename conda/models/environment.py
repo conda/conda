@@ -269,38 +269,7 @@ class Environment:
                         f"Requested package '{requested_package}' is not found in 'explicit_packages'."
                     )
 
-    def to_dict(self):
-        """
-        Serialize the Environment model to its native dictionary representation.
 
-        Returns a dictionary containing all model fields in their native form,
-        without any format-specific transformations.
-        """
-        return {
-            "prefix": self.prefix,
-            "platform": self.platform,
-            "name": self.name,
-            "config": {
-                field.name: getattr(self.config, field.name)
-                for field in fields(self.config)
-                if getattr(self.config, field.name) != field.default
-            }
-            if self.config
-            else None,
-            "external_packages": self.external_packages
-            if self.external_packages
-            else None,
-            "explicit_packages": [pkg.dump() for pkg in self.explicit_packages]
-            if self.explicit_packages
-            else None,
-            "requested_packages": [str(spec) for spec in self.requested_packages]
-            if self.requested_packages
-            else None,
-            "variables": self.variables if self.variables else None,
-            "virtual_packages": [pkg.dump() for pkg in self.virtual_packages]
-            if self.virtual_packages
-            else None,
-        }
 
     @classmethod
     def merge(cls, *environments):
