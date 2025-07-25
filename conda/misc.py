@@ -11,6 +11,7 @@ from logging import getLogger
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 from typing import TYPE_CHECKING
 
+from .base.constants import EXPLICIT_MARKER
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
 from .common.io import dashlist
@@ -68,7 +69,7 @@ url_pat = re.compile(
 
 def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
     for spec in specs:
-        if spec == "@EXPLICIT":
+        if spec == EXPLICIT_MARKER:
             continue
 
         if not is_url(spec):
