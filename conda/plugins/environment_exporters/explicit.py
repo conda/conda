@@ -40,23 +40,21 @@ def export_explicit(env: Environment) -> str:
     lines.append("")
 
     for pkg in env.explicit_packages:
-        # Format as full URL or construct URL from package metadata
+        # Use existing URL or construct from channel metadata
+        url = None
         if hasattr(pkg, "url") and pkg.url:
-            lines.append(pkg.url)
-        elif hasattr(pkg, "channel") and hasattr(pkg, "fn"):
-            # Construct URL from channel and filename
-            base_url = getattr(pkg.channel, "base_url", None) if pkg.channel else None
+            url = pkg.url
+        elif hasattr(pkg, "channel") and hasattr(pkg, "fn") and pkg.channel:
+            base_url = getattr(pkg.channel, "base_url", None)
             if base_url and hasattr(pkg, "subdir"):
                 url = join_url(base_url, pkg.subdir, pkg.fn)
-                lines.append(url)
-            else:
-                # Fallback to name=version=build format for explicit files
-                spec_line = f"{pkg.name}={pkg.version}={pkg.build}"
-                lines.append(spec_line)
+
+        if url:
+            lines.append(url)
         else:
-            # Fallback to name=version=build format
-            spec_line = f"{pkg.name}={pkg.version}={pkg.build}"
-            lines.append(spec_line)
+            raise CondaValueError(
+                f"Cannot export '{pkg.name}': explicit format requires package URLs"
+            )
 
     return "\n".join(lines)
 
