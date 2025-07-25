@@ -385,23 +385,6 @@ def _assemble_environment(
     )
 
 
-def install_clone(args, parser):
-    """Executes an install of a new conda environment by cloning."""
-    prefix = context.target_prefix
-    index_args = get_index_args(args)
-
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, command="create")
-
-    clone(
-        args.clone,
-        prefix,
-        json=context.json,
-        quiet=context.quiet,
-        index_args=index_args,
-    )
-
-
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
     newenv = command == "create"
@@ -444,20 +427,16 @@ def install(args, parser, command="install"):
     if isupdate and env.config.update_modifier != UpdateModifier.UPDATE_ALL:
         ensure_update_specs_exist(prefix=env.prefix, specs=env.requested_packages)
 
-    # TODO: Simplify this as part of generating the environment
     repodata_fns = args.repodata_fns
     if not repodata_fns:
         repodata_fns = list(env.config.repodata_fns)
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    # TODO: Simplify this
-    args_set_update_modifier = getattr(args, "update_modifier", NULL) != NULL
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
     _should_retry_unfrozen = (
-        not args_set_update_modifier
-        or args.update_modifier
+        getattr(args, "update_modifier", NULL)
         not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
 
@@ -510,6 +489,23 @@ def install(args, parser, command="install"):
                 raise e
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning."""
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command="create")
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
 
 
 def install_revision(args, parser):
