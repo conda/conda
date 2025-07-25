@@ -535,7 +535,7 @@ class Context(Configuration):
     # conda_build
     bld_path = ParameterLoader(PrimitiveParameter(""))
     anaconda_upload = ParameterLoader(
-        PrimitiveParameter(None, element_type=(bool, NoneType)),
+        PrimitiveParameter(False, element_type=bool),
         aliases=("binstar_upload",),
     )
     _croot = ParameterLoader(PrimitiveParameter(""), aliases=("croot",))
@@ -1068,7 +1068,7 @@ class Context(Configuration):
         ) or self._use_only_tar_bz2
 
     @property
-    def binstar_upload(self) -> bool | None:
+    def binstar_upload(self) -> bool:
         # backward compatibility for conda-build
         return self.anaconda_upload
 
