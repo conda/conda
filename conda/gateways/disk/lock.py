@@ -11,6 +11,7 @@ import warnings
 from contextlib import contextmanager
 
 from ...base.context import context
+from ...exceptions import LockError
 
 LOCK_BYTE = 21  # mamba interop
 LOCK_ATTEMPTS = 10
@@ -30,13 +31,21 @@ try:  # pragma: no cover
     def _lock_impl(fd):  # type: ignore
         tell = fd.tell()
         fd.seek(LOCK_BYTE)
-        msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore
         try:
-            fd.seek(tell)
-            yield
-        finally:
-            fd.seek(LOCK_BYTE)
-            msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
+            msvcrt.locking(fd.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore
+        except OSError:
+            raise LockError("Failed to acquire lock.")
+        else:
+            try:
+                fd.seek(tell)
+                yield
+            finally:
+                fd.seek(LOCK_BYTE)
+                try:
+                    msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore
+                except OSError:
+                    raise LockError("Failed to release lock.")
+
 
 except ImportError:
     try:
@@ -61,13 +70,16 @@ except ImportError:
                             self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE
                         )
                         break
-                    except OSError:
+                    except OSError as e:
                         if attempt > LOCK_ATTEMPTS - 2:
-                            raise
+                            raise LockError("Failed to acquire lock.") from e
                         time.sleep(LOCK_SLEEP)
 
             def __exit__(self, *exc):
-                fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
+                try:
+                    fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
+                except OSError as e:
+                    raise LockError("Failed to release lock.") from e
 
 
 def lock(fd):
