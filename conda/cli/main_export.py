@@ -82,7 +82,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         ),
         help=(
             "Format for the exported environment. "
-            "Available formats include 'yaml', 'json', 'explicit' (and their full names). "
             "If not specified, format will be determined by file extension or default to YAML."
         ),
     )

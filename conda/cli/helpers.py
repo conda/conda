@@ -25,8 +25,20 @@ class LazyChoicesAction(Action):
         self.choices_func = choices_func
         super().__init__(option_strings, dest, **kwargs)
 
+    @property
+    def choices(self):
+        """Dynamically evaluate choices for help generation and validation."""
+        return self.choices_func()
+
+    @choices.setter
+    def choices(self, value):
+        """Ignore attempts to set choices since we use choices_func."""
+        # argparse tries to set self.choices during __init__, but we ignore it
+        # since we dynamically generate choices via choices_func
+        pass
+
     def __call__(self, parser, namespace, values, option_string=None):
-        valid_choices = self.choices_func()
+        valid_choices = self.choices
         if values not in valid_choices:
             choices_string = ", ".join(f"'{val}'" for val in valid_choices)
             parser.error(
