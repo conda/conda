@@ -442,9 +442,7 @@ class Environment:
             # Fall back to creating MatchSpecs from all installed packages
             for prefix_record in prefix_data.iter_records():
                 spec_str = (
-                    prefix_record.version_spec
-                    if no_builds
-                    else prefix_record.exact_spec
+                    prefix_record.spec_no_build if no_builds else prefix_record.spec
                 )
 
                 if (

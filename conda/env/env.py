@@ -114,12 +114,14 @@ def from_environment(
         key=lambda x: x.name,
     )
 
-    if no_builds:
-        dependencies = ["=".join((a.name, a.version)) for a in conda_precs]
-    else:
-        dependencies = ["=".join((a.name, a.version, a.build)) for a in conda_precs]
+    dependencies = [
+        conda_prec.spec_no_build if no_builds else conda_prec.spec
+        for conda_prec in conda_precs
+    ]
     if pip_precs:
-        dependencies.append({"pip": [f"{a.name}=={a.version}" for a in pip_precs]})
+        dependencies.append(
+            {"pip": [f"{pip_prec.name}=={pip_prec.version}" for pip_prec in pip_precs]}
+        )
 
     channels = list(context.channels)
     if not ignore_channels:

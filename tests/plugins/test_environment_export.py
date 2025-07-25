@@ -114,6 +114,76 @@ def test_builtin_structured_exporters(
     assert "numpy" in deps_str
 
 
+def test_yaml_exporter_explicit_packages_format(
+    plugin_manager_with_exporters, test_env_with_explicit_packages
+):
+    """Test that YAML exporter produces correct dependency format with explicit packages.
+
+    This test validates that both normal and fallback cases produce the single equals
+    format (name=version=build) that matches production conda behavior.
+    """
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        "environment-yaml"
+    )
+
+    # Export the environment
+    result = exporter.export(test_env_with_explicit_packages)
+    parsed = yaml.safe_load(result)
+
+    # Verify dependencies use correct format: name=version=build (single equals throughout)
+    dependencies = parsed["dependencies"]
+    assert len(dependencies) == 2
+
+    # Check specific packages and format
+    dep_strs = set(dependencies)
+    assert "python=3.9.7=h12debd9_0" in dep_strs  # Single equals throughout
+    assert "numpy=1.21.0=py39hdbf815f_0" in dep_strs  # Single equals throughout
+
+    # Verify correct single-equals format is used (matches production conda)
+    for dep in dependencies:
+        # Count equals signs: should be 2 total (name=version=build)
+        equals_count = dep.count("=")
+        assert equals_count == 2, (
+            f"Dependency '{dep}' should have 2 equals signs (name=version=build)"
+        )
+
+        # Verify no double equals (should be single equals throughout)
+        assert "==" not in dep, (
+            f"Dependency '{dep}' should not contain '==' (should be single = throughout)"
+        )
+
+
+def test_explicit_exporter_cep23_compliance_error(plugin_manager_with_exporters):
+    """Test that explicit exporter raises error for packages without URLs (CEP 23 compliance)."""
+    from conda.exceptions import CondaValueError
+    from conda.models.environment import Environment
+    from conda.models.records import PackageRecord
+
+    # Create package without URL or proper channel info (violates CEP 23)
+    minimal_pkg = PackageRecord(
+        name="test-package",
+        version="1.0.0",
+        build="py39_0",
+        build_number=0,
+        # No URL, no channel, no fn - cannot construct URL
+    )
+
+    env = Environment(
+        name="test-env",
+        prefix="/tmp/test-env",
+        platform="linux-64",
+        explicit_packages=[minimal_pkg],
+    )
+
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        "explicit"
+    )
+
+    # Should raise error instead of falling back to spec format
+    with pytest.raises(CondaValueError, match="explicit format requires package URLs"):
+        exporter.export(env)
+
+
 def test_builtin_requirements_exporter(plugin_manager_with_exporters, test_env):
     """Test the built-in requirements environment exporter with requested packages."""
     # Test that exporter is available

@@ -42,11 +42,15 @@ def to_dict(env: Environment) -> dict[str, Any]:
 
     # Convert requested_packages to dependencies list
     if env.requested_packages:
-        env_dict["dependencies"] = [str(spec) for spec in env.requested_packages]
+        # Use .spec to get space-separated format, then convert to single equals
+        env_dict["dependencies"] = [
+            requested_package.spec.replace(" ", "=")
+            for requested_package in env.requested_packages
+        ]
     elif env.explicit_packages:
         # Fall back to explicit packages if no requested packages
         env_dict["dependencies"] = [
-            f"{pkg.name}={pkg.version}={pkg.build}" for pkg in env.explicit_packages
+            explicit_package.spec for explicit_package in env.explicit_packages
         ]
 
     # Add variables if present

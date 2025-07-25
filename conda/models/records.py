@@ -477,14 +477,14 @@ class PackageRecord(DictSafeMixin, Entity):
         return "global:" + self.name
 
     @property
-    def exact_spec(self):
-        """Return exact conda spec: name==version=build"""
-        return f"{self.name}=={self.version}={self.build}"
+    def spec(self):
+        """Return package spec: name=version=build"""
+        return f"{self.name}={self.version}={self.build}"
 
     @property
-    def version_spec(self):
-        """Return version-only conda spec: name==version"""
-        return f"{self.name}=={self.version}"
+    def spec_no_build(self):
+        """Return package spec without build: name=version"""
+        return f"{self.name}={self.version}"
 
     def record_id(self):
         # WARNING: This is right now only used in link.py _change_report_str(). It is not
