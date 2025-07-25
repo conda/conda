@@ -146,3 +146,30 @@ def test_assemble_environment_inject_default_packages_override(
         MatchSpec("favicon"),
     ]
     assert env.explicit_packages == []
+
+
+def test_assemble_environment_inject_default_packages_override_file(
+    monkeypatch: MonkeyPatch, mocker: MockerFixture
+):
+    # Setup the default packages. Expect this to inject favicon and numpy==2.0.0
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,numpy==2.0.0")
+    reset_context()
+
+    # Mock the contents of a requirements.txt file that contains the spec numpy==2.3.1
+    fake_specs_from_url = ["numpy==2.3.1"]
+    mocker.patch(
+        "conda.cli.install.common.specs_from_url",
+        return_value=fake_specs_from_url,
+    )
+
+    env = assemble_environment(
+        name="testenv",
+        prefix="/path/to/testenv",
+        files=["/i/dont/exist"],
+        inject_default_packages=True,
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert env.prefix == "/path/to/testenv"
+    assert MatchSpec("numpy==2.3.1") in env.requested_packages
+    assert env.explicit_packages == []

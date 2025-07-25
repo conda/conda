@@ -330,13 +330,6 @@ def assemble_environment(
     files: list[str] = [],
     inject_default_packages: bool = True,
 ) -> Environment:
-    if inject_default_packages:
-        names = {MatchSpec(pkg).name for pkg in specs}
-        for pkg in context.create_default_packages:
-            pkg_name = MatchSpec(pkg).name
-            if pkg_name not in names:
-                specs.append(pkg)
-
     requested_packages = []
     fetch_explicit_packages = []
 
@@ -355,6 +348,16 @@ def assemble_environment(
                 "Error reading file, file should be a text file containing"
                 " packages \nconda create --help for details"
             )
+
+    # Inject default packages if the package has not already been specified in
+    # the set of requested specs (including provided files)
+    if inject_default_packages:
+        names = {MatchSpec(pkg).name for pkg in specs}
+        for pkg in context.create_default_packages:
+            pkg_name = MatchSpec(pkg).name
+            if pkg_name not in names:
+                specs.append(pkg)
+
 
     for spec in specs:
         if is_package_file(spec):
