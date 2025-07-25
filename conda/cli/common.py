@@ -168,11 +168,11 @@ spec_pat = re.compile(
 )
 
 
-def strip_comment(line):
+def strip_comment(line: str) -> str:
     return line.split("#")[0].rstrip()
 
 
-def spec_from_line(line):
+def spec_from_line(line: str) -> str:
     m = spec_pat.match(strip_comment(line))
     if m is None:
         return None
@@ -195,7 +195,7 @@ def spec_from_line(line):
 
 
 @deprecated.argument("26.3", "26.9", "json")
-def specs_from_url(url):
+def specs_from_url(url: str) -> list[str]:
     from ..gateways.connection.download import TmpDownload
 
     explicit = False
