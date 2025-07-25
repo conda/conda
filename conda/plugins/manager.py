@@ -736,15 +736,10 @@ class CondaPluginManager(pluggy.PluginManager):
             )
         elif len(matches) > 1:
             raise PluginError(
-                dals(
-                    f"""
-                    Multiple environment exporters found that can handle filename '{basename}':
-
-                    {dashlist([match.name for match in matches])}
-
-                    Please make sure that you don't have any conflicting exporter plugins installed.
-                    """
-                )
+                f"Multiple environment exporters found that can handle filename '{basename}':"
+                f"{dashlist([match.name for match in matches])}\n"
+                f"\n"
+                f"Please make sure that you don't have any conflicting exporter plugins installed."
             )
 
         return None
