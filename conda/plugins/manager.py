@@ -743,7 +743,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     {dashlist([match.name for match in matches])}
 
                     Please make sure that you don't have any conflicting exporter plugins installed.
-                """
+                    """
                 )
             )
 
