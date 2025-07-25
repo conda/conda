@@ -740,7 +740,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"""
                     Multiple environment exporters found that can handle filename '{basename}':
 
-                    {", ".join([match.name for match in matches])}
+                    {dashlist([match.name for match in matches])}
 
                     Please make sure that you don't have any conflicting exporter plugins installed.
                 """
