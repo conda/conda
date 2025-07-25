@@ -16,6 +16,18 @@ def test_assemble_environment_empty():
     assert env.config == EnvironmentConfig.from_context()
 
 
+def test_assemble_environment_empty_with_default_packages(
+    monkeypatch: MonkeyPatch,
+):
+    # Setup the default packages. Expect this to inject python==3.13
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "python==3.13")
+    reset_context()
+
+    env = assemble_environment()
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.requested_packages == [MatchSpec("python==3.13")]
+
+
 def test_assemble_environment_with_specs():
     env = assemble_environment(
         name="testenv", prefix="/path/to/testenv", specs=["numpy", "scipy=1.*"]
@@ -28,6 +40,8 @@ def test_assemble_environment_with_specs():
 
 
 def test_assemble_environment_with_explicit_specs(mocker: MockerFixture):
+    # Mock the function that retrieves explicit package records to return
+    # a fake value. We'll use this to compare to the expected output.
     fake_explicit_records = ["/path/to/package/numpy.conda"]
     mocker.patch(
         "conda.cli.install.get_package_records_from_explicit",
@@ -57,6 +71,8 @@ def test_assemble_environment_mix_explicit_and_specs():
 
 
 def test_assemble_environment_with_files(mocker: MockerFixture):
+    # Mock out extracting specs from a file by providing a list of specs.
+    # This is similar output to extracting specs from a requirements.txt file.
     fake_specs_from_url = ["numpy", "python >=3.9"]
     mocker.patch(
         "conda.cli.install.common.specs_from_url",
@@ -83,6 +99,7 @@ def test_assemble_environment_with_files(mocker: MockerFixture):
 def test_assemble_environment_inject_default_packages_override(
     monkeypatch: MonkeyPatch,
 ):
+    # Setup the default packages. Expect this to inject favicon and scipy=1.16.0
     monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,scipy=1.16.0")
     reset_context()
 

@@ -326,8 +326,8 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
 def assemble_environment(
     name: str | None = None,
     prefix: str | None = None,
-    specs: list[str] = (),
-    files: list[str] = (),
+    specs: list[str] = [],
+    files: list[str] = [],
     inject_default_packages: bool = True,
 ) -> Environment:
     if inject_default_packages:
