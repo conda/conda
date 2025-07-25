@@ -323,14 +323,13 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
             raise PackageNotInstalledError(prefix, spec.name)
 
 
-def _assemble_environment(
+def assemble_environment(
     name: str | None = None,
     prefix: str | None = None,
     specs: list[str] = (),
     files: list[str] = (),
     inject_default_packages: bool = True,
 ) -> Environment:
-    # First, let's create an 'Environment' for the information exposed in the CLI (no files)
     if inject_default_packages:
         names = {MatchSpec(pkg).name for pkg in specs}
         for pkg in context.create_default_packages:
@@ -377,7 +376,7 @@ def _assemble_environment(
 
     return Environment(
         name=name,
-        prefix=prefix,
+        prefix=prefix or context.target_prefix,
         platform=context.subdir,
         requested_packages=requested_packages,
         explicit_packages=explicit_packages,
@@ -410,7 +409,7 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    env = _assemble_environment(
+    env = assemble_environment(
         name=args.name,
         prefix=context.target_prefix,
         specs=[s.strip("\"'") for s in args.packages],
