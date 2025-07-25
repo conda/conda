@@ -594,6 +594,20 @@ class PrefixData(metaclass=PrefixDataType):
             self.prefix_path.mkdir(parents=True, exist_ok=True)
             (self.prefix_path / ".nonadmin").touch()
 
+    def get_pinned_specs(self) -> tuple[MatchSpec, ...]:
+        """Find pinned specs from file and return a tuple of MatchSpec."""
+        pin_file = self.prefix_path / "conda-meta" / "pinned"
+        if pin_file.exists():
+            from_file = (
+                spec
+                for spec in pin_file.read_text().strip().splitlines()
+                if spec and not spec.strip().startswith("#")
+            )
+        else:
+            from_file = ()
+
+        return tuple(MatchSpec(spec, optional=True) for spec in from_file)
+
     # endregion
 
 
