@@ -382,3 +382,10 @@ NAMESPACES: Final = frozenset(NAMESPACES_MAP.values())
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
 NO_PLUGINS: Final = False
+
+# These variables describe the various sources for config that are supported by conda.
+# In addition to these sources, conda also supports configuration from condarc config
+# files (these are referred to in the context object by their full path as a pathlib.Path).
+CMD_LINE_SOURCE: Final = "cmd_line"
+ENV_VARS_SOURCE: Final = "envvars"
+NON_PATH_CONTEXT_SOURCES: Final = (CMD_LINE_SOURCE, ENV_VARS_SOURCE)
