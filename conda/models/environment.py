@@ -269,8 +269,6 @@ class Environment:
                         f"Requested package '{requested_package}' is not found in 'explicit_packages'."
                     )
 
-
-
     @classmethod
     def merge(cls, *environments):
         """
