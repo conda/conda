@@ -671,19 +671,33 @@ class CondaPluginManager(pluggy.PluginManager):
         Get a mapping from format names (including aliases) to environment exporters.
 
         :return: Dict mapping format name to CondaEnvironmentExporter
+        :raises PluginError: If multiple exporters use the same format name or alias
         """
         mapping = {}
-        seen_formats = set()
+        conflicts = {}  # format_name -> set of plugin names
 
         for plugin in self.get_environment_exporters():
             for format_name in (plugin.name, *plugin.aliases):
-                if format_name in seen_formats:
-                    raise PluginError(
-                        f"Conflicting format name '{format_name}' found in environment exporters. "
-                        f"Multiple plugins cannot use the same format name or alias."
-                    )
-                seen_formats.add(format_name)
-                mapping[format_name] = plugin
+                if format_name in mapping:
+                    if format_name not in conflicts:
+                        conflicts[format_name] = {mapping[format_name].name}
+                    conflicts[format_name].add(plugin.name)
+                else:
+                    mapping[format_name] = plugin
+
+        if conflicts:
+            conflict_details = []
+            for format_name, plugin_names in sorted(conflicts.items()):
+                plugins_str = ", ".join(sorted(plugin_names))
+                conflict_details.append(
+                    f"'{format_name}' used by plugins: {plugins_str}"
+                )
+
+            raise PluginError(
+                f"Format name conflicts detected in environment exporters:"
+                f"{dashlist(conflict_details)}\n"
+                f"Multiple plugins cannot use the same format name or alias."
+            )
 
         return mapping
 
