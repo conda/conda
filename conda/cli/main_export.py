@@ -14,6 +14,7 @@ from argparse import (
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.constants import NULL
+from ..common.io import dashlist
 from ..exceptions import CondaValueError
 from ..models.environment import Environment
 from ..plugins.environment_exporters.environment_yml import (
@@ -129,9 +130,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import env_name
     from .common import stdout_json
 
-    # Validate export format early before doing expensive environment operations
-    available_formats = list(_get_available_export_formats())
-
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
     environment_exporter = None
@@ -144,7 +142,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if not environment_exporter:
             raise CondaValueError(
                 f"Unknown export format '{target_format}'. "
-                f"Available formats: {', '.join(available_formats)}."
+                f"Available formats:{dashlist(_get_available_export_formats())}"
             )
     # Otherwise, try to detect format by filename
     elif args.file:
