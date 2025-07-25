@@ -12,7 +12,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
@@ -441,7 +441,11 @@ class EnvironmentSpecBase(ABC):
     """
     **EXPERIMENTAL**
 
-    Base class for all env specs.
+    Base class for all environment specifications.
+
+    Environment specs parse different types of environment definition files
+    (environment.yml, requirements.txt, pyproject.toml, etc.) into a common
+    Environment object model.
     """
 
     # Determines if the EnvSpec plugin should be included in the set
@@ -488,3 +492,31 @@ class CondaEnvironmentSpecifier(CondaPlugin):
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
+
+
+@dataclass
+class CondaEnvironmentExporter(CondaPlugin):
+    """
+    **EXPERIMENTAL**
+
+    Return type to use when defining a conda environment exporter plugin hook.
+
+    :param name: name of the exporter (e.g., ``environment-yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",))
+    :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
+    :param export: callable that exports an Environment to string format
+    """
+
+    name: str
+    aliases: tuple[str, ...]
+    default_filenames: tuple[str, ...]
+    export: Callable[[Environment], str]
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(alias.lower().strip() for alias in self.aliases)
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")

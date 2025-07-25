@@ -129,3 +129,115 @@ def test_package_virtual_package(version, build_string):
     assert vpkg_record == reference_package
     assert vpkg_record.package_type == PackageType.VIRTUAL_SYSTEM
     assert vpkg_record.md5 == md5
+
+
+@pytest.mark.parametrize(
+    "name,version,build,expected_exact,expected_version",
+    [
+        # Basic case
+        ("numpy", "1.21.0", "py39h_0", "numpy=1.21.0=py39h_0", "numpy=1.21.0"),
+        # Special characters in name, version, and build
+        (
+            "my-package",
+            "2.1.0-alpha",
+            "py38_custom.build",
+            "my-package=2.1.0-alpha=py38_custom.build",
+            "my-package=2.1.0-alpha",
+        ),
+        # Underscores and numbers
+        (
+            "scipy_special",
+            "1.7.0",
+            "py39_1",
+            "scipy_special=1.7.0=py39_1",
+            "scipy_special=1.7.0",
+        ),
+        # Complex build strings
+        (
+            "tensorflow",
+            "2.8.0",
+            "cuda112py39_0",
+            "tensorflow=2.8.0=cuda112py39_0",
+            "tensorflow=2.8.0",
+        ),
+    ],
+)
+def test_package_record_spec_strings(
+    name, version, build, expected_exact, expected_version
+):
+    """Test the spec and spec_no_build properties of PackageRecord."""
+    rec = PackageRecord(
+        name=name,
+        version=version,
+        build=build,
+        build_number=0,
+        channel=Channel("conda-forge"),
+        subdir="linux-64",
+        fn=f"{name}-{version}-{build}.conda",
+    )
+
+    # Test spec property (includes build string)
+    assert rec.spec == expected_exact
+
+    # Test spec_no_build property (excludes build string)
+    assert rec.spec_no_build == expected_version
+
+
+def test_package_record_spec_strings_vs_str():
+    """Test the spec and spec_no_build properties of PackageRecord."""
+    rec = PackageRecord(
+        name="scipy",
+        version="1.7.0",
+        build="py39_1",
+        build_number=1,
+        channel=Channel("conda-forge"),
+        subdir="osx-64",
+        fn="scipy-1.7.0-py39_1.conda",
+    )
+
+    # The properties should not include channel/subdir information
+    assert rec.spec == "scipy=1.7.0=py39_1"  # Full spec (single equals)
+    assert rec.spec_no_build == "scipy=1.7.0"  # No build spec (single equals)
+
+    # The __str__ method includes channel/subdir information
+    assert str(rec) == "conda-forge/osx-64::scipy==1.7.0=py39_1"
+
+    # Verify they are different
+    assert rec.spec != str(rec)
+    assert rec.spec_no_build != str(rec)
+
+
+@pytest.mark.parametrize(
+    "record_class,extra_kwargs",
+    [
+        (PackageRecord, {}),
+        (
+            PrefixRecord,
+            {
+                "url": "https://repo.anaconda.com/pkgs/main/noarch/requests-2.25.1-pyhd3eb1b0_0.conda",
+                "md5": "12345678901234567890123456789012",
+                "files": (),
+            },
+        ),
+    ],
+)
+def test_record_spec_strings_inheritance(record_class, extra_kwargs):
+    """Test that both PackageRecord and PrefixRecord have spec string properties."""
+    rec = record_class(
+        name="requests",
+        version="2.25.1",
+        build="pyhd3eb1b0_0",
+        build_number=0,
+        channel=Channel("defaults"),
+        subdir="noarch",
+        fn="requests-2.25.1-pyhd3eb1b0_0.conda",
+        **extra_kwargs,
+    )
+
+    # Both record types should have the spec string properties
+    assert rec.spec == "requests=2.25.1=pyhd3eb1b0_0"
+    assert rec.spec_no_build == "requests=2.25.1"
+
+    # Verify that the properties exist (important for environment export)
+    assert hasattr(rec, "spec")
+    assert hasattr(rec, "spec_no_build")

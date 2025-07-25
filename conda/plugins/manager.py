@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import os
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
@@ -25,10 +26,12 @@ from ..common.io import dashlist
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
+    EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
 from . import (
+    environment_exporters,
     environment_specifiers,
     post_solves,
     prefix_data_loaders,
@@ -53,6 +56,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
@@ -264,6 +268,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_specifiers"]
     ) -> list[CondaEnvironmentSpecifier]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["environment_exporters"]
+    ) -> list[CondaEnvironmentExporter]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -659,6 +668,111 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
 
+    def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        """
+        Yields all detected environment exporters.
+        """
+        yield from self.get_hook_results("environment_exporters")
+
+    def get_exporter_format_mapping(self) -> dict[str, CondaEnvironmentExporter]:
+        """
+        Get a mapping from format names (including aliases) to environment exporters.
+
+        :return: Dict mapping format name to CondaEnvironmentExporter
+        :raises PluginError: If multiple exporters use the same format name or alias
+        """
+        mapping = {}
+        conflicts = {}  # format_name -> set of plugin names
+
+        for plugin in self.get_environment_exporters():
+            for format_name in (plugin.name, *plugin.aliases):
+                if format_name in mapping:
+                    if format_name not in conflicts:
+                        conflicts[format_name] = {mapping[format_name].name}
+                    conflicts[format_name].add(plugin.name)
+                else:
+                    mapping[format_name] = plugin
+
+        if conflicts:
+            conflict_details = []
+            for format_name, plugin_names in sorted(conflicts.items()):
+                plugins_str = ", ".join(sorted(plugin_names))
+                conflict_details.append(
+                    f"'{format_name}' used by plugins: {plugins_str}"
+                )
+
+            raise PluginError(
+                f"Format name conflicts detected in environment exporters:"
+                f"{dashlist(conflict_details)}\n"
+                f"Multiple plugins cannot use the same format name or alias."
+            )
+
+        return mapping
+
+    def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
+        """
+        Detect an environment exporter based on exact filename matching against default_filenames.
+
+        :param filename: Filename to find an exporter for (basename is used for detection)
+        :return: CondaEnvironmentExporter that supports the filename
+        :raises EnvironmentExporterNotDetected: If no exporter supports the filename
+        :raises PluginError: If multiple exporters claim to support the same filename
+        """
+        # Extract just the basename for matching
+        basename = os.path.basename(filename)
+
+        matches = []
+        for exporter_config in self.get_environment_exporters():
+            # Check if basename exactly matches any of the default filenames
+            if basename in exporter_config.default_filenames:
+                matches.append(exporter_config)
+
+        if len(matches) == 1:
+            return matches[0]
+        elif len(matches) == 0:
+            # Collect all available formats and supported filenames for the error message
+            all_exporters = list(self.get_environment_exporters())
+            available_formats = [exporter.name for exporter in all_exporters]
+            supported_filenames = []
+            for exporter in all_exporters:
+                supported_filenames.extend(exporter.default_filenames)
+
+            raise EnvironmentExporterNotDetected(
+                filename=basename,
+                available_formats=available_formats,
+                supported_filenames=sorted(set(supported_filenames)),
+            )
+        elif len(matches) > 1:
+            raise PluginError(
+                f"Multiple environment exporters found that can handle filename '{basename}':"
+                f"{dashlist([match.name for match in matches])}\n"
+                f"\n"
+                f"Please make sure that you don't have any conflicting exporter plugins installed."
+            )
+
+        return None
+
+    def get_environment_exporter_by_format(
+        self, format_name: str
+    ) -> CondaEnvironmentExporter:
+        """
+        Get an environment exporter based on the format name.
+
+        :param format_name: Format name to find an exporter for (e.g., 'yaml', 'json', 'environment-yaml')
+        :return: CondaEnvironmentExporter that supports the format
+        :raises CondaValueError: If no exporter is found for the given format
+        """
+        format_mapping = self.get_exporter_format_mapping()
+        exporter = format_mapping.get(format_name)
+
+        if exporter is None:
+            raise CondaValueError(
+                f"Unknown export format '{format_name}'. "
+                f"Available formats:{dashlist(sorted(format_mapping.keys()))}"
+            )
+
+        return exporter
+
     def get_pre_transaction_actions(
         self,
         transaction_context: dict[str, str] | None = None,
@@ -747,6 +861,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
+        *environment_exporters.plugins,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

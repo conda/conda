@@ -51,11 +51,11 @@ def test_denylist_channels(
     (
         (
             ("env", "create", "--environment-specifier", "idontexist"),
-            "error: argument '--environment-specifier': invalid choice: 'idontexist'",
+            "argument --environment-specifier/--env-spec: invalid choice: 'idontexist'",
         ),
         (
             ("install", "--solver", "idontexist"),
-            "error: argument '--solver': invalid choice: 'idontexist'",
+            "argument --solver: invalid choice: 'idontexist'",
         ),
     ),
 )

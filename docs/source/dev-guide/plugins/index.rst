@@ -98,6 +98,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    :maxdepth: 1
 
    auth_handlers
+   environment_exporters
    environment_specifiers
    health_checks
    post_commands

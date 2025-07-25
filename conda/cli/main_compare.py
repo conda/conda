@@ -85,7 +85,7 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
                 miss = True
                 output.append(
                     f"{name} found but mismatch. Specification pkg: {pkg}, "
-                    f"Running pkg: {active_pkg.name}=={active_pkg.version}={active_pkg.build}"
+                    f"Running pkg: {active_pkg.spec}"
                 )
         else:
             miss = True

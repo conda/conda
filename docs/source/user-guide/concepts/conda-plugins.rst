@@ -69,6 +69,7 @@ The new conda plugin API ecosystem brings about many possibilities, including bu
 * Network adapters
 * Build system integrations
 * Non-Python language support (*e.g.*, C, Rust)
+* :doc:`Environment export formats <../../dev-guide/plugins/environment_exporters>`
 * Experimental features that are not currently covered by conda
 
 

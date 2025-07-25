@@ -6,6 +6,7 @@ import os
 from logging import getLogger
 
 from ...deprecations import deprecated
+from ...exceptions import CondaValueError
 from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
@@ -33,6 +34,9 @@ class YamlFileSpec(EnvironmentSpecBase):
 
         :return: True or False
         """
+        if not self.filename:
+            return False
+
         # Extract the file extension (e.g., '.txt' or '' if no extension)
         _, file_ext = os.path.splitext(self.filename)
 
@@ -44,16 +48,19 @@ class YamlFileSpec(EnvironmentSpecBase):
             self._environment = env.from_file(self.filename)
             return True
         except Exception:
-            log.debug(
-                "Failed to load %s as `environment.yaml`.", self.filename, exc_info=True
-            )
+            log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
             return False
 
     @property
     @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
     def environment(self) -> EnvironmentYaml:
         if not self._environment:
-            self.can_handle()
+            if not self.can_handle():
+                raise CondaValueError(f"Cannot handle environment file: {self.msg}")
+            # can_handle() succeeded and set self._environment, so it should not be None
+
+        if self._environment is None:
+            raise CondaValueError("Environment could not be loaded")
         return self._environment
 
     @property
