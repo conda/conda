@@ -1338,9 +1338,9 @@ class EnvironmentExporterNotDetected(CondaError):
             f"""
             No environment exporter plugin found for filename '{filename}'.
 
-            Supported filenames: {dashlist(supported_filenames, 16)}
+            Supported filenames: {dashlist(supported_filenames)}
 
-            Available formats: {dashlist(available_formats, 16)}
+            Available formats: {dashlist(available_formats)}
 
             Use conda export --format=FORMAT to specify the export format explicitly,
             or rename your file to match a supported filename pattern.
