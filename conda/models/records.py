@@ -476,6 +476,16 @@ class PackageRecord(DictSafeMixin, Entity):
     def namekey(self):
         return "global:" + self.name
 
+    @property
+    def exact_spec(self):
+        """Return exact conda spec: name==version=build"""
+        return f"{self.name}=={self.version}={self.build}"
+
+    @property
+    def version_spec(self):
+        """Return version-only conda spec: name==version"""
+        return f"{self.name}=={self.version}"
+
     def record_id(self):
         # WARNING: This is right now only used in link.py _change_report_str(). It is not
         #          the official record_id / uid until it gets namespace.  Even then, we might

@@ -441,10 +441,11 @@ class Environment:
         else:
             # Fall back to creating MatchSpecs from all installed packages
             for prefix_record in prefix_data.iter_records():
-                if no_builds:
-                    spec_str = f"{prefix_record.name}=={prefix_record.version}"
-                else:
-                    spec_str = f"{prefix_record.name}=={prefix_record.version}={prefix_record.build}"
+                spec_str = (
+                    prefix_record.version_spec
+                    if no_builds
+                    else prefix_record.exact_spec
+                )
 
                 if (
                     not ignore_channels

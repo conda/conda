@@ -129,3 +129,115 @@ def test_package_virtual_package(version, build_string):
     assert vpkg_record == reference_package
     assert vpkg_record.package_type == PackageType.VIRTUAL_SYSTEM
     assert vpkg_record.md5 == md5
+
+
+@pytest.mark.parametrize(
+    "name,version,build,expected_exact,expected_version",
+    [
+        # Basic case
+        ("numpy", "1.21.0", "py39h_0", "numpy==1.21.0=py39h_0", "numpy==1.21.0"),
+        # Special characters in name, version, and build
+        (
+            "my-package",
+            "2.1.0-alpha",
+            "py38_custom.build",
+            "my-package==2.1.0-alpha=py38_custom.build",
+            "my-package==2.1.0-alpha",
+        ),
+        # Underscores and numbers
+        (
+            "scipy_special",
+            "1.7.0",
+            "py39_1",
+            "scipy_special==1.7.0=py39_1",
+            "scipy_special==1.7.0",
+        ),
+        # Complex build strings
+        (
+            "tensorflow",
+            "2.8.0",
+            "cuda112py39_0",
+            "tensorflow==2.8.0=cuda112py39_0",
+            "tensorflow==2.8.0",
+        ),
+    ],
+)
+def test_package_record_spec_strings(
+    name, version, build, expected_exact, expected_version
+):
+    """Test the exact_spec and version_spec properties of PackageRecord."""
+    rec = PackageRecord(
+        name=name,
+        version=version,
+        build=build,
+        build_number=0,
+        channel=Channel("conda-forge"),
+        subdir="linux-64",
+        fn=f"{name}-{version}-{build}.conda",
+    )
+
+    # Test exact_spec property (includes build string)
+    assert rec.exact_spec == expected_exact
+
+    # Test version_spec property (excludes build string)
+    assert rec.version_spec == expected_version
+
+
+def test_package_record_spec_strings_vs_str():
+    """Test that spec string properties differ from the full __str__ representation."""
+    rec = PackageRecord(
+        name="scipy",
+        version="1.7.0",
+        build="py39_1",
+        build_number=1,
+        channel=Channel("conda-forge"),
+        subdir="osx-64",
+        fn="scipy-1.7.0-py39_1.conda",
+    )
+
+    # The spec properties should not include channel/subdir information
+    assert rec.exact_spec == "scipy==1.7.0=py39_1"
+    assert rec.version_spec == "scipy==1.7.0"
+
+    # The __str__ method includes channel/subdir information
+    assert str(rec) == "conda-forge/osx-64::scipy==1.7.0=py39_1"
+
+    # Verify they are different
+    assert rec.exact_spec != str(rec)
+    assert rec.version_spec != str(rec)
+
+
+@pytest.mark.parametrize(
+    "record_class,extra_kwargs",
+    [
+        (PackageRecord, {}),
+        (
+            PrefixRecord,
+            {
+                "url": "https://repo.anaconda.com/pkgs/main/noarch/requests-2.25.1-pyhd3eb1b0_0.conda",
+                "md5": "12345678901234567890123456789012",
+                "files": (),
+            },
+        ),
+    ],
+)
+def test_record_spec_strings_inheritance(record_class, extra_kwargs):
+    """Test that both PackageRecord and PrefixRecord have spec string properties."""
+    rec = record_class(
+        name="requests",
+        version="2.25.1",
+        build="pyhd3eb1b0_0",
+        build_number=0,
+        channel=Channel("defaults"),
+        subdir="noarch",
+        fn="requests-2.25.1-pyhd3eb1b0_0.conda",
+        **extra_kwargs,
+    )
+
+    # Both record types should have the spec string properties
+    assert rec.exact_spec == "requests==2.25.1=pyhd3eb1b0_0"
+    assert rec.version_spec == "requests==2.25.1"
+
+    # Verify that the properties exist (important for environment export)
+    assert hasattr(rec, "exact_spec")
+    assert hasattr(rec, "version_spec")
