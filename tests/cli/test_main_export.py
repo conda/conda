@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from conda.cli.main_export import _get_available_export_formats
+from conda.base.context import context
 from conda.common.serialize import yaml_safe_load
 from conda.exceptions import (
     ArgumentError,
@@ -210,8 +210,8 @@ def test_export_unknown_format_verbose(conda_cli: CondaCLIFixture) -> None:
 
 def test_export_format_consistency(conda_cli: CondaCLIFixture) -> None:
     """Test that CLI choices and error messages use the same format source."""
-    # This function should be the single source of truth for available formats
-    available_formats = _get_available_export_formats()
+    # Plugin manager should be the single source of truth for available formats
+    available_formats = sorted(context.plugin_manager.get_exporter_format_mapping())
 
     # Verify the function returns both canonical names and aliases
     canonical_formats = {"environment-yaml", "environment-json", "explicit"}
