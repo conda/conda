@@ -273,11 +273,10 @@ def test_get_environment_exporter_by_format(
     plugin_manager_with_exporters, format_name, should_exist
 ):
     """Test getting exporter by format name including aliases."""
-    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        format_name
-    )
-
     if should_exist:
+        exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+            format_name
+        )
         assert exporter is not None
         # For aliases, verify that an exporter was found and has a valid canonical name
         assert exporter.name is not None
@@ -290,7 +289,13 @@ def test_get_environment_exporter_by_format(
             f"Format '{format_name}' should be either canonical name or alias"
         )
     else:
-        assert exporter is None
+        # Should raise CondaValueError for unknown formats
+        with pytest.raises(
+            CondaValueError, match=f"Unknown export format '{format_name}'"
+        ):
+            plugin_manager_with_exporters.get_environment_exporter_by_format(
+                format_name
+            )
 
 
 def test_yaml_exporter_handles_missing_name(plugin_manager_with_exporters):

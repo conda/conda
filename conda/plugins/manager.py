@@ -737,15 +737,24 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_environment_exporter_by_format(
         self, format_name: str
-    ) -> CondaEnvironmentExporter | None:
+    ) -> CondaEnvironmentExporter:
         """
         Get an environment exporter based on the format name.
 
         :param format_name: Format name to find an exporter for (e.g., 'yaml', 'json', 'environment-yaml')
-        :return: CondaEnvironmentExporter that supports the format, or None if none found
+        :return: CondaEnvironmentExporter that supports the format
+        :raises CondaValueError: If no exporter is found for the given format
         """
         format_mapping = self.get_exporter_format_mapping()
-        return format_mapping.get(format_name)
+        exporter = format_mapping.get(format_name)
+
+        if exporter is None:
+            raise CondaValueError(
+                f"Unknown export format '{format_name}'. "
+                f"Available formats:{dashlist(sorted(format_mapping.keys()))}"
+            )
+
+        return exporter
 
     def get_pre_transaction_actions(
         self,
