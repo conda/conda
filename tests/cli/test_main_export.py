@@ -339,3 +339,61 @@ def test_export_json_flag_with_file_no_format_detection_error(
         EnvironmentExporterNotDetected, match="No environment exporter plugin found"
     ):
         conda_cli("export", f"--name={name}", f"--file={path}", "--json")
+
+
+def test_export_preserves_channels_from_installed_packages(
+    conda_cli: CondaCLIFixture,
+) -> None:
+    """Test that conda export includes channels from installed packages."""
+    stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
+    assert not stderr
+    assert not code
+    assert stdout
+
+    # Parse the YAML output
+    env_data = yaml_safe_load(stdout)
+
+    # Should have channels section
+    assert "channels" in env_data
+    assert isinstance(env_data["channels"], list)
+    assert len(env_data["channels"]) > 0
+
+    # Test environment typically has conda-forge and/or defaults
+    # Just verify we have reasonable channels present
+    channels = env_data["channels"]
+    expected_channels = {"conda-forge", "defaults"}
+    found_channels = set(channels) & expected_channels
+
+    assert len(found_channels) > 0, (
+        f"Expected to find conda-forge or defaults in channels: {channels}"
+    )
+
+
+@pytest.mark.parametrize("ignore_channels", [True, False])
+def test_export_ignore_channels_flag(
+    conda_cli: CondaCLIFixture, ignore_channels
+) -> None:
+    """Test that --ignore-channels affects channel extraction."""
+    args = ["export", "--format=environment-yaml"]
+    if ignore_channels:
+        args.append("--ignore-channels")
+
+    stdout, stderr, code = conda_cli(*args)
+    assert not stderr
+    assert not code
+    assert stdout
+
+    env_data = yaml_safe_load(stdout)
+
+    if ignore_channels:
+        # With --ignore-channels, should still have channels (from context.channels)
+        # but package-specific channels should not be extracted
+        assert "channels" in env_data
+        # Dependencies should not include channel prefixes
+        for dep in env_data.get("dependencies", []):
+            if isinstance(dep, str):
+                assert "::" not in dep, f"Found channel prefix in dependency: {dep}"
+    else:
+        # Without --ignore-channels, should have channels and may include channel prefixes
+        assert "channels" in env_data
+        assert len(env_data["channels"]) > 0

@@ -461,6 +461,14 @@ class Environment:
         if channels:
             environment_channels.extend(channels)
 
+        # Extract channels from installed packages (unless ignoring channels)
+        if not ignore_channels:
+            for prefix_record in prefix_data.iter_records():
+                if prefix_record.channel:
+                    canonical_name = prefix_record.channel.canonical_name
+                    if canonical_name not in environment_channels:
+                        environment_channels.insert(0, canonical_name)
+
         # Add default channels unless overridden
         if not override_channels:
             # Only add defaults that aren't already in the list
