@@ -23,16 +23,6 @@ from ..plugins.environment_exporters.environment_yml import (
 )
 
 
-def _get_available_export_formats() -> tuple[str, ...]:
-    """Get a tuple of available export formats."""
-
-    # Get all format names (including aliases) from the plugin manager
-    format_mapping = context.plugin_manager.get_exporter_format_mapping()
-
-    # Return all format names sorted for consistent display
-    return tuple(sorted(format_mapping.keys()))
-
-
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
 
@@ -88,7 +78,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=NULL,
         required=False,
         action=LazyChoicesAction,
-        choices_func=_get_available_export_formats,
+        choices_func=lambda: sorted(
+            context.plugin_manager.get_exporter_format_mapping()
+        ),
         help=(
             "Format for the exported environment. "
             "Available formats include 'yaml', 'json', 'explicit' (and their full names). "
@@ -142,7 +134,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         if not environment_exporter:
             raise CondaValueError(
                 f"Unknown export format '{target_format}'. "
-                f"Available formats:{dashlist(_get_available_export_formats())}"
+                f"Available formats:{dashlist(sorted(context.plugin_manager.get_exporter_format_mapping()))}"
             )
     # Otherwise, try to detect format by filename
     elif args.file:
