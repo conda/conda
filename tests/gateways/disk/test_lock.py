@@ -42,8 +42,9 @@ def test_LockError_raised_windows(
     mocker.patch("msvcrt.locking", side_effect=OSError)
     monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
     with pytest.raises(LockError):
-        with lock(tmp_file):
-            pass
+        with tmp_file.open("r+b") as f:
+            with lock(f):
+                pass
 
 
 @pytest.mark.skipif(on_win, reason="non windows test")
@@ -56,8 +57,9 @@ def test_LockError_raised_not_windows(
     mocker.patch("fcntl.lockf", side_effect=OSError)
     monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
     with pytest.raises(LockError):
-        with lock(tmp_file):
-            pass
+        with tmp_file.open("r+b") as f:
+            with lock(f):
+                pass
 
 
 def test_lock_acquired_success(mocker: MockerFixture, capsys: CaptureFixture, tmp_path):
