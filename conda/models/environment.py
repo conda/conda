@@ -16,6 +16,9 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import TypeVar
+
     from ..base.constants import (
         ChannelPriority,
         DepsModifier,
@@ -25,6 +28,7 @@ if TYPE_CHECKING:
     from .match_spec import MatchSpec
     from .records import PackageRecord
 
+    T = TypeVar("T")
 
 log = getLogger(__name__)
 
@@ -37,39 +41,40 @@ class EnvironmentConfig:
     Data model for a conda environment config.
     """
 
-    aggressive_update_packages: list[str] = field(default_factory=list)
+    aggressive_update_packages: tuple[str] = field(default_factory=tuple)
 
     channel_priority: ChannelPriority | None = None
 
-    channels: list[str] = field(default_factory=list)
+    channels: tuple[str] = field(default_factory=tuple)
 
-    channel_settings: list[dict[str, str]] = field(default_factory=list)
+    channel_settings: tuple[dict[str, str]] = field(default_factory=tuple)
 
     deps_modifier: DepsModifier | None = None
 
-    disallowed_packages: list[str] = field(default_factory=list)
+    disallowed_packages: tuple[str] = field(default_factory=tuple)
 
-    pinned_packages: list[str] = field(default_factory=list)
+    pinned_packages: tuple[str] = field(default_factory=tuple)
 
-    repodata_fns: list[str] = field(default_factory=list)
+    repodata_fns: tuple[str] = field(default_factory=tuple)
 
     sat_solver: SatSolverChoice | None = None
 
     solver: str | None = None
 
-    track_features: list[str] = field(default_factory=list)
+    track_features: tuple[str] = field(default_factory=tuple)
 
     update_modifier: UpdateModifier | None = None
 
     use_only_tar_bz2: bool | None = None
 
-    def _append_without_duplicates(self, first: list, second: list) -> list:
-        first.extend(second)
-        return list(dict.fromkeys(item for item in first))
+    def _append_without_duplicates(
+        self, first: Iterable[T], second: Iterable[T]
+    ) -> tuple[T, ...]:
+        return tuple(dict.fromkeys(item for item in chain(first, second)))
 
     def _merge_channel_settings(
-        self, first: list[dict[str, str]], second: list[dict[str, str]]
-    ) -> list[dict[str, str]]:
+        self, first: tuple[dict[str, str]], second: tuple[dict[str, str]]
+    ) -> tuple[dict[str, str]]:
         """Merge channel settings.
 
         An individual channel setting is a dict that may have the key "channels". Settings
@@ -80,10 +85,10 @@ class EnvironmentConfig:
             lambda x: x.get("channel"), chain(first, second)
         )
 
-        return [
+        return tuple(
             {k: v for config in configs for k, v in config.items()}
             for channel, configs in grouped_channel_settings.items()
-        ]
+        )
 
     def _merge(self, other: EnvironmentConfig) -> EnvironmentConfig:
         """

@@ -194,7 +194,7 @@ class Dependencies(dict):
             if isinstance(line, dict):
                 self.update(line)
             else:
-                self["conda"].append(common.arg2spec(line))
+                self["conda"].append(str(MatchSpec(line)))
 
         if "pip" in self:
             if not self["pip"]:
@@ -268,7 +268,7 @@ class EnvironmentYaml:
 
     def to_environment_model(self) -> EnvironmentModel:
         """Convert the ``Environment`` into a ``model.Environment`` object"""
-        config = EnvironmentConfig(channels=self.channels)
+        config = EnvironmentConfig(channels=tuple(self.channels))
 
         external_packages = {}
         if pip_dependencies := self.dependencies.get("pip"):
