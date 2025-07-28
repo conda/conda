@@ -645,7 +645,7 @@ def test_package_methods_with_multiple_packages(
     # Create environment with multiple test packages
     packages = ["small-executable", "sample_noarch_python"]
     with tmp_env(*packages) as prefix:
-        # Enable pip interoperability to detect Python packages  
+        # Enable pip interoperability to detect Python packages
         prefix_data = PrefixData(prefix, interoperability=True)
 
         # Test all methods together
@@ -677,14 +677,14 @@ def test_package_methods_with_multiple_packages(
 
         # Test Python packages structure and content
         assert isinstance(python_packages, list), "Python packages should be a list"
-        
+
         if python_packages:
             # Verify sorting
             python_names_list = [pkg.name for pkg in python_packages]
             assert python_names_list == sorted(python_names_list), (
                 "Python packages should be sorted"
             )
-            
+
             # Verify all Python packages have correct types
             for pkg in python_packages:
                 assert pkg.package_type in {
@@ -743,9 +743,7 @@ def test_package_methods_with_required_python_packages(mocker):
         python_record1,
         python_record2,
     ]
-    mocker.patch(
-        "conda.core.prefix_data.PrefixGraph", return_value=mock_graph
-    )
+    mocker.patch("conda.core.prefix_data.PrefixGraph", return_value=mock_graph)
 
     # Test the methods
     conda_packages = mock_prefix_data.get_conda_packages()
@@ -764,8 +762,8 @@ def test_package_methods_with_required_python_packages(mocker):
         f"Should have exactly 2 Python packages, got {len(python_packages)}"
     )
     assert [pkg.name for pkg in python_packages] == [
-        "python-package-1", 
-        "python-package-2"
+        "python-package-1",
+        "python-package-2",
     ]
 
     # Verify all Python packages have correct types
@@ -939,9 +937,7 @@ def test_package_methods_with_mock_data(mocker):
         conda_record2,
         python_record,
     ]
-    mocker.patch(
-        "conda.core.prefix_data.PrefixGraph", return_value=mock_graph
-    )
+    mocker.patch("conda.core.prefix_data.PrefixGraph", return_value=mock_graph)
 
     # Test the methods
     conda_packages = mock_prefix_data.get_conda_packages()
