@@ -16,10 +16,7 @@ from packaging.version import Version
 from conda import plugins
 from conda.common.url import urlparse
 from conda.core import solve
-from conda.exceptions import (
-    CondaValueError,
-    PluginError,
-)
+from conda.exceptions import CondaValueError, NoNameVirtualPackagePlugin, PluginError
 from conda.plugins import virtual_packages
 from conda.plugins.types import CondaPlugin
 
@@ -255,9 +252,6 @@ def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> No
 
 
 def test_get_virtual_packages(plugin_manager: CondaPluginManager):
-    """
-    TODO: Remove this test when the deprecated API is removed.
-    """
     assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
     with pytest.deprecated_call():
         assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
@@ -284,11 +278,6 @@ def test_get_virtual_packages_records_no_name(plugin_manager: CondaPluginManager
     assert plugin_manager.load_plugins(NoNameVirtualPackagePlugin) == 1
     with pytest.raises(PluginError, match="Invalid plugin names"):
         plugin_manager.get_virtual_package_records()
-
-
-def test_get_virtual_packages(plugin_manager: CondaPluginManager):
-    assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
-    assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):
