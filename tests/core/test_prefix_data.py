@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from subprocess import check_call
 from typing import TYPE_CHECKING
 
 import pytest
@@ -17,6 +18,7 @@ from conda.exceptions import CondaError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
+from conda.testing.integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -638,13 +640,27 @@ def test_package_methods_consistency(tmp_env: TmpEnvFixture, test_recipes_channe
         )
 
 
-def test_package_methods_with_multiple_packages(
-    tmp_env: TmpEnvFixture, test_recipes_channel: str
-):
-    """Test package extraction with multiple known packages including Python packages."""
-    # Create environment with multiple test packages
-    packages = ["small-executable", "sample_noarch_python"]
+def test_package_methods_with_multiple_packages(tmp_env: TmpEnvFixture):
+    """Test package extraction with real conda packages and actual pip package installation.
+
+    This test verifies that PrefixData methods correctly identify and categorize packages
+    when both conda and pip packages are present in the environment. Uses the proven
+    flask installation technique for reliable pip package testing.
+    """
+    # Create environment with conda packages and pip
+    packages = ["python=3.10", "pip", "ca-certificates"]
     with tmp_env(*packages) as prefix:
+        # Install a reliable pip package following the proven technique
+        # Using flask since it's proven to work in conda tests
+        check_call(
+            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
+            cwd=prefix,
+            shell=True,
+        )
+
+        # Clear prefix data cache to ensure fresh data
+        PrefixData._cache_.clear()
+
         # Enable pip interoperability to detect Python packages
         prefix_data = PrefixData(prefix, interoperability=True)
 
@@ -654,8 +670,13 @@ def test_package_methods_with_multiple_packages(
         all_conda, all_python = prefix_data.get_packages_by_type()
 
         # Should have multiple conda packages
-        assert len(conda_packages) >= 2, (
-            f"Should have at least 2 conda packages, got {len(conda_packages)}"
+        assert len(conda_packages) >= 3, (
+            f"Should have at least 3 conda packages, got {len(conda_packages)}"
+        )
+
+        # Should have Python packages now (flask and potentially its dependencies)
+        assert len(python_packages) >= 1, (
+            f"Should have at least 1 Python package after installing flask, got {len(python_packages)}"
         )
 
         # Verify consistency
@@ -664,9 +685,13 @@ def test_package_methods_with_multiple_packages(
 
         # Check that our test packages are included
         conda_names = {pkg.name for pkg in conda_packages}
-        assert "small-executable" in conda_names, "Should include small-executable"
-        assert "sample_noarch_python" in conda_names, (
-            "Should include sample_noarch_python"
+        assert "python" in conda_names, "Should include python"
+        assert "ca-certificates" in conda_names, "Should include ca-certificates"
+
+        # Check that flask is included in Python packages
+        python_names = {pkg.name for pkg in python_packages}
+        assert "flask" in python_names, (
+            f"Should include flask in Python packages: {python_names}"
         )
 
         # Verify alphabetical sorting
@@ -675,25 +700,21 @@ def test_package_methods_with_multiple_packages(
             "Conda packages should be sorted"
         )
 
-        # Test Python packages structure and content
-        assert isinstance(python_packages, list), "Python packages should be a list"
+        # Verify Python packages sorting and structure
+        python_names_list = [pkg.name for pkg in python_packages]
+        assert python_names_list == sorted(python_names_list), (
+            "Python packages should be sorted"
+        )
 
-        if python_packages:
-            # Verify sorting
-            python_names_list = [pkg.name for pkg in python_packages]
-            assert python_names_list == sorted(python_names_list), (
-                "Python packages should be sorted"
+        # Verify all Python packages have correct types
+        for pkg in python_packages:
+            assert pkg.package_type in {
+                PackageType.VIRTUAL_PYTHON_WHEEL,
+                PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            }, (
+                f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
             )
-
-            # Verify all Python packages have correct types
-            for pkg in python_packages:
-                assert pkg.package_type in {
-                    PackageType.VIRTUAL_PYTHON_WHEEL,
-                    PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
-                    PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
-                }, (
-                    f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
-                )
 
 
 def test_package_methods_with_required_python_packages(mocker):

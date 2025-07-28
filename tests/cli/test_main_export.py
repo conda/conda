@@ -652,11 +652,15 @@ def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
 def test_export_with_pip_dependencies_integration(
     tmp_env, conda_cli, format_name, format_flag, parser_func
 ):
-    """Test that conda export properly includes pip dependencies when present."""
+    """Test that conda export properly includes pip dependencies when present.
+
+    Uses flask as a reliable test package that's proven to work in conda's test suite.
+    """
     with tmp_env("python=3.10", "pip") as prefix:
-        # Install pip packages following the test_create.py pattern
+        # Install a reliable pip package following the test_create.py pattern
+        # Using flask since it's proven to work in conda tests
         check_call(
-            f"{PYTHON_BINARY} -m pip install requests==2.25.1 six==1.16.0",
+            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
             cwd=prefix,
             shell=True,
         )
@@ -693,10 +697,9 @@ def test_export_with_pip_dependencies_integration(
             )
         ), f"Expected pip dependencies in {format_name} export"
 
-        # Should include the pip packages we installed
+        # Should include the pip package we installed (flask) and potentially its dependencies
         pip_packages = {pkg.split("==")[0] for pkg in pip_deps if "==" in pkg}
-        expected_packages = {"requests", "six"}
 
-        assert expected_packages.issubset(pip_packages), (
-            f"Expected {expected_packages} in {format_name} export: {pip_deps}"
+        assert "flask" in pip_packages, (
+            f"Expected 'flask' in {format_name} export: {pip_deps}"
         )
