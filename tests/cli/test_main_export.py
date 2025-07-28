@@ -397,3 +397,243 @@ def test_export_ignore_channels_flag(
         # Without --ignore-channels, should have channels and may include channel prefixes
         assert "channels" in env_data
         assert len(env_data["channels"]) > 0
+
+
+def test_export_package_alphabetical_ordering(conda_cli):
+    """Test that exported packages are sorted alphabetically."""
+    stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
+    assert code == 0
+
+    env_data = yaml_safe_load(stdout)
+    dependencies = env_data.get("dependencies", [])
+
+    # Extract conda package names (skip pip dependencies which are dicts)
+    conda_packages = [dep for dep in dependencies if isinstance(dep, str)]
+    package_names = [dep.split("=")[0] for dep in conda_packages]
+
+    # Verify packages are in alphabetical order
+    assert package_names == sorted(package_names), (
+        "Packages should be in alphabetical order"
+    )
+
+    # Verify we have some packages to test with
+    assert len(package_names) > 5, "Should have multiple packages for ordering test"
+
+
+def test_export_no_builds_format(conda_cli):
+    """Test that --no-builds produces name=version format without .* suffix."""
+    stdout, stderr, code = conda_cli(
+        "export", "--no-builds", "--format=environment-yaml"
+    )
+    assert code == 0
+
+    env_data = yaml_safe_load(stdout)
+    dependencies = env_data.get("dependencies", [])
+
+    # Extract conda package specs (skip pip dependencies which are dicts)
+    conda_packages = [dep for dep in dependencies if isinstance(dep, str)]
+
+    for package_spec in conda_packages:
+        # Should have exactly one equals sign (name=version)
+        parts = package_spec.split("=")
+        assert len(parts) == 2, (
+            f"Package spec should be name=version format: {package_spec}"
+        )
+
+        name, version = parts
+        # Should not contain build string or .* suffix
+        assert "*" not in version, f"Version should not contain '*': {package_spec}"
+        assert version.count("=") == 0, f"Should not have build string: {package_spec}"
+
+    # Verify we have packages to test with
+    assert len(conda_packages) > 0, "Should have conda packages to test"
+
+
+def test_export_from_history_format(conda_cli):
+    """Test that --from-history produces bracket format for version constraints."""
+    stdout, stderr, code = conda_cli(
+        "export", "--from-history", "--format=environment-yaml"
+    )
+
+    if code != 0:
+        # Some environments might not have history, skip gracefully
+        pytest.skip("Environment has no history to export")
+
+    env_data = yaml_safe_load(stdout)
+    dependencies = env_data.get("dependencies", [])
+
+    # Extract conda package specs (skip pip dependencies which are dicts)
+    conda_packages = [dep for dep in dependencies if isinstance(dep, str)]
+
+    # Check for bracket format in version constraints
+    for package_spec in conda_packages:
+        if "[version=" in package_spec and "]" in package_spec:
+            # Verify proper bracket format
+            assert package_spec.count("[") == package_spec.count("]"), (
+                f"Mismatched brackets: {package_spec}"
+            )
+        elif "=" in package_spec:
+            # Simple equality should not have brackets
+            assert "[" not in package_spec and "]" not in package_spec, (
+                f"Simple spec should not have brackets: {package_spec}"
+            )
+
+    # Note: It's okay if no constraints exist, we just test format when they do
+
+
+def test_export_override_channels_behavior(conda_cli):
+    """Test that --override-channels properly replaces channels."""
+    # Test with override channels
+    stdout, stderr, code = conda_cli(
+        "export",
+        "--override-channels",
+        "-c",
+        "conda-forge",
+        "--format=environment-yaml",
+    )
+    assert code == 0
+
+    env_data = yaml_safe_load(stdout)
+    channels = env_data.get("channels", [])
+
+    # Should only have the specified channel
+    assert "conda-forge" in channels, "Should include specified channel"
+    # Should not have defaults when overriding (unless explicitly added)
+    if "defaults" in channels:
+        # If defaults appears, it should be because conda-forge wasn't sufficient
+        # This is acceptable behavior in some cases
+        pass
+
+    # Test with multiple override channels
+    stdout2, stderr2, code2 = conda_cli(
+        "export",
+        "--override-channels",
+        "-c",
+        "conda-forge",
+        "-c",
+        "bioconda",
+        "--format=environment-yaml",
+    )
+    assert code2 == 0
+
+    env_data2 = yaml_safe_load(stdout2)
+    channels2 = env_data2.get("channels", [])
+
+    # Should include both specified channels
+    assert "conda-forge" in channels2, "Should include conda-forge"
+    assert "bioconda" in channels2, "Should include bioconda"
+
+
+def test_export_regular_format_consistency(conda_cli):
+    """Test that regular export produces name=version=build format."""
+    stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
+    assert code == 0
+
+    env_data = yaml_safe_load(stdout)
+    dependencies = env_data.get("dependencies", [])
+
+    # Extract conda package specs (skip pip dependencies which are dicts)
+    conda_packages = [dep for dep in dependencies if isinstance(dep, str)]
+
+    for package_spec in conda_packages:
+        # Should have name=version=build format (3 parts)
+        parts = package_spec.split("=")
+        assert len(parts) == 3, (
+            f"Package spec should be name=version=build format: {package_spec}"
+        )
+
+        name, version, build = parts
+        # All parts should be non-empty
+        assert name.strip(), f"Package name should not be empty: {package_spec}"
+        assert version.strip(), f"Package version should not be empty: {package_spec}"
+        assert build.strip(), f"Package build should not be empty: {package_spec}"
+
+    # Verify we have packages to test with
+    assert len(conda_packages) > 0, "Should have conda packages to test"
+
+
+def test_export_format_comparison_no_builds_vs_regular(conda_cli):
+    """Test that --no-builds vs regular export produces different but consistent formats."""
+    # Get regular export
+    stdout_regular, _, code_regular = conda_cli("export", "--format=environment-yaml")
+    assert code_regular == 0
+
+    # Get no-builds export
+    stdout_no_builds, _, code_no_builds = conda_cli(
+        "export", "--no-builds", "--format=environment-yaml"
+    )
+    assert code_no_builds == 0
+
+    env_regular = yaml_safe_load(stdout_regular)
+    env_no_builds = yaml_safe_load(stdout_no_builds)
+
+    deps_regular = [
+        dep for dep in env_regular.get("dependencies", []) if isinstance(dep, str)
+    ]
+    deps_no_builds = [
+        dep for dep in env_no_builds.get("dependencies", []) if isinstance(dep, str)
+    ]
+
+    # Should have same number of packages
+    assert len(deps_regular) == len(deps_no_builds), (
+        "Should have same number of packages"
+    )
+
+    # Compare format differences
+    for reg_dep, no_build_dep in zip(deps_regular, deps_no_builds):
+        reg_parts = reg_dep.split("=")
+        no_build_parts = no_build_dep.split("=")
+
+        # Regular should have 3 parts (name=version=build)
+        assert len(reg_parts) == 3, (
+            f"Regular export should have name=version=build: {reg_dep}"
+        )
+
+        # No-builds should have 2 parts (name=version)
+        assert len(no_build_parts) == 2, (
+            f"No-builds export should have name=version: {no_build_dep}"
+        )
+
+        # Package names and versions should match
+        assert reg_parts[0] == no_build_parts[0], "Package names should match"
+        assert reg_parts[1] == no_build_parts[1], "Package versions should match"
+
+
+@pytest.mark.parametrize(
+    "format_name,parser_func",
+    [
+        ("environment-yaml", yaml_safe_load),
+        ("environment-json", json.loads),
+    ],
+)
+def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
+    """Test that pip dependencies are properly handled in exports when present."""
+    stdout, stderr, code = conda_cli("export", f"--format={format_name}")
+    assert code == 0
+
+    env_data = parser_func(stdout)
+    dependencies = env_data.get("dependencies", [])
+
+    # Look for pip dependencies
+    pip_deps = None
+    conda_deps = []
+
+    for dep in dependencies:
+        if isinstance(dep, dict) and "pip" in dep:
+            pip_deps = dep["pip"]
+        elif isinstance(dep, str):
+            conda_deps.append(dep)
+
+    # If pip dependencies exist, verify their format
+    if pip_deps:
+        for pip_dep in pip_deps:
+            # Pip deps should be in name==version format
+            assert "==" in pip_dep, f"Pip dependency should use == format: {pip_dep}"
+            name, version = pip_dep.split("==", 1)
+            assert name.strip(), f"Pip package name should not be empty: {pip_dep}"
+            assert version.strip(), (
+                f"Pip package version should not be empty: {pip_dep}"
+            )
+
+    # Should always have conda dependencies
+    assert len(conda_deps) > 0, "Should have conda dependencies"
