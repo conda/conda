@@ -23,16 +23,19 @@ if TYPE_CHECKING:
 class LazyChoicesAction(Action):
     def __init__(self, option_strings, dest, choices_func, **kwargs):
         self.choices_func = choices_func
+        self._cached_choices = None
         super().__init__(option_strings, dest, **kwargs)
 
     @property
     def choices(self):
         """Dynamically evaluate choices for help generation and validation."""
-        return self.choices_func()
+        if self._cached_choices is None:
+            self._cached_choices = self.choices_func()
+        return self._cached_choices
 
     @choices.setter
     def choices(self, value):
-        """Ignore attempts to set choices since we use choices_func."""
+        """Allow argparse to set choices during initialization, but ignore it."""
         # argparse tries to set self.choices during __init__, but we ignore it
         # since we dynamically generate choices via choices_func
         pass

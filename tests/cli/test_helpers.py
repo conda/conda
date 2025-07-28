@@ -96,10 +96,10 @@ def test_choices_property_evaluation(choices_func_counter):
     assert choices1 == ["option1", "option2", "option3"]
     assert choices_func_counter.call_count() == 1
 
-    # Second access - should call function again (no caching)
+    # Second access - should use cached result (with caching)
     choices2 = action.choices
     assert choices2 == ["option1", "option2", "option3"]
-    assert choices_func_counter.call_count() == 2
+    assert choices_func_counter.call_count() == 1  # Same count due to caching
 
 
 def test_choices_setter_ignores_values():
