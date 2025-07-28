@@ -55,19 +55,12 @@ class VerboseSolverPlugin:
 
 
 DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
-NoNameVirtualPackage = plugins.CondaVirtualPackage(None, None, None)
 
 
 class DummyVirtualPackagePlugin:
     @plugins.hookimpl
     def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
         yield DummyVirtualPackage
-
-
-class NoNameVirtualPackagePlugin:
-    @plugins.hookimpl
-    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
-        yield NoNameVirtualPackage
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
@@ -269,22 +262,6 @@ def test_get_virtual_package_records(plugin_manager: CondaPluginManager):
     assert plugin_manager.get_virtual_package_records() == (
         DummyVirtualPackage.to_virtual_package(),
     )
-
-
-def test_get_virtual_packages_no_name(plugin_manager: CondaPluginManager):
-    """
-    TODO: Remove this test when the deprecated API is removed.
-    """
-    assert plugin_manager.load_plugins(NoNameVirtualPackagePlugin) == 1
-    with pytest.raises(PluginError, match="Invalid plugin names"):
-        with pytest.deprecated_call():
-            plugin_manager.get_virtual_packages()
-
-
-def test_get_virtual_packages_records_no_name(plugin_manager: CondaPluginManager):
-    assert plugin_manager.load_plugins(NoNameVirtualPackagePlugin) == 1
-    with pytest.raises(PluginError, match="Invalid plugin names"):
-        plugin_manager.get_virtual_package_records()
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):
