@@ -24,6 +24,7 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
+from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, paths_equal
 from ..common.serialize import json
 from ..common.url import mask_anaconda_token
@@ -45,6 +46,7 @@ from ..exceptions import (
 from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
+from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
@@ -474,6 +476,57 @@ class PrefixData(metaclass=PrefixDataType):
             return (
                 prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param
             )
+
+    def get_conda_packages(self) -> list[PrefixRecord]:
+        """
+        Get conda packages sorted alphabetically by name.
+
+        Returns:
+            list: Sorted conda package records
+        """
+        grouped_precs = self._get_grouped_records()
+        conda_types = {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON}
+        conda_packages = []
+        for pkg_type in conda_types:
+            conda_packages.extend(grouped_precs.get(pkg_type, ()))
+        return sorted(conda_packages, key=lambda x: x.name)
+
+    def get_python_packages(self) -> list[PrefixRecord]:
+        """
+        Get Python packages (installed via pip) sorted alphabetically by name.
+
+        Returns:
+            list: Sorted Python package records
+        """
+        grouped_precs = self._get_grouped_records()
+        python_types = {
+            PackageType.VIRTUAL_PYTHON_WHEEL,
+            PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+        }
+        python_packages = []
+        for pkg_type in python_types:
+            python_packages.extend(grouped_precs.get(pkg_type, ()))
+        return sorted(python_packages, key=lambda x: x.name)
+
+    def get_packages_by_type(self) -> tuple[list[PrefixRecord], list[PrefixRecord]]:
+        """
+        Get conda and Python packages sorted alphabetically by name.
+
+        Returns:
+            tuple: (conda_packages, python_packages) - both sorted alphabetically by name
+        """
+        return self.get_conda_packages(), self.get_python_packages()
+
+    def _get_grouped_records(self) -> dict:
+        """
+        Get prefix records grouped by package type.
+
+        Returns:
+            dict: Records grouped by PackageType
+        """
+        precs = tuple(PrefixGraph(self.iter_records()).graph)
+        return groupby(lambda x: x.package_type, precs)
 
     @property
     def _prefix_records(self) -> dict[str, PrefixRecord] | None:
