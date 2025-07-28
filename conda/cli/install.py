@@ -17,7 +17,6 @@ from pathlib import Path
 
 from boltons.setutils import IndexedSet
 
-from .. import CondaError
 from ..base.constants import (
     REPODATA_FN,
     ROOT_ENV_NAME,
@@ -39,6 +38,7 @@ from ..exceptions import (
     CondaImportError,
     CondaIndexError,
     CondaSystemExit,
+    CondaUpdatePackageError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DryRunExit,
@@ -312,10 +312,7 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
     for spec in specs:
         spec = MatchSpec(spec)
         if not spec.is_name_only_spec:
-            raise CondaError(
-                f"`conda update` only supports name-only spec, but received: {spec}\n"
-                f"Use `conda install` to install a specific version of a package."
-            )
+            raise CondaUpdatePackageError(spec)
         if not prefix_data.get(spec.name, None):
             raise PackageNotInstalledError(prefix, spec.name)
 
@@ -350,14 +347,20 @@ def install(args, parser, command="install"):
         add_default_packages=command == "create" and not args.no_default_packages,
     )
 
+
+    # for 'conda update' make sure:
+    # 1) there are no explicit_packages specified
+    # 2) the requested specs actually exist in the prefix
+    #    and that they are name-only specs
+    if isupdate:
+        if env.explicit_packages:
+            raise CondaUpdatePackageError(env.explicit_packages)
+        if env.config.update_modifier != UpdateModifier.UPDATE_ALL:
+            ensure_update_specs_exist(prefix=env.prefix, specs=env.requested_packages)
+
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
         return install_explicit_packages(env.explicit_packages, env.prefix)
-
-    # for 'conda update', make sure the requested specs actually exist in the prefix
-    # and that they are name-only specs
-    if isupdate and env.config.update_modifier != UpdateModifier.UPDATE_ALL:
-        ensure_update_specs_exist(prefix=env.prefix, specs=env.requested_packages)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
