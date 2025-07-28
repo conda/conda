@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, replace
 from functools import reduce
 from itertools import chain
 from logging import getLogger
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from .records import PackageRecord
 
     T = TypeVar("T")
+    Self = TypeVar("Self", bound="Environment")
 
 log = getLogger(__name__)
 
@@ -390,54 +391,71 @@ class Environment:
         :param override_channels: Whether to override default channels
         :return: Environment model representing the prefix
         """
-        prefix_data = PrefixData(prefix)
+        prefix_data = PrefixData(prefix, interoperability=True)
+        variables = prefix_data.get_environment_env_vars()
 
-        # Build requested packages and explicit packages
+        # Build requested packages, external packages, and explicit packages
         requested_packages = []
+        external_packages = {}
         explicit_packages = []
 
-        # Always populate explicit_packages from prefix data (all installed packages)
-        for prefix_record in prefix_data.iter_records():
-            explicit_packages.append(prefix_record)
-
-        # Populate requested_packages from history if available and requested
+        # Handle --from-history case
         if from_history:
             history = History(prefix)
             spec_map = history.get_requested_specs_map()
+            # Use str() to get the bracket format that matches current conda behavior
             requested_packages = list(spec_map.values())
         else:
-            # Fall back to creating MatchSpecs from all installed packages
-            for prefix_record in prefix_data.iter_records():
-                spec_str = (
-                    prefix_record.spec_no_build if no_builds else prefix_record.spec
-                )
+            # Use PrefixData's package extraction methods
+            conda_precs, python_precs = prefix_data.get_packages_by_type()
+
+            # Create MatchSpecs for conda packages
+            for conda_prec in conda_precs:
+                spec_str = conda_prec.spec_no_build if no_builds else conda_prec.spec
 
                 if (
                     not ignore_channels
-                    and prefix_record.channel
-                    and prefix_record.channel.name
+                    and conda_prec.channel
+                    and conda_prec.channel.name
                 ):
-                    spec_str = f"{prefix_record.channel.name}::{spec_str}"
+                    spec_str = f"{conda_prec.channel.name}::{spec_str}"
 
                 requested_packages.append(MatchSpec(spec_str))
+
+            # Add pip dependencies to external_packages if any exist
+            if python_precs:
+                # Create pip dependencies list matching current conda format
+                python_deps = [
+                    f"{python_prec.name}=={python_prec.version}"
+                    for python_prec in python_precs
+                ]
+                external_packages["pip"] = python_deps
+
+        # Always populate explicit_packages from prefix data (for explicit export format)
+        for prefix_record in prefix_data.iter_records():
+            explicit_packages.append(prefix_record)
 
         # Build channels list
         environment_channels = []
 
-        # Add explicitly requested channels first
-        if channels:
-            environment_channels.extend(channels)
+        if override_channels:
+            # When overriding channels, start fresh with only requested channels
+            if channels:
+                environment_channels.extend(channels)
+        else:
+            # Add explicitly requested channels first
+            if channels:
+                environment_channels.extend(channels)
 
-        # Extract channels from installed packages (unless ignoring channels)
-        if not ignore_channels:
-            for prefix_record in prefix_data.iter_records():
-                if prefix_record.channel:
-                    canonical_name = prefix_record.channel.canonical_name
-                    if canonical_name not in environment_channels:
-                        environment_channels.insert(0, canonical_name)
+            # Extract channels from installed packages (unless ignoring channels)
+            if not ignore_channels:
+                for prefix_record in prefix_data.iter_records():
+                    if prefix_record.channel:
+                        canonical_name = prefix_record.channel.canonical_name
+                        if canonical_name not in environment_channels:
+                            environment_channels.insert(0, canonical_name)
 
-        # Add default channels unless overridden
-        if not override_channels:
+            # Add default channels unless overridden
             # Only add defaults that aren't already in the list
             for channel in context.channels:
                 if channel not in environment_channels:
@@ -448,20 +466,15 @@ class Environment:
 
         # Override/set channels with those extracted from installed packages if any were found
         if environment_channels:
-            # Merge context config with channels from installed packages
-            channels_config = EnvironmentConfig(channels=tuple(environment_channels))
-            config = EnvironmentConfig.merge(config, channels_config)
+            config = replace(config, channels=tuple(environment_channels))
 
-        # Extract environment variables from prefix
-        variables = prefix_data.get_environment_env_vars()
-
-        # Create models.Environment
         return cls(
-            name=name,
             prefix=prefix,
             platform=platform,
+            name=name,
+            config=config,
+            variables=variables,
+            external_packages=external_packages,
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
-            variables=variables,
-            config=config,
         )

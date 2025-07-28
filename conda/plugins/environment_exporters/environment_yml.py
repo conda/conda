@@ -44,11 +44,16 @@ def to_dict(env: Environment) -> dict[str, Any]:
 
     # Convert requested_packages to dependencies list
     if env.requested_packages:
-        # Use .spec to get space-separated format, then convert to single equals
-        env_dict["dependencies"] = [
-            requested_package.spec.replace(" ", "=")
-            for requested_package in env.requested_packages
-        ]
+        dependencies = []
+        for item in env.requested_packages:
+            if isinstance(item, dict):
+                # Handle pip dependencies (dict format: {"pip": [...]})
+                dependencies.append(item)
+            else:
+                # Handle conda packages (MatchSpec objects)
+                # Use the conda_env_form() method for proper conda env export format
+                dependencies.append(item.conda_env_form())
+        env_dict["dependencies"] = dependencies
     elif env.explicit_packages:
         # Fall back to explicit packages if no requested packages
         env_dict["dependencies"] = [
