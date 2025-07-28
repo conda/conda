@@ -1412,3 +1412,15 @@ class InvalidInstaller(Exception):
 
 class OfflineError(CondaError, RuntimeError):
     pass
+
+
+class CondaUpdatePackageError(CondaError):
+    def __init__(self, spec: str | list[str]):
+        if isinstance(spec, list):
+            msg = (f"'conda update' only supports name-only spec, but received: {dashlist(spec, 4)}\n"
+                f"Use 'conda install' to install a specific version of a package.")
+            super().__init__(msg)
+        else:
+            msg = (f"'conda update' only supports name-only spec, but received: {spec}\n"
+                f"Use 'conda install' to install a specific version of a package.")
+            super().__init__(msg)
