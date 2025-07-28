@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from .records import PackageRecord
 
     T = TypeVar("T")
-    Self = TypeVar("Self", bound="Environment")
 
 log = getLogger(__name__)
 

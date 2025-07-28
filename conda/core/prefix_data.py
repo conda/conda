@@ -478,11 +478,9 @@ class PrefixData(metaclass=PrefixDataType):
             )
 
     def get_conda_packages(self) -> list[PrefixRecord]:
-        """
-        Get conda packages sorted alphabetically by name.
-
-        Returns:
-            list: Sorted conda package records
+        """Get conda packages sorted alphabetically by name.
+        
+        :return: Sorted conda package records
         """
         grouped_precs = self._get_grouped_records()
         conda_types = {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON}
@@ -492,11 +490,9 @@ class PrefixData(metaclass=PrefixDataType):
         return sorted(conda_packages, key=lambda x: x.name)
 
     def get_python_packages(self) -> list[PrefixRecord]:
-        """
-        Get Python packages (installed via pip) sorted alphabetically by name.
-
-        Returns:
-            list: Sorted Python package records
+        """Get Python packages (installed via pip) sorted alphabetically by name.
+        
+        :return: Sorted Python package records
         """
         grouped_precs = self._get_grouped_records()
         python_types = {
@@ -510,20 +506,16 @@ class PrefixData(metaclass=PrefixDataType):
         return sorted(python_packages, key=lambda x: x.name)
 
     def get_packages_by_type(self) -> tuple[list[PrefixRecord], list[PrefixRecord]]:
-        """
-        Get conda and Python packages sorted alphabetically by name.
-
-        Returns:
-            tuple: (conda_packages, python_packages) - both sorted alphabetically by name
+        """Get conda and Python packages sorted alphabetically by name.
+        
+        :return: (conda_packages, python_packages) - both sorted alphabetically by name
         """
         return self.get_conda_packages(), self.get_python_packages()
 
     def _get_grouped_records(self) -> dict:
-        """
-        Get prefix records grouped by package type.
-
-        Returns:
-            dict: Records grouped by PackageType
+        """Get prefix records grouped by package type.
+        
+        :return: Records grouped by PackageType
         """
         precs = tuple(PrefixGraph(self.iter_records()).graph)
         return groupby(lambda x: x.package_type, precs)
