@@ -16,7 +16,7 @@ from packaging.version import Version
 from conda import plugins
 from conda.common.url import urlparse
 from conda.core import solve
-from conda.exceptions import CondaValueError, NoNameVirtualPackagePlugin, PluginError
+from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
 from conda.plugins.types import CondaPlugin
 
@@ -55,12 +55,19 @@ class VerboseSolverPlugin:
 
 
 DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
+NoNameVirtualPackage = plugins.CondaVirtualPackage(None, None, None)
 
 
 class DummyVirtualPackagePlugin:
     @plugins.hookimpl
     def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
         yield DummyVirtualPackage
+
+
+class NoNameVirtualPackagePlugin:
+    @plugins.hookimpl
+    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
+        yield NoNameVirtualPackage
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
