@@ -8,7 +8,6 @@ from itertools import chain
 
 from ..base.context import context
 from ..cli import common, install
-from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.path import expand
 from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
@@ -18,11 +17,9 @@ from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
 from ..gateways.connection.download import download_text
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..history import History
-from ..models.enums import PackageType
 from ..models.environment import Environment as EnvironmentModel
 from ..models.environment import EnvironmentConfig
 from ..models.match_spec import MatchSpec
-from ..models.prefix_graph import PrefixGraph
 
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
 
@@ -94,33 +91,20 @@ def from_environment(
             variables=variables,
         )
 
-    precs = tuple(PrefixGraph(pd.iter_records()).graph)
-    grouped_precs = groupby(lambda x: x.package_type, precs)
-    conda_precs = sorted(
-        (
-            *grouped_precs.get(None, ()),
-            *grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
-            *grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
-        ),
-        key=lambda x: x.name,
-    )
-
-    pip_precs = sorted(
-        (
-            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
-            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
-            *grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-        ),
-        key=lambda x: x.name,
-    )
+    conda_precs, python_precs = pd.get_packages_by_type()
 
     dependencies = [
         conda_prec.spec_no_build if no_builds else conda_prec.spec
         for conda_prec in conda_precs
     ]
-    if pip_precs:
+    if python_precs:
         dependencies.append(
-            {"pip": [f"{pip_prec.name}=={pip_prec.version}" for pip_prec in pip_precs]}
+            {
+                "pip": [
+                    f"{python_prec.name}=={python_prec.version}"
+                    for python_prec in python_precs
+                ]
+            }
         )
 
     channels = list(context.channels)
@@ -129,6 +113,7 @@ def from_environment(
             canonical_name = prec.channel.canonical_name
             if canonical_name not in channels:
                 channels.insert(0, canonical_name)
+
     return EnvironmentYaml(
         name=name,
         dependencies=dependencies,
