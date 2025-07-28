@@ -53,6 +53,11 @@ def to_dict(env: Environment) -> dict[str, Any]:
                 # Handle conda packages (MatchSpec objects)
                 # Use the conda_env_form() method for proper conda env export format
                 dependencies.append(item.conda_env_form())
+
+        # Add external packages (e.g. Python packages) if present
+        if env.external_packages:
+            dependencies.append(env.external_packages)
+
         env_dict["dependencies"] = dependencies
     elif env.explicit_packages:
         # Fall back to explicit packages if no requested packages

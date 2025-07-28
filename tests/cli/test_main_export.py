@@ -5,17 +5,20 @@
 import json
 import uuid
 from pathlib import Path
+from subprocess import check_call
 
 import pytest
 
 from conda.base.context import context
 from conda.common.serialize import yaml_safe_load
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
 from conda.testing.fixtures import CondaCLIFixture
+from conda.testing.integration import PYTHON_BINARY
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
@@ -637,3 +640,63 @@ def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
 
     # Should always have conda dependencies
     assert len(conda_deps) > 0, "Should have conda dependencies"
+
+
+@pytest.mark.parametrize(
+    "format_name,format_flag,parser_func",
+    [
+        ("YAML", "", yaml_safe_load),
+        ("JSON", "--format=json", json.loads),
+    ],
+)
+def test_export_with_pip_dependencies_integration(
+    tmp_env, conda_cli, format_name, format_flag, parser_func
+):
+    """Test that conda export properly includes pip dependencies when present."""
+    with tmp_env("python=3.10", "pip") as prefix:
+        # Install pip packages following the test_create.py pattern
+        check_call(
+            f"{PYTHON_BINARY} -m pip install requests==2.25.1 six==1.16.0",
+            cwd=prefix,
+            shell=True,
+        )
+
+        # Clear prefix data cache to ensure fresh data
+        PrefixData._cache_.clear()
+
+        # Export the environment in the specified format
+        export_args = ["export", f"--prefix={prefix}"] + (
+            [format_flag] if format_flag else []
+        )
+
+        stdout, stderr, code = conda_cli(*export_args)
+        assert code == 0, f"{format_name} export failed: {stderr}"
+
+        # Parse the output using the appropriate parser
+        env_data = parser_func(stdout)
+        dependencies = env_data.get("dependencies", [])
+
+        # Should have conda packages
+        assert [dep for dep in dependencies if isinstance(dep, str)], (
+            f"Should have conda dependencies in {format_name} export"
+        )
+
+        # Should have pip dependencies using walrus operator
+        assert (
+            pip_deps := next(
+                (
+                    dep["pip"]
+                    for dep in dependencies
+                    if isinstance(dep, dict) and "pip" in dep
+                ),
+                None,
+            )
+        ), f"Expected pip dependencies in {format_name} export"
+
+        # Should include the pip packages we installed
+        pip_packages = {pkg.split("==")[0] for pkg in pip_deps if "==" in pkg}
+        expected_packages = {"requests", "six"}
+
+        assert expected_packages.issubset(pip_packages), (
+            f"Expected {expected_packages} in {format_name} export: {pip_deps}"
+        )

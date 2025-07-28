@@ -479,7 +479,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def get_conda_packages(self) -> list[PrefixRecord]:
         """Get conda packages sorted alphabetically by name.
-        
+
         :return: Sorted conda package records
         """
         grouped_precs = self._get_grouped_records()
@@ -491,7 +491,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def get_python_packages(self) -> list[PrefixRecord]:
         """Get Python packages (installed via pip) sorted alphabetically by name.
-        
+
         :return: Sorted Python package records
         """
         grouped_precs = self._get_grouped_records()
@@ -507,14 +507,14 @@ class PrefixData(metaclass=PrefixDataType):
 
     def get_packages_by_type(self) -> tuple[list[PrefixRecord], list[PrefixRecord]]:
         """Get conda and Python packages sorted alphabetically by name.
-        
+
         :return: (conda_packages, python_packages) - both sorted alphabetically by name
         """
         return self.get_conda_packages(), self.get_python_packages()
 
     def _get_grouped_records(self) -> dict:
         """Get prefix records grouped by package type.
-        
+
         :return: Records grouped by PackageType
         """
         precs = tuple(PrefixGraph(self.iter_records()).graph)
