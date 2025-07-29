@@ -442,8 +442,7 @@ class Environment:
             environment_channels = list(channels or [])
         else:
             # Add explicitly requested channels first
-            if channels:
-                environment_channels.extend(channels)
+            environment_channels.extend(channels or [])
 
             # Extract channels from installed packages (unless ignoring channels)
             if not ignore_channels:
