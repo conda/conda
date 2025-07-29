@@ -433,8 +433,7 @@ class Environment:
                 external_packages["pip"] = python_deps
 
         # Always populate explicit_packages from prefix data (for explicit export format)
-        for prefix_record in prefix_data.iter_records():
-            explicit_packages.append(prefix_record)
+        explicit_packages = list(prefix_data.iter_records())
 
         # Build channels list
         environment_channels = []
