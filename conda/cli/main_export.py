@@ -153,6 +153,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,
     )
+    # When --override-channels is used with explicit channels, override the environment's channel config
+    # to ensure only the requested channels appear in the exported environment file
+    if args.override_channels and args.channel:
+        env.config.channels = args.channel
 
     # Handle --json flag for backwards compatibility
     # If --json is specified without explicit --format AND no file, use JSON format

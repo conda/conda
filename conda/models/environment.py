@@ -372,7 +372,6 @@ class Environment:
         no_builds: bool = False,
         ignore_channels: bool = False,
         channels: list[str] | None = None,
-        override_channels: bool = False,
     ) -> Environment:
         """
         Create an Environment model from an existing conda prefix.
@@ -386,8 +385,6 @@ class Environment:
         :param from_history: Use explicit specs from history instead of installed packages
         :param no_builds: Exclude build strings from package specs
         :param ignore_channels: Don't include channel information in package specs
-        :param channels: Additional channels to include in environment config
-        :param override_channels: Whether to override default channels
         :return: Environment model representing the prefix
         """
         prefix_data = PrefixData(prefix, interoperability=True)
@@ -445,7 +442,8 @@ class Environment:
                     canonical_name
                     # Reuse conda_precs instead of calling get_conda_packages() again
                     for conda_package in conda_precs
-                    if (canonical_name := conda_package.channel.canonical_name) != UNKNOWN_CHANNEL
+                    if (canonical_name := conda_package.channel.canonical_name)
+                    != UNKNOWN_CHANNEL
                 ),
                 *environment_channels,
             )
