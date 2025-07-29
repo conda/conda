@@ -513,7 +513,7 @@ def test_get_python_packages_basic_functionality(
 
 
 def test_get_packages_behavior_with_interoperability(
-    tmp_env: TmpEnvFixture, test_recipes_channel: str
+    tmp_env: TmpEnvFixture
 ):
     """Test that package extraction behaves correctly with interoperability settings."""
     # Create environment with conda packages and pip
