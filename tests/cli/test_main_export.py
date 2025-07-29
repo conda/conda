@@ -717,8 +717,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
     # Test 1: Default behavior (neither flag)
     stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
     assert code == 0
-    default_data = yaml_safe_load(stdout)
-    default_channels = default_data.get("channels", [])
+    assert yaml_safe_load(stdout) != {}, "Should have some packages"
 
     # Test 2: Only --override-channels (should still extract package channels)
     stdout, stderr, code = conda_cli(
@@ -785,3 +784,26 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         # At minimum, both should contain conda-forge
         assert "conda-forge" in override_only_channels
         assert "conda-forge" in both_flags_channels
+
+
+def test_export_explicit_format_validation_errors(tmp_env, conda_cli):
+    """Test that explicit format properly errors on invalid environments."""
+    # Create an environment with conda packages and pip dependencies
+    with tmp_env("python=3.10", "pip") as prefix:
+        # Install a pip package to create external packages
+        check_call(
+            f"{prefix / 'bin' / 'python'} -m pip install requests==2.25.1",
+            shell=True,
+        )
+
+        # Clear prefix data cache
+        PrefixData._cache_.clear()
+
+        # Test 1: Should error when external packages (pip) are present
+        with pytest.raises(CondaValueError) as exc_info:
+            conda_cli("export", f"--prefix={prefix}", "--format=explicit")
+
+            # Verify the error message is descriptive and helpful
+        error_msg = str(exc_info.value)
+        assert "Cannot export explicit format" in error_msg
+        assert "external packages" in error_msg

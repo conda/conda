@@ -34,6 +34,23 @@ def export_explicit(env: Environment) -> str:
             "Use 'requirements' format for environments with only requested packages, "
             "or ensure the environment has been solved and installed."
         )
+    # Error if external packages (pip) are present - explicit format can't represent them
+    elif env.external_packages:
+        raise CondaValueError(
+            "Cannot export explicit format: environment contains external packages that cannot be represented in explicit format. "
+            "Use a different format to include external packages."
+        )
+    # Error if requested packages exist but aren't fully represented in explicit packages
+    elif env.requested_packages:
+        explicit_names = {pkg.name for pkg in env.explicit_packages}
+        requested_names = {pkg.name for pkg in env.requested_packages}
+        missing_explicit = requested_names - explicit_names
+        if missing_explicit:
+            raise CondaValueError(
+                f"Cannot export explicit format: some requested packages lack installation metadata: "
+                f"{', '.join(sorted(missing_explicit))}. "
+                "Use 'requirements' format or ensure all packages are properly installed."
+            )
 
     # Create CEP 23 compliant explicit file with @EXPLICIT and URLs
     lines.append("@EXPLICIT")
