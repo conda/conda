@@ -44,8 +44,10 @@ class LazyChoicesAction(Action):
         valid_choices = self.choices
         if values not in valid_choices:
             choices_string = ", ".join(f"'{val}'" for val in valid_choices)
+            # Use the same format as argparse for consistency
+            option_display = "/".join(self.option_strings)
             parser.error(
-                f"argument '{option_string}': invalid choice: {values!r} (choose from {choices_string})"
+                f"argument {option_display}: invalid choice: {values!r} (choose from {choices_string})"
             )
         setattr(namespace, self.dest, values)
 
