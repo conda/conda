@@ -33,6 +33,10 @@ env:
   # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
   CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
 
+# Set minimal default permissions for security
+permissions:
+  contents: read
+
 jobs:
   # detect whether any code changes are included in this PR
   changes:
@@ -766,6 +770,9 @@ jobs:
     if: '!cancelled()'
 
     runs-on: ubuntu-latest
+    permissions:
+      # needed to create issues on test failures
+      issues: write
     steps:
       - name: Determine Success
         uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
