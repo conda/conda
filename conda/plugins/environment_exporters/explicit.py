@@ -41,13 +41,15 @@ def export_explicit(env: Environment) -> str:
 
     for pkg in env.explicit_packages:
         # Use existing URL or construct from channel metadata
-        url = None
-        if hasattr(pkg, "url") and pkg.url:
-            url = pkg.url
-        elif hasattr(pkg, "channel") and hasattr(pkg, "fn") and pkg.channel:
-            base_url = getattr(pkg.channel, "base_url", None)
-            if base_url and hasattr(pkg, "subdir"):
-                url = join_url(base_url, pkg.subdir, pkg.fn)
+        url = getattr(pkg, "url", None)
+        if (
+            not url
+            and (channel := getattr(pkg, "channel", None))
+            and (base_url := getatter(channel, "base_url", None))
+            and (subdir := getattr(pkg, subdir, None))
+            and (fn := getattr(pkg, "fn", None))
+        ):
+            url = join_url(base_url, subdir, fn)
 
         if url:
             lines.append(url)
