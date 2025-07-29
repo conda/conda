@@ -8,7 +8,7 @@ Register the conda env spec for environment.yml files.
 from .. import CondaEnvironmentSpecifier, hookimpl
 
 
-@hookimpl
+@hookimpl(tryfirst=True)
 def conda_environment_specifiers():
     from ...env.specs.yaml_file import YamlFileSpec
 
