@@ -455,8 +455,7 @@ class Environment:
         config = EnvironmentConfig.from_context()
 
         # Override/set channels with those extracted from installed packages if any were found
-        if environment_channels:
-            config = replace(config, channels=tuple(environment_channels))
+        config = replace(config, channels=tuple(environment_channels))
 
         return cls(
             prefix=prefix,
