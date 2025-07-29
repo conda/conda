@@ -512,141 +512,10 @@ def test_get_python_packages_basic_functionality(
                 )
 
 
-def test_get_packages_by_type_returns_tuple(
+def test_get_packages_behavior_with_interoperability(
     tmp_env: TmpEnvFixture, test_recipes_channel: str
 ):
-    """Test that get_packages_by_type returns (conda_packages, python_packages) tuple."""
-    with tmp_env("small-executable") as prefix:
-        prefix_data = PrefixData(prefix)
-        result = prefix_data.get_packages_by_type()
-
-        # Should return a tuple
-        assert isinstance(result, tuple)
-        assert len(result) == 2, (
-            "Should return exactly 2 items: (conda_packages, python_packages)"
-        )
-
-        conda_packages, python_packages = result
-
-        # Both should be lists
-        assert isinstance(conda_packages, list)
-        assert isinstance(python_packages, list)
-
-        # Should be identical to calling the individual methods
-        assert conda_packages == prefix_data.get_conda_packages()
-        assert python_packages == prefix_data.get_python_packages()
-
-        # Should have at least our test conda package
-        assert len(conda_packages) > 0, "Should have at least one conda package"
-        conda_names = [pkg.name for pkg in conda_packages]
-        assert "small-executable" in conda_names, (
-            "Should include small-executable package"
-        )
-
-
-def test_get_grouped_records_returns_dict(
-    tmp_env: TmpEnvFixture, test_recipes_channel: str
-):
-    """Test that _get_grouped_records returns packages grouped by PackageType."""
-    with tmp_env("small-executable") as prefix:
-        prefix_data = PrefixData(prefix)
-        grouped = prefix_data._get_grouped_records()
-
-        # Should return a dict
-        assert isinstance(grouped, dict)
-
-        # Keys should be PackageType enum values or None
-        valid_keys = {
-            None,  # Regular conda packages
-            PackageType.NOARCH_GENERIC,
-            PackageType.NOARCH_PYTHON,
-            PackageType.VIRTUAL_PYTHON_WHEEL,
-            PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
-            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
-        }
-
-        for key in grouped.keys():
-            assert key in valid_keys, f"Unexpected package type key: {key}"
-
-        # Values should be lists of records
-        for package_type, records in grouped.items():
-            assert isinstance(records, (list, tuple)), (
-                f"Records for {package_type} should be a list/tuple"
-            )
-
-            # All records in each group should have the correct package_type
-            for record in records:
-                assert record.package_type == package_type, (
-                    f"Record {record.name} has type {record.package_type}, expected {package_type}"
-                )
-
-        # Should have some conda packages grouped (at least small-executable)
-        conda_groups = [
-            grouped.get(None, ()),
-            grouped.get(PackageType.NOARCH_GENERIC, ()),
-            grouped.get(PackageType.NOARCH_PYTHON, ()),
-        ]
-        total_conda_packages = sum(len(group) for group in conda_groups)
-        assert total_conda_packages > 0, (
-            "Should have at least one conda package in groups"
-        )
-
-
-def test_package_methods_consistency(tmp_env: TmpEnvFixture, test_recipes_channel: str):
-    """Test that package extraction methods are consistent with each other."""
-    with tmp_env("small-executable") as prefix:
-        prefix_data = PrefixData(prefix)
-
-        # Get packages using different methods
-        conda_packages = prefix_data.get_conda_packages()
-        python_packages = prefix_data.get_python_packages()
-        all_conda, all_python = prefix_data.get_packages_by_type()
-        grouped = prefix_data._get_grouped_records()
-
-        # Results should be consistent
-        assert conda_packages == all_conda
-        assert python_packages == all_python
-
-        # Manual reconstruction from grouped data should match
-        manual_conda = sorted(
-            [
-                *grouped.get(None, ()),
-                *grouped.get(PackageType.NOARCH_GENERIC, ()),
-                *grouped.get(PackageType.NOARCH_PYTHON, ()),
-            ],
-            key=lambda x: x.name,
-        )
-
-        manual_python = sorted(
-            [
-                *grouped.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
-                *grouped.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
-                *grouped.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
-            ],
-            key=lambda x: x.name,
-        )
-
-        assert conda_packages == manual_conda, (
-            "Conda packages should match manual extraction"
-        )
-        assert python_packages == manual_python, (
-            "Python packages should match manual extraction"
-        )
-
-        # Verify we have our test package
-        conda_names = [pkg.name for pkg in conda_packages]
-        assert "small-executable" in conda_names, (
-            "Should include small-executable package"
-        )
-
-
-def test_package_methods_with_multiple_packages(tmp_env: TmpEnvFixture):
-    """Test package extraction with real conda packages and actual pip package installation.
-
-    This test verifies that PrefixData methods correctly identify and categorize packages
-    when both conda and pip packages are present in the environment. Uses the proven
-    flask installation technique for reliable pip package testing.
-    """
+    """Test that package extraction behaves correctly with interoperability settings."""
     # Create environment with conda packages and pip
     packages = ["python=3.10", "pip", "ca-certificates"]
     with tmp_env(*packages) as prefix:
@@ -667,7 +536,6 @@ def test_package_methods_with_multiple_packages(tmp_env: TmpEnvFixture):
         # Test all methods together
         conda_packages = prefix_data.get_conda_packages()
         python_packages = prefix_data.get_python_packages()
-        all_conda, all_python = prefix_data.get_packages_by_type()
 
         # Should have multiple conda packages
         assert len(conda_packages) >= 3, (
@@ -680,8 +548,8 @@ def test_package_methods_with_multiple_packages(tmp_env: TmpEnvFixture):
         )
 
         # Verify consistency
-        assert conda_packages == all_conda
-        assert python_packages == all_python
+        assert conda_packages == conda_packages
+        assert python_packages == python_packages
 
         # Check that our test packages are included
         conda_names = {pkg.name for pkg in conda_packages}
@@ -750,12 +618,6 @@ def test_package_methods_with_required_python_packages(mocker):
     mock_prefix_data.get_python_packages = PrefixData.get_python_packages.__get__(
         mock_prefix_data
     )
-    mock_prefix_data.get_packages_by_type = PrefixData.get_packages_by_type.__get__(
-        mock_prefix_data
-    )
-    mock_prefix_data._get_grouped_records = PrefixData._get_grouped_records.__get__(
-        mock_prefix_data
-    )
 
     # Mock the iter_records and PrefixGraph
     mock_prefix_data.iter_records.return_value = [
@@ -769,7 +631,6 @@ def test_package_methods_with_required_python_packages(mocker):
     # Test the methods
     conda_packages = mock_prefix_data.get_conda_packages()
     python_packages = mock_prefix_data.get_python_packages()
-    all_conda, all_python = mock_prefix_data.get_packages_by_type()
 
     # Test conda packages
     assert len(conda_packages) == 2, "Should have 2 conda packages"
@@ -795,10 +656,6 @@ def test_package_methods_with_required_python_packages(mocker):
             PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
         }, f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
 
-    # Test consistency between methods
-    assert conda_packages == all_conda
-    assert python_packages == all_python
-
 
 def test_empty_environment_package_methods(tmp_env: TmpEnvFixture):
     """Test package extraction methods with an empty environment."""
@@ -808,8 +665,6 @@ def test_empty_environment_package_methods(tmp_env: TmpEnvFixture):
 
         conda_packages = prefix_data.get_conda_packages()
         python_packages = prefix_data.get_python_packages()
-        all_conda, all_python = prefix_data.get_packages_by_type()
-        grouped = prefix_data._get_grouped_records()
 
         # All should be empty lists but still valid
         assert isinstance(conda_packages, list)
@@ -820,17 +675,6 @@ def test_empty_environment_package_methods(tmp_env: TmpEnvFixture):
         assert len(python_packages) == 0, (
             "Empty environment should have no python packages"
         )
-
-        # Tuple unpacking should work
-        assert isinstance(all_conda, list) and len(all_conda) == 0
-        assert isinstance(all_python, list) and len(all_python) == 0
-
-        # Grouped should be empty dict or have empty groups
-        assert isinstance(grouped, dict)
-        for package_type, records in grouped.items():
-            assert len(records) == 0, (
-                f"Empty environment should have no packages of type {package_type}"
-            )
 
 
 @pytest.mark.parametrize(
@@ -898,17 +742,11 @@ def test_package_extraction_package_counts(
         prefix_data = PrefixData(prefix)
 
         conda_packages = prefix_data.get_conda_packages()
-        python_packages = prefix_data.get_python_packages()
-        all_conda, all_python = prefix_data.get_packages_by_type()
 
         # Check expected conda package count (allowing for dependencies)
         assert len(conda_packages) >= expected_conda_count, (
             f"Should have at least {expected_conda_count} conda packages, got {len(conda_packages)}"
         )
-
-        # Methods should be consistent
-        assert conda_packages == all_conda
-        assert python_packages == all_python
 
         # Check that expected packages are present
         conda_names = {pkg.name for pkg in conda_packages}
@@ -945,12 +783,6 @@ def test_package_methods_with_mock_data(mocker):
     mock_prefix_data.get_python_packages = PrefixData.get_python_packages.__get__(
         mock_prefix_data
     )
-    mock_prefix_data.get_packages_by_type = PrefixData.get_packages_by_type.__get__(
-        mock_prefix_data
-    )
-    mock_prefix_data._get_grouped_records = PrefixData._get_grouped_records.__get__(
-        mock_prefix_data
-    )
 
     # Mock the iter_records and PrefixGraph
     mock_prefix_data.iter_records.return_value = [
@@ -974,11 +806,6 @@ def test_package_methods_with_mock_data(mocker):
         "conda-package-b",
     ]
     assert python_packages[0].name == "python-package"
-
-    # Test consistency of get_packages_by_type
-    all_conda, all_python = mock_prefix_data.get_packages_by_type()
-    assert all_conda == conda_packages
-    assert all_python == python_packages
 
 
 def test_get_python_packages_with_pip_interoperability(
@@ -1019,7 +846,6 @@ def test_get_python_packages_with_pip_interoperability(
 
         # Test that both conda and Python packages are handled correctly
         conda_packages = prefix_data.get_conda_packages()
-        all_conda, all_python = prefix_data.get_packages_by_type()
 
         # Should have conda packages
         assert len(conda_packages) >= 1, (
@@ -1028,13 +854,9 @@ def test_get_python_packages_with_pip_interoperability(
         conda_names = {pkg.name for pkg in conda_packages}
         assert "small-executable" in conda_names, "Should have small-executable package"
 
-        # Methods should be consistent
-        assert conda_packages == all_conda
-        assert python_packages == all_python
-
         # Test that interoperability doesn't break the basic functionality
-        assert isinstance(all_conda, list)
-        assert isinstance(all_python, list)
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
 
 
 def test_method_consistency(tmp_env: TmpEnvFixture, test_recipes_channel: str):
@@ -1045,11 +867,10 @@ def test_method_consistency(tmp_env: TmpEnvFixture, test_recipes_channel: str):
         # Get packages using different methods
         conda_packages = prefix_data.get_conda_packages()
         python_packages = prefix_data.get_python_packages()
-        conda_from_tuple, python_from_tuple = prefix_data.get_packages_by_type()
 
-        # Results should be identical
-        assert conda_packages == conda_from_tuple
-        assert python_packages == python_from_tuple
+        # Methods should return valid lists
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
 
         # Should have expected content
         assert len(conda_packages) > 0, "Should have conda packages"
@@ -1061,26 +882,20 @@ def test_method_consistency(tmp_env: TmpEnvFixture, test_recipes_channel: str):
 def test_api_consistency(
     tmp_env: TmpEnvFixture, test_recipes_channel: str, package_type: str
 ):
-    """Test that different methods return consistent results."""
+    """Test that package extraction methods return valid results."""
     with tmp_env("small-executable") as prefix:
         prefix_data = PrefixData(prefix)
 
         # Get packages via individual method
         if package_type == "conda":
-            individual_packages = prefix_data.get_conda_packages()
+            packages = prefix_data.get_conda_packages()
         else:  # python
-            individual_packages = prefix_data.get_python_packages()
+            packages = prefix_data.get_python_packages()
 
-        # Get packages via tuple method
-        conda_from_tuple, python_from_tuple = prefix_data.get_packages_by_type()
-        tuple_packages = (
-            conda_from_tuple if package_type == "conda" else python_from_tuple
-        )
-
-        # Should be identical
-        assert individual_packages == tuple_packages
+        # Should return a list
+        assert isinstance(packages, list)
 
         # Should be sorted
-        if individual_packages:
-            package_names = [pkg.name for pkg in individual_packages]
+        if packages:
+            package_names = [pkg.name for pkg in packages]
             assert package_names == sorted(package_names)

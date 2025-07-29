@@ -10,7 +10,7 @@ from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ..base.constants import PLATFORMS
+from ..base.constants import PLATFORMS, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
@@ -404,9 +404,11 @@ class Environment:
             spec_map = history.get_requested_specs_map()
             # Get MatchSpec objects from history; they'll be serialized to bracket format later
             requested_packages = list(spec_map.values())
+            conda_precs = []  # No conda packages to process for channel extraction
         else:
             # Use PrefixData's package extraction methods
-            conda_precs, python_precs = prefix_data.get_packages_by_type()
+            conda_precs = prefix_data.get_conda_packages()
+            python_precs = prefix_data.get_python_packages()
 
             # Create MatchSpecs for conda packages
             for conda_prec in conda_precs:
@@ -444,11 +446,15 @@ class Environment:
             # Add explicitly requested channels first
             environment_channels.extend(channels or [])
 
-            # Extract channels from installed packages (unless ignoring channels)
+            # Extract channels from installed conda packages (unless ignoring channels)
             if not ignore_channels:
-                for prefix_record in prefix_data.iter_records():
-                    if prefix_record.channel:
-                        canonical_name = prefix_record.channel.canonical_name
+                # Reuse conda_precs we already have instead of calling get_conda_packages() again
+                for conda_package in conda_precs:
+                    if conda_package.channel:
+                        canonical_name = conda_package.channel.canonical_name
+                        # Skip unknown channels from explicit installs
+                        if canonical_name == UNKNOWN_CHANNEL:
+                            continue
                         if canonical_name not in environment_channels:
                             environment_channels.insert(0, canonical_name)
 

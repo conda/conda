@@ -91,7 +91,8 @@ def from_environment(
             variables=variables,
         )
 
-    conda_precs, python_precs = pd.get_packages_by_type()
+    conda_precs = pd.get_conda_packages()
+    python_precs = pd.get_python_packages()
 
     dependencies = [
         conda_prec.spec_no_build if no_builds else conda_prec.spec
@@ -109,8 +110,8 @@ def from_environment(
 
     channels = list(context.channels)
     if not ignore_channels:
-        for prec in conda_precs:
-            canonical_name = prec.channel.canonical_name
+        for conda_prec in conda_precs:
+            canonical_name = conda_prec.channel.canonical_name
             if canonical_name not in channels:
                 channels.insert(0, canonical_name)
 

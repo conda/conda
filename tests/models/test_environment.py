@@ -382,3 +382,12 @@ def test_from_prefix_options_affect_correct_packages(tmp_env: TmpEnvFixture):
 
         # ignore_channels: no "::" in specs
         assert not any("::" in spec for spec in no_channels_specs)
+
+
+def test_environment_config_channels_basic():
+    """Test that environment config channels work as expected."""
+    env_config = EnvironmentConfig(channels=["conda-forge", "defaults"])
+
+    assert "conda-forge" in env_config.channels
+    assert "defaults" in env_config.channels
+    assert len(env_config.channels) == 2
