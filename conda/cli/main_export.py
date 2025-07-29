@@ -152,6 +152,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         from_history=args.from_history,
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,
+        channels=context.channels,
     )
     # When --override-channels is used with explicit channels, override the environment's channel config
     # to ensure only the requested channels appear in the exported environment file
