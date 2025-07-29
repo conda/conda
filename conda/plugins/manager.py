@@ -21,6 +21,7 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
+from ..common.io import dashlist
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
@@ -42,7 +43,7 @@ from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Literal
+    from typing import Callable, Literal
 
     from requests.auth import AuthBase
 
@@ -80,9 +81,17 @@ class CondaPluginManager(pluggy.PluginManager):
 
     #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
     #: method.
-    get_cached_solver_backend = None
+    get_cached_solver_backend: Callable[[str | None], type[Solver]]
 
-    def __init__(self, project_name: str | None = None, *args, **kwargs) -> None:
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
+    #: method.
+    get_cached_session_headers: Callable[[str], dict[str, str]]
+
+    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers`
+    #: method.
+    get_cached_request_headers: Callable[[str, str], dict[str, str]]
+
+    def __init__(self, project_name: str | None = None, *args, **kwargs):
         # Setting the default project name to the spec name for ease of use
         if project_name is None:
             project_name = spec_name
@@ -266,48 +275,48 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        plugins = [item for items in hook(**kwargs) for item in items]
+        # hook() returns a generator of all plugins for a given specname,
+        # unfortunately this generator does not offer any information about which
+        # package/module the plugin is defined in, this makes reporting errors in
+        # a meaningful way to users difficult
+        plugins = [plugin for plugins in hook(**kwargs) for plugin in plugins]
 
-        # Check for invalid names
-        invalid = [plugin for plugin in plugins if not isinstance(plugin.name, str)]
+        # Validate plugin names since plugins may not properly inherit from CondaPlugin
+        invalid = [
+            plugin
+            for plugin in plugins
+            if not hasattr(plugin, "name")
+            or not isinstance(plugin.name, str)
+            or plugin.name != plugin.name.lower().strip()
+        ]
         if invalid:
             raise PluginError(
-                dals(
-                    f"""
-                    Invalid plugin names found:
-
-                    {", ".join([str(plugin) for plugin in invalid])}
-
-                    Please report this issue to the plugin author(s).
-                    """
-                )
+                f"Invalid plugin names found for `{name}`:\n"
+                f"{dashlist(map(repr, invalid))}\n"
+                f"\n"
+                f"Please report this issue to the plugin author(s)."
             )
-        plugins = sorted(plugins, key=lambda plugin: plugin.name)
 
-        # Check for conflicts
+        # Check for conflicts since no two plugins can have the same name
         seen = set()
         conflicts = [
             plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
         ]
         if conflicts:
             raise PluginError(
-                dals(
-                    f"""
-                    Conflicting `{name}` plugins found:
-
-                    {", ".join([str(conflict) for conflict in conflicts])}
-
-                    Multiple conda plugins are registered via the `{specname}` hook.
-                    Please make sure that you don't have any incompatible plugins installed.
-                    """
-                )
+                f"Conflicting plugins found for `{name}`:\n"
+                f"{dashlist(map(repr, conflicts))}\n"
+                f"\n"
+                f"Multiple conda plugins are registered via the `{specname}` hook. "
+                f"Please make sure that you don't have any incompatible plugins installed."
             )
-        return plugins
+
+        return sorted(plugins, key=lambda plugin: plugin.name)
 
     def get_solvers(self) -> dict[str, CondaSolver]:
         """Return a mapping from solver name to solver class."""
         return {
-            solver_plugin.name.lower(): solver_plugin
+            solver_plugin.name: solver_plugin
             for solver_plugin in self.get_hook_results("solvers")
         }
 
@@ -323,9 +332,7 @@ class CondaPluginManager(pluggy.PluginManager):
         which is set up as a instance-specific LRU cache.
         """
         # Some light data validation in case name isn't given.
-        if name is None:
-            name = context.solver
-        name = name.lower()
+        name = (name or context.solver).lower().strip()
 
         solvers_mapping = self.get_solvers()
 
@@ -345,10 +352,9 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Get the auth handler with the given name or None
         """
+        name = name.lower().strip()
         auth_handlers = self.get_hook_results("auth_handlers")
-        matches = tuple(
-            item for item in auth_handlers if item.name.lower() == name.lower().strip()
-        )
+        matches = [item for item in auth_handlers if item.name == name]
 
         if len(matches) > 0:
             return matches[0].handler
@@ -361,7 +367,7 @@ class CondaPluginManager(pluggy.PluginManager):
         This method intentionally overwrites any duplicates that may be present
         """
         return {
-            config_param.name.lower(): config_param
+            config_param.name: config_param
             for config_param in self.get_hook_results("settings")
         }
 
@@ -395,7 +401,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
         return {
-            subcommand.name.lower(): subcommand
+            subcommand.name: subcommand
             for subcommand in self.get_hook_results("subcommands")
         }
 
@@ -513,8 +519,7 @@ class CondaPluginManager(pluggy.PluginManager):
         Returns a mapping from environment specifier name to environment specifier.
         """
         return {
-            hook.name.lower(): hook
-            for hook in self.get_hook_results("environment_specifiers")
+            hook.name: hook for hook in self.get_hook_results("environment_specifiers")
         }
 
     def get_environment_specifier_by_name(
@@ -531,7 +536,7 @@ class CondaPluginManager(pluggy.PluginManager):
         :param name: name of the environment plugin to load
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
-        name = name.lower()
+        name = name.lower().strip()
         hooks = self.get_environment_specifiers()
         found = [hook for hook_name, hook in hooks.items() if hook_name == name]
 
