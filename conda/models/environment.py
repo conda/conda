@@ -393,10 +393,9 @@ class Environment:
         prefix_data = PrefixData(prefix, interoperability=True)
         variables = prefix_data.get_environment_env_vars()
 
-        # Build requested packages, external packages, and explicit packages
+        # Build requested packages and external packages
         requested_packages = []
         external_packages = {}
-        explicit_packages = []
 
         # Handle --from-history case
         if from_history:
