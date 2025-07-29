@@ -131,7 +131,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
     # Otherwise, try to detect format by filename
     elif args.file:
-        environment_exporter = context.plugin_manager.detect_environment_exporter(args.file)
+        environment_exporter = context.plugin_manager.detect_environment_exporter(
+            args.file
+        )
         target_format = environment_exporter.name
     else:
         # No file and no explicit format, default to environment-yaml

@@ -445,19 +445,21 @@ class Environment:
             # Add explicitly requested channels first
             environment_channels.extend(channels or [])
 
-            # Extract channels from installed conda packages (unless ignoring channels)
-            if not ignore_channels:
-                # Reuse conda_precs we already have instead of calling get_conda_packages() again
-                for conda_package in conda_precs:
-                    if conda_package.channel:
-                        canonical_name = conda_package.channel.canonical_name
-                        # Skip unknown channels from explicit installs
-                        if canonical_name == UNKNOWN_CHANNEL:
-                            continue
-                        if canonical_name not in environment_channels:
-                            environment_channels.insert(0, canonical_name)
+        # Extract channels from installed conda packages (unless ignoring channels)
+        # This applies regardless of override_channels setting
+        if not ignore_channels:
+            # Reuse conda_precs we already have instead of calling get_conda_packages() again
+            for conda_package in conda_precs:
+                if conda_package.channel:
+                    canonical_name = conda_package.channel.canonical_name
+                    # Skip unknown channels from explicit installs
+                    if canonical_name == UNKNOWN_CHANNEL:
+                        continue
+                    if canonical_name not in environment_channels:
+                        environment_channels.insert(0, canonical_name)
 
-            # Add default channels unless overridden
+        # Add default channels unless overridden
+        if not override_channels:
             # Only add defaults that aren't already in the list
             for channel in context.channels:
                 if channel not in environment_channels:
