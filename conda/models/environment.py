@@ -435,34 +435,23 @@ class Environment:
         explicit_packages = list(prefix_data.iter_records())
 
         # Build channels list
-        environment_channels = []
+        environment_channels = list(channels or [])
 
-        if override_channels:
-            # When overriding channels, start fresh with only requested channels
-            environment_channels = list(channels or [])
-        else:
-            # Add explicitly requested channels first
-            environment_channels.extend(channels or [])
-
-        # Extract channels from installed conda packages (unless ignoring channels)
+        # Inject channels from installed conda packages (unless ignoring channels)
         # This applies regardless of override_channels setting
         if not ignore_channels:
-            # Reuse conda_precs we already have instead of calling get_conda_packages() again
-            for conda_package in conda_precs:
-                if conda_package.channel:
-                    canonical_name = conda_package.channel.canonical_name
-                    # Skip unknown channels from explicit installs
-                    if canonical_name == UNKNOWN_CHANNEL:
-                        continue
-                    if canonical_name not in environment_channels:
-                        environment_channels.insert(0, canonical_name)
+            environment_channels = (
+                *(
+                    canonical_name
+                    # Reuse conda_precs instead of calling get_conda_packages() again
+                    for conda_package in conda_precs
+                    if (canonical_name := conda_package.channel.canonical_name) != UNKNOWN_CHANNEL
+                )
+                *environment_channels,
+            )
 
-        # Add default channels unless overridden
-        if not override_channels:
-            # Only add defaults that aren't already in the list
-            for channel in context.channels:
-                if channel not in environment_channels:
-                    environment_channels.append(channel)
+        # Channel list is a unique ordered list
+        environment_channels = list(dict.fromkeys(environment_channels))
 
         # Create environment config with comprehensive context settings
         config = EnvironmentConfig.from_context()
