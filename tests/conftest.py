@@ -63,6 +63,12 @@ def test_recipes_channel(mocker: MockerFixture) -> Path:
 
 
 @pytest.fixture
+def wheelhouse() -> Path:
+    """Return the path to the directory containing pre-built wheel files used in tests."""
+    return Path(__file__).parent / "data" / "wheelhouse"
+
+
+@pytest.fixture
 def clear_cache():
     from conda.core.subdir_data import SubdirData
 

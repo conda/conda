@@ -5,7 +5,6 @@
 import json
 import uuid
 from pathlib import Path
-from subprocess import check_call
 
 import pytest
 
@@ -17,8 +16,7 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
-from conda.testing.fixtures import CondaCLIFixture
-from conda.testing.integration import PYTHON_BINARY
+from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
@@ -653,19 +651,27 @@ def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
     ],
 )
 def test_export_with_pip_dependencies_integration(
-    tmp_env, conda_cli, format_name, format_flag, parser_func
+    tmp_env,
+    conda_cli,
+    pip_cli: PipCLIFixture,
+    wheelhouse: Path,
+    format_name,
+    format_flag,
+    parser_func,
 ):
     """Test that conda export properly includes pip dependencies when present.
 
-    Uses colorama as a reliable test package that's proven to work in conda's test suite.
+    Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
     """
     with tmp_env("python=3.10", "pip") as prefix:
-        # Install a reliable pip package following the test_create.py pattern
-        # Using colorama since it's proven to work in conda tests
-        check_call(
-            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
-            shell=True,
+        # Install small-python-package wheel built in test data directory
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+
+        # Install using pip_cli fixture for better error handling
+        pip_stdout, pip_stderr, pip_code = pip_cli(
+            "install", str(wheel_path), prefix=prefix
         )
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
         # Clear prefix data cache to ensure fresh data
         PrefixData._cache_.clear()
@@ -686,8 +692,7 @@ def test_export_with_pip_dependencies_integration(
         assert [dep for dep in dependencies if isinstance(dep, str)], (
             f"Should have conda dependencies in {format_name} export"
         )
-
-        # Should have pip dependencies using walrus operator
+        # Should have pip dependencies
         assert (
             pip_deps := next(
                 (
@@ -699,11 +704,12 @@ def test_export_with_pip_dependencies_integration(
             )
         ), f"Expected pip dependencies in {format_name} export"
 
-        # Should include the pip package we installed (colorama) and potentially its dependencies
+        # Should include the pip package we installed (small-python-package)
+        # and potentially its dependencies
         pip_packages = {pkg.split("==")[0] for pkg in pip_deps if "==" in pkg}
 
-        assert "colorama" in pip_packages, (
-            f"Expected 'colorama' in {format_name} export: {pip_deps}"
+        assert "small-python-package" in pip_packages, (
+            f"Expected 'small-python-package' in {format_name} export: {pip_deps}"
         )
 
 
@@ -785,15 +791,18 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         assert "conda-forge" in both_flags_channels
 
 
-def test_export_explicit_format_validation_errors(tmp_env, conda_cli):
+def test_export_explicit_format_validation_errors(
+    tmp_env, conda_cli, pip_cli: PipCLIFixture, wheelhouse: Path
+):
     """Test that explicit format properly errors on invalid environments."""
     # Create an environment with conda packages and pip dependencies
     with tmp_env("python=3.10", "pip") as prefix:
         # Install a pip package to create external packages
-        check_call(
-            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
-            shell=True,
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+        pip_stdout, pip_stderr, pip_code = pip_cli(
+            "install", str(wheel_path), prefix=prefix
         )
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
         # Clear prefix data cache
         PrefixData._cache_.clear()
