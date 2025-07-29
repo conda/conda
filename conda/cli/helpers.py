@@ -23,12 +23,27 @@ if TYPE_CHECKING:
 class LazyChoicesAction(Action):
     def __init__(self, option_strings, dest, choices_func, **kwargs):
         self.choices_func = choices_func
+        self._cached_choices = None
         super().__init__(option_strings, dest, **kwargs)
 
+    @property
+    def choices(self):
+        """Dynamically evaluate choices for help generation and validation."""
+        if self._cached_choices is None:
+            self._cached_choices = self.choices_func()
+        return self._cached_choices
+
+    @choices.setter
+    def choices(self, value):
+        """Ignore attempts to set choices since we use choices_func."""
+        # argparse tries to set self.choices during __init__, but we ignore it
+        # since we dynamically generate choices via choices_func
+        pass
+
     def __call__(self, parser, namespace, values, option_string=None):
-        valid_choices = self.choices_func()
+        valid_choices = self.choices
         if values not in valid_choices:
-            choices_string = ", ".join(f"'{val}'" for val in valid_choices.keys())
+            choices_string = ", ".join(f"'{val}'" for val in valid_choices)
             parser.error(
                 f"argument '{option_string}': invalid choice: {values!r} (choose from {choices_string})"
             )
