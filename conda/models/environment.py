@@ -439,8 +439,7 @@ class Environment:
 
         if override_channels:
             # When overriding channels, start fresh with only requested channels
-            if channels:
-                environment_channels.extend(channels)
+            environment_channels = list(channels or [])
         else:
             # Add explicitly requested channels first
             if channels:
