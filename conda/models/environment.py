@@ -402,7 +402,7 @@ class Environment:
         if from_history:
             history = History(prefix)
             spec_map = history.get_requested_specs_map()
-            # Use str() to get the bracket format that matches current conda behavior
+            # Get MatchSpec objects from history; they'll be serialized to bracket format later
             requested_packages = list(spec_map.values())
         else:
             # Use PrefixData's package extraction methods
