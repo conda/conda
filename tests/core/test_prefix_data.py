@@ -512,9 +512,7 @@ def test_get_python_packages_basic_functionality(
                 )
 
 
-def test_get_packages_behavior_with_interoperability(
-    tmp_env: TmpEnvFixture
-):
+def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
     """Test that package extraction behaves correctly with interoperability settings."""
     # Create environment with conda packages and pip
     packages = ["python=3.10", "pip", "ca-certificates"]
