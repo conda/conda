@@ -41,27 +41,27 @@ class EnvironmentConfig:
     Data model for a conda environment config.
     """
 
-    aggressive_update_packages: tuple[str] = field(default_factory=tuple)
+    aggressive_update_packages: tuple[str, ...] = field(default_factory=tuple)
 
     channel_priority: ChannelPriority | None = None
 
-    channels: tuple[str] = field(default_factory=tuple)
+    channels: tuple[str, ...] = field(default_factory=tuple)
 
-    channel_settings: tuple[dict[str, str]] = field(default_factory=tuple)
+    channel_settings: tuple[dict[str, str], ...] = field(default_factory=tuple)
 
     deps_modifier: DepsModifier | None = None
 
-    disallowed_packages: tuple[str] = field(default_factory=tuple)
+    disallowed_packages: tuple[str, ...] = field(default_factory=tuple)
 
-    pinned_packages: tuple[str] = field(default_factory=tuple)
+    pinned_packages: tuple[str, ...] = field(default_factory=tuple)
 
-    repodata_fns: tuple[str] = field(default_factory=tuple)
+    repodata_fns: tuple[str, ...] = field(default_factory=tuple)
 
     sat_solver: SatSolverChoice | None = None
 
     solver: str | None = None
 
-    track_features: tuple[str] = field(default_factory=tuple)
+    track_features: tuple[str, ...] = field(default_factory=tuple)
 
     update_modifier: UpdateModifier | None = None
 
@@ -73,8 +73,8 @@ class EnvironmentConfig:
         return tuple(dict.fromkeys(item for item in chain(first, second)))
 
     def _merge_channel_settings(
-        self, first: tuple[dict[str, str]], second: tuple[dict[str, str]]
-    ) -> tuple[dict[str, str]]:
+        self, first: tuple[dict[str, str], ...], second: tuple[dict[str, str], ...]
+    ) -> tuple[dict[str, str], ...]:
         """Merge channel settings.
 
         An individual channel setting is a dict that may have the key "channels". Settings
