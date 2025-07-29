@@ -19,9 +19,9 @@ def simple_choices():
 
 
 @pytest.fixture
-def export_format_choices():
+def food_choices():
     """Fixture providing realistic export format choices."""
-    return ["environment-json", "environment-yaml", "explicit", "json", "yaml"]
+    return ["spam", "eggs", "bacon", "spam"]
 
 
 @pytest.fixture
@@ -139,13 +139,13 @@ def test_invalid_choice_handling(lazy_action, mock_parser_namespace):
     assert "choose from 'red', 'green', 'blue'" in parser.error_message
 
 
-def test_argumentparser_help_integration(export_format_choices):
+def test_argumentparser_help_integration(simple_choices):
     """Test that LazyChoicesAction works with ArgumentParser help generation."""
     parser = ArgumentParser(prog="test")
     parser.add_argument(
         "--format",
         action=LazyChoicesAction,
-        choices_func=lambda: export_format_choices,
+        choices_func=lambda: simple_choices,
         help="Choose a format",
     )
 
@@ -153,7 +153,7 @@ def test_argumentparser_help_integration(export_format_choices):
     help_output = parser.format_help()
 
     # Should show choices in help
-    assert "{environment-json,environment-yaml,explicit,json,yaml}" in help_output
+    assert "{red,green,blue}" in help_output
     assert "Choose a format" in help_output
 
 
@@ -293,25 +293,24 @@ def test_multiple_option_strings(mock_parser_namespace):
     assert namespace.format == "long"
 
 
-def test_conda_export_format_integration(export_format_choices):
-    """Test LazyChoicesAction with realistic conda export format choices."""
-    parser = ArgumentParser(prog="conda export")
+def test_conda_food_choices(food_choices):
+    """Test LazyChoicesAction with realistic conda food choices."""
+    parser = ArgumentParser(prog="conda food")
     parser.add_argument(
-        "--format",
+        "--food",
         action=LazyChoicesAction,
-        choices_func=lambda: export_format_choices,
-        help="Export format",
+        choices_func=lambda: food_choices,
+        help="Food",
     )
 
     # Test valid parsing
-    args = parser.parse_args(["--format", "yaml"])
-    assert args.format == "yaml"
+    args = parser.parse_args(["--food", "bacon"])
+    assert args.food == "bacon"
 
     # Test help includes choices
     help_text = parser.format_help()
-    assert "environment-json" in help_text
-    assert "environment-yaml" in help_text
-    assert "explicit" in help_text
+    assert "{spam,eggs,bacon,spam}" in help_text
+    assert "Food" in help_text
 
 
 def test_conda_solver_integration(solver_choices):
