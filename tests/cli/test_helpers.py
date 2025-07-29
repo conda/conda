@@ -20,7 +20,7 @@ def simple_choices():
 
 @pytest.fixture
 def food_choices():
-    """Fixture providing realistic export format choices."""
+    """Fixture providing realistic food choices."""
     return ["spam", "eggs", "bacon", "spam"]
 
 
@@ -143,10 +143,10 @@ def test_argumentparser_help_integration(simple_choices):
     """Test that LazyChoicesAction works with ArgumentParser help generation."""
     parser = ArgumentParser(prog="test")
     parser.add_argument(
-        "--format",
+        "--color",
         action=LazyChoicesAction,
         choices_func=lambda: simple_choices,
-        help="Choose a format",
+        help="Choose a color",
     )
 
     # Get help text
@@ -154,7 +154,7 @@ def test_argumentparser_help_integration(simple_choices):
 
     # Should show choices in help
     assert "{red,green,blue}" in help_output
-    assert "Choose a format" in help_output
+    assert "Choose a color" in help_output
 
 
 def test_argumentparser_error_handling():
@@ -238,19 +238,19 @@ def test_non_list_iterable_choices(mock_parser_namespace):
     assert not parser.error_called
 
 
-@pytest.mark.parametrize("valid_choice", ["yaml", "json", "explicit"])
+@pytest.mark.parametrize("valid_choice", ["spam", "eggs", "bacon"])
 def test_parametrized_valid_choices(valid_choice, mock_parser_namespace):
     """Test multiple valid choices using parametrization."""
     action = LazyChoicesAction(
-        option_strings=["--format"],
-        dest="format",
-        choices_func=lambda: ["yaml", "json", "explicit"],
+        option_strings=["--food"],
+        dest="food",
+        choices_func=lambda: ["spam", "eggs", "bacon"],
     )
 
     parser, namespace = mock_parser_namespace
 
-    action(parser, namespace, valid_choice, "--format")
-    assert getattr(namespace, "format") == valid_choice
+    action(parser, namespace, valid_choice, "--food")
+    assert getattr(namespace, "food") == valid_choice
     assert not parser.error_called
 
 
@@ -258,14 +258,14 @@ def test_parametrized_valid_choices(valid_choice, mock_parser_namespace):
 def test_parametrized_invalid_choices(invalid_choice, mock_parser_namespace):
     """Test multiple invalid choices using parametrization."""
     action = LazyChoicesAction(
-        option_strings=["--format"],
-        dest="format",
-        choices_func=lambda: ["yaml", "json", "explicit"],
+        option_strings=["--food"],
+        dest="food",
+        choices_func=lambda: ["spam", "eggs", "bacon"],
     )
 
     parser, namespace = mock_parser_namespace
 
-    action(parser, namespace, invalid_choice, "--format")
+    action(parser, namespace, invalid_choice, "--food")
     assert parser.error_called
     assert f"invalid choice: '{invalid_choice}'" in parser.error_message
 
@@ -273,24 +273,24 @@ def test_parametrized_invalid_choices(invalid_choice, mock_parser_namespace):
 def test_multiple_option_strings(mock_parser_namespace):
     """Test LazyChoicesAction with multiple option strings."""
     action = LazyChoicesAction(
-        option_strings=["-f", "--format"],
-        dest="format",
+        option_strings=["-f", "--food"],
+        dest="food",
         choices_func=lambda: ["short", "long"],
     )
 
     parser, namespace = mock_parser_namespace
 
     # Test with long option
-    action(parser, namespace, "short", "--format")
-    assert namespace.format == "short"
+    action(parser, namespace, "short", "--food")
+    assert namespace.food == "short"
 
     # Reset namespace
-    namespace.format = None
+    namespace.food = None
     parser.error_called = False
 
     # Test with short option
     action(parser, namespace, "long", "-f")
-    assert namespace.format == "long"
+    assert namespace.food == "long"
 
 
 def test_conda_food_choices(food_choices):
