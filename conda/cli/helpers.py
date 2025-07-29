@@ -35,7 +35,7 @@ class LazyChoicesAction(Action):
 
     @choices.setter
     def choices(self, value):
-        """Allow argparse to set choices during initialization, but ignore it."""
+        """Ignore attempts to set choices since we use choices_func."""
         # argparse tries to set self.choices during __init__, but we ignore it
         # since we dynamically generate choices via choices_func
         pass
@@ -44,8 +44,10 @@ class LazyChoicesAction(Action):
         valid_choices = self.choices
         if values not in valid_choices:
             choices_string = ", ".join(f"'{val}'" for val in valid_choices)
+            # Use the same format as argparse for consistency
+            option_display = "/".join(self.option_strings)
             parser.error(
-                f"argument '{option_string}': invalid choice: {values!r} (choose from {choices_string})"
+                f"argument {option_display}: invalid choice: {values!r} (choose from {choices_string})"
             )
         setattr(namespace, self.dest, values)
 

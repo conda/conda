@@ -182,7 +182,7 @@ class Dependencies(dict):
             if isinstance(line, dict):
                 self.update(line)
             else:
-                self["conda"].append(common.arg2spec(line))
+                self["conda"].append(str(MatchSpec(line)))
 
         if "pip" in self:
             if not self["pip"]:
