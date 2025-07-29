@@ -152,8 +152,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         from_history=args.from_history,
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,
-        channels=args.channel,
-        override_channels=args.override_channels,
     )
 
     # Handle --json flag for backwards compatibility
