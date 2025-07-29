@@ -131,10 +131,8 @@ jobs:
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
-          ${REQUIREMENTS_TRUSTSTORE}
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-        env:
-          REQUIREMENTS_TRUSTSTORE: ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -172,11 +170,8 @@ jobs:
           --basetemp=${{ runner.temp }}
           --durations-path=durations\${{ runner.os }}.json
           --group=${{ matrix.test-group }}
-          --splits=${PYTEST_SPLITS}
-          -m "${PYTEST_MARKER}"
-        env:
-          PYTEST_SPLITS: ${{ env.PYTEST_SPLITS }}
-          PYTEST_MARKER: ${{ env.PYTEST_MARKER }}
+          --splits=${{ env.PYTEST_SPLITS }}
+          -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
@@ -271,10 +266,8 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          ${REQUIREMENTS_TRUSTSTORE}
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-        env:
-          REQUIREMENTS_TRUSTSTORE: ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -297,11 +290,8 @@ jobs:
           --cov=conda
           --durations-path=durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
-          --splits=${PYTEST_SPLITS}
-          -m "${PYTEST_MARKER}"
-        env:
-          PYTEST_SPLITS: ${{ env.PYTEST_SPLITS }}
-          PYTEST_MARKER: ${{ env.PYTEST_MARKER }}
+          --splits=${{ env.PYTEST_SPLITS }}
+          -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
@@ -370,10 +360,8 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           --file tests/requirements-benchmarks.txt
-          ${REQUIREMENTS_TRUSTSTORE}
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-        env:
-          REQUIREMENTS_TRUSTSTORE: ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -440,10 +428,8 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           --file tests/requirements-typing.txt
-          ${REQUIREMENTS_TRUSTSTORE}
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-        env:
-          REQUIREMENTS_TRUSTSTORE: ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -684,10 +670,8 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          ${REQUIREMENTS_TRUSTSTORE}
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
-        env:
-          REQUIREMENTS_TRUSTSTORE: ${{ env.REQUIREMENTS_TRUSTSTORE }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -710,11 +694,8 @@ jobs:
           --cov=conda
           --durations-path=durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
-          --splits=${PYTEST_SPLITS}
-          -m "${PYTEST_MARKER}"
-        env:
-          PYTEST_SPLITS: ${{ env.PYTEST_SPLITS }}
-          PYTEST_MARKER: ${{ env.PYTEST_MARKER }}
+          --splits=${{ env.PYTEST_SPLITS }}
+          -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
