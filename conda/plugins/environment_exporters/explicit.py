@@ -62,8 +62,8 @@ def export_explicit(env: Environment) -> str:
         if (
             not url
             and (channel := getattr(pkg, "channel", None))
-            and (base_url := getatter(channel, "base_url", None))
-            and (subdir := getattr(pkg, subdir, None))
+            and (base_url := getattr(channel, "base_url", None))
+            and (subdir := getattr(pkg, "subdir", None))
             and (fn := getattr(pkg, "fn", None))
         ):
             url = join_url(base_url, subdir, fn)
