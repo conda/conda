@@ -82,7 +82,7 @@ def export_yaml(env: Environment) -> str:
     try:
         return yaml_safe_dump(env_dict)
     except YAMLError as e:
-        raise CondaValueError(f"Failed to export environment to YAML: {e}") from e
+        raise CondaValueError(f"Failed to export environment to YAML: {e}")
 
 
 def export_json(env: Environment) -> str:
@@ -91,7 +91,7 @@ def export_json(env: Environment) -> str:
     try:
         return json.dumps(env_dict, indent=2, ensure_ascii=False)
     except (TypeError, ValueError, RecursionError) as e:
-        raise CondaValueError(f"Failed to export environment to JSON: {e}") from e
+        raise CondaValueError(f"Failed to export environment to JSON: {e}")
 
 
 @hookimpl(tryfirst=True)  # Ensure built-in YAML exporter loads first and has priority
