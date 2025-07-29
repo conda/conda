@@ -189,6 +189,6 @@ making your own contributions.
    release-notes
    glossary
    dev-guide/index
-   dev-guide/api
+   api/index
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

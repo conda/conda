@@ -25,7 +25,6 @@ The following commands are part of conda:
    deactivate
    doctor
    env/index
-   export
    info
    init
    install
@@ -97,7 +96,7 @@ Scroll to the right to see the entire table.
      - ``pip list``
      - X
    * - Create requirements file
-     - ``conda export --format=requirements`` or ``conda list --export``
+     - ``conda list --export``
      - ``pip freeze``
      - X
    * - List all environments
