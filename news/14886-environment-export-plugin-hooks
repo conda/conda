@@ -10,7 +10,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Fix `conda export --override-channels` behavior to properly include installed packages' channels (unless `--ignore-channels` is also provided), restoring the original intended functionality and improving environment reproducibility. (#15048 via #14886)
 
 ### Deprecations
 
