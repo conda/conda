@@ -657,14 +657,13 @@ def test_export_with_pip_dependencies_integration(
 ):
     """Test that conda export properly includes pip dependencies when present.
 
-    Uses flask as a reliable test package that's proven to work in conda's test suite.
+    Uses colorama as a reliable test package that's proven to work in conda's test suite.
     """
     with tmp_env("python=3.10", "pip") as prefix:
         # Install a reliable pip package following the test_create.py pattern
-        # Using flask since it's proven to work in conda tests
+        # Using colorama since it's proven to work in conda tests
         check_call(
-            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
-            cwd=prefix,
+            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
             shell=True,
         )
 
@@ -700,11 +699,11 @@ def test_export_with_pip_dependencies_integration(
             )
         ), f"Expected pip dependencies in {format_name} export"
 
-        # Should include the pip package we installed (flask) and potentially its dependencies
+        # Should include the pip package we installed (colorama) and potentially its dependencies
         pip_packages = {pkg.split("==")[0] for pkg in pip_deps if "==" in pkg}
 
-        assert "flask" in pip_packages, (
-            f"Expected 'flask' in {format_name} export: {pip_deps}"
+        assert "colorama" in pip_packages, (
+            f"Expected 'colorama' in {format_name} export: {pip_deps}"
         )
 
 
@@ -792,7 +791,7 @@ def test_export_explicit_format_validation_errors(tmp_env, conda_cli):
     with tmp_env("python=3.10", "pip") as prefix:
         # Install a pip package to create external packages
         check_call(
-            f"{prefix / 'bin' / 'python'} -m pip install requests==2.25.1",
+            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
             shell=True,
         )
 
@@ -803,7 +802,7 @@ def test_export_explicit_format_validation_errors(tmp_env, conda_cli):
         with pytest.raises(CondaValueError) as exc_info:
             conda_cli("export", f"--prefix={prefix}", "--format=explicit")
 
-            # Verify the error message is descriptive and helpful
+        # Verify the error message is descriptive and helpful
         error_msg = str(exc_info.value)
         assert "Cannot export explicit format" in error_msg
         assert "external packages" in error_msg

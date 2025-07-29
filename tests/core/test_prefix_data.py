@@ -518,10 +518,9 @@ def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
     packages = ["python=3.10", "pip", "ca-certificates"]
     with tmp_env(*packages) as prefix:
         # Install a reliable pip package following the proven technique
-        # Using flask since it's proven to work in conda tests
+        # Using colorama since it's proven to work in conda tests
         check_call(
-            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
-            cwd=prefix,
+            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
             shell=True,
         )
 
@@ -540,9 +539,9 @@ def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
             f"Should have at least 3 conda packages, got {len(conda_packages)}"
         )
 
-        # Should have Python packages now (flask and potentially its dependencies)
+        # Should have Python packages now (colorama and potentially its dependencies)
         assert len(python_packages) >= 1, (
-            f"Should have at least 1 Python package after installing flask, got {len(python_packages)}"
+            f"Should have at least 1 Python package after installing colorama, got {len(python_packages)}"
         )
 
         # Verify consistency
@@ -554,10 +553,10 @@ def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
         assert "python" in conda_names, "Should include python"
         assert "ca-certificates" in conda_names, "Should include ca-certificates"
 
-        # Check that flask is included in Python packages
+        # Check that colorama is included in Python packages
         python_names = {pkg.name for pkg in python_packages}
-        assert "flask" in python_names, (
-            f"Should include flask in Python packages: {python_names}"
+        assert "colorama" in python_names, (
+            f"Should include colorama in Python packages: {python_names}"
         )
 
         # Verify alphabetical sorting
