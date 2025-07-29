@@ -484,7 +484,7 @@ class PrefixData(metaclass=PrefixDataType):
         conda_types = {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON}
         conda_packages = [
             record
-            for record in PrefixGraph(self.iter_records()).graph
+            for record in self.iter_records()
             if record.package_type in conda_types
         ]
         return sorted(conda_packages, key=lambda x: x.name)
@@ -501,7 +501,7 @@ class PrefixData(metaclass=PrefixDataType):
         }
         python_packages = [
             record
-            for record in PrefixGraph(self.iter_records()).graph
+            for record in self.iter_records()
             if record.package_type in python_types
         ]
         return sorted(python_packages, key=lambda x: x.name)
