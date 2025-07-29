@@ -55,19 +55,22 @@ def test_export_override_channels(conda_cli: CondaCLIFixture, tmp_path: Path) ->
 def test_export_add_channels(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:
     """Test export with additional channels."""
     name = uuid.uuid4().hex
-    path = tmp_path / "environment.yaml"  # Use exact default filename
+    path = tmp_path / "environment.yaml"
 
     conda_cli(
         "export",
         f"--name={name}",
         "-c",
-        "defaults",
+        "conda-forge",
         f"--file={path}",
     )
     assert path.exists()
 
     data = yaml_safe_load(path.read_text())
     assert data["name"] == name
+
+    # Verify that the additional channel was added
+    assert "conda-forge" in data["channels"]
 
 
 def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture) -> None:
