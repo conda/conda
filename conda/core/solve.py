@@ -8,7 +8,6 @@ import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
-from os.path import exists, join
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -1387,22 +1386,11 @@ class SolverStateContainer:
         self.final_environment_specs = None
 
 
-def get_pinned_specs(prefix):
+def get_pinned_specs(prefix: str) -> tuple[MatchSpec, ...]:
     """Find pinned specs from file and return a tuple of MatchSpec."""
-    pinfile = join(prefix, "conda-meta", "pinned")
-    if exists(pinfile):
-        with open(pinfile) as f:
-            from_file = (
-                i
-                for i in f.read().strip().splitlines()
-                if i and not i.strip().startswith("#")
-            )
-    else:
-        from_file = ()
-
-    return tuple(
-        MatchSpec(spec, optional=True)
-        for spec in (*context.pinned_packages, *from_file)
+    return (
+        *(MatchSpec(spec, optional=True) for spec in context.pinned_packages),
+        *PrefixData(prefix_path=prefix).get_pinned_specs(),
     )
 
 
