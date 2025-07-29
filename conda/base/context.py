@@ -563,8 +563,8 @@ class Context(Configuration):
             # for proper search_path templating when --name/--prefix is used
             CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
-        self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
+        self._set_env_vars(APP_NAME)
 
     def post_build_validation(self) -> list[ValidationError]:
         errors = []
