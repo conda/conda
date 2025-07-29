@@ -118,75 +118,107 @@ def test_choices_setter_ignores_values():
     assert action.choices == ["dynamic1", "dynamic2"]
 
 
-def test_valid_choice_handling(lazy_action, mock_parser_namespace):
-    """Test action call with valid choice."""
+@pytest.mark.parametrize("valid_choice", ["red", "green", "blue"])
+def test_valid_choice_handling(valid_choice, simple_choices, mock_parser_namespace):
+    """Test action call with valid choices."""
+    action = LazyChoicesAction(
+        option_strings=["--test"],
+        dest="test",
+        choices_func=lambda: simple_choices,
+    )
     parser, namespace = mock_parser_namespace
 
     # Valid choice should set attribute without error
-    lazy_action(parser, namespace, "red", "--test")
-    assert namespace.test == "red"
+    action(parser, namespace, valid_choice, "--test")
+    assert getattr(namespace, "test") == valid_choice
     assert not parser.error_called
 
 
-def test_invalid_choice_handling(lazy_action, mock_parser_namespace):
-    """Test action call with invalid choice raises error."""
+@pytest.mark.parametrize("invalid_choice", ["purple", "yellow", "orange"])
+def test_invalid_choice_handling(invalid_choice, simple_choices, mock_parser_namespace):
+    """Test action call with invalid choices."""
+    action = LazyChoicesAction(
+        option_strings=["--test"],
+        dest="test",
+        choices_func=lambda: simple_choices,
+    )
     parser, namespace = mock_parser_namespace
 
     # Invalid choice should call parser.error
-    lazy_action(parser, namespace, "purple", "--test")
+    action(parser, namespace, invalid_choice, "--test")
     assert parser.error_called
-    assert "invalid choice: 'purple'" in parser.error_message
+    assert f"invalid choice: '{invalid_choice}'" in parser.error_message
     assert "choose from 'red', 'green', 'blue'" in parser.error_message
 
 
-def test_argumentparser_help_integration(simple_choices):
+@pytest.mark.parametrize(
+    "choices,expected_help_text",
+    [
+        (["red", "green", "blue"], "{red,green,blue}"),
+        (["spam", "eggs", "bacon", "spam"], "{spam,eggs,bacon,spam}"),
+        (["classic", "libmamba"], "{classic,libmamba}"),
+    ],
+)
+def test_argumentparser_help_integration(choices, expected_help_text):
     """Test that LazyChoicesAction works with ArgumentParser help generation."""
     parser = ArgumentParser(prog="test")
     parser.add_argument(
-        "--color",
+        "--option",
         action=LazyChoicesAction,
-        choices_func=lambda: simple_choices,
-        help="Choose a color",
+        choices_func=lambda: choices,
+        help="Choose an option",
     )
 
     # Get help text
     help_output = parser.format_help()
 
     # Should show choices in help
-    assert "{red,green,blue}" in help_output
-    assert "Choose a color" in help_output
+    assert expected_help_text in help_output
+    assert "Choose an option" in help_output
 
 
-def test_argumentparser_error_handling():
+@pytest.mark.parametrize(
+    "choices,invalid_choice",
+    [
+        (["alpha", "beta", "gamma"], "invalid"),
+        (["one", "two", "three"], "four"),
+        (["yes", "no"], "maybe"),
+    ],
+)
+def test_argumentparser_error_handling(choices, invalid_choice):
     """Test that LazyChoicesAction error handling works with ArgumentParser."""
-    choices_func = lambda: ["alpha", "beta", "gamma"]
-
     parser = ArgumentParser(prog="test")
     parser.add_argument(
         "--choice",
         action=LazyChoicesAction,
-        choices_func=choices_func,
+        choices_func=lambda: choices,
     )
 
     # Should raise SystemExit for invalid choice
     with pytest.raises((SystemExit, argparse.ArgumentError)):
-        parser.parse_args(["--choice", "invalid"])
+        parser.parse_args(["--choice", invalid_choice])
 
 
-def test_argumentparser_valid_parsing():
+@pytest.mark.parametrize(
+    "choices,valid_choice",
+    [
+        (["one", "two", "three"], "two"),
+        (["alpha", "beta", "gamma"], "gamma"),
+        (["yes", "no"], "yes"),
+    ],
+)
+def test_argumentparser_valid_parsing(choices, valid_choice):
     """Test that LazyChoicesAction works correctly with valid parsing."""
-    choices_func = lambda: ["one", "two", "three"]
-
     parser = ArgumentParser(prog="test")
     parser.add_argument(
         "--number",
         action=LazyChoicesAction,
-        choices_func=choices_func,
+        choices_func=lambda: choices,
     )
 
     # Valid choice should parse correctly
-    args = parser.parse_args(["--number", "two"])
-    assert args.number == "two"
+    args = parser.parse_args(["--number", valid_choice])
+    assert args.number == valid_choice
 
 
 def test_choices_func_exception_propagation():
@@ -222,111 +254,91 @@ def test_empty_choices_behavior(mock_parser_namespace):
     assert "invalid choice: 'anything'" in parser.error_message
 
 
-def test_non_list_iterable_choices(mock_parser_namespace):
+@pytest.mark.parametrize(
+    "iterable_choices,valid_choice",
+    [
+        ({"set", "of", "choices"}, "set"),  # set
+        (("tuple", "of", "choices"), "tuple"),  # tuple
+        (iter(["iter", "of", "choices"]), "iter"),  # iterator
+    ],
+)
+def test_non_list_iterable_choices(
+    iterable_choices, valid_choice, mock_parser_namespace
+):
     """Test that choices_func can return any iterable."""
     action = LazyChoicesAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=lambda: {"set", "of", "choices"},  # set instead of list
+        choices_func=lambda: iterable_choices,
     )
 
     parser, namespace = mock_parser_namespace
 
-    # Valid choice from set should work
-    action(parser, namespace, "set", "--test")
-    assert namespace.test == "set"
+    # Valid choice from iterable should work
+    action(parser, namespace, valid_choice, "--test")
+    assert namespace.test == valid_choice
     assert not parser.error_called
 
 
-@pytest.mark.parametrize("valid_choice", ["spam", "eggs", "bacon"])
-def test_parametrized_valid_choices(valid_choice, mock_parser_namespace):
-    """Test multiple valid choices using parametrization."""
-    action = LazyChoicesAction(
-        option_strings=["--food"],
-        dest="food",
-        choices_func=lambda: ["spam", "eggs", "bacon"],
-    )
-
-    parser, namespace = mock_parser_namespace
-
-    action(parser, namespace, valid_choice, "--food")
-    assert getattr(namespace, "food") == valid_choice
-    assert not parser.error_called
-
-
-@pytest.mark.parametrize("invalid_choice", ["xml", "csv", "invalid"])
-def test_parametrized_invalid_choices(invalid_choice, mock_parser_namespace):
-    """Test multiple invalid choices using parametrization."""
-    action = LazyChoicesAction(
-        option_strings=["--food"],
-        dest="food",
-        choices_func=lambda: ["spam", "eggs", "bacon"],
-    )
-
-    parser, namespace = mock_parser_namespace
-
-    action(parser, namespace, invalid_choice, "--food")
-    assert parser.error_called
-    assert f"invalid choice: '{invalid_choice}'" in parser.error_message
-
-
-def test_multiple_option_strings(mock_parser_namespace):
+@pytest.mark.parametrize(
+    "option_strings,dest,test_option",
+    [
+        (["-f", "--food"], "food", "--food"),
+        (["-f", "--food"], "food", "-f"),
+        (["-s", "--solver"], "solver", "--solver"),
+        (["-s", "--solver"], "solver", "-s"),
+    ],
+)
+def test_multiple_option_strings(
+    option_strings, dest, test_option, mock_parser_namespace
+):
     """Test LazyChoicesAction with multiple option strings."""
     action = LazyChoicesAction(
-        option_strings=["-f", "--food"],
-        dest="food",
-        choices_func=lambda: ["short", "long"],
+        option_strings=option_strings,
+        dest=dest,
+        choices_func=lambda: ["option1", "option2"],
     )
 
     parser, namespace = mock_parser_namespace
 
-    # Test with long option
-    action(parser, namespace, "short", "--food")
-    assert namespace.food == "short"
-
-    # Reset namespace
-    namespace.food = None
-    parser.error_called = False
-
-    # Test with short option
-    action(parser, namespace, "long", "-f")
-    assert namespace.food == "long"
+    # Test with specified option
+    action(parser, namespace, "option1", test_option)
+    assert getattr(namespace, dest) == "option1"
+    assert not parser.error_called
 
 
-def test_conda_food_choices(food_choices):
-    """Test LazyChoicesAction with realistic conda food choices."""
-    parser = ArgumentParser(prog="conda food")
+# Realistic integration tests - these test actual conda use cases
+@pytest.mark.parametrize(
+    "prog,option,choices_fixture,valid_choice,help_pattern",
+    [
+        ("conda food", "--food", "food_choices", "bacon", "{spam,eggs,bacon,spam}"),
+        (
+            "conda install",
+            "--solver",
+            "solver_choices",
+            "libmamba",
+            "{classic,libmamba}",
+        ),
+    ],
+)
+def test_conda_integration(
+    prog, option, choices_fixture, valid_choice, help_pattern, request
+):
+    """Test LazyChoicesAction with realistic conda scenarios."""
+    choices = request.getfixturevalue(choices_fixture)
+
+    parser = ArgumentParser(prog=prog)
     parser.add_argument(
-        "--food",
+        option,
         action=LazyChoicesAction,
-        choices_func=lambda: food_choices,
-        help="Food",
+        choices_func=lambda: choices,
+        help=f"{option.lstrip('--').title()} option",
     )
 
     # Test valid parsing
-    args = parser.parse_args(["--food", "bacon"])
-    assert args.food == "bacon"
+    args = parser.parse_args([option, valid_choice])
+    assert getattr(args, option.lstrip("--")) == valid_choice
 
     # Test help includes choices
     help_text = parser.format_help()
-    assert "{spam,eggs,bacon,spam}" in help_text
-    assert "Food" in help_text
-
-
-def test_conda_solver_integration(solver_choices):
-    """Test LazyChoicesAction with realistic conda solver choices."""
-    parser = ArgumentParser(prog="conda install")
-    parser.add_argument(
-        "--solver",
-        action=LazyChoicesAction,
-        choices_func=lambda: solver_choices,
-        help="Solver backend",
-    )
-
-    # Test valid parsing
-    args = parser.parse_args(["--solver", "libmamba"])
-    assert args.solver == "libmamba"
-
-    # Test help includes choices
-    help_text = parser.format_help()
-    assert "{classic,libmamba}" in help_text
+    assert help_pattern in help_text
