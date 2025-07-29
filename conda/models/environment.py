@@ -446,7 +446,7 @@ class Environment:
                     # Reuse conda_precs instead of calling get_conda_packages() again
                     for conda_package in conda_precs
                     if (canonical_name := conda_package.channel.canonical_name) != UNKNOWN_CHANNEL
-                )
+                ),
                 *environment_channels,
             )
 
