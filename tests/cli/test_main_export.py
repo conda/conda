@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test conda export."""
 
+from __future__ import annotations
+
 import json
 import uuid
-from pathlib import Path
 from subprocess import check_call
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,8 +19,14 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
-from conda.testing.fixtures import CondaCLIFixture
+from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
+from conda.plugins.environment_exporters.specs import SPECS_FORMAT
 from conda.testing.integration import PYTHON_BINARY
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
@@ -136,10 +144,9 @@ def test_export_structured_file_extension_detection(
 @pytest.mark.parametrize(
     "format_name,expected_error_fragment",
     [
-        ("explicit", "Cannot export explicit format"),
-        ("requirements", "Cannot export requirements format"),
-        ("reqs", "Cannot export requirements format"),  # Test alias
-        ("txt", "Cannot export requirements format"),  # Test alias
+        (EXPLICIT_FORMAT, "Cannot export explicit format"),
+        (SPECS_FORMAT, "Cannot export specs format"),
+        ("txt", "Cannot export specs format"),  # alias
     ],
 )
 def test_export_text_formats_fail_on_empty_environments(
@@ -157,8 +164,7 @@ def test_export_text_formats_fail_on_empty_environments(
     "filename,expected_error_fragment",
     [
         ("explicit.txt", "Cannot export explicit format"),
-        ("requirements.txt", "Cannot export requirements format"),
-        ("spec.txt", "Cannot export requirements format"),
+        ("specs.txt", "Cannot export specs format"),
     ],
 )
 def test_export_text_file_extensions_fail_on_empty_environments(

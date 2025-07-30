@@ -24,7 +24,7 @@ from conda.plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_YAML_FORMAT,
 )
 from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
-from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
+from conda.plugins.environment_exporters.specs import SPECS_FORMAT
 from conda.plugins.types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
@@ -42,13 +42,9 @@ def plugin_manager_with_exporters(
     plugin_manager: CondaPluginManager,
 ) -> CondaPluginManager:
     """Get plugin manager with environment exporter plugins loaded."""
-    from conda.plugins.environment_exporters import (
-        environment_yml,
-        explicit,
-        requirements_txt,
-    )
+    from conda.plugins.environment_exporters import environment_yml, explicit, specs
 
-    plugin_manager.load_plugins(environment_yml, explicit, requirements_txt)
+    plugin_manager.load_plugins(environment_yml, explicit, specs)
     return plugin_manager
 
 
@@ -208,26 +204,26 @@ def test_explicit_exporter_cep23_compliance_error(
         exporter.export(env)
 
 
-def test_builtin_requirements_exporter(
+def test_builtin_specs_exporter(
     plugin_manager_with_exporters: CondaPluginManager,
     test_env: Environment,
 ):
-    """Test the built-in requirements environment exporter with requested packages."""
+    """Test the built-in specs environment exporter with requested packages."""
     # Test that exporter is available
     exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        REQUIREMENTS_FORMAT
+        SPECS_FORMAT
     )
     assert exporter_config is not None
-    assert exporter_config.name == REQUIREMENTS_FORMAT
+    assert exporter_config.name == SPECS_FORMAT
 
-    # Test export functionality with requested packages (should create requirements file)
+    # Test export functionality with requested packages (should create specs file)
     result = exporter_config.export(test_env)
 
     # Verify it's NOT an @EXPLICIT format (CEP 23 compliance)
     assert "@EXPLICIT" not in result
 
-    # Verify it's a requirements file with MatchSpec strings
-    assert "# Note: This is a conda requirements file (MatchSpec format)" in result
+    # Verify it's a specs file with MatchSpec strings
+    assert "# Note: This is a conda specs file (MatchSpec format)" in result
     assert "# Contains conda package specifications, not pip requirements" in result
 
     # Verify platform information is included
@@ -281,9 +277,9 @@ def test_builtin_explicit_exporter_with_urls(
     [
         (EXPLICIT_FORMAT, "test_env", "Cannot export explicit format"),
         (
-            REQUIREMENTS_FORMAT,
+            SPECS_FORMAT,
             "test_env_with_explicit_packages",
-            "Cannot export requirements format",
+            "Cannot export specs format",
         ),
     ],
 )
@@ -318,7 +314,7 @@ def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginMan
         ENVIRONMENT_YAML_FORMAT,
         ENVIRONMENT_JSON_FORMAT,
         EXPLICIT_FORMAT,
-        REQUIREMENTS_FORMAT,
+        SPECS_FORMAT,
     }
 
 
@@ -329,8 +325,7 @@ def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginMan
         ("environment.yml", ENVIRONMENT_YAML_FORMAT),
         ("environment.json", ENVIRONMENT_JSON_FORMAT),
         ("explicit.txt", EXPLICIT_FORMAT),
-        ("requirements.txt", REQUIREMENTS_FORMAT),
-        ("spec.txt", REQUIREMENTS_FORMAT),
+        ("specs.txt", SPECS_FORMAT),
         ("my-env.yaml", None),  # Not a recognized default filename
         ("env.unknown", None),
     ],
@@ -360,9 +355,8 @@ def test_detect_environment_exporter(
         (ENVIRONMENT_JSON_FORMAT, True),
         ("json", True),  # alias
         (EXPLICIT_FORMAT, True),
-        (REQUIREMENTS_FORMAT, True),
+        (SPECS_FORMAT, True),
         ("txt", True),  # alias
-        ("reqs", True),  # alias
         ("unknown", False),
     ],
 )
@@ -430,7 +424,7 @@ def test_yaml_exporter_handles_missing_name(
         (ENVIRONMENT_YAML_FORMAT, ("yaml", "yml")),
         (ENVIRONMENT_JSON_FORMAT, ("json",)),
         (EXPLICIT_FORMAT, ()),
-        (REQUIREMENTS_FORMAT, ("reqs", "txt")),
+        (SPECS_FORMAT, ("reqs", "txt")),
     ],
 )
 def test_builtin_exporters_define_expected_aliases(
@@ -484,7 +478,6 @@ def test_alias_normalization_and_collision_detection():
     [
         (["list", "--explicit"], EXPLICIT_FORMAT),
         (["env", "export"], ENVIRONMENT_YAML_FORMAT),
-        # (["list", "--export"], REQUIREMENTS_FORMAT),
     ],
 )
 def test_compare_export_commands(
