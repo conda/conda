@@ -111,25 +111,29 @@ def test_create_advanced_pip(
     # Get the argh directory path
     argh_dir = Path(support_file("advanced-pip/argh"))
 
+    # Remove any existing git repository
+    git_dir = argh_dir / ".git"
+    if git_dir.exists():
+        shutil.rmtree(git_dir)
+
     # Initialize git repository in the argh directory
     subprocess.run(["git", "init"], cwd=argh_dir, check=True)
     subprocess.run(["git", "add", "."], cwd=argh_dir, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=argh_dir, check=True)
-
-    # Create environment.yml from template
-    template_path = Path(support_file("advanced-pip/env_template.yml"))
-    env_path = Path(support_file("advanced-pip/environment.yml"))
-
-    template_content = template_path.read_text()
-    env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
-    env_path.write_text(env_content)
 
     try:
         env_name = uuid4().hex[:8]
         prefix = tmp_envs_dir / env_name
 
         # Use support_file_isolated to avoid pip touching support_file paths inside source checkout
-        environment_yml = support_file_isolated(Path("advanced-pip", "environment.yml"))
+        environment_yml = support_file_isolated(
+            Path("advanced-pip", "env_template.yml")
+        )
+
+        # Create environment.yml from template in the isolated location
+        template_content = environment_yml.read_text()
+        env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
+        environment_yml.write_text(env_content)
 
         stdout, stderr, _ = conda_cli(
             *("env", "create"),
@@ -145,13 +149,10 @@ def test_create_advanced_pip(
         assert package_is_installed(prefix, "six")
         assert package_is_installed(prefix, "xmltodict=0.10.2")
     finally:
-        # Clean up: remove the git repository and the generated environment.yml
+        # Clean up: remove the git repository
         git_dir = argh_dir / ".git"
         if git_dir.exists():
             shutil.rmtree(git_dir)
-
-        if env_path.exists():
-            env_path.unlink()
 
 
 @pytest.mark.integration
