@@ -479,9 +479,9 @@ def test_alias_normalization_and_collision_detection():
 @pytest.mark.parametrize(
     "args,format",
     [
-        (["list", "--explicit"], "explicit"),
-        (["env", "export"], "environment-yaml"),
-        (["list", "--export"], "requirements"),
+        pytest.param(["list", "--explicit"], "explicit", id="explicit"),
+        pytest.param(["env", "export"], "environment-yaml", id="environment-yaml"),
+        pytest.param(["list", "--export"], "requirements", id="requirements"),
     ],
 )
 def test_explicit(
