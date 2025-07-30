@@ -88,9 +88,9 @@ Example output:
      - conda-forge
      - defaults
    dependencies:
-     - python=3.9
      - numpy=1.21.0
      - pandas=1.3.0
+     - python=3.9
 
 Environment JSON Format
 -----------------------
