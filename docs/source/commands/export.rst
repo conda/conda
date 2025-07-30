@@ -204,6 +204,12 @@ Requirements Format
 
 Creates a requirements file with MatchSpec strings.
 
+.. warning::
+
+   This format produces conda MatchSpec strings, which differ from ``conda list --export`` output.
+   The requirements format includes full package specifications with channels and build strings,
+   while ``conda list --export`` produces simpler package=version format suitable for basic reproduction.
+
 +------------------+---------------------------+
 | Format name      | ``requirements``          |
 +------------------+---------------------------+
