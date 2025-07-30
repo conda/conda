@@ -3,7 +3,7 @@ Environment Exporters
 ======================
 
 The environment exporter plugin hook allows you to create custom export formats for conda environments.
-This feature was introduced to enhance the ``conda export`` command with a plugin-based architecture
+This feature was introduced to enhance the :ref:`conda export <\`\`conda export\`\`>` command with a plugin-based architecture
 for extending conda's environment export capabilities.
 
 Overview
@@ -17,8 +17,8 @@ Built-in exporters include:
 
 * **environment-yaml** - YAML format for cross-platform environments
 * **environment-json** - JSON format for programmatic processing
-* **explicit** - CEP 23 compliant explicit URLs format
-* **requirements** - MatchSpec-based requirements format
+* **explicit** - `CEP 23 <https://conda.org/learn/ceps/cep-0023>`_ compliant explicit URLs format
+* **requirements** - :class:`~conda.models.match_spec.MatchSpec` -based requirements format
 
 Plugin Architecture
 ===================
@@ -38,6 +38,10 @@ Each exporter defines:
 
 Creating an Environment Exporter Plugin
 ========================================
+
+What follows are several examples showing how to create new export formats using the environment exporters plugin hook.
+Please check out our :ref:`Quick start <Quick start>` guide for more detailed instructions on how to
+create a conda plugin.
 
 Basic Plugin Structure
 -----------------------
@@ -74,6 +78,8 @@ Here's a minimal example of an environment exporter plugin:
 
 Plugin Components
 -----------------
+
+Below, we explain how to use the plugin you've created above with `conda export`.
 
 Name and Aliases
 ~~~~~~~~~~~~~~~~
@@ -217,12 +223,12 @@ Understanding Package Collections
 
 The Environment model provides different package collections for different use cases:
 
-``dependencies`` (MatchSpec objects)
+``dependencies`` (:class:`~conda.models.match_spec.MatchSpec` objects)
   Represents user-requested packages. These are the packages the user explicitly
   asked for, either from history (when using ``--from-history``) or converted
   from installed packages.
 
-``explicit_packages`` (PackageRecord objects)
+``explicit_packages`` (:class:`~conda.models.records.PackageRecord` objects)
   Represents all installed packages with full metadata including URLs, checksums,
   and build information. Used for exact reproduction.
 
@@ -280,20 +286,19 @@ Register your plugin in ``pyproject.toml``:
     build-backend = "setuptools.build_meta"
 
     [project]
-    name = "my-conda-export-plugin"
+    name = "custom-conda-exporters"
     version = "1.0.0"
     description = "Custom conda environment exporters"
     requires-python = ">=3.8"
-    dependencies = ["conda>=23.1.0"]
 
     [project.entry-points."conda"]
-    my-conda-export-plugin = "my_export_plugin.exporters"
+    custom-conda-exporters = "custom_exporters.plugin"
 
 Hook Implementation
 -------------------
 
 The entry point must reference a Python module that contains functions decorated with
-``@conda.plugins.hookimpl``. In your ``my_export_plugin/exporters.py`` file:
+``@conda.plugins.hookimpl``. In your ``custom_exporters/plugin.py`` file:
 
 .. code-block:: python
 

@@ -102,7 +102,7 @@ Requirements Format
 
 A CEP 23 compliant environment file format that contains MatchSpec
 strings for conda-compatible package specifications. This format is
-similar to pip's requirements.txt but uses conda's MatchSpec syntax.
+similar to pip's ``requirements.txt`` but uses conda's MatchSpec syntax.
 
 Example:
 

@@ -2,7 +2,7 @@
 ********************
 
 .. note::
-   A newer ``conda export`` command is now available with enhanced functionality including
+   A newer ``conda export`` command is now available with enhanced functionality, including
    multiple export formats and a plugin-based architecture. See :doc:`conda export <../export>`
    for the modern approach to environment export.
 
@@ -20,7 +20,7 @@ Overview
 The ``conda env export`` command exports conda environments to YAML format.
 This command continues to be fully supported.
 
-For new projects, you may want to consider :doc:`conda export <../export>` which provides additional features:
+For new projects, consider :doc:`conda export <../export>`, which provides additional features:
 
 * Multiple export formats (YAML, JSON, explicit, requirements)
 * Automatic format detection based on filename
