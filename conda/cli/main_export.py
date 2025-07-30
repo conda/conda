@@ -11,13 +11,19 @@ from argparse import (
     _SubParsersAction,
 )
 
-from ..common.configuration import YAML_EXTENSIONS
+from ..auxlib.ish import dals
+from ..base.context import context
+from ..common.constants import NULL
 from ..exceptions import CondaValueError
+from ..models.environment import Environment
+from ..plugins.environment_exporters.environment_yml import (
+    ENVIRONMENT_JSON_FORMAT,
+    ENVIRONMENT_YAML_FORMAT,
+)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
-    from .helpers import add_parser_json, add_parser_prefix
+    from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
 
     summary = "Export a given environment"
     description = summary
@@ -27,7 +33,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda export
             conda export --file FILE_NAME
-
+            conda export --format yaml
+            conda export --file environment.yaml
         """
     )
 
@@ -66,6 +73,20 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     p.add_argument(
+        "--format",
+        default=NULL,
+        required=False,
+        action=LazyChoicesAction,
+        choices_func=lambda: sorted(
+            context.plugin_manager.get_exporter_format_mapping()
+        ),
+        help=(
+            "Format for the exported environment. "
+            "If not specified, format will be determined by file extension or default to YAML."
+        ),
+    )
+
+    p.add_argument(
         "--no-builds",
         default=False,
         action="store_true",
@@ -96,38 +117,69 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import context, determine_target_prefix, env_name
-    from ..env.env import from_environment
+    from ..base.context import env_name
     from .common import stdout_json
 
-    prefix = determine_target_prefix(context, args)
-    env = from_environment(
-        env_name(prefix),
-        prefix,
+    # Early format validation - fail fast if format is unsupported
+    target_format = args.format
+    environment_exporter = None
+
+    # If explicit format provided, use it and find the appropriate exporter
+    if target_format is not NULL:
+        environment_exporter = (
+            context.plugin_manager.get_environment_exporter_by_format(target_format)
+        )
+    # Otherwise, try to detect format by filename
+    elif args.file:
+        environment_exporter = context.plugin_manager.detect_environment_exporter(
+            args.file
+        )
+        target_format = environment_exporter.name
+    else:
+        # No file and no explicit format, default to environment-yaml
+        target_format = ENVIRONMENT_YAML_FORMAT
+        environment_exporter = (
+            context.plugin_manager.get_environment_exporter_by_format(target_format)
+        )
+
+    prefix = context.target_prefix
+
+    # Create models.Environment directly
+    env = Environment.from_prefix(
+        prefix=prefix,
+        name=env_name(prefix),
+        platform=context.subdir,
+        from_history=args.from_history,
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,
-        from_history=args.from_history,
+        channels=context.channels,
     )
-
-    if args.override_channels:
-        env.remove_channels()
-
-    if args.channel is not None:
-        env.add_channels(args.channel)
-
-    if args.file:
-        filename = args.file
-        # check for the proper file extension; otherwise when the export file is used later,
-        # the user will get a file parsing error
-        if not filename.endswith(YAML_EXTENSIONS):
-            raise CondaValueError(
-                f"Export files must have a valid extension {YAML_EXTENSIONS}: {filename}"
-            )
-        with open(args.file, "w") as fp:
-            env.to_yaml(stream=fp)
-    if args.json:
-        stdout_json(env.to_dict())
+    # Handle --json flag for backwards compatibility
+    # If --json is specified without explicit --format AND no file, use JSON format
+    # If both --json and --format are specified, --format takes precedence
+    # If --json with file, --json only affects status messages
+    if args.json and args.format is NULL and not args.file:
+        # Backwards compatibility: --json without --format and no file means JSON output
+        json_exporter = context.plugin_manager.get_environment_exporter_by_format(
+            ENVIRONMENT_JSON_FORMAT
+        )
+        if not json_exporter:
+            raise CondaValueError("JSON exporter plugin not available")
+        exported_content = json_exporter.export(env)
     else:
-        print(env.to_yaml(), end="")
+        # Use the detected or default exporter for content
+        exported_content = environment_exporter.export(env)
+
+    # Add trailing newline to the exported content
+    exported_content = exported_content.rstrip() + "\n"
+
+    # Output the content
+    if args.file:
+        with open(args.file, "w") as fp:
+            fp.write(exported_content)
+        if args.json:
+            stdout_json({"success": True, "file": args.file, "format": target_format})
+    else:
+        print(exported_content, end="")
 
     return 0

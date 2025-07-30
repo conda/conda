@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from subprocess import check_call
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,8 +15,10 @@ from conda.base.constants import PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CondaError, CorruptedEnvironmentError
+from conda.models.enums import PackageType
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
+from conda.testing.integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -261,7 +264,7 @@ def test_pip_interop(
 ) -> None:
     # test envs with packages installed using either `pip install <pth-to-wheel>` or
     # `python setup.py install`
-    mocker.patch("conda.core.prefix_data.rm_rf")
+    mocker.patch("conda.plugins.prefix_data_loaders.pypi.rm_rf")
 
     prefixdata = PrefixData(path, interoperability=True)
     prefixdata.load()
@@ -436,3 +439,460 @@ def test_prefix_insertion_error(
                     channel="test-channel",
                 )
             )
+
+
+def test_get_conda_packages_returns_sorted_list(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+):
+    """Test that get_conda_packages returns conda packages sorted alphabetically."""
+    # Create environment with known conda package
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        conda_packages = prefix_data.get_conda_packages()
+
+        # Should return a list
+        assert isinstance(conda_packages, list)
+
+        # Should have at least the small-executable package
+        assert len(conda_packages) > 0, "Should have at least one conda package"
+
+        # Should be sorted alphabetically
+        package_names = [pkg.name for pkg in conda_packages]
+        assert package_names == sorted(package_names), (
+            "Conda packages should be sorted alphabetically"
+        )
+
+        # Should include our test package
+        package_names_set = set(package_names)
+        assert "small-executable" in package_names_set, (
+            "Should include small-executable package"
+        )
+
+        # All should be conda packages (not Python packages)
+        for pkg in conda_packages:
+            assert pkg.package_type in {
+                None,
+                PackageType.NOARCH_GENERIC,
+                PackageType.NOARCH_PYTHON,
+            }, (
+                f"Package {pkg.name} should be a conda package type, got {pkg.package_type}"
+            )
+
+
+def test_get_python_packages_basic_functionality(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+):
+    """Test that get_python_packages returns correct structure even with no Python packages."""
+    # Create environment with conda package
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        python_packages = prefix_data.get_python_packages()
+
+        # Should return a list
+        assert isinstance(python_packages, list)
+
+        # This test environment likely has no Python packages, which is fine
+        # The important thing is that the method works and returns the right structure
+
+        # If there are Python packages, they should be sorted
+        if python_packages:
+            package_names = [pkg.name for pkg in python_packages]
+            assert package_names == sorted(package_names), (
+                "Python packages should be sorted alphabetically"
+            )
+
+            # All should be Python packages
+            for pkg in python_packages:
+                assert pkg.package_type in {
+                    PackageType.VIRTUAL_PYTHON_WHEEL,
+                    PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                    PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+                }, (
+                    f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+                )
+
+
+def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
+    """Test that package extraction behaves correctly with interoperability settings."""
+    # Create environment with conda packages and pip
+    packages = ["python=3.10", "pip", "ca-certificates"]
+    with tmp_env(*packages) as prefix:
+        # Install a reliable pip package following the proven technique
+        # Using colorama since it's proven to work in conda tests
+        check_call(
+            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
+            shell=True,
+        )
+
+        # Clear prefix data cache to ensure fresh data
+        PrefixData._cache_.clear()
+
+        # Enable pip interoperability to detect Python packages
+        prefix_data = PrefixData(prefix, interoperability=True)
+
+        # Test all methods together
+        conda_packages = prefix_data.get_conda_packages()
+        python_packages = prefix_data.get_python_packages()
+
+        # Should have multiple conda packages
+        assert len(conda_packages) >= 3, (
+            f"Should have at least 3 conda packages, got {len(conda_packages)}"
+        )
+
+        # Should have Python packages now (colorama and potentially its dependencies)
+        assert len(python_packages) >= 1, (
+            f"Should have at least 1 Python package after installing colorama, got {len(python_packages)}"
+        )
+
+        # Verify consistency
+        assert conda_packages == conda_packages
+        assert python_packages == python_packages
+
+        # Check that our test packages are included
+        conda_names = {pkg.name for pkg in conda_packages}
+        assert "python" in conda_names, "Should include python"
+        assert "ca-certificates" in conda_names, "Should include ca-certificates"
+
+        # Check that colorama is included in Python packages
+        python_names = {pkg.name for pkg in python_packages}
+        assert "colorama" in python_names, (
+            f"Should include colorama in Python packages: {python_names}"
+        )
+
+        # Verify alphabetical sorting
+        conda_names_list = [pkg.name for pkg in conda_packages]
+        assert conda_names_list == sorted(conda_names_list), (
+            "Conda packages should be sorted"
+        )
+
+        # Verify Python packages sorting and structure
+        python_names_list = [pkg.name for pkg in python_packages]
+        assert python_names_list == sorted(python_names_list), (
+            "Python packages should be sorted"
+        )
+
+        # Verify all Python packages have correct types
+        for pkg in python_packages:
+            assert pkg.package_type in {
+                PackageType.VIRTUAL_PYTHON_WHEEL,
+                PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            }, (
+                f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+            )
+
+
+def test_package_methods_with_required_python_packages(mocker):
+    """Test package extraction methods when Python packages must be found."""
+    # Create mock records - some conda, some Python
+    conda_record1 = mocker.Mock()
+    conda_record1.name = "conda-package-a"
+    conda_record1.package_type = PackageType.NOARCH_GENERIC
+
+    conda_record2 = mocker.Mock()
+    conda_record2.name = "conda-package-b"
+    conda_record2.package_type = PackageType.NOARCH_PYTHON
+
+    python_record1 = mocker.Mock()
+    python_record1.name = "python-package-1"
+    python_record1.package_type = PackageType.VIRTUAL_PYTHON_WHEEL
+
+    python_record2 = mocker.Mock()
+    python_record2.name = "python-package-2"
+    python_record2.package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
+
+    # Create a mock PrefixGraph that returns both conda and Python packages
+    mock_graph = mocker.Mock()
+    mock_graph.graph = [conda_record1, conda_record2, python_record1, python_record2]
+
+    # Create a mock PrefixData instance
+    mock_prefix_data = mocker.Mock(spec=PrefixData)
+
+    # Monkeypatch the methods to use our mock data
+    mock_prefix_data.get_conda_packages = PrefixData.get_conda_packages.__get__(
+        mock_prefix_data
+    )
+    mock_prefix_data.get_python_packages = PrefixData.get_python_packages.__get__(
+        mock_prefix_data
+    )
+
+    # Mock the iter_records and PrefixGraph
+    mock_prefix_data.iter_records.return_value = [
+        conda_record1,
+        conda_record2,
+        python_record1,
+        python_record2,
+    ]
+    mocker.patch("conda.core.prefix_data.PrefixGraph", return_value=mock_graph)
+
+    # Test the methods
+    conda_packages = mock_prefix_data.get_conda_packages()
+    python_packages = mock_prefix_data.get_python_packages()
+
+    # Test conda packages
+    assert len(conda_packages) == 2, "Should have 2 conda packages"
+    assert [pkg.name for pkg in conda_packages] == [
+        "conda-package-a",
+        "conda-package-b",
+    ]
+
+    # Test Python packages - NOW WE REQUIRE THEM
+    assert len(python_packages) == 2, (
+        f"Should have exactly 2 Python packages, got {len(python_packages)}"
+    )
+    assert [pkg.name for pkg in python_packages] == [
+        "python-package-1",
+        "python-package-2",
+    ]
+
+    # Verify all Python packages have correct types
+    for pkg in python_packages:
+        assert pkg.package_type in {
+            PackageType.VIRTUAL_PYTHON_WHEEL,
+            PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+        }, f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+
+
+def test_empty_environment_package_methods(tmp_env: TmpEnvFixture):
+    """Test package extraction methods with an empty environment."""
+    # Create empty environment
+    with tmp_env() as prefix:
+        prefix_data = PrefixData(prefix)
+
+        conda_packages = prefix_data.get_conda_packages()
+        python_packages = prefix_data.get_python_packages()
+
+        # All should be empty lists but still valid
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
+        assert len(conda_packages) == 0, (
+            "Empty environment should have no conda packages"
+        )
+        assert len(python_packages) == 0, (
+            "Empty environment should have no python packages"
+        )
+
+
+@pytest.mark.parametrize(
+    "method_name,expected_types",
+    [
+        (
+            "get_conda_packages",
+            {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON},
+        ),
+        (
+            "get_python_packages",
+            {
+                PackageType.VIRTUAL_PYTHON_WHEEL,
+                PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            },
+        ),
+    ],
+)
+def test_package_extraction_methods_types(
+    tmp_env: TmpEnvFixture,
+    test_recipes_channel: str,
+    method_name: str,
+    expected_types: set,
+):
+    """Test that package extraction methods return packages of expected types."""
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        method = getattr(prefix_data, method_name)
+        packages = method()
+
+        # Should return a list
+        assert isinstance(packages, list)
+
+        # All packages should have expected types
+        for pkg in packages:
+            assert pkg.package_type in expected_types, (
+                f"Package {pkg.name} from {method_name}() has unexpected type {pkg.package_type}"
+            )
+
+        # Packages should be sorted alphabetically
+        if packages:
+            package_names = [pkg.name for pkg in packages]
+            assert package_names == sorted(package_names), (
+                f"Packages from {method_name}() should be sorted"
+            )
+
+
+@pytest.mark.parametrize(
+    "environment_packages,expected_conda_count",
+    [
+        ([], 0),  # Empty environment
+        (["small-executable"], 1),  # Single package
+        (["small-executable", "sample_noarch_python"], 2),  # Multiple packages
+    ],
+)
+def test_package_extraction_package_counts(
+    tmp_env: TmpEnvFixture,
+    test_recipes_channel: str,
+    environment_packages: list,
+    expected_conda_count: int,
+):
+    """Test package extraction with different environment configurations."""
+    with tmp_env(*environment_packages) as prefix:
+        prefix_data = PrefixData(prefix)
+
+        conda_packages = prefix_data.get_conda_packages()
+
+        # Check expected conda package count (allowing for dependencies)
+        assert len(conda_packages) >= expected_conda_count, (
+            f"Should have at least {expected_conda_count} conda packages, got {len(conda_packages)}"
+        )
+
+        # Check that expected packages are present
+        conda_names = {pkg.name for pkg in conda_packages}
+        for expected_package in environment_packages:
+            assert expected_package in conda_names, f"Should include {expected_package}"
+
+
+def test_package_methods_with_mock_data(mocker):
+    """Test package extraction methods with controlled mock data."""
+    # Create mock prefix data
+    mock_prefix_data = mocker.Mock(spec=PrefixData)
+
+    # Create mock records
+    conda_record1 = mocker.Mock()
+    conda_record1.name = "conda-package-a"
+    conda_record1.package_type = None
+
+    conda_record2 = mocker.Mock()
+    conda_record2.name = "conda-package-b"
+    conda_record2.package_type = PackageType.NOARCH_PYTHON
+
+    python_record = mocker.Mock()
+    python_record.name = "python-package"
+    python_record.package_type = PackageType.VIRTUAL_PYTHON_WHEEL
+
+    # Create a mock PrefixGraph that returns our test records
+    mock_graph = mocker.Mock()
+    mock_graph.graph = [conda_record1, conda_record2, python_record]
+
+    # Monkeypatch the methods to use our mock data
+    mock_prefix_data.get_conda_packages = PrefixData.get_conda_packages.__get__(
+        mock_prefix_data
+    )
+    mock_prefix_data.get_python_packages = PrefixData.get_python_packages.__get__(
+        mock_prefix_data
+    )
+
+    # Mock the iter_records and PrefixGraph
+    mock_prefix_data.iter_records.return_value = [
+        conda_record1,
+        conda_record2,
+        python_record,
+    ]
+    mocker.patch("conda.core.prefix_data.PrefixGraph", return_value=mock_graph)
+
+    # Test the methods
+    conda_packages = mock_prefix_data.get_conda_packages()
+    python_packages = mock_prefix_data.get_python_packages()
+
+    # Should have 2 conda packages and 1 Python package
+    assert len(conda_packages) == 2
+    assert len(python_packages) == 1
+
+    # Should have correct names (sorted)
+    assert [pkg.name for pkg in conda_packages] == [
+        "conda-package-a",
+        "conda-package-b",
+    ]
+    assert python_packages[0].name == "python-package"
+
+
+def test_get_python_packages_with_pip_interoperability(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+):
+    """Test get_python_packages with pip interoperability enabled."""
+    # Create environment with a basic package and enable pip interoperability
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(
+            prefix, interoperability=True
+        )  # Enable pip interoperability
+
+        # Get Python packages
+        python_packages = prefix_data.get_python_packages()
+
+        # Should return a list
+        assert isinstance(python_packages, list)
+
+        # Test that the method works correctly regardless of whether there are Python packages
+        # The key is testing the extraction logic and ensuring no errors occur
+
+        # If there are Python packages, they should be sorted and have correct types
+        if python_packages:
+            package_names = [pkg.name for pkg in python_packages]
+            assert package_names == sorted(package_names), (
+                "Python packages should be sorted alphabetically"
+            )
+
+            # All should be Python packages
+            for pkg in python_packages:
+                assert pkg.package_type in {
+                    PackageType.VIRTUAL_PYTHON_WHEEL,
+                    PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                    PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+                }, (
+                    f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+                )
+
+        # Test that both conda and Python packages are handled correctly
+        conda_packages = prefix_data.get_conda_packages()
+
+        # Should have conda packages
+        assert len(conda_packages) >= 1, (
+            "Should have at least the small-executable conda package"
+        )
+        conda_names = {pkg.name for pkg in conda_packages}
+        assert "small-executable" in conda_names, "Should have small-executable package"
+
+        # Test that interoperability doesn't break the basic functionality
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
+
+
+def test_method_consistency(tmp_env: TmpEnvFixture, test_recipes_channel: str):
+    """Test that all methods return consistent results."""
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+
+        # Get packages using different methods
+        conda_packages = prefix_data.get_conda_packages()
+        python_packages = prefix_data.get_python_packages()
+
+        # Methods should return valid lists
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
+
+        # Should have expected content
+        assert len(conda_packages) > 0, "Should have conda packages"
+        conda_names = {pkg.name for pkg in conda_packages}
+        assert "small-executable" in conda_names, "Should include small-executable"
+
+
+@pytest.mark.parametrize("package_type", ["conda", "python"])
+def test_api_consistency(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str, package_type: str
+):
+    """Test that package extraction methods return valid results."""
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+
+        # Get packages via individual method
+        if package_type == "conda":
+            packages = prefix_data.get_conda_packages()
+        else:  # python
+            packages = prefix_data.get_python_packages()
+
+        # Should return a list
+        assert isinstance(packages, list)
+
+        # Should be sorted
+        if packages:
+            package_names = [pkg.name for pkg in packages]
+            assert package_names == sorted(package_names)

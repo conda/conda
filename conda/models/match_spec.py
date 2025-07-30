@@ -392,12 +392,43 @@ class MatchSpec(metaclass=MatchSpecType):
         version = self.get_raw_value("version")
 
         if build:
-            assert version
+            version = version or "*"
             builder += [version, build]
         elif version:
             builder.append(version)
 
         return " ".join(builder)
+
+    def conda_env_form(self):
+        """
+        Return the package specification in conda environment export format.
+
+        This produces the format used by `conda env export`: name=version=build
+        (single equals), without channel prefixes and without .* patterns.
+
+        Examples:
+            >>> MatchSpec("numpy==1.21.0=py39h1234567_0").conda_env_form()
+            'numpy=1.21.0=py39h1234567_0'
+            >>> MatchSpec("numpy=1.21.0").conda_env_form()  # no-builds case
+            'numpy=1.21.0'
+            >>> MatchSpec("conda-forge::numpy==1.21.0=py39h1234567_0").conda_env_form()
+            'numpy=1.21.0=py39h1234567_0'  # channel prefix removed
+
+        Returns:
+            str: Package specification in conda env export format
+        """
+        # Get the full string representation (avoids .* patterns)
+        spec_str = str(self)
+
+        # Remove channel prefix if present (e.g., "conda-forge::package" -> "package")
+        if "::" in spec_str:
+            spec_str = spec_str.split("::", 1)[1]
+
+        # Convert MatchSpec format (name==version=build) to conda env format (name=version=build)
+        if "==" in spec_str:
+            spec_str = spec_str.replace("==", "=", 1)  # Only replace first occurrence
+
+        return spec_str
 
     def __eq__(self, other):
         if isinstance(other, MatchSpec):

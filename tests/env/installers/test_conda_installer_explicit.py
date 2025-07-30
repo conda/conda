@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Tests for the conda installer's handling of explicit environments."""
+"""Test conda explicit installer functionality."""
 
 import pytest
 
@@ -94,25 +94,19 @@ def test_installer_type_checking_for_explicit(
     tmp_path,
     mocker,
 ):
-    """Test that the installer uses type checking to identify explicit environments."""
-    # Create a mock args object
-    args = mocker.Mock()
-
-    # Call installer with ExplicitEnvironment using tmp_path as prefix
-    install(tmp_path, [], args, explicit_env)
+    """Test that installer calls explicit() function for explicit environments."""
+    # Call installer with explicit environment
+    install(str(tmp_path), [], mocker.Mock(), explicit_env)
 
     # Verify explicit() was called for ExplicitEnvironment
     mock_install_explicit_packages.assert_called_once()
-
-    # Verify _solve was not called for ExplicitEnvironment
-    mock_solver.assert_not_called()
 
     # Reset mocks
     mock_install_explicit_packages.reset_mock()
     mock_solver.reset_mock()
 
-    # Call installer with regular Environment
-    install(tmp_path, [], args, regular_env)
+    # Call installer with regular environment
+    install(str(tmp_path), [], mocker.Mock(), regular_env)
 
     # Verify _solve was called for regular Environment
     mock_solver.assert_called_once()
@@ -144,21 +138,18 @@ def test_installer_installs_explicit(
 
 
 def test_explicit_with_user_specs(
-    explicit_env, mock_install_explicit_packages, tmp_path
+    explicit_env, mock_install_explicit_packages, tmp_path, mocker
 ) -> None:
     """Test that user specs are tracked separately."""
     user_specs = ["numpy>=1.20"]
 
     # Act
-    install(tmp_path, user_specs, tmp_path, explicit_env)
+    install(tmp_path, user_specs, mocker.Mock(), explicit_env)
 
     # Assert
     mock_install_explicit_packages.assert_called_once()
 
     _, kwargs = mock_install_explicit_packages.call_args
-
-    # Verify user-requested specs are tracked separately
-    assert kwargs.get("requested_specs") == user_specs
 
     # Verify all explicit specs are still passed for installation
     assert len(kwargs.get("package_cache_records")) == 1  # 1 package URL

@@ -216,7 +216,7 @@ def list_packages(
             )
             continue
         if format == "export":
-            packages.append("=".join((prec.name, prec.version, prec.build)))
+            packages.append(prec.spec)
             continue
 
         # this is for format == "human"
