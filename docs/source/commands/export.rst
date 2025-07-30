@@ -58,9 +58,14 @@ Environment YAML Format
 
 The default format that creates cross-platform compatible environment files.
 
-**Format name**: ``environment-yaml``
-**Aliases**: ``yaml``, ``yml``
-**Auto-detected filenames**: ``environment.yaml``, ``environment.yml``
++------------------+---------------------------+
+| Format name      | ``environment-yaml``      |
++------------------+---------------------------+
+| Aliases          | ``yaml``, ``yml``         |
++------------------+---------------------------+
+| Auto-detected    | ``environment.yaml``,     |
+| filenames        | ``environment.yml``       |
++------------------+---------------------------+
 
 .. code-block:: bash
 
@@ -92,9 +97,14 @@ Environment JSON Format
 
 JSON representation of the environment for programmatic processing.
 
-**Format name**: ``environment-json``
-**Aliases**: ``json``
-**Auto-detected filenames**: ``environment.json``
++------------------+---------------------------+
+| Format name      | ``environment-json``      |
++------------------+---------------------------+
+| Aliases          | ``json``                  |
++------------------+---------------------------+
+| Auto-detected    | ``environment.json``      |
+| filenames        |                           |
++------------------+---------------------------+
 
 .. code-block:: bash
 
@@ -112,9 +122,14 @@ Explicit Format (CEP 23)
 
 Creates explicit package URLs for exact environment reproduction.
 
-**Format name**: ``explicit``
-**Aliases**: None
-**Auto-detected filenames**: ``explicit.txt``
++------------------+---------------------------+
+| Format name      | ``explicit``              |
++------------------+---------------------------+
+| Aliases          | None                      |
++------------------+---------------------------+
+| Auto-detected    | ``explicit.txt``          |
+| filenames        |                           |
++------------------+---------------------------+
 
 .. code-block:: bash
 
@@ -140,9 +155,14 @@ Requirements Format
 
 Creates a requirements file with MatchSpec strings.
 
-**Format name**: ``requirements``
-**Aliases**: ``reqs``, ``txt``
-**Auto-detected filenames**: ``requirements.txt``, ``spec.txt``
++------------------+---------------------------+
+| Format name      | ``requirements``          |
++------------------+---------------------------+
+| Aliases          | ``reqs``, ``txt``         |
++------------------+---------------------------+
+| Auto-detected    | ``requirements.txt``,     |
+| filenames        | ``spec.txt``              |
++------------------+---------------------------+
 
 .. code-block:: bash
 
