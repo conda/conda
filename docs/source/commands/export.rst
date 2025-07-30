@@ -162,10 +162,42 @@ Example output:
 
    # This file may be used to create an environment using:
    # $ conda create --name <env> --file <this file>
-   # platform: osx-64
+   # platform: osx-arm64
    @EXPLICIT
-   https://repo.anaconda.com/pkgs/main/osx-64/numpy-1.21.0-py39h2e5f516_0.tar.bz2
-   https://repo.anaconda.com/pkgs/main/osx-64/python-3.9.7-h88f2d9e_0.tar.bz2
+
+   https://repo.anaconda.com/pkgs/main/noarch/tzdata-2025b-h04d1e81_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/libffi-3.4.4-hca03da5_1.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/libcxx-17.0.6-he5c5206_4.conda
+   https://repo.anaconda.com/pkgs/main/noarch/pip-25.1-pyhc872135_2.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/pytz-2025.2-py313hca03da5_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/python-3.13.5-h2eb94d5_100_cp313.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/ca-certificates-2025.2.25-hca03da5_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/numexpr-2.11.0-py313hf08b1b5_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/python_abi-3.13-0_cp313.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/bzip2-1.0.8-h80987f9_6.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/xz-5.6.4-h80987f9_1.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/libgfortran5-11.3.0-h009349e_28.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/six-1.17.0-py313hca03da5_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/blas-1.0-openblas.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/libgfortran-5.0.0-11_3_0_hca03da5_28.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/openssl-3.0.17-h4ee41c1_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/wheel-0.45.1-py313hca03da5_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/setuptools-72.1.0-py313hca03da5_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/numpy-base-2.3.1-py313h2506b34_0.conda
+   https://repo.anaconda.com/pkgs/main/noarch/python-tzdata-2025.2-pyhd3eb1b0_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/llvm-openmp-17.0.6-h2f17746_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/numpy-2.3.1-py313h50dd0cd_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/bottleneck-1.4.2-py313ha35b7ea_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/ncurses-6.4-h313beb8_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/tk-8.6.14-h6ba3021_1.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/sqlite-3.50.2-h79febb2_1.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/libmpdec-4.0.0-h80987f9_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/expat-2.7.1-h313beb8_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/readline-8.2-h1a28f6b_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/zlib-1.2.13-h18a0788_1.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/pandas-2.3.1-py313h17050e6_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/libopenblas-0.3.29-hea593b9_0.conda
+   https://repo.anaconda.com/pkgs/main/osx-arm64/python-dateutil-2.9.0post0-py313hca03da5_2.conda
 
 Requirements Format
 -------------------
