@@ -727,9 +727,7 @@ class CondaPluginManager(pluggy.PluginManager):
             if basename in exporter_config.default_filenames:
                 matches.append(exporter_config)
 
-        if len(matches) == 1:
-            return matches[0]
-        elif len(matches) == 0:
+        if not matches:
             # Collect all available formats and supported filenames for the error message
             all_exporters = list(self.get_environment_exporters())
             available_formats = [exporter.name for exporter in all_exporters]
@@ -749,8 +747,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"\n"
                 f"Please make sure that you don't have any conflicting exporter plugins installed."
             )
-
-        return None
+        return matches[0]
 
     def get_environment_exporter_by_format(
         self, format_name: str
