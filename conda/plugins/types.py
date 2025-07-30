@@ -12,10 +12,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
+from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
@@ -38,7 +39,24 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class CondaSubcommand:
+class CondaPlugin:
+    """
+    Base class for all conda plugins.
+    """
+
+    #: User-facing name of the plugin used for selecting & filtering plugins and error messages.
+    name: str
+
+    def __post_init__(self):
+        try:
+            self.name = self.name.lower().strip()
+        except AttributeError:
+            # AttributeError: name is not a string
+            raise PluginError(f"Invalid plugin name for {self!r}")
+
+
+@dataclass
+class CondaSubcommand(CondaPlugin):
     """
     Return type to use when defining a conda subcommand plugin hook.
 
@@ -60,7 +78,8 @@ class CondaSubcommand:
     configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
 
 
-class CondaVirtualPackage(NamedTuple):
+@dataclass
+class CondaVirtualPackage(CondaPlugin):
     """
     Return type to use when defining a conda virtual package plugin hook.
 
@@ -80,7 +99,8 @@ class CondaVirtualPackage(NamedTuple):
         return PackageRecord.virtual_package(f"__{self.name}", self.version, self.build)
 
 
-class CondaSolver(NamedTuple):
+@dataclass
+class CondaSolver(CondaPlugin):
     """
     Return type to use when defining a conda solver plugin hook.
 
@@ -95,7 +115,8 @@ class CondaSolver(NamedTuple):
     backend: type[Solver]
 
 
-class CondaPreCommand(NamedTuple):
+@dataclass
+class CondaPreCommand(CondaPlugin):
     """
     Return type to use when defining a conda pre-command plugin hook.
 
@@ -112,7 +133,8 @@ class CondaPreCommand(NamedTuple):
     run_for: set[str]
 
 
-class CondaPostCommand(NamedTuple):
+@dataclass
+class CondaPostCommand(CondaPlugin):
     """
     Return type to use when defining a conda post-command plugin hook.
 
@@ -152,7 +174,8 @@ class ChannelAuthBase(ChannelNameMixin, AuthBase):
     """
 
 
-class CondaAuthHandler(NamedTuple):
+@dataclass
+class CondaAuthHandler(CondaPlugin):
     """
     Return type to use when the defining the conda auth handlers hook.
 
@@ -166,7 +189,8 @@ class CondaAuthHandler(NamedTuple):
     handler: type[ChannelAuthBase]
 
 
-class CondaHealthCheck(NamedTuple):
+@dataclass
+class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
     """
@@ -176,7 +200,7 @@ class CondaHealthCheck(NamedTuple):
 
 
 @dataclass
-class CondaPreSolve:
+class CondaPreSolve(CondaPlugin):
     """
     Return type to use when defining a conda pre-solve plugin hook.
 
@@ -192,7 +216,7 @@ class CondaPreSolve:
 
 
 @dataclass
-class CondaPostSolve:
+class CondaPostSolve(CondaPlugin):
     """
     Return type to use when defining a conda post-solve plugin hook.
 
@@ -208,7 +232,7 @@ class CondaPostSolve:
 
 
 @dataclass
-class CondaSetting:
+class CondaSetting(CondaPlugin):
     """
     Return type to use when defining a conda setting plugin hook.
 
@@ -322,7 +346,7 @@ class ReporterRendererBase(ABC):
 
 
 @dataclass
-class CondaReporterBackend:
+class CondaReporterBackend(CondaPlugin):
     """
     Return type to use when defining a conda reporter backend plugin hook.
 
@@ -342,7 +366,7 @@ class CondaReporterBackend:
 
 
 @dataclass
-class CondaRequestHeader:
+class CondaRequestHeader(CondaPlugin):
     """
     Define vendor specific headers to include HTTP requests
 
@@ -359,7 +383,7 @@ class CondaRequestHeader:
 
 
 @dataclass
-class CondaPreTransactionAction:
+class CondaPreTransactionAction(CondaPlugin):
     """
     Return type to use when defining a pre-transaction action hook.
 
@@ -378,7 +402,7 @@ class CondaPreTransactionAction:
 
 
 @dataclass
-class CondaPostTransactionAction:
+class CondaPostTransactionAction(CondaPlugin):
     """
     Return type to use when defining a post-transaction action hook.
 
@@ -397,7 +421,7 @@ class CondaPostTransactionAction:
 
 
 @dataclass
-class CondaPrefixDataLoader:
+class CondaPrefixDataLoader(CondaPlugin):
     """
     Define new loaders to expose non-conda packages in a given prefix
     as ``PrefixRecord`` objects.
@@ -417,7 +441,11 @@ class EnvironmentSpecBase(ABC):
     """
     **EXPERIMENTAL**
 
-    Base class for all env specs.
+    Base class for all environment specifications.
+
+    Environment specs parse different types of environment definition files
+    (environment.yml, requirements.txt, pyproject.toml, etc.) into a common
+    Environment object model.
     """
 
     # Determines if the EnvSpec plugin should be included in the set
@@ -449,7 +477,7 @@ class EnvironmentSpecBase(ABC):
 
 
 @dataclass
-class CondaEnvironmentSpecifier:
+class CondaEnvironmentSpecifier(CondaPlugin):
     """
     **EXPERIMENTAL**
 
@@ -464,3 +492,31 @@ class CondaEnvironmentSpecifier:
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
+
+
+@dataclass
+class CondaEnvironmentExporter(CondaPlugin):
+    """
+    **EXPERIMENTAL**
+
+    Return type to use when defining a conda environment exporter plugin hook.
+
+    :param name: name of the exporter (e.g., ``environment-yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",))
+    :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
+    :param export: callable that exports an Environment to string format
+    """
+
+    name: str
+    aliases: tuple[str, ...]
+    default_filenames: tuple[str, ...]
+    export: Callable[[Environment], str]
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(alias.lower().strip() for alias in self.aliases)
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")

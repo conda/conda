@@ -62,7 +62,6 @@ from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.subprocess import (
     Response,
-    subprocess_call,
     subprocess_call_with_clean_env,
 )
 from conda.models.channel import Channel
@@ -830,8 +829,7 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
     py_ver = "3.10"
     with tmp_env(f"python={py_ver}", "pip") as prefix:
         check_call(
-            f"{PYTHON_BINARY} -m pip install --no-binary flask flask==1.0.2",
-            cwd=prefix,
+            f"{prefix / PYTHON_BINARY} -m pip install --no-binary colorama colorama==0.4.6",
             shell=True,
         )
 
@@ -840,7 +838,7 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         assert any(
             line.endswith("pypi")
             for line in stdout.split("\n")
-            if line.lower().startswith("flask")
+            if line.lower().startswith("colorama")
         )
         assert not stderr
         assert not err
@@ -862,8 +860,7 @@ def test_list_with_pip_wheel(
 
     with tmp_env("python=3.10", "pip") as prefix:
         check_call(
-            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
-            cwd=prefix,
+            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
             shell=True,
         )
 
@@ -872,7 +869,7 @@ def test_list_with_pip_wheel(
         assert any(
             line.endswith("pypi")
             for line in stdout.split("\n")
-            if line.lower().startswith("flask")
+            if line.lower().startswith("colorama")
         )
         assert not stderr
         assert not err
@@ -2458,7 +2455,6 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_VERBOSE", "2")
 
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
-        python_exe = str(prefix / PYTHON_BINARY)
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
         assert (py_prec := package_is_installed(prefix, "python"))
         assert (conda_prec := package_is_installed(prefix, "conda"))
@@ -2475,20 +2471,13 @@ def test_conda_downgrade(
         )  # rev 2
         assert package_is_installed(prefix, "itsdangerous")
 
-        # downgrade the version of conda in the env, using our dev version of conda
+        # downgrade the version of conda in the env (using our current outer conda version)
         PrefixData._cache_.clear()
-        subprocess_call(
-            [
-                python_exe,
-                "-m",
-                "conda",
-                "install",
-                f"--prefix={prefix}",
-                f"conda<{conda_prec.version}",
-                "--yes",
-            ],
-            path=prefix,
-            raise_on_error=False,
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            f"conda<{conda_prec.version}",
+            "--yes",
         )  # rev 3
         assert package_is_installed(prefix, f"conda<{conda_prec.version}")
 
