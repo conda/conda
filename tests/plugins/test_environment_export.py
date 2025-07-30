@@ -483,10 +483,26 @@ def test_explicit(
 ):
     """Test that `conda export --format=explicit` is the same as `conda list --explicit`."""
     with tmp_env("small-executable") as prefix:
-        export_output, _, _ = conda_cli(
+        old_output, _, _ = conda_cli("list", f"--prefix={prefix}", "--explicit")
+        new_output, _, _ = conda_cli(
             "export",
             f"--prefix={prefix}",
             "--format=explicit",
         )
-        list_output, _, _ = conda_cli("list", f"--prefix={prefix}", "--explicit")
-        assert export_output == list_output
+        assert old_output == new_output
+
+
+def test_environment_yaml(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCliFixture,
+    test_recipes_channel: Path,
+):
+    """Test that `conda export --format=environment-yaml` is the same as `conda env export`."""
+    with tmp_env("small-executable") as prefix:
+        old_output, _, _ = conda_cli("env", "export", f"--prefix={prefix}")
+        new_output, _, _ = conda_cli(
+            "export",
+            f"--prefix={prefix}",
+            "--format=environment-yaml",
+        )
+        assert old_output == new_output
