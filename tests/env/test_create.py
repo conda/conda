@@ -153,7 +153,6 @@ def test_create_advanced_pip(
         assert package_is_installed(prefix, "xmltodict=0.10.2")
     finally:
         # Clean up: remove the git repository and the generated environment.yml
-        git_dir = argh_dir / ".git"
         if git_dir.exists():
             shutil.rmtree(git_dir)
 
