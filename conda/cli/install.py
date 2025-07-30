@@ -385,7 +385,7 @@ def install(args, parser, command="install"):
             # short circuit to installing explicit if explicit specs are provided
             explicit(specs, prefix, verbose=not context.quiet)
             return
-    specs.extend(common.specs_from_args(args_packages, json=context.json))
+    specs.extend(common.specs_from_args(args_packages))
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs

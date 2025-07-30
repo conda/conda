@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
@@ -669,6 +670,63 @@ class CondaSpecs:
                 yield plugins.CondaEnvSpec(
                     name="random",
                     environment_spec=RandomSpec,
+                )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        """
+        Register new conda environment exporter
+
+        Environment exporters serialize conda Environment objects to different
+        output formats (JSON, TOML, XML, etc.) for the 'conda export' command.
+        This is separate from environment specifiers which parse input files.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import tomlkit
+            from conda import plugins
+            from conda.exceptions import CondaValueError
+            from conda.models.environment import Environment
+            from conda.plugins.types import CondaEnvironmentExporter
+
+
+            def export_toml(env: Environment) -> str:
+                # Export Environment to TOML format
+                # For formats that use the standard dictionary structure,
+                # you can use the shared utility:
+                from conda.plugins.environment_exporters.standard import to_dict
+
+                env_dict = to_dict(env)
+
+                # Create TOML document
+                toml_doc = tomlkit.document()
+
+                if env_dict.get("name"):
+                    toml_doc["name"] = env_dict["name"]
+
+                if env_dict.get("channels"):
+                    toml_doc["channels"] = env_dict["channels"]
+
+                if env_dict.get("dependencies"):
+                    toml_doc["dependencies"] = env_dict["dependencies"]
+
+                if env_dict.get("variables"):
+                    toml_doc["variables"] = env_dict["variables"]
+
+                return tomlkit.dumps(toml_doc)
+
+
+            @plugins.hookimpl
+            def conda_environment_exporters():
+                yield CondaEnvironmentExporter(
+                    name="environment-toml",
+                    aliases=("toml",),
+                    default_filenames=("environment.toml",),
+                    export=export_toml,
                 )
         """
         yield from ()

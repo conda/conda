@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
 
+from __future__ import annotations
+
 import re
 import sys
 from logging import getLogger
@@ -13,6 +15,7 @@ from os.path import (
     join,
     normcase,
 )
+from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_MAGIC_FILE
@@ -34,6 +37,9 @@ from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 log = getLogger(__name__)
 
@@ -117,7 +123,12 @@ def is_active_prefix(prefix: str) -> bool:
     )
 
 
-def arg2spec(arg, json=False, update=False):
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `spec = str(MatchSpec(arg))` instead",
+)
+def arg2spec(arg: str, update: bool = False) -> str:
     try:
         spec = MatchSpec(arg)
     except:
@@ -138,8 +149,9 @@ def arg2spec(arg, json=False, update=False):
     return str(spec)
 
 
-def specs_from_args(args, json=False):
-    return [arg2spec(arg, json=json) for arg in args]
+@deprecated.argument("26.3", "26.9", "json")
+def specs_from_args(args: Iterable[str]) -> list[str]:
+    return [str(MatchSpec(arg)) for arg in args]
 
 
 spec_pat = re.compile(

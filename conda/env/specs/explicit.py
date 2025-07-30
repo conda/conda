@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from ...base.context import context
+from ...exceptions import CondaValueError
 from ...gateways.disk.read import yield_lines
 from ...misc import get_package_records_from_explicit
 from ...models.environment import Environment
@@ -54,7 +55,7 @@ class ExplicitSpec(EnvironmentSpecBase):
         :raises ValueError: If the file cannot be read
         """
         if not self.filename:
-            raise ValueError("No filename provided")
+            raise CondaValueError("No filename provided")
 
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))

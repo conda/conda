@@ -829,8 +829,7 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
     py_ver = "3.10"
     with tmp_env(f"python={py_ver}", "pip") as prefix:
         check_call(
-            f"{PYTHON_BINARY} -m pip install --no-binary flask flask==1.0.2",
-            cwd=prefix,
+            f"{prefix / PYTHON_BINARY} -m pip install --no-binary colorama colorama==0.4.6",
             shell=True,
         )
 
@@ -839,7 +838,7 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         assert any(
             line.endswith("pypi")
             for line in stdout.split("\n")
-            if line.lower().startswith("flask")
+            if line.lower().startswith("colorama")
         )
         assert not stderr
         assert not err
@@ -861,8 +860,7 @@ def test_list_with_pip_wheel(
 
     with tmp_env("python=3.10", "pip") as prefix:
         check_call(
-            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
-            cwd=prefix,
+            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
             shell=True,
         )
 
@@ -871,7 +869,7 @@ def test_list_with_pip_wheel(
         assert any(
             line.endswith("pypi")
             for line in stdout.split("\n")
-            if line.lower().startswith("flask")
+            if line.lower().startswith("colorama")
         )
         assert not stderr
         assert not err
