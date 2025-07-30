@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 def export_requirements(env: Environment) -> str:
     """Export Environment to requirements format with MatchSpecs (CEP 23 compliant)."""
     lines = ["# This file may be used to create an environment using:"]
-    lines.append(f"# $ conda create --name {env.name or '<env>'} --file <this file>")
+    lines.append("# $ conda create --name <env> --file <this file>")
     lines.append(f"# platform: {env.platform}")
     lines.append(f"# created-by: conda {__version__}")
 

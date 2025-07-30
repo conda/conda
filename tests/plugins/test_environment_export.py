@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from pytest import FixtureRequest
 
     from conda.plugins.manager import CondaPluginManager
+    from conda.tests.fixtures import CondaCliFixture, TmpEnvFixture
 
 
 @pytest.fixture
@@ -472,3 +473,15 @@ def test_alias_normalization_and_collision_detection():
             default_filenames=("test.yaml",),
             export=lambda env: "test",
         )
+
+
+def test_explicit(tmp_env: TmpEnvFixture, conda_cli: CondaCliFixture):
+    """Test that `conda export --format=explicit` is the same as `conda list --explicit`."""
+    with tmp_env("zlib") as prefix:
+        export_output, _, _ = conda_cli(
+            "export",
+            f"--prefix={prefix}",
+            "--format=explicit",
+        )
+        list_output, _, _ = conda_cli("list", f"--prefix={prefix}", "--explicit")
+        assert export_output == list_output

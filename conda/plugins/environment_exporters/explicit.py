@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 def export_explicit(env: Environment) -> str:
     """Export Environment to explicit format with @EXPLICIT and URLs (CEP 23 compliant)."""
     lines = ["# This file may be used to create an environment using:"]
-    lines.append(f"# $ conda create --name {env.name or '<env>'} --file <this file>")
+    lines.append("# $ conda create --name <env> --file <this file>")
     lines.append(f"# platform: {env.platform}")
     lines.append(f"# created-by: conda {__version__}")
 
@@ -54,7 +54,6 @@ def export_explicit(env: Environment) -> str:
 
     # Create CEP 23 compliant explicit file with @EXPLICIT and URLs
     lines.append("@EXPLICIT")
-    lines.append("")
 
     for pkg in env.explicit_packages:
         # Use existing URL or construct from channel metadata
