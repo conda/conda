@@ -117,6 +117,23 @@ JSON representation of the environment for programmatic processing.
    # Alternative using alias
    conda export --format=json
 
+Example output:
+
+.. code-block:: json
+
+   {
+     "name": "myenv",
+     "channels": [
+       "conda-forge",
+       "defaults"
+     ],
+     "dependencies": [
+       "python=3.9",
+       "numpy=1.21.0",
+       "pandas=1.3.0"
+     ]
+   }
+
 Explicit Format (CEP 23)
 ------------------------
 
