@@ -476,33 +476,27 @@ def test_alias_normalization_and_collision_detection():
         )
 
 
+@pytest.mark.parametrize(
+    "args,format",
+    [
+        (["list", "--explicit"], "explicit"),
+        (["env", "export"], "environment-yaml"),
+        (["list", "--export"], "requirements"),
+    ],
+)
 def test_explicit(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCliFixture,
     test_recipes_channel: Path,
+    args: list[str],
+    format: str,
 ):
-    """Test that `conda export --format=explicit` is the same as `conda list --explicit`."""
+    """Test that the new export commmand produces the same output as the legacy command."""
     with tmp_env("small-executable") as prefix:
-        old_output, _, _ = conda_cli("list", f"--prefix={prefix}", "--explicit")
+        old_output, _, _ = conda_cli(*args, f"--prefix={prefix}")
         new_output, _, _ = conda_cli(
             "export",
             f"--prefix={prefix}",
-            "--format=explicit",
-        )
-        assert old_output == new_output
-
-
-def test_environment_yaml(
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCliFixture,
-    test_recipes_channel: Path,
-):
-    """Test that `conda export --format=environment-yaml` is the same as `conda env export`."""
-    with tmp_env("small-executable") as prefix:
-        old_output, _, _ = conda_cli("env", "export", f"--prefix={prefix}")
-        new_output, _, _ = conda_cli(
-            "export",
-            f"--prefix={prefix}",
-            "--format=environment-yaml",
+            f"--format={format}",
         )
         assert old_output == new_output
