@@ -487,7 +487,7 @@ def test_alias_normalization_and_collision_detection():
         (["list", "--export"], REQUIREMENTS_FORMAT),
     ],
 )
-def test_explicit(
+def test_compare_export_commands(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCliFixture,
     test_recipes_channel: Path,
