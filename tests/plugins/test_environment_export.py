@@ -425,10 +425,10 @@ def test_builtin_exporters_define_expected_aliases(
 
 def test_alias_normalization_and_collision_detection():
     """Test that aliases are normalized and collision detection works."""
-    # Test alias normalization
+    # Test alias normalization (mixed case, whitespace, and duplicates)
     exporter = CondaEnvironmentExporter(
         name="test-exporter",
-        aliases=(" YAML ", "YML", "  json  "),  # Mixed case and whitespace
+        aliases=(" YAML ", "YML", "yml", "  json  "),
         default_filenames=("test.yaml",),
         export=lambda env: "test",
     )
