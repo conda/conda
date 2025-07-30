@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -17,8 +18,6 @@ from conda.testing.integration import package_is_installed
 from . import support_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import (
@@ -105,22 +104,50 @@ def test_create_advanced_pip(
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
-    env_name = uuid4().hex[:8]
-    prefix = tmp_envs_dir / env_name
+    import shutil
+    import subprocess
 
-    stdout, stderr, _ = conda_cli(
-        *("env", "create"),
-        *("--name", env_name),
-        *("--file", support_file("advanced-pip/environment.yml")),
-    )
+    # Get the argh directory path
+    argh_dir = Path(support_file("advanced-pip/argh"))
 
-    PrefixData._cache_.clear()
-    assert prefix.exists()
-    assert package_is_installed(prefix, "python")
-    assert package_is_installed(prefix, "argh")
-    assert package_is_installed(prefix, "module-to-install-in-editable-mode")
-    assert package_is_installed(prefix, "six")
-    assert package_is_installed(prefix, "xmltodict=0.10.2")
+    # Initialize git repository in the argh directory
+    subprocess.run(["git", "init"], cwd=argh_dir, check=True)
+    subprocess.run(["git", "add", "."], cwd=argh_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=argh_dir, check=True)
+
+    # Create environment.yml from template
+    template_path = Path(support_file("advanced-pip/env_template.yml"))
+    env_path = Path(support_file("advanced-pip/environment.yml"))
+
+    template_content = template_path.read_text()
+    env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
+    env_path.write_text(env_content)
+
+    try:
+        env_name = uuid4().hex[:8]
+        prefix = tmp_envs_dir / env_name
+
+        stdout, stderr, _ = conda_cli(
+            *("env", "create"),
+            *("--name", env_name),
+            *("--file", support_file("advanced-pip/environment.yml")),
+        )
+
+        PrefixData._cache_.clear()
+        assert prefix.exists()
+        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, "argh")
+        assert package_is_installed(prefix, "module-to-install-in-editable-mode")
+        assert package_is_installed(prefix, "six")
+        assert package_is_installed(prefix, "xmltodict=0.10.2")
+    finally:
+        # Clean up: remove the git repository and the generated environment.yml
+        git_dir = argh_dir / ".git"
+        if git_dir.exists():
+            shutil.rmtree(git_dir)
+
+        if env_path.exists():
+            env_path.unlink()
 
 
 @pytest.mark.integration
