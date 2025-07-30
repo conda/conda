@@ -16,7 +16,13 @@ from ..hookspec import hookimpl
 from ..types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
+    from typing import Final
+
     from ...models.environment import Environment
+
+
+#: The name of the requirements format
+REQUIREMENTS_FORMAT: Final = "requirements"
 
 
 def export_requirements(env: Environment) -> str:
@@ -50,7 +56,7 @@ def export_requirements(env: Environment) -> str:
 def conda_environment_exporters():
     """Environment exporter plugin for requirements format."""
     yield CondaEnvironmentExporter(
-        name="requirements",
+        name=REQUIREMENTS_FORMAT,
         aliases=("reqs", "txt"),
         export=export_requirements,
         default_filenames=("requirements.txt", "spec.txt"),

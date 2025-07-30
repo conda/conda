@@ -17,7 +17,13 @@ from ..hookspec import hookimpl
 from ..types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
+    from typing import Final
+
     from ...models.environment import Environment
+
+
+#: The name of the explicit format
+EXPLICIT_FORMAT: Final = "explicit"
 
 
 def export_explicit(env: Environment) -> str:
@@ -81,7 +87,7 @@ def export_explicit(env: Environment) -> str:
 def conda_environment_exporters():
     """Environment exporter plugin for explicit format."""
     yield CondaEnvironmentExporter(
-        name="explicit",
+        name=EXPLICIT_FORMAT,
         aliases=(),
         export=export_explicit,
         default_filenames=("explicit.txt",),

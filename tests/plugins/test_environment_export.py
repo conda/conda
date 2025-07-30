@@ -19,6 +19,9 @@ from conda.models.channel import Channel
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.plugins.environment_exporters.environment_yml import ENVIRONMENT_YAML_FORMAT
+from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
+from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
 from conda.plugins.types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
@@ -479,9 +482,9 @@ def test_alias_normalization_and_collision_detection():
 @pytest.mark.parametrize(
     "args,format",
     [
-        pytest.param(["list", "--explicit"], "explicit", id="explicit"),
-        pytest.param(["env", "export"], "environment-yaml", id="environment-yaml"),
-        pytest.param(["list", "--export"], "requirements", id="requirements"),
+        (["list", "--explicit"], EXPLICIT_FORMAT),
+        (["env", "export"], ENVIRONMENT_YAML_FORMAT),
+        (["list", "--export"], REQUIREMENTS_FORMAT),
     ],
 )
 def test_explicit(
