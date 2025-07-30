@@ -121,6 +121,10 @@ def test_create_advanced_pip(
     subprocess.run(["git", "add", "."], cwd=argh_dir, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=argh_dir, check=True)
 
+    # Get template content for environment.yml
+    template_path = Path(support_file("advanced-pip/env_template.yml"))
+    template_content = template_path.read_text()
+
     try:
         env_name = uuid4().hex[:8]
         prefix = tmp_envs_dir / env_name
@@ -131,7 +135,6 @@ def test_create_advanced_pip(
         )
 
         # Create environment.yml from template in the isolated location
-        template_content = environment_yml.read_text()
         env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
         environment_yml.write_text(env_content)
 
@@ -149,10 +152,13 @@ def test_create_advanced_pip(
         assert package_is_installed(prefix, "six")
         assert package_is_installed(prefix, "xmltodict=0.10.2")
     finally:
-        # Clean up: remove the git repository
+        # Clean up: remove the git repository and the generated environment.yml
         git_dir = argh_dir / ".git"
         if git_dir.exists():
             shutil.rmtree(git_dir)
+
+        if environment_yml.exists():
+            environment_yml.unlink()
 
 
 @pytest.mark.integration
