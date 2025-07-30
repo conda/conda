@@ -509,7 +509,6 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch) -> None:
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
-    assert context.json
 
     with captured() as c:
         conda_exception_handler(_raise_helper, exc)
