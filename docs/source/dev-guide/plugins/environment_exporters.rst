@@ -76,6 +76,11 @@ Here's a minimal example of an environment exporter plugin:
         )
 
 
+.. seealso::
+
+   For a general introduction and examples of how to distribute conda plugins,
+   see the :doc:`../plugins` quick start guide.
+
 Plugin Components
 -----------------
 
@@ -257,74 +262,9 @@ Example usage patterns:
             lines.append(pkg.url)  # Full package URL
         return "\n".join(lines)
 
-Plugin Registration and Distribution
-====================================
-
-Package Structure
------------------
-
-For a complete plugin package, create this structure:
-
-.. code-block:: text
-
-    custom-conda-exporters/
-    ├── pyproject.toml
-    ├── custom_exporters/
-    │   ├── __init__.py
-    │   └── plugin.py
-    └── README.md
-
-Entry Point Configuration
--------------------------
-
-Register your plugin in ``pyproject.toml``:
-
-.. code-block:: toml
-
-    [build-system]
-    requires = ["setuptools", "setuptools-scm"]
-    build-backend = "setuptools.build_meta"
-
-    [project]
-    name = "custom-conda-exporters"
-    version = "1.0.0"
-    description = "Custom conda environment exporters"
-    requires-python = ">=3.8"
-
-    [project.entry-points."conda"]
-    custom-conda-exporters = "custom_exporters.plugin"
-
-Hook Implementation
--------------------
-
-The entry point must reference a Python module that contains functions decorated with
-``@conda.plugins.hookimpl``. In your ``custom_exporters/plugin.py`` file:
-
-.. code-block:: python
-
-    import conda.plugins
-    from conda.models.environment import Environment
 
 
-    def export_custom_format(environment: Environment) -> str:
-        """Your custom export logic here."""
-        return f"# Custom format for {environment.name}\n"
 
-
-    @conda.plugins.hookimpl
-    def conda_environment_exporters():
-        """Hook implementation that registers your exporters."""
-        yield conda.plugins.CondaEnvironmentExporter(
-            name="custom-format",
-            aliases=("custom",),
-            default_filenames=("environment.custom",),
-            export=export_custom_format,
-        )
-
-.. important::
-   The ``@conda.plugins.hookimpl`` decorator is required for conda to discover
-   your plugin. Without it, your entry point will be ignored even if properly
-   configured in ``pyproject.toml``.
 
 Plugin Detection and Conflicts
 ==============================
