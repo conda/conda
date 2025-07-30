@@ -164,8 +164,8 @@ Example output:
    # $ conda create --name <env> --file <this file>
    # platform: osx-64
    @EXPLICIT
-   https://repo.anaconda.com/pkgs/main/osx-64/python-3.9.7-h88f2d9e_0.tar.bz2
    https://repo.anaconda.com/pkgs/main/osx-64/numpy-1.21.0-py39h2e5f516_0.tar.bz2
+   https://repo.anaconda.com/pkgs/main/osx-64/python-3.9.7-h88f2d9e_0.tar.bz2
 
 Requirements Format
 -------------------
@@ -199,9 +199,42 @@ Example output:
 
    # This file may be used to create an environment using:
    # $ conda create --name <env> --file <this file>
-   python=3.9.7
-   numpy=1.21.0
-   pandas=1.3.0
+   # platform: osx-arm64
+   # Note: This is a conda requirements file (MatchSpec format)
+   # Contains conda package specifications, not pip requirements
+   pkgs/main::blas==1.0=openblas
+   pkgs/main::bottleneck==1.4.2=py313ha35b7ea_0
+   pkgs/main::bzip2==1.0.8=h80987f9_6
+   pkgs/main::ca-certificates==2025.2.25=hca03da5_0
+   pkgs/main::expat==2.7.1=h313beb8_0
+   pkgs/main::libcxx==17.0.6=he5c5206_4
+   pkgs/main::libffi==3.4.4=hca03da5_1
+   pkgs/main::libgfortran==5.0.0=11_3_0_hca03da5_28
+   pkgs/main::libgfortran5==11.3.0=h009349e_28
+   pkgs/main::libmpdec==4.0.0=h80987f9_0
+   pkgs/main::libopenblas==0.3.29=hea593b9_0
+   pkgs/main::llvm-openmp==17.0.6=h2f17746_0
+   pkgs/main::ncurses==6.4=h313beb8_0
+   pkgs/main::numexpr==2.11.0=py313hf08b1b5_0
+   pkgs/main::numpy==2.3.1=py313h50dd0cd_0
+   pkgs/main::numpy-base==2.3.1=py313h2506b34_0
+   pkgs/main::openssl==3.0.17=h4ee41c1_0
+   pkgs/main::pandas==2.3.1=py313h17050e6_0
+   pkgs/main::pip==25.1=pyhc872135_2
+   pkgs/main::python==3.13.5=h2eb94d5_100_cp313
+   pkgs/main::python-dateutil==2.9.0post0=py313hca03da5_2
+   pkgs/main::python-tzdata==2025.2=pyhd3eb1b0_0
+   pkgs/main::python_abi==3.13=0_cp313
+   pkgs/main::pytz==2025.2=py313hca03da5_0
+   pkgs/main::readline==8.2=h1a28f6b_0
+   pkgs/main::setuptools==72.1.0=py313hca03da5_0
+   pkgs/main::six==1.17.0=py313hca03da5_0
+   pkgs/main::sqlite==3.50.2=h79febb2_1
+   pkgs/main::tk==8.6.14=h6ba3021_1
+   pkgs/main::tzdata==2025b=h04d1e81_0
+   pkgs/main::wheel==0.45.1=py313hca03da5_0
+   pkgs/main::xz==5.6.4=h80987f9_1
+   pkgs/main::zlib==1.2.13=h18a0788_1
 
 Common Options
 ==============
