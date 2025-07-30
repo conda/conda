@@ -267,11 +267,11 @@ For a complete plugin package, create this structure:
 
 .. code-block:: text
 
-    my-conda-export-plugin/
+    custom-conda-exporters/
     ├── pyproject.toml
-    ├── my_export_plugin/
+    ├── custom_exporters/
     │   ├── __init__.py
-    │   └── exporters.py
+    │   └── plugin.py
     └── README.md
 
 Entry Point Configuration
