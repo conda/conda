@@ -1,5 +1,5 @@
 ``conda export``
-***************
+****************
 
 The ``conda export`` command allows you to export conda environments to various file formats.
 This command has been significantly enhanced with a plugin-based architecture that supports multiple export formats for different use cases.
