@@ -22,6 +22,7 @@ from conda.models.records import PackageRecord
 from conda.plugins.types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Any, Callable
 
     from pytest import FixtureRequest
@@ -475,9 +476,13 @@ def test_alias_normalization_and_collision_detection():
         )
 
 
-def test_explicit(tmp_env: TmpEnvFixture, conda_cli: CondaCliFixture):
+def test_explicit(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCliFixture,
+    test_recipes_channel: Path,
+):
     """Test that `conda export --format=explicit` is the same as `conda list --explicit`."""
-    with tmp_env("zlib") as prefix:
+    with tmp_env("small-executable") as prefix:
         export_output, _, _ = conda_cli(
             "export",
             f"--prefix={prefix}",
