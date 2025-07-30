@@ -18,7 +18,7 @@ from os.path import (
 from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
-from ..base.constants import PREFIX_MAGIC_FILE
+from ..base.constants import EXPLICIT_MARKER, PREFIX_MAGIC_FILE
 from ..base.context import context, env_name
 from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
@@ -168,11 +168,11 @@ spec_pat = re.compile(
 )
 
 
-def strip_comment(line):
+def strip_comment(line: str) -> str:
     return line.split("#")[0].rstrip()
 
 
-def spec_from_line(line):
+def spec_from_line(line: str) -> str:
     m = spec_pat.match(strip_comment(line))
     if m is None:
         return None
@@ -194,7 +194,8 @@ def spec_from_line(line):
         return name
 
 
-def specs_from_url(url, json=False):
+@deprecated.argument("26.3", "26.9", "json")
+def specs_from_url(url: str) -> list[str]:
     from ..gateways.connection.download import TmpDownload
 
     explicit = False
@@ -205,7 +206,7 @@ def specs_from_url(url, json=False):
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
-                if line == "@EXPLICIT":
+                if line == EXPLICIT_MARKER:
                     explicit = True
                 if explicit:
                     specs.append(line)
