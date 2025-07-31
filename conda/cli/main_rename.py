@@ -152,6 +152,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         context.active_prefix
     ):
         raise CondaEnvException("Cannot rename the active environment")
+
+    if source_prefix_data == PrefixData.from_name(context.default_activation_env):
+        raise CondaEnvException(
+            "Cannot rename an environment if it is the default_activation_env."
+        )
+
     source = str(source_prefix_data.prefix_path)
 
     # Validate destination

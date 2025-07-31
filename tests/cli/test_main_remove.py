@@ -12,6 +12,7 @@ import pytest
 from conda.base.context import context
 from conda.common.io import stderr_log_level
 from conda.exceptions import (
+    CondaEnvironmentError,
     DryRunExit,
     EnvironmentLocationNotFound,
     PackagesNotFoundError,
@@ -106,3 +107,27 @@ def test_remove_globbed_package_names(
 def test_remove_nonexistent_env(conda_cli: CondaCLIFixture):
     with pytest.raises(EnvironmentLocationNotFound):
         conda_cli("remove", "--prefix=/non/existent/path", "--all")
+
+
+def test_remove_all_default_activation_env(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    tmpdir: str,
+):
+    """Check that removing the default_activation_env raises an exception."""
+    with tmp_env() as env:
+        conda_cli(
+            "config",
+            "--set",
+            "default_activation_env",
+            env,
+        )
+        with pytest.raises(
+            CondaEnvironmentError,
+            match="Cannot remove an environment if it is the default_activation_env.",
+        ):
+            conda_cli(
+                "remove",
+                "--all",
+                f"--prefix={env}",
+            )
