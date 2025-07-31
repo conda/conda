@@ -116,6 +116,13 @@ def test_create_advanced_pip(
 
     # Initialize git repository in the argh directory
     subprocess.run(["git", "init"], cwd=argh_dir, check=True)
+    # Configure git user identity for the test
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"], cwd=argh_dir, check=True
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"], cwd=argh_dir, check=True
+    )
     subprocess.run(["git", "add", "."], cwd=argh_dir, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=argh_dir, check=True)
 
