@@ -108,8 +108,8 @@ def test_create_advanced_pip(
     tmp_envs_dir: Path,
 ):
     # Create a temporary directory for the advanced-pip repository and copy for easy cleanup
-    tmp_advanced_pip_dir = tmp_path / "advanced-pip"
-    shutil.copytree(support_file("advanced-pip"), tmp_advanced_pip_dir)
+    assert (support_file_isolated('advanced-pip')/'argh').exists()
+    tmp_advanced_pip_dir = support_file_isolated('advanced-pip')
 
     # Get the argh directory path
     argh_dir = tmp_advanced_pip_dir / "argh"
