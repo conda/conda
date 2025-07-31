@@ -359,6 +359,8 @@ class _Activator(metaclass=abc.ABCMeta):
             prefix = context.root_prefix
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)
+        if on_win and self.hook_source_path is not None and str(self.hook_source_path).endswith('.xsh'):
+            prefix = backslash_to_forwardslash(prefix)
 
         # get prior shlvl and prefix
         old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
