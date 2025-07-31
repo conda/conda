@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -102,19 +104,15 @@ def test_create_host_port(
 def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
+    tmp_path: Path,
     tmp_envs_dir: Path,
-    support_file_isolated,
 ):
-    import shutil
-    import subprocess
+    # Create a temporary directory for the advanced-pip repository and copy for easy cleanup
+    tmp_advanced_pip_dir = tmp_path / "advanced-pip"
+    shutil.copytree(support_file("advanced-pip"), tmp_advanced_pip_dir)
 
     # Get the argh directory path
-    argh_dir = Path(support_file("advanced-pip/argh"))
-
-    # Remove any existing git repository
-    git_dir = argh_dir / ".git"
-    if git_dir.exists():
-        shutil.rmtree(git_dir)
+    argh_dir = tmp_advanced_pip_dir / "argh"
 
     # Initialize git repository in the argh directory
     subprocess.run(["git", "init"], cwd=argh_dir, check=True)
@@ -125,39 +123,28 @@ def test_create_advanced_pip(
     template_path = Path(support_file("advanced-pip/env_template.yml"))
     template_content = template_path.read_text()
 
-    try:
-        env_name = uuid4().hex[:8]
-        prefix = tmp_envs_dir / env_name
+    env_name = uuid4().hex[:8]
+    prefix = tmp_envs_dir / env_name
 
-        # Use support_file_isolated to avoid pip touching support_file paths inside source checkout
-        environment_yml = support_file_isolated(
-            Path("advanced-pip", "env_template.yml")
-        )
+    environment_yml = tmp_advanced_pip_dir / "environment.yml"
 
-        # Create environment.yml from template in the isolated location
-        env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
-        environment_yml.write_text(env_content)
+    # Create environment.yml from template in the isolated location
+    env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
+    environment_yml.write_text(env_content)
 
-        stdout, stderr, _ = conda_cli(
-            *("env", "create"),
-            *("--name", env_name),
-            *("--file", str(environment_yml)),
-        )
+    stdout, stderr, _ = conda_cli(
+        *("env", "create"),
+        *("--name", env_name),
+        *("--file", str(environment_yml)),
+    )
 
-        PrefixData._cache_.clear()
-        assert prefix.exists()
-        assert package_is_installed(prefix, "python")
-        assert package_is_installed(prefix, "argh")
-        assert package_is_installed(prefix, "module-to-install-in-editable-mode")
-        assert package_is_installed(prefix, "six")
-        assert package_is_installed(prefix, "xmltodict=0.10.2")
-    finally:
-        # Clean up: remove the git repository and the generated environment.yml
-        if git_dir.exists():
-            shutil.rmtree(git_dir)
-
-        if environment_yml.exists():
-            environment_yml.unlink()
+    PrefixData._cache_.clear()
+    assert prefix.exists()
+    assert package_is_installed(prefix, "python")
+    assert package_is_installed(prefix, "argh")
+    assert package_is_installed(prefix, "module-to-install-in-editable-mode")
+    assert package_is_installed(prefix, "six")
+    assert package_is_installed(prefix, "xmltodict=0.10.2")
 
 
 @pytest.mark.integration
