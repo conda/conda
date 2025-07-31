@@ -314,8 +314,6 @@ def session_conda_cli() -> Iterator[CondaCLIFixture]:
 class PipCLIFixture:
     """Fixture for calling pip in specific conda environments."""
 
-    capsys: CaptureFixture | None
-
     @overload
     def __call__(
         self,
@@ -347,10 +345,6 @@ class PipCLIFixture:
             will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
         :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
         """
-        # clear output
-        if self.capsys:
-            self.capsys.readouterr()
-
         # build command using python -m pip (more reliable than finding pip executable)
         prefix_path = Path(prefix)
         python_exe = prefix_path / PYTHON_BINARY
@@ -372,24 +366,17 @@ class PipCLIFixture:
                 code = e.returncode
                 stdout = e.stdout
                 stderr = e.stderr
-            except FileNotFoundError as e:
+            except FileNotFoundError:
                 # python executable not found
                 raise RuntimeError(
                     f"Python not found in environment {prefix_path}: {python_exe}"
                 )
 
-        # if using capsys, capture from there instead
-        if self.capsys:
-            captured_out, captured_err = self.capsys.readouterr()
-            # prefer subprocess output, fall back to capsys if empty
-            stdout = stdout or captured_out
-            stderr = stderr or captured_err
-
         return stdout, stderr, exception if raises else code
 
 
 @pytest.fixture
-def pip_cli(capsys: CaptureFixture) -> Iterator[PipCLIFixture]:
+def pip_cli() -> Iterator[PipCLIFixture]:
     """A function scoped fixture returning PipCLIFixture instance.
 
     Use this for calling pip commands in specific conda environments during tests.
@@ -401,16 +388,7 @@ def pip_cli(capsys: CaptureFixture) -> Iterator[PipCLIFixture]:
                 stdout, stderr, code = pip_cli("install", "requests", prefix=prefix)
                 assert code == 0
     """
-    yield PipCLIFixture(capsys)
-
-
-@pytest.fixture(scope="session")
-def session_pip_cli() -> Iterator[PipCLIFixture]:
-    """A session scoped fixture returning PipCLIFixture instance.
-
-    Use this for pip commands that are global to the test session.
-    """
-    yield PipCLIFixture(None)
+    yield PipCLIFixture()
 
 
 @dataclass

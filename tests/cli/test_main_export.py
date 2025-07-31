@@ -799,9 +799,7 @@ def test_export_explicit_format_validation_errors(
     with tmp_env("python=3.10", "pip") as prefix:
         # Install a pip package to create external packages
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
-        pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", wheel_path, prefix=prefix
-        )
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
         # Clear prefix data cache

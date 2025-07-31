@@ -835,9 +835,7 @@ def test_list_with_pip_no_binary(
     py_ver = "3.10"
     with tmp_env(f"python={py_ver}", "pip") as prefix:
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
-        pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", wheel_path, prefix=prefix
-        )
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
         PrefixData._cache_.clear()
@@ -869,9 +867,7 @@ def test_list_with_pip_wheel(
 
     with tmp_env("python=3.10", "pip") as prefix:
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
-        pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", wheel_path, prefix=prefix
-        )
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
         PrefixData._cache_.clear()
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
