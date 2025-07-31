@@ -836,7 +836,7 @@ def test_list_with_pip_no_binary(
     with tmp_env(f"python={py_ver}", "pip") as prefix:
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", str(wheel_path), prefix=prefix
+            "install", wheel_path, prefix=prefix
         )
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
@@ -870,7 +870,7 @@ def test_list_with_pip_wheel(
     with tmp_env("python=3.10", "pip") as prefix:
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", str(wheel_path), prefix=prefix
+            "install", wheel_path, prefix=prefix
         )
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
         PrefixData._cache_.clear()

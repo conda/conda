@@ -800,7 +800,7 @@ def test_export_explicit_format_validation_errors(
         # Install a pip package to create external packages
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", str(wheel_path), prefix=prefix
+            "install", wheel_path, prefix=prefix
         )
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
 

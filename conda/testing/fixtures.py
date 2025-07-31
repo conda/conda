@@ -357,7 +357,6 @@ class PipCLIFixture:
         cmd = [str(python_exe), "-m", "pip"] + [str(arg) for arg in argv]
 
         # run command
-        result = None
         with pytest.raises(raises) if raises else nullcontext() as exception:
             try:
                 result = subprocess.run(
@@ -366,7 +365,7 @@ class PipCLIFixture:
                     text=True,
                     check=True,
                 )
-                code = 0
+                code = result.returncode
                 stdout = result.stdout
                 stderr = result.stderr
             except subprocess.CalledProcessError as e:
@@ -377,7 +376,7 @@ class PipCLIFixture:
                 # python executable not found
                 raise RuntimeError(
                     f"Python not found in environment {prefix_path}: {python_exe}"
-                ) from e
+                )
 
         # if using capsys, capture from there instead
         if self.capsys:
