@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -106,14 +105,17 @@ def test_create_advanced_pip(
     conda_cli: CondaCLIFixture,
     tmp_path: Path,
     tmp_envs_dir: Path,
+    support_file_isolated: Path,
 ):
     # Create a temporary directory for the advanced-pip repository and copy for easy cleanup
-    assert (support_file_isolated('advanced-pip')/'argh').exists()
-    tmp_advanced_pip_dir = support_file_isolated('advanced-pip')
+    assert (support_file_isolated("advanced-pip") / "argh").exists()
+    tmp_advanced_pip_dir = support_file_isolated("advanced-pip")
 
     # Get the argh directory path
     argh_dir = tmp_advanced_pip_dir / "argh"
 
+    # Initialize git repository in the argh directory
+    subprocess.run(["git", "init"], cwd=argh_dir, check=True)
     # Configure git user identity for the test
     subprocess.run(
         ["git", "config", "user.name", "Test User"], cwd=argh_dir, check=True
@@ -121,8 +123,6 @@ def test_create_advanced_pip(
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"], cwd=argh_dir, check=True
     )
-    # Initialize git repository in the argh directory
-    subprocess.run(["git", "init"], cwd=argh_dir, check=True)
     subprocess.run(["git", "add", "."], cwd=argh_dir, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=argh_dir, check=True)
 
