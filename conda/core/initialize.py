@@ -1554,7 +1554,8 @@ def _config_xonsh_content(conda_prefix):
         """
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
-    if !(test -f "{conda_exe}"):
+    import pathlib as _pathlib
+    if _pathlib.Path("{conda_exe}").is_file():
         import sys as _sys
         from types import ModuleType as _ModuleType
         _mod = _ModuleType("xontrib.conda",
@@ -1563,7 +1564,7 @@ def _config_xonsh_content(conda_prefix):
                             glbs=_mod.__dict__,
                             filename="$({conda_exe} shell.xonsh hook)")
         _sys.modules["xontrib.conda"] = _mod
-        del _sys, _mod, _ModuleType
+        del _pathlib, _sys, _mod, _ModuleType
     # <<< conda initialize <<<
     """
     ).format(conda_exe=conda_exe)
