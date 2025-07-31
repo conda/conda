@@ -1255,6 +1255,22 @@ class Context(Configuration):
         return self._default_activation_env or ROOT_ENV_NAME
 
     @property
+    def default_activation_prefix(self) -> PathType:
+        """Return the prefix of the default_activation_env.
+
+        If the default_activation_env is an environment name, get the corresponding
+        prefix; otherwise it is already a prefix, so just return it.
+
+        :return: Prefix of the default_activation_env
+        """
+        from ..exceptions import EnvironmentNameNotFound
+
+        try:
+            return locate_prefix_by_name(self.default_activation_env)
+        except EnvironmentNameNotFound:
+            return self.default_activation_env
+
+    @property
     def environment_context_keys(self) -> list[str]:
         return [
             "aggressive_update_packages",

@@ -7,6 +7,7 @@ Removes the specified packages from an existing environment.
 
 import logging
 from argparse import ArgumentParser, Namespace, _SubParsersAction
+from pathlib import Path
 
 from ..reporters import confirm_yn
 
@@ -171,17 +172,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         msg = "Cannot remove current environment. Deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
 
-    # Get the PrefixData for the default_activation_env; this can either be
-    # a prefix or an env name, so we try both here.
-    default_activation_env_pfd = PrefixData(context.default_activation_env)
-    if not (
-        default_activation_env_pfd.exists()
-        and default_activation_env_pfd.is_environment()
+    if args.all and Path(context.target_prefix) == Path(
+        context.default_activation_prefix
     ):
-        default_activation_env_pfd = PrefixData.from_name(
-            context.default_activation_env
-        )
-    if args.all and PrefixData(context.target_prefix) == default_activation_env_pfd:
         raise CondaEnvironmentError(
             "Cannot remove an environment if it is the default_activation_env."
         )

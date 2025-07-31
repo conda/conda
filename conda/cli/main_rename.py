@@ -153,18 +153,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     ):
         raise CondaEnvException("Cannot rename the active environment")
 
-    # Get the PrefixData for the default_activation_env; this can either be
-    # a prefix or an env name, so we try both here.
-    default_activation_env_pfd = PrefixData(context.default_activation_env)
-    if not (
-        default_activation_env_pfd.exists()
-        and default_activation_env_pfd.is_environment()
-    ):
-        default_activation_env_pfd = PrefixData.from_name(
-            context.default_activation_env
-        )
-
-    if source_prefix_data == default_activation_env_pfd:
+    if Path(context.target_prefix) == Path(context.default_activation_prefix):
         raise CondaEnvException(
             "Cannot rename an environment if it is the default_activation_env."
         )
