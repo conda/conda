@@ -343,6 +343,7 @@ def test_rename_default_activation_env(
             "default_activation_env",
             env,
         )
+        assert PrefixData(env) == PrefixData(context.default_activation_env)
         with pytest.raises(
             CondaEnvException,
             match="Cannot rename an environment if it is the default_activation_env.",

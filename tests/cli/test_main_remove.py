@@ -11,6 +11,7 @@ import pytest
 
 from conda.base.context import context
 from conda.common.io import stderr_log_level
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     CondaEnvironmentError,
     DryRunExit,
@@ -122,6 +123,7 @@ def test_remove_all_default_activation_env(
             "default_activation_env",
             env,
         )
+        assert PrefixData(env) == PrefixData(context.default_activation_env)
         with pytest.raises(
             CondaEnvironmentError,
             match="Cannot remove an environment if it is the default_activation_env.",
