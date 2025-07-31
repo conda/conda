@@ -112,7 +112,7 @@ class PrefixData(metaclass=PrefixDataType):
     )
     def __init__(
         self,
-        prefix_path: str | os.PathLike[str] | Path,
+        prefix_path: PathType,
         interoperability: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
