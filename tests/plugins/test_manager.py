@@ -161,7 +161,7 @@ def test_unknown_solver(plugin_manager: CondaPluginManager):
     """
     Cover getting a solver that doesn't exist.
     """
-    with pytest.raises(CondaValueError):
+    with pytest.raises(PluginError):
         plugin_manager.get_solver_backend("p_equals_np")
 
 
