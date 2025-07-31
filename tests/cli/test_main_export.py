@@ -669,7 +669,7 @@ def test_export_with_pip_dependencies_integration(
 
         # Install using pip_cli fixture for better error handling
         pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", str(wheel_path), prefix=prefix
+            "install", wheel_path, prefix=prefix
         )
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
