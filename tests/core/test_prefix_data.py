@@ -553,10 +553,10 @@ def test_get_packages_behavior_with_interoperability(
         assert "python" in conda_names, "Should include python"
         assert "ca-certificates" in conda_names, "Should include ca-certificates"
 
-        # Check that small_python_package is included in Python packages
+        # Check that small-python-package is included in Python packages
         python_names = {pkg.name for pkg in python_packages}
-        assert "small_python_package" in python_names, (
-            f"Should include small_python_package in Python packages: {python_names}"
+        assert "small-python-package" in python_names, (
+            f"Should include small-python-package in Python packages: {python_names}"
         )
 
         # Verify alphabetical sorting
