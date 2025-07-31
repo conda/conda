@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from subprocess import check_call
 from typing import TYPE_CHECKING
 
 import pytest
@@ -18,12 +17,11 @@ from conda.exceptions import CondaError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
-from conda.testing.integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import TmpEnvFixture
+    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
@@ -512,17 +510,19 @@ def test_get_python_packages_basic_functionality(
                 )
 
 
-def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
+def test_get_packages_behavior_with_interoperability(
+    tmp_env: TmpEnvFixture, pip_cli: PipCLIFixture, wheelhouse: Path
+):
     """Test that package extraction behaves correctly with interoperability settings."""
     # Create environment with conda packages and pip
     packages = ["python=3.10", "pip", "ca-certificates"]
     with tmp_env(*packages) as prefix:
-        # Install a reliable pip package following the proven technique
-        # Using colorama since it's proven to work in conda tests
-        check_call(
-            f"{prefix / PYTHON_BINARY} -m pip install colorama==0.4.6",
-            shell=True,
+        # Install small-python-package wheel for testing pip interoperability
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+        pip_stdout, pip_stderr, pip_code = pip_cli(
+            "install", str(wheel_path), prefix=prefix
         )
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
         # Clear prefix data cache to ensure fresh data
         PrefixData._cache_.clear()
@@ -539,9 +539,9 @@ def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
             f"Should have at least 3 conda packages, got {len(conda_packages)}"
         )
 
-        # Should have Python packages now (colorama and potentially its dependencies)
-        assert len(python_packages) >= 1, (
-            f"Should have at least 1 Python package after installing colorama, got {len(python_packages)}"
+        # Should have 1 Python package now (small-python-package)
+        assert len(python_packages) == 1, (
+            f"Should have 1 Python package after installing small-python-package, got {len(python_packages)}"
         )
 
         # Verify consistency
@@ -553,10 +553,10 @@ def test_get_packages_behavior_with_interoperability(tmp_env: TmpEnvFixture):
         assert "python" in conda_names, "Should include python"
         assert "ca-certificates" in conda_names, "Should include ca-certificates"
 
-        # Check that colorama is included in Python packages
+        # Check that small-python-package is included in Python packages
         python_names = {pkg.name for pkg in python_packages}
-        assert "colorama" in python_names, (
-            f"Should include colorama in Python packages: {python_names}"
+        assert "small-python-package" in python_names, (
+            f"Should include small-python-package in Python packages: {python_names}"
         )
 
         # Verify alphabetical sorting

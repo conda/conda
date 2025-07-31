@@ -28,10 +28,10 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
-    import os
     from collections.abc import Iterable
-    from pathlib import Path
     from typing import Any, Self
+
+    from ..common.path import PathType
 
 
 log = getLogger(__name__)
@@ -101,7 +101,7 @@ class Index(UserDict):
         subdirs: tuple[str, ...] | None = None,
         use_local: bool = False,
         use_cache: bool | None = None,
-        prefix: str | os.PathLike[str] | Path | PrefixData | None = None,
+        prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
     ) -> None:
@@ -479,7 +479,7 @@ class ReducedIndex(Index):
         subdirs: tuple[str, ...] | None = None,
         use_local: bool = False,
         use_cache: bool | None = None,
-        prefix: str | os.PathLike[str] | Path | PrefixData | None = None,
+        prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
     ) -> None:
@@ -684,7 +684,7 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
 @deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_prefix(
     index: Index | dict[Any, Any],
-    prefix: str | os.PathLike[str] | Path | PrefixData,
+    prefix: PathType | PrefixData,
 ) -> None:
     """
     Supplement the given index with information from the specified environment prefix.
