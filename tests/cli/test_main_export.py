@@ -668,9 +668,7 @@ def test_export_with_pip_dependencies_integration(
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
 
         # Install using pip_cli fixture for better error handling
-        pip_stdout, pip_stderr, pip_code = pip_cli(
-            "install", wheel_path, prefix=prefix
-        )
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
         # Clear prefix data cache to ensure fresh data
