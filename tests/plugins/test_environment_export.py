@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 import pytest
 import yaml
@@ -18,11 +19,28 @@ from conda.models.channel import Channel
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.plugins.environment_exporters.environment_yml import (
+    ENVIRONMENT_JSON_FORMAT,
+    ENVIRONMENT_YAML_FORMAT,
+)
+from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
+from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
 from conda.plugins.types import CondaEnvironmentExporter
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Any, Callable
+
+    from pytest import FixtureRequest
+
+    from conda.plugins.manager import CondaPluginManager
+    from conda.tests.fixtures import CondaCliFixture, TmpEnvFixture
 
 
 @pytest.fixture
-def plugin_manager_with_exporters(plugin_manager):
+def plugin_manager_with_exporters(
+    plugin_manager: CondaPluginManager,
+) -> CondaPluginManager:
     """Get plugin manager with environment exporter plugins loaded."""
     from conda.plugins.environment_exporters import (
         environment_yml,
@@ -35,7 +53,7 @@ def plugin_manager_with_exporters(plugin_manager):
 
 
 @pytest.fixture
-def test_env():
+def test_env() -> Environment:
     """Create a test environment for exporter testing."""
     return Environment(
         name="test-env",
@@ -82,12 +100,15 @@ def test_env_with_explicit_packages():
 @pytest.mark.parametrize(
     "format_name,parser_func",
     [
-        ("environment-yaml", yaml.safe_load),
-        ("environment-json", json.loads),
+        (ENVIRONMENT_YAML_FORMAT, yaml.safe_load),
+        (ENVIRONMENT_JSON_FORMAT, json.loads),
     ],
 )
 def test_builtin_structured_exporters(
-    plugin_manager_with_exporters, test_env, format_name, parser_func
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env: Environment,
+    format_name: str,
+    parser_func: Callable[[str], Any],
 ):
     """Test built-in exporters that produce structured output (YAML/JSON)."""
     # Test that exporter is available
@@ -115,7 +136,8 @@ def test_builtin_structured_exporters(
 
 
 def test_yaml_exporter_explicit_packages_format(
-    plugin_manager_with_exporters, test_env_with_explicit_packages
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env_with_explicit_packages: Environment,
 ):
     """Test that YAML exporter produces correct dependency format with explicit packages.
 
@@ -123,7 +145,7 @@ def test_yaml_exporter_explicit_packages_format(
     format (name=version=build) that matches production conda behavior.
     """
     exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "environment-yaml"
+        ENVIRONMENT_YAML_FORMAT
     )
 
     # Export the environment
@@ -153,7 +175,9 @@ def test_yaml_exporter_explicit_packages_format(
         )
 
 
-def test_explicit_exporter_cep23_compliance_error(plugin_manager_with_exporters):
+def test_explicit_exporter_cep23_compliance_error(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
     """Test that explicit exporter raises error for packages without URLs (CEP 23 compliance)."""
     from conda.exceptions import CondaValueError
     from conda.models.environment import Environment
@@ -176,7 +200,7 @@ def test_explicit_exporter_cep23_compliance_error(plugin_manager_with_exporters)
     )
 
     exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "explicit"
+        EXPLICIT_FORMAT
     )
 
     # Should raise error instead of falling back to spec format
@@ -184,14 +208,17 @@ def test_explicit_exporter_cep23_compliance_error(plugin_manager_with_exporters)
         exporter.export(env)
 
 
-def test_builtin_requirements_exporter(plugin_manager_with_exporters, test_env):
+def test_builtin_requirements_exporter(
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env: Environment,
+):
     """Test the built-in requirements environment exporter with requested packages."""
     # Test that exporter is available
     exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        format_name="requirements"
+        REQUIREMENTS_FORMAT
     )
     assert exporter_config is not None
-    assert exporter_config.name == "requirements"
+    assert exporter_config.name == REQUIREMENTS_FORMAT
 
     # Test export functionality with requested packages (should create requirements file)
     result = exporter_config.export(test_env)
@@ -220,12 +247,13 @@ def test_builtin_requirements_exporter(plugin_manager_with_exporters, test_env):
 
 
 def test_builtin_explicit_exporter_with_urls(
-    plugin_manager_with_exporters, test_env_with_explicit_packages
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env_with_explicit_packages: Environment,
 ):
     """Test the built-in explicit environment exporter with actual package URLs."""
     # Test that exporter is available
     exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        format_name="explicit"
+        EXPLICIT_FORMAT
     )
     assert exporter_config is not None
 
@@ -251,19 +279,19 @@ def test_builtin_explicit_exporter_with_urls(
 @pytest.mark.parametrize(
     "format_name,test_env_fixture,expected_error_fragment",
     [
-        ("explicit", "test_env", "Cannot export explicit format"),
+        (EXPLICIT_FORMAT, "test_env", "Cannot export explicit format"),
         (
-            "requirements",
+            REQUIREMENTS_FORMAT,
             "test_env_with_explicit_packages",
             "Cannot export requirements format",
         ),
     ],
 )
 def test_exporter_error_conditions(
-    plugin_manager_with_exporters,
-    request,
-    format_name,
-    test_env_fixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    request: FixtureRequest,
+    format_name: str,
+    test_env_fixture: str,
     expected_error_fragment,
 ):
     """Test exporters fail appropriately with incompatible environment data."""
@@ -281,38 +309,36 @@ def test_exporter_error_conditions(
         exporter.export(test_env)
 
 
-def test_get_environment_exporters(plugin_manager_with_exporters):
+def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginManager):
     """Test getting environment exporters mapping."""
-    exporters = plugin_manager_with_exporters.get_environment_exporters()
-
-    # Convert to list to work with the iterable
-    exporter_list = list(exporters)
-    exporter_names = [exporter.name for exporter in exporter_list]
-
-    # Should include expected formats
-    assert "environment-yaml" in exporter_names
-    assert "environment-json" in exporter_names
-    assert "explicit" in exporter_names
-    assert "requirements" in exporter_names
-    assert isinstance(exporter_list, list)
-    assert all(hasattr(exporter, "name") for exporter in exporter_list)
+    assert {
+        exporter.name
+        for exporter in plugin_manager_with_exporters.get_environment_exporters()
+    } == {
+        ENVIRONMENT_YAML_FORMAT,
+        ENVIRONMENT_JSON_FORMAT,
+        EXPLICIT_FORMAT,
+        REQUIREMENTS_FORMAT,
+    }
 
 
 @pytest.mark.parametrize(
     "filename,expected_format",
     [
-        ("environment.yaml", "environment-yaml"),
-        ("environment.yml", "environment-yaml"),
-        ("environment.json", "environment-json"),
-        ("explicit.txt", "explicit"),
-        ("requirements.txt", "requirements"),
-        ("spec.txt", "requirements"),
+        ("environment.yaml", ENVIRONMENT_YAML_FORMAT),
+        ("environment.yml", ENVIRONMENT_YAML_FORMAT),
+        ("environment.json", ENVIRONMENT_JSON_FORMAT),
+        ("explicit.txt", EXPLICIT_FORMAT),
+        ("requirements.txt", REQUIREMENTS_FORMAT),
+        ("spec.txt", REQUIREMENTS_FORMAT),
         ("my-env.yaml", None),  # Not a recognized default filename
         ("env.unknown", None),
     ],
 )
 def test_detect_environment_exporter(
-    plugin_manager_with_exporters, filename, expected_format
+    plugin_manager_with_exporters: CondaPluginManager,
+    filename: str,
+    expected_format: str | None,
 ):
     """Test detecting exporter by exact filename matching."""
     if expected_format is None:
@@ -328,19 +354,22 @@ def test_detect_environment_exporter(
 @pytest.mark.parametrize(
     "format_name,should_exist",
     [
-        ("environment-yaml", True),
-        ("environment-json", True),
-        ("explicit", True),
-        ("requirements", True),
-        ("yaml", True),  # Test alias
-        ("json", True),  # Test alias
-        ("txt", True),  # Test alias for requirements
-        ("reqs", True),  # Test alias for requirements
+        (ENVIRONMENT_YAML_FORMAT, True),
+        ("yaml", True),  # alias
+        ("yml", True),  # alias
+        (ENVIRONMENT_JSON_FORMAT, True),
+        ("json", True),  # alias
+        (EXPLICIT_FORMAT, True),
+        (REQUIREMENTS_FORMAT, True),
+        ("txt", True),  # alias
+        ("reqs", True),  # alias
         ("unknown", False),
     ],
 )
 def test_get_environment_exporter_by_format(
-    plugin_manager_with_exporters, format_name, should_exist
+    plugin_manager_with_exporters: CondaPluginManager,
+    format_name: str,
+    should_exist: bool,
 ):
     """Test getting exporter by format name including aliases."""
     if should_exist:
@@ -368,10 +397,12 @@ def test_get_environment_exporter_by_format(
             )
 
 
-def test_yaml_exporter_handles_missing_name(plugin_manager_with_exporters):
+def test_yaml_exporter_handles_missing_name(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
     """Test YAML exporter handles case where environment has no name."""
     exporter_config = plugin_manager_with_exporters.get_environment_exporter_by_format(
-        "environment-yaml"
+        ENVIRONMENT_YAML_FORMAT
     )
     assert exporter_config is not None
 
@@ -396,14 +427,16 @@ def test_yaml_exporter_handles_missing_name(plugin_manager_with_exporters):
 @pytest.mark.parametrize(
     "format_name,expected_aliases",
     [
-        ("environment-yaml", ("yaml", "yml")),
-        ("environment-json", ("json",)),
-        ("explicit", ()),
-        ("requirements", ("reqs", "txt")),
+        (ENVIRONMENT_YAML_FORMAT, ("yaml", "yml")),
+        (ENVIRONMENT_JSON_FORMAT, ("json",)),
+        (EXPLICIT_FORMAT, ()),
+        (REQUIREMENTS_FORMAT, ("reqs", "txt")),
     ],
 )
 def test_builtin_exporters_define_expected_aliases(
-    plugin_manager_with_exporters, format_name, expected_aliases
+    plugin_manager_with_exporters: CondaPluginManager,
+    format_name: str,
+    expected_aliases: tuple[str, ...],
 ):
     """Test that built-in exporters define their expected aliases."""
     exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
@@ -425,10 +458,10 @@ def test_builtin_exporters_define_expected_aliases(
 
 def test_alias_normalization_and_collision_detection():
     """Test that aliases are normalized and collision detection works."""
-    # Test alias normalization
+    # Test alias normalization (mixed case, whitespace, and duplicates)
     exporter = CondaEnvironmentExporter(
         name="test-exporter",
-        aliases=(" YAML ", "YML", "  json  "),  # Mixed case and whitespace
+        aliases=(" YAML ", "YML", "yml", "  json  "),
         default_filenames=("test.yaml",),
         export=lambda env: "test",
     )
@@ -444,3 +477,29 @@ def test_alias_normalization_and_collision_detection():
             default_filenames=("test.yaml",),
             export=lambda env: "test",
         )
+
+
+@pytest.mark.parametrize(
+    "args,format",
+    [
+        (["list", "--explicit"], EXPLICIT_FORMAT),
+        (["env", "export"], ENVIRONMENT_YAML_FORMAT),
+        # (["list", "--export"], REQUIREMENTS_FORMAT),
+    ],
+)
+def test_compare_export_commands(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCliFixture,
+    test_recipes_channel: Path,
+    args: list[str],
+    format: str,
+):
+    """Test that the new export commmand produces the same output as the legacy command."""
+    with tmp_env("small-executable") as prefix:
+        old_output, _, _ = conda_cli(*args, f"--prefix={prefix}")
+        new_output, _, _ = conda_cli(
+            "export",
+            f"--prefix={prefix}",
+            f"--format={format}",
+        )
+        assert old_output == new_output
