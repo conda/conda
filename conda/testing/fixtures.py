@@ -375,7 +375,7 @@ class PipCLIFixture:
         return stdout, stderr, exception if raises else code
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def pip_cli() -> Iterator[PipCLIFixture]:
     """A function scoped fixture returning PipCLIFixture instance.
 
