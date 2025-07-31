@@ -1547,9 +1547,9 @@ def init_fish_user(
 def _config_xonsh_content(conda_prefix):
     conda_exe = join(conda_prefix, BIN_DIRECTORY, "conda.exe" if on_win else "conda")
     if on_win:
-        from ..common.path import win_path_to_unix
+        from ..activate import backslash_to_forwardslash
 
-        conda_exe = win_path_to_unix(conda_exe)
+        conda_exe = backslash_to_forwardslash(conda_exe)
     conda_initialize_content = dals(
         """
     # >>> conda initialize >>>
@@ -1573,9 +1573,9 @@ def _config_xonsh_content(conda_prefix):
 def _config_xonsh_content_to_add_condabin_to_path(conda_prefix):
     condabin_path = join(conda_prefix, "condabin")
     if on_win:
-        from ..common.path import win_path_to_unix
+        from ..activate import backslash_to_forwardslash
 
-        condabin_path = win_path_to_unix(condabin_path)
+        condabin_path = backslash_to_forwardslash(condabin_path)
     return dals(
         f"""
         # >>> conda initialize >>>
