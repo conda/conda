@@ -50,6 +50,8 @@ if TYPE_CHECKING:
     )
     from pytest_mock import MockerFixture
 
+    from ..common.path import PathType
+
 
 log = getLogger(__name__)
 
@@ -221,19 +223,19 @@ class CondaCLIFixture:
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
         raises: type[Exception] | tuple[type[Exception], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
     ) -> tuple[str, str, int]: ...
 
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
     ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
@@ -265,7 +267,7 @@ class CondaCLIFixture:
         return out, err, exception if raises else code
 
     @staticmethod
-    def _cast_args(argv: tuple[str | os.PathLike[str] | Path, ...]) -> Iterable[str]:
+    def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:
         """Cast args to string and inspect for `conda run`.
 
         `conda run` is a unique case that requires `--dev` to use the src shell scripts
@@ -317,22 +319,22 @@ class PipCLIFixture:
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
-        prefix: str | os.PathLike[str] | Path,
+        *argv: PathType,
+        prefix: PathType,
         raises: type[Exception] | tuple[type[Exception], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
-        prefix: str | os.PathLike[str] | Path,
+        *argv: PathType,
+        prefix: PathType,
     ) -> tuple[str, str, int]: ...
 
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
-        prefix: str | os.PathLike[str] | Path,
+        *argv: PathType,
+        prefix: PathType,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
     ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test pip CLI in a specific conda environment.
