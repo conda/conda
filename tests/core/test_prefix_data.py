@@ -511,16 +511,14 @@ def test_get_python_packages_basic_functionality(
 
 
 def test_get_packages_behavior_with_interoperability(
-    tmp_env: TmpEnvFixture, pip_cli: PipCLIFixture, test_recipes_channel: Path
+    tmp_env: TmpEnvFixture, pip_cli: PipCLIFixture, wheelhouse: Path
 ):
     """Test that package extraction behaves correctly with interoperability settings."""
     # Create environment with conda packages and pip
     packages = ["python=3.10", "pip", "ca-certificates"]
     with tmp_env(*packages) as prefix:
         # Install small-python-package wheel for testing pip interoperability
-        wheel_path = (
-            test_recipes_channel / "whl" / "small_python_package-1.0.0-py3-none-any.whl"
-        )
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli(
             "install", str(wheel_path), prefix=prefix
         )
