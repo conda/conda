@@ -97,14 +97,11 @@
 * @kathatherine
 * @kenodegard
 * @ForgottenProgramme
+* @mmc1718 made their first contribution in https://github.com/conda/conda/pull/15025
 * @soapy1
 * @travishathaway
 * @dependabot[bot]
 * @pre-commit-ci[bot]
-
-### New Contributors
-* @mmc1718 made their first contribution in https://github.com/conda/conda/pull/15025
-
 
 
 
@@ -123,6 +120,7 @@
 * @jaimergp
 * @soapy1
 * @travishathaway
+
 
 
 ## 25.5.0 (2025-05-21)
@@ -205,26 +203,21 @@
 * Refactor `conda create --clone` logic into a separate function. (#14743)
 * Use `dict.fromkeys` for sequence deduplication, instead of `IndexedSet()`. (#14777)
 
-
 ### Contributors
 
 * @conda-bot
-* @faithrider
+* @faithrider made their first contribution in https://github.com/conda/conda/pull/13820
 * @jaimergp
 * @jezdez
 * @kathatherine
 * @kenodegard
-* @peytondmurray
+* @peytondmurray made their first contribution in https://github.com/conda/conda/pull/14754
 * @samhaese
 * @soapy1
 * @travishathaway
 * @dependabot[bot]
 * @pre-commit-ci[bot]
 
-### New Contributors
-
-* @faithrider made their first contribution in https://github.com/conda/conda/pull/13820
-* @peytondmurray made their first contribution in https://github.com/conda/conda/pull/14754
 
 
 ## 25.3.1 (2025-04-03)
