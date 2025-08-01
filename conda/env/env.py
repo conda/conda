@@ -7,7 +7,7 @@ import re
 from itertools import chain
 
 from ..base.context import context
-from ..cli import common, install
+from ..cli import common
 from ..common.iterators import unique
 from ..common.path import expand
 from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
@@ -308,4 +308,4 @@ def print_result(args, prefix, result):
                 actions["PIP"] = result["pip"]
             common.stdout_json_success(prefix=prefix, actions=actions)
     else:
-        install.print_activate(args.name or prefix)
+        common.print_activate(args.name or prefix)

@@ -20,6 +20,7 @@ from ...common.compat import on_linux, on_win
 from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json
+from ...deprecations import deprecated
 from ...exceptions import (
     BasicClobberError,
     CondaOSError,
@@ -156,6 +157,7 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     return target_full_path
 
 
+@deprecated("26.3", "26.9")
 def create_application_entry_point(
     source_full_path, target_full_path, python_full_path
 ):
@@ -184,6 +186,7 @@ def create_application_entry_point(
     make_executable(target_full_path)
 
 
+@deprecated("26.3", "26.9")
 class ProgressFileWrapper:
     def __init__(self, fileobj, progress_update_callback):
         self.progress_file = fileobj
@@ -310,6 +313,7 @@ def _do_softlink(src, dst):
         symlink(src, dst)
 
 
+@deprecated("26.3", "26.9")
 def create_fake_executable_softlink(src, dst):
     assert on_win
     src_root, _ = splitext(src)
