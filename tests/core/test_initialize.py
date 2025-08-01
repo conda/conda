@@ -448,10 +448,11 @@ def test_install_conda_sh(verbose):
         PosixActivator()
 
         *lines, remainder = created_file_contents.split("\n", 7)
+        conda_exe = join(context.conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         if on_win:
             assert lines == [
-                f"export CONDA_EXE=\"$(cygpath '{context.conda_exe}')\"",
-                f"export _CONDA_EXE=\"$(cygpath '{context.conda_exe}')\"",
+                f"export CONDA_EXE=\"$(cygpath '{conda_exe}')\"",
+                f"export _CONDA_EXE=\"$(cygpath '{conda_exe}')\"",
                 "export _CE_M=''",
                 "export _CE_CONDA=''",
                 f"export CONDA_PYTHON_EXE=\"$(cygpath '{sys.executable}')\"",
@@ -460,8 +461,8 @@ def test_install_conda_sh(verbose):
             ]
         else:
             assert lines == [
-                f"export CONDA_EXE='{context.conda_exe}'",
-                f"export _CONDA_EXE='{context.conda_exe}'",
+                f"export CONDA_EXE='{conda_exe}'",
+                f"export _CONDA_EXE='{conda_exe}'",
                 "export _CE_M=''",
                 "export _CE_CONDA=''",
                 f"export CONDA_PYTHON_EXE='{sys.executable}'",
@@ -535,9 +536,10 @@ def test_install_conda_xsh(verbose):
         with open_utf8(join(CONDA_PACKAGE_ROOT, "shell", "conda.xsh")) as fh:
             original_contents = fh.read()
 
+        conda_exe = join(context.conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         assert created_file_contents == (
-            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
-            f"$_CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
+            f"$CONDA_EXE = '{XonshActivator.path_conversion(conda_exe)}'\n"
+            f"$_CONDA_EXE = '{XonshActivator.path_conversion(conda_exe)}'\n"
             f"try:\n"
             f"    del $_CE_M\n"
             f"except KeyError:\n"
@@ -572,10 +574,11 @@ def test_install_conda_csh(verbose):
             "profile.d",
             "conda.csh",
         )
+        conda_exe = join(context.conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         if on_win:
             assert created_file_contents == (
-                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
-                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{conda_exe}'`\";\n"
                 f"unsetenv _CE_M;\n"
                 f"unsetenv _CE_CONDA;\n"
                 f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
@@ -585,8 +588,8 @@ def test_install_conda_csh(verbose):
             )
         else:
             assert created_file_contents == (
-                f'setenv CONDA_EXE "{context.conda_exe}";\n'
-                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_EXE "{conda_exe}";\n'
+                f'setenv _CONDA_EXE "{conda_exe}";\n'
                 f"unsetenv _CE_M;\n"
                 f"unsetenv _CE_CONDA;\n"
                 f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
