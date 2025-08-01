@@ -1,0 +1,10 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61.0", "wheel"]
+
+[project]
+dependencies = []
+description = "A simple argparse wrapper"
+name = "argh"
+requires-python = ">=3.7"
+version = "0.26.2"
