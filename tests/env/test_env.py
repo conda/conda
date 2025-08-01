@@ -324,20 +324,23 @@ def test_creates_file_on_save(tmp_path: Path):
 
 
 @pytest.mark.integration
-def test_create_advanced_pip(
+def test_env_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-    tmp_envs_dir: Path,
+    support_file_isolated,
 ):
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "true")
 
     prefix = path_factory()
     assert not prefix.exists()
+
+    pip_argh = support_file_isolated("pip_argh.yml")
+
     conda_cli(
         *("env", "create"),
         *("--prefix", prefix),
-        *("--file", support_file("pip_argh.yml")),
+        *("--file", str(pip_argh)),
     )
     assert prefix.exists()
     PrefixData._cache_.clear()

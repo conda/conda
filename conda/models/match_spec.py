@@ -392,7 +392,7 @@ class MatchSpec(metaclass=MatchSpecType):
         version = self.get_raw_value("version")
 
         if build:
-            assert version
+            version = version or "*"
             builder += [version, build]
         elif version:
             builder.append(version)

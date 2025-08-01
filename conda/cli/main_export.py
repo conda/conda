@@ -170,6 +170,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         # Use the detected or default exporter for content
         exported_content = environment_exporter.export(env)
 
+    # Add trailing newline to the exported content
+    exported_content = exported_content.rstrip() + "\n"
+
     # Output the content
     if args.file:
         with open(args.file, "w") as fp:

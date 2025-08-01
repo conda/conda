@@ -5,7 +5,7 @@
 import logging
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import cache, partial
 from logging import (
     DEBUG,
@@ -208,7 +208,7 @@ def set_all_logger_level(level=DEBUG):
 @cache
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
-        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         path = f".conda.{timestamp}.log"
 
     conda_logger = getLogger(logger_name)

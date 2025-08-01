@@ -538,28 +538,27 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> CondaEnvironmentSpecifier:
         """Get an environment specifier plugin by name
 
-        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
-        Raises CondaValueError if the requested plugin is not available.
-
         :param source: full path to the environment spec file/source
         :param name: name of the environment plugin to load
+        :raises CondaValueError: if the requested plugin is not available.
+        :raises PluginError: if the requested plugin is unable to handle the provided file.
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
         name = name.lower().strip()
-        hooks = self.get_environment_specifiers()
-        found = [hook for hook_name, hook in hooks.items() if hook_name == name]
-
-        if not found:
+        plugins = self.get_environment_specifiers()
+        try:
+            plugin = plugins[name]
+        except KeyError:
             raise CondaValueError(
                 f"You have chosen an unrecognized environment"
                 f" specifier type ({name}). Choose one of: "
-                f"{', '.join(hooks)}"
+                f"{dashlist(plugins)}"
             )
-        elif len(found) == 1:
+        else:
             # Try to load the plugin and check if it can handle the environment spec
             try:
-                if found[0].environment_spec(source).can_handle():
-                    return found[0]
+                if plugin.environment_spec(source).can_handle():
+                    return plugin
             except Exception as e:
                 raise PluginError(
                     dals(
@@ -575,10 +574,6 @@ class CondaPluginManager(pluggy.PluginManager):
                 raise PluginError(
                     f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
                 )
-        else:
-            raise PluginError(
-                f"More than one environment_spec plugin named {name} found: {found}"
-            )
 
     def detect_environment_specifier(self, source: str) -> CondaEnvironmentSpecifier:
         """Detect the environment specifier plugin for a given spec source
@@ -727,20 +722,10 @@ class CondaPluginManager(pluggy.PluginManager):
             if basename in exporter_config.default_filenames:
                 matches.append(exporter_config)
 
-        if len(matches) == 1:
-            return matches[0]
-        elif len(matches) == 0:
-            # Collect all available formats and supported filenames for the error message
-            all_exporters = list(self.get_environment_exporters())
-            available_formats = [exporter.name for exporter in all_exporters]
-            supported_filenames = []
-            for exporter in all_exporters:
-                supported_filenames.extend(exporter.default_filenames)
-
+        if not matches:
             raise EnvironmentExporterNotDetected(
                 filename=basename,
-                available_formats=available_formats,
-                supported_filenames=sorted(set(supported_filenames)),
+                exporters=self.get_environment_exporters(),
             )
         elif len(matches) > 1:
             raise PluginError(
@@ -749,8 +734,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"\n"
                 f"Please make sure that you don't have any conflicting exporter plugins installed."
             )
-
-        return None
+        return matches[0]
 
     def get_environment_exporter_by_format(
         self, format_name: str
