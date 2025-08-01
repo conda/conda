@@ -9,13 +9,13 @@
 * Add support for explicit environment specification files as a supported environment spec according to CEP-23, bringing parity between `conda env` and `conda create/install/update`. (#14820)
 * Add an experimental data model to represent an environment. (#14870)
 * Add config option `environment_specifier` and CLI argument (`--environment-specifier, --env-spec`) to allow users to select which environment specifier plugin to use. (#14877)
-* Enhanced `conda export` command now supports plugin-based architecture with multiple output formats:
+* Enhance `conda export` command now supports plugin-based architecture with multiple output formats:
   - `environment-yaml` (cross-platform YAML, default format)
   - `environment-json` (cross-platform JSON for programmatic use)
   - `explicit` (CEP 23 compliant explicit URLs for exact reproduction)
   - `requirements` (MatchSpec-based requirements format) (#14886)
-* New automatic format detection based on filename patterns (e.g., `environment.yaml`, `explicit.txt`, `requirements.txt`) (#14886)
-* New format aliases for convenience (`yaml`, `yml`, `json`, `reqs`, `txt`) (#14886)
+* Add automatic export format detection based on filename patterns (e.g., `environment.yaml`, `explicit.txt`, `requirements.txt`) (#14886)
+* Add export format aliases for convenience (`yaml`, `yml`, `json`, `reqs`, `txt`) (#14886)
 * Introduce new dataclass `conda.models.environment.EnvironmentConfig` to represent `Environment` settings, a subset of `context` settings that impact environment creation and management. (#14913, #15026)
 * Allow env spec plugins to opt-out of auto detection. (#14914)
 * Handle exceptions coming from environment spec plugins `can_handle` functions. (#14916)
@@ -25,7 +25,7 @@
 * Add virtual packages field to the Environment model. (#14979)
 * Create EnvironmentConfig from context. (#14986)
 * Add CondaPlugin base class with name normalization. (#15002)
-* Enhanced `LazyChoicesAction` with dynamic choices property and caching for improved CLI argument validation and help text generation. (#15046)
+* Enhance `LazyChoicesAction` with dynamic choices property and caching for improved CLI argument validation and help text generation. (#15046)
 
 ### Bug fixes
 
@@ -34,7 +34,7 @@
 * Improve type hints and error handling in conda installer functions. (#14820)
 * Fix `conda export --override-channels` behavior to properly include installed packages' channels (unless `--ignore-channels` is also provided), restoring the original intended functionality and improving environment reproducibility. (#15048 via #14886)
 * Fix `tmp_channel` fixture to also include dependencies in the temporary channel. (#14924)
-* Fixes a bug discovered when setting `envvars_force_uppercase = False`. (#14934 via #14942)
+* Fix bug discovered when setting `envvars_force_uppercase = False`. (#14934 via #14942)
 * Respect `--platform` option on subsequent environment operations after initial `conda env create` call. (#14949 via #14956)
 * Apply case normalization to all activation environment variables. (#14960)
 * Separate requirements.txt and explicit environment specs. (#14684 via #14963)
@@ -67,14 +67,13 @@
 
 ### Docs
 
-* <news item>
-* Comprehensive documentation for `conda export` command with examples and format specifications. (#14886)
-* Environment exporter plugin development guide with examples and best practices. (#14886)
-* Updated environment management documentation to highlight new export capabilities. (#14886)
-* Updated cheatsheet with new export formats and commands. (#14886)
-* Enhanced command comparison table to include new export functionality. (#14886)
-* Added glossary entries for CEP 23, environment exporters, explicit format, and requirements format. (#14886)
-* Added note about enhanced `conda export` functionality alongside existing `conda env export`. (#14886)
+* Add documentation for `conda export` command with examples and format specifications. (#14886)
+* Add environment exporter plugin development guide with examples and best practices. (#14886)
+* Update environment management documentation to highlight new export capabilities. (#14886)
+* Update cheatsheet with new export formats and commands. (#14886)
+* Enhance command comparison table to include new export functionality. (#14886)
+* Add glossary entries for CEP 23, environment exporters, explicit format, and requirements format. (#14886)
+* Add note about enhanced `conda export` functionality alongside existing `conda env export`. (#14886)
 * Add docs about environment spec plugin detection. (#14918)
 * No longer claim that `noarch/repodata.json.bz2` is required. Conda has not
   used `repodata.json.bz2` for years. (#14965)
