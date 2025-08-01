@@ -1,9 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import os
+from pathlib import Path
 
 import pytest
 from pytest import raises
+from pytest_mock import MockerFixture
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.common import (
@@ -11,6 +13,7 @@ from conda.cli.common import (
     is_active_prefix,
     print_envs_list,
     validate_file_exists,
+    validate_subdir_config,
 )
 from conda.common.compat import on_win
 from conda.common.io import env_vars
@@ -104,3 +107,66 @@ def test_validate_file_exists(filename, exists):
     else:
         with pytest.raises(EnvironmentFileNotFound):
             validate_file_exists(filename)
+
+
+def test_validate_subdir_config(mocker: MockerFixture):
+    """Test conda will validate the subdir config."""
+    # Set dummy subdir to something that is not the native subdir
+    subdir = "idontexist"
+    mocker.patch(
+        "conda.base.context.Context.subdir",
+        new_callable=mocker.PropertyMock,
+        return_value=subdir,
+    )
+
+    # Set the root to a non-existent path
+    mocker.patch(
+        "conda.base.context.Context.root_prefix",
+        new_callable=mocker.PropertyMock,
+        return_value="/something/that/does/not/exist",
+    )
+
+    # Simulate the context having config only coming from the command line
+    mocker.patch(
+        "conda.base.context.Context.collect_all",
+        return_value={
+            "cmd_line": {"channels": ["conda-forge"]},
+            Path("/path/to/a/condarc"): {"channels": ["defaults"]},
+            Path("/path/to/another/condarc"): {"override_channels_enabled": "True"},
+        },
+    )
+
+    validate_subdir_config()
+
+
+def test_validate_subdir_config_invalid_subdir(mocker: MockerFixture):
+    """Test conda will validate the subdir config. The configuration is
+    invalid if it is coming from the active prefix"""
+    # Set dummy subdir to something that is not the native subdir
+    subdir = "idontexist"
+    mocker.patch(
+        "conda.base.context.Context.subdir",
+        new_callable=mocker.PropertyMock,
+        return_value=subdir,
+    )
+
+    # Set the root to a non-existent path
+    mocker.patch(
+        "conda.base.context.Context.root_prefix",
+        new_callable=mocker.PropertyMock,
+        return_value="/something/that/does/not/exist",
+    )
+
+    # Simulate config coming from the active prefix's condarc file and the command line
+    dummy_conda_rc = Path(context.active_prefix) / "condarc"
+    mocker.patch(
+        "conda.base.context.Context.collect_all",
+        return_value={
+            "cmd_line": {"channels": ["conda-forge"]},
+            dummy_conda_rc: {"subdir": subdir},
+            Path("/path/to/a/condarc"): {"channels": ["defaults"]},
+        },
+    )
+
+    with pytest.raises(OperationNotAllowed):
+        validate_subdir_config()
