@@ -263,6 +263,7 @@ Authors are sorted alphabetically.
 * Martin Kou
 * Martin Prüsse
 * Martin Raden
+* Mary M
 * Matt Craig
 * Matt Kramer
 * Matthew Anderson
