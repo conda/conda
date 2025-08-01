@@ -979,10 +979,3 @@ deprecated.constant(
     json.CondaJSONEncoder,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "DumpEncoder",
-    json.CondaJSONEncoder,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-)
