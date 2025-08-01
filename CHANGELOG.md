@@ -2,6 +2,26 @@
 
 ## 25.7.0 (2025-08-01)
 
+### Contributors
+
+* @conda-bot
+* @dholth
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @mmc1718
+* @soapy1
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
+## 25.7.0 (2025-08-01)
+
 ### Enhancements
 
 * Ensure conda does not allow for mixing input file types. (#14684 via #14725)
