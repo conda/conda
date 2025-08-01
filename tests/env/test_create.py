@@ -107,33 +107,28 @@ def test_create_advanced_pip(
     tmp_envs_dir: Path,
     support_file_isolated: Path,
 ):
-    # Create a temporary directory for the advanced-pip repository and copy for easy cleanup
-    assert (support_file_isolated("advanced-pip") / "argh").exists()
-    tmp_advanced_pip_dir = support_file_isolated("advanced-pip")
-
-    # Get the argh directory path
-    argh_dir = tmp_advanced_pip_dir / "argh"
+    # Create a temporary copy of the advanced-pip repository
+    advanced_pip_dir = support_file_isolated("advanced-pip")
+    argh_dir = advanced_pip_dir / "argh"
+    assert argh_dir.exists()
 
     # Initialize git repository in the argh directory
-    subprocess.run(["git", "init"], cwd=argh_dir, check=True)
-    # Configure git user identity for the test
-    subprocess.run(
-        ["git", "config", "user.name", "Test User"], cwd=argh_dir, check=True
-    )
-    subprocess.run(
-        ["git", "config", "user.email", "test@example.com"], cwd=argh_dir, check=True
-    )
-    subprocess.run(["git", "add", "."], cwd=argh_dir, check=True)
-    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=argh_dir, check=True)
+    for args in (
+        ["git", "init"],
+        ["git", "config", "user.name", "Test User"],
+        ["git", "config", "user.email", "test@example.com"],
+        ["git", "add", "."],
+        ["git", "commit", "-m", "Initial commit"], 
+    ):
+        subprocess.run(args, cwd=argh_dir, check=True)
 
     # Get template content for environment.yml
-    template_path = Path(support_file("advanced-pip/env_template.yml"))
-    template_content = template_path.read_text()
+    template_content = (advanced_pip_dir / "env_template.yml").read_text()
 
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    environment_yml = tmp_advanced_pip_dir / "environment.yml"
+    environment_yml = advanced_pip_dir / "environment.yml"
 
     # Create environment.yml from template in the isolated location
     env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
