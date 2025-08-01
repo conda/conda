@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -19,6 +18,8 @@ from conda.testing.integration import package_is_installed
 from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import (
@@ -105,7 +106,7 @@ def test_create_advanced_pip(
     conda_cli: CondaCLIFixture,
     tmp_path: Path,
     tmp_envs_dir: Path,
-    support_file_isolated: Path,
+    support_file_isolated,
 ):
     # Create a temporary copy of the advanced-pip repository
     advanced_pip_dir = support_file_isolated("advanced-pip")
@@ -118,7 +119,7 @@ def test_create_advanced_pip(
         ["git", "config", "user.name", "Test User"],
         ["git", "config", "user.email", "test@example.com"],
         ["git", "add", "."],
-        ["git", "commit", "-m", "Initial commit"], 
+        ["git", "commit", "-m", "Initial commit"],
     ):
         subprocess.run(args, cwd=argh_dir, check=True)
 
