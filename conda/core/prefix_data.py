@@ -45,6 +45,7 @@ from ..exceptions import (
 from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
+from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
@@ -111,7 +112,7 @@ class PrefixData(metaclass=PrefixDataType):
     )
     def __init__(
         self,
-        prefix_path: str | os.PathLike[str] | Path,
+        prefix_path: PathType,
         interoperability: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
@@ -474,6 +475,36 @@ class PrefixData(metaclass=PrefixDataType):
             return (
                 prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param
             )
+
+    def get_conda_packages(self) -> list[PrefixRecord]:
+        """Get conda packages sorted alphabetically by name.
+
+        :return: Sorted conda package records
+        """
+        conda_types = {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON}
+        conda_packages = [
+            record
+            for record in self.iter_records()
+            if record.package_type in conda_types
+        ]
+        return sorted(conda_packages, key=lambda x: x.name)
+
+    def get_python_packages(self) -> list[PrefixRecord]:
+        """Get Python packages (installed via pip) sorted alphabetically by name.
+
+        :return: Sorted Python package records
+        """
+        python_types = {
+            PackageType.VIRTUAL_PYTHON_WHEEL,
+            PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+        }
+        python_packages = [
+            record
+            for record in self.iter_records()
+            if record.package_type in python_types
+        ]
+        return sorted(python_packages, key=lambda x: x.name)
 
     @property
     def _prefix_records(self) -> dict[str, PrefixRecord] | None:

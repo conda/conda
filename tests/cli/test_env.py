@@ -559,7 +559,7 @@ def test_env_export(
         env_description = yaml_safe_load(stdout)
         assert len(env_description["dependencies"])
         for spec_str in env_description["dependencies"]:
-            assert spec_str.count("=") == 1
+            assert spec_str.count("=") == 1  # package=version (no-builds format)
 
         conda_cli("env", "remove", f"--prefix={prefix}", "--yes")
         assert not PrefixData(prefix).is_environment()
@@ -608,7 +608,7 @@ def test_env_export_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         env_description = json.loads(stdout)
         assert len(env_description["dependencies"])
         for spec_str in env_description["dependencies"]:
-            assert spec_str.count("=") == 2
+            assert spec_str.count("=") == 2  # package=version=build (canonical format)
 
         # regression test for #6220
         stdout, stderr, _ = conda_cli(
@@ -619,7 +619,7 @@ def test_env_export_json(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         env_description = json.loads(stdout)
         assert len(env_description["dependencies"])
         for spec_str in env_description["dependencies"]:
-            assert spec_str.count("=") == 1
+            assert spec_str.count("=") == 1  # package=version (no-builds format)
 
 
 @pytest.mark.integration

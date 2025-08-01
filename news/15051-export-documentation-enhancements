@@ -1,0 +1,3 @@
+### Documentation
+
+* Enhanced `conda export` command documentation with improved format tables, examples, and clarification of differences between export formats. (#15051)

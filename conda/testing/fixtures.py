@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import uuid
 import warnings
 from contextlib import contextmanager, nullcontext
@@ -34,6 +35,7 @@ from ..core.subdir_data import SubdirData
 from ..exceptions import CondaExitZero
 from ..gateways.disk.create import TemporaryDirectory
 from ..models.records import PackageRecord
+from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -47,6 +49,8 @@ if TYPE_CHECKING:
         TempPathFactory,
     )
     from pytest_mock import MockerFixture
+
+    from ..common.path import PathType
 
 
 log = getLogger(__name__)
@@ -219,19 +223,19 @@ class CondaCLIFixture:
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
         raises: type[Exception] | tuple[type[Exception], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
     ) -> tuple[str, str, int]: ...
 
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
     ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
@@ -263,7 +267,7 @@ class CondaCLIFixture:
         return out, err, exception if raises else code
 
     @staticmethod
-    def _cast_args(argv: tuple[str | os.PathLike[str] | Path, ...]) -> Iterable[str]:
+    def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:
         """Cast args to string and inspect for `conda run`.
 
         `conda run` is a unique case that requires `--dev` to use the src shell scripts
@@ -304,6 +308,87 @@ def session_conda_cli() -> Iterator[CondaCLIFixture]:
     conda environment shared across tests, `conda info`, etc.).
     """
     yield CondaCLIFixture(None)
+
+
+@dataclass
+class PipCLIFixture:
+    """Fixture for calling pip in specific conda environments."""
+
+    @overload
+    def __call__(
+        self,
+        *argv: PathType,
+        prefix: PathType,
+        raises: type[Exception] | tuple[type[Exception], ...],
+    ) -> tuple[str, str, ExceptionInfo]: ...
+
+    @overload
+    def __call__(
+        self,
+        *argv: PathType,
+        prefix: PathType,
+    ) -> tuple[str, str, int]: ...
+
+    def __call__(
+        self,
+        *argv: PathType,
+        prefix: PathType,
+        raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+    ) -> tuple[str | None, str | None, int | ExceptionInfo]:
+        """Test pip CLI in a specific conda environment.
+
+        `pip ...` in environment == `pip_cli(..., prefix=env_path)`
+
+        :param argv: Arguments to pass to pip.
+        :param prefix: Path to the conda environment containing pip.
+        :param raises: Expected exception to intercept. If provided, the raised exception
+            will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
+        :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
+        """
+        # build command using python -m pip (more reliable than finding pip executable)
+        prefix_path = Path(prefix)
+        python_exe = prefix_path / PYTHON_BINARY
+        cmd = [str(python_exe), "-m", "pip"] + [str(arg) for arg in argv]
+
+        # run command
+        with pytest.raises(raises) if raises else nullcontext() as exception:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                code = result.returncode
+                stdout = result.stdout
+                stderr = result.stderr
+            except subprocess.CalledProcessError as e:
+                code = e.returncode
+                stdout = e.stdout
+                stderr = e.stderr
+            except FileNotFoundError:
+                # python executable not found
+                raise RuntimeError(
+                    f"Python not found in environment {prefix_path}: {python_exe}"
+                )
+
+        return stdout, stderr, exception if raises else code
+
+
+@pytest.fixture(scope="session")
+def pip_cli() -> Iterator[PipCLIFixture]:
+    """A function scoped fixture returning PipCLIFixture instance.
+
+    Use this for calling pip commands in specific conda environments during tests.
+    Uses `python -m pip` for reliable cross-platform execution.
+
+    Example:
+        def test_pip_install(tmp_env, pip_cli):
+            with tmp_env("python=3.10", "pip") as prefix:
+                stdout, stderr, code = pip_cli("install", "requests", prefix=prefix)
+                assert code == 0
+    """
+    yield PipCLIFixture()
 
 
 @dataclass
