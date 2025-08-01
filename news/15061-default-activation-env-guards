@@ -1,0 +1,19 @@
+### Enhancements
+
+* Exceptions are now raised to prevent renaming or removing the default_activation_env. (#15061)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

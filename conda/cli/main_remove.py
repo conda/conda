@@ -171,6 +171,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         msg = "Cannot remove current environment. Deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
 
+    if args.all and prefix_data == PrefixData(context.default_activation_prefix):
+        raise CondaEnvironmentError(
+            "Cannot remove an environment if it is the default_activation_env."
+        )
+
     if args.all and path_is_clean(prefix):
         return 0
 
