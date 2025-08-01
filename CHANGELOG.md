@@ -2,26 +2,6 @@
 
 ## 25.7.0 (2025-08-01)
 
-### Contributors
-
-* @conda-bot
-* @dholth
-* @jaimergp
-* @jezdez
-* @jjhelmus
-* @kathatherine
-* @kenodegard
-* @ForgottenProgramme
-* @mmc1718
-* @soapy1
-* @travishathaway
-* @dependabot[bot]
-* @pre-commit-ci[bot]
-
-
-
-## 25.7.0 (2025-08-01)
-
 ### Enhancements
 
 * Ensure conda does not allow for mixing input file types. (#14684 via #14725)
@@ -107,6 +87,25 @@
 * Avoid modifying `tests/env/support` in test suite and confusing subsequent
   test runs. (#15011)
 * Remove unused import of deprecated `DumpEncoder`. (#15015)
+
+### Contributors
+
+* @conda-bot
+* @dholth
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @soapy1
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+### New Contributors
+* @mmc1718 made their first contribution in https://github.com/conda/conda/pull/15025
+
 
 
 
