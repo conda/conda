@@ -13,7 +13,7 @@ from logging import getLogger
 from os.path import basename, isdir
 from pathlib import Path
 from shutil import rmtree
-from subprocess import check_call, check_output
+from subprocess import check_output
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
@@ -34,13 +34,14 @@ from conda.common.io import stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
     BIN_DIRECTORY,
+    get_major_minor_version,
     get_python_site_packages_short_path,
     pyc_path,
 )
 from conda.common.serialize import json, yaml_round_trip_load
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
-from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
@@ -89,6 +90,7 @@ if TYPE_CHECKING:
     from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
+        PipCLIFixture,
         TmpChannelFixture,
         TmpEnvFixture,
     )
@@ -542,7 +544,7 @@ def test_noarch_python_package_with_entry_points(
     entry point script, "pygmentize".
     """
     with tmp_env("pygments") as prefix:
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/pygments/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
@@ -574,7 +576,7 @@ def test_noarch_python_package_without_entry_points(
     has no entry point scripts.
     """
     with tmp_env("itsdangerous") as prefix:
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
@@ -599,7 +601,7 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         return
 
     with tmp_env("itsdangerous", "python=3.10") as prefix:
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         assert py_ver.startswith("3.10")
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
@@ -611,7 +613,7 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         # python 3.10 pyc file should be gone
         assert not (prefix / pyc_file_py310).is_file()
 
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         assert py_ver.startswith("3.11")
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
@@ -831,26 +833,27 @@ def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     reset_context()
 
 
-def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_list_with_pip_no_binary(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    pip_cli: PipCLIFixture,
+    wheelhouse: Path,
+):
     from conda.exports import rm_rf as _rm_rf
 
     py_ver = "3.10"
     with tmp_env(f"python={py_ver}", "pip") as prefix:
-        check_call(
-            f"{PYTHON_BINARY} -m pip install --no-binary flask flask==1.0.2",
-            cwd=prefix,
-            shell=True,
-        )
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
 
         PrefixData._cache_.clear()
-        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert any(
             line.endswith("pypi")
             for line in stdout.split("\n")
-            if line.lower().startswith("flask")
+            if line.lower().startswith("small-python-package")
         )
-        assert not stderr
-        assert not err
 
         # regression test for #5847
         #   when using rm_rf on a directory
@@ -862,27 +865,28 @@ def test_list_with_pip_no_binary(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
 
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_list_with_pip_wheel(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    pip_cli: PipCLIFixture,
+    request: pytest.FixtureRequest,
+    wheelhouse: Path,
 ):
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
     with tmp_env("python=3.10", "pip") as prefix:
-        check_call(
-            f"{PYTHON_BINARY} -m pip install flask==1.0.2",
-            cwd=prefix,
-            shell=True,
-        )
-
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
         PrefixData._cache_.clear()
-        stdout, stderr, err = conda_cli("list", f"--prefix={prefix}")
+        stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert any(
             line.endswith("pypi")
             for line in stdout.split("\n")
-            if line.lower().startswith("flask")
+            if line.lower().startswith("small-python-package")
         )
         assert not stderr
-        assert not err
+        assert not code
 
         # regression test for #3433
         conda_cli("install", f"--prefix={prefix}", "python=3.9", "--yes")
@@ -1352,6 +1356,7 @@ def test_update_all_updates_pip_pkg(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    pip_cli: PipCLIFixture,
 ):
     monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
@@ -1359,11 +1364,8 @@ def test_update_all_updates_pip_pkg(
 
     with tmp_env("python", "pip", "pytz<2023") as prefix:
         # install an old version of itsdangerous from pip
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "install", "itsdangerous==1.*"),
-        )
+        stdout, stderr, err = pip_cli("install", "itsdangerous==1.*", prefix=prefix)
+        assert err == 0, f"pip install failed: {stderr}"
 
         # ensure installed version of itsdangerous is from PyPI
         PrefixData._cache_.clear()
@@ -1714,6 +1716,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    pip_cli: PipCLIFixture,
 ):
     if "conda-forge" in context.channels:
         pytest.skip("This test is too slow with conda-forge as default channel.")
@@ -1744,26 +1747,17 @@ def test_conda_pip_interop_pip_clobbers_conda(
         py_path = next(filter(None, stdout.splitlines()), None)
         assert py_path and (prefix / PYTHON_BINARY).samefile(py_path)
 
-        stdout, _, _ = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "python",
-            "-m",
-            "pip",
-            "list",
-            "--format=freeze",
-        )
+        stdout, _, _ = pip_cli("list", "--format=freeze", prefix=prefix)
         assert any(pkg.strip() == "six==1.9.0" for pkg in stdout.splitlines())
 
-        py_ver = get_python_version_for_prefix(prefix)
+        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         sp_dir = get_python_site_packages_short_path(py_ver)
 
         PrefixData._cache_.clear()
-        stdout, _, _ = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "install", "--upgrade", "six==1.10"),
+        stdout, stderr, code = pip_cli(
+            "install", "--upgrade", "six==1.10", prefix=prefix
         )
+        assert code == 0, f"pip install failed: {stderr}"
         assert "Successfully installed six-1.10.0" in stdout
 
         stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "--json")
@@ -1778,11 +1772,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
             "version": "1.10.0",
         }
         assert package_is_installed(prefix, "six=1.10.0")
-        stdout, _, _ = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "list", "--format=freeze"),
-        )
+        stdout, _, _ = pip_cli("list", "--format=freeze", prefix=prefix)
         assert any(pkg.strip() == "six==1.10.0" for pkg in stdout.splitlines())
 
         assert json.loads(json.dumps(PrefixData(prefix).get("six"))) == {
@@ -1886,11 +1876,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         )
         assert package_is_installed(prefix, "six>=1.11")
 
-        stdout, _, _ = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "list", "--format=freeze"),
-        )
+        stdout, _, _ = pip_cli("list", "--format=freeze", prefix=prefix)
         assert any(
             pkg.strip() == f"six=={PrefixData(prefix).get('six').version}"
             for pkg in stdout.splitlines()
@@ -1898,11 +1884,10 @@ def test_conda_pip_interop_pip_clobbers_conda(
         assert len(list((prefix / "conda-meta").glob("six-*.json"))) == 1
 
         PrefixData._cache_.clear()
-        stdout, _, _ = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "install", "--upgrade", "six==1.10"),
+        stdout, stderr, code = pip_cli(
+            "install", "--upgrade", "six==1.10", prefix=prefix
         )
+        assert code == 0, f"pip install failed: {stderr}"
         assert "Successfully installed six-1.10.0" in stdout
         assert package_is_installed(prefix, "six=1.10.0")
 
@@ -1919,6 +1904,7 @@ def test_conda_pip_interop_conda_editable_package(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    pip_cli: PipCLIFixture,
 ):
     request.applymarker(
         pytest.mark.xfail(
@@ -2004,11 +1990,10 @@ def test_conda_pip_interop_conda_editable_package(
 
         # Now install a manageable urllib3.
         PrefixData._cache_.clear()
-        conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "install", "--upgrade", "urllib3==1.20"),
+        stdout, stderr, code = pip_cli(
+            "install", "--upgrade", "urllib3==1.20", prefix=prefix
         )
+        assert code == 0, f"pip install failed: {stderr}"
         assert package_is_installed(prefix, "urllib3")
         prec_dump = PrefixData(prefix).get("urllib3").dump()
         prec_dump.pop("files")
@@ -2054,6 +2039,7 @@ def test_conda_pip_interop_compatible_release_operator(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    pip_cli: PipCLIFixture,
 ):
     if "conda-forge" in context.channels:
         pytest.skip("This test is too slow with conda-forge as default channel.")
@@ -2074,23 +2060,16 @@ def test_conda_pip_interop_compatible_release_operator(
         assert package_is_installed(prefix, "appdirs>=1.4.3")
 
         PrefixData._cache_.clear()
-        _, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "install", "fs==2.1.0"),
-        )
-        assert err
+        _, stderr, err = pip_cli("install", "fs==2.1.0", prefix=prefix)
+        assert err != 0
         assert "Cannot uninstall" in stderr
 
         conda_cli("remove", f"--prefix={prefix}", "six", "--yes")
         assert not package_is_installed(prefix, "six")
 
         PrefixData._cache_.clear()
-        conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *("python", "-m", "pip", "install", "fs==2.1.0"),
-        )
+        stdout, stderr, code = pip_cli("install", "fs==2.1.0", prefix=prefix)
+        assert code == 0, f"pip install failed: {stderr}"
         assert package_is_installed(prefix, "fs==2.1.0")
         assert package_is_installed(prefix, "six~=1.10")
 
