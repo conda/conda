@@ -155,7 +155,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if source_prefix_data == PrefixData(context.default_activation_prefix):
         raise CondaEnvException(
-            "Cannot rename an environment if it is the default_activation_env."
+            "Cannot rename an environment if it is configured as `default_activation_env`."
         )
 
     source = str(source_prefix_data.prefix_path)
