@@ -139,6 +139,7 @@ def test_create_advanced_pip(
         *("env", "create"),
         *("--name", env_name),
         *("--file", str(environment_yml)),
+        "--verbose",
     )
 
     PrefixData._cache_.clear()
