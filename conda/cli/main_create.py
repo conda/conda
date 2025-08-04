@@ -112,14 +112,24 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
-    # Only one of the arguments --clone and packages is allowed
-    if args.clone and args.packages:
-        raise TooManyArgumentsError(
-            0,
-            len(args.packages),
-            list(args.packages),
-            "did not expect any arguments for --clone",
-        )
+    # If the --clone argument is provided, users must not provide any other
+    # package specification. That includes providing the --file argument or
+    # a list of packages
+    if args.clone:
+        if args.packages:
+            raise TooManyArgumentsError(
+                0,
+                len(args.packages),
+                list(args.packages),
+                "did not expect any new packages or arguments for --clone",
+            )
+        elif args.file:
+            raise TooManyArgumentsError(
+                0,
+                len(args.file),
+                list(args.file),
+                "--file and --clone arguments are mutually exclusive",
+            )
     prefix_data = PrefixData.from_context(validate=True)
 
     if prefix_data.is_environment():
