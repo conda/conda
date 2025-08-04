@@ -115,7 +115,7 @@ def test_create_advanced_pip(
 
     # Initialize git repository in the argh directory
     for args in (
-        ["git", "init"],
+        ["git", "init", "--initial-branch=main"],
         ["git", "config", "user.name", "Test User"],
         ["git", "config", "user.email", "test@example.com"],
         ["git", "add", "."],
