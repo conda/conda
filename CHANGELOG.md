@@ -19,12 +19,12 @@
 * Introduce new dataclass `conda.models.environment.EnvironmentConfig` to represent `Environment` settings, a subset of `context` settings that impact environment creation and management. (#14913, #15026)
 * Allow env spec plugins to opt-out of auto detection. (#14914)
 * Handle exceptions coming from environment spec plugins `can_handle` functions. (#14916)
-* The conda package is included when cloning an environment. (#14917 via #14919)
-* Lazily evaluate cli options originating from the plugin manager. (#14925)
+* The `conda` package is included when cloning an environment. (#14917 via #14919)
+* Lazily evaluate CLI options originating from the plugin manager. (#14925)
 * Improve the error message that appears when duplicate records are found in the prefix. (#14927)
 * Add virtual packages field to the Environment model. (#14979)
-* Create EnvironmentConfig from context. (#14986)
-* Add CondaPlugin base class with name normalization. (#15002)
+* Add ability to create `EnvironmentConfig` instances from a given context. (#14986)
+* Add `CondaPlugin` base class with name normalization. (#15002)
 * Enhance `LazyChoicesAction` with dynamic choices property and caching for improved CLI argument validation and help text generation. (#15046)
 
 ### Bug fixes
@@ -34,10 +34,10 @@
 * Improve type hints and error handling in conda installer functions. (#14820)
 * Fix `conda export --override-channels` behavior to properly include installed packages' channels (unless `--ignore-channels` is also provided), restoring the original intended functionality and improving environment reproducibility. (#15048 via #14886)
 * Fix `tmp_channel` fixture to also include dependencies in the temporary channel. (#14924)
-* Fix bug discovered when setting `envvars_force_uppercase = False`. (#14934 via #14942)
+* Fix unsetting environment variables when `envvars_force_uppercase = False`. (#14934 via #14942)
 * Respect `--platform` option on subsequent environment operations after initial `conda env create` call. (#14949 via #14956)
 * Apply case normalization to all activation environment variables. (#14960)
-* Separate requirements.txt and explicit environment specs. (#14684 via #14963)
+* Separate `requirements.txt` and `explicit` environment specs. (#14684 via #14963)
 * Fix `EnvironmentConfig.aggressive_update_packages` type. It is a list of strings, not a bool. (#14982)
 * Fix `EnvironmentConfig.channel_settings` type. It is a list of dicts, not a dict. (#14984)
 * Ensure file types can not be mixed in the conda install command. (#14999)
@@ -75,16 +75,14 @@
 * Add glossary entries for CEP 23, environment exporters, explicit format, and requirements format. (#14886)
 * Add note about enhanced `conda export` functionality alongside existing `conda env export`. (#14886)
 * Add docs about environment spec plugin detection. (#14918)
-* No longer claim that `noarch/repodata.json.bz2` is required. Conda has not
-  used `repodata.json.bz2` for years. (#14965)
+* No longer claim that `noarch/repodata.json.bz2` is required. Conda has not used `repodata.json.bz2` for years. (#14965)
 
 ### Other
 
-* Delay environment activation in dev setup to avoid issues when `default_activation_env` is set (#14910)
+* Delay environment activation in dev setup to avoid issues when `default_activation_env` is set. (#14910)
 * Environment Spec plugins should return an Environment model. (#14937)
 * EnvironmentConfig lists of values should be tuples. (#15000)
-* Avoid modifying `tests/env/support` in test suite and confusing subsequent
-  test runs. (#15011)
+* Avoid modifying `tests/env/support` in test suite and confusing subsequent test runs. (#15011)
 * Remove unused import of deprecated `DumpEncoder`. (#15015)
 
 ### Contributors
