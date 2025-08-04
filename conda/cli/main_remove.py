@@ -173,7 +173,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if args.all and prefix_data == PrefixData(context.default_activation_prefix):
         raise CondaEnvironmentError(
-            "Cannot remove an environment if it is the default_activation_env."
+            "Cannot remove an environment if it is configured as `default_activation_env`."
         )
 
     if args.all and path_is_clean(prefix):
