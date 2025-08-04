@@ -13,7 +13,7 @@ import pytest
 from conda.base.context import context
 from conda.common.io import stderr_log_level
 from conda.exceptions import (
-    CondaEnvironmentError,
+    CondaEnvException,
     DryRunExit,
     EnvironmentLocationNotFound,
     PackagesNotFoundError,
@@ -125,7 +125,7 @@ def test_remove_all_default_activation_env(
         )
         assert Path(env) == Path(context.default_activation_prefix)
         with pytest.raises(
-            CondaEnvironmentError,
+            CondaEnvException,
             match="Cannot remove an environment if it is the default_activation_env.",
         ):
             conda_cli(

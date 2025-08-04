@@ -146,6 +146,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.link import PrefixSetup, UnlinkLinkTransaction
     from ..core.prefix_data import PrefixData
     from ..exceptions import (
+        CondaEnvException,
         CondaEnvironmentError,
         CondaValueError,
         PackagesNotFoundError,
@@ -172,7 +173,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         raise CondaEnvironmentError(msg)
 
     if args.all and prefix_data == PrefixData(context.default_activation_prefix):
-        raise CondaEnvironmentError(
+        raise CondaEnvException(
             "Cannot remove an environment if it is configured as `default_activation_env`."
         )
 
