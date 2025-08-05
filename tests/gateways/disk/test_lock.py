@@ -58,7 +58,7 @@ def test_lock_acquired_success(mocker: MockerFixture, capsys: CaptureFixture, tm
     assert "Failed to acquire lock." not in stdout
 
 
-def lock_wrapper(path, q):
+def lock_wrapper(path):
     import time
 
     try:
@@ -66,40 +66,18 @@ def lock_wrapper(path, q):
             with lock(fd):
                 # sleep needs to be long enough to keep p1 process running while p2 starts
                 time.sleep(12)
-            q.put("success")
+            return "success"
     except LockError:
-        q.put("lock_error")
+        return "lock_error"
 
 
-def test_double_locking_fails(mocker: MockerFixture, capsys: CaptureFixture, tmp_path):
-    from multiprocessing import Process, Queue
+def test_double_locking_fails(mocker: MockerFixture, tmp_path):
+    from multiprocessing import Pool
 
     tmp_file = tmp_path / "testfile"
     tmp_file.write_bytes(b"test")
 
-    q = Queue()
-
-    p1 = Process(
-        target=lock_wrapper,
-        args=(
-            tmp_file,
-            q,
-        ),
-    )
-    p2 = Process(
-        target=lock_wrapper,
-        args=(
-            tmp_file,
-            q,
-        ),
-    )
-
-    p1.start()
-    p2.start()
-    p1.join()
-    p2.join()
-
-    result = [q.get() for _ in range(2)]
-
+    p = Pool()
+    result = p.map(lock_wrapper, [tmp_file, tmp_file])
     assert "success" in result
     assert "lock_error" in result
