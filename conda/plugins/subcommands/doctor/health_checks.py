@@ -257,7 +257,9 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
 
     # If there are no pinned specs, exit early
     if not pinned_specs:
-        print(f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}.")
+        print(
+            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}."
+        )
         return
 
     # If there is a pinned package that does not exist in the prefix, that
