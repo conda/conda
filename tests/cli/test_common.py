@@ -109,9 +109,9 @@ def test_validate_file_exists(filename, exists):
             validate_file_exists(filename)
 
 
-def test_validate_subdir_config(mocker: MockerFixture):
-    """Test conda will validate the subdir config."""
-    # Set dummy subdir to something that is not the native subdir
+@pytest.fixture
+def mock_subdir_context(mocker: MockerFixture):
+    """Mock context with non-existent subdir and root prefix for subdir validation tests."""
     subdir = "idontexist"
     mocker.patch(
         "conda.base.context.Context.subdir",
@@ -119,14 +119,17 @@ def test_validate_subdir_config(mocker: MockerFixture):
         return_value=subdir,
     )
 
-    # Set the root to a non-existent path
     mocker.patch(
         "conda.base.context.Context.root_prefix",
         new_callable=mocker.PropertyMock,
         return_value="/something/that/does/not/exist",
     )
+    
+    return subdir  # Return subdir value in case tests need it
 
-    # Simulate the context having config only coming from the command line
+
+def test_validate_subdir_config(mock_subdir_context, mocker: MockerFixture):
+    """Test conda will validate the subdir config."""
     mocker.patch(
         "conda.base.context.Context.collect_all",
         return_value={
@@ -139,26 +142,12 @@ def test_validate_subdir_config(mocker: MockerFixture):
     validate_subdir_config()
 
 
-def test_validate_subdir_config_invalid_subdir(mocker: MockerFixture):
+def test_validate_subdir_config_invalid_subdir(mock_subdir_context, mocker: MockerFixture):
     """Test conda will validate the subdir config. The configuration is
     invalid if it is coming from the active prefix"""
-    # Set dummy subdir to something that is not the native subdir
-    subdir = "idontexist"
-    mocker.patch(
-        "conda.base.context.Context.subdir",
-        new_callable=mocker.PropertyMock,
-        return_value=subdir,
-    )
-
-    # Set the root to a non-existent path
-    mocker.patch(
-        "conda.base.context.Context.root_prefix",
-        new_callable=mocker.PropertyMock,
-        return_value="/something/that/does/not/exist",
-    )
-
-    # Simulate config coming from the active prefix's condarc file and the command line
+    subdir = mock_subdir_context  # Get the subdir value from fixture
     dummy_conda_rc = Path(context.active_prefix) / "condarc"
+    
     mocker.patch(
         "conda.base.context.Context.collect_all",
         return_value={
