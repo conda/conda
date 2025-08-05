@@ -75,9 +75,9 @@ def test_double_locking_fails(mocker: MockerFixture, tmp_path):
     from multiprocessing import Pool
 
     tmp_file = tmp_path / "testfile"
-    tmp_file.write_bytes(b"test")
+    tmp_file.touch()
 
-    p = Pool()
-    result = p.map(lock_wrapper, [tmp_file, tmp_file])
-    assert "success" in result
-    assert "lock_error" in result
+    with Pool(processes=2) as p:
+        result = p.map(lock_wrapper, [tmp_file, tmp_file])
+        assert "success" in result
+        assert "lock_error" in result
