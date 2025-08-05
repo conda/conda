@@ -33,28 +33,11 @@ def test_locking_not_supported(monkeypatch: MonkeyPatch, tmp_path):
         lock(tmp_file)
 
 
-@pytest.mark.skipif(not on_win, reason="windows-specific test")
-def test_LockError_raised_windows(
-    mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path
-):
-    tmp_file = tmp_path / "testfile"
-    tmp_file.write_bytes(b"test")
-    mocker.patch("msvcrt.locking", side_effect=OSError)
-    monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
-    with pytest.raises(LockError):
-        with tmp_file.open("r+b") as f:
-            with lock(f):
-                pass
-
-
-@pytest.mark.skipif(on_win, reason="non windows test")
-def test_LockError_raised_not_windows(
-    mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path
-):
+def test_LockError_raised(mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path):
     tmp_file = tmp_path / "testfile"
     tmp_file.write_bytes(b"test")
 
-    mocker.patch("fcntl.lockf", side_effect=OSError)
+    mocker.patch("msvcrt.locking" if on_win else "fcntl.lockf", side_effect=OSError)
     monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
     with pytest.raises(LockError):
         with tmp_file.open("r+b") as f:
