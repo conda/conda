@@ -96,8 +96,20 @@ def test_double_locking_fails(mocker: MockerFixture, capsys: CaptureFixture, tmp
 
     q = Queue()
 
-    p1 = Process(target=lock_wrapper, args=(tmp_file, q))
-    p2 = Process(target=lock_wrapper, args=(tmp_file, q))
+    p1 = Process(
+        target=lock_wrapper,
+        args=(
+            tmp_file,
+            q,
+        ),
+    )
+    p2 = Process(
+        target=lock_wrapper,
+        args=(
+            tmp_file,
+            q,
+        ),
+    )
 
     p1.start()
     p2.start()

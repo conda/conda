@@ -70,16 +70,16 @@ except ImportError:
                             self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, LOCK_BYTE
                         )
                         break
-                    except OSError as e:
+                    except OSError:
                         if attempt > LOCK_ATTEMPTS - 2:
-                            raise LockError("Failed to acquire lock.") from e
+                            raise LockError("Failed to acquire lock.")
                         time.sleep(LOCK_SLEEP)
 
             def __exit__(self, *exc):
                 try:
                     fcntl.lockf(self.fd, fcntl.LOCK_UN, 1, LOCK_BYTE)
-                except OSError as e:
-                    raise LockError("Failed to release lock.") from e
+                except OSError:
+                    raise LockError("Failed to release lock.")
 
 
 def lock(fd):
