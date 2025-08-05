@@ -352,8 +352,8 @@ def assemble_environment(
             )
         except UnicodeError:
             raise CondaError(
-                "Error reading file, file should be a text file containing"
-                " packages \nconda create --help for details"
+                "Error reading file, file should be a text file containing packages\n"
+                "See `conda create --help` for details."
             )
 
     for spec in specs:
@@ -371,7 +371,7 @@ def assemble_environment(
             )
         else:
             raise CondaValueError(
-                "cannot mix specifications with conda package filenames"
+                "Cannot mix specifications with conda package filenames"
             )
 
     return Environment(
@@ -439,9 +439,10 @@ def install(args, parser, command="install"):
         not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
 
-    update_modifier = env.config.update_modifier
     if isinstall and args.update_modifier == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
+    else:
+        update_modifier = env.config.update_modifier
     deps_modifier = env.config.deps_modifier
 
     for repodata_fn in Repodatas(
