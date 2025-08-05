@@ -21,7 +21,7 @@ from ..auxlib.ish import dals
 from ..base.constants import (
     CMD_LINE_SOURCE,
     ENV_VARS_SOURCE,
-    NON_PATH_CONTEXT_SOURCES,
+    CONFIGURATION_SOURCES,
     PREFIX_MAGIC_FILE,
 )
 from ..base.context import context, env_name
@@ -342,7 +342,7 @@ def validate_subdir_config():
                 (
                     config
                     for path, config in context_sources.items()
-                    if path not in NON_PATH_CONTEXT_SOURCES
+                    if path not in CONFIGURATION_SOURCES
                     and paths_equal(context.active_prefix, path.parent)
                 ),
                 {},
