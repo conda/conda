@@ -292,6 +292,6 @@ def conda_health_checks():
         name="Consistent Environment Check", action=consistent_env_check
     )
     yield CondaHealthCheck(
-        name="conda-meta/pinned Well Formatted Check",
+        name=f"{PREFIX_PINNED_FILE} Well Formatted Check",
         action=pinned_well_formatted_check,
     )
