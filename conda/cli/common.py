@@ -20,8 +20,8 @@ from typing import TYPE_CHECKING
 from ..auxlib.ish import dals
 from ..base.constants import (
     CMD_LINE_SOURCE,
-    ENV_VARS_SOURCE,
     CONFIGURATION_SOURCES,
+    ENV_VARS_SOURCE,
     PREFIX_MAGIC_FILE,
 )
 from ..base.context import context, env_name

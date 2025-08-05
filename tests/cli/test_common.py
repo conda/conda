@@ -124,7 +124,7 @@ def mock_subdir_context(mocker: MockerFixture):
         new_callable=mocker.PropertyMock,
         return_value="/something/that/does/not/exist",
     )
-    
+
     return subdir  # Return subdir value in case tests need it
 
 
@@ -142,12 +142,14 @@ def test_validate_subdir_config(mock_subdir_context, mocker: MockerFixture):
     validate_subdir_config()
 
 
-def test_validate_subdir_config_invalid_subdir(mock_subdir_context, mocker: MockerFixture):
+def test_validate_subdir_config_invalid_subdir(
+    mock_subdir_context, mocker: MockerFixture
+):
     """Test conda will validate the subdir config. The configuration is
     invalid if it is coming from the active prefix"""
     subdir = mock_subdir_context  # Get the subdir value from fixture
     dummy_conda_rc = Path(context.active_prefix) / "condarc"
-    
+
     mocker.patch(
         "conda.base.context.Context.collect_all",
         return_value={
