@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from dataclasses import fields
+from types import SimpleNamespace
 
 import pytest
 from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
-from types import SimpleNamespace
 
-from conda.base.context import reset_context
 from conda.base.constants import ChannelPriority
+from conda.base.context import reset_context
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
@@ -482,7 +482,7 @@ def test_from_cli_with_files(mocker: MockerFixture):
             packages=["scipy"],
             file=["/my/files/that/does/not/exist"],
         ),
-        add_default_packages=True
+        add_default_packages=True,
     )
     assert env.config == EnvironmentConfig.from_context()
     assert env.name == "testenv"

@@ -12,12 +12,13 @@ from typing import TYPE_CHECKING
 
 from ..base.constants import EXPLICIT_MARKER, PLATFORMS, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import is_package_file
-from ..core.prefix_data import PrefixData
+
 # TODO: this cli import will be removed once the Environment.from_cli method
 # is updated to use the environment spec plugins to read environment files.
 from ..cli.common import specs_from_url
+from ..common.iterators import groupby_to_dict as groupby
+from ..common.path import is_package_file
+from ..core.prefix_data import PrefixData
 from ..exceptions import CondaError, CondaValueError
 from ..history import History
 from ..misc import get_package_records_from_explicit
@@ -483,14 +484,14 @@ class Environment:
         """
         Create an Environment model from command-line arguments.
 
-        This method will parse command-line arguments and create an 
+        This method will parse command-line arguments and create an
         Environment object. This includes: reading files provided as
         cli arguments, and pulling EnvironmentConfig from the context.
 
         :param args: argparse Namespace containing command-line arguments
         :return: An Environment object representing the cli
         """
-        specs=[s.strip("\"'") for s in args.packages]
+        specs = [s.strip("\"'") for s in args.packages]
         if add_default_packages:
             names = {MatchSpec(pkg).name for pkg in specs}
             for pkg in context.create_default_packages:
@@ -509,11 +510,7 @@ class Environment:
         for fpath in args.file:
             try:
                 specs.extend(
-                    [
-                        spec
-                        for spec in specs_from_url(fpath)
-                        if spec != EXPLICIT_MARKER
-                    ]
+                    [spec for spec in specs_from_url(fpath) if spec != EXPLICIT_MARKER]
                 )
             except UnicodeError:
                 raise CondaError(
