@@ -1,5 +1,108 @@
 [//]: # (current developments)
 
+## 25.7.0 (2025-08-01)
+
+### Enhancements
+
+* Ensure conda does not allow for mixing input file types. (#14684 via #14725)
+* Add "environment consistency" health check to `conda doctor`. (#14715 via #14799)
+* Add support for explicit environment specification files as a supported environment spec according to CEP-23, bringing parity between `conda env` and `conda create/install/update`. (#14820)
+* Add an experimental data model to represent an environment. (#14870)
+* Add config option `environment_specifier` and CLI argument (`--environment-specifier, --env-spec`) to allow users to select which environment specifier plugin to use. (#14877)
+* Enhance `conda export` command now supports plugin-based architecture with multiple output formats:
+  - `environment-yaml` (cross-platform YAML, default format)
+  - `environment-json` (cross-platform JSON for programmatic use)
+  - `explicit` (CEP 23 compliant explicit URLs for exact reproduction)
+  - `requirements` (MatchSpec-based requirements format) (#14886)
+* Add automatic export format detection based on filename patterns (e.g., `environment.yaml`, `explicit.txt`, `requirements.txt`) (#14886)
+* Add export format aliases for convenience (`yaml`, `yml`, `json`, `reqs`, `txt`) (#14886)
+* Introduce new dataclass `conda.models.environment.EnvironmentConfig` to represent `Environment` settings, a subset of `context` settings that impact environment creation and management. (#14913, #15026)
+* Allow env spec plugins to opt-out of auto detection. (#14914)
+* Handle exceptions coming from environment spec plugins `can_handle` functions. (#14916)
+* The `conda` package is included when cloning an environment. (#14917 via #14919)
+* Lazily evaluate CLI options originating from the plugin manager. (#14925)
+* Improve the error message that appears when duplicate records are found in the prefix. (#14927)
+* Add virtual packages field to the Environment model. (#14979)
+* Add ability to create `EnvironmentConfig` instances from a given context. (#14986)
+* Add `CondaPlugin` base class with name normalization. (#15002)
+* Enhance `LazyChoicesAction` with dynamic choices property and caching for improved CLI argument validation and help text generation. (#15046)
+
+### Bug fixes
+
+* Set default value for `version` parameter when `build` is set in `MatchSpec.conda_build_form()`. (#11200 via #15025)
+* Improve conda notices cache handling for better user experience. (#14229)
+* Improve type hints and error handling in conda installer functions. (#14820)
+* Fix `conda export --override-channels` behavior to properly include installed packages' channels (unless `--ignore-channels` is also provided), restoring the original intended functionality and improving environment reproducibility. (#15048 via #14886)
+* Fix `tmp_channel` fixture to also include dependencies in the temporary channel. (#14924)
+* Fix unsetting environment variables when `envvars_force_uppercase = False`. (#14934 via #14942)
+* Respect `--platform` option on subsequent environment operations after initial `conda env create` call. (#14949 via #14956)
+* Apply case normalization to all activation environment variables. (#14960)
+* Separate `requirements.txt` and `explicit` environment specs. (#14684 via #14963)
+* Fix `EnvironmentConfig.aggressive_update_packages` type. It is a list of strings, not a bool. (#14982)
+* Fix `EnvironmentConfig.channel_settings` type. It is a list of dicts, not a dict. (#14984)
+* Ensure file types can not be mixed in the conda install command. (#14999)
+* `ProxyError` now accepts an optional custom message parameter to provide more specific error details. (#14945)
+
+### Deprecations
+
+* Mark monkey-patching `json` to support `frozendict` and `obj.to_json()` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.CondaJSONEncoder` instead. (#14709)
+* Mark `conda.auxlib.entity.EntityEncoder` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.CondaJSONEncoder` instead. (#14709)
+* Mark `conda.auxlib.logz.DumpEncoder` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.CondaJSONEncoder` instead. (#14709)
+* Mark `conda.auxlib.logz._DUMPS` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead. (#14709)
+* Mark `conda.auxlib.logz.jsondumps` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead. (#14709)
+* Mark `conda.common.serialize.EntityEncoder` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.CondaJSONEncoder` instead. (#14709)
+* Mark `conda.common.serialize.json_load` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.loads(sort_keys=True)` instead. (#14709)
+* Mark `conda.common.serialize.json_dump` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.dumps(sort_keys=True)` instead. (#14709)
+* Mark `conda.exports.EntityEncoder` as pending deprecation, to be removed in 26.9. Use `conda.common.serialize.json.CondaJSONEncoder` instead. (#14709)
+* Mark `conda.env.specs.binstar.BinstarSpec.environment` as pending deprecation in 26.9. Use `conda.env.specs.binstar.BinstarSpec.env` instead. (#14397)
+* Mark `conda.env.specs.requirements.RequirementsSpec.environment` as pending deprecation in 26.9. Use `conda.env.specs.requirements.RequirementsSpec.env` instead. (#14397)
+* Mark `conda.env.specs.yaml_file.YamlFileSpec.environment` as pending deprecation in 26.9. Use `conda.env.specs.yaml_file.YamlFileSpec.env` instead. (#14397)
+* Mark `conda.env.env.Environment` as pending deprecation in 26.9. Use `conda.env.env.EnvironmentYaml` instead. (#14981)
+* Mark `conda.cli.common.arg2spec` as pending deprecation, to be removed in 26.9. (#15028)
+* Mark `conda.cli.common.specs_from_args` keyword argument `json` as pending deprecation, to be removed in 26.9. (#15028)
+* Mark `conda.gateways.disk.create.create_application_entry_point` as pending deprecation, to be removed in 26.9. (#15062)
+* Mark `conda.gateways.disk.create.ProgressFileWrapper` as pending deprecation, to be removed in 26.9. (#15062)
+* Mark `conda.gateways.disk.create.create_fake_executable_softlink` as pending deprecation, to be removed in 26.9. (#15062)
+* Postpone `conda.env.specs.binstar` deprecation to 26.9. (#15062)
+
+### Docs
+
+* Add documentation for `conda export` command with examples and format specifications. (#14886)
+* Add environment exporter plugin development guide with examples and best practices. (#14886)
+* Update environment management documentation to highlight new export capabilities. (#14886)
+* Update cheatsheet with new export formats and commands. (#14886)
+* Enhance command comparison table to include new export functionality. (#14886)
+* Add glossary entries for CEP 23, environment exporters, explicit format, and requirements format. (#14886)
+* Add note about enhanced `conda export` functionality alongside existing `conda env export`. (#14886)
+* Add docs about environment spec plugin detection. (#14918)
+* No longer claim that `noarch/repodata.json.bz2` is required. Conda has not used `repodata.json.bz2` for years. (#14965)
+
+### Other
+
+* Delay environment activation in dev setup to avoid issues when `default_activation_env` is set. (#14910)
+* Environment Spec plugins should return an Environment model. (#14937)
+* EnvironmentConfig lists of values should be tuples. (#15000)
+* Avoid modifying `tests/env/support` in test suite and confusing subsequent test runs. (#15011)
+* Remove unused import of deprecated `DumpEncoder`. (#15015)
+
+### Contributors
+
+* @conda-bot
+* @dholth
+* @jaimergp
+* @jezdez
+* @jjhelmus
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @mmc1718 made their first contribution in https://github.com/conda/conda/pull/15025
+* @soapy1
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
 ## 25.5.1 (2025-06-05)
 
 ### Bug fixes
@@ -15,6 +118,7 @@
 * @jaimergp
 * @soapy1
 * @travishathaway
+
 
 
 ## 25.5.0 (2025-05-21)
@@ -97,26 +201,21 @@
 * Refactor `conda create --clone` logic into a separate function. (#14743)
 * Use `dict.fromkeys` for sequence deduplication, instead of `IndexedSet()`. (#14777)
 
-
 ### Contributors
 
 * @conda-bot
-* @faithrider
+* @faithrider made their first contribution in https://github.com/conda/conda/pull/13820
 * @jaimergp
 * @jezdez
 * @kathatherine
 * @kenodegard
-* @peytondmurray
+* @peytondmurray made their first contribution in https://github.com/conda/conda/pull/14754
 * @samhaese
 * @soapy1
 * @travishathaway
 * @dependabot[bot]
 * @pre-commit-ci[bot]
 
-### New Contributors
-
-* @faithrider made their first contribution in https://github.com/conda/conda/pull/13820
-* @peytondmurray made their first contribution in https://github.com/conda/conda/pull/14754
 
 
 ## 25.3.1 (2025-04-03)
