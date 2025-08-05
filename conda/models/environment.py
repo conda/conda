@@ -10,15 +10,21 @@ from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ..base.constants import PLATFORMS, UNKNOWN_CHANNEL
+from ..base.constants import EXPLICIT_MARKER, PLATFORMS, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.iterators import groupby_to_dict as groupby
+from ..common.path import is_package_file
 from ..core.prefix_data import PrefixData
-from ..exceptions import CondaValueError
+# TODO: this cli import will be removed once the Environment.from_cli method
+# is updated to use the environment spec plugins to read environment files.
+from ..cli.common import specs_from_url
+from ..exceptions import CondaError, CondaValueError
 from ..history import History
+from ..misc import get_package_records_from_explicit
 from .match_spec import MatchSpec
 
 if TYPE_CHECKING:
+    from argparse import Namespace
     from collections.abc import Iterable
     from typing import TypeVar
 
@@ -466,4 +472,78 @@ class Environment:
             external_packages=external_packages,
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
+        )
+
+    @classmethod
+    def from_cli(
+        cls,
+        args: Namespace,
+        add_default_packages: bool = False,
+    ) -> Environment:
+        """
+        Create an Environment model from command-line arguments.
+
+        This method will parse command-line arguments and create an 
+        Environment object. This includes: reading files provided as
+        cli arguments, and pulling EnvironmentConfig from the context.
+
+        :param args: argparse Namespace containing command-line arguments
+        :return: An Environment object representing the cli
+        """
+        specs=[s.strip("\"'") for s in args.packages]
+        if add_default_packages:
+            names = {MatchSpec(pkg).name for pkg in specs}
+            for pkg in context.create_default_packages:
+                pkg_name = MatchSpec(pkg).name
+                if pkg_name not in names:
+                    specs.append(pkg)
+
+        requested_packages = []
+        fetch_explicit_packages = []
+
+        # extract specs from files
+        # TODO: This should be replaced with reading files using the
+        # environment spec plugin. The core conda cli commands are not
+        # ready for that yet. So, use this old way of reading specs from
+        # files.
+        for fpath in args.file:
+            try:
+                specs.extend(
+                    [
+                        spec
+                        for spec in specs_from_url(fpath)
+                        if spec != EXPLICIT_MARKER
+                    ]
+                )
+            except UnicodeError:
+                raise CondaError(
+                    "Error reading file, file should be a text file containing packages\n"
+                    "See `conda create --help` for details."
+                )
+
+        for spec in specs:
+            if is_package_file(spec):
+                fetch_explicit_packages.append(spec)
+            else:
+                requested_packages.append(MatchSpec(spec))
+
+        # transform explicit packages into package records
+        explicit_packages = []
+        if fetch_explicit_packages:
+            if len(fetch_explicit_packages) == len(specs):
+                explicit_packages = get_package_records_from_explicit(
+                    fetch_explicit_packages
+                )
+            else:
+                raise CondaValueError(
+                    "Cannot mix specifications with conda package filenames"
+                )
+
+        return Environment(
+            name=args.name,
+            prefix=context.target_prefix,
+            platform=context.subdir,
+            requested_packages=requested_packages,
+            explicit_packages=explicit_packages,
+            config=EnvironmentConfig.from_context(),
         )

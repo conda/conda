@@ -19,14 +19,12 @@ from boltons.setutils import IndexedSet
 
 from .. import CondaError
 from ..base.constants import (
-    EXPLICIT_MARKER,
     REPODATA_FN,
     ROOT_ENV_NAME,
     UpdateModifier,
 )
 from ..base.context import context
 from ..common.constants import NULL
-from ..common.path import is_package_file
 from ..core.index import (
     Index,
     calculate_channel_urls,
@@ -56,10 +54,9 @@ from ..history import History
 from ..misc import (
     _get_best_prec_match,
     clone_env,
-    get_package_records_from_explicit,
     install_explicit_packages,
 )
-from ..models.environment import Environment, EnvironmentConfig
+from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
@@ -323,67 +320,6 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
             raise PackageNotInstalledError(prefix, spec.name)
 
 
-def assemble_environment(
-    name: str | None = None,
-    prefix: str | None = None,
-    specs: list[str] = [],
-    files: list[str] = [],
-    inject_default_packages: bool = True,
-) -> Environment:
-    if inject_default_packages:
-        names = {MatchSpec(pkg).name for pkg in specs}
-        for pkg in context.create_default_packages:
-            pkg_name = MatchSpec(pkg).name
-            if pkg_name not in names:
-                specs.append(pkg)
-
-    requested_packages = []
-    fetch_explicit_packages = []
-
-    # extract specs from files
-    for fpath in files:
-        try:
-            specs.extend(
-                [
-                    spec
-                    for spec in common.specs_from_url(fpath)
-                    if spec != EXPLICIT_MARKER
-                ]
-            )
-        except UnicodeError:
-            raise CondaError(
-                "Error reading file, file should be a text file containing packages\n"
-                "See `conda create --help` for details."
-            )
-
-    for spec in specs:
-        if is_package_file(spec):
-            fetch_explicit_packages.append(spec)
-        else:
-            requested_packages.append(MatchSpec(spec))
-
-    # transform explicit packages into package records
-    explicit_packages = []
-    if fetch_explicit_packages:
-        if len(fetch_explicit_packages) == len(specs):
-            explicit_packages = get_package_records_from_explicit(
-                fetch_explicit_packages
-            )
-        else:
-            raise CondaValueError(
-                "Cannot mix specifications with conda package filenames"
-            )
-
-    return Environment(
-        name=name,
-        prefix=prefix or context.target_prefix,
-        platform=context.subdir,
-        requested_packages=requested_packages,
-        explicit_packages=explicit_packages,
-        config=EnvironmentConfig.from_context(),
-    )
-
-
 def install(args, parser, command="install"):
     """Logic for `conda install`, `conda update`, and `conda create`."""
     newenv = command == "create"
@@ -409,12 +345,9 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    env = assemble_environment(
-        name=args.name,
-        prefix=context.target_prefix,
-        specs=[s.strip("\"'") for s in args.packages],
-        files=args.file,
-        inject_default_packages=command == "create" and not args.no_default_packages,
+    env = Environment.from_cli(
+        args=args,
+        add_default_packages=command == "create" and not args.no_default_packages,
     )
 
     # install explicit specs
