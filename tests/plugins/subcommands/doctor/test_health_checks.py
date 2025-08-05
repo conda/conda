@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 from requests import Response
 
+from conda.base.constants import PREFIX_PINNED_FILE
 from conda.common.serialize import yaml_safe_dump
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
@@ -419,7 +420,7 @@ def test_pinned_will_formatted_check(
     expected_output: str,
 ):
     with tmp_env() as prefix:
-        (prefix / "conda-meta" / "pinned").write_text(pinned_file)
+        (prefix / PREFIX_PINNED_FILE).write_text(pinned_file)
 
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert expected_output in out

@@ -17,6 +17,7 @@ from ..base.constants import (
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
+    PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
@@ -627,7 +628,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def get_pinned_specs(self) -> tuple[MatchSpec]:
         """Find pinned specs from file and return a tuple of MatchSpec."""
-        pin_file = self.prefix_path / "conda-meta" / "pinned"
+        pin_file = self.prefix_path / PREFIX_PINNED_FILE
         if pin_file.exists():
             with pin_file.open() as f:
                 from_file = (

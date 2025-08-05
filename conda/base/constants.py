@@ -331,6 +331,7 @@ PREFIX_MAGIC_FILE: Final[PathType] = join("conda-meta", "history")
 PREFIX_FROZEN_FILE: Final[PathType] = join("conda-meta", "frozen")
 
 PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
+PREFIX_PINNED_FILE: Final[PathType] = join("conda-meta", "pinned")
 PACKAGE_ENV_VARS_DIR: Final[PathType] = join("etc", "conda", "env_vars.d")
 CONDA_ENV_VARS_UNSET_VAR: Final = "***unset***"
 
