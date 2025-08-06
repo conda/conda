@@ -38,10 +38,9 @@ def test_LockError_raised(mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_p
     tmp_file.write_bytes(b"test")
 
     mocker.patch("msvcrt.locking" if on_win else "fcntl.lockf", side_effect=OSError)
-    monkeypatch.setattr("conda.gateways.disk.lock.LOCK_ATTEMPTS", 1)
     with pytest.raises(LockError):
         with tmp_file.open("r+b") as f:
-            with lock(f):
+            with lock(f, lock_attempts=1):
                 pass
 
 
@@ -63,9 +62,8 @@ def lock_wrapper(path):
 
     try:
         with path.open("r+b") as fd:
-            with lock(fd):
-                # sleep needs to be long enough to keep p1 process running while p2 starts
-                time.sleep(12)
+            with lock(fd, lock_attempts=1):
+                time.sleep(1)
             return "success"
     except LockError:
         return "lock_error"
