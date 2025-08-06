@@ -515,7 +515,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch) -> None:
 
     json_obj = json.loads(c.stdout)
     assert not c.stderr
-    assert json_obj["detail"] == detail
+    assert json_obj["json"]["detail"] == detail
 
     monkeypatch.setenv("CONDA_JSON", "no")
     reset_context()
@@ -528,7 +528,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch) -> None:
     assert c.stderr == "\n".join(
         (
             "",
-            "CondaHTTPError: HTTP 403 for url <https://download.url/path/to/something.tar.gz>",
+            "CondaHTTPError: HTTP 403 CONNECTION FAILED for url <https://download.url/path/to/something.tar.gz>",
             "Elapsed: 1.26",
             "",
             detail,
