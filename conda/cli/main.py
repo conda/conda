@@ -4,6 +4,7 @@
 
 import sys
 
+from pathlib import Path
 
 def init_loggers():
     import logging
@@ -26,6 +27,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
+    from ..common.path import expand
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
@@ -51,7 +53,17 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
-    context.__init__(argparse_args=args)
+    # if we have a file argument, then we need to read it and pass its contents to the context
+    env_spec_config = {}
+    if hasattr(args, "file"):
+        paths = [args.file] if isinstance(args.file, str) else args.file
+        for path in paths:
+            full_path = expand(path)
+            spec_hook = context.plugin_manager.get_environment_specifier(full_path)
+            file_env = spec_hook.environment_spec(full_path).env
+            env_spec_config[Path(full_path)] = file_env.config
+
+    context.__init__(argparse_args=args, env_spec_config=env_spec_config)
     init_loggers()
 
     # used with main_pip.py
