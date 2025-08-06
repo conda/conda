@@ -63,7 +63,7 @@ def lock_wrapper(path):
     try:
         with path.open("r+b") as fd:
             with lock(fd, lock_attempts=1):
-                time.sleep(1)
+                time.sleep(2)
             return "success"
     except LockError:
         return "lock_error"

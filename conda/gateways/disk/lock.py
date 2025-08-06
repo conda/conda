@@ -14,6 +14,7 @@ from ...base.context import context
 from ...exceptions import LockError
 
 LOCK_BYTE = 21  # mamba interop
+LOCK_ATTEMPTS = 10
 LOCK_SLEEP = 1
 
 
@@ -82,7 +83,7 @@ except ImportError:
                     raise LockError("Failed to release lock.")
 
 
-def lock(fd, lock_attempts=10):
+def lock(fd, *, lock_attempts=LOCK_ATTEMPTS):
     if not context.no_lock:
         # locking required for jlap, now default for all
         return _lock_impl(fd, lock_attempts)
