@@ -121,14 +121,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 0,
                 len(args.packages),
                 list(args.packages),
-                "did not expect any new packages or arguments for --clone",
+                "Did not expect any new packages or arguments for `--clone`.",
             )
         elif args.file:
             raise TooManyArgumentsError(
                 0,
                 len(args.file),
                 list(args.file),
-                "--file and --clone arguments are mutually exclusive",
+                "`--file` and `--clone` arguments are mutually exclusive.",
             )
     prefix_data = PrefixData.from_context(validate=True)
 
