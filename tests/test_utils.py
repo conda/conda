@@ -51,7 +51,9 @@ def test_path_translations():
     ]
     for windows_path, unix_path, cygwin_path in paths:
         assert win_path_to_unix(windows_path) == unix_path
-        assert utils.unix_path_to_win(unix_path) == windows_path
+        # FUTURE: conda 25.9+ remove unix_path_to_win
+        with pytest.deprecated_call():
+            assert utils.unix_path_to_win(unix_path) == windows_path
 
         # assert utils.win_path_to_cygwin(windows_path) == cygwin_path
         # assert utils.cygwin_path_to_win(cygwin_path) == windows_path
@@ -60,7 +62,9 @@ def test_path_translations():
 def test_text_translations():
     test_win_text = "z:\\msarahan\\code\\conda\\tests\\envsk5_b4i\\test 1"
     test_unix_text = "/z/msarahan/code/conda/tests/envsk5_b4i/test 1"
-    assert_equals(test_win_text, utils.unix_path_to_win(test_unix_text))
+    # FUTURE: conda 25.9+ remove unix_path_to_win
+    with pytest.deprecated_call():
+        assert_equals(test_win_text, utils.unix_path_to_win(test_unix_text))
     assert_equals(test_unix_text, win_path_to_unix(test_win_text))
 
 
