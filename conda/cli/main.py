@@ -52,6 +52,13 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     context.__init__(argparse_args=pre_args)
 
     parser = generate_parser(add_help=True)
+    
+    # HACK: this piece of code determines if conda should be trying to read an input --file
+    # arg as part of setting up the context. Conda should just do this for the following 
+    # commands.Other commands may also support a --file argument, but these files are not 
+    # environment spec files.
+    read_input_file = True if args[0] in ("env", "install", "create", "update") else False
+    
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     # if we have a file argument, then we need to read it and pass its contents to the context
@@ -60,7 +67,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     # 1) a list of environments if coming from conda install/create/update
     # 2) a single environment spec if coming from conda env
     # 3) some other kind of file
-    if getattr(args, "file", None):
+    if read_input_file and getattr(args, "file", None):
         # Ensure that all the appropriate files will get processed
         paths = [args.file] if isinstance(args.file, str) else args.file
         for path in paths:
