@@ -271,7 +271,7 @@ class EnvironmentYaml:
             platform=context.subdir,
             name=self.name,
             config=config,
-            variables=self.variables,
+            variables=self.variables or {},
             external_packages=external_packages,
             requested_packages=requested_packages,
         )

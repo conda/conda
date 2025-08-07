@@ -266,7 +266,8 @@ class Environment:
             for requested_package in self.requested_packages:
                 if requested_package.name not in explicit_package_names:
                     raise CondaValueError(
-                        f"Requested package '{requested_package}' is not found in 'explicit_packages'."
+                        f"cannot mix specifications with conda package filenames.\n"
+                        f"    Requested package '{requested_package}' is not in the set of provided explicit packages."
                     )
 
     @classmethod
