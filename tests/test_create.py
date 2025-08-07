@@ -2680,7 +2680,7 @@ def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture)
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
 
 
-def test_create_without_clone_and_packages_raises_argument_error(
+def test_create_with_clone_and_packages_raises_argument_error(
     conda_cli: CondaCLIFixture,
 ):
     conda_cli(
@@ -2690,6 +2690,21 @@ def test_create_without_clone_and_packages_raises_argument_error(
         "--clone",
         "idontexist",
         "ca-certificates",
+        raises=TooManyArgumentsError,
+    )
+
+
+def test_create_with_clone_and_file_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+):
+    conda_cli(
+        "create",
+        "--prefix",
+        "/tmp/idontexist",
+        "--clone",
+        "idontexist",
+        "--file",
+        "/pretend/this/file/exists",
         raises=TooManyArgumentsError,
     )
 
