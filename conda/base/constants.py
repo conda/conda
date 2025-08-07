@@ -331,6 +331,7 @@ PREFIX_MAGIC_FILE: Final[PathType] = join("conda-meta", "history")
 PREFIX_FROZEN_FILE: Final[PathType] = join("conda-meta", "frozen")
 
 PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
+PREFIX_PINNED_FILE: Final[PathType] = join("conda-meta", "pinned")
 PACKAGE_ENV_VARS_DIR: Final[PathType] = join("etc", "conda", "env_vars.d")
 CONDA_ENV_VARS_UNSET_VAR: Final = "***unset***"
 
@@ -386,3 +387,10 @@ NO_PLUGINS: Final = False
 # When this string is present in an environment file, it indicates that the file
 # describes an explicit environment spec.
 EXPLICIT_MARKER: Final = "@EXPLICIT"
+
+# These variables describe the various sources for config that are supported by conda.
+# In addition to these sources, conda also supports configuration from condarc config
+# files (these are referred to in the context object by their full path as a pathlib.Path).
+CMD_LINE_SOURCE: Final = "cmd_line"
+ENV_VARS_SOURCE: Final = "envvars"
+CONFIGURATION_SOURCES: Final = (CMD_LINE_SOURCE, ENV_VARS_SOURCE)

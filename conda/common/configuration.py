@@ -43,6 +43,7 @@ from .. import CondaError, CondaMultiError
 from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
+from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
@@ -217,7 +218,7 @@ class RawParameter(metaclass=ABCMeta):
 
 
 class EnvRawParameter(RawParameter):
-    source = "envvars"
+    source = ENV_VARS_SOURCE
 
     def value(self, parameter_obj):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
@@ -261,7 +262,7 @@ class EnvRawParameter(RawParameter):
 
 
 class ArgParseRawParameter(RawParameter):
-    source = "cmd_line"
+    source = CMD_LINE_SOURCE
 
     def value(self, parameter_obj):
         # note: this assumes ArgParseRawParameter will only have flat configuration of either
@@ -1640,7 +1641,7 @@ class Configuration(metaclass=ConfigurationType):
     def post_build_validation(self):
         return ()
 
-    def collect_all(self):
+    def collect_all(self) -> dict[str | Path, dict]:
         typed_values = {}
         validation_errors = {}
         for source in self.raw_data:

@@ -25,6 +25,7 @@ from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     PREFIX_MAGIC_FILE,
+    PREFIX_PINNED_FILE,
     ChannelPriority,
     SafetyChecks,
 )
@@ -1339,7 +1340,7 @@ def test_package_pinning(
         assert package_is_installed(prefix, "dependent=1.0")
         assert package_is_installed(prefix, "dependency=1.0")
 
-        (prefix / "conda-meta" / "pinned").write_text("dependent ==1.0")
+        (prefix / PREFIX_PINNED_FILE).write_text("dependent ==1.0")
 
         conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
         assert package_is_installed(prefix, "another_dependent=2.0")
@@ -2689,7 +2690,7 @@ def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture)
     conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
 
 
-def test_create_without_clone_and_packages_raises_argument_error(
+def test_create_with_clone_and_packages_raises_argument_error(
     conda_cli: CondaCLIFixture,
 ):
     conda_cli(
@@ -2699,6 +2700,21 @@ def test_create_without_clone_and_packages_raises_argument_error(
         "--clone",
         "idontexist",
         "ca-certificates",
+        raises=TooManyArgumentsError,
+    )
+
+
+def test_create_with_clone_and_file_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+):
+    conda_cli(
+        "create",
+        "--prefix",
+        "/tmp/idontexist",
+        "--clone",
+        "idontexist",
+        "--file",
+        "/pretend/this/file/exists",
         raises=TooManyArgumentsError,
     )
 
