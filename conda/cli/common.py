@@ -22,7 +22,7 @@ from ..base.constants import (
     CMD_LINE_SOURCE,
     CONFIGURATION_SOURCES,
     ENV_VARS_SOURCE,
-    EXPLICIT_MARKER
+    EXPLICIT_MARKER,
     PREFIX_MAGIC_FILE,
 )
 from ..base.context import context, env_name

@@ -313,8 +313,8 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
         spec = MatchSpec(spec)
         if not spec.is_name_only_spec:
             raise CondaError(
-                f"'conda update' only supports name-only spec, but received: {spec}\n"
-                f"Use 'conda install' to install a specific version of a package."
+                f"`conda update` only supports name-only spec, but received: {spec}\n"
+                f"Use `conda install` to install a specific version of a package."
             )
         if not prefix_data.get(spec.name, None):
             raise PackageNotInstalledError(prefix, spec.name)

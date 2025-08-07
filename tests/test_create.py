@@ -530,7 +530,7 @@ def test_conda_update_package_is_not_name_only_spec(
     """
     with tmp_env() as prefix:
         with pytest.raises(
-            CondaError, match="'conda update' only supports name-only spec"
+            CondaError, match="`conda update` only supports name-only spec"
         ):
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 

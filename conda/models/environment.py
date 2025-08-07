@@ -491,13 +491,12 @@ class Environment:
         :param args: argparse Namespace containing command-line arguments
         :return: An Environment object representing the cli
         """
-        specs = [s.strip("\"'") for s in args.packages]
+        specs = [package.strip("\"'") for package in args.packages]
         if add_default_packages:
-            names = {MatchSpec(pkg).name for pkg in specs}
-            for pkg in context.create_default_packages:
-                pkg_name = MatchSpec(pkg).name
-                if pkg_name not in names:
-                    specs.append(pkg)
+            names = {MatchSpec(spec).name for spec in specs}
+            for default_package in context.create_default_packages:
+                if MatchSpec(default_package).name not in names:
+                    specs.append(default_package)
 
         requested_packages = []
         fetch_explicit_packages = []
