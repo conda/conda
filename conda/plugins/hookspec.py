@@ -21,8 +21,8 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
-        CondaInstaller,
         CondaHealthCheck,
+        CondaInstaller,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -728,24 +728,24 @@ class CondaSpecs:
                     aliases=("toml",),
                     default_filenames=("environment.toml",),
                     export=export_toml,
-            )
+                )
         """
         yield from ()
-
 
     def conda_installers(self) -> Iterable[CondaInstaller]:
         """
         Register new 'conda env' installer.
         The example below defines a simple pip installer:
-        
+
         **Example:**
-        
+
         .. code-block:: python
 
             import sys
             from subprocess import run
             from conda import plugins
             from conda.plugins.types import CondaInstaller, InstallerBase
+
             python = sys.executable
 
 

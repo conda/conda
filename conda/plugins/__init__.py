@@ -28,8 +28,8 @@ from .hookspec import hookimpl  # noqa: F401
 from .types import (  # noqa: F401
     CondaAuthHandler,
     CondaEnvironmentSpecifier,
-    CondaInstaller,
     CondaHealthCheck,
+    CondaInstaller,
     CondaPostCommand,
     CondaPostSolve,
     CondaPostTransactionAction,
