@@ -510,10 +510,8 @@ def test_conda_update_package_not_installed(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     """
-    Runs the update command twice with invalid input:
-
-    1. Package is not currently installed (package should not exist)
-    2. Invalid specification for a packaage
+    Runs the update, expecting a failure. The Package is not currently
+    installed (package should not exist).
     """
     with tmp_env() as prefix:
         conda_cli(
@@ -523,7 +521,17 @@ def test_conda_update_package_not_installed(
             raises=PackageNotInstalledError,
         )
 
-        with pytest.raises(CondaError, match="Invalid spec for 'conda update'"):
+
+def test_conda_update_package_is_not_name_only_spec(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """
+    Runs the update, expecting a failure. Invalid specification for a package.
+    """
+    with tmp_env() as prefix:
+        with pytest.raises(
+            CondaError, match="`conda update` only supports name-only spec"
+        ):
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
 
@@ -2380,11 +2388,12 @@ def test_create_env_different_platform(
 ):
     platform = f"{context.subdir.split('-')[0]}-fake"
 
+    # the platform must match the defined known platforms, patch to use fake subdir
+    monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
+    monkeypatch.setattr("conda.models.environment.PLATFORMS", [platform])
+
     # either set CONDA_SUBDIR or pass --platform
     if style == "cli":
-        # --platforms has explicit choices, patch to use fake subdir
-        monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
-
         args = [f"--platform={platform}"]
     else:
         monkeypatch.setenv("CONDA_SUBDIR", platform)
@@ -2772,3 +2781,40 @@ def test_dont_allow_mixed_file_arguments(conda_cli: CondaCLIFixture, cmd):
     )
 
     assert exc.match("Cannot mix environment file formats")
+
+
+@pytest.mark.parametrize("command", ["install", "create"])
+def test_mix_explicit_and_packages(
+    command: str,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        _, _, exc = conda_cli(
+            command,
+            *("--prefix", prefix),
+            "https://repo.anaconda.com/channel/subdir/mypackage-0.1.conda",
+            "python",
+            "--yes",
+            raises=CondaValueError,
+        )
+        assert "Cannot mix specifications with conda package filenames" in str(exc)
+
+
+@pytest.mark.parametrize("command", ["install", "create"])
+def test_mix_explicit_file_and_packages(
+    command: str,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        _, _, exc = conda_cli(
+            command,
+            *("--prefix", prefix),
+            "--file",
+            support_file("explicit.txt"),
+            "python",
+            "--yes",
+            raises=CondaValueError,
+        )
+        assert "Cannot mix specifications with conda package filenames" in str(exc)
