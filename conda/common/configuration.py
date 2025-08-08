@@ -419,9 +419,9 @@ class EnvironmentSpecificationRawParameter(RawParameter):
     def value(self, parameter_obj):
         if isiterable(self._raw_value):
             children_values = []
-            for i in range(len(self._raw_value)):
+            for value in self._raw_value:
                 children_values.append(
-                    EnvironmentSpecificationRawParameter(self.source, self.key, self._raw_value[i])
+                    EnvironmentSpecificationRawParameter(self.source, self.key, value)
                 )
             return tuple(children_values)
         else:
@@ -434,7 +434,7 @@ class EnvironmentSpecificationRawParameter(RawParameter):
         return None if isinstance(parameter_obj, PrimitiveLoadedParameter) else ()
 
     @classmethod
-    def make_raw_parameters(cls, source, from_map):
+    def make_raw_parameters(cls, source: Path, from_map: dict[str, Any]):
         """
         Create an EnvironmentSpecificationRawParameter from an environment specification
         :param source: the path to the environment specification file
@@ -1549,7 +1549,7 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
-    def _set_environment_spec_data(self, env_spec_config: dict[Path, EnvironmentConfig]):
+    def _set_environment_spec_data(self, env_spec_config: dict[Path, EnvironmentConfig]) -> None:
         for file, config in env_spec_config.items():
             # Ensure the file is a Path
             file_path = Path(file)
