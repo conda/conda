@@ -49,4 +49,4 @@ def test_dont_update_packages_with_version_constraints(
             "update",
             "python=3.10",
         )
-    assert "'conda update' only supports name-only spec" in excinfo.value.message
+    assert "`conda update` only supports name-only spec" in excinfo.value.message
