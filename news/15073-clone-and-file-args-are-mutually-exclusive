@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Create EnvironmentConfig from context. (#14986)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* `conda create --clone` should not allow users to specify a `--file`. (#15702 via #15073)
 
 ### Deprecations
 

@@ -17,7 +17,12 @@ from typing import TYPE_CHECKING
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
-from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
+from .base.constants import (
+    COMPATIBLE_SHELLS,
+    PREFIX_PINNED_FILE,
+    PathConflict,
+    SafetyChecks,
+)
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.iterators import groupby_to_dict as groupby
@@ -39,6 +44,7 @@ if TYPE_CHECKING:
     from conda.base.context import Context
     from conda.models.match_spec import MatchSpec
     from conda.models.records import PackageRecord
+    from conda.plugins.types import CondaEnvironmentExporter
 
 log = getLogger(__name__)
 
@@ -979,7 +985,7 @@ class SpecsConfigurationConflictError(CondaError):
         ).format(
             requested_specs_formatted=dashlist(requested_specs, 4),
             pinned_specs_formatted=dashlist(pinned_specs, 4),
-            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+            pinned_specs_path=join(prefix, PREFIX_PINNED_FILE),
         )
         super().__init__(
             message,
@@ -1327,24 +1333,32 @@ class EnvironmentExporterNotDetected(CondaError):
     def __init__(
         self,
         filename: str,
-        available_formats: Iterable[str],
-        supported_filenames: Iterable[str],
+        exporters: Iterable[CondaEnvironmentExporter],
         *args,
         **kwargs,
     ):
         self.filename = filename
-
-        msg = dals(
-            f"""
-            No environment exporter plugin found for filename '{filename}'.
-
-            Supported filenames: {dashlist(supported_filenames)}
-
-            Available formats: {dashlist(available_formats)}
-
-            Use conda export --format=FORMAT to specify the export format explicitly,
-            or rename your file to match a supported filename pattern.
-            """
+        supported_filenames: list[str] = []
+        available_formats: list[str] = []
+        for exporter in exporters:
+            supported_filenames.extend(
+                f"{filename:<20} (format: {exporter.name})"
+                for filename in exporter.default_filenames
+            )
+            available_formats.append(
+                f"{exporter.name:<20} (aliases: {', '.join(exporter.aliases)})"
+                if exporter.aliases
+                else exporter.name
+            )
+        msg = (
+            f"No environment exporter plugin found for filename '{filename}'.\n"
+            f"\n"
+            f"Supported filenames:{dashlist(supported_filenames)}\n"
+            f"\n"
+            f"Available formats:{dashlist(available_formats)}\n"
+            f"\n"
+            f"Use conda export --format=FORMAT to specify the export format explicitly, "
+            f"or rename your file to match a supported filename pattern."
         )
         super().__init__(msg, *args, **kwargs)
 

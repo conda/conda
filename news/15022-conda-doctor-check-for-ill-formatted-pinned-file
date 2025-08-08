@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add conda doctor check for if the pinned file is ill formatted. (#7978 via #15022)
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* EnvironmentConfig lists of values should be tuples. (#15000)
+* <news item>

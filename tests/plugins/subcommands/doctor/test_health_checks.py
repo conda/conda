@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 from requests import Response
 
+from conda.base.constants import PREFIX_PINNED_FILE
 from conda.common.serialize import yaml_safe_dump
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
@@ -400,3 +401,26 @@ def test_env_consistency_constrains_not_met(
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out
         assert expected_output_yaml in out
+
+
+@pytest.mark.parametrize(
+    "pinned_file,expected_output",
+    [
+        ("", OK_MARK),
+        ("conda 1.11", OK_MARK),
+        ("conda 1.11, otherpackages==1", X_MARK),
+        ('"conda"', X_MARK),
+        ("imnotinstalledyet", X_MARK),
+    ],
+)
+def test_pinned_will_formatted_check(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    pinned_file: str,
+    expected_output: str,
+):
+    with tmp_env() as prefix:
+        (prefix / PREFIX_PINNED_FILE).write_text(pinned_file)
+
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert expected_output in out

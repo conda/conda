@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Improve the error message that appears when duplicate records are found in the prefix. (#14927)
+* <news item>
 
 ### Bug fixes
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Update docs to reflect that conda cli args are higher precedence than env vars. (#15054)
 
 ### Other
 

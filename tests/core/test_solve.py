@@ -14,6 +14,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from conda.auxlib.ish import dals
+from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
@@ -3852,7 +3853,7 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
     # Test pinned specs conda environment file
     specs = ("scipy ==0.14.2", "openjdk >=8")
     with tmp_env() as prefix:
-        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs) + "\n")
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs) + "\n")
 
         pinned_specs = get_pinned_specs(prefix)
         assert pinned_specs != specs
@@ -3898,7 +3899,7 @@ def test_pinned_specs_all(
     assert context.pinned_packages == specs1
 
     with tmp_env() as prefix:
-        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs2) + "\n")
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs2) + "\n")
 
         # mock active prefix
         mocker.patch(

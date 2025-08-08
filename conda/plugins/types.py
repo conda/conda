@@ -516,7 +516,9 @@ class CondaEnvironmentExporter(CondaPlugin):
         super().__post_init__()  # Handle name normalization
         # Normalize aliases using same pattern as name normalization
         try:
-            self.aliases = tuple(alias.lower().strip() for alias in self.aliases)
+            self.aliases = tuple(
+                dict.fromkeys(alias.lower().strip() for alias in self.aliases)
+            )
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from ...base.constants import EXPLICIT_MARKER
 from ...base.context import context
 from ...exceptions import CondaValueError
 from ...gateways.disk.read import yield_lines
@@ -41,7 +42,7 @@ class ExplicitSpec(EnvironmentSpecBase):
 
         # Ensure the file has the "@EXPLICIT" marker
         dependencies_list = list(yield_lines(self.filename))
-        if "@EXPLICIT" in dependencies_list:
+        if EXPLICIT_MARKER in dependencies_list:
             return True
         else:
             return False
