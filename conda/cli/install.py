@@ -347,7 +347,6 @@ def install(args, parser, command="install"):
         add_default_packages=command == "create" and not args.no_default_packages,
     )
 
-
     # for 'conda update' make sure:
     # 1) there are no explicit_packages specified
     # 2) the requested specs actually exist in the prefix

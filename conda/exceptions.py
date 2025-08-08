@@ -1457,6 +1457,8 @@ class OfflineError(CondaError, RuntimeError):
 class CondaUpdatePackageError(CondaError):
     def __init__(self, spec: str | list[str]):
         spec_format = dashlist(spec, 4) if isinstance(spec, list) else spec
-        msg = (f"`conda update` only supports name-only spec, but received: {spec_format}\n"
-            f"Use `conda install` to install a specific version of a package.")
+        msg = (
+            f"`conda update` only supports name-only spec, but received: {spec_format}\n"
+            f"Use `conda install` to install a specific version of a package."
+        )
         super().__init__(msg)

@@ -2,28 +2,26 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import pytest
 from typing import TYPE_CHECKING
+
+import pytest
 
 from conda.exceptions import CondaUpdatePackageError
 from conda.testing.integration import package_is_installed
 
-
 if TYPE_CHECKING:
     from pathlib import Path
+
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
-def test_update(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture,):
+def test_update(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
     with tmp_env("python==3.10") as prefix:
         assert package_is_installed(prefix, "python==3.10")
-        conda_cli(
-            "update",
-            "python",
-            "--prefix",
-            prefix,
-            "--yes"
-        )
+        conda_cli("update", "python", "--prefix", prefix, "--yes")
         assert package_is_installed(prefix, "python>3.10")
 
 
