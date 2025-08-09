@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import subprocess
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -18,6 +18,8 @@ from conda.testing.integration import package_is_installed
 from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import (
@@ -102,19 +104,42 @@ def test_create_host_port(
 def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
+    tmp_path: Path,
     tmp_envs_dir: Path,
     support_file_isolated,
 ):
+    # Create a temporary copy of the advanced-pip repository
+    advanced_pip_dir = support_file_isolated("advanced-pip")
+    argh_dir = advanced_pip_dir / "argh"
+    assert argh_dir.exists()
+
+    # Initialize git repository in the argh directory
+    for args in (
+        ["git", "init", "--initial-branch=main"],
+        ["git", "config", "user.name", "Test User"],
+        ["git", "config", "user.email", "test@example.com"],
+        ["git", "add", "."],
+        ["git", "commit", "-m", "Initial commit"],
+    ):
+        subprocess.run(args, cwd=argh_dir, check=True)
+
+    # Get template content for environment.yml
+    template_content = (advanced_pip_dir / "env_template.yml").read_text()
+
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    # avoid pip touching support_file paths inside source checkout
-    environment_yml = support_file_isolated(Path("advanced-pip", "environment.yml"))
+    environment_yml = advanced_pip_dir / "environment.yml"
+
+    # Create environment.yml from template in the isolated location
+    env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
+    environment_yml.write_text(env_content)
 
     stdout, stderr, _ = conda_cli(
         *("env", "create"),
         *("--name", env_name),
         *("--file", str(environment_yml)),
+        "--verbose",
     )
 
     PrefixData._cache_.clear()
