@@ -4,6 +4,7 @@
 
 import sys
 
+from pathlib import Path
 
 def init_loggers():
     import logging
@@ -26,6 +27,8 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
+    from ..common.path import expand
+    from ..exceptions import EnvironmentSpecPluginNotDetected
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
@@ -51,7 +54,34 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
-    context.__init__(argparse_args=args)
+    # HACK: this piece of code determines if conda should be trying to read an input --file
+    # arg as part of setting up the context. Conda should just do this for the following 
+    # commands.Other commands may also support a --file argument, but these files are not 
+    # environment spec files.
+    read_input_file = True if vars(args).get("cmd", "") in ("install", "create", "update") else False
+
+    # if we have a file argument, then we need to read it and pass its contents to the context
+    env_spec_config = {}
+    # A --file might be:
+    # 1) a list of environments if coming from conda install/create/update
+    # 2) a single environment spec if coming from conda env
+    # 3) some other kind of file
+    if read_input_file and getattr(args, "file", None):
+        # Ensure that all the appropriate files will get processed
+        paths = [args.file] if isinstance(args.file, str) else args.file
+        for path in paths:
+            full_path = expand(path)
+            try:
+                spec_hook = context.plugin_manager.get_environment_specifier(full_path)
+                file_env = spec_hook.environment_spec(full_path).env
+                env_spec_config[Path(full_path)] = file_env.config
+            except EnvironmentSpecPluginNotDetected:
+                # The plugin manager will throw a EnvironmentSpecPluginNotDetected error
+                # if the provided --file is not an environment spec. This can be valid,
+                # so swallow the error and continue.
+                pass
+
+    context.__init__(argparse_args=args, env_spec_config=env_spec_config)
     init_loggers()
 
     # used with main_pip.py
