@@ -101,6 +101,8 @@ For examples of how to use other plugin hooks, please read their respective docu
    environment_exporters
    environment_specifiers
    health_checks
+   installers
+   request_headers
    post_commands
    pre_commands
    pre_transaction_actions

@@ -29,6 +29,7 @@ from .types import (  # noqa: F401
     CondaAuthHandler,
     CondaEnvironmentSpecifier,
     CondaHealthCheck,
+    CondaInstaller,
     CondaPostCommand,
     CondaPostSolve,
     CondaPostTransactionAction,
