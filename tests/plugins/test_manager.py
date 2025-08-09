@@ -17,7 +17,6 @@ from conda import plugins
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import (
-    CondaValueError,
     PluginError,
 )
 from conda.plugins import virtual_packages
@@ -161,7 +160,7 @@ def test_unknown_solver(plugin_manager: CondaPluginManager):
     """
     Cover getting a solver that doesn't exist.
     """
-    with pytest.raises(CondaValueError):
+    with pytest.raises(PluginError):
         plugin_manager.get_solver_backend("p_equals_np")
 
 
