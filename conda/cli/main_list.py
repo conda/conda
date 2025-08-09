@@ -146,6 +146,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "They are removed by default otherwise.",
     )
     p.add_argument(
+        "--check",
+        action="store_true",
+        default=False,
+        help="Exit with code 1 if the queried package(s) cannot be found in the environment.",
+    )
+    p.add_argument(
         "regex",
         action="store",
         nargs="?",
@@ -244,6 +250,9 @@ def list_packages(
                 widths[idx] = value_length
 
         packages.append(row)
+
+    if regex and not packages:
+        exitcode = 1
 
     if reverse:
         packages = reversed(packages)
@@ -379,7 +388,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if context.json:
         format = "canonical"
 
-    return print_packages(
+    exitcode = print_packages(
         prefix,
         regex,
         format,
@@ -388,3 +397,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         json=context.json,
         show_channel_urls=context.show_channel_urls,
     )
+    if args.check:
+        return exitcode
+    return 0
