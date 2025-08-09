@@ -52,21 +52,20 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     context.__init__(argparse_args=pre_args)
 
     parser = generate_parser(add_help=True)
-    
-    # HACK: this piece of code determines if conda should be trying to read an input --file
-    # arg as part of setting up the context. Conda should just do this for the following 
-    # commands.Other commands may also support a --file argument, but these files are not 
-    # environment spec files.
-    read_input_file = True if args[0] in ("env", "install", "create", "update") else False
-    
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
-    # if we have a file argument, then we need to read it and pass its contents to the context
+    # conda must determine if should be trying to read an input --file arg as part of
+    # setting up the context. To make this determination, check the conda sub command 
+    # (`cmd`) that is getting executed. Conda should just do this for the following sub
+    # commands. Other commands may also support a --file argument, but these files are not 
+    # environment spec files.
+    read_input_file = True if vars(args).get("cmd", "") in ("install", "create", "update") else False
+
     env_spec_config = {}
-    # A --file might be:
+    # if we have a valid file argument, then we need to read it and pass its contents 
+    # to the context. A --file might be:
     # 1) a list of environments if coming from conda install/create/update
     # 2) a single environment spec if coming from conda env
-    # 3) some other kind of file
     if read_input_file and getattr(args, "file", None):
         # Ensure that all the appropriate files will get processed
         paths = [args.file] if isinstance(args.file, str) else args.file
@@ -78,8 +77,8 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
                 env_spec_config[Path(full_path)] = file_env.config
             except EnvironmentSpecPluginNotDetected:
                 # The plugin manager will throw a EnvironmentSpecPluginNotDetected error
-                # if the provided --file is not an environment spec. This can be valid,
-                # so swallow the error and continue.
+                # if the provided --file is not an environment spec. This can be valid
+                # for the context of loading config, so swallow the error and continue.
                 pass
 
     context.__init__(argparse_args=args, env_spec_config=env_spec_config)
