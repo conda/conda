@@ -804,15 +804,15 @@ def test_env_spec_overrides_condarc():
     }
     context._set_raw_data(rd)
     assert context.channel_priority == ChannelPriority.STRICT
-    
+
     # Set config from environment spec
     env_spec_config = {
         Path("/i/dont/exist"): EnvironmentConfig(
-            channels=("conda-forge", ), channel_priority=ChannelPriority.DISABLED
+            channels=("conda-forge",), channel_priority=ChannelPriority.DISABLED
         )
     }
     context.__init__(env_spec_config=env_spec_config)
-    
+
     assert context.channels == ("conda-forge", "defaults")
     assert context.channel_priority == ChannelPriority.DISABLED
 
@@ -822,11 +822,11 @@ def test_env_vars_and_argparse_override_env_spec(monkeypatch: MonkeyPatch):
     # Set config from environment spec
     env_spec_config = {
         Path("/i/dont/exist"): EnvironmentConfig(
-            channels=("conda-forge", ), channel_priority=ChannelPriority.DISABLED
+            channels=("conda-forge",), channel_priority=ChannelPriority.DISABLED
         )
     }
     context.__init__(env_spec_config=env_spec_config)
-    
+
     assert "conda-forge" in context.channels
     assert context.channel_priority == ChannelPriority.DISABLED
 
