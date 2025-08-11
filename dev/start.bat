@@ -79,6 +79,9 @@
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
 @SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
 
+:: auto accept ToS during dev/start
+@SET "CONDA_PLUGINS_AUTO_ACCEPT_TOS=yes"
+
 :: dry-run printout
 @IF %_DRYRUN%==0 @GOTO :DRYRUN
 
@@ -215,6 +218,7 @@
 @SET _SRC=
 @SET _UPDATE=
 @SET _UPDATED=
+@SET CONDA_PLUGINS_AUTO_ACCEPT_TOS=
 @GOTO :EOF
 
 :CONDA *args
