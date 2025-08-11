@@ -42,6 +42,7 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
+from conda.models.environment import EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
@@ -785,3 +786,62 @@ def test_default_activation_prefix(
         monkeypatch.setenv(key, name)
         reset_context()
         assert prefix == context.default_activation_prefix
+
+
+def test_env_spec_overrides_condarc():
+    reset_context(())
+    # Set config from condarc
+    string = dals(
+        """
+        channels: ['defaults']
+        channel_priority: 'strict'
+        """
+    )
+    rd = {
+        "testdata": YamlRawParameter.make_raw_parameters(
+            "testdata", yaml_round_trip_load(string)
+        )
+    }
+    context._set_raw_data(rd)
+    assert context.channel_priority == ChannelPriority.STRICT
+    
+    # Set config from environment spec
+    env_spec_config = {
+        Path("/i/dont/exist"): EnvironmentConfig(
+            channels=("conda-forge", ), channel_priority=ChannelPriority.DISABLED
+        )
+    }
+    context.__init__(env_spec_config=env_spec_config)
+    
+    assert context.channels == ("conda-forge", "defaults")
+    assert context.channel_priority == ChannelPriority.DISABLED
+
+
+def test_env_vars_and_argparse_override_env_spec(monkeypatch: MonkeyPatch):
+    reset_context()
+    # Set config from environment spec
+    env_spec_config = {
+        Path("/i/dont/exist"): EnvironmentConfig(
+            channels=("conda-forge", ), channel_priority=ChannelPriority.DISABLED
+        )
+    }
+    context.__init__(env_spec_config=env_spec_config)
+    
+    assert "conda-forge" in context.channels
+    assert context.channel_priority == ChannelPriority.DISABLED
+
+    # Set config from env vars
+    monkeypatch.setenv("CONDA_CHANNELS", "bioconda")
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
+    reset_context()
+    assert "conda-forge" in context.channels
+    assert "bioconda" in context.channels
+    assert context.channel_priority == ChannelPriority.STRICT
+
+    # Set argparse args
+    argparse_args = AttrDict(channel=["another-one"], channel_priority="flexible")
+    context.__init__(argparse_args=argparse_args)
+    assert "conda-forge" in context.channels
+    assert "bioconda" in context.channels
+    assert "another-one" in context.channels
+    assert context.channel_priority == ChannelPriority.FLEXIBLE
