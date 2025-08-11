@@ -442,12 +442,7 @@ class EnvironmentSpecificationRawParameter(RawParameter):
         :return: a map of EnvironmentSpecificationRawParameters
         """
         if from_map:
-            return {
-                key: cls(
-                    source, key, from_map[key]
-                )
-                for key in from_map
-            }
+            return {key: cls(source, key, from_map[key]) for key in from_map}
         return EMPTY_MAP
 
 
@@ -1434,7 +1429,7 @@ class Configuration(metaclass=ConfigurationType):
         app_name: str | None = None,
         argparse_args: Namespace | None = None,
         env_spec_config: dict[str, EnvironmentConfig] | None = None,
-        **kwargs
+        **kwargs,
     ):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
@@ -1549,14 +1544,17 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
-    def _set_environment_spec_data(self, env_spec_config: dict[Path, EnvironmentConfig]) -> None:
+    def _set_environment_spec_data(
+        self, env_spec_config: dict[Path, EnvironmentConfig]
+    ) -> None:
         for file, config in env_spec_config.items():
             # Ensure the file is a Path
             file_path = Path(file)
             self._set_raw_data(
                 {
                     file_path: EnvironmentSpecificationRawParameter.make_raw_parameters(
-                        file_path, {k: v for k, v in vars(config).items() if v is not None}
+                        file_path,
+                        {k: v for k, v in vars(config).items() if v is not None},
                     )
                 }
             )
