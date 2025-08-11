@@ -3,8 +3,8 @@
 """Entry point for all conda subcommands."""
 
 import sys
-
 from pathlib import Path
+
 
 def init_loggers():
     import logging
@@ -55,14 +55,16 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     # conda must determine if should be trying to read an input --file arg as part of
-    # setting up the context. To make this determination, check the conda sub command 
+    # setting up the context. To make this determination, check the conda sub command
     # (`cmd`) that is getting executed. Conda should just do this for the following sub
-    # commands. Other commands may also support a --file argument, but these files are not 
+    # commands. Other commands may also support a --file argument, but these files are not
     # environment spec files.
-    read_input_file = True if vars(args).get("cmd", "") in ("install", "create", "update") else False
+    read_input_file = (
+        True if vars(args).get("cmd", "") in ("install", "create", "update") else False
+    )
 
     env_spec_config = {}
-    # if we have a valid file argument, then we need to read it and pass its contents 
+    # if we have a valid file argument, then we need to read it and pass its contents
     # to the context. A --file might be:
     # 1) a list of environments if coming from conda install/create/update
     # 2) a single environment spec if coming from conda env
