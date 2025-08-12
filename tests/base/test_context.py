@@ -25,7 +25,7 @@ from conda.base.context import (
     channel_alias_validation,
     context,
     default_python_validation,
-    locate_prefix_by_name,
+    env_name,
     reset_context,
     validate_channels,
     validate_prefix_name,
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_migrated_custom_channels(context_testdata: None):
@@ -760,31 +760,32 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
-def test_default_activation_prefix(conda_cli: CondaCLIFixture):
+def test_default_activation_prefix(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
     """Test that the default_activation_prefix is always a path.
 
     context.default_activation_env can either be a name or a prefix path, so we check
     that in either case, the context.default_activation_prefix is a path.
     """
-    name = "test_env"
+    original_setting_output = conda_cli("config", "--get", "default_activation_env")[0]
 
-    # Set up the test environment
-    conda_cli("config", "--set", "default_activation_env", context.root_prefix)
-    try:
-        locate_prefix_by_name(name)
-        conda_cli("remove", "--all", "--name", name, "--yes")
-    except EnvironmentNameNotFound:
-        pass
-    conda_cli("create", "--name", name, "--yes", "--quiet")
-    prefix = locate_prefix_by_name(name)
+    with tmp_env() as prefix:
+        name = env_name(prefix)
 
-    assert Path(prefix) != Path(context.default_activation_prefix)
-    conda_cli("config", "--set", "default_activation_env", prefix)
-    assert Path(prefix) == Path(context.default_activation_prefix)
-    conda_cli("config", "--set", "default_activation_env", name)
-    assert Path(prefix) == Path(context.default_activation_prefix)
+        conda_cli("config", "--set", "default_activation_env", context.root_prefix)
+        assert Path(prefix) != Path(context.default_activation_prefix)
+        conda_cli("config", "--set", "default_activation_env", prefix)
+        assert Path(prefix) == Path(context.default_activation_prefix)
+        conda_cli("config", "--set", "default_activation_env", name)
+        assert Path(prefix) == Path(context.default_activation_prefix)
 
-    # Since the test environment is created by name (not in /tmp), it must be removed
-    # Set the root prefix back as the default to allow deletion of test_env
-    conda_cli("config", "--set", "default_activation_env", context.root_prefix)
-    conda_cli("remove", "--all", "--name", name, "--yes")
+    # Set the default_activation_env back to the original setting. If there was no
+    # output at all, it means the key was never set; remove it entirely
+    if original_setting_output == "":
+        conda_cli("config", "--remove-key", "default_activation_env")
+    else:
+        conda_cli(
+            "config",
+            "--set",
+            "default_activation_env",
+            original_setting_output.lstrip("--set default_activation_env").strip(),
+        )
