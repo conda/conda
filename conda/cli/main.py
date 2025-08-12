@@ -3,56 +3,25 @@
 """Entry point for all conda subcommands."""
 
 import sys
+from argparse import Namespace
 from pathlib import Path
 
 
-def init_loggers():
-    import logging
+def _get_env_spec_config_source(args: Namespace) -> dict:
+    """
+    Get the config from every environment spec file provided with the `--file` argument.
+    This will only process `--file`'s for install, create, and update commands (including
+    conda env commands).
 
-    from ..base.context import context
-    from ..gateways.logging import initialize_logging, set_log_level
+    This function will return a dict of full Paths to the environment spec file to the
+    config that originated from that file.
 
-    initialize_logging()
-
-    # silence logging info to avoid interfering with JSON output
-    if context.json:
-        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
-            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
-
-    # set log_level
-    set_log_level(context.log_level)
-
-
-def main_subshell(*args, post_parse_hook=None, **kwargs):
-    """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
-    # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
+    :param args: argparse Namespace, parsed args
+    :return: dict[Path, EnvironmentConfig] of all the configs for the provided `--file` cli args
+    """
     from ..base.context import context
     from ..common.path import expand
     from ..exceptions import EnvironmentSpecPluginNotDetected
-    from .conda_argparse import do_call, generate_parser, generate_pre_parser
-
-    args = args or ["--help"]
-
-    pre_parser = generate_pre_parser(add_help=False)
-    pre_args, _ = pre_parser.parse_known_args(args)
-
-    # the arguments that we want to pass to the main parser later on
-    override_args = {
-        "json": pre_args.json,
-        "debug": pre_args.debug,
-        "trace": pre_args.trace,
-        "verbosity": pre_args.verbosity,
-    }
-
-    context.__init__(argparse_args=pre_args)
-    if context.no_plugins:
-        context.plugin_manager.disable_external_plugins()
-
-    # reinitialize in case any of the entrypoints modified the context
-    context.__init__(argparse_args=pre_args)
-
-    parser = generate_parser(add_help=True)
-    args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     # conda must determine if should be trying to read an input --file arg as part of
     # setting up the context. To make this determination, check the conda sub command
@@ -82,7 +51,56 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
                 # if the provided --file is not an environment spec. This can be valid
                 # for the context of loading config, so swallow the error and continue.
                 pass
+    return env_spec_config
 
+
+def init_loggers():
+    import logging
+
+    from ..base.context import context
+    from ..gateways.logging import initialize_logging, set_log_level
+
+    initialize_logging()
+
+    # silence logging info to avoid interfering with JSON output
+    if context.json:
+        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
+            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
+
+    # set log_level
+    set_log_level(context.log_level)
+
+
+def main_subshell(*args, post_parse_hook=None, **kwargs):
+    """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
+    # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
+    from ..base.context import context
+    from .conda_argparse import do_call, generate_parser, generate_pre_parser
+
+    args = args or ["--help"]
+
+    pre_parser = generate_pre_parser(add_help=False)
+    pre_args, _ = pre_parser.parse_known_args(args)
+
+    # the arguments that we want to pass to the main parser later on
+    override_args = {
+        "json": pre_args.json,
+        "debug": pre_args.debug,
+        "trace": pre_args.trace,
+        "verbosity": pre_args.verbosity,
+    }
+
+    context.__init__(argparse_args=pre_args)
+    if context.no_plugins:
+        context.plugin_manager.disable_external_plugins()
+
+    # reinitialize in case any of the entrypoints modified the context
+    context.__init__(argparse_args=pre_args)
+
+    parser = generate_parser(add_help=True)
+    args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
+
+    env_spec_config = _get_env_spec_config_source(args)
     context.__init__(argparse_args=args, env_spec_config=env_spec_config)
     init_loggers()
 
