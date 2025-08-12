@@ -31,6 +31,12 @@ def solver_choices():
 
 
 @pytest.fixture
+def export_format_choices():
+    """Fixture providing realistic export format choices."""
+    return ["environment-json", "environment-yaml", "explicit", "json", "yaml"]
+
+
+@pytest.fixture
 def choices_func_counter():
     """Fixture providing a choices function that counts calls."""
     call_count = {"count": 0}
@@ -342,3 +348,24 @@ def test_conda_integration(
     # Test help includes choices
     help_text = parser.format_help()
     assert help_pattern in help_text
+
+
+def test_conda_export_format_integration(export_format_choices):
+    """Test LazyChoicesAction with realistic conda export format choices."""
+    parser = ArgumentParser(prog="conda export")
+    parser.add_argument(
+        "--format",
+        action=LazyChoicesAction,
+        choices_func=lambda: export_format_choices,
+        help="Export format",
+    )
+
+    # Test valid parsing
+    args = parser.parse_args(["--format", "yaml"])
+    assert args.format == "yaml"
+
+    # Test help includes choices
+    help_text = parser.format_help()
+    assert "environment-json" in help_text
+    assert "environment-yaml" in help_text
+    assert "explicit" in help_text

@@ -1434,3 +1434,74 @@ def test_invalid_version_reports_spec(spec):
     with pytest.raises(InvalidMatchSpec) as exc:
         MatchSpec(spec)
     assert spec in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "build,version,expected_result",
+    [
+        (None, None, "python"),
+        ("*123*", None, "python * *123*"),
+        (None, "3.*", "python 3.*"),
+        ("*123*", "3.17", "python 3.17 *123*"),
+    ],
+    ids=["name_only", "build_only", "version_only", "build_version"],
+)
+def test_conda_build_form(build, version, expected_result):
+    """conda_build_form method handles missing values for build and/or version gracefully"""
+    kwargs = {"build": build, "version": version}
+    # only pass values that are not None
+    kwargs = {key: value for key, value in kwargs.items() if value is not None}
+    assert MatchSpec("python", **kwargs).conda_build_form() == expected_result
+
+
+@pytest.mark.parametrize(
+    "input_spec,expected_output",
+    [
+        # Regular case with build string
+        ("numpy==1.21.0=py39h1234567_0", "numpy=1.21.0=py39h1234567_0"),
+        # No-builds case (fuzzy version)
+        ("numpy=1.21.0", "numpy=1.21.0"),
+        # With channel prefix
+        ("conda-forge::numpy==1.21.0=py39h1234567_0", "numpy=1.21.0=py39h1234567_0"),
+        # With channel/subdir prefix
+        ("pkgs/main::pandas==1.3.0=py39h123_0", "pandas=1.3.0=py39h123_0"),
+        # Simple exact version
+        ("python==3.9.7", "python=3.9.7"),
+        # With namespace (hypothetical future feature)
+        ("scipy==1.7.0=py39h456_0", "scipy=1.7.0=py39h456_0"),
+    ],
+)
+def test_conda_env_form(input_spec, expected_output):
+    """Test MatchSpec.conda_env_form() produces correct conda env export format."""
+    spec = MatchSpec(input_spec)
+    result = spec.conda_env_form()
+    assert result == expected_output
+
+
+def test_conda_env_form_comprehensive():
+    """Test conda_env_form() with comprehensive real-world examples."""
+    # Test cases that would come from actual Environment.from_prefix usage
+    test_cases = [
+        # Regular conda packages
+        MatchSpec("pkgs/main::numpy==1.21.0=py39h1234567_0"),
+        MatchSpec("conda-forge::scipy==1.7.0=py39h9876543_0"),
+        # No-builds versions
+        MatchSpec("pandas=1.3.0"),
+        MatchSpec("matplotlib=3.5.0"),
+        # Simple names
+        MatchSpec("pip==21.2.4=py39h_0"),
+    ]
+
+    expected_results = [
+        "numpy=1.21.0=py39h1234567_0",
+        "scipy=1.7.0=py39h9876543_0",
+        "pandas=1.3.0",
+        "matplotlib=3.5.0",
+        "pip=21.2.4=py39h_0",
+    ]
+
+    for spec, expected in zip(test_cases, expected_results):
+        result = spec.conda_env_form()
+        assert result == expected, (
+            f"Expected {expected!r}, got {result!r} for spec {spec}"
+        )

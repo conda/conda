@@ -8,7 +8,7 @@ from pprint import pprint
 from conda.common.compat import on_win
 from conda.common.path import get_python_site_packages_short_path
 from conda.common.serialize import json
-from conda.gateways.disk.read import read_python_record
+from conda.plugins.prefix_data_loaders.pypi.pkg_format import read_python_record
 
 ENV_METADATA_DIR = Path(__file__).parent.parent.parent / "data" / "env_metadata"
 
