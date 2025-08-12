@@ -25,6 +25,7 @@ from ...exceptions import (
     CondaHTTPError,
     CondaSSLError,
     CondaValueError,
+    LockError,
     ProxyError,
     maybe_raise,
 )
@@ -252,6 +253,9 @@ def download_partial_file(
             partial_path.unlink()
         raise
     except ChecksumMismatchError:
+        partial_path.unlink()
+        raise
+    except LockError:
         partial_path.unlink()
         raise
 
