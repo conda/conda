@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+from pathlib import Path
+
 import pytest
 from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
@@ -14,7 +16,9 @@ from conda.gateways.disk.lock import (
 )
 
 
-def test_LockError_raised(mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path):
+def test_LockError_raised(
+    mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path: Path
+):
     tmp_file = tmp_path / "testfile"
     tmp_file.touch()
 
@@ -25,7 +29,7 @@ def test_LockError_raised(mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_p
                 pass
 
 
-def test_lock_acquired_success(mocker: MockerFixture, tmp_path):
+def test_lock_acquired_success(mocker: MockerFixture, tmp_path: Path):
     tmp_file = tmp_path / "testfile"
     tmp_file.touch()
 
@@ -33,6 +37,7 @@ def test_lock_acquired_success(mocker: MockerFixture, tmp_path):
 
     with tmp_file.open("r+b") as f:
         with lock(f):
+            # Because we are able to use lock(), that means lock acquisition succeeded.
             pass
 
 
@@ -48,7 +53,7 @@ def lock_wrapper(path):
         return "lock_error"
 
 
-def test_double_locking_fails(mocker: MockerFixture, tmp_path):
+def test_double_locking_fails(mocker: MockerFixture, tmp_path: Path):
     from multiprocessing import Pool
 
     tmp_file = tmp_path / "testfile"
