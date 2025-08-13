@@ -10,15 +10,10 @@ from pytest_mock import MockerFixture
 
 from conda.common.compat import on_win
 from conda.exceptions import LockError
-from conda.gateways.disk.lock import (
-    _lock_impl,
-    lock,
-)
+from conda.gateways.disk.lock import _lock_impl, lock
 
 
-def test_LockError_raised(
-    mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path: Path
-):
+def test_LockError_raised(mocker: MockerFixture, tmp_path: Path):
     tmp_file = tmp_path / "testfile"
     tmp_file.touch()
 
