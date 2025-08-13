@@ -5,12 +5,11 @@
 from pathlib import Path
 
 import pytest
-from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.common.compat import on_win
 from conda.exceptions import LockError
-from conda.gateways.disk.lock import _lock_impl, lock
+from conda.gateways.disk.lock import _lock_impl
 
 
 def test_LockError_raised(mocker: MockerFixture, tmp_path: Path):
