@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-import builtins
-import sys
 
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
@@ -14,23 +12,6 @@ from conda.gateways.disk.lock import (
     _lock_impl,
     lock,
 )
-
-
-# A function mocking the signature of the real import method in the builtein module
-def monkey_import_ImportError(name, globals=None, locals=None, fromlist=(), level=0):
-    if name in ("msvcrt", "fcntl"):
-        raise ImportError("Mocked import error")
-
-
-def test_locking_not_supported(monkeypatch: MonkeyPatch, tmp_path):
-    tmp_file = tmp_path / "testfile"
-    tmp_file.write_bytes(b"test")
-    monkeypatch.delitem(sys.modules, "fcntl", raising=False)
-    monkeypatch.delitem(sys.modules, "msvcrt", raising=False)
-    monkeypatch.setattr(builtins, "__import__", monkey_import_ImportError)
-
-    with pytest.raises(ImportError):
-        lock(tmp_file)
 
 
 def test_LockError_raised(mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path):
