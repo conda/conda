@@ -69,7 +69,7 @@ class ResolvePackageNotFound(CondaError):
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 
-class LockError(CondaError):
+class LockError(CondaError, OSError):
     def __init__(self, message: str):
         msg = str(message)
         super().__init__(msg)
