@@ -575,14 +575,14 @@ class RepodataCache:
 
         return json_data
 
-    def load_state(self):
+    def load_state(self, binary=False):
         """
         Update self.state without reading repodata.
 
         Return self.state.
         """
         try:
-            self.load(state_only=True)
+            self.load(state_only=True, binary=binary)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
                 log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
@@ -590,7 +590,7 @@ class RepodataCache:
         return self.state
 
     def save(self, data: str | bytes):
-        """Write data to <repodata> cache path, without touching state."""
+        """Write data to <repodata> cache path, by calling self.replace()."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
         mode = "bx" if isinstance(data, bytes) else "x"
         target = (
