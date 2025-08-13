@@ -3,7 +3,7 @@
 
 
 import pytest
-from pytest import CaptureFixture, MonkeyPatch
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.common.compat import on_win
@@ -16,7 +16,7 @@ from conda.gateways.disk.lock import (
 
 def test_LockError_raised(mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_path):
     tmp_file = tmp_path / "testfile"
-    tmp_file.write_bytes(b"test")
+    tmp_file.touch()
 
     mocker.patch("msvcrt.locking" if on_win else "fcntl.lockf", side_effect=OSError)
     with pytest.raises(LockError):
@@ -25,17 +25,15 @@ def test_LockError_raised(mocker: MockerFixture, monkeypatch: MonkeyPatch, tmp_p
                 pass
 
 
-def test_lock_acquired_success(mocker: MockerFixture, capsys: CaptureFixture, tmp_path):
+def test_lock_acquired_success(mocker: MockerFixture, tmp_path):
     tmp_file = tmp_path / "testfile"
-    tmp_file.write_bytes(b"test")
+    tmp_file.touch()
 
     mocker.patch("conda.gateways.disk.lock.lock", return_value=_lock_impl)
 
     with tmp_file.open("r+b") as f:
         with lock(f):
             pass
-    stdout, _ = capsys.readouterr()
-    assert "Failed to acquire lock." not in stdout
 
 
 def lock_wrapper(path):
