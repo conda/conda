@@ -247,7 +247,7 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
         with:
-          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          condarc-file: .github/condarc-${{ (matrix.default-channel == 'defaults') && (matrix.python-version == '3.14' && 'defaults-py314' || 'defaults') || 'conda-forge' }}
           run-post: false  # skip post cleanup
 
       - name: Conda Install

@@ -1,0 +1,4 @@
+channels:
+  - ad-testing/label/py314
+  - defaults
+anaconda_anon_usage: false
