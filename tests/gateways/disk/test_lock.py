@@ -20,18 +20,16 @@ def test_LockError_raised(mocker: MockerFixture, tmp_path: Path):
     mocker.patch("msvcrt.locking" if on_win else "fcntl.lockf", side_effect=OSError)
     with pytest.raises(LockError):
         with tmp_file.open("r+b") as f:
-            with lock(f, lock_attempts=1):
+            with _lock_impl(f, lock_attempts=1):
                 pass
 
 
-def test_lock_acquired_success(mocker: MockerFixture, tmp_path: Path):
+def test_lock_acquired_success(tmp_path: Path):
     tmp_file = tmp_path / "testfile"
     tmp_file.touch()
 
-    mocker.patch("conda.gateways.disk.lock.lock", return_value=_lock_impl)
-
     with tmp_file.open("r+b") as f:
-        with lock(f):
+        with _lock_impl(f, lock_attempts=1):
             # Because we are able to use lock(), that means lock acquisition succeeded.
             pass
 
@@ -41,7 +39,7 @@ def lock_wrapper(path):
 
     try:
         with path.open("r+b") as fd:
-            with lock(fd, lock_attempts=1):
+            with _lock_impl(fd, lock_attempts=1):
                 time.sleep(12 if on_win else 1)
             return "success"
     except LockError:
