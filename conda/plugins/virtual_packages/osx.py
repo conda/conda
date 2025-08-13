@@ -5,7 +5,8 @@
 import os
 
 from ...base.context import context
-from .. import CondaVirtualPackage, hookimpl
+from .. import hookimpl
+from ..types import CondaVirtualPackage
 
 
 @hookimpl
