@@ -246,7 +246,7 @@ def list_packages(
         packages.append(row)
 
     if regex and not packages:
-        raise CondaValueError(f"No packages match the '{regex}' query.")
+        raise CondaValueError(f"No packages match '{regex}'.")
 
     if reverse:
         packages = reversed(packages)

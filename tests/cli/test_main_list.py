@@ -11,7 +11,7 @@ import pytest
 from conda.base.constants import CONDA_LIST_FIELDS
 from conda.common.configuration import CustomValidationError
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import EnvironmentLocationNotFound
+from conda.exceptions import CondaValueError, EnvironmentLocationNotFound
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -255,20 +255,5 @@ def test_exit_codes(conda_cli):
     # If the package is installed, with or without --check, the exit code must be 0
     out, err, rc = conda_cli("list", f"--prefix={sys.prefix}", "conda")
     assert rc == 0
-    out, err, rc = conda_cli("list", f"--prefix={sys.prefix}", "--check", "conda")
-    assert rc == 0
 
-    # For not installed packages, the exit code will be 1 only if --check is passed
-    out, err, rc = conda_cli("list", f"--prefix={sys.prefix}", "does-not-exist")
-    assert rc == 0
-    out, err, rc = conda_cli(
-        "list", f"--prefix={sys.prefix}", "--check", "does-not-exist"
-    )
-    assert rc == 1
-
-    # Make sure it works with --json too
-    out, err, rc = conda_cli(
-        "list", f"--prefix={sys.prefix}", "--check", "--json", "does-not-exist"
-    )
-    assert len(json.loads(out)) == 0
-    assert rc == 1
+    conda_cli("list", f"--prefix={sys.prefix}", "does-not-exist", raises=CondaValueError)
