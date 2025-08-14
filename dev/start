@@ -28,6 +28,7 @@ cleanup() {
     unset _SRC
     unset _UPDATE
     unset _UPDATED
+    unset CONDA_PLUGINS_AUTO_ACCEPT_TOS
 }
 updating() {
     # check if explicitly updating or if 24 hrs since last update
@@ -162,6 +163,9 @@ case "${_MACH}" in
     Darwin|Linux) _BASEEXE="${_DEVENV}/bin/conda" ; _ENVEXE="${_ENV}/bin/conda" ; _PYTHONEXE="${_ENV}/bin/python" ;;
                *) _BASEEXE="${_DEVENV}/Scripts/conda.exe" ; _ENVEXE="${_ENV}/Scripts/conda.exe" ; _PYTHONEXE="${_ENV}/Scripts/python.exe" ;;
 esac
+
+# auto accept ToS during dev/start
+CONDA_PLUGINS_AUTO_ACCEPT_TOS=yes
 
 # dryrun printout
 if [ ${_DRYRUN} = "true" ]; then
