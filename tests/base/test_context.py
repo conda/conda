@@ -777,10 +777,13 @@ def test_default_activation_prefix(
         prefix_path = Path(prefix)
 
         monkeypatch.setenv(key, context.root_prefix)
+        reset_context()
         assert prefix_path != Path(context.default_activation_prefix)
 
         monkeypatch.setenv(key, prefix)
+        reset_context()
         assert prefix_path == Path(context.default_activation_prefix)
 
         monkeypatch.setenv(key, name)
+        reset_context()
         assert prefix_path == Path(context.default_activation_prefix)
