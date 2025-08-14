@@ -1,6 +1,6 @@
 ### Enhancements
 
-* `conda list` has a new flag `--check`, which will make the command exit with return code 1 if a package name was specified and could not be found in the target environment. (#15074 via #15075)
+* `conda list`  will raise an exception with exit code 1 if the query did not match any packages in the target environment. (#15074 via #15075)
 
 ### Bug fixes
 
