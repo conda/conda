@@ -256,4 +256,6 @@ def test_exit_codes(conda_cli):
     out, err, rc = conda_cli("list", f"--prefix={sys.prefix}", "conda")
     assert rc == 0
 
-    conda_cli("list", f"--prefix={sys.prefix}", "does-not-exist", raises=CondaValueError)
+    conda_cli(
+        "list", f"--prefix={sys.prefix}", "does-not-exist", raises=CondaValueError
+    )
