@@ -1,6 +1,6 @@
 ### Enhancements
 
-* `conda list`  will raise an exception with exit code 1 if the query did not match any packages in the target environment. (#15074 via #15075)
+* `conda list pattern` will raise an exception with exit code 1 if the query did not match any packages in the target environment. (#15074 via #15075)
 
 ### Bug fixes
 
