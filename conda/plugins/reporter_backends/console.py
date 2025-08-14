@@ -21,8 +21,13 @@ from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from ...exceptions import CondaError
-from .. import CondaReporterBackend, hookimpl
-from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
+from .. import hookimpl
+from ..types import (
+    CondaReporterBackend,
+    ProgressBarBase,
+    ReporterRendererBase,
+    SpinnerBase,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
