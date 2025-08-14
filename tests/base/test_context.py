@@ -760,32 +760,27 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
-def test_default_activation_prefix(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
-    """Test that the default_activation_prefix is always a path.
+def test_default_activation_prefix(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """Test that the default_activation_prefix returns the correct prefix.
 
     context.default_activation_env can either be a name or a prefix path, so we check
     that in either case, the context.default_activation_prefix is a path.
     """
-    original_setting_output = conda_cli("config", "--get", "default_activation_env")[0]
+    key = "CONDA_DEFAULT_ACTIVATION_ENV"
 
     with tmp_env() as prefix:
         name = env_name(prefix)
+        prefix_path = Path(prefix)
 
-        conda_cli("config", "--set", "default_activation_env", context.root_prefix)
-        assert Path(prefix) != Path(context.default_activation_prefix)
-        conda_cli("config", "--set", "default_activation_env", prefix)
-        assert Path(prefix) == Path(context.default_activation_prefix)
-        conda_cli("config", "--set", "default_activation_env", name)
-        assert Path(prefix) == Path(context.default_activation_prefix)
+        monkeypatch.setenv(key, context.root_prefix)
+        assert prefix_path != Path(context.default_activation_prefix)
 
-    # Set the default_activation_env back to the original setting. If there was no
-    # output at all, it means the key was never set; remove it entirely
-    if original_setting_output == "":
-        conda_cli("config", "--remove-key", "default_activation_env")
-    else:
-        conda_cli(
-            "config",
-            "--set",
-            "default_activation_env",
-            original_setting_output.lstrip("--set default_activation_env").strip(),
-        )
+        monkeypatch.setenv(key, prefix)
+        assert prefix_path == Path(context.default_activation_prefix)
+
+        monkeypatch.setenv(key, name)
+        assert prefix_path == Path(context.default_activation_prefix)
