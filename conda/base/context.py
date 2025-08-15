@@ -565,6 +565,12 @@ class Context(Configuration):
     ):
         super().__init__(argparse_args=argparse_args)
 
+        # The order of these calls set the config precedence. From
+        # lowest to highest priority:
+        # - condarc files
+        # - config from environment spec files (if available)
+        # - environment variables
+        # - argparse arguments
         self._set_search_path(
             SEARCH_PATH if search_path is None else search_path,
             # for proper search_path templating when --name/--prefix is used
