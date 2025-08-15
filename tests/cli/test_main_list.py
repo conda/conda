@@ -111,9 +111,10 @@ def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None
 
 # conda list PACKAGE
 def test_list_package(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None:
-    stdout, _, _ = conda_cli("list", "ipython", "--json")
+    stdout, _, _ = conda_cli("list", "python", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list)
+    assert "python" in [package["name"] for package in parsed]
 
 
 def test_list_explicit(
