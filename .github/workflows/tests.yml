@@ -254,6 +254,10 @@ jobs:
         if: matrix.python-version == '3.14'
         run: python -m pip install --no-deps 'frozendict>=2.4.2'
 
+      - name: Prepare requirements without frozendict (Py3.14)
+        if: matrix.python-version == '3.14'
+        run: grep -v '^frozendict' tests/requirements.txt > /tmp/requirements-no-frozendict.txt
+
       - name: Conda Install (Py3.14, conda-forge)
         if: matrix.default-channel == 'conda-forge' && matrix.python-version == '3.14'
         run: >
@@ -263,7 +267,7 @@ jobs:
           --override-channels
           -c conda-forge/label/python_rc
           -c conda-forge
-          --file tests/requirements.txt
+          --file /tmp/requirements-no-frozendict.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
@@ -279,7 +283,7 @@ jobs:
           --override-channels
           -c ad-testing/label/py314
           -c defaults
-          --file tests/requirements.txt
+          --file /tmp/requirements-no-frozendict.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
