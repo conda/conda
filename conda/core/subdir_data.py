@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from typing import Any, Self
 
     from ..gateways.repodata import RepodataCache, RepoInterface
-    from .index import PackageRef
 
 log = getLogger(__name__)
 
