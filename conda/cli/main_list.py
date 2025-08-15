@@ -352,7 +352,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     regex = args.regex
-    if args.full_name:
+    if regex and args.full_name:
         regex = rf"^{regex}$"
 
     if args.revisions:
