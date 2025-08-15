@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from importlib.metadata import version
 from logging import getLogger
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -26,6 +25,8 @@ from conda.testing.integration import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 log = getLogger(__name__)
@@ -113,17 +114,17 @@ def test_remove_nonexistent_env(conda_cli: CondaCLIFixture):
 def test_remove_all_default_activation_env(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-    tmpdir: str,
+    tmp_path: Path,
 ):
     """Check that removing the default_activation_env raises an exception."""
-    with tmp_env() as env:
+    with tmp_env() as prefix:
         conda_cli(
             "config",
             "--set",
             "default_activation_env",
-            env,
+            prefix,
         )
-        assert Path(env) == Path(context.default_activation_prefix)
+        assert prefix == context.default_activation_prefix
         with pytest.raises(
             CondaEnvException,
             match=(
@@ -134,5 +135,5 @@ def test_remove_all_default_activation_env(
             conda_cli(
                 "remove",
                 "--all",
-                f"--prefix={env}",
+                f"--prefix={prefix}",
             )

@@ -19,6 +19,7 @@ from functools import cache, cached_property
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from frozendict import frozendict
@@ -79,7 +80,6 @@ from .constants import (
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable, Iterator
-    from pathlib import Path
     from typing import Any, Literal
 
     from ..common.configuration import Parameter, RawParameter
@@ -1257,7 +1257,7 @@ class Context(Configuration):
         return self._default_activation_env or ROOT_ENV_NAME
 
     @property
-    def default_activation_prefix(self) -> PathType:
+    def default_activation_prefix(self) -> Path:
         """Return the prefix of the default_activation_env.
 
         If the default_activation_env is an environment name, get the corresponding
@@ -1268,9 +1268,9 @@ class Context(Configuration):
         from ..exceptions import EnvironmentNameNotFound
 
         try:
-            return locate_prefix_by_name(self.default_activation_env)
+            return Path(locate_prefix_by_name(self.default_activation_env))
         except EnvironmentNameNotFound:
-            return self.default_activation_env
+            return Path(self.default_activation_env)
 
     @property
     def environment_context_keys(self) -> list[str]:

@@ -333,23 +333,23 @@ def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
 def test_rename_default_activation_env(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-    tmpdir: str,
+    tmp_path: Path,
 ):
     """Check that renaming the default_activation_env raises an exception."""
-    with tmp_env() as env:
+    with tmp_env() as prefix:
         conda_cli(
             "config",
             "--set",
             "default_activation_env",
-            env,
+            prefix,
         )
-        assert Path(env) == Path(context.default_activation_prefix)
+        assert prefix == context.default_activation_prefix
         with pytest.raises(
             CondaEnvException,
             match="Cannot rename an environment if it is configured as `default_activation_env`.",
         ):
             conda_cli(
                 "rename",
-                f"--prefix={env}",
-                tmpdir,
+                f"--prefix={prefix}",
+                tmp_path,
             )
