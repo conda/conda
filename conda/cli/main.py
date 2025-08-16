@@ -3,55 +3,7 @@
 """Entry point for all conda subcommands."""
 
 import sys
-from argparse import Namespace
 from pathlib import Path
-
-
-def _get_env_spec_config_source(args: Namespace) -> dict:
-    """
-    Get the config from every environment spec file provided with the `--file` argument.
-    This will only process `--file`'s for install, create, and update commands (including
-    conda env commands).
-
-    This function will return a dict of full Paths to the environment spec file to the
-    config that originated from that file.
-
-    :param args: argparse Namespace, parsed args
-    :return: dict[Path, EnvironmentConfig] of all the configs for the provided `--file` cli args
-    """
-    from ..base.context import context
-    from ..common.path import expand
-    from ..exceptions import EnvironmentSpecPluginNotDetected
-
-    # conda must determine if should be trying to read an input --file arg as part of
-    # setting up the context. To make this determination, check the conda sub command
-    # (`cmd`) that is getting executed. Conda should just do this for the following sub
-    # commands. Other commands may also support a --file argument, but these files are not
-    # environment spec files.
-    read_input_file = (
-        True if vars(args).get("cmd", "") in ("install", "create", "update") else False
-    )
-
-    env_spec_config = {}
-    # if we have a valid file argument, then we need to read it and pass its contents
-    # to the context. A --file might be:
-    # 1) a list of environments if coming from conda install/create/update
-    # 2) a single environment spec if coming from conda env
-    if read_input_file and getattr(args, "file", None):
-        # Ensure that all the appropriate files will get processed
-        paths = [args.file] if isinstance(args.file, str) else args.file
-        for path in paths:
-            full_path = expand(path)
-            try:
-                spec_hook = context.plugin_manager.get_environment_specifier(full_path)
-                file_env = spec_hook.environment_spec(full_path).env
-                env_spec_config[Path(full_path)] = file_env.config
-            except EnvironmentSpecPluginNotDetected:
-                # The plugin manager will throw a EnvironmentSpecPluginNotDetected error
-                # if the provided --file is not an environment spec. This can be valid
-                # for the context of loading config, so swallow the error and continue.
-                pass
-    return env_spec_config
 
 
 def init_loggers():
@@ -76,6 +28,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
+    from ..common.path import expand
 
     args = args or ["--help"]
 
@@ -100,8 +53,26 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
-    env_spec_config = _get_env_spec_config_source(args)
-    context.__init__(argparse_args=args, env_spec_config=env_spec_config)
+    # conda must determine if should be trying to read an input --file arg as part of
+    # setting up the context. To make this determination, check the conda sub command
+    # (`cmd`) that is getting executed. Conda should just do this for the following sub
+    # commands. Other commands may also support a --file argument, but these files are not
+    # environment spec files.
+    read_input_file = (
+        True if args.cmd in ("install", "create", "update") else False
+    )
+    # if we have a valid file argument, then we need to read it and pass its contents
+    # to the context. A --file might be:
+    # 1) a list of environments if coming from conda install/create/update
+    # 2) a single environment spec if coming from conda env
+    env_spec_paths = []
+    if read_input_file and getattr(args, "file", None):
+        if isinstance(args.file, str):
+            env_spec_paths = [Path(expand(args.file))]
+        else:
+            env_spec_paths = [Path(expand(file)) for file in args.file]
+
+    context.__init__(argparse_args=args, env_spec_paths=env_spec_paths)
     init_loggers()
 
     # used with main_pip.py

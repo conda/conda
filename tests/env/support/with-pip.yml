@@ -1,4 +1,6 @@
 name: pip
+channels:
+  - bioconda
 dependencies:
   - pip
   - pip:

@@ -557,7 +557,7 @@ class Context(Configuration):
         self,
         search_path: PathsType | None = None,
         argparse_args: Namespace | None = None,
-        env_spec_config: dict[Path, EnvironmentConfig] | None = None,
+        env_spec_paths: list[PathsType] | None = None,
         **kwargs,
     ):
         super().__init__(argparse_args=argparse_args)
@@ -573,10 +573,35 @@ class Context(Configuration):
             # for proper search_path templating when --name/--prefix is used
             CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
-        if env_spec_config:
-            self._set_environment_spec_data(env_spec_config)
+
+        env_spec_config = self._get_env_spec_config_source(env_spec_paths)
+        self._set_environment_spec_data(env_spec_config)
+
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
+
+    def _get_env_spec_config_source(self, paths: list[PathsType] | None) -> dict[PathsType, EnvironmentConfig]:
+        """Get the config from every environment spec file provided. This function
+        will return a dict of full Paths to the environment spec file to the
+        config that originated from that file.
+
+        :param paths: list of full paths to environment spec files
+        :return: dict[Path, EnvironmentConfig] of all the configs for the provided paths
+        """
+        if paths is None:
+            return {}
+
+        # Load plugin manager
+        self.plugin_manager
+
+        # Load config from environment specs
+        env_spec_config = {}
+        for path in paths:
+            str_path = str(path)
+            spec_hook = self.plugin_manager.get_environment_specifier(str_path)
+            file_env = spec_hook.environment_spec(str_path).env
+            env_spec_config[path] = file_env.config
+        return env_spec_config
 
     def post_build_validation(self) -> list[ValidationError]:
         errors = []
