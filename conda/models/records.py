@@ -623,7 +623,7 @@ class SolvedRecord(PackageRecord):
 
     #: str: The (merged) :class:`MatchSpec` that the user requested or ``"None"`` if the package was installed as a dependency.
     requested_spec = StringField(required=False)
-    #: list(str): The :class:`MatchSpec` objects that the user requested or ``[]`` if the package was installed as a dependency.
+    #: list(str): The :class:`MatchSpec` objects that the user requested or ``()`` if the package was installed as a dependency.
     requested_specs = ListField(str, default=(), required=False)
 
 

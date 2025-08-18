@@ -996,7 +996,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             # self.package_info.index_json_record,
             self.package_info.package_metadata,
             requested_spec=str(self.requested_spec),
-            requested_specs=[str(self.requested_spec)],
+            requested_specs=(str(self.requested_spec),),
             paths_data=paths_data,
             files=files,
             link=link,
