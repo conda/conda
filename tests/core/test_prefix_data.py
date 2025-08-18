@@ -909,14 +909,3 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
         pinned_specs = prefix_data.get_pinned_specs()
         assert pinned_specs != specs
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
-
-
-def test_requested_spec(tmp_env: TmpEnvFixture):
-    specs = ("ca-certificates", "ca-certificates>=2025")
-    with tmp_env(*specs) as prefix:
-        prefix_data = PrefixData(prefix)
-        record = prefix_data.get("ca-certificates")
-        # conda classic and conda-libmamba-solver merge the incoming match-specs
-        merged_spec = str(MatchSpec.merge(specs)[0])
-        assert record.requested_spec == merged_spec
-        assert record.requested_specs == (merged_spec,)

@@ -4,8 +4,10 @@ import pytest
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.common.io import env_unmodified
+from conda.core.prefix_data import PrefixData
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
+from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord, PrefixRecord
 
 blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
@@ -48,6 +50,7 @@ def test_prefix_record_no_channel():
             subdir="win-32",
             fn="austin-1.2.3-py34_2.tar.bz2",
             constrains=(),
+            requested_specs=(),
             depends=(),
         )
 
@@ -241,3 +244,15 @@ def test_record_spec_strings_inheritance(record_class, extra_kwargs):
     # Verify that the properties exist (important for environment export)
     assert hasattr(rec, "spec")
     assert hasattr(rec, "spec_no_build")
+
+
+@pytest.mark.integration
+def test_requested_spec(tmp_env):
+    specs = ("ca-certificates", "ca-certificates>=2025")
+    with tmp_env(*specs) as prefix:
+        prefix_data = PrefixData(prefix)
+        record = prefix_data.get("ca-certificates")
+        # conda classic and conda-libmamba-solver merge the incoming match-specs
+        merged_spec = str(MatchSpec.merge(specs)[0])
+        assert record.requested_spec == merged_spec
+        assert record.requested_specs == (merged_spec,)
