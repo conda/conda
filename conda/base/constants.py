@@ -309,6 +309,7 @@ CONDA_LIST_FIELDS: Final = {
     "noarch": "Noarch",
     "package_type": "Package type",
     "requested_spec": "Requested",
+    "requested_specs": "Requested",
     "sha256": "SHA256",
     "size": "Size",
     "subdir": "Subdir",
