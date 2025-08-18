@@ -617,12 +617,14 @@ class SolvedRecord(PackageRecord):
     """Representation of a package that has been returned as part of a solver solution.
 
     This sits between :class:`PackageRecord` and :class:`PrefixRecord`, simply adding
-    ``requested_spec`` so it can be used in lockfiles without requiring the artifact on
-    disk.
+    ``requested_spec`` (and ``requested_specs``) so they can be used in lockfiles without
+    requiring the artifact on disk.
     """
 
-    #: str: The :class:`MatchSpec` that the user requested or ``None`` if the package it was installed as a dependency.
+    #: str: The (merged) :class:`MatchSpec` that the user requested or ``"None"`` if the package was installed as a dependency.
     requested_spec = StringField(required=False)
+    #: list(str): The :class:`MatchSpec` objects that the user requested or ``[]`` if the package was installed as a dependency.
+    requested_specs = ListField(str, default=(), required=False)
 
 
 class PrefixRecord(SolvedRecord):
