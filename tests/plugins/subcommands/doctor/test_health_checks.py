@@ -424,3 +424,6 @@ def test_pinned_will_formatted_check(
 
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert expected_output in out
+
+
+def test_file_locking_supported_check(): ...

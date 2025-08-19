@@ -249,18 +249,18 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
         pinned_specs = prefix_data.get_pinned_specs()
     except OSError as err:
         print(
-            f"{X_MARK} Unable to open pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
+            f"{X_MARK} Unable to open pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}\n"
         )
     except Exception as err:
         print(
-            f"{X_MARK} An error occurred trying to read pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
+            f"{X_MARK} An error occurred trying to read pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}\n"
         )
         return
 
     # If there are no pinned specs, exit early
     if not pinned_specs:
         print(
-            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}."
+            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}.\n"
         )
         return
 
@@ -273,14 +273,15 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
     # Inform the user of any packages that might be malformed
     if maybe_malformed:
         print(
-            f"{X_MARK} The following specs in {prefix_data.prefix_path / PREFIX_PINNED_FILE} are maybe malformed:"
+            f"{X_MARK} The following specs in {prefix_data.prefix_path / PREFIX_PINNED_FILE} might be malformed:"
         )
         print(dashlist((spec.name for spec in maybe_malformed), indent=4))
+        print("\n")
         return
 
     # If there are no malformed packages, the pinned file is well formatted
     print(
-        f"{OK_MARK} The pinned file in {prefix_data.prefix_path / PREFIX_PINNED_FILE} seems well formatted."
+        f"{OK_MARK} The pinned file in {prefix_data.prefix_path / PREFIX_PINNED_FILE} seems well formatted.\n"
     )
 
 
@@ -289,14 +290,14 @@ def file_locking_check(prefix: str, verbose: bool):
     Report if file locking is supported or not.
     """
     if _lock_impl != _lock_noop:
-        print(f"{OK_MARK} File locking is supported.\n")
-    else:
         if context.no_lock:
             print(
-                f"{X_MARK} File locking is disabled using the CONDA_NO_LOCK=1 setting.\n"
+                f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
             )
         else:
-            print(f"{X_MARK} File locking is not supported.\n")
+            print(f"{OK_MARK} File locking is supported.\n")
+    else:
+        print(f"{X_MARK} File locking is not supported.\n")
 
 
 @hookimpl
