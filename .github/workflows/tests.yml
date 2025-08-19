@@ -94,6 +94,7 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
+      REQUIREMENTS_S3: ${{ matrix.default-channel == 'conda-forge' && '--file tests\requirements-s3.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -122,6 +123,7 @@ jobs:
           run-post: false  # skip post cleanup
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
+          conda-remove-defaults: ${{ matrix.default-channel == 'conda-forge' }}
 
       - name: Conda Install
         run: >
@@ -130,11 +132,12 @@ jobs:
           --file tests\requirements.txt
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
-          --file tests\requirements-s3.txt
+          $env:REQUIREMENTS_S3
           $env:REQUIREMENTS_TRUSTSTORE
           python=${{ matrix.python-version }}
         env:
           REQUIREMENTS_TRUSTSTORE: ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          REQUIREMENTS_S3: ${{ env.REQUIREMENTS_S3 }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -262,6 +265,7 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
+          conda-remove-defaults: ${{ matrix.default-channel == 'conda-forge' }}
 
       - name: Conda Install
         run: >
@@ -676,6 +680,7 @@ jobs:
           miniconda-version: ${{ (matrix.default-channel == 'defaults' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           miniforge-version: ${{ (matrix.default-channel == 'conda-forge' && matrix.arch == 'osx-arm64') && 'latest' || null }}
           architecture: ${{ runner.arch }}
+          conda-remove-defaults: ${{ matrix.default-channel == 'conda-forge' }}
 
       - name: Conda Install
         run: >
