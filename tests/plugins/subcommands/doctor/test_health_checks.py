@@ -11,6 +11,7 @@ from requests import Response
 
 from conda.base.constants import PREFIX_PINNED_FILE
 from conda.common.serialize import yaml_safe_dump
+from conda.gateways.disk.lock import _lock_impl, _lock_noop
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
@@ -426,4 +427,33 @@ def test_pinned_will_formatted_check(
         assert expected_output in out
 
 
-def test_file_locking_supported_check(): ...
+@pytest.mark.parametrize("no_lock_flag", [True, False])
+def test_file_locking_supported(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    no_lock_flag: bool,
+):
+    with tmp_env() as prefix:
+        assert _lock_impl != _lock_noop
+
+        out, _, _ = conda_cli(
+            f"CONDA_NO_LOCK={no_lock_flag}", "doctor", "--prefix", prefix
+        )
+        if no_lock_flag:
+            assert (
+                f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+                in out
+            )
+        else:
+            assert f"{OK_MARK} File locking is supported." in out
+
+
+def test_file_locking_not_supported(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
+):
+    with tmp_env() as prefix:
+        monkeypatch.setattr("conda.gateways.disk.lock._lock_impl", _lock_noop)
+        assert _lock_impl == _lock_noop
+
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+        assert f"{OK_MARK} File locking is not supported." in out
