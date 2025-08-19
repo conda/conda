@@ -25,6 +25,7 @@ from conda.base.context import (
     channel_alias_validation,
     context,
     default_python_validation,
+    env_name,
     reset_context,
     validate_channels,
     validate_prefix_name,
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_migrated_custom_channels(context_testdata: None):
@@ -756,3 +758,30 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+
+def test_default_activation_prefix(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """Test that the default_activation_prefix returns the correct prefix.
+
+    context.default_activation_env can either be a name or a prefix path, so we check
+    that in either case, the context.default_activation_prefix is a path.
+    """
+    key = "CONDA_DEFAULT_ACTIVATION_ENV"
+
+    with tmp_env() as prefix:
+        name = env_name(prefix)
+        monkeypatch.setenv(key, context.root_prefix)
+        reset_context()
+        assert prefix != context.default_activation_prefix
+
+        monkeypatch.setenv(key, prefix)
+        reset_context()
+        assert prefix == context.default_activation_prefix
+
+        monkeypatch.setenv(key, name)
+        reset_context()
+        assert prefix == context.default_activation_prefix
