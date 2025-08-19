@@ -432,12 +432,12 @@ def test_file_locking_supported(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     no_lock_flag: bool,
+    monkeypatch: MonkeyPatch,
 ):
     with tmp_env() as prefix:
         assert _lock_impl != _lock_noop
 
         monkeypatch.setenv("CONDA_NO_LOCK", no_lock_flag)
-        reset_context()
 
         out, _, _ = conda_cli("doctor", "--prefix", prefix)
         if no_lock_flag:
