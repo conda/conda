@@ -436,9 +436,10 @@ def test_file_locking_supported(
     with tmp_env() as prefix:
         assert _lock_impl != _lock_noop
 
-        out, _, _ = conda_cli(
-            f"CONDA_NO_LOCK={no_lock_flag}", "doctor", "--prefix", prefix
-        )
+        monkeypatch.setenv("CONDA_NO_LOCK", no_lock_flag)
+        reset_context()
+
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
         if no_lock_flag:
             assert (
                 f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
