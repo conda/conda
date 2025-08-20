@@ -632,6 +632,7 @@ class RepodataCache:
             except FileExistsError:  # Windows
                 self.cache_path_json.unlink()
                 temp_path.rename(target)
+
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):

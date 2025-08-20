@@ -179,7 +179,6 @@ class ShardedRepoInterface(RepoInterface):
     # repodata.json" object with the same interface.
 
     def repodata_parsed(self, state: dict | RepodataState) -> dict | None:
-
         session = get_session(self._url)
 
         if not context.ssl_verify:
