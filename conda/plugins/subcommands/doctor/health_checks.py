@@ -249,18 +249,18 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
         pinned_specs = prefix_data.get_pinned_specs()
     except OSError as err:
         print(
-            f"{X_MARK} Unable to open pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}\n"
+            f"{X_MARK} Unable to open pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
         )
     except Exception as err:
         print(
-            f"{X_MARK} An error occurred trying to read pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}\n"
+            f"{X_MARK} An error occurred trying to read pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
         )
         return
 
     # If there are no pinned specs, exit early
     if not pinned_specs:
         print(
-            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}.\n"
+            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}."
         )
         return
 
@@ -273,15 +273,14 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
     # Inform the user of any packages that might be malformed
     if maybe_malformed:
         print(
-            f"{X_MARK} The following specs in {prefix_data.prefix_path / PREFIX_PINNED_FILE} might be malformed:"
+            f"{X_MARK} The following specs in {prefix_data.prefix_path / PREFIX_PINNED_FILE} are maybe malformed:"
         )
         print(dashlist((spec.name for spec in maybe_malformed), indent=4))
-        print("\n")
         return
 
     # If there are no malformed packages, the pinned file is well formatted
     print(
-        f"{OK_MARK} The pinned file in {prefix_data.prefix_path / PREFIX_PINNED_FILE} seems well formatted.\n"
+        f"{OK_MARK} The pinned file in {prefix_data.prefix_path / PREFIX_PINNED_FILE} seems well formatted."
     )
 
 
