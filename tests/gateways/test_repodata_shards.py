@@ -13,13 +13,9 @@ def test_bytes_cache(tmp_path):
     """
     Test caching bytes in a separate ".msgpack.zst" file.
     """
-    test_data = (
-        Path(__file__).parents[1]
-        / "data"
-        / "conda_format_repo"
-        / "linux-64"
-        / "repodata_shards.msgpack.zst"
-    )
+    test_data = tmp_path / "test_data"
+    test_data.write_bytes(b"abc123")
+
     assert test_data.exists()
     base = tmp_path / "bytes"
     cache = RepodataCache(base, "repodata_shards.msgpack.zst")
