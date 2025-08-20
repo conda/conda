@@ -49,6 +49,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
+    EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
     LinkError,
@@ -2715,7 +2716,7 @@ def test_create_with_clone_and_file_raises_argument_error(
         "idontexist",
         "--file",
         "/pretend/this/file/exists",
-        raises=TooManyArgumentsError,
+        raises=EnvironmentFileNotFound,
     )
 
 
