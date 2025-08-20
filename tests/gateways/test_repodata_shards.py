@@ -9,7 +9,7 @@ from pathlib import Path
 from conda.gateways.repodata import RepodataCache
 
 
-def test_bytes_cache(tmp_path):
+def test_bytes_cache(tmp_path: Path):
     """
     Test caching bytes in a separate ".msgpack.zst" file.
     """
