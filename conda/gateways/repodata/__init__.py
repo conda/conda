@@ -591,10 +591,12 @@ class RepodataCache:
     def save(self, data: str | bytes):
         """Write data to <repodata> cache path, by calling self.replace()."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
-        mode = "bx" if isinstance(data, bytes) else "x"
-        target = (
-            self.cache_path_shards if isinstance(data, bytes) else self.cache_path_json
-        )
+        if isinstance(data, bytes):
+            mode = "bx"
+            target = self.cache_path_shards
+        else:
+            mode = "x"
+            target = self.cache_path_json
 
         try:
             with temp_path.open(mode) as temp:  # exclusive mode, error if exists
@@ -615,7 +617,7 @@ class RepodataCache:
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
-        if not target:
+        if target is None:
             target = self.cache_path_json
         with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
