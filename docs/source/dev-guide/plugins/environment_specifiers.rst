@@ -121,8 +121,8 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
    import os
    from pydantic import BaseModel
 
-   from conda.plugins import CondaEnvironmentSpecifier, hookimpl
-   from conda.plugins.types import EnvironmentSpecBase
+   from conda.plugins import hookimpl
+   from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
    from conda.env.env import Environment
 
 

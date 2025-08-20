@@ -20,7 +20,8 @@ from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
 from ....gateways.disk.read import compute_sum
 from ....models.match_spec import MatchSpec
-from ... import CondaHealthCheck, hookimpl
+from ... import hookimpl
+from ...types import CondaHealthCheck
 
 logger = getLogger(__name__)
 

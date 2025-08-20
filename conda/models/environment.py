@@ -492,12 +492,6 @@ class Environment:
         :return: An Environment object representing the cli
         """
         specs = [package.strip("\"'") for package in args.packages]
-        if add_default_packages:
-            names = {MatchSpec(spec).name for spec in specs}
-            for default_package in context.create_default_packages:
-                if MatchSpec(default_package).name not in names:
-                    specs.append(default_package)
-
         requested_packages = []
         fetch_explicit_packages = []
 
@@ -516,6 +510,15 @@ class Environment:
                     "Error reading file, file should be a text file containing packages\n"
                     "See `conda create --help` for details."
                 )
+
+        # Add default packages if required. If the default package is already
+        # present in the list of specs, don't add it (this will override any
+        # version constraint from the default package).
+        if add_default_packages:
+            names = {MatchSpec(spec).name for spec in specs}
+            for default_package in context.create_default_packages:
+                if MatchSpec(default_package).name not in names:
+                    specs.append(default_package)
 
         for spec in specs:
             if is_package_file(spec):

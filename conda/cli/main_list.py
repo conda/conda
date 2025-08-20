@@ -245,6 +245,9 @@ def list_packages(
 
         packages.append(row)
 
+    if regex and not packages:
+        raise CondaValueError(f"No packages match '{regex}'.")
+
     if reverse:
         packages = reversed(packages)
 
@@ -349,7 +352,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     regex = args.regex
-    if args.full_name:
+    if regex and args.full_name:
         regex = rf"^{regex}$"
 
     if args.revisions:

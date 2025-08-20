@@ -1049,7 +1049,7 @@ class FishActivator(_Activator):
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
 
-    unset_var_tmpl = "set -e %s"
+    unset_var_tmpl = "set -e %s || true"
     export_var_tmpl = 'set -gx %s "%s"'
     path_var_tmpl = 'set -gx %s (cygpath "%s")' if on_win else export_var_tmpl
     set_var_tmpl = 'set -g %s "%s"'
