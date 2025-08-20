@@ -355,7 +355,6 @@ HTTP errors are often intermittent, and a simple retry will get you on your way.
 class RepodataState(UserDict):
     """Load/save info file that accompanies cached `repodata.json`."""
 
-    # update to support bytes
 
     # Accept old keys for new serialization
     _aliased = {
