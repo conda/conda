@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a "file locking" health check to `conda doctor`. (#15114)
+* Add a "file locking" health check to `conda doctor`. (#13921 & #14948 via #15114)
 
 ### Bug fixes
 
