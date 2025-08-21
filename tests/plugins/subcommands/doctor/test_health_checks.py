@@ -13,7 +13,6 @@ from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import context, reset_context
 from conda.common.serialize import yaml_safe_dump
 from conda.gateways.disk import lock
-from conda.plugins.subcommands.doctor import health_checks
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
@@ -435,7 +434,7 @@ def test_file_locking_supported(
     no_lock_flag: bool,
     monkeypatch: MonkeyPatch,
 ):
-    assert health_checks._lock_impl != lock._lock_noop
+    assert lock.locking_supported()
 
     monkeypatch.setenv("CONDA_NO_LOCK", no_lock_flag)
     reset_context()
@@ -455,9 +454,9 @@ def test_file_locking_supported(
 def test_file_locking_not_supported(
     conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
 ):
-    monkeypatch.setattr(health_checks, "_lock_impl", lock._lock_noop)
+    monkeypatch.setattr(lock, "_lock_impl", lock._lock_noop)
 
-    assert health_checks._lock_impl == lock._lock_noop
+    assert not lock.locking_supported()
 
     out, _, _ = conda_cli("doctor")
 
