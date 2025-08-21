@@ -18,6 +18,7 @@ from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
+from ....gateways.disk.lock import locking_supported
 from ....gateways.disk.read import compute_sum
 from ....models.match_spec import MatchSpec
 from ... import hookimpl
@@ -283,6 +284,21 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
     )
 
 
+def file_locking_check(prefix: str, verbose: bool):
+    """
+    Report if file locking is supported or not.
+    """
+    if locking_supported():
+        if context.no_lock:
+            print(
+                f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+            )
+        else:
+            print(f"{OK_MARK} File locking is supported.\n")
+    else:
+        print(f"{X_MARK} File locking is not supported.\n")
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
@@ -297,4 +313,8 @@ def conda_health_checks():
     yield CondaHealthCheck(
         name=f"{PREFIX_PINNED_FILE} Well Formatted Check",
         action=pinned_well_formatted_check,
+    )
+    yield CondaHealthCheck(
+        name="File Locking Supported Check",
+        action=file_locking_check,
     )
