@@ -2,15 +2,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
 
+from __future__ import annotations
+
 import os
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError
-from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
-from ..env import EnvironmentYaml
+
+if TYPE_CHECKING:
+    from ...models.environment import Environment
+    from ..env import EnvironmentYaml
+
 
 log = getLogger(__name__)
 

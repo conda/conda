@@ -1,3 +1,4 @@
 channels:
   - conda-forge
   - defaults
+dependencies:

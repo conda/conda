@@ -16,10 +16,15 @@ from conda.env.env import (
     VALID_KEYS,
     Environment,
     EnvironmentYaml,
+    channels_validation,
+    dependencies_validation,
     from_environment,
     from_file,
+    name_validation,
+    prefix_validation,
+    variables_validation,
 )
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, EnvironmentFileInvalid
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -308,7 +313,15 @@ def test_invalid_keys():
     e = get_invalid_keys_environment()
     e_dict = e.to_dict()
     assert "name" in e_dict
-    assert len(e_dict) == 1
+    assert "dependencies" in e_dict
+    assert len(e_dict) == 2
+
+
+def test_missing_required_keys():
+    with pytest.raises(
+        EnvironmentFileInvalid, match="Missing required field 'dependencies'"
+    ):
+        get_environment("missing_required_keys.yml")
 
 
 def test_creates_file_on_save(tmp_path: Path):
@@ -368,3 +381,77 @@ def test_from_history():
 def test_environment_deprecated() -> None:
     with pytest.deprecated_call():
         Environment(filename="idontexist", name="simple")
+
+
+@pytest.mark.parametrize(
+    "dependencies",
+    (
+        None,
+        ["python"],
+        [],
+        ["python", "numpy"],
+        ["python", "pip", {"pip": ["scipy"]}],
+        [{"something-unknown": "idontknow"}],
+    ),
+)
+def test_dependency_validation(dependencies):
+    dependencies_validation(dependencies)
+
+
+@pytest.mark.parametrize(
+    "dependencies,error_message",
+    (
+        (["nota~matchspec"], "Invalid spec 'nota~matchspec'"),
+        (["python", ["this-should", "not-be-a", "list"]], "is an invalid type"),
+        ({"wrong": "type"}, "Invalid type for 'dependencies'"),
+    ),
+)
+def test_dependency_validation_errors(dependencies, error_message):
+    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+        dependencies_validation(dependencies)
+
+
+@pytest.mark.parametrize(
+    "channels,error_message",
+    (
+        ({"wrong": "type"}, "Invalid type for 'channels'"),
+        ([{"wrong": "type"}], "`channels` key must only contain strings."),
+    ),
+)
+def test_channels_validation_errors(channels, error_message):
+    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+        channels_validation(channels)
+
+
+@pytest.mark.parametrize(
+    "variables,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'variables'"),
+        ({"name": ["wrong", "type"]}, "`variables` values must be strings"),
+    ),
+)
+def test_variables_validation_errors(variables, error_message):
+    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+        variables_validation(variables)
+
+
+@pytest.mark.parametrize(
+    "name,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'name'"),
+        ("root", "Environment name must not be any of: "),
+    ),
+)
+def test_name_validation_errors(name, error_message):
+    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+        name_validation(name)
+
+@pytest.mark.parametrize(
+    "prefix,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'prefix'"),
+    ),
+)
+def test_prefix_validation_errors(prefix, error_message):
+    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+        prefix_validation(prefix)
