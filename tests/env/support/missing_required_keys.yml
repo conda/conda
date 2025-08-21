@@ -1,0 +1,6 @@
+name: nlp
+channels:
+  - anaconda
+variables:
+  VARIABLE: value
+prefix: /something/miniconda/envs/test
