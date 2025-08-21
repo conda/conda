@@ -120,6 +120,10 @@ DEFAULT_CUSTOM_CHANNELS: Final = {
 DEFAULT_CHANNELS: Final = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME: Final = "base"
+RESERVED_ENV_NAMES: Final = (
+    ROOT_ENV_NAME,
+    "root",
+)
 UNUSED_ENV_NAME: Final = "unused-env-name"
 
 ROOT_NO_RM: Final = (

@@ -19,7 +19,7 @@ from boltons.setutils import IndexedSet
 
 from ..base.constants import (
     REPODATA_FN,
-    ROOT_ENV_NAME,
+    RESERVED_ENV_NAMES,
     UpdateModifier,
 )
 from ..base.context import context
@@ -112,7 +112,7 @@ def check_prefix(prefix: str, json=False):
         )
     name = basename(prefix)
     error = None
-    if name == ROOT_ENV_NAME:
+    if name in RESERVED_ENV_NAMES:
         error = f"'{name}' is a reserved environment name"
     if exists(prefix):
         if isdir(prefix) and "conda-meta" not in tuple(
