@@ -2,18 +2,27 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Environment object describing the conda environment.yaml file."""
 
+from __future__ import annotations
+
 import os
 import re
 from itertools import chain
+from typing import TYPE_CHECKING
 
 from ..base.context import context
+from ..base.constants import RESERVED_ENV_NAMES
 from ..cli import common
 from ..common.iterators import unique
 from ..common.path import expand
 from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
-from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from ..exceptions import (
+    EnvironmentFileEmpty,
+    EnvironmentFileInvalid,
+    EnvironmentFileNotFound,
+    InvalidMatchSpec,
+)
 from ..gateways.connection.download import download_text
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..history import History
@@ -21,7 +30,139 @@ from ..models.environment import Environment as EnvironmentModel
 from ..models.environment import EnvironmentConfig
 from ..models.match_spec import MatchSpec
 
-VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
+if TYPE_CHECKING:
+    from typing import Any
+
+REQUIRED_KEYS = ("dependencies",)
+OPTIONAL_KEYS = (
+    "name",
+    "prefix",
+    "channels",
+    "variables",
+)
+VALID_KEYS = (*REQUIRED_KEYS, *OPTIONAL_KEYS)
+
+
+def field_type_validation(field_name: str, value: Any | None, value_type: Any) -> None:
+    """Validates the type of a value"""
+    if not value:
+        return
+
+    if not isinstance(value, value_type):
+        raise EnvironmentFileInvalid(f"Invalid type for '{field_name}', expected a {value_type.__name__}")
+
+
+def prefix_validation(prefix: str | None):
+    """Validate the contents of the prefix field.
+
+    Will ensure:
+      * prefix is a string
+    """
+    field_type_validation("prefix", prefix, str)
+
+
+def name_validation(name: str | None):
+    """Validate the contents of the name field.
+
+    Will ensure:
+      * name is a string
+      * is not the name of a reserved environment
+    """
+    field_type_validation("name", name, str)
+    if name in RESERVED_ENV_NAMES:
+        raise EnvironmentFileInvalid(f"Environment name must not be any of: {', '.join(RESERVED_ENV_NAMES)}")
+
+
+def dependencies_validation(dependencies: list | None):
+    """Validate the contents of the dependencies field.
+
+    Will ensure:
+      * dependencies are a list
+      * all string dependencies are MatchSpec compatible
+      * the only other type allowed is a dict
+    """
+    field_type_validation("dependencies", dependencies, list)
+
+    if dependencies:
+        for dep in dependencies:
+            if isinstance(dep, str):
+                # If the dependency is a string type, it must be
+                # MatchSpec compatible.
+                try:
+                    MatchSpec(dep)
+                except InvalidMatchSpec as err:
+                    raise EnvironmentFileInvalid(str(err))
+            elif isinstance(dep, dict):
+                # dict types are also allowed. There are no requirements
+                # for the form of this entry
+                pass
+            else:
+                # All other types are invalid
+                raise EnvironmentFileInvalid(
+                    "'{dep}' is an invalid type for a 'dependency'"
+                )
+
+
+def channels_validation(channels: list | None):
+    """Validate the contents of the channels field.
+
+    Will ensure:
+      * channels is a list
+      * all entries are strings
+    """
+    field_type_validation("channels", channels, list)
+
+    if channels:
+        for channel in channels:
+            if not isinstance(channel, str):
+                raise EnvironmentFileInvalid(
+                    "`channels` key must only contain strings. Found '{channel}'"
+                )
+
+
+def variables_validation(variables: dict[str, str] | None):
+    """Validate the contents of the variables field.
+
+    Will ensure:
+      * variables is a dict
+      * all entries are strings
+    """
+    field_type_validation("variables", variables, dict)
+    if variables:
+        for value in variables.values():
+            if not isinstance(value, str):
+                raise EnvironmentFileInvalid("`variables` values must be strings")
+
+
+SCHEMA_VALIDATORS = {
+    "name": name_validation,
+    "prefix": prefix_validation,
+    "dependencies": dependencies_validation,
+    "channels": channels_validation,
+    "variables": variables_validation,
+}
+
+
+def validate_schema(data: dict) -> None:
+    """Validate the environment.yaml data.
+
+    Will ensure:
+      * all required fields are present
+      * all fields contain valid data
+
+    :param dict data: The contents of the environment.yaml
+    :raises EnvironmentFileInvalid: When the contents of the environment.yaml are
+        found to be invalid
+    """
+    data_keys = data.keys()
+    # Ensure all required keys are present
+    for field in REQUIRED_KEYS:
+        if field not in data_keys:
+            raise EnvironmentFileInvalid(f"Missing required field '{field}'")
+
+    # Run validations on all the relevant fields
+    for key, validator in SCHEMA_VALIDATORS.items():
+        validator(data.get(key, None))
 
 
 def validate_keys(data, kwargs):
@@ -45,7 +186,7 @@ def validate_keys(data, kwargs):
             print(f" - {key}")
         print()
 
-    deps = data.get("dependencies", [])
+    deps = data.get("dependencies", []) or []
     depsplit = re.compile(r"[<>~\s=]")
     is_pip = lambda dep: "pip" in depsplit.split(dep)[0].split("::")
     lists_pip = any(is_pip(dep) for dep in deps if not isinstance(dep, dict))
@@ -124,12 +265,18 @@ def from_environment(
     )
 
 
-def from_yaml(yamlstr, **kwargs):
+def from_yaml(yamlstr: str, validate: bool = True, **kwargs):
     """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string"""
     data = yaml_safe_load(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
+
+    if validate:
+        # Perform validation. Will raise an error if the yamlstr
+        # is not a valid environment.yaml
+        validate_schema(data)
+
     data = validate_keys(data, kwargs)
 
     if kwargs is not None:
