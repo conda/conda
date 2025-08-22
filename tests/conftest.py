@@ -13,7 +13,7 @@ import pytest
 
 import conda
 from conda import plugins
-from conda.base.constants import APP_NAME
+from conda.base.constants import APP_NAME, KNOWN_SUBDIRS
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
     Configuration,
@@ -317,6 +317,7 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             self.plugin_manager = mocker.MagicMock()
             self.repodata_fns = ["repodata.json", "current_repodata.json"]
             self.subdir = mocker.MagicMock()
+            self.known_subdirs = frozenset(KNOWN_SUBDIRS)
             self.preview = ()
 
         @property

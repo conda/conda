@@ -105,7 +105,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Provide detailed information about each package.",
     )
-    add_parser_platform(p, help="Specify which platform to search.")
+    add_parser_platform(
+        p,
+        help="Specify which platform to search.",
+        known_subdirs_only=False,
+    )
     p.add_argument(
         "--skip-flexible-search",
         action="store_true",
