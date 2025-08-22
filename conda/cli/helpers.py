@@ -564,7 +564,7 @@ def add_parser_default_packages(p: ArgumentParser) -> None:
 
 
 def add_parser_platform(parser: ArgumentParser, *, help: str | None = None) -> None:
-    from ..base.constants import KNOWN_SUBDIRS
+    from ..base.context import context
     from ..common.constants import NULL
 
     help = (
@@ -579,7 +579,7 @@ def add_parser_platform(parser: ArgumentParser, *, help: str | None = None) -> N
         "--platform",
         default=NULL,
         dest="subdir",
-        choices=[s for s in KNOWN_SUBDIRS if s != "noarch"],
+        choices=sorted(context.known_subdirs - {"noarch"}),
         metavar="SUBDIR",
         help=(
             f"{help}{' ' if help else ''}"

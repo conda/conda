@@ -729,7 +729,7 @@ class Context(Configuration):
         return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
-    def known_subdirs(self) -> set[str]:
+    def known_subdirs(self) -> frozenset[str]:
         return frozenset((*KNOWN_SUBDIRS, *self.subdirs))
 
     @property
