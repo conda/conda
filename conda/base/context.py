@@ -67,6 +67,7 @@ from .constants import (
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
+    RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
     SEARCH_PATH,
     ChannelPriority,
@@ -794,7 +795,7 @@ class Context(Configuration):
         if self.active_prefix:
             return self.active_prefix
         _default_env = os.getenv("CONDA_DEFAULT_ENV")
-        if _default_env in (None, ROOT_ENV_NAME, "root"):
+        if _default_env in (None, *RESERVED_ENV_NAMES):
             return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
@@ -2220,7 +2221,7 @@ def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> Path
     error is raised.
     """
     assert name
-    if name in (ROOT_ENV_NAME, "root"):
+    if name in RESERVED_ENV_NAMES:
         return context.root_prefix
     if envs_dirs is None:
         envs_dirs = context.envs_dirs
@@ -2290,7 +2291,7 @@ def validate_prefix_name(
             )
         )
 
-    if prefix_name in (ROOT_ENV_NAME, "root"):
+    if prefix_name in RESERVED_ENV_NAMES:
         if allow_base:
             return ctx.root_prefix
         else:

@@ -37,8 +37,9 @@ from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
+    RESERVED_ENV_NAMES,
 )
-from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+from .base.context import context, locate_prefix_by_name
 from .common.compat import on_win
 from .common.path import _cygpath, paths_equal, unix_path_to_win, win_path_to_unix
 from .common.path import path_identity as _path_identity
@@ -355,7 +356,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 from .exceptions import EnvironmentLocationNotFound
 
                 raise EnvironmentLocationNotFound(prefix)
-        elif env_name_or_prefix in (ROOT_ENV_NAME, "root"):
+        elif env_name_or_prefix in (RESERVED_ENV_NAMES):
             prefix = context.root_prefix
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)

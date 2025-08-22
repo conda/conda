@@ -19,6 +19,7 @@ from ..base.constants import (
     PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
+    RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
@@ -338,7 +339,7 @@ class PrefixData(metaclass=PrefixDataType):
         :raises CondaValueError: If the name is protected, or if it contains disallowed characters
             (`/`, ` `, `:`, `#`).
         """
-        if not allow_base and self.name in (ROOT_ENV_NAME, "root"):
+        if not allow_base and self.name in RESERVED_ENV_NAMES:
             raise CondaValueError(f"'{self.name}' is a reserved environment name")
 
         if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.prefix_path.name):
