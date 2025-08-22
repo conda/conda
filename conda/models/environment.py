@@ -517,11 +517,6 @@ class Environment:
         if add_default_packages:
             names = {MatchSpec(spec).name for spec in specs}
             for default_package in context.create_default_packages:
-                if is_package_file(default_package):
-                    raise CondaValueError(
-                        "Conda setting `create_default_packages` must not include references to explicit packages. "
-                        f"Found explicit package reference '{default_package}'"
-                    )
                 if MatchSpec(default_package).name not in names:
                     specs.append(default_package)
 

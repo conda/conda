@@ -13,6 +13,7 @@ import os
 import platform
 import struct
 import sys
+import warnings
 from contextlib import contextmanager, suppress
 from errno import ENOENT
 from functools import cache, cached_property
@@ -254,8 +255,9 @@ class Context(Configuration):
         PrimitiveParameter(None, element_type=(str, NoneType)), aliases=("env_spec",)
     )
 
-    create_default_packages = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str))
+    _create_default_packages = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("create_default_packages",),
     )
     register_envs = ParameterLoader(PrimitiveParameter(True))
     protect_frozen_envs = ParameterLoader(PrimitiveParameter(True))
@@ -1256,6 +1258,29 @@ class Context(Configuration):
     @property
     def default_activation_env(self) -> str:
         return self._default_activation_env or ROOT_ENV_NAME
+
+    @property
+    def create_default_packages(self) -> tuple[str, ...]:
+        """Returns a list of `create_default_packages`, removing any explicit packages."""
+        from ..common.io import dashlist
+        from ..common.path import is_package_file
+
+        explicit_packages = []
+        default_packages = []
+        for package in self._create_default_packages:
+            if is_package_file(package):
+                explicit_packages.append(package)
+            else:
+                default_packages.append(package)
+
+        if explicit_packages:
+            warnings.warn(
+                f"Ignoring invalid packages in `create_default_packages`: {dashlist(explicit_packages)}\n"
+                "\nExplicit package are not allowed, use package names like 'numpy' or specs like 'numpy>=1.20' instead.\n"
+                "Try using the command `conda config --show-sources` to verify your conda configuration.\n",
+                UserWarning,
+            )
+        return tuple(default_packages)
 
     @property
     def default_activation_prefix(self) -> Path:

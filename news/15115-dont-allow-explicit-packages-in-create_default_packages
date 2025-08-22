@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Conda should provide a helpful error message for invalid create_default_packages setting. (#15115)
+* Conda should ignore explicit packages specified in `create_default_packages` setting and provide a helpful warning message for the setting. (#15115)
 
 ### Deprecations
 

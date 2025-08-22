@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import reset_context
-from conda.exceptions import CondaValueError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -27,9 +26,10 @@ def test_create_default_packages_can_not_be_explicit(
         "https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2025.2.25-h06a4308_0.conda",
     )
     reset_context()
-    with pytest.raises(CondaValueError) as err:
+    with pytest.warns(UserWarning) as warning:
         conda_cli("create", "--prefix", tmp_path, "--yes")
-    assert (
-        "Conda setting `create_default_packages` must not include references to explicit packages."
-        in err.value.message
-    )
+
+        assert (
+            "Ignoring invalid packages in `create_default_packages`: \n  - https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2025.2.25-h06a4308_0.conda\n\nExplicit package are not allowed, use package names like 'numpy' or specs like 'numpy>=1.20' instead.\nTry using the command `conda config --show-sources` to verify your conda configuration.\n"
+            in [str(warn.message) for warn in warning]
+        )
