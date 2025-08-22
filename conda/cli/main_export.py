@@ -14,7 +14,6 @@ from argparse import (
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.constants import NULL
-from ..exceptions import CondaValueError
 from ..models.environment import Environment
 from ..plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_JSON_FORMAT,
@@ -124,20 +123,28 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     target_format = args.format
     environment_exporter = None
 
-    # If explicit format provided, use it and find the appropriate exporter
+    # Handle --json flag for backwards compatibility
+    # If --json is specified without explicit --format AND no file, use JSON format
+    # If both --json and --format are specified, --format takes precedence
+    # If --json with file, --json only affects status messages
     if target_format is not NULL:
-        environment_exporter = (
-            context.plugin_manager.get_environment_exporter_by_format(target_format)
-        )
-    # Otherwise, try to detect format by filename
+        # If explicit format provided, use it and find the appropriate exporter
+        pass
     elif args.file:
+        # Try to detect format by filename
         environment_exporter = context.plugin_manager.detect_environment_exporter(
             args.file
         )
         target_format = environment_exporter.name
+    elif args.json:
+        # Backwards compatibility: --json without --format and no file means JSON output
+        target_format = ENVIRONMENT_JSON_FORMAT
     else:
         # No file and no explicit format, default to environment-yaml
         target_format = ENVIRONMENT_YAML_FORMAT
+
+    # If no exporter was detected, try to get one by format
+    if not environment_exporter:
         environment_exporter = (
             context.plugin_manager.get_environment_exporter_by_format(target_format)
         )
@@ -154,21 +161,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         ignore_channels=args.ignore_channels,
         channels=context.channels,
     )
-    # Handle --json flag for backwards compatibility
-    # If --json is specified without explicit --format AND no file, use JSON format
-    # If both --json and --format are specified, --format takes precedence
-    # If --json with file, --json only affects status messages
-    if args.json and args.format is NULL and not args.file:
-        # Backwards compatibility: --json without --format and no file means JSON output
-        json_exporter = context.plugin_manager.get_environment_exporter_by_format(
-            ENVIRONMENT_JSON_FORMAT
-        )
-        if not json_exporter:
-            raise CondaValueError("JSON exporter plugin not available")
-        exported_content = json_exporter.export(env)
-    else:
-        # Use the detected or default exporter for content
-        exported_content = environment_exporter.export(env)
+
+    exported_content = environment_exporter.export(env)
 
     # Add trailing newline to the exported content
     exported_content = exported_content.rstrip() + "\n"
