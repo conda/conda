@@ -788,12 +788,12 @@ def test_default_activation_prefix(
 
 
 @pytest.mark.parametrize(
-        "context_packages,expected_packages",
-        (
-            (tuple(), tuple()),
-            (("python",), ("python",)),
-            (("python", "ca-certificates-2025.2.25-h06a4308_0.conda"), ("python",)),
-        )
+    "context_packages,expected_packages",
+    (
+        (tuple(), tuple()),
+        (("python",), ("python",)),
+        (("python", "ca-certificates-2025.2.25-h06a4308_0.conda"), ("python",)),
+    ),
 )
 def test_create_default_packages(
     context_packages: tuple[str, ...], expected_packages: tuple[str, ...]
@@ -817,24 +817,30 @@ def test_create_default_packages_will_warn_for_explicit_packages(
     # Add an explicit package and a valid package spec to `create_default_packages`. We
     # expect this to:
     #   * emit a warning about the explicit package and,
-    #   * only return the valid (python) package 
-    monkeypatch.setenv(
-        "CONDA_CREATE_DEFAULT_PACKAGES", f"{explicit_package},python"
-    )
+    #   * only return the valid (python) package
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", f"{explicit_package},python")
     reset_context()
 
-    ignore_package_warning_matcher = "Ignoring invalid packages in `create_default_packages`:"
-    with pytest.warns(UserWarning, match=ignore_package_warning_matcher) as warn_message:
+    ignore_package_warning_matcher = (
+        "Ignoring invalid packages in `create_default_packages`:"
+    )
+    with pytest.warns(
+        UserWarning, match=ignore_package_warning_matcher
+    ) as warn_message:
         create_default_packages = context.create_default_packages
 
         # Ensure only valid packages are returned
         assert create_default_packages == ("python",)
-        
+
         # Get the warning related to ignoring explicit packages
-        ignore_package_warning = next(str(warn.message) for warn in warn_message if ignore_package_warning_matcher in str(warn.message))
-        
+        ignore_package_warning = next(
+            str(warn.message)
+            for warn in warn_message
+            if ignore_package_warning_matcher in str(warn.message)
+        )
+
         # Ensure that the explicit package is in the warning
         assert explicit_package in ignore_package_warning
-        
+
         # Ensure that non-explicit packages are not in the warning
         assert "python" not in ignore_package_warning

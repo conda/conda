@@ -42,7 +42,7 @@ from ..common.configuration import (
     ValidationError,
 )
 from ..common.constants import TRACE
-from ..common.iterators import unique, groupby_to_dict
+from ..common.iterators import groupby_to_dict, unique
 from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
@@ -1266,8 +1266,9 @@ class Context(Configuration):
         from ..common.path import is_package_file
 
         grouped_packages = groupby_to_dict(
-            lambda x: "explicit" if is_package_file(x) else "spec", sequence=self._create_default_packages
-        ) 
+            lambda x: "explicit" if is_package_file(x) else "spec",
+            sequence=self._create_default_packages,
+        )
 
         if grouped_packages.get("explicit", None):
             warnings.warn(
