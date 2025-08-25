@@ -183,7 +183,11 @@ def test_create_valid_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIF
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "specifying_flag",
-    ("--environment-specifier", "--env-spec", "--format",)
+    (
+        "--environment-specifier",
+        "--env-spec",
+        "--format",
+    ),
 )
 def test_create_specify_plugin_type(
     path_factory: PathFactoryFixture,
