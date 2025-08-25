@@ -7,6 +7,7 @@ import os
 from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
+from textwrap import dedent
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -42,6 +43,7 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
+from conda.models.environment import EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
@@ -785,3 +787,62 @@ def test_default_activation_prefix(
         monkeypatch.setenv(key, name)
         reset_context()
         assert prefix == context.default_activation_prefix
+
+
+def test_env_spec_overrides_condarc(tmp_path):
+    reset_context(())
+    # Set config from condarc
+    condarc = dedent(
+        """\
+        channels:
+          - one
+        channel_priority: 'strict'
+        """
+    )
+    condarc_path = tmp_path / "condarc"
+    condarc_path.write_text(condarc)
+    context.__init__(search_path=[condarc_path])
+    assert context.channels == ("one",)
+    assert context.channel_priority == ChannelPriority.STRICT
+
+    # Set config from environment spec
+    env_spec_config = {
+        Path("/i/dont/exist"): EnvironmentConfig(
+            channels=("two",), channel_priority=ChannelPriority.DISABLED
+        )
+    }
+    context.__init__(search_path=[condarc_path], env_spec_config=env_spec_config)
+    assert "one" in context.channels
+    assert "two" in context.channels
+    assert context.channel_priority == ChannelPriority.DISABLED
+
+
+def test_env_vars_and_argparse_override_env_spec(monkeypatch: MonkeyPatch):
+    reset_context()
+    # Set config from environment spec
+    env_spec_config = {
+        Path("/i/dont/exist"): EnvironmentConfig(
+            channels=("one",), channel_priority=ChannelPriority.DISABLED
+        )
+    }
+    context.__init__(env_spec_config=env_spec_config)
+
+    assert "one" in context.channels
+    assert context.channel_priority == ChannelPriority.DISABLED
+
+    # Set config from env vars
+    monkeypatch.setenv("CONDA_CHANNELS", "two")
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
+    reset_context()
+    context.__init__(env_spec_config=env_spec_config)
+    assert "one" in context.channels
+    assert "two" in context.channels
+    assert context.channel_priority == ChannelPriority.STRICT
+
+    # Set argparse args
+    argparse_args = AttrDict(channel=["another-one"], channel_priority="flexible")
+    context.__init__(argparse_args=argparse_args, env_spec_config=env_spec_config)
+    assert "one" in context.channels
+    assert "two" in context.channels
+    assert "another-one" in context.channels
+    assert context.channel_priority == ChannelPriority.FLEXIBLE

@@ -86,6 +86,7 @@ if TYPE_CHECKING:
     from ..common.configuration import Parameter, RawParameter
     from ..common.path import PathsType, PathType
     from ..models.channel import Channel
+    from ..models.environment import EnvironmentConfig
     from ..models.match_spec import MatchSpec
     from ..plugins.config import PluginConfig
     from ..plugins.manager import CondaPluginManager
@@ -557,17 +558,51 @@ class Context(Configuration):
         self,
         search_path: PathsType | None = None,
         argparse_args: Namespace | None = None,
+        env_spec_paths: list[PathsType] | None = None,
         **kwargs,
     ):
         super().__init__(argparse_args=argparse_args)
 
+        # The order of these calls set the config precedence. From
+        # lowest to highest priority:
+        # - condarc files
+        # - config from environment spec files (if available)
+        # - environment variables
+        # - argparse arguments
         self._set_search_path(
             SEARCH_PATH if search_path is None else search_path,
             # for proper search_path templating when --name/--prefix is used
             CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
+
+        env_spec_config = self._get_env_spec_config_source(env_spec_paths)
+        self._set_environment_spec_data(env_spec_config)
+
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
+
+    def _get_env_spec_config_source(self, paths: list[PathsType] | None) -> dict[PathsType, EnvironmentConfig]:
+        """Get the config from every environment spec file provided. This function
+        will return a dict of full Paths to the environment spec file to the
+        config that originated from that file.
+
+        :param paths: list of full paths to environment spec files
+        :return: dict[Path, EnvironmentConfig] of all the configs for the provided paths
+        """
+        if paths is None:
+            return {}
+
+        # Load plugin manager
+        self.plugin_manager
+
+        # Load config from environment specs
+        env_spec_config = {}
+        for path in paths:
+            str_path = str(path)
+            spec_hook = self.plugin_manager.get_environment_specifier(str_path)
+            file_env = spec_hook.environment_spec(str_path).env
+            env_spec_config[path] = file_env.config
+        return env_spec_config
 
     def post_build_validation(self) -> list[ValidationError]:
         errors = []

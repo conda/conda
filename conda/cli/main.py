@@ -3,6 +3,7 @@
 """Entry point for all conda subcommands."""
 
 import sys
+from pathlib import Path
 
 
 def init_loggers():
@@ -26,6 +27,7 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
+    from .common import validate_file_exists
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
@@ -51,7 +53,27 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
-    context.__init__(argparse_args=args)
+    # conda must determine if should be trying to read an input --file arg as part of
+    # setting up the context. To make this determination, check the conda sub command
+    # (`cmd`) that is getting executed. Conda should just do this for the following sub
+    # commands. Other commands may also support a --file argument, but these files are not
+    # environment spec files.
+    read_input_file = (
+        True if args.cmd in ("install", "create", "update") else False
+    )
+    # if we have a valid file argument, then we need to read it and pass its contents
+    # to the context. A --file might be:
+    # 1) a list of environments if coming from conda install/create/update
+    # 2) a single environment spec if coming from conda env
+    env_spec_paths = []
+    if read_input_file and getattr(args, "file", None):
+        if isinstance(args.file, str):
+            validate_file_exists(args.file)
+            env_spec_paths = [Path(args.file)]
+        else:
+            env_spec_paths = [Path(file) for file in args.file if validate_file_exists(file)]
+
+    context.__init__(argparse_args=args, env_spec_paths=env_spec_paths)
     init_loggers()
 
     # used with main_pip.py
