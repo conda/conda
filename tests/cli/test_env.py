@@ -181,6 +181,32 @@ def test_create_valid_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIF
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize(
+    "specifying_flag",
+    ("--environment-specifier", "--env-spec", "--format",)
+)
+def test_create_specify_plugin_type(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    specifying_flag: str,
+):
+    """
+    Creates an environment.yml. Then, try to create an environment using different
+    ways to specify the plugin. Use --dry-run argument to speed up tests.
+    """
+    create_env(ENVIRONMENT_CA_CERTIFICATES)
+    prefix = path_factory()
+    conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        "--dry-run",
+        f"{specifying_flag}=environment.yml",
+        # "--file=environment.yml",  # this is the implied default
+    )
+
+
+@pytest.mark.integration
 def test_create_unsolvable_env(
     path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
 ):

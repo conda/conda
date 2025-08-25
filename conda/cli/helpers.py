@@ -617,6 +617,7 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
+        "--format",    # for consistency with the export command
         action=LazyChoicesAction,
         choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
