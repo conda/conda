@@ -796,11 +796,14 @@ def test_default_activation_prefix(
     ),
 )
 def test_create_default_packages(
-    context_packages: tuple[str, ...], expected_packages: tuple[str, ...]
+    monkeypatch: MonkeyPatch,
+    context_packages: tuple[str, ...],
+    expected_packages: tuple[str, ...],
 ):
     """Ensure that the `create_default_packages` config only returns valid package
     specs, and no explicit packages."""
-    context._create_default_packages = context_packages
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", f"{','.join(context_packages)}")
+    reset_context()
 
     create_default_packages = context.create_default_packages
     assert create_default_packages == expected_packages
