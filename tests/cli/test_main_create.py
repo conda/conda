@@ -23,10 +23,10 @@ def test_create_default_packages_can_not_be_explicit(
 ):
     monkeypatch.setenv(
         "CONDA_CREATE_DEFAULT_PACKAGES",
-        "https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2025.2.25-h06a4308_0.conda",
+        (url := "https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2025.2.25-h06a4308_0.conda"),
     )
     reset_context()
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(UserWarning, match=rf"Ignoring invalid packages.+{url}"):
         conda_cli("create", "--prefix", tmp_path, "--yes")
 
         assert (

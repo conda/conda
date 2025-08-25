@@ -1276,8 +1276,9 @@ class Context(Configuration):
         if explicit_packages:
             warnings.warn(
                 f"Ignoring invalid packages in `create_default_packages`: {dashlist(explicit_packages)}\n"
-                "\nExplicit package are not allowed, use package names like 'numpy' or specs like 'numpy>=1.20' instead.\n"
-                "Try using the command `conda config --show-sources` to verify your conda configuration.\n",
+                f"\n"
+                f"Explicit package are not allowed, use package names like 'numpy' or specs like 'numpy>=1.20' instead.\n"
+                f"Try using the command `conda config --show-sources` to verify your conda configuration.\n",
                 UserWarning,
             )
         return tuple(default_packages)
