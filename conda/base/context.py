@@ -13,6 +13,7 @@ import os
 import platform
 import struct
 import sys
+import warnings
 from contextlib import contextmanager, suppress
 from errno import ENOENT
 from functools import cache, cached_property
@@ -41,7 +42,7 @@ from ..common.configuration import (
     ValidationError,
 )
 from ..common.constants import TRACE
-from ..common.iterators import unique
+from ..common.iterators import groupby_to_dict, unique
 from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
@@ -254,8 +255,9 @@ class Context(Configuration):
         PrimitiveParameter(None, element_type=(str, NoneType)), aliases=("env_spec",)
     )
 
-    create_default_packages = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str))
+    _create_default_packages = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("create_default_packages",),
     )
     register_envs = ParameterLoader(PrimitiveParameter(True))
     protect_frozen_envs = ParameterLoader(PrimitiveParameter(True))
@@ -1256,6 +1258,27 @@ class Context(Configuration):
     @property
     def default_activation_env(self) -> str:
         return self._default_activation_env or ROOT_ENV_NAME
+
+    @property
+    def create_default_packages(self) -> tuple[str, ...]:
+        """Returns a list of `create_default_packages`, removing any explicit packages."""
+        from ..common.io import dashlist
+        from ..common.path import is_package_file
+
+        grouped_packages = groupby_to_dict(
+            lambda x: "explicit" if is_package_file(x) else "spec",
+            sequence=self._create_default_packages,
+        )
+
+        if grouped_packages.get("explicit", None):
+            warnings.warn(
+                f"Ignoring invalid packages in `create_default_packages`: {dashlist(grouped_packages.get('explicit'))}\n"
+                f"\n"
+                f"Explicit package are not allowed, use package names like 'numpy' or specs like 'numpy>=1.20' instead.\n"
+                f"Try using the command `conda config --show-sources` to verify your conda configuration.\n",
+                UserWarning,
+            )
+        return tuple(grouped_packages.get("spec", []))
 
     @property
     def default_activation_prefix(self) -> Path:
