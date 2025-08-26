@@ -10,11 +10,12 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import PREFIX_STATE_FILE
+from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CondaError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
+from conda.models.match_spec import MatchSpec
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
@@ -896,3 +897,15 @@ def test_api_consistency(
         if packages:
             package_names = [pkg.name for pkg in packages]
             assert package_names == sorted(package_names)
+
+
+def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
+    # Test pinned specs conda environment file
+    specs = ("scipy ==0.14.2", "openjdk >=8")
+    with tmp_env() as prefix:
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs) + "\n")
+
+        prefix_data = PrefixData(prefix)
+        pinned_specs = prefix_data.get_pinned_specs()
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)

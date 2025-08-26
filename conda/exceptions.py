@@ -17,7 +17,12 @@ from typing import TYPE_CHECKING
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
-from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
+from .base.constants import (
+    COMPATIBLE_SHELLS,
+    PREFIX_PINNED_FILE,
+    PathConflict,
+    SafetyChecks,
+)
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.iterators import groupby_to_dict as groupby
@@ -64,7 +69,7 @@ class ResolvePackageNotFound(CondaError):
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 
-class LockError(CondaError):
+class LockError(CondaError, OSError):
     def __init__(self, message: str):
         msg = str(message)
         super().__init__(msg)
@@ -980,7 +985,7 @@ class SpecsConfigurationConflictError(CondaError):
         ).format(
             requested_specs_formatted=dashlist(requested_specs, 4),
             pinned_specs_formatted=dashlist(pinned_specs, 4),
-            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+            pinned_specs_path=join(prefix, PREFIX_PINNED_FILE),
         )
         super().__init__(
             message,
@@ -1447,3 +1452,13 @@ class InvalidInstaller(Exception):
 
 class OfflineError(CondaError, RuntimeError):
     pass
+
+
+class CondaUpdatePackageError(CondaError):
+    def __init__(self, spec: str | list[str]):
+        spec_format = dashlist(spec, 4) if isinstance(spec, list) else spec
+        msg = (
+            f"`conda update` only supports name-only spec, but received: {spec_format}\n"
+            f"Use `conda install` to install a specific version of a package."
+        )
+        super().__init__(msg)

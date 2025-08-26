@@ -17,7 +17,9 @@ from ..base.constants import (
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
+    PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
+    RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
@@ -337,7 +339,7 @@ class PrefixData(metaclass=PrefixDataType):
         :raises CondaValueError: If the name is protected, or if it contains disallowed characters
             (`/`, ` `, `:`, `#`).
         """
-        if not allow_base and self.name in (ROOT_ENV_NAME, "root"):
+        if not allow_base and self.name in RESERVED_ENV_NAMES:
             raise CondaValueError(f"'{self.name}' is a reserved environment name")
 
         if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.prefix_path.name):
@@ -624,6 +626,21 @@ class PrefixData(metaclass=PrefixDataType):
         if on_win and Path(context.root_prefix, ".nonadmin").is_file():
             self.prefix_path.mkdir(parents=True, exist_ok=True)
             (self.prefix_path / ".nonadmin").touch()
+
+    def get_pinned_specs(self) -> tuple[MatchSpec]:
+        """Find pinned specs from file and return a tuple of MatchSpec."""
+        pin_file = self.prefix_path / PREFIX_PINNED_FILE
+        if pin_file.exists():
+            with pin_file.open() as f:
+                from_file = (
+                    i
+                    for i in f.read().strip().splitlines()
+                    if i and not i.strip().startswith("#")
+                )
+        else:
+            from_file = ()
+
+        return tuple(MatchSpec(spec, optional=True) for spec in from_file)
 
     # endregion
 

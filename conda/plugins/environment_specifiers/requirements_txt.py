@@ -5,7 +5,8 @@
 Register the conda env spec for requirements.txt files.
 """
 
-from .. import CondaEnvironmentSpecifier, hookimpl
+from .. import hookimpl
+from ..types import CondaEnvironmentSpecifier
 
 
 @hookimpl

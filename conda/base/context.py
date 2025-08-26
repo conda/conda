@@ -19,6 +19,7 @@ from functools import cache, cached_property
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from frozendict import frozendict
@@ -46,6 +47,7 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
 from .constants import (
     APP_NAME,
+    CMD_LINE_SOURCE,
     CONDA_LIST_FIELDS,
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNEL_ALIAS,
@@ -58,12 +60,14 @@ from .constants import (
     DEFAULT_JSON_REPORTER_BACKEND,
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
+    ENV_VARS_SOURCE,
     ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
+    RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
     SEARCH_PATH,
     ChannelPriority,
@@ -77,7 +81,6 @@ from .constants import (
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable, Iterator
-    from pathlib import Path
     from typing import Any, Literal
 
     from ..common.configuration import Parameter, RawParameter
@@ -792,7 +795,7 @@ class Context(Configuration):
         if self.active_prefix:
             return self.active_prefix
         _default_env = os.getenv("CONDA_DEFAULT_ENV")
-        if _default_env in (None, ROOT_ENV_NAME, "root"):
+        if _default_env in (None, *RESERVED_ENV_NAMES):
             return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
@@ -1054,7 +1057,7 @@ class Context(Configuration):
         return tuple(
             path
             for path in context.collect_all()
-            if path not in ("envvars", "cmd_line")
+            if path not in (ENV_VARS_SOURCE, CMD_LINE_SOURCE)
         )
 
     @property
@@ -1253,6 +1256,22 @@ class Context(Configuration):
     @property
     def default_activation_env(self) -> str:
         return self._default_activation_env or ROOT_ENV_NAME
+
+    @property
+    def default_activation_prefix(self) -> Path:
+        """Return the prefix of the default_activation_env.
+
+        If the default_activation_env is an environment name, get the corresponding
+        prefix; otherwise it is already a prefix, so just return it.
+
+        :return: Prefix of the default_activation_env
+        """
+        from ..exceptions import EnvironmentNameNotFound
+
+        try:
+            return Path(locate_prefix_by_name(self.default_activation_env))
+        except EnvironmentNameNotFound:
+            return Path(self.default_activation_env)
 
     @property
     def environment_context_keys(self) -> list[str]:
@@ -2202,7 +2221,7 @@ def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> Path
     error is raised.
     """
     assert name
-    if name in (ROOT_ENV_NAME, "root"):
+    if name in RESERVED_ENV_NAMES:
         return context.root_prefix
     if envs_dirs is None:
         envs_dirs = context.envs_dirs
@@ -2272,7 +2291,7 @@ def validate_prefix_name(
             )
         )
 
-    if prefix_name in (ROOT_ENV_NAME, "root"):
+    if prefix_name in RESERVED_ENV_NAMES:
         if allow_base:
             return ctx.root_prefix
         else:

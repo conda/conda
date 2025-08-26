@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from typing import Any, Self
 
     from ..gateways.repodata import RepodataCache, RepoInterface
-    from .index import PackageRef
 
 log = getLogger(__name__)
 
@@ -150,18 +149,19 @@ class SubdirData(metaclass=SubdirDataType):
 
     @staticmethod
     def query_all(
-        package_ref_or_match_spec: PackageRef | MatchSpec | str,
+        package_ref_or_match_spec: MatchSpec | str,
         channels: Iterable[Channel | str] | None = None,
         subdirs: Iterable[str] | None = None,
         repodata_fn: str = REPODATA_FN,
     ) -> tuple[PackageRecord, ...]:
         """
-        Executes a query against all repodata instances in the channel/subdir matrix.
+        Execute a query against all repodata instances in the channel/subdir
+        matrix.
 
-        :param package_ref_or_match_spec: Either an exact `PackageRef` to match against, or a
-            `MatchSpec` query object.  A `str` will be turned into a `MatchSpec` automatically.
-        :param channels: An iterable of urls for channels or `Channel` objects. If None, will fall
-            back to `context.channels`.
+        :param package_ref_or_match_spec: A `MatchSpec` query object.  A `str`
+            will be turned into a      `MatchSpec` automatically.
+        :param channels: An iterable of urls for channels or `Channel` objects.
+            If None, will fall back to `context.channels`.
         :param subdirs: If None, will fall back to context.subdirs.
         :param repodata_fn: The filename of the repodata.
         :return: A tuple of `PackageRecord` objects.
