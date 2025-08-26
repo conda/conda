@@ -36,7 +36,7 @@ from .models.prefix_graph import PrefixGraph
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
-    from typing import Any
+    from typing import Any, Callable
 
     from .models.records import PackageCacheRecord, PackageRecord
 
@@ -120,7 +120,8 @@ def install_explicit_packages(
     package_cache_records: list[PackageRecord],
     prefix: str,
     requested_specs: Sequence[str] | None = None,
-):
+    transaction_handler: Callable | None = None,
+) -> None:
     """Install a list of PackageRecords into a prefix"""
     specs_pcrecs = tuple([rec.to_match_spec(), rec] for rec in package_cache_records)
 
@@ -155,9 +156,13 @@ def install_explicit_packages(
     )
 
     txn = UnlinkLinkTransaction(stp)
-    if not context.json and not context.quiet:
-        txn.print_transaction_summary()
-    txn.execute()
+
+    if transaction_handler:
+        transaction_handler(txn)
+    else:
+        if not context.json and not context.quiet:
+            txn.print_transaction_summary()
+        txn.execute()
 
 
 def _get_package_record_from_specs(specs: list[str]) -> Iterable[PackageCacheRecord]:

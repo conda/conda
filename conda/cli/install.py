@@ -359,7 +359,9 @@ def install(args, parser, command="install"):
 
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
-        return install_explicit_packages(env.explicit_packages, env.prefix)
+        def explicit_txn_handler(txn: UnlinkLinkTransaction):
+            return handle_txn(txn, prefix, args, newenv)
+        return install_explicit_packages(env.explicit_packages, env.prefix, transaction_handler=explicit_txn_handler)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
