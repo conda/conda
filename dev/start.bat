@@ -116,13 +116,29 @@
     @ECHO Error: failed to install development environment 1>&2
     @EXIT /B 1
 )
+
+:: Accept TOS for all channels
+@ECHO Accepting Terms of Service for Anaconda channels...
+@CALL :CONDA "%_BASEEXE%" tos accept > NUL
+@IF NOT %ErrorLevel%==0 (
+    @ECHO Warning: failed to accept Terms of Service automatically
+    @ECHO You may need to manually accept the Terms of Service when prompted
+)
+
 :: Windows doesn't ship with git so ensure installed into base otherwise auxlib will act up
-@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base "defaults::git<2.45" > NUL
+::@CALL :CONDA "%_BASEEXE%" install --yes --quiet --name=base "defaults::git" > NUL
 :INSTALLED
 
 :: create empty env if it doesn't exist
 @IF EXIST "%_ENV%" @GOTO ENVEXISTS
 @ECHO Creating %_NAME%...
+
+:: Try to accept TOS before creating environment
+@ECHO Ensuring Terms of Service are accepted...
+@CALL :CONDA "%_BASEEXE%" tos accept > NUL 2>&1
+@IF NOT %ErrorLevel%==0 (
+    @ECHO Warning: Could not automatically accept TOS. You may be prompted to accept Terms of Service.
+)
 
 @CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
@@ -136,10 +152,24 @@
 @IF NOT %ErrorLevel%==0 @GOTO UPTODATE
 @ECHO Updating %_NAME%...
 
-@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
+:: Ensure TOS are accepted before updating
+@ECHO Ensuring Terms of Service are accepted for updates...
+@CALL :CONDA "%_BASEEXE%" tos accept > NUL 2>&1
+@IF NOT %ErrorLevel%==0 (
+    @ECHO Warning: Could not automatically accept TOS for updates. You may be prompted to accept Terms of Service.
+)
+
+@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all "--prefix=%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update development environment 1>&2
     @EXIT /B 1
+)
+
+:: Ensure TOS are accepted before installing packages
+@ECHO Ensuring Terms of Service are accepted for package installation...
+@CALL :CONDA "%_BASEEXE%" tos accept > NUL 2>&1
+@IF NOT %ErrorLevel%==0 (
+    @ECHO Warning: Could not automatically accept TOS for package installation. You may be prompted to accept Terms of Service.
 )
 
 @CALL :CONDA "%_BASEEXE%" install ^
@@ -196,7 +226,11 @@
     @EXIT /B 1
 )
 @SET "CONDA_BAT=%_CONDABAT%"
-@DOSKEY conda="%CONDA_BAT%" $*
+:: Only set DOSKEY alias if running in Command Prompt (not PowerShell)
+@WHERE DOSKEY > NUL 2>&1
+@IF %ErrorLevel%==0 (
+    @DOSKEY conda="%CONDA_BAT%" $*
+)
 
 :CLEANUP
 @SET _ARG=
