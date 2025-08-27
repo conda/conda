@@ -227,11 +227,15 @@ class Environment:
     config: EnvironmentConfig = field(default_factory=EnvironmentConfig)
 
     #: Map of other package types that conda can install. For example pypi packages.
-    external_packages: dict[str, list[str]] = field(default_factory=dict)
+    external_packages_by_platform: dict[str, dict[str, list[str]]] = field(
+        default_factory=dict
+    )
 
     #: The complete list of specs for the environment.
     #: eg. after a solve, or from an explicit environment spec
-    explicit_packages: list[PackageRecord] = field(default_factory=list)
+    explicit_packages_by_platform: dict[str, list[PackageRecord]] = field(
+        default_factory=dict
+    )
 
     #: Environment name
     name: str | None = None
@@ -245,6 +249,14 @@ class Environment:
     # Virtual packages for the environment. Either the default ones provided by
     # the virtual_packages plugins or the overrides captured by CONDA_OVERRIDE_*.
     virtual_packages: list[PackageRecord] = field(default_factory=list)
+
+    @property
+    def external_packages(self) -> dict[str, list[str]]:
+        return self.external_packages_by_platform[self.platform]
+
+    @property
+    def explicit_packages(self) -> list[PackageRecord]:
+        return self.explicit_packages_by_platform[self.platform]
 
     def __post_init__(self):
         # an environment must have a name of prefix
@@ -470,9 +482,9 @@ class Environment:
             name=name,
             config=config,
             variables=variables,
-            external_packages=external_packages,
+            external_packages_by_platform={platform: external_packages},
             requested_packages=requested_packages,
-            explicit_packages=explicit_packages,
+            explicit_packages_by_platform={platform: explicit_packages},
         )
 
     @classmethod
@@ -543,6 +555,6 @@ class Environment:
             prefix=context.target_prefix,
             platform=context.subdir,
             requested_packages=requested_packages,
-            explicit_packages=explicit_packages,
+            explicit_packages_by_platform={context.subdir: explicit_packages},
             config=EnvironmentConfig.from_context(),
         )
