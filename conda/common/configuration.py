@@ -43,7 +43,7 @@ from .. import CondaError, CondaMultiError
 from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
-from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
+from ..base.constants import CMD_LINE_SOURCE, ENV_SPEC_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
@@ -415,6 +415,7 @@ class YamlRawParameter(RawParameter):
 
 class EnvironmentSpecificationRawParameter(RawParameter):
     """This class represents a raw parameter originating from an environment specification file"""
+    source = ENV_SPEC_SOURCE
 
     def value(self, parameter_obj):
         if isiterable(self._raw_value):
@@ -434,16 +435,15 @@ class EnvironmentSpecificationRawParameter(RawParameter):
         return None if isinstance(parameter_obj, PrimitiveLoadedParameter) else ()
 
     @classmethod
-    def make_raw_parameters(cls, source: Path, from_map: dict[str, Any]):
+    def make_raw_parameters(cls, from_map: dict[str, Any]):
         """
         Create an EnvironmentSpecificationRawParameter from an environment specification
-        :param source: the path to the environment specification file
         :param from_map: a map of key-value pairs representing the configuration from the environment file
         :return: a map of EnvironmentSpecificationRawParameters
         """
-        if from_map:
-            return {key: cls(source, key, from_map[key]) for key in from_map}
-        return EMPTY_MAP
+        return super().make_raw_parameters(
+            EnvironmentSpecificationRawParameter.source, from_map
+        )
 
 
 class DefaultValueRawParameter(RawParameter):
@@ -1428,7 +1428,7 @@ class Configuration(metaclass=ConfigurationType):
         search_path: Iterable[PathsType] = (),
         app_name: str | None = None,
         argparse_args: Namespace | None = None,
-        env_spec_config: dict[str, EnvironmentConfig] | None = None,
+        env_spec_config: EnvironmentConfig | None = None,
         **kwargs,
     ):
         # Currently, __init__ does a **full** disk reload of all files.
@@ -1545,19 +1545,15 @@ class Configuration(metaclass=ConfigurationType):
         return self
 
     def _set_environment_spec_data(
-        self, env_spec_config: dict[Path, EnvironmentConfig]
+        self, config: EnvironmentConfig
     ) -> None:
-        for file, config in env_spec_config.items():
-            # Ensure the file is a Path
-            file_path = Path(file)
-            self._set_raw_data(
-                {
-                    file_path: EnvironmentSpecificationRawParameter.make_raw_parameters(
-                        file_path,
-                        {k: v for k, v in vars(config).items() if v is not None},
-                    )
-                }
-            )
+        source = EnvironmentSpecificationRawParameter.source
+        if source in self.raw_data:
+            del self.raw_data[source]
+
+        self.raw_data[source] = EnvironmentSpecificationRawParameter.make_raw_parameters(
+            {k: v for k, v in vars(config).items() if v is not None}
+        )
 
     def _set_raw_data(self, raw_data: Mapping[Hashable, dict]):
         self.raw_data.update(raw_data)

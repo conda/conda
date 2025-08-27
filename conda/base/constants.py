@@ -397,4 +397,5 @@ EXPLICIT_MARKER: Final = "@EXPLICIT"
 # files (these are referred to in the context object by their full path as a pathlib.Path).
 CMD_LINE_SOURCE: Final = "cmd_line"
 ENV_VARS_SOURCE: Final = "envvars"
-CONFIGURATION_SOURCES: Final = (CMD_LINE_SOURCE, ENV_VARS_SOURCE)
+ENV_SPEC_SOURCE: Final = "env_spec"
+CONFIGURATION_SOURCES: Final = (CMD_LINE_SOURCE, ENV_VARS_SOURCE, ENV_SPEC_SOURCE)

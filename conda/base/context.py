@@ -560,7 +560,7 @@ class Context(Configuration):
         self,
         search_path: PathsType | None = None,
         argparse_args: Namespace | None = None,
-        env_spec_config: dict[Path, EnvironmentConfig] | None = None,
+        env_spec_config: EnvironmentConfig | None = None,
         **kwargs,
     ):
         super().__init__(argparse_args=argparse_args)
