@@ -133,6 +133,7 @@ def check_prefix(prefix: str, json=False):
         )
 
 
+@deprecated("25.9", "26.3", addendum="Use conda.cli.install_clone()")
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     # Validate source
     if os.sep in src_arg:
@@ -359,7 +360,9 @@ def install(args, parser, command="install"):
 
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
-        return install_explicit_packages(env.explicit_packages, env.prefix)
+        def explicit_txn_handler(txn: UnlinkLinkTransaction):
+            return handle_txn(txn, prefix, args, newenv)
+        return install_explicit_packages(env.explicit_packages, env.prefix, transaction_handler=explicit_txn_handler)
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
@@ -434,13 +437,36 @@ def install_clone(args, parser):
     # common validations for all types of installs
     validate_install_command(prefix=prefix, command="create")
 
-    clone(
-        args.clone,
+    if os.sep in args.clone:
+        source_prefix_data = PrefixData(abspath(args.clone))
+    else:
+        source_prefix_data = PrefixData.from_name(args.clone)
+    source_prefix_data.assert_environment()
+    src_prefix = str(source_prefix_data.prefix_path)
+
+    if not context.json:
+        print(f"Source:      {src_prefix}")
+        print(f"Destination: {prefix}")
+
+    def explicit_txn_handler(txn: UnlinkLinkTransaction):
+        return handle_txn(txn, prefix, args, newenv=True)
+    
+    actions, untracked_files = clone_env(
+        src_prefix,
         prefix,
-        json=context.json,
+        verbose=not context.json,
         quiet=context.quiet,
         index_args=index_args,
+        transaction_handler=explicit_txn_handler
     )
+
+    if context.json:
+        common.stdout_json_success(
+            actions=actions,
+            untracked_files=list(untracked_files),
+            src_prefix=src_prefix,
+            dst_prefix=prefix,
+        )
 
 
 def install_revision(args, parser):
