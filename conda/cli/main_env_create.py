@@ -131,6 +131,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
     spec = spec_hook.environment_spec(args.file)
     env = spec.env
+    # reset the context to pick up config from the environment spec
+    context.__init__(argparse_args=args, env_spec_config=env.config)
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
