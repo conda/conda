@@ -107,12 +107,14 @@ def explicit(
     force_extract: bool = True,
     index: Any = None,
     requested_specs: Sequence[str] | None = None,
+    transaction_handler: Callable | None = None,
 ) -> None:
     package_cache_records = get_package_records_from_explicit(specs)
     install_explicit_packages(
         package_cache_records=package_cache_records,
         prefix=prefix,
         requested_specs=requested_specs,
+        transaction_handler=transaction_handler,
     )
 
 
@@ -285,7 +287,14 @@ def touch_nonadmin(prefix):
             fo.write("")
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
+def clone_env(
+        prefix1: str, 
+        prefix2: str,
+        verbose: bool = True,
+        quiet: bool = False,
+        index_args: dict | None = None,
+        transaction_handler: Callable | None = None
+    ):
     """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
     drecs = {prec for prec in PrefixData(prefix1).iter_records()}
@@ -368,6 +377,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         verbose=not quiet,
         index=index,
         force_extract=False,
+        transaction_handler=transaction_handler
     )
     return actions, untracked_files
 

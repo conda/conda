@@ -448,8 +448,16 @@ def install_clone(args, parser):
         print(f"Source:      {src_prefix}")
         print(f"Destination: {prefix}")
 
+    def explicit_txn_handler(txn: UnlinkLinkTransaction):
+        return handle_txn(txn, prefix, args, newenv=True)
+    
     actions, untracked_files = clone_env(
-        src_prefix, prefix, verbose=not context.json, quiet=context.quiet, index_args=index_args
+        src_prefix,
+        prefix,
+        verbose=not context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+        transaction_handler=explicit_txn_handler
     )
 
     if context.json:
