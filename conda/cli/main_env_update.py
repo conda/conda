@@ -109,6 +109,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
     spec = spec_hook.environment_spec(args.file)
     env = spec.env
+    # reset the context to pick up config from the environment spec
+    context.__init__(argparse_args=args, env_spec_config=env.config)
 
     if not (args.name or args.prefix):
         if not env.name:
