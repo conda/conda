@@ -133,6 +133,7 @@ def check_prefix(prefix: str, json=False):
         )
 
 
+@deprecated("25.9", "26.3", addendum="Use conda.cli.install_clone()")
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     # Validate source
     if os.sep in src_arg:
@@ -436,13 +437,28 @@ def install_clone(args, parser):
     # common validations for all types of installs
     validate_install_command(prefix=prefix, command="create")
 
-    clone(
-        args.clone,
-        prefix,
-        json=context.json,
-        quiet=context.quiet,
-        index_args=index_args,
+    if os.sep in args.clone:
+        source_prefix_data = PrefixData(abspath(args.clone))
+    else:
+        source_prefix_data = PrefixData.from_name(args.clone)
+    source_prefix_data.assert_environment()
+    src_prefix = str(source_prefix_data.prefix_path)
+
+    if not context.json:
+        print(f"Source:      {src_prefix}")
+        print(f"Destination: {prefix}")
+
+    actions, untracked_files = clone_env(
+        src_prefix, prefix, verbose=not context.json, quiet=context.quiet, index_args=index_args
     )
+
+    if context.json:
+        common.stdout_json_success(
+            actions=actions,
+            untracked_files=list(untracked_files),
+            src_prefix=src_prefix,
+            dst_prefix=prefix,
+        )
 
 
 def install_revision(args, parser):
