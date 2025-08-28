@@ -317,11 +317,12 @@ def test_invalid_keys():
     assert len(e_dict) == 2
 
 
-def test_missing_required_keys():
-    with pytest.raises(
-        EnvironmentFileInvalid, match="Missing required field 'dependencies'"
-    ):
-        get_environment("missing_required_keys.yml")
+def test_empty_deps():
+    e = get_environment("empty_deps.yml")
+    e_dict = e.to_dict()
+    assert "name" in e_dict
+    assert "channels" in e_dict
+    assert len(e_dict) == 2
 
 
 def test_creates_file_on_save(tmp_path: Path):
