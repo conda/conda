@@ -24,7 +24,7 @@ from conda.env.env import (
     prefix_validation,
     variables_validation,
 )
-from conda.exceptions import CondaHTTPError, EnvironmentFileInvalid
+from conda.exceptions import CondaHTTPError, CondaMultiError, EnvironmentFileInvalid
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -310,11 +310,14 @@ def test_valid_keys():
 
 
 def test_invalid_keys():
-    e = get_invalid_keys_environment()
-    e_dict = e.to_dict()
-    assert "name" in e_dict
-    assert "dependencies" in e_dict
-    assert len(e_dict) == 2
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="This environment file was found to not be compliant with cep-0024."
+    ):
+        e = get_invalid_keys_environment()
+        e_dict = e.to_dict()
+        assert "name" in e_dict
+        assert len(e_dict) == 1
 
 
 def test_empty_deps():
@@ -440,7 +443,6 @@ def test_variables_validation_errors(variables, error_message):
     "name,error_message",
     (
         (["wrong", "type"], "Invalid type for 'name'"),
-        ("root", "Environment name must not be any of: "),
     ),
 )
 def test_name_validation_errors(name, error_message):

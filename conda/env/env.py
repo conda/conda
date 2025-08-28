@@ -10,8 +10,8 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 from ..base.context import context
-from ..base.constants import RESERVED_ENV_NAMES
 from ..cli import common
+from ..common.io import dashlist
 from ..common.iterators import unique
 from ..common.path import expand
 from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
@@ -66,11 +66,8 @@ def name_validation(name: str | None):
 
     Will ensure:
       * name is a string
-      * is not the name of a reserved environment
     """
     field_type_validation("name", name, str)
-    if name in RESERVED_ENV_NAMES:
-        raise EnvironmentFileInvalid(f"Environment name must not be any of: {', '.join(RESERVED_ENV_NAMES)}")
 
 
 def dependencies_validation(dependencies: list | None):
@@ -143,26 +140,31 @@ SCHEMA_VALIDATORS = {
 }
 
 
-def validate_schema(data: dict) -> None:
-    """Validate the environment.yaml data.
+def get_schema_errors(data: dict) -> list[EnvironmentFileInvalid]:
+    """Parses environment.yaml data to build a list of schema errors
 
-    Will ensure:
+    Will produce errors to ensure:
       * all required fields are present
       * all fields contain valid data
 
     :param dict data: The contents of the environment.yaml
-    :raises EnvironmentFileInvalid: When the contents of the environment.yaml are
-        found to be invalid
+    :returns errors: A list of EnvironmentFileInvalid exceptions that occurred during validation
     """
+    errors = []
     data_keys = data.keys()
     # Ensure all required keys are present
     for field in REQUIRED_KEYS:
         if field not in data_keys:
-            raise EnvironmentFileInvalid(f"Missing required field '{field}'")
+            errors.append(EnvironmentFileInvalid(f"Missing required field '{field}'"))
 
     # Run validations on all the relevant fields
     for key, validator in SCHEMA_VALIDATORS.items():
-        validator(data.get(key, None))
+        try:
+            validator(data.get(key, None))
+        except EnvironmentFileInvalid as err:
+            errors.append(err)
+
+    return errors
 
 
 def validate_keys(data, kwargs):
@@ -265,17 +267,34 @@ def from_environment(
     )
 
 
-def from_yaml(yamlstr: str, validate: bool = True, **kwargs):
-    """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string"""
+def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
+    """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string
+
+    :param yamlstr: The contents of the environment.yaml
+    :param raise_validation_errors: Indicates if an error should be raised if the yamlstr
+        is found to be invalid
+    :returns EnvironmentYaml: A representation of the environment file
+    """
     data = yaml_safe_load(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
 
-    if validate:
-        # Perform validation. Will raise an error if the yamlstr
-        # is not a valid environment.yaml
-        validate_schema(data)
+    # Perform schema validation. This will output a warning for any invalid schema.
+    errors = get_schema_errors(data)
+    if errors:
+        # Warn for all the schema errors in the environment
+        deprecated.topic(
+            "26.3",
+            "26.9",
+            topic="This environment file was found to not be compliant with cep-0024.",
+            addendum=(
+                "In the future, this configuration will be rejected. Please fix the following "
+                "errors in order to make the configuration valid: "
+                f"{dashlist(errors)}"
+            ),
+            deprecation_type=FutureWarning,
+        )
 
     data = validate_keys(data, kwargs)
 
