@@ -345,8 +345,10 @@ class MatchSpec(metaclass=MatchSpecType):
             elif version.startswith("=="):
                 builder.append(version)
                 version_exact = True
+            elif version.startswith("="):
+                builder.append(version)
             else:
-                builder.append("==" + version)
+                builder.append(f"=={version}")
                 version_exact = True
 
         if build:
