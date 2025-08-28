@@ -415,6 +415,7 @@ class YamlRawParameter(RawParameter):
 
 class EnvironmentSpecificationRawParameter(RawParameter):
     """This class represents a raw parameter originating from an environment specification file"""
+
     source = ENV_SPEC_SOURCE
 
     def value(self, parameter_obj):
@@ -1544,15 +1545,15 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
-    def _set_environment_spec_data(
-        self, config: EnvironmentConfig
-    ) -> None:
+    def _set_environment_spec_data(self, config: EnvironmentConfig) -> None:
         source = EnvironmentSpecificationRawParameter.source
         if source in self.raw_data:
             del self.raw_data[source]
 
-        self.raw_data[source] = EnvironmentSpecificationRawParameter.make_raw_parameters(
-            {k: v for k, v in vars(config).items() if v is not None}
+        self.raw_data[source] = (
+            EnvironmentSpecificationRawParameter.make_raw_parameters(
+                {k: v for k, v in vars(config).items() if v is not None}
+            )
         )
 
     def _set_raw_data(self, raw_data: Mapping[Hashable, dict]):
