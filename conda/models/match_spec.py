@@ -5,6 +5,7 @@
 The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.7`,
 `cryptography * *_0`) and is used to communicate the desired packages to install.
 """
+
 from __future__ import annotations
 
 import re
@@ -627,7 +628,7 @@ def _parse_channel(channel_val):
 _PARSE_CACHE = {}
 
 
-def _sanitize_version_str(version: str, build: str | None ) -> str:
+def _sanitize_version_str(version: str, build: str | None) -> str:
     # Catch cases where version ends up as "==" and pass it through so existing error
     # handling code can treat it like cases where version ends up being "<=" or ">=".
     # This is necessary because the "Translation" code below mangles "==" into a empty
