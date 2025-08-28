@@ -19,6 +19,7 @@ from ..plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_JSON_FORMAT,
     ENVIRONMENT_YAML_FORMAT,
 )
+from ..plugins.types import CondaMultiPlatformEnvironmentExporter
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -162,7 +163,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         channels=context.channels,
     )
 
-    exported_content = environment_exporter.export(env)
+    if isinstance(environment_exporter, CondaMultiPlatformEnvironmentExporter):
+        # TODO: solve for other platforms
+        exported_content = environment_exporter.export([env])
+    else:
+        exported_content = environment_exporter.export(env)
 
     # Add trailing newline to the exported content
     exported_content = exported_content.rstrip() + "\n"
