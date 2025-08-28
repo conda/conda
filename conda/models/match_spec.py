@@ -5,6 +5,7 @@
 The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.7`,
 `cryptography * *_0`) and is used to communicate the desired packages to install.
 """
+from __future__ import annotations
 
 import re
 import warnings
@@ -345,10 +346,8 @@ class MatchSpec(metaclass=MatchSpecType):
             elif version.startswith("=="):
                 builder.append(version)
                 version_exact = True
-            elif version.startswith("="):
-                builder.append(version)
             else:
-                builder.append(f"=={version}")
+                builder.append("==" + version)
                 version_exact = True
 
         if build:
@@ -628,6 +627,35 @@ def _parse_channel(channel_val):
 _PARSE_CACHE = {}
 
 
+def _sanitize_version_str(version: str, build: str | None ) -> str:
+    # Catch cases where version ends up as "==" and pass it through so existing error
+    # handling code can treat it like cases where version ends up being "<=" or ">=".
+    # This is necessary because the "Translation" code below mangles "==" into a empty
+    # string, which results in an empty version field on "components." The set of fields
+    # on components drives future logic which breaks on an empty string but will deal with
+    # missing versions like "==", "<=", and ">=" "correctly."
+    #
+    # All of these "missing version" cases result from match specs like "numpy==",
+    # "numpy<=", "numpy>=", "numpy= " (with trailing space). Existing code indicates
+    # these should be treated as an error and an exception raised.
+    # IMPORTANT: "numpy=" (no trailing space) is treated as valid.
+    if version == "==" or version == "=":
+        pass
+    # Otherwise,
+    # translate version '=1.2.3' to '1.2.3*'
+    # is it a simple version starting with '='? i.e. '=1.2.3'
+    elif version[0] == "=":
+        test_str = version[1:]
+        if version[:2] == "==" and build is None:
+            version = version[2:]
+        elif not any(c in test_str for c in "=,|"):
+            if build is None and test_str[-1] != "*":
+                version = test_str + "*"
+            else:
+                version = test_str
+    return version
+
+
 def _parse_spec_str(spec_str):
     cached_result = _PARSE_CACHE.get(spec_str)
     if cached_result:
@@ -704,6 +732,8 @@ def _parse_spec_str(spec_str):
                 raise InvalidMatchSpec(
                     original_spec_str, "key-value mismatch in brackets"
                 )
+            if key == "version" and value:
+                value = _sanitize_version_str(value, match.groupdict().get("build"))
             brackets[key] = value
 
     # Step 4. strip off parens portion
@@ -769,32 +799,7 @@ def _parse_spec_str(spec_str):
             )
 
         version, build = _parse_version_plus_build(spec_str)
-
-        # Catch cases where version ends up as "==" and pass it through so existing error
-        # handling code can treat it like cases where version ends up being "<=" or ">=".
-        # This is necessary because the "Translation" code below mangles "==" into a empty
-        # string, which results in an empty version field on "components." The set of fields
-        # on components drives future logic which breaks on an empty string but will deal with
-        # missing versions like "==", "<=", and ">=" "correctly."
-        #
-        # All of these "missing version" cases result from match specs like "numpy==",
-        # "numpy<=", "numpy>=", "numpy= " (with trailing space). Existing code indicates
-        # these should be treated as an error and an exception raised.
-        # IMPORTANT: "numpy=" (no trailing space) is treated as valid.
-        if version == "==" or version == "=":
-            pass
-        # Otherwise,
-        # translate version '=1.2.3' to '1.2.3*'
-        # is it a simple version starting with '='? i.e. '=1.2.3'
-        elif version[0] == "=":
-            test_str = version[1:]
-            if version[:2] == "==" and build is None:
-                version = version[2:]
-            elif not any(c in test_str for c in "=,|"):
-                if build is None and test_str[-1] != "*":
-                    version = test_str + "*"
-                else:
-                    version = test_str
+        version = _sanitize_version_str(version, build)
     else:
         version, build = None, None
 
