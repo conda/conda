@@ -49,7 +49,9 @@ def field_type_validation(field_name: str, value: Any | None, value_type: Any) -
         return
 
     if not isinstance(value, value_type):
-        raise EnvironmentFileInvalid(f"Invalid type for '{field_name}', expected a {value_type.__name__}")
+        raise EnvironmentFileInvalid(
+            f"Invalid type for '{field_name}', expected a {value_type.__name__}"
+        )
 
 
 def prefix_validation(prefix: str | None):
