@@ -33,26 +33,23 @@ from ..models.match_spec import MatchSpec
 if TYPE_CHECKING:
     from typing import Any
 
-REQUIRED_KEYS = ("dependencies",)
-OPTIONAL_KEYS = (
+REQUIRED_KEYS = frozenset(("dependencies",))
+OPTIONAL_KEYS = frozenset((
     "name",
     "prefix",
     "channels",
     "variables",
-)
-VALID_KEYS = (*REQUIRED_KEYS, *OPTIONAL_KEYS)
+))
+VALID_KEYS = frozenset((*REQUIRED_KEYS, *OPTIONAL_KEYS))
 
 
-def field_type_validation(field_name: str, value: Any | None, value_type: Any) -> None:
+def field_type_validation(field_name: str, value: Any, value_type: Any) -> None:
     """Validates the type of a value"""
-    if not value:
-        return
-
     if not isinstance(value, value_type):
         raise EnvironmentFileInvalid(f"Invalid type for '{field_name}', expected a {value_type.__name__}")
 
 
-def prefix_validation(prefix: str | None):
+def prefix_validation(prefix: str):
     """Validate the contents of the prefix field.
 
     Will ensure:
@@ -61,7 +58,7 @@ def prefix_validation(prefix: str | None):
     field_type_validation("prefix", prefix, str)
 
 
-def name_validation(name: str | None):
+def name_validation(name: str):
     """Validate the contents of the name field.
 
     Will ensure:
@@ -70,7 +67,7 @@ def name_validation(name: str | None):
     field_type_validation("name", name, str)
 
 
-def dependencies_validation(dependencies: list | None):
+def dependencies_validation(dependencies: list):
     """Validate the contents of the dependencies field.
 
     Will ensure:
@@ -80,27 +77,26 @@ def dependencies_validation(dependencies: list | None):
     """
     field_type_validation("dependencies", dependencies, list)
 
-    if dependencies:
-        for dep in dependencies:
-            if isinstance(dep, str):
-                # If the dependency is a string type, it must be
-                # MatchSpec compatible.
-                try:
-                    MatchSpec(dep)
-                except InvalidMatchSpec as err:
-                    raise EnvironmentFileInvalid(str(err))
-            elif isinstance(dep, dict):
-                # dict types are also allowed. There are no requirements
-                # for the form of this entry
-                pass
-            else:
-                # All other types are invalid
-                raise EnvironmentFileInvalid(
-                    "'{dep}' is an invalid type for a 'dependency'"
-                )
+    for dep in dependencies:
+        if isinstance(dep, str):
+            # If the dependency is a string type, it must be
+            # MatchSpec compatible.
+            try:
+                MatchSpec(dep)
+            except InvalidMatchSpec as err:
+                raise EnvironmentFileInvalid(str(err))
+        elif isinstance(dep, dict):
+            # dict types are also allowed. There are no requirements
+            # for the form of this entry
+            pass
+        else:
+            # All other types are invalid
+            raise EnvironmentFileInvalid(
+                "'{dep}' is an invalid type for a 'dependency'"
+            )
 
 
-def channels_validation(channels: list | None):
+def channels_validation(channels: list):
     """Validate the contents of the channels field.
 
     Will ensure:
@@ -109,15 +105,14 @@ def channels_validation(channels: list | None):
     """
     field_type_validation("channels", channels, list)
 
-    if channels:
-        for channel in channels:
-            if not isinstance(channel, str):
-                raise EnvironmentFileInvalid(
-                    "`channels` key must only contain strings. Found '{channel}'"
-                )
+    for channel in channels:
+        if not isinstance(channel, str):
+            raise EnvironmentFileInvalid(
+                "`channels` key must only contain strings. Found '{channel}'"
+            )
 
 
-def variables_validation(variables: dict[str, str] | None):
+def variables_validation(variables: dict[str, str]):
     """Validate the contents of the variables field.
 
     Will ensure:
@@ -125,10 +120,9 @@ def variables_validation(variables: dict[str, str] | None):
       * all entries are strings
     """
     field_type_validation("variables", variables, dict)
-    if variables:
-        for value in variables.values():
-            if not isinstance(value, str):
-                raise EnvironmentFileInvalid("`variables` values must be strings")
+    for value in variables.values():
+        if not isinstance(value, str):
+            raise EnvironmentFileInvalid("`variables` values must be strings")
 
 
 SCHEMA_VALIDATORS = {
@@ -151,16 +145,16 @@ def get_schema_errors(data: dict) -> list[EnvironmentFileInvalid]:
     :returns errors: A list of EnvironmentFileInvalid exceptions that occurred during validation
     """
     errors = []
-    data_keys = data.keys()
     # Ensure all required keys are present
-    for field in REQUIRED_KEYS:
-        if field not in data_keys:
-            errors.append(EnvironmentFileInvalid(f"Missing required field '{field}'"))
+    for field in REQUIRED_KEYS.difference(data):
+        errors.append(EnvironmentFileInvalid(f"Missing required field '{field}'"))
 
-    # Run validations on all the relevant fields
+    # Run validations on all the relevant fields, extra keys are ignored
     for key, validator in SCHEMA_VALIDATORS.items():
         try:
-            validator(data.get(key, None))
+            validator(data[key])
+        except KeyError:
+            pass
         except EnvironmentFileInvalid as err:
             errors.append(err)
 
@@ -188,7 +182,7 @@ def validate_keys(data, kwargs):
             print(f" - {key}")
         print()
 
-    deps = data.get("dependencies", []) or []
+    deps = data.get("dependencies") or []
     depsplit = re.compile(r"[<>~\s=]")
     is_pip = lambda dep: "pip" in depsplit.split(dep)[0].split("::")
     lists_pip = any(is_pip(dep) for dep in deps if not isinstance(dep, dict))
@@ -287,7 +281,7 @@ def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
         deprecated.topic(
             "26.3",
             "26.9",
-            topic="This environment file was found to not be compliant with cep-0024.",
+            topic="Using a non-compliant CEP-0024 environment file",
             addendum=(
                 "In the future, this configuration will be rejected. Please fix the following "
                 "errors in order to make the configuration valid: "

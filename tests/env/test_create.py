@@ -163,7 +163,7 @@ def test_create_empty_env(
 
     with pytest.warns(
         PendingDeprecationWarning,
-        match="This environment file was found to not be compliant with cep-0024."
+        match="Using a non-compliant CEP-0024 environment file"
     ):
         conda_cli(
             *("env", "create"),

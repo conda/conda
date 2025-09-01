@@ -312,7 +312,7 @@ def test_valid_keys():
 def test_invalid_keys():
     with pytest.warns(
         PendingDeprecationWarning,
-        match="This environment file was found to not be compliant with cep-0024."
+        match="Using a non-compliant CEP-0024 environment file"
     ):
         e = get_invalid_keys_environment()
         e_dict = e.to_dict()
@@ -390,7 +390,6 @@ def test_environment_deprecated() -> None:
 @pytest.mark.parametrize(
     "dependencies",
     (
-        None,
         ["python"],
         [],
         ["python", "numpy"],
@@ -405,6 +404,7 @@ def test_dependency_validation(dependencies):
 @pytest.mark.parametrize(
     "dependencies,error_message",
     (
+        (None, "Invalid type for 'dependencies', expected a list"),
         (["nota~matchspec"], "Invalid spec 'nota~matchspec'"),
         (["python", ["this-should", "not-be-a", "list"]], "is an invalid type"),
         ({"wrong": "type"}, "Invalid type for 'dependencies'"),
