@@ -288,13 +288,13 @@ def touch_nonadmin(prefix):
 
 
 def clone_env(
-        prefix1: str, 
-        prefix2: str,
-        verbose: bool = True,
-        quiet: bool = False,
-        index_args: dict | None = None,
-        transaction_handler: Callable | None = None
-    ):
+    prefix1: str,
+    prefix2: str,
+    verbose: bool = True,
+    quiet: bool = False,
+    index_args: dict | None = None,
+    transaction_handler: Callable | None = None,
+):
     """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
     drecs = {prec for prec in PrefixData(prefix1).iter_records()}
@@ -377,7 +377,7 @@ def clone_env(
         verbose=not quiet,
         index=index,
         force_extract=False,
-        transaction_handler=transaction_handler
+        transaction_handler=transaction_handler,
     )
     return actions, untracked_files
 

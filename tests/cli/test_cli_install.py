@@ -8,7 +8,11 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaError, DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
+from conda.exceptions import (
+    DryRunExit,
+    EnvironmentIsFrozenError,
+    UnsatisfiableError,
+)
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -216,21 +220,21 @@ def test_frozen_env_cep22(tmp_env, conda_cli):
     [
         ("install", "ca-certificates"),
         ("install", "--revision", 0),
-        ("install", "https://anaconda.org/anaconda/tzdata/2025b/download/noarch/tzdata-2025b-h04d1e81_0.tar.bz2"),
-        ("create", "--clone", "base")
-    ]
+        (
+            "install",
+            "https://anaconda.org/anaconda/tzdata/2025b/download/noarch/tzdata-2025b-h04d1e81_0.tar.bz2",
+        ),
+        ("create", "--clone", "base"),
+    ],
 )
 def test_all_installs_confirm_yn(
-    tmp_env: Path,
-    conda_cli: CondaCLIFixture,
-    mocker: MockerFixture,
-    command: list
+    tmp_env: Path, conda_cli: CondaCLIFixture, mocker: MockerFixture, command: list
 ):
     with tmp_env() as prefix:
         mocked = mocker.patch("conda.cli.install.handle_txn")
         conda_cli(
             *command,
-            "--prefix", 
+            "--prefix",
             prefix,
             "--yes",
         )

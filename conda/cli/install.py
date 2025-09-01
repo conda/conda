@@ -360,9 +360,13 @@ def install(args, parser, command="install"):
 
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
+
         def explicit_txn_handler(txn: UnlinkLinkTransaction):
             return handle_txn(txn, prefix, args, newenv)
-        return install_explicit_packages(env.explicit_packages, env.prefix, transaction_handler=explicit_txn_handler)
+
+        return install_explicit_packages(
+            env.explicit_packages, env.prefix, transaction_handler=explicit_txn_handler
+        )
 
     repodata_fns = args.repodata_fns
     if not repodata_fns:
@@ -450,14 +454,14 @@ def install_clone(args, parser):
 
     def explicit_txn_handler(txn: UnlinkLinkTransaction):
         return handle_txn(txn, prefix, args, newenv=True)
-    
+
     actions, untracked_files = clone_env(
         src_prefix,
         prefix,
         verbose=not context.json,
         quiet=context.quiet,
         index_args=index_args,
-        transaction_handler=explicit_txn_handler
+        transaction_handler=explicit_txn_handler,
     )
 
     if context.json:
