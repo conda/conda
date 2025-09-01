@@ -1508,7 +1508,7 @@ def test_conda_env_form_comprehensive():
 
 
 def test_no_triple_equals_roundtrip():
-    """Regression test forhttps://github.com/conda/conda/issues/15123"""
+    """Regression test for https://github.com/conda/conda/issues/15123"""
     ms = MatchSpec('numpy[version="=2"]')
     assert "===" not in str(ms)
     assert str(ms) == "numpy=2"
