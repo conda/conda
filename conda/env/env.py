@@ -306,8 +306,8 @@ def _expand_channels(data):
     ]
 
 
-def from_file(filename):
-    """Load and return an ``EnvironmentYaml`` from a given file"""
+def load_file(filename):
+    """Load and return an yaml string from a given file"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         yamlstr = download_text(filename)
@@ -320,6 +320,12 @@ def from_file(filename):
                 yamlstr = yamlb.decode("utf-8")
             except UnicodeDecodeError:
                 yamlstr = yamlb.decode("utf-16")
+    return yamlstr
+
+
+def from_file(filename):
+    """Load and return an ``EnvironmentYaml`` from a given file"""
+    yamlstr = load_file(filename)
     return from_yaml(yamlstr, filename=filename)
 
 
