@@ -612,12 +612,16 @@ class CondaPluginManager(pluggy.PluginManager):
                 autodetect_disabled_plugins.append(hook_name)
 
         if not found:
-            # raise error if no plugins found that can read the environment file
-            raise EnvironmentSpecPluginNotDetected(
-                name=source,
-                plugin_names=hooks,
-                autodetect_disabled_plugins=autodetect_disabled_plugins,
-            )
+            # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
+            try:
+                return self.get_environment_specifier_by_name(source=source, name="environment.yml")
+            except (PluginError, CondaValueError):
+                # raise error if no plugins found that can read the environment file
+                raise EnvironmentSpecPluginNotDetected(
+                    name=source,
+                    plugin_names=hooks,
+                    autodetect_disabled_plugins=autodetect_disabled_plugins,
+                )
         elif len(found) == 1:
             # return the plugin if only one is found
             return found[0]
