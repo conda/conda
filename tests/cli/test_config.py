@@ -54,6 +54,7 @@ def make_temp_condarc(value=None):
         if value:
             with open(temp_path, "w") as f:
                 f.write(value)
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context([temp_path])
         yield temp_path
     finally:
@@ -560,6 +561,7 @@ def test_set_and_get_bool(conda_cli: CondaCLIFixture):
 
 def test_ssl_verify_default():
     with make_temp_condarc() as rc:
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context([rc])
         assert context.ssl_verify is True
 
@@ -572,6 +574,7 @@ def test_ssl_verify_set_bool(conda_cli: CondaCLIFixture):
             *("--set", "ssl_verify", "no"),
         )
         assert stdout == stderr == ""
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context([rc])
         assert context.ssl_verify is False
 
@@ -584,6 +587,7 @@ def test_ssl_verify_set_filename(conda_cli: CondaCLIFixture):
             *("--set", "ssl_verify", tf.name),
         )
         assert stdout == stderr == ""
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context([rc])
         assert context.ssl_verify == tf.name
 
@@ -733,6 +737,7 @@ def test_conda_config_describe(
         assert "description" in json_obj[0]
 
         monkeypatch.setenv("CONDA_QUIET", "yes")
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context()
         assert context.quiet
 
@@ -749,6 +754,7 @@ def test_conda_config_describe(
         assert json_obj.get("cmd_line", {}).get("json") is True
 
         monkeypatch.delenv("CONDA_QUIET")
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context()
         assert not context.quiet
 
@@ -772,6 +778,7 @@ def test_conda_config_describe(
         assert "description" in json_obj[0]
 
         monkeypatch.setenv("CONDA_QUIET", "yes")
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context()
         assert context.quiet
 
@@ -816,6 +823,7 @@ def test_conda_config_validate(
             *("--set", "ssl_verify", "/path/doesnt/exist"),
             *("--set", "default_python", "anaconda"),
         )
+        YamlRawParameter.load_config_file.cache_clear()
         reset_context()
 
         # test that we validate individual values
