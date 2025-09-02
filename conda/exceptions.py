@@ -1319,7 +1319,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         self.name = name
         msg = dals(
             f"""
-            Environment at {name} is not readable by any installed environment specifier plugins.
+            Environment at {name} is not able to be detected by any installed environment specifier plugins.
 
             Available plugins: {dashlist(plugin_names, 16)}
 
