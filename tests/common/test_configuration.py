@@ -10,11 +10,13 @@ import pytest
 from pytest import MonkeyPatch, raises
 
 from conda.auxlib.ish import dals
+from conda.base.constants import ENV_SPEC_SOURCE
 from conda.common.compat import on_win
 from conda.common.configuration import (
     Configuration,
     ConfigurationObject,
     CustomValidationError,
+    EnvironmentSpecificationRawParameter,
     InvalidTypeError,
     MapParameter,
     MultiValidationError,
@@ -32,6 +34,7 @@ from conda.common.configuration import (
 )
 from conda.common.io import env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
+from conda.models.environment import EnvironmentConfig
 
 test_yaml_raw = {
     "file1": dals(
@@ -929,3 +932,24 @@ def test_unique_sequence_map_error_with_unique_key(
             'unique key "backend" not present on mapping'
         )
     ]
+
+
+def test_make_environment_spec_raw_parameters():
+    data = {
+        ENV_SPEC_SOURCE: EnvironmentSpecificationRawParameter.make_raw_parameters(
+            {"channels": ("one", "two",), "imnotaconfigkey": "nothing"}
+        )
+    }
+    config = SampleConfiguration()._set_raw_data(data)
+
+    # Ensure the valid config, channel, gets added to the SampleConfiguration
+    assert config.channels == ("one", "two",)
+    # Ensure the invalid config, imnotaconfigkey, does not get added
+    assert not hasattr(config, "imnotaconfigkey")
+
+
+def test_environment_spec_config():
+    config = SampleConfiguration(env_spec_config=EnvironmentConfig(
+        channels=["one", "two"],
+    ))
+    assert config.channels == ("one", "two",)
