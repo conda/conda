@@ -937,19 +937,33 @@ def test_unique_sequence_map_error_with_unique_key(
 def test_make_environment_spec_raw_parameters():
     data = {
         ENV_SPEC_SOURCE: EnvironmentSpecificationRawParameter.make_raw_parameters(
-            {"channels": ("one", "two",), "imnotaconfigkey": "nothing"}
+            {
+                "channels": (
+                    "one",
+                    "two",
+                ),
+                "imnotaconfigkey": "nothing",
+            }
         )
     }
     config = SampleConfiguration()._set_raw_data(data)
 
     # Ensure the valid config, channel, gets added to the SampleConfiguration
-    assert config.channels == ("one", "two",)
+    assert config.channels == (
+        "one",
+        "two",
+    )
     # Ensure the invalid config, imnotaconfigkey, does not get added
     assert not hasattr(config, "imnotaconfigkey")
 
 
 def test_environment_spec_config():
-    config = SampleConfiguration(env_spec_config=EnvironmentConfig(
-        channels=["one", "two"],
-    ))
-    assert config.channels == ("one", "two",)
+    config = SampleConfiguration(
+        env_spec_config=EnvironmentConfig(
+            channels=["one", "two"],
+        )
+    )
+    assert config.channels == (
+        "one",
+        "two",
+    )
