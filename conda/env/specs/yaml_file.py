@@ -25,10 +25,10 @@ class YamlFileSpec(EnvironmentSpecBase):
     # Do not use this plugin for in the environment spec detection process.
     # Users must specify using `environment.yaml` with the `--environment-specifier`
     # option.
-    detection_supported= False
+    detection_supported = False
 
     _environment = None
-    
+
     extensions = {".yaml", ".yml"}
 
     def __init__(self, filename=None, **kwargs):
