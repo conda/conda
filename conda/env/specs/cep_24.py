@@ -59,7 +59,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
         except Exception:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
             return False
-        
+
     @property
     def env(self) -> Environment:
         if not self._environment:

@@ -24,7 +24,7 @@ from conda.env.env import (
     prefix_validation,
     variables_validation,
 )
-from conda.exceptions import CondaHTTPError, CondaMultiError, EnvironmentFileInvalid
+from conda.exceptions import CondaHTTPError, EnvironmentFileInvalid
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -312,7 +312,7 @@ def test_valid_keys():
 def test_invalid_keys():
     with pytest.warns(
         PendingDeprecationWarning,
-        match="Using a non-compliant CEP-0024 environment file"
+        match="Using a non-compliant CEP-0024 environment file",
     ):
         e = get_invalid_keys_environment()
         e_dict = e.to_dict()
@@ -441,19 +441,16 @@ def test_variables_validation_errors(variables, error_message):
 
 @pytest.mark.parametrize(
     "name,error_message",
-    (
-        (["wrong", "type"], "Invalid type for 'name'"),
-    ),
+    ((["wrong", "type"], "Invalid type for 'name'"),),
 )
 def test_name_validation_errors(name, error_message):
     with pytest.raises(EnvironmentFileInvalid, match=error_message):
         name_validation(name)
 
+
 @pytest.mark.parametrize(
     "prefix,error_message",
-    (
-        (["wrong", "type"], "Invalid type for 'prefix'"),
-    ),
+    ((["wrong", "type"], "Invalid type for 'prefix'"),),
 )
 def test_prefix_validation_errors(prefix, error_message):
     with pytest.raises(EnvironmentFileInvalid, match=error_message):
