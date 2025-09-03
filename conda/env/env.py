@@ -34,19 +34,23 @@ if TYPE_CHECKING:
     from typing import Any
 
 REQUIRED_KEYS = frozenset(("dependencies",))
-OPTIONAL_KEYS = frozenset((
-    "name",
-    "prefix",
-    "channels",
-    "variables",
-))
+OPTIONAL_KEYS = frozenset(
+    (
+        "name",
+        "prefix",
+        "channels",
+        "variables",
+    )
+)
 VALID_KEYS = frozenset((*REQUIRED_KEYS, *OPTIONAL_KEYS))
 
 
 def field_type_validation(field_name: str, value: Any, value_type: Any) -> None:
     """Validates the type of a value"""
     if not isinstance(value, value_type):
-        raise EnvironmentFileInvalid(f"Invalid type for '{field_name}', expected a {value_type.__name__}")
+        raise EnvironmentFileInvalid(
+            f"Invalid type for '{field_name}', expected a {value_type.__name__}"
+        )
 
 
 def prefix_validation(prefix: str):
