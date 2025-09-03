@@ -387,13 +387,13 @@ class MultiChannel(Channel):
         self.name = name
         self.location = None
 
+        channels = map(Channel, channels)
         if platform:
-            self._channels = tuple(
+            channels = (
                 Channel(**{**channel.dump(), "platform": platform})
                 for channel in channels
             )
-        else:
-            self._channels = channels
+        self._channels = tuple(channels)
 
         self.scheme = None
         self.auth = None
