@@ -1355,3 +1355,17 @@ def test_basic_multichannel():
 
     assert multichannel.url() is None
     assert multichannel.urls() == [*channel1.urls(), *channel2.urls()]
+
+
+def test_prioritize_channels():
+    channels = ["conda-canary", "defaults", "conda-forge"]
+    assert prioritize_channels(channels) == {
+        "https://conda.anaconda.org/conda-canary/osx-arm64": ("conda-canary", 0),
+        "https://conda.anaconda.org/conda-canary/noarch": ("conda-canary", 0),
+        "https://repo.anaconda.com/pkgs/main/osx-arm64": ("defaults", 1),
+        "https://repo.anaconda.com/pkgs/main/noarch": ("defaults", 1),
+        "https://repo.anaconda.com/pkgs/r/osx-arm64": ("defaults", 2),
+        "https://repo.anaconda.com/pkgs/r/noarch": ("defaults", 2),
+        "https://conda.anaconda.org/conda-forge/osx-arm64": ("conda-forge", 3),
+        "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 3),
+    }
