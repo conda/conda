@@ -130,7 +130,7 @@ def test_emscripten_forge(
         assert package_is_installed(prefix, "pyjs")
 
 
-def test_frozen_env_cep22(tmp_env, conda_cli):
+def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
     with tmp_env("ca-certificates") as prefix:
         prefix_data = PrefixData(prefix)
         prefix_data._frozen_file.touch()
@@ -145,7 +145,7 @@ def test_frozen_env_cep22(tmp_env, conda_cli):
             "update", "-p", prefix, "ca-certificates", raises=EnvironmentIsFrozenError
         )
 
-        # Bypass protection
+        # Bypass protection with CLI flag
         conda_cli(
             "install",
             "-p",
@@ -173,6 +173,34 @@ def test_frozen_env_cep22(tmp_env, conda_cli):
             "--override-frozen",
         )
         assert rc == 0
+
+        # Bypass protection with env var
+        with monkeypatch.context() as monkeyctx:
+            monkeyctx.setenv("CONDA_PROTECT_FROZEN_ENVS", "0")
+            conda_cli(
+                "install",
+                "-p",
+                prefix,
+                "zlib",
+                "--dry-run",
+                raises=DryRunExit,
+            )
+            conda_cli(
+                "remove",
+                "-p",
+                prefix,
+                "ca-certificates",
+                "--dry-run",
+                raises=DryRunExit,
+            )
+            out, err, rc = conda_cli(
+                "update",
+                "-p",
+                prefix,
+                "ca-certificates",
+                "--dry-run",
+            )
+            assert rc == 0
 
         # With message
         prefix_data._frozen_file.write_text('{"message": "EnvOnTheRocks"}')
