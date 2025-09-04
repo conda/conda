@@ -249,7 +249,7 @@ class TryRepodata:
 class Repodatas:
     repodata_fns: list[str]
     index_args: dict[str, Any]
-    allowed_errors: tuple[type[Exception], ...]
+    allowed_errors: tuple[type[Exception], ...] = ()
     success: bool = field(init=False, default=False)
 
     def __post_init__(self):
