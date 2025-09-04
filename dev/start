@@ -263,7 +263,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     case "${_MACH}" in
         Darwin|Linux) _INSTALLER_FILE="${_INSTALLER_FILE}.sh" ;;
     esac
-    
+
     if ! [ -f "${_INSTALLER_FILE}" ]; then
         echo "Downloading ${_INSTALLER_DISPLAY}..."
         if [ "${_MACH}" = "Darwin" ] || [ "${_MACH}" = "Linux" ]; then
