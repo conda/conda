@@ -412,6 +412,10 @@ class YamlRawParameter(RawParameter):
                 )
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
 
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.make_raw_parameters_from_file.cache_clear()
+
 
 class DefaultValueRawParameter(RawParameter):
     """Wraps a default value as a RawParameter, for usage in ParameterLoader."""
