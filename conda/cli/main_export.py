@@ -57,6 +57,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Do not include .condarc channels",
     )
+    # NOTE: This is a different platform option from the one in helpers.py
+    # This is because we want to:
+    # - Allow users to specify multiple platforms for export
+    # - Change the help so that it's clearer that this is for export
+    #
+    #  The add_parser_platform in helpers.py is used to specify a single platform/subdir
+    # for the current environment.  We may want to change the helper.
+    p.add_argument(
+        "--platform",
+        action="append",
+        help="Target platform(s) for export (e.g., linux-64, osx-64, win-64)",
+    )
     add_parser_prefix(p)
 
     p.add_argument(
@@ -119,6 +131,21 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import env_name
     from .common import stdout_json
 
+    # Determine target platforms for export
+    target_platforms = []
+    if args.platform:
+        # Use platforms specified on command line
+        target_platforms = args.platform
+    elif context.export_platforms:
+        # Use platforms from condarc configuration
+        target_platforms = list(context.export_platforms)
+
+    # If no platforms specified, use current platform only
+    if not target_platforms:
+        target_platforms = [context.subdir]
+
+    # TODO: Check if platform targets are valid
+
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
     environment_exporter = None
@@ -152,10 +179,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = context.target_prefix
 
     # Create models.Environment directly
+    # TODO: In the future, this will support generating exports for multiple platforms
+    # For now, we use the first target platform
+    target_platform = target_platforms[0] if target_platforms else context.subdir
+
     env = Environment.from_prefix(
         prefix=prefix,
         name=env_name(prefix),
-        platform=context.subdir,
+        platform=target_platform,
         from_history=args.from_history,
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,

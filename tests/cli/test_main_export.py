@@ -811,3 +811,43 @@ def test_export_explicit_format_validation_errors(
         error_msg = str(exc_info.value)
         assert "Cannot export explicit format" in error_msg
         assert "external packages" in error_msg
+
+
+def test_export_platform_argument(conda_cli: CondaCLIFixture) -> None:
+    """Test export with platform argument."""
+    name = uuid.uuid4().hex
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        "--platform",
+        "linux-64",
+        "--format=environment-yaml",
+    )
+    assert not stderr
+    assert not code
+    assert stdout
+
+    # Verify the output is valid YAML
+    yaml_data = yaml_safe_load(stdout)
+    assert yaml_data["name"] == name
+
+
+def test_export_multiple_platforms(conda_cli: CondaCLIFixture) -> None:
+    """Test export with multiple platform arguments."""
+    name = uuid.uuid4().hex
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        "--platform",
+        "linux-64",
+        "--platform",
+        "osx-64",
+        "--format=environment-yaml",
+    )
+    assert not stderr
+    assert not code
+    assert stdout
+
+    # Verify the output is valid YAML
+    yaml_data = yaml_safe_load(stdout)
+    assert yaml_data["name"] == name

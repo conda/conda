@@ -354,6 +354,10 @@ class Context(Configuration):
     _subdirs = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", str)), aliases=("subdirs",)
     )
+    export_platforms = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", str)),
+        aliases=("extra_platforms",),
+    )
 
     local_repodata_ttl = ParameterLoader(
         PrimitiveParameter(1, element_type=(bool, int))
@@ -1417,6 +1421,7 @@ class Context(Configuration):
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
                 "envvars_force_uppercase",
+                "export_platforms",
             ),
             "CLI-only": (
                 "deps_modifier",
