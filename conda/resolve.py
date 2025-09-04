@@ -38,7 +38,7 @@ from .exceptions import (
     ResolvePackageNotFound,
     UnsatisfiableError,
 )
-from .models.channel import Channel, MultiChannel
+from .models.channel import Channel
 from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
@@ -949,15 +949,24 @@ class Resolve:
     @staticmethod
     def _make_channel_priorities(channels: Iterable[Channel | str]) -> dict[str, int]:
         priorities_map = {}
-        for priority_counter, chn in enumerate(
-            itertools.chain.from_iterable(
-                (Channel(cc) for cc in c._channels)
-                if isinstance(c, MultiChannel)
-                else (c,)
-                for c in (Channel(c) for c in channels)
-            )
-        ):
-            channel_name = chn.name
+        """Make a dictionary of channel priorities.
+
+        Maps channel names to priorities, e.g.:
+
+            >>> Resolve._make_channel_priorities(["conda-canary", "defaults", "conda-forge"])
+            {
+                'conda-canary': 0,
+                'pkgs/main': 1,
+                'pkgs/r': 2,
+                'conda-forge': 3,
+            }
+
+        Compare with `conda.models.channel.prioritize_channels`.
+        """
+        channel_names = (
+            channel.name for name in channels for channel in Channel(name).channels
+        )
+        for priority_counter, channel_name in enumerate(channel_names):
             if channel_name in priorities_map:
                 continue
             priorities_map[channel_name] = min(
