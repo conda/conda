@@ -1335,7 +1335,7 @@ def test_basic_multichannel():
 
     channel1 = Channel(channel1_name)
     channel2 = Channel(channel2_name)
-    multichannel = MultiChannel(multichannel_name, (channel1_name, channel2_name))
+    multichannel = MultiChannel(multichannel_name, (channel1, channel2))
 
     assert multichannel.name == multichannel_name
     assert multichannel._channels == (channel1, channel2)
