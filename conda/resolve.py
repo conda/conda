@@ -12,6 +12,7 @@ import itertools
 from collections import defaultdict, deque
 from functools import cache
 from logging import DEBUG, getLogger
+from typing import TYPE_CHECKING
 
 from frozendict import frozendict
 from tqdm import tqdm
@@ -42,6 +43,9 @@ from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 log = getLogger(__name__)
 stdoutlog = getLogger("conda.stdoutlog")
@@ -943,7 +947,7 @@ class Resolve:
         return vkey
 
     @staticmethod
-    def _make_channel_priorities(channels):
+    def _make_channel_priorities(channels: Iterable[Channel | str]) -> dict[str, int]:
         priorities_map = {}
         for priority_counter, chn in enumerate(
             itertools.chain.from_iterable(

@@ -257,7 +257,9 @@ class Channel(metaclass=ChannelType):
             return cn
 
     def urls(
-        self, with_credentials: bool = False, subdirs: Iterable[str] | None = None
+        self,
+        with_credentials: bool = False,
+        subdirs: Iterable[str] | None = None,
     ) -> list[str]:
         if subdirs is None:
             subdirs = context.subdirs
@@ -319,7 +321,7 @@ class Channel(metaclass=ChannelType):
         return f"{self.scheme}://{join_url(self.location, self.name)}"
 
     @property
-    def base_urls(self) -> tuple[str | None]:
+    def base_urls(self) -> tuple[str | None, ...]:
         return (self.base_url,)
 
     @property
@@ -386,7 +388,10 @@ class Channel(metaclass=ChannelType):
 
 class MultiChannel(Channel):
     def __init__(
-        self, name: str, channels: Iterable[Channel], platform: str | None = None
+        self,
+        name: str,
+        channels: Iterable[Channel],
+        platform: str | None = None,
     ):
         self.name = name
         self.location = None
@@ -406,15 +411,13 @@ class MultiChannel(Channel):
         self.package_filename = None
 
     @property
-    def channel_location(self) -> None:
-        return self.location
-
-    @property
     def canonical_name(self) -> str:
         return self.name
 
     def urls(
-        self, with_credentials: bool = False, subdirs: Iterable[str] | None = None
+        self,
+        with_credentials: bool = False,
+        subdirs: Iterable[str] | None = None,
     ) -> list[str]:
         _channels = self._channels
         return list(
