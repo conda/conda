@@ -396,7 +396,7 @@ class MultiChannel(Channel):
         self.name = name
         self.location = None
 
-        channels = map(Channel, channels)
+        # assume all channels are Channels (not MultiChannels)
         if platform:
             channels = (
                 Channel(**{**channel.dump(), "platform": platform})
