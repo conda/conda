@@ -329,6 +329,10 @@ class Channel(metaclass=ChannelType):
             url = url.rsplit("/", 1)[0]
         return url
 
+    @property
+    def channels(self) -> tuple[Channel, ...]:
+        return (self,)
+
     def __str__(self) -> str:
         base = self.base_url or self.name
         if self.subdir:
@@ -427,6 +431,10 @@ class MultiChannel(Channel):
 
     def url(self, with_credentials: bool = False) -> None:
         return None
+
+    @property
+    def channels(self) -> tuple[Channel, ...]:
+        return self._channels
 
     def dump(self) -> dict[str, str | tuple[dict[str, Any], ...]]:
         return {"name": self.name, "channels": tuple(c.dump() for c in self._channels)}
