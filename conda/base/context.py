@@ -87,6 +87,7 @@ if TYPE_CHECKING:
     from ..common.configuration import Parameter, RawParameter
     from ..common.path import PathsType, PathType
     from ..models.channel import Channel
+    from ..models.environment import EnvironmentConfig
     from ..models.match_spec import MatchSpec
     from ..plugins.config import PluginConfig
     from ..plugins.manager import CondaPluginManager
@@ -559,15 +560,24 @@ class Context(Configuration):
         self,
         search_path: PathsType | None = None,
         argparse_args: Namespace | None = None,
+        env_spec_config: EnvironmentConfig | None = None,
         **kwargs,
     ):
         super().__init__(argparse_args=argparse_args)
 
+        # The order of these calls set the config precedence. From
+        # lowest to highest priority:
+        # - condarc files
+        # - config from environment spec files (if available)
+        # - environment variables
+        # - argparse arguments
         self._set_search_path(
             SEARCH_PATH if search_path is None else search_path,
             # for proper search_path templating when --name/--prefix is used
             CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
+        if env_spec_config:
+            self._set_environment_spec_data(env_spec_config)
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
 

@@ -9,7 +9,7 @@ from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.base.constants import ChannelPriority
-from conda.base.context import reset_context
+from conda.base.context import context, reset_context
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
@@ -576,3 +576,12 @@ def test_from_cli_environment_inject_default_packages_override_file(
     assert MatchSpec("numpy==2.0.0") not in env.requested_packages
     assert MatchSpec("numpy==2.3.1") in env.requested_packages
     assert env.explicit_packages == []
+
+
+def test_environment_config_context_parity():
+    """This test ensures that all the fields from the EnvironmentConfig object are
+    consistent with fields in the context object. This relationship is loosely
+    described in the context object's `environment_settings` property.
+    """
+    for field in fields(EnvironmentConfig):
+        assert hasattr(context, field.name)

@@ -43,7 +43,7 @@ from .. import CondaError, CondaMultiError
 from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
-from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
+from ..base.constants import CMD_LINE_SOURCE, ENV_SPEC_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
@@ -58,11 +58,13 @@ del _getFreezeConversionMap
 del _register
 
 if TYPE_CHECKING:
+    from argparse import Namespace
     from collections.abc import Hashable, Iterable, Sequence
     from re import Match
     from typing import Any
 
     from ..common.path import PathsType
+    from ..models.environment import EnvironmentConfig
 
 log = getLogger(__name__)
 
@@ -409,6 +411,40 @@ class YamlRawParameter(RawParameter):
                     position=err.position,
                 )
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
+
+
+class EnvironmentSpecificationRawParameter(RawParameter):
+    """This class represents a raw parameter originating from an environment specification file"""
+
+    source = ENV_SPEC_SOURCE
+
+    def value(self, parameter_obj):
+        if isiterable(self._raw_value):
+            children_values = []
+            for value in self._raw_value:
+                children_values.append(
+                    EnvironmentSpecificationRawParameter(self.source, self.key, value)
+                )
+            return tuple(children_values)
+        else:
+            return deepfreeze(self._raw_value)
+
+    def keyflag(self):
+        return None
+
+    def valueflags(self, parameter_obj):
+        return None if isinstance(parameter_obj, PrimitiveLoadedParameter) else ()
+
+    @classmethod
+    def make_raw_parameters(cls, from_map: dict[str, Any]):
+        """
+        Create an EnvironmentSpecificationRawParameter from an environment specification
+        :param from_map: a map of key-value pairs representing the configuration from the environment file
+        :return: a map of EnvironmentSpecificationRawParameters
+        """
+        return super().make_raw_parameters(
+            EnvironmentSpecificationRawParameter.source, from_map
+        )
 
 
 class DefaultValueRawParameter(RawParameter):
@@ -1388,7 +1424,14 @@ def custom_expandvars(
 
 
 class Configuration(metaclass=ConfigurationType):
-    def __init__(self, search_path=(), app_name=None, argparse_args=None, **kwargs):
+    def __init__(
+        self,
+        search_path: Iterable[PathsType] = (),
+        app_name: str | None = None,
+        argparse_args: Namespace | None = None,
+        env_spec_config: EnvironmentConfig | None = None,
+        **kwargs,
+    ):
         # Currently, __init__ does a **full** disk reload of all files.
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
@@ -1397,6 +1440,8 @@ class Configuration(metaclass=ConfigurationType):
         self._validation_errors = defaultdict(list)
 
         self._set_search_path(search_path, **kwargs)
+        if env_spec_config:
+            self._set_environment_spec_data(env_spec_config)
         self._set_env_vars(app_name)
         self._set_argparse_args(argparse_args)
 
@@ -1499,6 +1544,17 @@ class Configuration(metaclass=ConfigurationType):
 
         self._reset_cache()
         return self
+
+    def _set_environment_spec_data(self, config: EnvironmentConfig) -> None:
+        source = EnvironmentSpecificationRawParameter.source
+        if source in self.raw_data:
+            del self.raw_data[source]
+
+        self.raw_data[source] = (
+            EnvironmentSpecificationRawParameter.make_raw_parameters(
+                {k: v for k, v in vars(config).items() if v is not None}
+            )
+        )
 
     def _set_raw_data(self, raw_data: Mapping[Hashable, dict]):
         self.raw_data.update(raw_data)
