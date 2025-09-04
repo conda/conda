@@ -393,6 +393,16 @@ class YamlRawParameter(RawParameter):
     @classmethod
     @cache
     def make_raw_parameters_from_file(cls, filepath):
+        """
+        Read the provided file path and convert the contents into configuration parameters.
+
+        This function will cache the result for each filepath. In order to re-read the same
+        file path with updated content, be sure to clear this cache. For example
+
+        ```
+        YamlRawParameter.cache_clear()
+        ```
+        """
         with open(filepath) as fh:
             try:
                 yaml_obj = yaml.loads(fh)
@@ -411,6 +421,10 @@ class YamlRawParameter(RawParameter):
                     position=err.position,
                 )
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
+
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.make_raw_parameters_from_file.cache_clear()
 
 
 class DefaultValueRawParameter(RawParameter):
