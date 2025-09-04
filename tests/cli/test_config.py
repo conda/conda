@@ -16,7 +16,10 @@ from ruamel.yaml.scanner import ScannerError
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
-from conda.common.configuration import ConfigurationLoadError, CustomValidationError
+from conda.common.configuration import (
+    ConfigurationLoadError,
+    CustomValidationError,
+)
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
