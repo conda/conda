@@ -19,7 +19,6 @@ from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
 from conda.common.configuration import (
     ConfigurationLoadError,
     CustomValidationError,
-    YamlRawParameter,
 )
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
