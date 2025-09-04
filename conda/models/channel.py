@@ -372,7 +372,7 @@ class Channel(metaclass=ChannelType):
     def url_channel_wtf(self) -> tuple[str | None, str]:
         return self.base_url, self.canonical_name
 
-    def dump(self) -> dict[str, str | None]:
+    def dump(self) -> dict[str, Any]:
         return {
             "scheme": self.scheme,
             "auth": self.auth,
@@ -436,8 +436,11 @@ class MultiChannel(Channel):
     def channels(self) -> tuple[Channel, ...]:
         return self._channels
 
-    def dump(self) -> dict[str, str | tuple[dict[str, Any], ...]]:
-        return {"name": self.name, "channels": tuple(c.dump() for c in self._channels)}
+    def dump(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "channels": tuple(channel.dump() for channel in self.channels),
+        }
 
 
 def tokenized_startswith(
