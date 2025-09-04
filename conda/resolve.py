@@ -963,7 +963,7 @@ class Resolve:
                'conda-forge': 3,
            }
 
-        Compare with `conda.models.channel.prioritize_channels`.
+        Compare with ``conda.models.channel.prioritize_channels``.
         """
         channel_names = (
             channel.name for name in channels for channel in Channel(name).channels

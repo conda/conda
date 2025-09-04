@@ -663,7 +663,7 @@ def prioritize_channels(
            'https://conda.anaconda.org/conda-forge/noarch': ('conda-forge', 3),
        }
 
-    Compare with `conda.resolve.Resolve._make_channel_priorities`.
+    Compare with ``conda.resolve.Resolve._make_channel_priorities``.
     """
     channels = (channel for name in channels for channel in Channel(name).channels)
     result = {}
