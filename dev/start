@@ -218,11 +218,25 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
         echo "Error: failed to install development environment" 1>&2
         return 1
     fi
+
+    # Accept TOS for all channels
+    echo "Accepting Terms of Service for Anaconda channels..."
+    if ! PYTHONPATH="" "${_BASEEXE}" tos accept > /dev/null; then
+        echo "Warning: failed to accept Terms of Service automatically" 1>&2
+        echo "You may need to manually accept the Terms of Service when prompted" 1>&2
+    fi
 fi
 
 # create empty env if it doesn't exist
 if ! [ -d "${_ENV}" ]; then
     echo "Creating ${_NAME}..."
+
+    # Try to accept TOS before creating environment
+    echo "Ensuring Terms of Service are accepted..."
+    if ! PYTHONPATH="" "${_BASEEXE}" tos accept > /dev/null 2>&1; then
+        echo "Warning: Could not automatically accept TOS. You may be prompted to accept Terms of Service." 1>&2
+    fi
+
     if ! PYTHONPATH="" "${_BASEEXE}" create --yes --quiet "--prefix=${_ENV}" > /dev/null; then
         echo "Error: failed to create ${_NAME}" 1>&2
         return 1
@@ -233,9 +247,21 @@ fi
 if updating; then
     echo "Updating ${_NAME}..."
 
-    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all > /dev/null; then
+    # Ensure TOS are accepted before updating
+    echo "Ensuring Terms of Service are accepted for updates..."
+    if ! PYTHONPATH="" "${_BASEEXE}" tos accept > /dev/null 2>&1; then
+        echo "Warning: Could not automatically accept TOS for updates. You may be prompted to accept Terms of Service." 1>&2
+    fi
+
+    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all "--prefix=${_ENV}" > /dev/null; then
         echo "Error: failed to update development environment" 1>&2
         return 1
+    fi
+
+    # Ensure TOS are accepted before installing packages
+    echo "Ensuring Terms of Service are accepted for package installation..."
+    if ! PYTHONPATH="" "${_BASEEXE}" tos accept > /dev/null 2>&1; then
+        echo "Warning: Could not automatically accept TOS for package installation. You may be prompted to accept Terms of Service." 1>&2
     fi
 
     if ! PYTHONPATH="" "${_BASEEXE}" install \
@@ -243,7 +269,7 @@ if updating; then
         --quiet \
         "--prefix=${_ENV}" \
         --override-channels \
-        --channel=defaults \
+        --channel=conda-forge \
         "--file=${_SRC}/tests/requirements.txt" \
         "--file=${_SRC}/tests/requirements-ci.txt" \
         "$([ "${_MACH}" = "Linux" ] && echo "--file=${_SRC}/tests/requirements-Linux.txt")" \
