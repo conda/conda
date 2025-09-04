@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import platform
-import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -55,12 +54,12 @@ def plugin(plugin_manager):
 
 
 def test_invoked(plugin):
-    index = conda.core.index.get_reduced_index(
-        context.default_prefix,
-        context.default_channels,
-        context.subdirs,
-        (),
-        context.repodata_fns[0],
+    index = conda.core.index.ReducedIndex(
+        prefix=context.default_prefix,
+        channels=context.default_channels,
+        subdirs=context.subdirs,
+        specs=(),
+        repodata_fn=context.repodata_fns[0],
     )
 
     packages = package_dict(index)
@@ -76,14 +75,14 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(VirtualPackagesPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting `virtual_packages` plugins found")
+        PluginError, match=r"Conflicting plugins found for `virtual_packages`"
     ):
-        conda.core.index.get_reduced_index(
-            context.default_prefix,
-            context.default_channels,
-            context.subdirs,
-            (),
-            context.repodata_fns[0],
+        conda.core.index.ReducedIndex(
+            prefix=context.default_prefix,
+            channels=context.default_channels,
+            subdirs=context.subdirs,
+            specs=(),
+            repodata_fn=context.repodata_fns[0],
         )
 
 
@@ -106,15 +105,17 @@ def test_cuda_override_none(clear_cuda_version):
 
 
 def get_virtual_precs() -> Iterable[PackageRecord]:
+    index = conda.core.index.ReducedIndex(
+        prefix=context.default_prefix,
+        channels=context.default_channels,
+        subdirs=context.subdirs,
+        specs=(),
+        repodata_fn=context.repodata_fns[0],
+    )
+
     yield from (
         prec
-        for prec in conda.core.index.get_reduced_index(
-            context.default_prefix,
-            context.default_channels,
-            context.subdirs,
-            (),
-            context.repodata_fns[0],
-        )
+        for prec in index
         if prec.channel.name == "@" and prec.name.startswith("__")
     )
 

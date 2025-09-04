@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-import re
 import sys
 from inspect import isclass, isfunction
 from logging import getLogger
@@ -16,7 +15,6 @@ from conda.cli.conda_argparse import (
     _GreedySubParsersAction,
     generate_parser,
 )
-from conda.exceptions import EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
     from typing import Any, Callable
@@ -24,26 +22,6 @@ if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture
 
 log = getLogger(__name__)
-
-
-def test_list_through_python_api(conda_cli: CondaCLIFixture):
-    with pytest.raises(EnvironmentLocationNotFound, match="Not a conda environment"):
-        conda_cli("list", "--prefix", "not-a-real-path")
-
-    # cover argument variations
-    # mutually exclusive: --canonical, --export, --explicit, (default human readable)
-    for args1 in [[], ["--json"]]:
-        for args2 in [[], ["--revisions"]]:
-            for args3 in [
-                ["--canonical"],
-                ["--export"],
-                ["--explicit", "--md5"],
-                ["--full-name"],
-            ]:
-                args = (*args1, *args2, *args3)
-                stdout, _, _ = conda_cli("list", *args)
-                if "--md5" in args and "--revisions" not in args:
-                    assert re.search(r"#[0-9a-f]{32}", stdout)
 
 
 def test_parser_basics():
@@ -75,6 +53,7 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.add_parser_networking", isfunction),
         ("conda.cli.conda_argparse.add_parser_package_install_options", isfunction),
         ("conda.cli.conda_argparse.add_parser_prefix", isfunction),
+        ("conda.cli.conda_argparse.add_parser_prefix_to_group", isfunction),
         ("conda.cli.conda_argparse.add_parser_prune", isfunction),
         ("conda.cli.conda_argparse.add_parser_pscheck", isfunction),
         ("conda.cli.conda_argparse.add_parser_show_channel_urls", isfunction),

@@ -8,14 +8,12 @@ Renames an existing environment by cloning it and then removing the original env
 from __future__ import annotations
 
 import os
-from argparse import _StoreTrueAction
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from conda.deprecations import deprecated
 from conda.exceptions import CondaEnvException
-from conda.gateways.disk.test import is_conda_environment
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -62,19 +60,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_prefix(p)
 
     p.add_argument("destination", help="New name for the conda environment.")
-    p.add_argument(
-        "-f",
-        "--force",
-        dest="yes",
-        help="Force rename of an environment.",
-        action=deprecated.action(
-            "24.9",
-            "25.3",
-            _StoreTrueAction,
-            addendum="Use `--yes` instead.",
-        ),
-        default=False,
-    )
 
     add_output_and_prompt_options(p)
 
@@ -83,10 +68,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.validate_path()")
 def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
     """Ensure that the new prefix does not contain protected directories."""
+    from conda.core.prefix_data import PrefixData
 
-    if is_conda_environment(Path(prefix).parent):
+    if PrefixData(Path(prefix).parent).is_environment():
         raise CondaEnvException(
             f"The specified prefix '{prefix}' "
             "appears to be a top level directory within an existing conda environment "
@@ -98,6 +85,11 @@ def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
         )
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use PrefixData.validate_path(), PrefixData.validate_name()",
+)
 def validate_src() -> str:
     """
     Ensure that we are receiving at least one valid value for the environment
@@ -147,12 +139,38 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.constants import DRY_RUN_PREFIX
     from ..base.context import context
     from ..cli import install
+    from ..core.prefix_data import PrefixData
     from ..gateways.disk.delete import rm_rf
     from ..gateways.disk.update import rename_context
-    from .install import validate_new_prefix
 
-    source = validate_src()
-    destination = validate_new_prefix(args.destination, force=args.yes)
+    # Validate source
+    source_prefix_data = PrefixData.from_context()
+    source_prefix_data.assert_environment()
+    if source_prefix_data.is_base():
+        raise CondaEnvException("The 'base' environment cannot be renamed")
+    if context.active_prefix and source_prefix_data.prefix_path.samefile(
+        context.active_prefix
+    ):
+        raise CondaEnvException("Cannot rename the active environment")
+
+    if source_prefix_data == PrefixData(context.default_activation_prefix):
+        raise CondaEnvException(
+            "Cannot rename an environment if it is configured as `default_activation_env`."
+        )
+
+    source = str(source_prefix_data.prefix_path)
+
+    # Validate destination
+    if os.sep in args.destination:
+        dest_prefix_data = PrefixData(args.destination)
+        dest_prefix_data.validate_path(expand_path=True)
+    else:
+        dest_prefix_data = PrefixData.from_name(args.destination)
+    destination = str(dest_prefix_data.prefix_path)
+    if not args.yes and dest_prefix_data.exists():
+        raise CondaEnvException(
+            f"The environment '{dest_prefix_data.prefix_path}' already exists. Override with --yes."
+        )
 
     def clone_and_remove() -> None:
         actions: tuple[partial, ...] = (

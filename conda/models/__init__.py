@@ -10,7 +10,6 @@ to create model objects from remote resources.
 
 Conda modules importable from ``conda.models`` are
 
-- ``conda._vendor``
 - ``conda.common``
 - ``conda.models``
 

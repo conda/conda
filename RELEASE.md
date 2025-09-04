@@ -25,6 +25,12 @@ Use the issue template below to create the release issue. After creating the rel
 <details>
 <summary><h3>Release Template</h3></summary>
 
+#### Title:
+```markdown
+Release `YY.MM.x`
+```
+
+#### Body:
 ```markdown
 ### Summary
 
@@ -42,6 +48,7 @@ Placeholder for `conda YY.MM.x` release.
 [main]: https://github.com/AnacondaRecipes/conda-feedstock
 [conda-forge]: https://github.com/conda-forge/conda-feedstock
 [ReadTheDocs]: https://readthedocs.com/projects/continuumio-conda/
+[zulip]: https://conda.zulipchat.com/#narrow/channel/480811-releases
 
 <details open>  <!-- feel free to remove the open attribute once this section is completed -->
 <summary><h4>The week before release week</h4></summary>
@@ -49,6 +56,7 @@ Placeholder for `conda YY.MM.x` release.
 - [ ] Create release branch (named `YY.MM.x`)
 - [ ] Ensure release candidates are being successfully built (see `conda-canary/label/rc-conda-YY.MM.x`)
 - [ ] [Complete outstanding PRs][milestone]
+- [ ] Check for deprecated features
 - [ ] Test release candidates
     <!-- indicate here who has signed off on testing -->
 
@@ -58,23 +66,18 @@ Placeholder for `conda YY.MM.x` release.
 <summary><h4>Release week</h4></summary>
 
 - [ ] Create release PR (see [release process][process])
+- [ ] Create Zulip thread on [#releases][zulip]
+    - [ ] Announce `YY.MM.MICRO` in-progress
 - [ ] [Publish release][releases]
 - [ ] Merge `YY.MM.x` back into `main`
 - [ ] Activate the `YY.MM.x` branch on [ReadTheDocs][ReadTheDocs]
-- [ ] Feedstocks
-    - [ ] Bump version & update dependencies/tests in [Anaconda, Inc.'s feedstock][main]
-    - [ ] Bump version & update dependencies/tests in [conda-forge feedstock][conda-forge]
-    <!-- link any other feedstock PRs here -->
-- [ ] Hand off to the Anaconda packaging team
+- [ ] Bump/update feedstocks
+    - [ ] [Anaconda, Inc.'s feedstock][main]
+    - [ ] [conda-forge feedstock][conda-forge]
+- [ ] Hand off to packaging team(s)
 - [ ] Announce release
-    - Blog Post (optional)
-        - [ ] conda.org (link to pull request)
-    - Long form
-        - [ ] Create release [announcement draft](https://github.com/conda/communications)
-        - [ ] [Discourse](https://conda.discourse.group/)
-        - [ ] [Matrix (conda/conda)](https://matrix.to/#/#conda_conda:gitter.im) (this auto posts from Discourse)
-    - Summary
-        - [ ] [Twitter](https://twitter.com/condaproject)
+    - [ ] Create & publish conda.org blog post
+    - [ ] Post on Zulip thread
 
 </details>
 ```
@@ -85,18 +88,23 @@ If a patch release is necessary, reopen the original release issue and append th
 <details>
 <summary><h3>Patch Release Template</h3></summary>
 
+#### Append to existing 'Release `YY.MM.x`' issue:
 ```markdown
 <details open>  <!-- feel free to remove the open attribute once this section is completed -->
 <summary><h4>Patch YY.MM.MICRO</h4></summary>
 
 - [ ] <!-- list issues & PRs that need to be resolved here -->
 - [ ] Create release PR (see [release process][process])
+- [ ] Update Zulip thread on [#releases][zulip]
+    - [ ] Announce `YY.MM.MICRO` in-progress
 - [ ] [Publish release][releases]
 - [ ] Merge `YY.MM.x` back into `main`
-- [ ] Feedstocks
-    - [ ] Bump version & update dependencies/tests in [Anaconda, Inc.'s feedstock][main]
-    - [ ] Bump version & update dependencies/tests in [conda-forge feedstock][conda-forge]
-- [ ] Hand off to the Anaconda packaging team
+- [ ] Bump/update feedstocks
+    - [ ] [Anaconda, Inc.'s feedstock][main]
+    - [ ] [conda-forge feedstock][conda-forge]
+- [ ] Hand off to packaging team(s)
+- [ ] Announce release
+    - [ ] Post on Zulip thread
 
 </details>
 ```
@@ -129,7 +137,7 @@ These are synced from [`conda/infrastructure`][infrastructure].
 <details>
 <summary><h2>5. Run rever. (ideally done on the Monday of release week)</h2></summary>
 
-Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from builtin race conditions (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
+Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from a builtin circular dependency (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
 
 1. Install [`rever`][rever docs] and activate the environment:
 

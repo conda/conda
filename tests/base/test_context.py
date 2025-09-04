@@ -25,12 +25,12 @@ from conda.base.context import (
     channel_alias_validation,
     context,
     default_python_validation,
-    get_plugin_config_data,
+    env_name,
     reset_context,
     validate_channels,
     validate_prefix_name,
 )
-from conda.common.configuration import Configuration, ValidationError, YamlRawParameter
+from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml_round_trip_load
 from conda.common.url import join_url, path_to_url
@@ -49,59 +49,10 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
-
-TEST_CONDARC = dals(
-    """
-    custom_channels:
-      darwin: https://some.url.somewhere/stuff
-      chuck: http://another.url:8080/with/path
-    custom_multichannels:
-      michele:
-        - https://do.it.with/passion
-        - learn_from_every_thing
-      steve:
-        - more-downloads
-    channel_settings:
-      - channel: darwin
-        param_one: value_one
-        param_two: value_two
-      - channel: "http://localhost"
-        param_one: value_one
-        param_two: value_two
-    migrated_custom_channels:
-      darwin: s3://just/cant
-      chuck: file:///var/lib/repo/
-    migrated_channel_aliases:
-      - https://conda.anaconda.org
-    channel_alias: ftp://new.url:8082
-    conda-build:
-      root-dir: /some/test/path
-    proxy_servers:
-      http: http://user:pass@corp.com:8080
-      https: none
-      ftp:
-      sftp: ''
-      ftps: false
-      rsync: 'false'
-    aggressive_update_packages: []
-    channel_priority: false
-    """
-)
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
-@pytest.fixture
-def testdata() -> None:
-    reset_context()
-    context._set_raw_data(
-        {
-            "testdata": YamlRawParameter.make_raw_parameters(
-                "testdata", yaml_round_trip_load(TEST_CONDARC)
-            )
-        }
-    )
-
-
-def test_migrated_custom_channels(testdata: None):
+def test_migrated_custom_channels(context_testdata: None):
     assert (
         Channel(
             "https://some.url.somewhere/stuff/darwin/noarch/a-mighty-fine.tar.bz2"
@@ -117,7 +68,7 @@ def test_migrated_custom_channels(testdata: None):
     ]
 
 
-def test_old_channel_alias(testdata: None):
+def test_old_channel_alias(context_testdata: None):
     platform = context.subdir
 
     cf_urls = [
@@ -142,7 +93,7 @@ def test_old_channel_alias(testdata: None):
     ]
 
 
-def test_signing_metadata_url_base(testdata: None):
+def test_signing_metadata_url_base(context_testdata: None):
     SIGNING_URL_BASE = "https://conda.example.com/pkgs"
     string = f"signing_metadata_url_base: {SIGNING_URL_BASE}"
     reset_context()
@@ -155,7 +106,7 @@ def test_signing_metadata_url_base(testdata: None):
     assert context.signing_metadata_url_base == SIGNING_URL_BASE
 
 
-def test_signing_metadata_url_base_empty_default_channels(testdata: None):
+def test_signing_metadata_url_base_empty_default_channels(context_testdata: None):
     string = dals(
         """
         default_channels: []
@@ -172,7 +123,7 @@ def test_signing_metadata_url_base_empty_default_channels(testdata: None):
     assert context.signing_metadata_url_base is None
 
 
-def test_client_ssl_cert(testdata: None):
+def test_client_ssl_cert(context_testdata: None):
     string = dals(
         """
         client_ssl_cert_key: /some/key/path
@@ -188,7 +139,7 @@ def test_client_ssl_cert(testdata: None):
     pytest.raises(ValidationError, context.validate_configuration)
 
 
-def test_conda_envs_path(testdata: None):
+def test_conda_envs_path(context_testdata: None):
     saved_envs_path = os.environ.get("CONDA_ENVS_PATH")
     beginning = "C:" + os.sep if on_win else os.sep
     path1 = beginning + os.sep.join(["my", "envs", "dir", "1"])
@@ -256,7 +207,7 @@ def test_conda_bld_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     assert channel.canonical_name == "local"
 
 
-def test_custom_multichannels(testdata: None):
+def test_custom_multichannels(context_testdata: None):
     assert context.custom_multichannels["michele"] == (
         Channel("passion"),
         Channel("learn_from_every_thing"),
@@ -274,7 +225,7 @@ def test_restore_free_channel(monkeypatch: MonkeyPatch) -> None:
     assert context.default_channels[1] == free_channel
 
 
-def test_proxy_servers(testdata: None):
+def test_proxy_servers(context_testdata: None):
     assert context.proxy_servers["http"] == "http://user:pass@corp.com:8080"
     assert context.proxy_servers["https"] is None
     assert context.proxy_servers["ftp"] is None
@@ -283,7 +234,7 @@ def test_proxy_servers(testdata: None):
     assert context.proxy_servers["rsync"] == "false"
 
 
-def test_conda_build_root_dir(testdata: None):
+def test_conda_build_root_dir(context_testdata: None):
     assert context.conda_build["root-dir"] == "/some/test/path"
 
 
@@ -294,7 +245,7 @@ def test_clobber_enum(monkeypatch: MonkeyPatch, path_conflict: str) -> None:
     assert context.path_conflict == PathConflict(path_conflict)
 
 
-def test_context_parameter_map(testdata: None):
+def test_context_parameter_map(context_testdata: None):
     parameters = list(context.list_parameters())
     mapped = [name for names in context.category_map.values() for name in names]
 
@@ -308,7 +259,7 @@ def test_context_parameter_map(testdata: None):
     assert len(parameters) == len(mapped)
 
 
-def test_context_parameters_have_descriptions(testdata: None):
+def test_context_parameters_have_descriptions(context_testdata: None):
     skip_categories = ("CLI-only", "Hidden and Undocumented")
     documented_parameter_names = chain.from_iterable(
         (
@@ -326,7 +277,7 @@ def test_context_parameters_have_descriptions(testdata: None):
 
 
 def test_local_build_root_custom_rc(
-    testdata: None,
+    context_testdata: None,
     monkeypatch: MonkeyPatch,
     path_factory: PathFactoryFixture,
 ) -> None:
@@ -342,7 +293,7 @@ def test_local_build_root_custom_rc(
     assert context.local_build_root == croot
 
 
-def test_default_target_is_root_prefix(testdata: None):
+def test_default_target_is_root_prefix(context_testdata: None):
     assert context.target_prefix == context.root_prefix
 
 
@@ -384,7 +335,7 @@ def test_aggressive_update_packages(monkeypatch: MonkeyPatch) -> None:
     assert context.aggressive_update_packages == tuple(map(MatchSpec, specs))
 
 
-def test_channel_priority(testdata: None):
+def test_channel_priority(context_testdata: None):
     assert context.channel_priority == ChannelPriority.DISABLED
 
 
@@ -437,14 +388,14 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
         assert context.execute_threads == 3
 
 
-def test_channels_empty(testdata: None):
+def test_channels_empty(context_testdata: None):
     """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())
     with pytest.warns((PendingDeprecationWarning, FutureWarning)):
         assert context.channels == ("defaults",)
 
 
-def test_channels_defaults_condarc(testdata: None):
+def test_channels_defaults_condarc(context_testdata: None):
     """Test when no channels provided in cli, but some in condarc."""
     reset_context(())
     string = dals(
@@ -461,7 +412,7 @@ def test_channels_defaults_condarc(testdata: None):
     assert context.channels == ("defaults", "conda-forge")
 
 
-def test_specify_channels_cli_not_adding_defaults_no_condarc(testdata: None):
+def test_specify_channels_cli_not_adding_defaults_no_condarc(context_testdata: None):
     """
     When the channel haven't been specified in condarc, 'defaults'
     should NOT be present when specifying channel in the cli.
@@ -473,7 +424,7 @@ def test_specify_channels_cli_not_adding_defaults_no_condarc(testdata: None):
         assert context.channels == ("conda-forge", "defaults")
 
 
-def test_specify_channels_cli_condarc(testdata: None):
+def test_specify_channels_cli_condarc(context_testdata: None):
     """
     When the channel have been specified in condarc, these channels
     should be used along with the one specified
@@ -493,7 +444,7 @@ def test_specify_channels_cli_condarc(testdata: None):
     assert context.channels == ("defaults", "conda-forge")
 
 
-def test_specify_different_channels_cli_condarc(testdata: None):
+def test_specify_different_channels_cli_condarc(context_testdata: None):
     """
     When the channel have been specified in condarc, these channels
     should be used along with the one specified
@@ -515,7 +466,7 @@ def test_specify_different_channels_cli_condarc(testdata: None):
     assert context.channels == ("conda-forge", "other")
 
 
-def test_specify_same_channels_cli_as_in_condarc(testdata: None):
+def test_specify_same_channels_cli_as_in_condarc(context_testdata: None):
     """
     When the channel have been specified in condarc, these channels
     should be used along with the one specified
@@ -539,7 +490,7 @@ def test_specify_same_channels_cli_as_in_condarc(testdata: None):
     assert context.channels == ("conda-forge",)
 
 
-def test_expandvars(testdata: None):
+def test_expandvars(context_testdata: None):
     """Environment variables should be expanded in settings that have expandvars=True."""
 
     def _get_expandvars_context(attr, config_expr, env_value):
@@ -599,7 +550,7 @@ def test_expandvars(testdata: None):
     assert any("foo" in d for d in pkgs_dirs)
 
 
-def test_channel_settings(testdata: None):
+def test_channel_settings(context_testdata: None):
     """Ensure "channel_settings" appears as we expect it to on the context object."""
     assert context.channel_settings == (
         {"channel": "darwin", "param_one": "value_one", "param_two": "value_two"},
@@ -671,7 +622,7 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
     ctx = mock.MagicMock()
 
     with (
-        mock.patch("conda.base.context._first_writable_envs_dir") as mock_one,
+        mock.patch("conda.gateways.disk.create.first_writable_envs_dir") as mock_one,
         mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
     ):
         mock_one.side_effect = [mock_return_values[0]]
@@ -687,80 +638,6 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         else:
             actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
-
-
-def test_get_plugin_config_data_file_source(tmp_path):
-    """
-    Test file source of plugin configuration values
-    """
-    condarc = tmp_path / "condarc"
-
-    condarc.write_text(
-        dals(
-            """
-            plugins:
-              option_one: value_one
-              option_two: value_two
-            """
-        )
-    )
-
-    config_data = {
-        path: data for path, data in Configuration._load_search_path((condarc,))
-    }
-
-    plugin_config_data = get_plugin_config_data(config_data)
-
-    assert plugin_config_data.get(condarc) is not None
-
-    option_one = plugin_config_data.get(condarc).get("option_one")
-    assert option_one is not None
-    assert option_one.value(None) == "value_one"
-
-    option_two = plugin_config_data.get(condarc).get("option_two")
-    assert option_two is not None
-    assert option_two.value(None) == "value_two"
-
-
-def test_get_plugin_config_data_env_var_source():
-    """
-    Test environment variable source of plugin configuration values
-    """
-    raw_data = {
-        "envvars": {
-            "plugins_option_one": {"_raw_value": "value_one"},
-            "plugins_option_two": {"_raw_value": "value_two"},
-        }
-    }
-
-    plugin_config_data = get_plugin_config_data(raw_data)
-
-    assert plugin_config_data.get("envvars") is not None
-
-    option_one = plugin_config_data.get("envvars").get("option_one")
-    assert option_one is not None
-    assert option_one.get("_raw_value") == "value_one"
-
-    option_two = plugin_config_data.get("envvars").get("option_two")
-    assert option_two is not None
-    assert option_two.get("_raw_value") == "value_two"
-
-
-def test_get_plugin_config_data_skip_bad_values():
-    """
-    Make sure that values that are not frozendict for file sources are skipped
-    """
-    path = Path("/tmp/")
-
-    class Value:
-        def value(self, _):
-            return "some_value"
-
-    raw_data = {path: {"plugins": Value()}}
-
-    plugin_config_data = get_plugin_config_data(raw_data)
-
-    assert plugin_config_data == {}
 
 
 @pytest.mark.parametrize(
@@ -881,3 +758,83 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+
+def test_default_activation_prefix(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """Test that the default_activation_prefix returns the correct prefix.
+
+    context.default_activation_env can either be a name or a prefix path, so we check
+    that in either case, the context.default_activation_prefix is a path.
+    """
+    key = "CONDA_DEFAULT_ACTIVATION_ENV"
+
+    with tmp_env() as prefix:
+        name = env_name(prefix)
+        monkeypatch.setenv(key, context.root_prefix)
+        reset_context()
+        assert prefix != context.default_activation_prefix
+
+        monkeypatch.setenv(key, prefix)
+        reset_context()
+        assert prefix == context.default_activation_prefix
+
+        monkeypatch.setenv(key, name)
+        reset_context()
+        assert prefix == context.default_activation_prefix
+
+
+PYTHON_SPEC = "python"
+ZLIB_URL = "https://repo.anaconda.com/pkgs/main/linux-64/zlib-1.2.13-h5eee18b_1.conda"
+
+
+@pytest.mark.parametrize(
+    "context_packages,expected_packages",
+    (
+        (tuple(), tuple()),
+        ((PYTHON_SPEC,), (PYTHON_SPEC,)),
+        ((PYTHON_SPEC, ZLIB_URL), (PYTHON_SPEC,)),
+    ),
+)
+def test_create_default_packages(
+    monkeypatch: MonkeyPatch,
+    context_packages: tuple[str, ...],
+    expected_packages: tuple[str, ...],
+):
+    """Ensure that the `create_default_packages` config only returns valid package
+    specs, and no explicit packages."""
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", f"{','.join(context_packages)}")
+    reset_context()
+
+    create_default_packages = context.create_default_packages
+    assert create_default_packages == expected_packages
+
+
+def test_create_default_packages_will_warn_for_explicit_packages(
+    monkeypatch: MonkeyPatch,
+):
+    """This test will ensure that the context object emits a warning whenever an explicit
+    package is in the `create_default_packages` setting. Further, this property will ensure
+    that no invalid packages are returned to the caller.
+    """
+    # Add an explicit package and a valid package spec to `create_default_packages`. We
+    # expect this to:
+    #   * emit a warning about the explicit package and,
+    #   * only return the valid (python) package
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", f"{ZLIB_URL},{PYTHON_SPEC}")
+    reset_context()
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            rf"Ignoring invalid packages in `create_default_packages`: \n"
+            rf"  - {ZLIB_URL}\n"
+            rf"\n"
+            rf"Explicit package are not allowed.+"
+        ),
+    ):
+        # Ensure only valid packages are returned
+        assert context.create_default_packages == (PYTHON_SPEC,)

@@ -1,20 +1,24 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import copy
 import os
 import re
 import sys
 from importlib.metadata import version
 from pprint import pprint
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
 
 from conda.auxlib.ish import dals
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.constants import PREFIX_PINNED_FILE
+from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.io import env_var, env_vars
-from conda.core.solve import DepsModifier, UpdateModifier
+from conda.core.solve import DepsModifier, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
     PackagesNotFoundError,
     ResolvePackageNotFound,
@@ -23,14 +27,15 @@ from conda.exceptions import (
 )
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
+from conda.models.match_spec import MatchSpec
 from conda.models.records import PrefixRecord
 from conda.models.version import VersionOrder
-from conda.resolve import MatchSpec
 from conda.testing.helpers import (
     CHANNEL_DIR_V1,
     add_subdir,
     add_subdir_to_iter,
     convert_to_dist_str,
+    forward_to_subprocess,
     get_solver,
     get_solver_2,
     get_solver_4,
@@ -40,11 +45,43 @@ from conda.testing.helpers import (
     get_solver_must_unfreeze,
 )
 
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
 @pytest.mark.benchmark
-def test_solve_1(tmpdir):
+@pytest.mark.flaky(reruns=5)
+def test_solve_1(tmpdir, request):
+    """
+    This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
+
+    ```
+    File "/home/runner/work/conda/conda/tests/core/test_solve.py", line 101, in test_solve_1
+        assert convert_to_dist_str(final_state) == order
+    AssertionError:
+        (
+            'channel-1/linux-64::openssl-1.0.1c-0',
+            'channel-1/linux-64::readline-6.2-0',
+            'channel-1/linux-64::sqlite-3.7.13-0',
+            'channel-1/linux-64::system-5.8-1',
+            'channel-1/linux-64::tk-8.5.13-0',
+            'channel-1/linux-64::zlib-1.2.7-0',
+      -     'channel-1/linux-64::python-2.7.5-0',
+      ?                                   ^ ^ ^
+      +     'channel-1/linux-64::python-2.6.8-6',
+      ?                                   ^ ^ ^
+      -     'channel-1/linux-64::numpy-1.7.1-py27_0',
+      ?                                         ^
+      +     'channel-1/linux-64::numpy-1.7.1-py26_0',
+      ?                                         ^
+          )
+    ```
+    """
     specs = (MatchSpec("numpy"),)
 
     with get_solver(tmpdir, specs) as solver:
@@ -1260,6 +1297,9 @@ def test_broken_install(tmpdir):
 
 
 def test_conda_downgrade(tmpdir, request):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
+
     if context.solver == "libmamba":
         request.applymarker(
             pytest.mark.xfail(
@@ -3794,3 +3834,82 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     with get_solver(tmpdir, specs) as solver:
         with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
             solver.solve_final_state()
+
+
+def test_pinned_specs_CONDA_PINNED_PACKAGES(monkeypatch: MonkeyPatch) -> None:
+    # Test pinned specs environment variable
+    specs = ("numpy 1.11", "python >3")
+
+    monkeypatch.setenv("CONDA_PINNED_PACKAGES", "&".join(specs))
+    reset_context()
+    assert context.pinned_packages == specs
+
+    pinned_specs = get_pinned_specs("/none")
+    assert pinned_specs != specs
+    assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
+    # Test pinned specs conda environment file
+    specs = ("scipy ==0.14.2", "openjdk >=8")
+    with tmp_env() as prefix:
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs) + "\n")
+
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_pinned_specs_condarc(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
+    # Test pinned specs conda environment file
+    specs = ("requests ==2.13",)
+    with tmp_env() as prefix:
+        # mock active prefix
+        mocker.patch(
+            "conda.base.context.Context.active_prefix",
+            new_callable=mocker.PropertyMock,
+            return_value=str(prefix),
+        )
+
+        conda_cli("config", "--env", "--add", "pinned_packages", *specs)
+
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_pinned_specs_all(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    # Test pinned specs conda configuration and pinned specs conda environment file
+    specs1 = ("numpy 1.11", "python >3")
+    specs2 = ("scipy ==0.14.2", "openjdk >=8")
+    specs3 = ("requests=2.13",)
+    specs = (*specs1, *specs3, *specs2)
+
+    monkeypatch.setenv("CONDA_PINNED_PACKAGES", "&".join(specs1))
+    reset_context()
+    assert context.pinned_packages == specs1
+
+    with tmp_env() as prefix:
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs2) + "\n")
+
+        # mock active prefix
+        mocker.patch(
+            "conda.base.context.Context.active_prefix",
+            new_callable=mocker.PropertyMock,
+            return_value=str(prefix),
+        )
+
+        conda_cli("config", "--env", "--add", "pinned_packages", *specs3)
+
+        pinned_specs = get_pinned_specs(prefix)
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)

@@ -8,22 +8,32 @@ Think of this as a "more static" source of configuration information.
 Another important source of "static" configuration is conda/models/enums.py.
 """
 
+from __future__ import annotations
+
 import struct
 from enum import Enum, EnumMeta
 from os.path import join
+from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
 
-PREFIX_PLACEHOLDER = (
+if TYPE_CHECKING:
+    from typing import Final
+
+    from ..common.path import PathType
+
+PREFIX_PLACEHOLDER: Final = (
     "/opt/anaconda1anaconda2"
     # this is intentionally split into parts, such that running
     # this program on itself will leave it unchanged
     "anaconda3"
 )
 
-machine_bits = 8 * struct.calcsize("P")
+machine_bits: Final = 8 * struct.calcsize("P")
 
-APP_NAME = "conda"
+APP_NAME: Final = "conda"
+
+SEARCH_PATH: tuple[str, ...]
 
 if on_win:  # pragma: no cover
     SEARCH_PATH = (
@@ -61,13 +71,12 @@ SEARCH_PATH += (
     "$CONDARC",
 )
 
-DEFAULT_CHANNEL_ALIAS = "https://conda.anaconda.org"
-CONDA_HOMEPAGE_URL = "https://conda.io"
-ERROR_UPLOAD_URL = "https://conda.io/conda-post/unexpected-error"
-DEFAULTS_CHANNEL_NAME = "defaults"
+DEFAULT_CHANNEL_ALIAS: Final = "https://conda.anaconda.org"
+CONDA_HOMEPAGE_URL: Final = "https://conda.io"
+ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
+DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
-KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
-    "noarch",
+PLATFORMS: Final = (
     "emscripten-wasm32",
     "wasi-wasm32",
     "freebsd-64",
@@ -87,30 +96,37 @@ KNOWN_SUBDIRS = PLATFORM_DIRECTORIES = (
     "win-arm64",
     "zos-z",
 )
+KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
+PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
-RECOGNIZED_URL_SCHEMES = ("http", "https", "ftp", "s3", "file")
+RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
 
-DEFAULT_CHANNELS_UNIX = (
+
+DEFAULT_CHANNELS_UNIX: Final = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",
 )
 
-DEFAULT_CHANNELS_WIN = (
+DEFAULT_CHANNELS_WIN: Final = (
     "https://repo.anaconda.com/pkgs/main",
     "https://repo.anaconda.com/pkgs/r",
     "https://repo.anaconda.com/pkgs/msys2",
 )
 
-DEFAULT_CUSTOM_CHANNELS = {
+DEFAULT_CUSTOM_CHANNELS: Final = {
     "pkgs/pro": "https://repo.anaconda.com",
 }
 
-DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
+DEFAULT_CHANNELS: Final = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
-ROOT_ENV_NAME = "base"
-UNUSED_ENV_NAME = "unused-env-name"
+ROOT_ENV_NAME: Final = "base"
+RESERVED_ENV_NAMES: Final = (
+    ROOT_ENV_NAME,
+    "root",
+)
+UNUSED_ENV_NAME: Final = "unused-env-name"
 
-ROOT_NO_RM = (
+ROOT_NO_RM: Final = (
     "python",
     "pycosat",
     "ruamel.yaml",
@@ -119,11 +135,13 @@ ROOT_NO_RM = (
     "requests",
 )
 
-DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
+DEFAULT_AGGRESSIVE_UPDATE_PACKAGES: Final = (
     "ca-certificates",
     "certifi",
     "openssl",
 )
+
+COMPATIBLE_SHELLS: tuple[str, ...]
 
 if on_win:  # pragma: no cover
     COMPATIBLE_SHELLS = (
@@ -147,37 +165,39 @@ else:
 
 
 # Maximum priority, reserved for packages we really want to remove
-MAX_CHANNEL_PRIORITY = 10000
+MAX_CHANNEL_PRIORITY: Final = 10000
 
-CONDA_PACKAGE_EXTENSION_V1 = ".tar.bz2"
-CONDA_PACKAGE_EXTENSION_V2 = ".conda"
-CONDA_PACKAGE_EXTENSIONS = (
+CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
+CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
+CONDA_PACKAGE_EXTENSIONS: Final = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_PACKAGE_PARTS = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
-CONDA_TARBALL_EXTENSION = CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
-CONDA_TEMP_EXTENSION = ".c~"
-CONDA_TEMP_EXTENSIONS = (CONDA_TEMP_EXTENSION, ".trash")
-CONDA_LOGS_DIR = ".logs"
+CONDA_PACKAGE_PARTS: Final = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
+CONDA_TARBALL_EXTENSION: Final = (
+    CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
+)
+CONDA_TEMP_EXTENSION: Final = ".c~"
+CONDA_TEMP_EXTENSIONS: Final = (CONDA_TEMP_EXTENSION, ".trash")
+CONDA_LOGS_DIR: Final = ".logs"
 
-UNKNOWN_CHANNEL = "<unknown>"
-REPODATA_FN = "repodata.json"
+UNKNOWN_CHANNEL: Final = "<unknown>"
+REPODATA_FN: Final = "repodata.json"
 
 #: Default name of the notices file on the server we look for
-NOTICES_FN = "notices.json"
+NOTICES_FN: Final = "notices.json"
 
 #: Name of cache file where read notice IDs are stored
-NOTICES_CACHE_FN = "notices.cache"
+NOTICES_CACHE_FN: Final = "notices.cache"
 
 #: Determines the subdir for notices cache
-NOTICES_CACHE_SUBDIR = "notices"
+NOTICES_CACHE_SUBDIR: Final = "notices"
 
-#: Determines the subdir for notices cache
-NOTICES_DECORATOR_DISPLAY_INTERVAL = 86400  # in seconds
+#: Determines how often notices are displayed while running commands
+NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
 
-DRY_RUN_PREFIX = "Dry run action:"
-PREFIX_NAME_DISALLOWED_CHARS = {"/", " ", ":", "#"}
+DRY_RUN_PREFIX: Final = "Dry run action:"
+PREFIX_NAME_DISALLOWED_CHARS: Final = {"/", " ", ":", "#"}
 
 
 class SafetyChecks(Enum):
@@ -185,7 +205,7 @@ class SafetyChecks(Enum):
     warn = "warn"
     enabled = "enabled"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -194,7 +214,7 @@ class PathConflict(Enum):
     warn = "warn"
     prevent = "prevent"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -205,7 +225,7 @@ class DepsModifier(Enum):
     NO_DEPS = "no_deps"
     ONLY_DEPS = "only_deps"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -219,7 +239,7 @@ class UpdateModifier(Enum):
     UPDATE_ALL = "update_all"
     # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -242,7 +262,7 @@ class ChannelPriorityMeta(EnumMeta):
 class ValueEnum(Enum):
     """Subclass of enum that returns the value of the enum as its str representation"""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}"
 
 
@@ -262,14 +282,45 @@ class SatSolverChoice(ValueEnum):
 
 
 #: The name of the default solver, currently "libmamba"
-DEFAULT_SOLVER = "libmamba"
-CLASSIC_SOLVER = "classic"
+DEFAULT_SOLVER: Final = "libmamba"
+CLASSIC_SOLVER: Final = "classic"
 
 #: The name of the default json reporter backend
-DEFAULT_JSON_REPORTER_BACKEND = "json"
+DEFAULT_JSON_REPORTER_BACKEND: Final = "json"
 
 #: The name of the default console reporter backend
-DEFAULT_CONSOLE_REPORTER_BACKEND = "classic"
+DEFAULT_CONSOLE_REPORTER_BACKEND: Final = "classic"
+
+#: The default `conda list` columns
+DEFAULT_CONDA_LIST_FIELDS: Final = ("name", "version", "build", "channel_name")
+CONDA_LIST_FIELDS: Final = {
+    # Keys MUST be valid attributes in conda.core.records.PrefixRecords
+    # Values are the displayed column title
+    "arch": "Arch",
+    "build": "Build",
+    "build_number": "Build number",
+    "channel": "Channel URL",
+    "channel_name": "Channel",
+    "constrains": "Constraints",
+    "depends": "Dependencies",
+    "dist_str": "Dist",
+    "features": "Features",
+    "fn": "Filename",
+    "license": "License",
+    "license_family": "License family",
+    "md5": "MD5",
+    "name": "Name",
+    "noarch": "Noarch",
+    "package_type": "Package type",
+    "requested_spec": "Requested",
+    "sha256": "SHA256",
+    "size": "Size",
+    "subdir": "Subdir",
+    "timestamp": "Timestamp",
+    "track_features": "Track features",
+    "url": "URL",
+    "version": "Version",
+}
 
 
 class NoticeLevel(ValueEnum):
@@ -279,16 +330,18 @@ class NoticeLevel(ValueEnum):
 
 
 # Magic files for permissions determination
-PACKAGE_CACHE_MAGIC_FILE = "urls.txt"
-PREFIX_MAGIC_FILE = join("conda-meta", "history")
+PACKAGE_CACHE_MAGIC_FILE: Final[PathType] = "urls.txt"
+PREFIX_MAGIC_FILE: Final[PathType] = join("conda-meta", "history")
+PREFIX_FROZEN_FILE: Final[PathType] = join("conda-meta", "frozen")
 
-PREFIX_STATE_FILE = join("conda-meta", "state")
-PACKAGE_ENV_VARS_DIR = join("etc", "conda", "env_vars.d")
-CONDA_ENV_VARS_UNSET_VAR = "***unset***"
+PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
+PREFIX_PINNED_FILE: Final[PathType] = join("conda-meta", "pinned")
+PACKAGE_ENV_VARS_DIR: Final[PathType] = join("etc", "conda", "env_vars.d")
+CONDA_ENV_VARS_UNSET_VAR: Final = "***unset***"
 
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
-NAMESPACES_MAP = {  # base package name, namespace
+NAMESPACES_MAP: Final = {  # base package name, namespace
     "python": "python",
     "r": "r",
     "r-base": "r",
@@ -307,8 +360,8 @@ NAMESPACES_MAP = {  # base package name, namespace
     "msys2-conda-epoch": "m2w64",
 }
 
-NAMESPACE_PACKAGE_NAMES = frozenset(NAMESPACES_MAP)
-NAMESPACES = frozenset(NAMESPACES_MAP.values())
+NAMESPACE_PACKAGE_NAMES: Final = frozenset(NAMESPACES_MAP)
+NAMESPACES: Final = frozenset(NAMESPACES_MAP.values())
 
 # Namespace arbiters of uniqueness
 #  global: some repository established by Anaconda, Inc. and conda-forge
@@ -333,4 +386,15 @@ NAMESPACES = frozenset(NAMESPACES_MAP.values())
 
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
-NO_PLUGINS = False
+NO_PLUGINS: Final = False
+
+# When this string is present in an environment file, it indicates that the file
+# describes an explicit environment spec.
+EXPLICIT_MARKER: Final = "@EXPLICIT"
+
+# These variables describe the various sources for config that are supported by conda.
+# In addition to these sources, conda also supports configuration from condarc config
+# files (these are referred to in the context object by their full path as a pathlib.Path).
+CMD_LINE_SOURCE: Final = "cmd_line"
+ENV_VARS_SOURCE: Final = "envvars"
+CONFIGURATION_SOURCES: Final = (CMD_LINE_SOURCE, ENV_VARS_SOURCE)

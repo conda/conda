@@ -12,23 +12,26 @@ from ...deprecations import deprecated
 from ...env.env import from_yaml
 from ...exceptions import EnvironmentFileNotDownloaded
 from ...models.version import normalized_version
+from ...plugins.types import EnvironmentSpecBase
 
 if TYPE_CHECKING:
     from types import ModuleType
 
-    from ...env.env import Environment
+    from ...models.environment import Environment
+    from ..env import EnvironmentYaml
 
-deprecated.module("24.7", "25.9")
+deprecated.module("24.7", "26.3")
 
-deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
+deprecated.constant("24.7", "26.3", "ENVIRONMENT_TYPE", "env")
 
 
 @deprecated("24.7", "25.9")
-class BinstarSpec:
+class BinstarSpec(EnvironmentSpecBase):
     """
     spec = BinstarSpec('darth/deathstar')
     spec.can_handle() # => True / False
     spec.environment # => YAML string
+    spec.env # => conda.models.environment.Environment model
     spec.msg # => Error messages
     :raises: EnvironmentFileNotDownloaded
     """
@@ -60,7 +63,12 @@ class BinstarSpec:
         Validates name
         :return: True or False
         """
-        if re.match("^(.+)/(.+)$", str(self.name)) is not None:
+        if (
+            re.match(
+                r"^[a-z0-9_\.][a-z0-9_\-\.]+/[_A-Za-z0-9][\s.\w-]*$", str(self.name)
+            )
+            is not None
+        ):
             return True
         elif self.name is None:
             self.msg = "Can't process without a name"
@@ -89,7 +97,8 @@ class BinstarSpec:
         return [data for data in self.package["files"] if data["type"] == "env"]
 
     @cached_property
-    def environment(self) -> Environment:
+    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
+    def environment(self) -> EnvironmentYaml:
         versions = [
             {"normalized": normalized_version(d["version"]), "original": d["version"]}
             for d in self.file_data
@@ -104,6 +113,23 @@ class BinstarSpec:
         if req is None:
             raise EnvironmentFileNotDownloaded(self.username, self.packagename)
         return from_yaml(req.text)
+
+    @cached_property
+    def env(self) -> Environment:
+        versions = [
+            {"normalized": normalized_version(d["version"]), "original": d["version"]}
+            for d in self.file_data
+        ]
+        latest_version = max(versions, key=lambda x: x["normalized"])["original"]
+        file_data = [
+            data for data in self.package["files"] if data["version"] == latest_version
+        ]
+        req = self.binstar.download(
+            self.username, self.packagename, latest_version, file_data[0]["basename"]
+        )
+        if req is None:
+            raise EnvironmentFileNotDownloaded(self.username, self.packagename)
+        return from_yaml(req.text).to_environment_model()
 
     @cached_property
     def package(self):

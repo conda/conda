@@ -22,8 +22,7 @@ from conda.activate import (
     PowerShellActivator,
     XonshActivator,
     _build_activator_cls,
-    native_path_to_unix,
-    unix_path_to_native,
+    activator_map,
 )
 from conda.base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
@@ -34,6 +33,7 @@ from conda.base.constants import (
 from conda.base.context import context, reset_context
 from conda.cli.main import main_sourced
 from conda.common.compat import on_win
+from conda.common.path.windows import win_path_to_unix
 from conda.exceptions import (
     ArgumentError,
     EnvironmentLocationNotFound,
@@ -43,8 +43,6 @@ from conda.gateways.disk.delete import rm_rf
 from conda.plugins.types import CondaPostCommand, CondaPreCommand
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
 
@@ -230,6 +228,42 @@ def get_scripts_export_unset_vars(
     )
 
 
+@pytest.mark.parametrize("envvars_force_uppercase", [True, False])
+def test_get_export_unset_vars(
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    envvars_force_uppercase: bool,
+) -> None:
+    vars_dict = {"conda_lower": "value", "CONDA_UPPER": "value"}
+    kwargs = {"lower": "value", "UPPER": "value"}
+
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(envvars_force_uppercase))
+    reset_context()
+    assert context.envvars_force_uppercase == envvars_force_uppercase
+    mocker.patch(
+        "conda.base.context.Context.conda_exe_vars_dict",
+        new_callable=mocker.PropertyMock,
+        return_value=vars_dict,
+    )
+
+    case = str.upper if envvars_force_uppercase else str
+    activator = PosixActivator()
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        export_metavars=True,
+        **kwargs,
+    )
+    assert set(export_vars) == {*map(case, vars_dict), *map(case, kwargs)}
+    assert not unset_vars
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        export_metavars=False,
+        **kwargs,
+    )
+    assert set(export_vars) == set(map(case, kwargs))
+    assert set(unset_vars) == set(map(case, vars_dict))
+
+
 def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
@@ -366,10 +400,8 @@ def test_replace_prefix_in_path_2(monkeypatch: MonkeyPatch):
     activator = PosixActivator()
     path_elements = activator._replace_prefix_in_path(path1, path2)
 
-    assert path_elements[0] == native_path_to_unix(one_more)
-    assert path_elements[1] == native_path_to_unix(
-        next(activator._get_path_dirs(path2))
-    )
+    assert path_elements[0] == win_path_to_unix(one_more)
+    assert path_elements[1] == win_path_to_unix(next(activator._get_path_dirs(path2)))
     assert len(path_elements) == len(old_path.split(";"))
 
 
@@ -410,10 +442,13 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
         ENV_TWO=ENV_TWO,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -449,10 +484,13 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
         PKG_A_ENV=overwrite_a,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -483,10 +521,13 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -535,10 +576,13 @@ def test_build_activate_shlvl_1(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -575,10 +619,13 @@ def test_build_activate_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -626,10 +673,13 @@ def test_build_stack_shlvl_1(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_stack(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    stack = activator.build_stack(prefix)
+    stack["unset_vars"].sort()
+    assert stack == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -667,10 +717,13 @@ def test_build_stack_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -694,10 +747,13 @@ def test_activate_same_environment(
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -770,10 +826,13 @@ def test_build_deactivate_shlvl_2_from_stack(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": original_path},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -837,10 +896,13 @@ def test_build_deactivate_shlvl_2_from_activate(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": original_path},
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -876,14 +938,17 @@ def test_build_deactivate_shlvl_1(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {
             "PATH": activator.pathsep_join(
                 activator.path_conversion(activator._get_starting_path_list())
             )
         },
         "deactivate_scripts": activator.path_conversion([deactivate_sh]),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt()},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -959,10 +1024,13 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
-    assert activator.build_activate(prefix) == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
         # "export_path": {},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(prefix)},
         "export_vars": export_vars,
         "activate_scripts": activator.path_conversion([activate_sh]),
@@ -1000,10 +1068,13 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=None,
     )
 
-    assert activator.build_deactivate() == {
+    # TODO: refactor unset_vars into a set and avoid sorting
+    deactivate = activator.build_deactivate()
+    deactivate["unset_vars"].sort()
+    assert deactivate == {
         "export_path": {"PATH": old_path},
         "deactivate_scripts": (),
-        "unset_vars": unset_vars,
+        "unset_vars": sorted(unset_vars),
         "set_vars": {"PS1": get_prompt(old_prefix)},
         "export_vars": export_vars,
         "activate_scripts": (),
@@ -1031,289 +1102,17 @@ def make_dot_d_files(prefix: str | os.PathLike, extension: str) -> None:
     (deactivated / f"deactivate1{extension}").touch()
 
 
-@pytest.mark.skipif(
-    not on_win,
-    reason="native_path_to_unix is path_identity on non-windows",
-)
-@pytest.mark.parametrize(
-    "paths,expected",
-    [
-        # falsy
-        pytest.param(None, [None], id="None"),
-        pytest.param("", ["."], id="empty string"),
-        pytest.param((), [()], id="empty tuple"),
-        # native
-        pytest.param(
-            "C:\\path\\to\\One",
-            [
-                "/c/path/to/One",  # MSYS2
-                "/cygdrive/c/path/to/One",  # cygwin
-            ],
-            id="path",
-        ),
-        pytest.param(
-            ["C:\\path\\to\\One"],
-            [
-                ("/c/path/to/One",),  # MSYS2
-                ("/cygdrive/c/path/to/One",),  # cygwin
-            ],
-            id="list[path]",
-        ),
-        pytest.param(
-            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
-            [
-                ("/c/path/to/One", "/c/path/Two", "//mount/Three"),  # MSYS2
-                (
-                    "/cygdrive/c/path/to/One",
-                    "/cygdrive/c/path/Two",
-                    "//mount/Three",
-                ),  # cygwin
-            ],
-            id="tuple[path, ...]",
-        ),
-        pytest.param(
-            "C:\\path\\to\\One;C:\\path\\Two;\\\\mount\\Three",
-            [
-                "/c/path/to/One:/c/path/Two://mount/Three",  # MSYS2
-                "/cygdrive/c/path/to/One:/cygdrive/c/path/Two://mount/Three",  # cygwin
-            ],
-            id="path;...",
-        ),
-    ],
-)
-@pytest.mark.parametrize(
-    "cygpath",
-    [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
-)
-def test_native_path_to_unix(
-    mocker: MockerFixture,
-    paths: str | Iterable[str] | None,
-    expected: str | list[str] | None,
-    cygpath: bool,
-) -> None:
-    if not cygpath:
-        # test without cygpath
-        mocker.patch("subprocess.run", side_effect=FileNotFoundError)
-
-    assert native_path_to_unix(paths) in expected
-
-
-@pytest.mark.skipif(
-    not on_win,
-    reason="native_path_to_unix is path_identity on non-windows",
-)
-@pytest.mark.parametrize(
-    "paths,expected",
-    [
-        # falsy
-        pytest.param(None, None, id="None"),
-        pytest.param("", ".", id="empty string"),
-        pytest.param((), (), id="empty tuple"),
-        # MSYS2
-        pytest.param(
-            # 1 leading slash = root
-            "/",
-            "{WINDOWS}\\Library\\",
-            id="root",
-        ),
-        pytest.param(
-            # 1 leading slash + 1 letter = drive
-            "/c",
-            "C:\\",
-            id="drive",
-        ),
-        pytest.param(
-            # 1 leading slash + 1 letter = drive
-            "/c/",
-            "C:\\",
-            id="drive [trailing]",
-        ),
-        pytest.param(
-            # 1 leading slash + 2+ letters = root path
-            "/root",
-            "{WINDOWS}\\Library\\root",
-            id="root path",
-        ),
-        pytest.param(
-            # 1 leading slash + 2+ letters = root path
-            "/root/",
-            "{WINDOWS}\\Library\\root\\",
-            id="root path [trailing]",
-        ),
-        pytest.param(
-            # 2 leading slashes = UNC mount
-            "//",
-            "\\\\",
-            id="bare UNC mount",
-        ),
-        pytest.param(
-            # 2 leading slashes = UNC mount
-            "//mount",
-            "\\\\mount",
-            id="UNC mount",
-        ),
-        pytest.param(
-            # 2 leading slashes = UNC mount
-            "//mount/",
-            "\\\\mount\\",
-            id="UNC mount [trailing]",
-        ),
-        pytest.param(
-            # 3+ leading slashes = root
-            "///",
-            "{WINDOWS}\\Library\\",
-            id="root [leading]",
-        ),
-        pytest.param(
-            # 3+ leading slashes = root path
-            "///root",
-            "{WINDOWS}\\Library\\root",
-            id="root path [leading]",
-        ),
-        pytest.param(
-            # 3+ leading slashes = root
-            "////",
-            "{WINDOWS}\\Library\\",
-            id="root [leading, trailing]",
-        ),
-        pytest.param(
-            # 3+ leading slashes = root path
-            "///root/",
-            "{WINDOWS}\\Library\\root\\",
-            id="root path [leading, trailing]",
-        ),
-        pytest.param(
-            # a normal path
-            "/c/path/to/One",
-            "C:\\path\\to\\One",
-            id="normal path",
-        ),
-        pytest.param(
-            # a normal path
-            "/c//path///to////One",
-            "C:\\path\\to\\One",
-            id="normal path [extra]",
-        ),
-        pytest.param(
-            # a normal path
-            "/c/path/to/One/",
-            "C:\\path\\to\\One\\",
-            id="normal path [trailing]",
-        ),
-        pytest.param(
-            # a normal UNC path
-            "//mount/to/One",
-            "\\\\mount\\to\\One",
-            id="UNC path",
-        ),
-        pytest.param(
-            # a normal UNC path
-            "//mount//to///One",
-            "\\\\mount\\to\\One",
-            id="UNC path [extra]",
-        ),
-        pytest.param(
-            # a normal root path
-            "/path/to/One",
-            "{WINDOWS}\\Library\\path\\to\\One",
-            id="root path",
-        ),
-        pytest.param(
-            # a normal root path
-            "/path//to///One",
-            "{WINDOWS}\\Library\\path\\to\\One",
-            id="root path [extra]",
-        ),
-        pytest.param(
-            # relative path stays relative
-            "relative/path/to/One",
-            "relative\\path\\to\\One",
-            id="relative",
-        ),
-        pytest.param(
-            # relative path stays relative
-            "relative//path///to////One",
-            "relative\\path\\to\\One",
-            id="relative [extra]",
-        ),
-        pytest.param(
-            "/c/path/to/One://path/to/One:/path/to/One:relative/path/to/One",
-            (
-                "C:\\path\\to\\One;"
-                "\\\\path\\to\\One;"
-                "{WINDOWS}\\Library\\path\\to\\One;"
-                "relative\\path\\to\\One"
-            ),
-            id="path;...",
-        ),
-        pytest.param(
-            ["/c/path/to/One"],
-            ("C:\\path\\to\\One",),
-            id="list[path]",
-        ),
-        pytest.param(
-            ("/c/path/to/One", "/c/path/Two", "//mount/Three"),
-            ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
-            id="tuple[path, ...]",
-        ),
-        # XXX Cygwin and MSYS2's cygpath programs are not mutually
-        # aware meaning that MSYS2's cygpath treats
-        # /cygrive/c/here/there as a regular absolute path and returns
-        # {prefix}\Library\cygdrive\c\here\there.  And vice versa.
-        #
-        # cygwin
-        # pytest.param(
-        #     "/cygdrive/c/path/to/One",
-        #     "C:\\path\\to\\One",
-        #     id="Cygwin drive letter path (cygwin)",
-        # ),
-        # pytest.param(
-        #     ["/cygdrive/c/path/to/One"],
-        #     ("C:\\path\\to\\One",),
-        #     id="list[path] (cygwin)",
-        # ),
-        # pytest.param(
-        #     ("/cygdrive/c/path/to/One", "/cygdrive/c/path/Two", "//mount/Three"),
-        #     ("C:\\path\\to\\One", "C:\\path\\Two", "\\\\mount\\Three"),
-        #     id="tuple[path, ...] (cygwin)",
-        # ),
-    ],
-)
-@pytest.mark.parametrize(
-    "cygpath",
-    [pytest.param(True, id="cygpath"), pytest.param(False, id="fallback")],
-)
-def test_unix_path_to_native(
-    tmp_env: TmpEnvFixture,
-    mocker: MockerFixture,
-    paths: str | Iterable[str] | None,
-    expected: str | tuple[str, ...] | None,
-    cygpath: bool,
-) -> None:
-    windows_prefix = context.target_prefix
-
-    def format(path: str) -> str:
-        return path.format(WINDOWS=windows_prefix)
-
-    if expected:
-        expected = (
-            tuple(map(format, expected))
-            if isinstance(expected, tuple)
-            else format(expected)
-        )
-
-    if not cygpath:
-        # test without cygpath
-        mocker.patch("subprocess.run", side_effect=FileNotFoundError)
-
-    assert unix_path_to_native(paths, windows_prefix) == expected
-
-
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_posix_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = PosixActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1323,12 +1122,13 @@ def test_posix_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
 
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
     )
     assert activate_data == (
+        f"{unset_vars}\n"
         f"PS1='{get_prompt(shell_wrapper_unit)}'\n"
         f"export PATH='{activator.pathsep_join(new_path_parts)}'\n"
         f"export CONDA_PREFIX='{shell_wrapper_unit}'\n"
@@ -1336,7 +1136,7 @@ def test_posix_basic(
         f"export CONDA_DEFAULT_ENV='{shell_wrapper_unit}'\n"
         f"export CONDA_PROMPT_MODIFIER='{get_prompt_modifier(shell_wrapper_unit)}'\n"
         f"{conda_exe_export}\n"
-        f'. "{activate1}"\n'
+        + (f". \"`cygpath '{activate1}'`\"\n" if on_win else f'. "{activate1}"\n')
     )
 
     monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
@@ -1352,7 +1152,7 @@ def test_posix_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.sh")
     )
@@ -1366,13 +1166,14 @@ def test_posix_basic(
         )
     )
     assert reactivate_data == (
-        f'. "{deactivate1}"\n'
+        (f". \"`cygpath '{deactivate1}'`\"\n" if on_win else f'. "{deactivate1}"\n')
+        + f"{unset_vars}\n"
         f"PS1='{get_prompt(shell_wrapper_unit)}'\n"
         f"export PATH='{activator.pathsep_join(new_path_parts)}'\n"
         f"export CONDA_SHLVL='1'\n"
         f"export CONDA_PROMPT_MODIFIER='{get_prompt_modifier(shell_wrapper_unit)}'\n"
         f"{conda_exe_export}\n"
-        f'. "{activate1}"\n'
+        + (f". \"`cygpath '{activate1}'`\"\n" if on_win else f'. "{activate1}"\n')
     )
 
     err = main_sourced("shell.posix", "deactivate")
@@ -1383,7 +1184,7 @@ def test_posix_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     deactivate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1395,10 +1196,11 @@ def test_posix_basic(
     )
     assert deactivate_data == (
         f"export PATH='{new_path}'\n"
-        f'. "{deactivate1}"\n'
-        f"unset CONDA_PREFIX\n"
-        f"unset CONDA_DEFAULT_ENV\n"
-        f"unset CONDA_PROMPT_MODIFIER\n"
+        + (f". \"`cygpath '{deactivate1}'`\"\n" if on_win else f'. "{deactivate1}"\n')
+        + f"export CONDA_PREFIX=''\n"
+        f"export CONDA_DEFAULT_ENV=''\n"
+        f"export CONDA_PROMPT_MODIFIER=''\n"
+        f"{unset_vars}\n"
         f"PS1='{get_prompt()}'\n"
         f"export CONDA_SHLVL='0'\n"
         f"{conda_exe_export}\n"
@@ -1406,11 +1208,17 @@ def test_posix_basic(
 
 
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_cmd_exe_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = CmdExeActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1423,18 +1231,20 @@ def test_cmd_exe_basic(
     rm_rf(activate_result)
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.bat")
     )
     assert activate_data == (
-        f'@SET "PATH={activator.pathsep_join(new_path_parts)}"\n'
-        f'@SET "CONDA_PREFIX={activator.path_conversion(shell_wrapper_unit)}"\n'
-        f'@SET "CONDA_SHLVL=1"\n'
-        f'@SET "CONDA_DEFAULT_ENV={shell_wrapper_unit}"\n'
-        f'@SET "CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}"\n'
+        f"{unset_vars}\n"
+        f"PROMPT={get_prompt(shell_wrapper_unit)}\n"
+        f"PATH={activator.pathsep_join(new_path_parts)}\n"
+        f"CONDA_PREFIX={activator.path_conversion(shell_wrapper_unit)}\n"
+        f"CONDA_SHLVL=1\n"
+        f"CONDA_DEFAULT_ENV={shell_wrapper_unit}\n"
+        f"CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}\n"
         f"{conda_exe_export}\n"
-        f'@CALL "{activate1}"\n'
+        f"_CONDA_SCRIPT={activate1}\n"
     )
 
     monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
@@ -1453,7 +1263,7 @@ def test_cmd_exe_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1473,12 +1283,14 @@ def test_cmd_exe_basic(
         )
     )
     assert reactivate_data == (
-        f'@CALL "{deactivate1}"\n'
-        f'@SET "PATH={activator.pathsep_join(new_path_parts)}"\n'
-        f'@SET "CONDA_SHLVL=1"\n'
-        f'@SET "CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}"\n'
+        f"_CONDA_SCRIPT={deactivate1}\n"
+        f"{unset_vars}\n"
+        f"PROMPT={get_prompt(shell_wrapper_unit)}\n"
+        f"PATH={activator.pathsep_join(new_path_parts)}\n"
+        f"CONDA_SHLVL=1\n"
+        f"CONDA_PROMPT_MODIFIER={get_prompt_modifier(shell_wrapper_unit)}\n"
         f"{conda_exe_export}\n"
-        f'@CALL "{activate1}"\n'
+        f"_CONDA_SCRIPT={activate1}\n"
     )
 
     err = main_sourced("shell.cmd.exe", "deactivate")
@@ -1502,21 +1314,29 @@ def test_cmd_exe_basic(
         )
     )
     assert deactivate_data == (
-        f'@SET "PATH={new_path}"\n'
-        f'@CALL "{deactivate1}"\n'
-        f"@SET CONDA_PREFIX=\n"
-        f"@SET CONDA_DEFAULT_ENV=\n"
-        f"@SET CONDA_PROMPT_MODIFIER=\n"
-        f'@SET "CONDA_SHLVL=0"\n'
+        f"PATH={new_path}\n"
+        f"_CONDA_SCRIPT={deactivate1}\n"
+        f"CONDA_PREFIX=\n"
+        f"CONDA_DEFAULT_ENV=\n"
+        f"CONDA_PROMPT_MODIFIER=\n"
+        f"{unset_vars}\n"
+        f"PROMPT={get_prompt()}\n"
+        f"CONDA_SHLVL=0\n"
         f"{conda_exe_export}\n"
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_csh_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = CshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1526,11 +1346,12 @@ def test_csh_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.csh")
     )
     assert activate_data == (
+        f"{unset_vars};\n"
         f"set prompt='{get_prompt(shell_wrapper_unit)}';\n"
         f'setenv PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'setenv CONDA_PREFIX "{shell_wrapper_unit}";\n'
@@ -1538,7 +1359,11 @@ def test_csh_basic(
         f'setenv CONDA_DEFAULT_ENV "{shell_wrapper_unit}";\n'
         f'setenv CONDA_PROMPT_MODIFIER "{get_prompt_modifier(shell_wrapper_unit)}";\n'
         f"{conda_exe_export};\n"
-        f'source "{activate1}";\n'
+        + (
+            f"source \"`cygpath '{activate1}'`\";\n"
+            if on_win
+            else f'source "{activate1}";\n'
+        )
     )
 
     monkeypatch.setenv("CONDA_PREFIX", shell_wrapper_unit)
@@ -1554,7 +1379,7 @@ def test_csh_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1574,13 +1399,22 @@ def test_csh_basic(
         )
     )
     assert reactivate_data == (
-        f'source "{deactivate1}";\n'
+        (
+            f"source \"`cygpath '{deactivate1}'`\";\n"
+            if on_win
+            else f'source "{deactivate1}";\n'
+        )
+        + f"{unset_vars};\n"
         f"set prompt='{get_prompt(shell_wrapper_unit)}';\n"
         f'setenv PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'setenv CONDA_SHLVL "1";\n'
         f'setenv CONDA_PROMPT_MODIFIER "{get_prompt_modifier(shell_wrapper_unit)}";\n'
         f"{conda_exe_export};\n"
-        f'source "{activate1}";\n'
+        + (
+            f"source \"`cygpath '{activate1}'`\";\n"
+            if on_win
+            else f'source "{activate1}";\n'
+        )
     )
 
     err = main_sourced("shell.csh", "deactivate")
@@ -1591,7 +1425,7 @@ def test_csh_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     deactivate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1603,21 +1437,32 @@ def test_csh_basic(
     )
     assert deactivate_data == (
         f'setenv PATH "{new_path}";\n'
-        f'source "{deactivate1}";\n'
-        f"unsetenv CONDA_PREFIX;\n"
+        + (
+            f"source \"`cygpath '{deactivate1}'`\";\n"
+            if on_win
+            else f'source "{deactivate1}";\n'
+        )
+        + f"unsetenv CONDA_PREFIX;\n"
         f"unsetenv CONDA_DEFAULT_ENV;\n"
         f"unsetenv CONDA_PROMPT_MODIFIER;\n"
+        f"{unset_vars};\n"
         f"set prompt='{get_prompt()}';\n"
         f'setenv CONDA_SHLVL "0";\n'
         f"{conda_exe_export};\n"
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_xonsh_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = XonshActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1627,7 +1472,7 @@ def test_xonsh_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     if on_win:
         sourcer = "source-cmd --suppress-skip-message"
     else:
@@ -1642,6 +1487,7 @@ def test_xonsh_basic(
         )
     )
     assert activate_data == (
+        f"{unset_vars}\n"
         f"$PATH = '{activator.pathsep_join(new_path_parts)}'\n"
         f"$CONDA_PREFIX = '{shell_wrapper_unit}'\n"
         f"$CONDA_SHLVL = '1'\n"
@@ -1668,7 +1514,7 @@ def test_xonsh_basic(
         sourcer = "source-cmd --suppress-skip-message"
     else:
         sourcer = "source-bash --suppress-skip-message -n"
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1689,6 +1535,7 @@ def test_xonsh_basic(
     )
     assert reactivate_data == (
         f'{sourcer} "{deactivate1}"\n'
+        f"{unset_vars}\n"
         f"$PATH = '{activator.pathsep_join(new_path_parts)}'\n"
         f"$CONDA_SHLVL = '1'\n"
         f"$CONDA_PROMPT_MODIFIER = '{get_prompt_modifier(shell_wrapper_unit)}'\n"
@@ -1704,7 +1551,7 @@ def test_xonsh_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     if on_win:
         sourcer = "source-cmd --suppress-skip-message"
         deactivate1 = activator.path_conversion(
@@ -1724,19 +1571,35 @@ def test_xonsh_basic(
     assert deactivate_data == (
         f"$PATH = '{new_path}'\n"
         f'{sourcer} "{deactivate1}"\n'
-        f"del $CONDA_PREFIX\n"
-        f"del $CONDA_DEFAULT_ENV\n"
-        f"del $CONDA_PROMPT_MODIFIER\n"
+        f"try:\n"
+        f"    del $CONDA_PREFIX\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"try:\n"
+        f"    del $CONDA_DEFAULT_ENV\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"try:\n"
+        f"    del $CONDA_PROMPT_MODIFIER\n"
+        f"except KeyError:\n"
+        f"    pass\n"
+        f"{unset_vars}\n"
         f"$CONDA_SHLVL = '0'\n"
         f"{conda_exe_export}\n"
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_fish_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = FishActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1746,11 +1609,12 @@ def test_fish_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.fish")
     )
     assert activate_data == (
+        f"{unset_vars};\n"
         f'set -gx PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'set -gx CONDA_PREFIX "{shell_wrapper_unit}";\n'
         f'set -gx CONDA_SHLVL "1";\n'
@@ -1773,7 +1637,7 @@ def test_fish_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1794,6 +1658,7 @@ def test_fish_basic(
     )
     assert reactivate_data == (
         f'source "{deactivate1}";\n'
+        f"{unset_vars};\n"
         f'set -gx PATH "{activator.pathsep_join(new_path_parts)}";\n'
         f'set -gx CONDA_SHLVL "1";\n'
         f'set -gx CONDA_PROMPT_MODIFIER "{get_prompt_modifier(shell_wrapper_unit)}";\n'
@@ -1809,7 +1674,7 @@ def test_fish_basic(
     new_path = activator.pathsep_join(
         activator._remove_prefix_from_path(shell_wrapper_unit)
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     deactivate1 = activator.path_conversion(
         join(
             shell_wrapper_unit,
@@ -1822,19 +1687,26 @@ def test_fish_basic(
     assert deactivate_data == (
         f'set -gx PATH "{new_path}";\n'
         f'source "{deactivate1}";\n'
-        f"set -e CONDA_PREFIX;\n"
-        f"set -e CONDA_DEFAULT_ENV;\n"
-        f"set -e CONDA_PROMPT_MODIFIER;\n"
+        f"set -e CONDA_PREFIX || true;\n"
+        f"set -e CONDA_DEFAULT_ENV || true;\n"
+        f"set -e CONDA_PROMPT_MODIFIER || true;\n"
+        f"{unset_vars};\n"
         f'set -gx CONDA_SHLVL "0";\n'
         f"{conda_exe_export};\n"
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_powershell_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = PowerShellActivator()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1844,9 +1716,10 @@ def test_powershell_basic(
     assert not err
 
     new_path_parts = activator._add_prefix_to_path(shell_wrapper_unit)
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1")
     assert activate_data == (
+        f"{unset_vars}\n"
         f'$Env:PATH = "{activator.pathsep_join(new_path_parts)}"\n'
         f'$Env:CONDA_PREFIX = "{shell_wrapper_unit}"\n'
         f'$Env:CONDA_SHLVL = "1"\n'
@@ -1869,7 +1742,7 @@ def test_powershell_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    conda_exe_export, _ = get_scripts_export_unset_vars(activator)
+    conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     activate1 = join(shell_wrapper_unit, "etc", "conda", "activate.d", "activate1.ps1")
     deactivate1 = join(
         shell_wrapper_unit,
@@ -1880,6 +1753,7 @@ def test_powershell_basic(
     )
     assert reactivate_data == (
         f'. "{deactivate1}"\n'
+        f"{unset_vars}\n"
         f'$Env:PATH = "{activator.pathsep_join(new_path_parts)}"\n'
         f'$Env:CONDA_SHLVL = "1"\n'
         f'$Env:CONDA_PROMPT_MODIFIER = "{get_prompt_modifier(shell_wrapper_unit)}"\n'
@@ -1908,16 +1782,23 @@ def test_powershell_basic(
         f"$Env:CONDA_PREFIX = $null\n"
         f"$Env:CONDA_DEFAULT_ENV = $null\n"
         f"$Env:CONDA_PROMPT_MODIFIER = $null\n"
+        f"{unset_vars}\n"
         f'$Env:CONDA_SHLVL = "0"\n'
         f"{conda_exe_export}\n"
     )
 
 
+@pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_json_basic(
     shell_wrapper_unit: str,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    force_uppercase_boolean: bool,
 ) -> None:
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    reset_context()
+    assert context.envvars_force_uppercase == force_uppercase_boolean
+
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(shell_wrapper_unit, activator.script_extension)
 
@@ -1965,7 +1846,7 @@ def test_json_basic(
     new_path_parts = activator._replace_prefix_in_path(
         shell_wrapper_unit, shell_wrapper_unit
     )
-    export_vars, _ = activator.get_export_unset_vars()
+    export_vars, unset_vars = activator.get_export_unset_vars()
     assert json.loads(reactivate_data) == {
         "path": {"PATH": list(new_path_parts)},
         "vars": {
@@ -1975,7 +1856,7 @@ def test_json_basic(
                 **export_vars,
             },
             "set": {"PS1": get_prompt(shell_wrapper_unit)},
-            "unset": [],
+            "unset": unset_vars,
         },
         "scripts": {
             "activate": [
@@ -2335,3 +2216,25 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
 
     with pytest.raises(ArgumentError, match=expected_error_message):
         activator.execute()
+
+
+@pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
+def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
+    # Make sure local config does not affect the test; empty string -> base
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", "")
+    reset_context()
+
+    output = activator_cls(["activate"]).execute()
+    if activator_cls == CmdExeActivator:
+        output = Path(output.strip()).read_text()
+    assert "(base)" in output
+
+    monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", str(tmp_path))
+    reset_context()
+
+    conda_cli("create", "-p", tmp_path, "--yes", "--offline")
+
+    output = activator_cls(["activate"]).execute()
+    if activator_cls == CmdExeActivator:
+        output = Path(output.strip()).read_text()
+    assert str(tmp_path) in output

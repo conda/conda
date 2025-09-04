@@ -14,14 +14,25 @@ from itertools import cycle
 from os.path import basename, dirname
 from threading import Event, Thread
 from time import sleep
+from typing import TYPE_CHECKING
 
 from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from ...exceptions import CondaError
-from .. import CondaReporterBackend, hookimpl
-from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
+from .. import hookimpl
+from ..types import (
+    CondaReporterBackend,
+    ProgressBarBase,
+    ReporterRendererBase,
+    SpinnerBase,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from ...common.path import PathType
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -182,7 +193,8 @@ class ConsoleReporterRenderer(ReporterRendererBase):
 
         return "\n".join(table_parts)
 
-    def envs_list(self, prefixes, output=True, **kwargs) -> str:
+    @staticmethod
+    def envs_list(prefixes: Iterable[PathType], output=True, **kwargs) -> str:
         if not output:
             return ""
 

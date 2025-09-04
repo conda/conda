@@ -10,7 +10,8 @@ import os
 import platform
 from contextlib import suppress
 
-from .. import CondaVirtualPackage, hookimpl
+from .. import hookimpl
+from ..types import CondaVirtualPackage
 
 
 def cuda_version():

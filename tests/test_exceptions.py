@@ -25,6 +25,7 @@ from conda.exceptions import (
     KnownPackageClobberError,
     PackagesNotFoundError,
     PathNotFoundError,
+    ProxyError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
     UnknownPackageClobberError,
@@ -803,3 +804,22 @@ def test_PackagesNotFoundError_use_only_tar_bz2(
             packages=["does-not-exist"],
             channel_urls=["https://repo.anaconda.org/pkgs/main"],
         )
+
+
+def test_proxy_error_default_message() -> None:
+    """Test ProxyError with default and custom messages."""
+    # Test default message
+    exc_default = ProxyError()
+    default_message = str(exc_default)
+    assert "proxy configuration" in default_message
+    assert ".netrc" in default_message
+    assert "_PROXY" in default_message
+
+
+def test_proxy_error_custom_message() -> None:
+    """Test ProxyError with custom message."""
+    custom_message = "Could not find a proxy for 'https'. Custom error message."
+    exc_custom = ProxyError(custom_message)
+    assert str(exc_custom) == custom_message
+
+    assert str(ProxyError()) != str(exc_custom)

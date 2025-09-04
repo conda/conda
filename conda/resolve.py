@@ -13,6 +13,7 @@ from collections import defaultdict, deque
 from functools import cache
 from logging import DEBUG, getLogger
 
+from frozendict import frozendict
 from tqdm import tqdm
 
 from .auxlib.decorators import memoizemethod
@@ -41,11 +42,6 @@ from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
-
-try:
-    from frozendict import frozendict
-except ImportError:
-    from ._vendor.frozendict import FrozenOrderedDict as frozendict
 
 log = getLogger(__name__)
 stdoutlog = getLogger("conda.stdoutlog")

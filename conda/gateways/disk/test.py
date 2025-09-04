@@ -11,6 +11,7 @@ from uuid import uuid4
 from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.constants import TRACE
 from ...common.path import expand
+from ...deprecations import deprecated
 from ...models.enums import LinkType
 from .create import create_link
 from .delete import rm_rf
@@ -19,7 +20,7 @@ from .link import islink, lexists
 log = getLogger(__name__)
 
 
-def file_path_is_writable(path):
+def file_path_is_writable(path) -> bool:
     path = expand(path)
     log.log(TRACE, "checking path is writable %s", path)
     if isdir(dirname(path)):
@@ -84,5 +85,6 @@ def softlink_supported(source_file, dest_dir):
         rm_rf(test_path)
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixData.is_environment()")
 def is_conda_environment(prefix):
     return isfile(join(prefix, PREFIX_MAGIC_FILE))
