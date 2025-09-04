@@ -11,9 +11,11 @@ conda.cli.main_remove for the entry points into this module.
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass, field
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -63,6 +65,10 @@ from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -189,15 +195,13 @@ def get_index_args(args) -> dict[str, any]:
     }
 
 
+@dataclass
 class TryRepodata:
-    def __init__(
-        self, notify_success, repodata, last_repodata, index_args, allowed_errors
-    ):
-        self.notify_success = notify_success
-        self.repodata = repodata
-        self.last_repodata = last_repodata
-        self.index_args = index_args
-        self.allowed_errors = allowed_errors
+    notify_success: Callable[[], None]
+    repodata: str
+    last_repodata: str
+    index_args: dict[str, Any]
+    allowed_errors: tuple[type[Exception], ...]
 
     def __enter__(self):
         return self.repodata
@@ -241,15 +245,18 @@ class TryRepodata:
             raise PackagesNotFoundError(exc_value._formatted_chains, channels_urls)
 
 
+@dataclass
 class Repodatas:
-    def __init__(self, repodata_fns, index_args, allows_errors=()):
-        self.repodata_fns = repodata_fns
-        self.index_args = index_args
-        self.success = False
+    repodata_fns: list[str]
+    index_args: dict[str, Any]
+    allowed_errors: tuple[type[Exception], ...]
+    success: bool = field(init=False, default=False)
+
+    def __post_init__(self):
         self.allowed_errors = (
             ResolvePackageNotFound,
             PackagesNotFoundError,
-            *allows_errors,
+            *self.allowed_errors,
         )
 
     def __iter__(self):
