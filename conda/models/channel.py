@@ -649,17 +649,19 @@ def prioritize_channels(
 
     Maps channel names to priorities, e.g.:
 
-        >>> prioritize_channels(["conda-canary", "defaults", "conda-forge"])
-        {
-            'https://conda.anaconda.org/conda-canary/osx-arm64': ('conda-canary', 0),
-            'https://conda.anaconda.org/conda-canary/noarch': ('conda-canary', 0),
-            'https://repo.anaconda.com/pkgs/main/osx-arm64': ('defaults', 1),
-            'https://repo.anaconda.com/pkgs/main/noarch': ('defaults', 1),
-            'https://repo.anaconda.com/pkgs/r/osx-arm64': ('defaults', 2),
-            'https://repo.anaconda.com/pkgs/r/noarch': ('defaults', 2),
-            'https://conda.anaconda.org/conda-forge/osx-arm64': ('conda-forge', 3),
-            'https://conda.anaconda.org/conda-forge/noarch': ('conda-forge', 3),
-        }
+    .. code-block:: pycon
+
+       >>> prioritize_channels(["conda-canary", "defaults", "conda-forge"])
+       {
+           'https://conda.anaconda.org/conda-canary/osx-arm64': ('conda-canary', 0),
+           'https://conda.anaconda.org/conda-canary/noarch': ('conda-canary', 0),
+           'https://repo.anaconda.com/pkgs/main/osx-arm64': ('defaults', 1),
+           'https://repo.anaconda.com/pkgs/main/noarch': ('defaults', 1),
+           'https://repo.anaconda.com/pkgs/r/osx-arm64': ('defaults', 2),
+           'https://repo.anaconda.com/pkgs/r/noarch': ('defaults', 2),
+           'https://conda.anaconda.org/conda-forge/osx-arm64': ('conda-forge', 3),
+           'https://conda.anaconda.org/conda-forge/noarch': ('conda-forge', 3),
+       }
 
     Compare with `conda.resolve.Resolve._make_channel_priorities`.
     """

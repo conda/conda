@@ -953,13 +953,15 @@ class Resolve:
 
         Maps channel names to priorities, e.g.:
 
-            >>> Resolve._make_channel_priorities(["conda-canary", "defaults", "conda-forge"])
-            {
-                'conda-canary': 0,
-                'pkgs/main': 1,
-                'pkgs/r': 2,
-                'conda-forge': 3,
-            }
+        .. code-block:: pycon
+
+           >>> Resolve._make_channel_priorities(["conda-canary", "defaults", "conda-forge"])
+           {
+               'conda-canary': 0,
+               'pkgs/main': 1,
+               'pkgs/r': 2,
+               'conda-forge': 3,
+           }
 
         Compare with `conda.models.channel.prioritize_channels`.
         """
