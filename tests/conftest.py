@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda
-from conda.base.context import context, reset_context
+from conda.base.context import context
 from conda.common.configuration import (
     Configuration,
     ParameterLoader,
@@ -51,13 +51,21 @@ def pytest_report_header(config: pytest.Config):
 
 @pytest.fixture
 def test_recipes_channel(mocker: MockerFixture) -> Path:
+    channel_str = (str(TEST_RECIPES_CHANNEL),)
     mocker.patch(
         "conda.base.context.Context.channels",
         new_callable=mocker.PropertyMock,
-        return_value=(channel_str := str(TEST_RECIPES_CHANNEL),),
+        return_value=channel_str,
     )
-    reset_context()
-    assert context.channels == (channel_str,)
+    assert context.channels == channel_str
+
+    known_subdirs = frozenset(("linux-fake", "osx-fake", "win-fake", "noarch"))
+    mocker.patch(
+        "conda.base.context.Context.known_subdirs",
+        new_callable=mocker.PropertyMock,
+        return_value=known_subdirs,
+    )
+    assert context.known_subdirs == known_subdirs
 
     return TEST_RECIPES_CHANNEL
 
