@@ -66,8 +66,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # for the current environment.  We may want to change the helper.
     p.add_argument(
         "--platform",
+        "--subdir",
         action="append",
-        help="Target platform(s) for export (e.g., linux-64, osx-64, win-64)",
+        help="Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64)",
     )
     add_parser_prefix(p)
 

@@ -331,6 +331,8 @@ You can specify target platforms for export using the ``--platform`` option or b
 
    # Export for specific platforms
    conda export --platform linux-64 --platform osx-64 --format=environment-yaml
+   # or
+   conda export --subdir linux-64 --subdir osx-64 --format=environment-yaml
 
    # Export using condarc configuration
    conda export --format=environment-yaml
@@ -436,9 +438,11 @@ Advanced Usage
 
    # Export for multiple platforms
    conda export --platform linux-64 --platform osx-64 --format=environment-yaml
+   conda export --subdir linux-64 --subdir osx-64 --format=environment-yaml
 
    # Export for specific platform only
    conda export --platform win-64 --format=explicit --file=explicit-win-64.txt
+   conda export --subdir win-64 --format=explicit --file=explicit-win-64.txt
 
 Error Handling
 ==============
