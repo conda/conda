@@ -10,15 +10,19 @@ from pathlib import Path
 
 from requests.exceptions import RequestException
 
+from ....base.constants import PREFIX_PINNED_FILE
 from ....base.context import context
+from ....common.io import dashlist
 from ....common.serialize import json, yaml_safe_dump
 from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
+from ....gateways.disk.lock import locking_supported
 from ....gateways.disk.read import compute_sum
 from ....models.match_spec import MatchSpec
-from ... import CondaHealthCheck, hookimpl
+from ... import hookimpl
+from ...types import CondaHealthCheck
 
 logger = getLogger(__name__)
 
@@ -238,6 +242,63 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         print(f"{OK_MARK} The environment is consistent.\n")
 
 
+def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
+    prefix_data = PrefixData(prefix_path=prefix)
+
+    try:
+        pinned_specs = prefix_data.get_pinned_specs()
+    except OSError as err:
+        print(
+            f"{X_MARK} Unable to open pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
+        )
+    except Exception as err:
+        print(
+            f"{X_MARK} An error occurred trying to read pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
+        )
+        return
+
+    # If there are no pinned specs, exit early
+    if not pinned_specs:
+        print(
+            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}."
+        )
+        return
+
+    # If there is a pinned package that does not exist in the prefix, that
+    # is an indication that it might be a typo.
+    maybe_malformed = [
+        pinned for pinned in pinned_specs if not any(prefix_data.query(pinned.name))
+    ]
+
+    # Inform the user of any packages that might be malformed
+    if maybe_malformed:
+        print(
+            f"{X_MARK} The following specs in {prefix_data.prefix_path / PREFIX_PINNED_FILE} are maybe malformed:"
+        )
+        print(dashlist((spec.name for spec in maybe_malformed), indent=4))
+        return
+
+    # If there are no malformed packages, the pinned file is well formatted
+    print(
+        f"{OK_MARK} The pinned file in {prefix_data.prefix_path / PREFIX_PINNED_FILE} seems well formatted."
+    )
+
+
+def file_locking_check(prefix: str, verbose: bool):
+    """
+    Report if file locking is supported or not.
+    """
+    if locking_supported():
+        if context.no_lock:
+            print(
+                f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+            )
+        else:
+            print(f"{OK_MARK} File locking is supported.\n")
+    else:
+        print(f"{X_MARK} File locking is not supported.\n")
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
@@ -248,4 +309,12 @@ def conda_health_checks():
     )
     yield CondaHealthCheck(
         name="Consistent Environment Check", action=consistent_env_check
+    )
+    yield CondaHealthCheck(
+        name=f"{PREFIX_PINNED_FILE} Well Formatted Check",
+        action=pinned_well_formatted_check,
+    )
+    yield CondaHealthCheck(
+        name="File Locking Supported Check",
+        action=file_locking_check,
     )

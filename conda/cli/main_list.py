@@ -227,7 +227,7 @@ def list_packages(
             )
             continue
         if format == "export":
-            packages.append("=".join((prec.name, prec.version, prec.build)))
+            packages.append(prec.spec)
             continue
 
         # this is for format == "human"
@@ -255,6 +255,9 @@ def list_packages(
                 widths[idx] = value_length
 
         packages.append(row)
+
+    if regex and not packages:
+        raise CondaValueError(f"No packages match '{regex}'.")
 
     if reverse:
         packages = reversed(packages)
@@ -316,7 +319,7 @@ def print_packages(
 
 
 def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
-    from ..base.constants import UNKNOWN_CHANNEL
+    from ..base.constants import EXPLICIT_MARKER, UNKNOWN_CHANNEL
     from ..base.context import context
     from ..common import url as common_url
     from ..core.prefix_data import PrefixData
@@ -328,7 +331,7 @@ def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
 
         raise EnvironmentLocationNotFound(prefix)
     print_export_header(context.subdir)
-    print("@EXPLICIT")
+    print(EXPLICIT_MARKER)
     for prefix_record in PrefixData(prefix).iter_records_sorted():
         url = prefix_record.get("url")
         if not url or url.startswith(UNKNOWN_CHANNEL):
@@ -362,6 +365,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     regex = args.regex
+    if regex and args.full_name:
+        regex = rf"^{regex}$"
 
     if args.revisions:
         h = History(prefix)

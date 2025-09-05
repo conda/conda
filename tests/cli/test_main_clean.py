@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import WARN
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -256,7 +256,7 @@ def test_clean_logfiles(
         # mimic logfiles being created
         logs_dir = Path(tmp_pkgs_dir, CONDA_LOGS_DIR)
         logs_dir.mkdir(parents=True, exist_ok=True)
-        path = logs_dir / f"{datetime.utcnow():%Y%m%d-%H%M%S-%f}.log"
+        path = logs_dir / f"{datetime.now(timezone.utc):%Y%m%d-%H%M%S-%f}.log"
         path.touch()
 
         # logfiles exist

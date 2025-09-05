@@ -18,11 +18,11 @@ if TYPE_CHECKING:
     from types import ModuleType
 
     from ...models.environment import Environment
-    from ..env import Environment as EnvironmentYaml
+    from ..env import EnvironmentYaml
 
-deprecated.module("24.7", "25.9")
+deprecated.module("24.7", "26.3")
 
-deprecated.constant("24.7", "25.9", "ENVIRONMENT_TYPE", "env")
+deprecated.constant("24.7", "26.3", "ENVIRONMENT_TYPE", "env")
 
 
 @deprecated("24.7", "25.9")

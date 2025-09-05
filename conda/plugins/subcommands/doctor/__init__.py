@@ -16,7 +16,8 @@ from ....cli.helpers import (
     add_parser_verbose,
 )
 from ....core.prefix_data import PrefixData
-from ... import CondaSubcommand, hookimpl
+from ... import hookimpl
+from ...types import CondaSubcommand
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
