@@ -659,6 +659,12 @@ def get_conda_anchor_files_and_records(
         )
     ).match
 
+    # We could fix this earlier in the PrefixRecord instantiation, but then
+    # we would pay for this conversion every time we load any record.
+    # However we only need this fix for conda list, which is the only one
+    # that uses PrefixData with pip_interop_enabled=True. This function is
+    # only called in that code path.
+    # See https://github.com/conda/conda/pull/14523 for more context.
     for prefix_record in python_records:
         anchor_paths = []
         for fpath in prefix_record.files:
