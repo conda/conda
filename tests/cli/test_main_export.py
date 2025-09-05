@@ -819,8 +819,7 @@ def test_export_platform_argument(conda_cli: CondaCLIFixture) -> None:
     stdout, stderr, code = conda_cli(
         "export",
         f"--name={name}",
-        "--platform",
-        "linux-64",
+        "--platform=linux-64",
         "--format=environment-yaml",
     )
     assert not stderr
@@ -838,10 +837,8 @@ def test_export_multiple_platforms(conda_cli: CondaCLIFixture) -> None:
     stdout, stderr, code = conda_cli(
         "export",
         f"--name={name}",
-        "--platform",
-        "linux-64",
-        "--platform",
-        "osx-64",
+        "--platform=linux-64",
+        "--platform=osx-64",
         "--format=environment-yaml",
     )
     assert not stderr
