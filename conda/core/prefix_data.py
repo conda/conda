@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections import UserDict
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
@@ -54,7 +55,7 @@ from ..models.records import PackageRecord, PrefixRecord
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Any, TypeVar
+    from typing import Any, Self, TypeVar
 
     from ..auxlib import _Null
     from ..common.path import PathType
@@ -90,6 +91,16 @@ class PrefixDataType(type):
             prefix_data_instance = super().__call__(prefix_path, interoperability)
             PrefixData._cache_[cache_key] = prefix_data_instance
             return prefix_data_instance
+
+
+class PrefixRecordDict(UserDict):
+    """Lazily convert dict entries to PrefixRecord."""
+
+    def __getitem__(self, package_name: str) -> PrefixRecord:
+        record = self.data[package_name]
+        if not isinstance(record, PrefixRecord):
+            self.data[package_name] = record = PrefixRecord(**record)
+        return record
 
 
 class PrefixData(metaclass=PrefixDataType):
@@ -353,7 +364,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     @time_recorder(module_name=__name__)
     def load(self) -> None:
-        self.__prefix_records = {}
+        self.__prefix_records = PrefixRecordDict()
         _conda_meta_dir = self.prefix_path / "conda-meta"
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
@@ -367,7 +378,7 @@ class PrefixData(metaclass=PrefixDataType):
             for loader in context.plugin_manager.get_prefix_data_loaders():
                 loader(self.prefix_path, self.__prefix_records)
 
-    def reload(self) -> PrefixData:
+    def reload(self) -> Self:
         self.load()
         return self
 
@@ -467,6 +478,14 @@ class PrefixData(metaclass=PrefixDataType):
         if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
+            if (
+                param.name
+                and param.name != "*"
+                and (record := self.get(param.name, None))
+            ):
+                if param.match(record):
+                    return (r for r in (record,))
+                return (_ for _ in ())  # empty generator
             return (
                 prefix_rec
                 for prefix_rec in self.iter_records()
@@ -516,7 +535,7 @@ class PrefixData(metaclass=PrefixDataType):
         log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
-                json_data = json.load(fh)
+                data = json.load(fh)
             except (UnicodeDecodeError, json.JSONDecodeError):
                 # UnicodeDecodeError: catch horribly corrupt files
                 # json.JSONDecodeError: catch bad json format files
@@ -524,28 +543,18 @@ class PrefixData(metaclass=PrefixDataType):
                     self.prefix_path, prefix_record_json_path
                 )
 
-            # TODO: consider, at least in memory, storing prefix_record_json_path as part
-            #       of PrefixRecord
-            prefix_record = PrefixRecord(**json_data)
-
             # check that prefix record json filename conforms to name-version-build
             # apparently implemented as part of #2638 to resolve #2599
-            try:
-                n, v, b = basename(prefix_record_json_path)[:-5].rsplit("-", 2)
-                if (n, v, b) != (
-                    prefix_record.name,
-                    prefix_record.version,
-                    prefix_record.build,
-                ):
-                    raise ValueError()
-            except ValueError:
+            name, version, build = basename(prefix_record_json_path)[:-5].rsplit("-", 2)
+            if (name, version, build) != (data["name"], data["version"], data["build"]):
                 log.warning(
                     "Ignoring malformed prefix record at: %s", prefix_record_json_path
                 )
                 # TODO: consider just deleting here this record file in the future
                 return
-
-            self.__prefix_records[prefix_record.name] = prefix_record
+            # TODO: consider, at least in memory, storing prefix_record_json_path as part
+            #       of PrefixRecord
+            self.__prefix_records[name] = data
 
     # endregion
     # region Python records
