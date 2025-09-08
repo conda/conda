@@ -661,9 +661,10 @@ def fetch_index(
     log.debug("channel_urls=" + repr(channel_urls))
     index = {}
     with ThreadLimitedThreadPoolExecutor() as executor:
-        subdir_instantiator = lambda url: SubdirData(
-            Channel(url), repodata_fn=repodata_fn
-        )
+
+        def subdir_instantiator(url):
+            return SubdirData(Channel(url), repodata_fn=repodata_fn)
+
         for f in executor.map(subdir_instantiator, channel_urls):
             index.update((rec, rec) for rec in f.iter_records())
     return index

@@ -447,7 +447,10 @@ def tokenized_conda_url_startswith(
         or test_url.port != startswith_url.port
     ):
         return False
-    norm_url_path = lambda url: url.path.strip("/") or "/"
+
+    def norm_url_path(url):
+        return url.path.strip("/") or "/"
+
     return tokenized_startswith(
         norm_url_path(test_url).split("/"), norm_url_path(startswith_url).split("/")
     )
