@@ -158,16 +158,18 @@ When conflicts between configurations arise, the following strategies are employ
 Precedence
 ----------
 
-The precedence by which the conda configuration is built out is shown below.
-Each new arrow takes precedence over the ones before it. For example, config
+The precedence by which the conda configuration is built out is shown in the
+list below. The highest precedent item is first in the list. For example, config
 files (by parse order) will be superseded by any of the other configuration
 options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``)
 will always take precedence over all config files. Command line parameters
 have the highest precedence.
 
-.. figure:: /img/config-precedence.png
-
-   ..
+1. Command line parameter
+2. Environment variables
+3. Config from environment file
+4. Config files specified by ``$CONDARC``
+5. Config files (by parse order)
 
 Obtaining information from the .condarc file
 ============================================
