@@ -87,18 +87,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # Add environment spec plugin args
     add_parser_environment_specifier(p)
 
-    p.add_argument(
-        "remote_definition",
-        help="Remote environment definition / IPython notebook",
-        action=deprecated.action(
-            "24.7",
-            "25.9",
-            _StoreAction,
-            addendum="Use `conda env create --file=URL` instead.",
-        ),
-        default=NULL,
-        nargs="?",
-    )
     add_parser_default_packages(p)
     add_output_and_prompt_options(p)
     add_parser_solver(p)

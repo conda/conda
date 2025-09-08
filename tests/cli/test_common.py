@@ -11,7 +11,6 @@ from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
 from conda.cli.common import (
     check_non_admin,
     is_active_prefix,
-    print_envs_list,
     validate_file_exists,
     validate_subdir_config,
 )
@@ -55,35 +54,6 @@ def test_is_active_prefix(prefix, active):
     if prefix == "active_prefix":
         prefix = context.active_prefix
     assert is_active_prefix(prefix) is active
-
-
-def test_print_envs_list(capsys):
-    """
-    Test the case for print_envs_list when output=True
-
-    TODO: this function is deprecated and this test should be remove when this function is removed
-    """
-    with pytest.deprecated_call():
-        print_envs_list(["test"])
-
-    capture = capsys.readouterr()
-
-    assert "test" in capture.out
-
-
-def test_print_envs_list_output_false(capsys):
-    """
-    Test the case for print_envs_list when output=False
-
-    TODO: this function is deprecated and this test should be remove when this function is removed
-    """
-
-    with pytest.deprecated_call():
-        print_envs_list(["test"], output=False)
-
-    capture = capsys.readouterr()
-
-    assert capture.out == ""
 
 
 @pytest.mark.parametrize(

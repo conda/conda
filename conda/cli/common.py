@@ -50,70 +50,6 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.confirm_yn` instead.",
-)
-def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
-    assert default in choices, default
-    if (dry_run is NULL and context.dry_run) or dry_run:
-        from ..exceptions import DryRunExit
-
-        raise DryRunExit()
-
-    options = []
-    for option in choices:
-        if option == default:
-            options.append(f"[{option[0]}]")
-        else:
-            options.append(option[0])
-    message = "{} ({})? ".format(message, "/".join(options))
-    choices = {alt: choice for choice in choices for alt in [choice, choice[0]]}
-    choices[""] = default
-    while True:
-        # raw_input has a bug and prints to stderr, not desirable
-        sys.stdout.write(message)
-        sys.stdout.flush()
-        try:
-            user_choice = sys.stdin.readline().strip().lower()
-        except OSError as e:
-            raise CondaError(f"cannot read from stdin: {e}")
-        if user_choice not in choices:
-            print(f"Invalid choice: {user_choice}")
-        else:
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-            return choices[user_choice]
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.confirm_yn` instead.",
-)
-def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
-    if (dry_run is NULL and context.dry_run) or dry_run:
-        from ..exceptions import DryRunExit
-
-        raise DryRunExit()
-    if context.always_yes:
-        return True
-    try:
-        choice = confirm(
-            message=message, choices=("yes", "no"), default=default, dry_run=dry_run
-        )
-    except KeyboardInterrupt:  # pragma: no cover
-        from ..exceptions import CondaSystemExit
-
-        raise CondaSystemExit("\nOperation aborted.  Exiting.")
-    if choice == "no":
-        from ..exceptions import CondaSystemExit
-
-        raise CondaSystemExit("Exiting.")
-    return True
-
-
 def is_active_prefix(prefix: str) -> bool:
     """
     Determines whether the args we pass in are pointing to the active prefix.
@@ -257,15 +193,6 @@ def stdout_json_success(success=True, **kwargs):
         result["actions"] = actions
     result.update(kwargs)
     stdout_json(result)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.render(style='env_list')` instead.",
-)
-def print_envs_list(known_conda_prefixes, output=True):
-    render(known_conda_prefixes, style="envs_list", output=output)
 
 
 def check_non_admin():

@@ -25,67 +25,6 @@ from .deprecations import deprecated
 log = logging.getLogger(__name__)
 
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "path_identity",
-    _path_identity,
-    addendum="Use `conda.common.path.path_identity` instead.",
-)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.common.path.unix_path_to_win` instead.",
-)
-def unix_path_to_win(path, root_prefix=""):
-    """Convert a path or :-separated string of paths into a Windows representation
-
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
-        # already a windows path
-        return path.replace("/", "\\")
-    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
-
-    def _translation(found_path):
-        group = found_path.group(0)
-        return "{}:{}".format(
-            group[len(root_prefix) + 1],
-            group[len(root_prefix) + 2 :].replace("/", "\\"),
-        )
-
-    translation = re.sub(path_re, _translation, path)
-    translation = re.sub(
-        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
-    )
-    return translation
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.common.path.win_path_to_unix` instead.",
-)
-def win_path_to_cygwin(path):
-    return _win_path_to_unix(path, cygdrive=True)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.common.path.unix_path_to_win` instead.",
-)
-def cygwin_path_to_win(path):
-    return _unix_path_to_win(path, cygdrive=True)
-
-
-@deprecated("25.3", "25.9", addendum="Unused.")
-def translate_stream(stream, translator):
-    return "\n".join(translator(line) for line in stream.split("\n"))
-
-
 def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
@@ -139,13 +78,6 @@ _UNIX_SHELL_BASE = dict(
     var_format="${}",
 )
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "unix_shell_base",
-    _UNIX_SHELL_BASE,
-    addendum="Use `conda.activate` instead.",
-)
 
 _MSYS2_SHELL_BASE = dict(
     _UNIX_SHELL_BASE,
@@ -155,13 +87,6 @@ _MSYS2_SHELL_BASE = dict(
     printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",
 )
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "msys2_shell_base",
-    _MSYS2_SHELL_BASE,
-    addendum="Use `conda.activate` instead.",
-)
 
 if on_win:
     _SHELLS = {
@@ -212,8 +137,8 @@ if on_win:
             _UNIX_SHELL_BASE,
             exe="bash.exe",
             binpath="/Scripts/",  # mind the trailing slash.
-            path_from=cygwin_path_to_win,
-            path_to=win_path_to_cygwin,
+            path_from=_unix_path_to_win,
+            path_to=_win_path_to_unix,
         ),
         # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
         #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
@@ -261,14 +186,6 @@ else:
             pathsep=" ",
         ),
     }
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "shells",
-    _SHELLS,
-    addendum="Use `conda.activate` instead.",
-)
 
 
 # ##########################################

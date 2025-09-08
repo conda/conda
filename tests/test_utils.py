@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from contextlib import nullcontext
 from logging import getLogger
 from os import environ, pathsep
 from os.path import dirname, join
@@ -16,7 +15,7 @@ import pytest
 from conda import CondaError, utils
 from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.compat import on_win
-from conda.common.path import win_path_to_unix
+from conda.common.path import win_path_to_unix, unix_path_to_win
 from conda.testing.helpers import assert_equals
 
 SOME_PREFIX = "/some/prefix"
@@ -51,16 +50,13 @@ def test_path_translations():
     ]
     for windows_path, unix_path, cygwin_path in paths:
         assert win_path_to_unix(windows_path) == unix_path
-        assert utils.unix_path_to_win(unix_path) == windows_path
-
-        # assert utils.win_path_to_cygwin(windows_path) == cygwin_path
-        # assert utils.cygwin_path_to_win(cygwin_path) == windows_path
+        assert unix_path_to_win(unix_path) == windows_path
 
 
 def test_text_translations():
     test_win_text = "z:\\msarahan\\code\\conda\\tests\\envsk5_b4i\\test 1"
     test_unix_text = "/z/msarahan/code/conda/tests/envsk5_b4i/test 1"
-    assert_equals(test_win_text, utils.unix_path_to_win(test_unix_text))
+    assert_equals(test_win_text, unix_path_to_win(test_unix_text))
     assert_equals(test_unix_text, win_path_to_unix(test_win_text))
 
 
@@ -242,21 +238,3 @@ def test_ensure_dir_errors():
             get_test_dir()
 
     assert exc_message in str(exc_info.value)
-
-
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("unix_shell_base", TypeError),
-        ("msys2_shell_base", TypeError),
-        ("shells", TypeError),
-        ("win_path_to_cygwin", TypeError),
-        ("cygwin_path_to_win", TypeError),
-        ("translate_stream", TypeError),
-        ("path_identity", TypeError),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(utils, function)()

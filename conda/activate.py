@@ -206,35 +206,6 @@ class _Activator(metaclass=abc.ABCMeta):
         context.plugin_manager.invoke_post_commands(self.command)
         return response
 
-    @deprecated(
-        "25.3",
-        "25.9",
-        addendum="Use `conda commands` instead.",
-        # these commands are already pretty hidden in their implementation and access (`conda shell.posix commands`)
-        # so we opt to not warn end users that this is going away, we only need to notify tab-completion devs
-        # deprecation_type=FutureWarning,
-    )
-    def commands(self):
-        """
-        Returns a list of possible subcommands that are valid
-        immediately following `conda` at the command line.
-        This method is generally only used by tab-completion.
-        """
-        # Import locally to reduce impact on initialization time.
-        from .cli.conda_argparse import find_builtin_commands, generate_parser
-        from .cli.find_commands import find_commands
-
-        # return value meant to be written to stdout
-        # Hidden commands to provide metadata to shells.
-        return "\n".join(
-            sorted(
-                {
-                    *find_builtin_commands(generate_parser()),
-                    *find_commands(True),
-                }
-            )
-        )
-
     def template_unset_var(self, key: str) -> str:
         return self.unset_var_tmpl % key
 
@@ -260,7 +231,6 @@ class _Activator(metaclass=abc.ABCMeta):
     def _hook_postamble(self) -> str | None:
         return None
 
-    @deprecated.argument("25.3", "25.9", "arguments")
     def _parse_and_set_args(self) -> None:
         command, *arguments = self._raw_arguments or [None]
         help_flags = ("-h", "--help", "/?")
@@ -834,58 +804,6 @@ class _Activator(metaclass=abc.ABCMeta):
 
 def expand(path):
     return abspath(expanduser(expandvars(path)))
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.common.compat.ensure_binary` instead.")
-def ensure_binary(value):
-    try:
-        return value.encode("utf-8")
-    except AttributeError:  # pragma: no cover
-        # AttributeError: '<>' object has no attribute 'encode'
-        # In this case assume already binary type and do nothing
-        return value
-
-
-@deprecated("25.3", "25.9")
-def ensure_fs_path_encoding(value):
-    from .common.compat import FILESYSTEM_ENCODING
-
-    try:
-        return value.decode(FILESYSTEM_ENCODING)
-    except AttributeError:
-        return value
-
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "_Cygpath",
-    _cygpath,
-    addendum="Use `conda.common.path._cygpath` instead.",
-)
-del _cygpath
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "native_path_to_unix",
-    win_path_to_unix,
-    addendum="Use `conda.common.path.win_path_to_unix` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "unix_path_to_native",
-    unix_path_to_win,
-    addendum="Use `conda.common.path.unix_path_to_win` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "path_identity",
-    _path_identity,
-    addendum="Use `conda.common.path.path_identity` instead.",
-)
 
 
 def backslash_to_forwardslash(

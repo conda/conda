@@ -2095,20 +2095,6 @@ def test_metavars_force_uppercase(
     assert "SIX" in export_vars
 
 
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("path_identity", TypeError),
-        ("ensure_binary", TypeError),
-        ("ensure_fs_path_encoding", TypeError),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(activate, function)()
-
-
 class PrePostCommandPlugin:
     def pre_command_action(self, command: str) -> None:
         pass
@@ -2149,7 +2135,7 @@ def plugin(
 
 @pytest.mark.parametrize(
     "command",
-    ["activate", "deactivate", "reactivate", "hook", "commands"],
+    ["activate", "deactivate", "reactivate", "hook"],
 )
 def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
     activator = PosixActivator([command])
@@ -2161,7 +2147,7 @@ def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) ->
 
 @pytest.mark.parametrize(
     "command",
-    ["activate", "deactivate", "reactivate", "hook", "commands"],
+    ["activate", "deactivate", "reactivate", "hook"],
 )
 def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> None:
     exc_message = "💥"
