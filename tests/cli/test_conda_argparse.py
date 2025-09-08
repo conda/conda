@@ -116,10 +116,18 @@ def test_sorted_commands_in_error(capsys):
     except SystemExit:
         stderr = capsys.readouterr().err
         # ...but the suggestions here are sorted
+
+        # Linux Python 3.12.3 and possibly other 3.12 builds appear to use the
+        # quoted style:
+        old_style = "invalid choice: 'd' (choose from 'a', 'b', 'c')"
+        new_style = "invalid choice: 'd' (choose from a, b, c)"
+
         if sys.version_info < (3, 12):
             # FUTURE: Python 3.12+: remove this test case
-            assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in stderr
+            assert old_style in stderr
+        elif sys.version_info[:2] == (3, 12):
+            assert old_style in stderr or new_style in stderr
         else:
-            assert "invalid choice: 'd' (choose from a, b, c)" in stderr
+            assert new_style in stderr
     else:
         pytest.fail("Did not raise")
