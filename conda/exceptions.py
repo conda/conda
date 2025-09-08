@@ -742,47 +742,43 @@ class PackagesNotFoundError(CondaError):
         packages: Iterable[MatchSpec | PackageRecord | str],
         channel_urls: Iterable[str] = (),
     ):
-        format_list = lambda iterable: "  - " + "\n  - ".join(str(x) for x in iterable)
-
         if channel_urls:
             message = dals(
                 """
-            The following packages are not available from current channels:
+                The following packages are not available from current channels:
+                %(packages_formatted)s
 
-            %(packages_formatted)s
+                Current channels:
+                %(channels_formatted)s
 
-            Current channels:
+                To search for alternate channels that may provide the conda package you're
+                looking for, navigate to
 
-            %(channels_formatted)s
+                    https://anaconda.org
 
-            To search for alternate channels that may provide the conda package you're
-            looking for, navigate to
-
-                https://anaconda.org
-
-            and use the search bar at the top of the page.
-            """
+                and use the search bar at the top of the page.
+                """
             )
             from .base.context import context
 
             if context.use_only_tar_bz2:
                 message += dals(
                     """
-                Note: 'use_only_tar_bz2' is enabled. This might be omitting some
-                packages from the index. Set this option to 'false' and retry.
-                """
+                    Note: 'use_only_tar_bz2' is enabled. This might be omitting some
+                    packages from the index. Set this option to 'false' and retry.
+                    """
                 )
-            packages_formatted = format_list(packages)
-            channels_formatted = format_list(channel_urls)
+            packages_formatted = dashlist(packages)
+            channels_formatted = dashlist(channel_urls)
         else:
             message = dals(
                 """
-            The following packages are missing from the target environment:
-            %(packages_formatted)s
-            """
+                The following packages are missing from the target environment:
+                %(packages_formatted)s
+                """
             )
-            packages_formatted = format_list(packages)
-            channels_formatted = ()
+            packages_formatted = dashlist(packages)
+            channels_formatted = ""
 
         super().__init__(
             message,
