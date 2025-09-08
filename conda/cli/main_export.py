@@ -180,14 +180,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = context.target_prefix
 
     # Create models.Environment directly
-    # TODO: In the future, this will support generating exports for multiple platforms
-    # For now, we use the first target platform
-    target_platform = target_platforms[0] if target_platforms else context.subdir
+    # TODO: Figure out how to handle source and target platforms.  Do we
+    #       we need to specify the source platform and then export to
+    #       the target platform?  If so, is this done in the
+    #       environment_exporter?
+    # target_platform = target_platforms[0] if target_platforms else context.subdir
 
     env = Environment.from_prefix(
         prefix=prefix,
         name=env_name(prefix),
-        platform=target_platform,
+        platform=context.subdir,
         from_history=args.from_history,
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,
