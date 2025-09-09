@@ -7,32 +7,16 @@ from contextlib import nullcontext
 import pytest
 
 from conda import exports
-from conda.common.compat import on_win
 
 
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("iteritems", TypeError),
-        ("Completer", None),
-        ("InstalledPackages", None),
-        ("hash_file", TypeError),
-        ("verify", TypeError),
-        ("symlink_conda", TypeError),
-        ("_symlink_conda_hlp", TypeError),
-        pytest.param(
-            "win_conda_bat_redirect",
-            TypeError,
-            marks=pytest.mark.skipif(
-                not on_win, reason="win_conda_bat_redirect is only defined on Windows"
-            ),
-        ),
-        ("KEYS", TypeError),
-        ("KEYS_DIR", TypeError),
-        ("move_to_trash", TypeError),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(exports, function)()
+# TODO: will need to be re-enabled for `CondaJSONEncoder` deprecation warning in 26.3
+# @pytest.mark.parametrize(
+#     "function,raises",
+#     [
+#         ("EntityEncoder", TypeError),
+#     ],
+# )
+# def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+#     raises_context = pytest.raises(raises) if raises else nullcontext()
+#     with pytest.deprecated_call(), raises_context:
+#         getattr(exports, function)()
