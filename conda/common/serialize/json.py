@@ -6,13 +6,16 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 # detect the best json library to use
 from requests.compat import json
 
 if TYPE_CHECKING:
+    from io import IO
     from typing import Any
+
+    from ..path import PathType
 
 
 class CondaJSONEncoder(json.JSONEncoder):
@@ -32,18 +35,83 @@ class CondaJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def dump(*args, **kwargs):
+@overload
+def write(obj: Any, *, fp: IO[str], **kwargs) -> None: ...
+
+
+@overload
+def write(obj: Any, *, path: PathType, **kwargs) -> None: ...
+
+
+@overload
+def write(obj: Any, **kwargs) -> str: ...
+
+
+def write(
+    obj: Any, *, fp: IO[str] | None = None, path: PathType | None = None, **kwargs
+) -> None | str:
+    if sum(value is not None for value in (fp, path)) > 1:
+        raise ValueError("At most one of fp or path must be provided")
+
     kwargs.setdefault("cls", CondaJSONEncoder)
     kwargs.setdefault("indent", 2)
-    return json.dump(*args, **kwargs)
+
+    if fp is not None:
+        json.dump(obj, fp, **kwargs)
+        return None
+    else:
+        text = json.dumps(obj, **kwargs)
+        if path is not None:
+            Path(path).write_text(text)
+            return None
+        else:
+            return text
 
 
-def dumps(*args, **kwargs):
-    kwargs.setdefault("cls", CondaJSONEncoder)
-    kwargs.setdefault("indent", 2)
-    return json.dumps(*args, **kwargs)
+def dump(obj: Any, fp: IO[str], **kwargs) -> None:
+    write(obj, fp=fp, **kwargs)
 
 
-load = json.load
-loads = json.loads
+def dumps(obj: Any, **kwargs) -> str:
+    return write(obj, **kwargs)
+
+
+@overload
+def read(*, text: str, **kwargs) -> Any: ...
+
+
+@overload
+def read(*, fp: IO[str], **kwargs) -> Any: ...
+
+
+@overload
+def read(*, path: PathType, **kwargs) -> Any: ...
+
+
+def read(
+    *,
+    text: str | None = None,
+    fp: IO[str] | None = None,
+    path: PathType | None = None,
+    **kwargs,
+) -> Any:
+    if sum(value is not None for value in (text, fp, path)) != 1:
+        raise ValueError("Exactly one of text, fp or path must be provided")
+
+    if fp is not None:
+        return json.load(fp, **kwargs)
+    elif path is not None:
+        return json.loads(Path(path).read_text(), **kwargs)
+    else:
+        return json.loads(text, **kwargs)
+
+
+def load(fp: IO[str], **kwargs) -> Any:
+    return read(fp=fp, **kwargs)
+
+
+def loads(s: str, **kwargs) -> Any:
+    return read(text=s, **kwargs)
+
+
 JSONDecodeError = json.JSONDecodeError

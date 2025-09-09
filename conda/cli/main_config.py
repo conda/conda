@@ -270,7 +270,7 @@ def format_dict(d):
 
 
 def parameter_description_builder(name, context=None, plugins=False):
-    from ..common.serialize import json, yaml_round_trip_dump
+    from ..common.serialize import json, yaml
 
     # Keeping this for backward-compatibility, in case no context instance is provided
     if context is None:
@@ -314,11 +314,11 @@ def parameter_description_builder(name, context=None, plugins=False):
     # If we are dealing with a plugin parameter, we need to nest it
     # instead of having it at the top level (YAML-wise).
     if plugins:
-        yaml_content = yaml_round_trip_dump(
+        yaml_content = yaml.dumps(
             {"plugins": {name: json.loads(default_value_str)}}
         )
     else:
-        yaml_content = yaml_round_trip_dump({name: json.loads(default_value_str)})
+        yaml_content = yaml.dumps({name: json.loads(default_value_str)})
 
     builder.extend(yaml_content.strip().split("\n"))
 
