@@ -266,7 +266,7 @@ def format_dict(d):
 
 
 def parameter_description_builder(name, context=None, plugins=False):
-    from ..common.serialize import json, yaml_round_trip_dump
+    from ..common.serialize import json, yaml
 
     # Keeping this for backward-compatibility, in case no context instance is provided
     if context is None:
@@ -308,7 +308,7 @@ def parameter_description_builder(name, context=None, plugins=False):
     builder = ["# " + line for line in builder]
 
     builder.extend(
-        yaml_round_trip_dump({f"{name_prefix}{name}": json.loads(default_value_str)})
+        yaml.dumps({f"{name_prefix}{name}": json.loads(default_value_str)})
         .strip()
         .split("\n")
     )
