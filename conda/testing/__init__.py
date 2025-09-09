@@ -19,7 +19,6 @@ import sys
 from logging import getLogger
 from os.path import join
 
-
 log = getLogger(__name__)
 
 

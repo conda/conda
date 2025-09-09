@@ -17,9 +17,7 @@ from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
 from ..common.io import dashlist
-from ..common.path import BIN_DIRECTORY
 from ..core.prefix_data import PrefixData
-from ..deprecations import deprecated
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
 
