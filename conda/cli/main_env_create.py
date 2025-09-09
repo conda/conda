@@ -8,20 +8,17 @@ Creates new conda environments with the specified packages.
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreAction,
     _SubParsersAction,
 )
 from pathlib import Path
 
 from .. import CondaError
 from ..cli.main_config import set_keys
-from ..deprecations import deprecated
 from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..common.constants import NULL
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,

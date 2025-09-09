@@ -9,18 +9,15 @@ import os
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreAction,
     _SubParsersAction,
 )
 
 from .. import CondaError
-from ..deprecations import deprecated
 from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..common.constants import NULL
     from .helpers import (
         add_parser_environment_specifier,
         add_parser_frozen_env,
