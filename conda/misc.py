@@ -280,7 +280,8 @@ def touch_nonadmin(prefix):
             fo.write("")
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
+@deprecated.argument("26.3", "26.9", "index_args")
+def clone_env(prefix1, prefix2, verbose=True, quiet=False):
     """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
     drecs = {prec for prec in PrefixData(prefix1).iter_records()}
@@ -290,9 +291,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     unknowns = [prec for prec in drecs if not prec.get("url")]
     notfound = []
     if unknowns:
-        index_args = index_args or {}
-        index_args["channels"] = index_args.pop("channel_urls")
-        index = Index(**index_args)
+        index = Index()
 
         for prec in unknowns:
             spec = MatchSpec(name=prec.name, version=prec.version, build=prec.build)
