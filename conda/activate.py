@@ -41,8 +41,8 @@ from .base.constants import (
 )
 from .base.context import context, locate_prefix_by_name
 from .common.compat import on_win
-from .common.path import _cygpath, paths_equal, unix_path_to_win, win_path_to_unix
 from .common.path import path_identity as _path_identity
+from .common.path import paths_equal, unix_path_to_win, win_path_to_unix
 from .common.serialize import json
 from .deprecations import deprecated
 from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
