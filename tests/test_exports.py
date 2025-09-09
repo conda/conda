@@ -2,12 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from contextlib import nullcontext
-
-import pytest
-
-from conda import exports
-
 
 # TODO: will need to be re-enabled for `CondaJSONEncoder` deprecation warning in 26.3
 # @pytest.mark.parametrize(

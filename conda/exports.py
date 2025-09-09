@@ -4,9 +4,6 @@
 
 from __future__ import annotations
 
-import errno
-import functools
-import os
 from builtins import input  # noqa: F401, UP029
 from io import StringIO  # noqa: F401, for conda-build
 from typing import TYPE_CHECKING
@@ -31,8 +28,6 @@ from .cli.helpers import (  # noqa: F401
     add_parser_prefix,
 )
 from .common import compat  # noqa: F401
-from .common.compat import on_win
-from .common.path import win_path_to_unix
 from .common.serialize.json import CondaJSONEncoder
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import dist_str_in_index  # noqa: F401
@@ -56,7 +51,6 @@ from .gateways.connection.download import download as _download
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .gateways.disk.delete import delete_trash  # noqa: F401
-from .gateways.disk.delete import rm_rf as move_to_trash
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
@@ -124,6 +118,7 @@ deprecated.constant(
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
 del CondaJSONEncoder
+
 
 def rm_rf(path, max_retries=5, trash=True):
     from .gateways.disk.delete import rm_rf
