@@ -28,14 +28,6 @@ if TYPE_CHECKING:
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "BIN_DIRECTORY",
-    BIN_DIRECTORY,
-    addendum="Use `conda.common.path.BIN_DIRECTORY` instead.",
-)
-del BIN_DIRECTORY
 UNICODE_CHARACTERS = "ōγђ家固한áêñßôç"
 # UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
 UNICODE_CHARACTERS_RESTRICTED = "abcdef"
