@@ -17,9 +17,9 @@
 * Remove constant `KEYS`. (#15184)
 * Remove constant `KEYS_DIR`. (#15184)
 * Remove unused method `conda.exports.verify`. (#15184)
-* Remove `conda.exports.symlink_conda`. Use builtin `conda.activate` instead. (#15184)
-* Remove `conda.exports._symlink_conda_help`. Use builtin `conda.activate` instead. (#15184)
-* Remove `conda.exports.win_conda_bat_redirect`. Use builtin `conda.activate` instead. (#15184)
+* Remove `conda.exports.symlink_conda`. Use `conda.activate` instead. (#15184)
+* Remove `conda.exports._symlink_conda_help`. Use `conda.activate` instead. (#15184)
+* Remove `conda.exports.win_conda_bat_redirect`. Use `conda.activate` instead. (#15184)
 
 ### Docs
 
