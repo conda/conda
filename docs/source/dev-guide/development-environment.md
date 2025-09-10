@@ -55,6 +55,76 @@
    already exists this command will simply activate the already-created
    `devenv` environment.
 
+   ## Choosing Your Installer
+
+   The `dev/start` script supports two different conda installers:
+
+   - **miniconda** (default): Uses the Anaconda defaults channel and official Miniconda installer
+   - **miniforge**: Uses the conda-forge channel and community-maintained Miniforge installer
+
+   When you run the script for the first time without specifying an installer, you'll be prompted to choose:
+
+   ```text
+   Choose conda installer:
+     1) miniconda (default - Anaconda defaults channel)
+     2) miniforge (conda-forge channel)
+   Enter choice [1]:
+   ```
+
+   You can also specify the installer directly using the `-i` or `--installer` flag:
+
+   **Bash (macOS, Linux, Windows)**
+
+   ```bash
+   # Use miniconda (default behavior)
+   $ source ./dev/start -i miniconda
+
+   # Use miniforge
+   $ source ./dev/start -i miniforge
+   ```
+
+   **cmd.exe (Windows)**
+
+   ```batch
+   :: Use miniconda (default behavior)
+   > .\dev\start.bat -i miniconda
+
+   :: Use miniforge
+   > .\dev\start.bat -i miniforge
+   ```
+
+   ## Additional Options
+
+   The `dev/start` script supports several other options for customizing your development environment:
+
+   ```bash
+   # See all available options
+   $ source ./dev/start --help
+
+   # Use a specific Python version
+   $ source ./dev/start -p 3.11
+
+   # Force update packages
+   $ source ./dev/start -u
+
+   # Preview what would be done without making changes
+   $ source ./dev/start -n
+   ```
+
+   ## Switching Between Installers
+
+   You can maintain separate development environments for different installers and switch between them:
+
+   ```bash
+   # Set up and activate miniconda-based environment
+   $ source ./dev/start -i miniconda
+
+   # Later, set up and activate miniforge-based environment
+   $ source ./dev/start -i miniforge
+   ```
+
+   Each installer creates its own isolated environment, so you can test conda behavior with both the defaults and conda-forge channels.
+
    To be sure that the conda code being interpreted is the code in the project
    directory, look at the value of `conda location:` in the output of
    `conda info --all`.
