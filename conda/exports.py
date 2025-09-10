@@ -64,7 +64,7 @@ from .resolve import (  # noqa: F401
     ResolvePackageNotFound,
     Unsatisfiable,
 )
-from .utils import human_bytes, unix_path_to_win, url_path  # noqa: F401
+from .utils import human_bytes, url_path  # noqa: F401
 
 if TYPE_CHECKING:
     from typing import Any
