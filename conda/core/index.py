@@ -834,6 +834,11 @@ def get_archspec_name() -> str | None:
         return str(archspec.cpu.host())
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.models.channel.all_channel_urls(context.channels)` instead.",
+)
 def calculate_channel_urls(
     channel_urls: tuple[str] = (),
     prepend: bool = True,

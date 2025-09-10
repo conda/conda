@@ -14,6 +14,7 @@ from conda.base.context import (
     context,
     reset_context,
 )
+from conda.common.compat import on_win
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_unmodified, env_var, env_vars
 from conda.common.serialize import yaml_round_trip_load
@@ -21,8 +22,7 @@ from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import initialize_logging
-from conda.models.channel import Channel, prioritize_channels
-from conda.utils import on_win
+from conda.models.channel import Channel, MultiChannel, prioritize_channels
 
 initialize_logging()
 log = getLogger(__name__)
@@ -1326,3 +1326,48 @@ def test_channel_mangles_urls():
 
     for url, expected in cases:
         assert str(Channel(url)) == expected
+
+
+def test_basic_multichannel():
+    multichannel_name = "multichannel"
+    channel1_name = "channel1"
+    channel2_name = "channel2"
+
+    channel1 = Channel(channel1_name)
+    channel2 = Channel(channel2_name)
+    multichannel = MultiChannel(multichannel_name, (channel1, channel2))
+
+    assert multichannel.name == multichannel_name
+    assert multichannel._channels == (channel1, channel2)
+
+    assert multichannel.location is None
+    assert multichannel.scheme is None
+    assert multichannel.auth is None
+    assert multichannel.token is None
+    assert multichannel.platform is None
+    assert multichannel.package_filename is None
+
+    assert multichannel.channel_location is None
+    assert multichannel.canonical_name == multichannel_name
+
+    assert multichannel.base_url is None
+    assert multichannel.base_urls == (channel1.base_url, channel2.base_url)
+
+    assert multichannel.url() is None
+    assert multichannel.urls() == [*channel1.urls(), *channel2.urls()]
+
+
+def test_prioritize_channels():
+    channels = ("conda-canary", "defaults", "conda-forge")
+    urls = (
+        ("https://conda.anaconda.org/conda-canary", "conda-canary"),
+        ("https://repo.anaconda.com/pkgs/main", "defaults"),
+        ("https://repo.anaconda.com/pkgs/r", "defaults"),
+        *([("https://repo.anaconda.com/pkgs/msys2", "defaults")] if on_win else []),
+        ("https://conda.anaconda.org/conda-forge", "conda-forge"),
+    )
+    assert prioritize_channels(channels) == {
+        join_url(url, subdir): (channel, weight)
+        for weight, (url, channel) in enumerate(urls)
+        for subdir in context.subdirs
+    }

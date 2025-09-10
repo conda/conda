@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Respect `CONDA_PROTECT_FROZEN_ENVS` environment variable in the absence of `--override-frozen`. (#15162)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

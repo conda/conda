@@ -1505,3 +1505,11 @@ def test_conda_env_form_comprehensive():
         assert result == expected, (
             f"Expected {expected!r}, got {result!r} for spec {spec}"
         )
+
+
+def test_no_triple_equals_roundtrip():
+    """Regression test for https://github.com/conda/conda/issues/15123"""
+    ms = MatchSpec('numpy[version="=2"]')
+    assert "===" not in str(ms)
+    assert str(ms) == "numpy=2"
+    assert MatchSpec("numpy=2").version == ms.version
