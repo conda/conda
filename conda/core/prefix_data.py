@@ -17,7 +17,9 @@ from ..base.constants import (
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
+    PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
+    RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
@@ -45,6 +47,7 @@ from ..exceptions import (
 from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
+from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
@@ -111,7 +114,7 @@ class PrefixData(metaclass=PrefixDataType):
     )
     def __init__(
         self,
-        prefix_path: str | os.PathLike[str] | Path,
+        prefix_path: PathType,
         interoperability: bool | None = None,
     ):
         # pip_interop_enabled is a temporary parameter; DO NOT USE
@@ -336,7 +339,7 @@ class PrefixData(metaclass=PrefixDataType):
         :raises CondaValueError: If the name is protected, or if it contains disallowed characters
             (`/`, ` `, `:`, `#`).
         """
-        if not allow_base and self.name in (ROOT_ENV_NAME, "root"):
+        if not allow_base and self.name in RESERVED_ENV_NAMES:
             raise CondaValueError(f"'{self.name}' is a reserved environment name")
 
         if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.prefix_path.name):
@@ -475,6 +478,36 @@ class PrefixData(metaclass=PrefixDataType):
                 prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param
             )
 
+    def get_conda_packages(self) -> list[PrefixRecord]:
+        """Get conda packages sorted alphabetically by name.
+
+        :return: Sorted conda package records
+        """
+        conda_types = {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON}
+        conda_packages = [
+            record
+            for record in self.iter_records()
+            if record.package_type in conda_types
+        ]
+        return sorted(conda_packages, key=lambda x: x.name)
+
+    def get_python_packages(self) -> list[PrefixRecord]:
+        """Get Python packages (installed via pip) sorted alphabetically by name.
+
+        :return: Sorted Python package records
+        """
+        python_types = {
+            PackageType.VIRTUAL_PYTHON_WHEEL,
+            PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+        }
+        python_packages = [
+            record
+            for record in self.iter_records()
+            if record.package_type in python_types
+        ]
+        return sorted(python_packages, key=lambda x: x.name)
+
     @property
     def _prefix_records(self) -> dict[str, PrefixRecord] | None:
         return self.__prefix_records or self.load() or self.__prefix_records
@@ -594,6 +627,21 @@ class PrefixData(metaclass=PrefixDataType):
             self.prefix_path.mkdir(parents=True, exist_ok=True)
             (self.prefix_path / ".nonadmin").touch()
 
+    def get_pinned_specs(self) -> tuple[MatchSpec]:
+        """Find pinned specs from file and return a tuple of MatchSpec."""
+        pin_file = self.prefix_path / PREFIX_PINNED_FILE
+        if pin_file.exists():
+            with pin_file.open() as f:
+                from_file = (
+                    i
+                    for i in f.read().strip().splitlines()
+                    if i and not i.strip().startswith("#")
+                )
+        else:
+            from_file = ()
+
+        return tuple(MatchSpec(spec, optional=True) for spec in from_file)
+
     # endregion
 
 
@@ -611,8 +659,19 @@ def get_conda_anchor_files_and_records(
         )
     ).match
 
+    # We could fix this earlier in the PrefixRecord instantiation, but then
+    # we would pay for this conversion every time we load any record.
+    # However we only need this fix for conda list, which is the only one
+    # that uses PrefixData with pip_interop_enabled=True. This function is
+    # only called in that code path.
+    # See https://github.com/conda/conda/pull/14523 for more context.
     for prefix_record in python_records:
-        anchor_paths = tuple(fpath for fpath in prefix_record.files if matcher(fpath))
+        anchor_paths = []
+        for fpath in prefix_record.files:
+            if on_win:
+                fpath = fpath.replace("\\", "/")
+            if matcher(fpath):
+                anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
             anchor_path = sorted(anchor_paths, key=len)[0]
             log.info(

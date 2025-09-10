@@ -1,0 +1,22 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61.0", "wheel"]
+
+[project]
+authors = [{name = "Conda Test Suite", email = "test@conda.io"}]
+dependencies = []
+description = "A small Python package for conda testing"
+license = {text = "BSD-3-Clause"}
+name = "small-python-package"
+requires-python = ">=3.8"
+version = "1.0.0"
+
+[project.scripts]
+spp = "small_python_package.cli:main"
+
+[project.urls]
+Repository = "https://github.com/conda/conda"
+
+[tool.setuptools.packages.find]
+include = ["small_python_package*"]
+where = ["."]

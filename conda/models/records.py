@@ -476,6 +476,16 @@ class PackageRecord(DictSafeMixin, Entity):
     def namekey(self):
         return "global:" + self.name
 
+    @property
+    def spec(self):
+        """Return package spec: name=version=build"""
+        return f"{self.name}={self.version}={self.build}"
+
+    @property
+    def spec_no_build(self):
+        """Return package spec without build: name=version"""
+        return f"{self.name}={self.version}"
+
     def record_id(self):
         # WARNING: This is right now only used in link.py _change_report_str(). It is not
         #          the official record_id / uid until it gets namespace.  Even then, we might

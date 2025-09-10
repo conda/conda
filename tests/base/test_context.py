@@ -25,6 +25,7 @@ from conda.base.context import (
     channel_alias_validation,
     context,
     default_python_validation,
+    env_name,
     reset_context,
     validate_channels,
     validate_prefix_name,
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_migrated_custom_channels(context_testdata: None):
@@ -756,3 +758,83 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
+
+
+def test_default_activation_prefix(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """Test that the default_activation_prefix returns the correct prefix.
+
+    context.default_activation_env can either be a name or a prefix path, so we check
+    that in either case, the context.default_activation_prefix is a path.
+    """
+    key = "CONDA_DEFAULT_ACTIVATION_ENV"
+
+    with tmp_env() as prefix:
+        name = env_name(prefix)
+        monkeypatch.setenv(key, context.root_prefix)
+        reset_context()
+        assert prefix != context.default_activation_prefix
+
+        monkeypatch.setenv(key, prefix)
+        reset_context()
+        assert prefix == context.default_activation_prefix
+
+        monkeypatch.setenv(key, name)
+        reset_context()
+        assert prefix == context.default_activation_prefix
+
+
+PYTHON_SPEC = "python"
+ZLIB_URL = "https://repo.anaconda.com/pkgs/main/linux-64/zlib-1.2.13-h5eee18b_1.conda"
+
+
+@pytest.mark.parametrize(
+    "context_packages,expected_packages",
+    (
+        (tuple(), tuple()),
+        ((PYTHON_SPEC,), (PYTHON_SPEC,)),
+        ((PYTHON_SPEC, ZLIB_URL), (PYTHON_SPEC,)),
+    ),
+)
+def test_create_default_packages(
+    monkeypatch: MonkeyPatch,
+    context_packages: tuple[str, ...],
+    expected_packages: tuple[str, ...],
+):
+    """Ensure that the `create_default_packages` config only returns valid package
+    specs, and no explicit packages."""
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", f"{','.join(context_packages)}")
+    reset_context()
+
+    create_default_packages = context.create_default_packages
+    assert create_default_packages == expected_packages
+
+
+def test_create_default_packages_will_warn_for_explicit_packages(
+    monkeypatch: MonkeyPatch,
+):
+    """This test will ensure that the context object emits a warning whenever an explicit
+    package is in the `create_default_packages` setting. Further, this property will ensure
+    that no invalid packages are returned to the caller.
+    """
+    # Add an explicit package and a valid package spec to `create_default_packages`. We
+    # expect this to:
+    #   * emit a warning about the explicit package and,
+    #   * only return the valid (python) package
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", f"{ZLIB_URL},{PYTHON_SPEC}")
+    reset_context()
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            rf"Ignoring invalid packages in `create_default_packages`: \n"
+            rf"  - {ZLIB_URL}\n"
+            rf"\n"
+            rf"Explicit package are not allowed.+"
+        ),
+    ):
+        # Ensure only valid packages are returned
+        assert context.create_default_packages == (PYTHON_SPEC,)

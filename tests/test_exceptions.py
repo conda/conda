@@ -348,6 +348,7 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
         (
             "",
             "PackagesNotFoundError: The following packages are missing from the target environment:",
+            "",
             "  - Potato",
             "",
             "",

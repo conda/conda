@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.core.index.calculate_channel_urls` as pending deprecation in 26.9. Use `conda.models.channel.all_channel_urls(conda.base.context.context.channels)` instead. (#15173)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

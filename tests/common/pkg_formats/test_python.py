@@ -12,7 +12,8 @@ from pprint import pprint
 import pytest
 
 from conda.common.path import get_python_site_packages_short_path
-from conda.common.pkg_formats.python import (
+from conda.common.url import join_url
+from conda.plugins.prefix_data_loaders.pypi.pkg_format import (
     MetadataWarning,
     PySpec,
     PythonDistribution,
@@ -29,7 +30,6 @@ from conda.common.pkg_formats.python import (
     pypi_name_to_conda_name,
     split_spec,
 )
-from conda.common.url import join_url
 
 ENV_METADATA_DIR = Path(__file__).parent.parent.parent / "data" / "env_metadata"
 

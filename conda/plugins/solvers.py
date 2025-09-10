@@ -3,7 +3,8 @@
 """Register the classic conda solver."""
 
 from ..base.constants import CLASSIC_SOLVER
-from . import CondaSolver, hookimpl
+from . import hookimpl
+from .types import CondaSolver
 
 
 @hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten
