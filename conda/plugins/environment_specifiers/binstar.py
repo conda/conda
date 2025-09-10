@@ -5,13 +5,18 @@
 Register the conda env spec for binstar specs.
 """
 
+import warnings
+
 from .. import hookimpl
 from ..types import CondaEnvironmentSpecifier
 
 
 @hookimpl
 def conda_environment_specifiers():
-    from ...env.specs.binstar import BinstarSpec
+    # FUTURE: conda 26.3+, remove ignore BinstarSpec deprecation
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="conda.env.specs.binstar")
+        from ...env.specs.binstar import BinstarSpec
 
     yield CondaEnvironmentSpecifier(
         name="binstar",
