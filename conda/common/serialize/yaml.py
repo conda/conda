@@ -72,7 +72,7 @@ def write(
     path: PathType | None = None,
 ) -> None | str:
     # validate arguments
-    if sum(value is None for value in (fp, path)) != 1:
+    if sum(value is None for value in (fp, path)) < 1:
         raise ValueError("At most one of fp or path must be provided")
 
     # dump to file, stream, or return text

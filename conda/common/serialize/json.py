@@ -57,7 +57,7 @@ def write(
     **kwargs,
 ) -> None | str:
     # validate arguments
-    if sum(value is None for value in (fp, path)) != 1:
+    if sum(value is None for value in (fp, path)) < 1:
         raise ValueError("At most one of fp or path must be provided")
 
     # set default json.dump arguments
@@ -111,7 +111,7 @@ def read(
     # generate cache key & validate arguments
     key: CacheKey = (text, fp, path)  # type: ignore[assignment]
     if sum(value is None for value in key) != 2:
-        raise ValueError("Exactly one of text, fp or path must be provided")
+        raise ValueError("Exactly one of text, fp, or path must be provided")
 
     # try cache if requested
     if try_cache:
