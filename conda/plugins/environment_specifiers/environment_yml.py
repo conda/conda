@@ -5,7 +5,8 @@
 Register the conda env spec for environment.yml files.
 """
 
-from .. import CondaEnvironmentSpecifier, hookimpl
+from .. import hookimpl
+from ..types import CondaEnvironmentSpecifier
 
 
 @hookimpl(tryfirst=True)

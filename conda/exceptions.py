@@ -17,7 +17,12 @@ from typing import TYPE_CHECKING
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.ish import dals
 from .auxlib.logz import stringify
-from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
+from .base.constants import (
+    COMPATIBLE_SHELLS,
+    PREFIX_PINNED_FILE,
+    PathConflict,
+    SafetyChecks,
+)
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.iterators import groupby_to_dict as groupby
@@ -64,7 +69,7 @@ class ResolvePackageNotFound(CondaError):
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 
-class LockError(CondaError):
+class LockError(CondaError, OSError):
     def __init__(self, message: str):
         msg = str(message)
         super().__init__(msg)
@@ -737,47 +742,43 @@ class PackagesNotFoundError(CondaError):
         packages: Iterable[MatchSpec | PackageRecord | str],
         channel_urls: Iterable[str] = (),
     ):
-        format_list = lambda iterable: "  - " + "\n  - ".join(str(x) for x in iterable)
-
         if channel_urls:
             message = dals(
                 """
-            The following packages are not available from current channels:
+                The following packages are not available from current channels:
+                %(packages_formatted)s
 
-            %(packages_formatted)s
+                Current channels:
+                %(channels_formatted)s
 
-            Current channels:
+                To search for alternate channels that may provide the conda package you're
+                looking for, navigate to
 
-            %(channels_formatted)s
+                    https://anaconda.org
 
-            To search for alternate channels that may provide the conda package you're
-            looking for, navigate to
-
-                https://anaconda.org
-
-            and use the search bar at the top of the page.
-            """
+                and use the search bar at the top of the page.
+                """
             )
             from .base.context import context
 
             if context.use_only_tar_bz2:
                 message += dals(
                     """
-                Note: 'use_only_tar_bz2' is enabled. This might be omitting some
-                packages from the index. Set this option to 'false' and retry.
-                """
+                    Note: 'use_only_tar_bz2' is enabled. This might be omitting some
+                    packages from the index. Set this option to 'false' and retry.
+                    """
                 )
-            packages_formatted = format_list(packages)
-            channels_formatted = format_list(channel_urls)
+            packages_formatted = dashlist(packages)
+            channels_formatted = dashlist(channel_urls)
         else:
             message = dals(
                 """
-            The following packages are missing from the target environment:
-            %(packages_formatted)s
-            """
+                The following packages are missing from the target environment:
+                %(packages_formatted)s
+                """
             )
-            packages_formatted = format_list(packages)
-            channels_formatted = ()
+            packages_formatted = dashlist(packages)
+            channels_formatted = ""
 
         super().__init__(
             message,
@@ -980,7 +981,7 @@ class SpecsConfigurationConflictError(CondaError):
         ).format(
             requested_specs_formatted=dashlist(requested_specs, 4),
             pinned_specs_formatted=dashlist(pinned_specs, 4),
-            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+            pinned_specs_path=join(prefix, PREFIX_PINNED_FILE),
         )
         super().__init__(
             message,
@@ -1447,3 +1448,13 @@ class InvalidInstaller(Exception):
 
 class OfflineError(CondaError, RuntimeError):
     pass
+
+
+class CondaUpdatePackageError(CondaError):
+    def __init__(self, spec: str | list[str]):
+        spec_format = dashlist(spec, 4) if isinstance(spec, list) else spec
+        msg = (
+            f"`conda update` only supports name-only spec, but received: {spec_format}\n"
+            f"Use `conda install` to install a specific version of a package."
+        )
+        super().__init__(msg)

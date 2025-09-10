@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from typing import TYPE_CHECKING
 
@@ -11,7 +12,7 @@ import pytest
 from conda.base.constants import CONDA_LIST_FIELDS
 from conda.common.configuration import CustomValidationError
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import EnvironmentLocationNotFound
+from conda.exceptions import CondaValueError, EnvironmentLocationNotFound
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -24,6 +25,10 @@ if TYPE_CHECKING:
         PathFactoryFixture,
         TmpEnvFixture,
     )
+
+
+# Precompile for reuse in parameterized cases
+MD5_HEX_RE = re.compile(r"#[0-9a-f]{32}")
 
 
 @pytest.fixture
@@ -45,6 +50,40 @@ def test_list(
     with tmp_env(pkg) as prefix:
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--json")
         assert any(item["name"] == pkg for item in json.loads(stdout))
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--canonical"],
+        ["--export"],
+        ["--explicit", "--md5"],
+        ["--full-name"],
+        ["--revisions", "--canonical"],
+        ["--revisions", "--export"],
+        ["--revisions", "--explicit", "--md5"],
+        ["--revisions", "--full-name"],
+        ["--json", "--canonical"],
+        ["--json", "--export"],
+        ["--json", "--explicit", "--md5"],
+        ["--json", "--full-name"],
+        ["--json", "--revisions", "--canonical"],
+        ["--json", "--revisions", "--export"],
+        ["--json", "--revisions", "--explicit", "--md5"],
+        ["--json", "--revisions", "--full-name"],
+    ],
+)
+def test_list_argument_variations(conda_cli: CondaCLIFixture, args: list[str]):
+    # cover argument variations
+    # mutually exclusive: --canonical, --export, --explicit, (default human readable)
+    stdout, _, _ = conda_cli("list", *args)
+    if "--md5" in args and "--revisions" not in args:
+        assert MD5_HEX_RE.search(stdout)
+
+
+def test_list_with_bad_prefix_raises(conda_cli: CondaCLIFixture):
+    with pytest.raises(EnvironmentLocationNotFound, match="Not a conda environment"):
+        conda_cli("list", "--prefix", "not-a-real-path")
 
 
 # conda list --reverse
@@ -111,9 +150,10 @@ def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None
 
 # conda list PACKAGE
 def test_list_package(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None:
-    stdout, _, _ = conda_cli("list", "ipython", "--json")
+    stdout, _, _ = conda_cli("list", "python", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list)
+    assert "python" in [package["name"] for package in parsed]
 
 
 def test_list_explicit(
@@ -249,3 +289,16 @@ def test_fields_invalid(conda_cli):
     )
     assert "list_fields" in str(exc)
     assert "invalid-field" in str(exc)
+
+
+def test_exit_codes(conda_cli):
+    # If the package is installed, with or without --check, the exit code must be 0
+    out, err, rc = conda_cli("list", f"--prefix={sys.prefix}", "conda")
+    assert rc == 0
+
+    conda_cli(
+        "list",
+        f"--prefix={sys.prefix}",
+        "does-not-exist",
+        raises=CondaValueError,
+    )

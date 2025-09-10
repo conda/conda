@@ -4,7 +4,8 @@
 
 import warnings
 
-from .. import CondaPostSolve, hookimpl
+from .. import hookimpl
+from ..types import CondaPostSolve
 
 
 @hookimpl

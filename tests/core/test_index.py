@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import platform
+from contextlib import nullcontext
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -12,6 +13,7 @@ import pytest
 import conda
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
+from conda.core import index
 from conda.core.index import (
     Index,
     _make_virtual_package,
@@ -555,3 +557,15 @@ def test_check_allowlist_deprecation_warning():
     """
     with pytest.deprecated_call():
         check_allowlist(("defaults",))
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("calculate_channel_urls", None),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(index, function)()

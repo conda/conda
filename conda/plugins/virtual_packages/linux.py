@@ -7,7 +7,8 @@ import re
 
 from ...base.context import context
 from ...common._os.linux import linux_get_libc_version
-from .. import CondaVirtualPackage, hookimpl
+from .. import hookimpl
+from ..types import CondaVirtualPackage
 
 
 @hookimpl

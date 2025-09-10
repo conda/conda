@@ -7,7 +7,8 @@ Register the conda env spec for binstar specs.
 
 import warnings
 
-from .. import CondaEnvironmentSpecifier, hookimpl
+from .. import hookimpl
+from ..types import CondaEnvironmentSpecifier
 
 
 @hookimpl

@@ -495,8 +495,8 @@ def test_install_conda_fish(verbose):
             assert lines == [
                 f'set -gx CONDA_EXE (cygpath "{conda_exe}");',
                 f'set -gx _CONDA_EXE (cygpath "{conda_exe}");',
-                "set -e _CE_M;",
-                "set -e _CE_CONDA;",
+                "set -e _CE_M || true;",
+                "set -e _CE_CONDA || true;",
                 f'set -gx CONDA_PYTHON_EXE (cygpath "{sys.executable}");',
                 f'set -gx _CONDA_ROOT (cygpath "{context.conda_prefix}");',
                 "",
@@ -505,8 +505,8 @@ def test_install_conda_fish(verbose):
             assert lines == [
                 f'set -gx CONDA_EXE "{conda_exe}";',
                 f'set -gx _CONDA_EXE "{conda_exe}";',
-                "set -e _CE_M;",
-                "set -e _CE_CONDA;",
+                "set -e _CE_M || true;",
+                "set -e _CE_CONDA || true;",
                 f'set -gx CONDA_PYTHON_EXE "{sys.executable}";',
                 f'set -gx _CONDA_ROOT "{context.conda_prefix}";',
                 "",

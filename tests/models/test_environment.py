@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from dataclasses import fields
+from types import SimpleNamespace
 
 import pytest
+from pytest import MonkeyPatch
+from pytest_mock import MockerFixture
 
 from conda.base.constants import ChannelPriority
+from conda.base.context import reset_context
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
@@ -391,3 +395,184 @@ def test_environment_config_channels_basic():
     assert "conda-forge" in env_config.channels
     assert "defaults" in env_config.channels
     assert len(env_config.channels) == 2
+
+
+def test_from_cli_empty():
+    env = Environment.from_cli(
+        SimpleNamespace(name=None, packages=[], file=[]),
+    )
+    assert env.config == EnvironmentConfig.from_context()
+
+
+def test_from_cli_empty_with_default_packages(
+    monkeypatch: MonkeyPatch,
+):
+    # Setup the default packages. Expect this to inject python==3.13
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "python==3.13")
+    reset_context()
+
+    env = Environment.from_cli(
+        SimpleNamespace(name=None, packages=[], file=[]),
+        add_default_packages=True,
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.requested_packages == [MatchSpec("python==3.13")]
+
+
+def test_from_cli_with_specs():
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=["numpy", "scipy=1.*"],
+            file=[],
+        ),
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert env.requested_packages == [MatchSpec("numpy"), MatchSpec("scipy=1.*")]
+    assert env.explicit_packages == []
+
+
+def test_from_cli_with_explicit_specs(mocker: MockerFixture):
+    # Mock the function that retrieves explicit package records to return
+    # a fake value. We'll use this to compare to the expected output.
+    fake_explicit_records = ["/path/to/package/numpy.conda"]
+    mocker.patch(
+        "conda.models.environment.get_package_records_from_explicit",
+        return_value=fake_explicit_records,
+    )
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=["/path/to/package/numpy.conda"],
+            file=[],
+        ),
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert env.requested_packages == []
+    assert env.explicit_packages == fake_explicit_records
+
+
+def test_from_cli_mix_explicit_and_specs():
+    with pytest.raises(CondaValueError) as exc_info:
+        Environment.from_cli(
+            SimpleNamespace(
+                name="testenv",
+                packages=["numpy", "scipy=1.*", "/path/to/package/numpy.conda"],
+                file=[],
+            ),
+        )
+    assert "Cannot mix specifications with conda package filenames" in str(exc_info)
+
+
+def test_from_cli_with_files(mocker: MockerFixture):
+    # Mock out extracting specs from a file by providing a list of specs.
+    # This is similar output to extracting specs from a requirements.txt file.
+    fake_specs_from_url = ["numpy", "python >=3.9"]
+    mocker.patch(
+        "conda.models.environment.specs_from_url",
+        return_value=fake_specs_from_url,
+    )
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=["scipy"],
+            file=["/my/files/that/does/not/exist"],
+        ),
+        add_default_packages=True,
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert env.requested_packages == [
+        MatchSpec("scipy"),
+        MatchSpec("numpy"),
+        MatchSpec("python >=3.9"),
+    ]
+    assert env.explicit_packages == []
+
+
+def test_from_cli_inject_default_packages_override(
+    monkeypatch: MonkeyPatch,
+):
+    # Setup the default packages. Expect this to inject favicon and scipy=1.16.0
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,scipy=1.16.0")
+    reset_context()
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=["numpy"],
+            file=[],
+        ),
+        add_default_packages=True,
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert env.requested_packages == [
+        MatchSpec("numpy"),
+        MatchSpec("favicon"),
+        MatchSpec("scipy=1.16.0"),
+    ]
+    assert env.explicit_packages == []
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=["numpy", "scipy=1.*"],
+            file=[],
+        ),
+        add_default_packages=False,
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert env.requested_packages == [MatchSpec("numpy"), MatchSpec("scipy=1.*")]
+    assert env.explicit_packages == []
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=["numpy", "scipy=1.*"],
+            file=[],
+        ),
+        add_default_packages=True,
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert env.requested_packages == [
+        MatchSpec("numpy"),
+        MatchSpec("scipy=1.*"),
+        MatchSpec("favicon"),
+    ]
+    assert env.explicit_packages == []
+
+
+def test_from_cli_environment_inject_default_packages_override_file(
+    monkeypatch: MonkeyPatch, mocker: MockerFixture
+):
+    # Setup the default packages. Expect this to inject favicon and numpy==2.0.0
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,numpy==2.0.0")
+    reset_context()
+
+    # Mock the contents of a requirements.txt file that contains the spec numpy==2.3.1
+    fake_specs_from_url = ["numpy==2.3.1"]
+    mocker.patch(
+        "conda.models.environment.specs_from_url",
+        return_value=fake_specs_from_url,
+    )
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=["/i/dont/exist"],
+        ),
+        add_default_packages=True,
+    )
+    assert env.config == EnvironmentConfig.from_context()
+    assert env.name == "testenv"
+    assert MatchSpec("numpy==2.0.0") not in env.requested_packages
+    assert MatchSpec("numpy==2.3.1") in env.requested_packages
+    assert env.explicit_packages == []

@@ -16,8 +16,13 @@ from typing import TYPE_CHECKING
 from ...base.constants import DEFAULT_JSON_REPORTER_BACKEND
 from ...common.io import swallow_broken_pipe
 from ...common.serialize import json
-from .. import CondaReporterBackend, hookimpl
-from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
+from .. import hookimpl
+from ..types import (
+    CondaReporterBackend,
+    ProgressBarBase,
+    ReporterRendererBase,
+    SpinnerBase,
+)
 
 if TYPE_CHECKING:
     from typing import Any
