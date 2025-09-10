@@ -20,7 +20,6 @@ $ cd "$CONDA_PROJECT_ROOT"
 # set the `upstream` as the the main repository
 $ git remote add upstream git@github.com:conda/conda
 ```
-```
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
@@ -36,7 +35,6 @@ $ git remote add upstream git@github.com:conda/conda
 # set the `upstream` as the main repository
 > git remote add upstream git@github.com:conda/conda
 ```
-```
 
 ````
 
@@ -50,12 +48,10 @@ Create a local development environment and activate it using the `dev/start` scr
 ```bash
 $ source ./dev/start
 ```
-```
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
 > .\dev\start.bat
-```
 ```
 
 ````
@@ -92,7 +88,6 @@ $ source ./dev/start -i miniconda
 # Use miniforge
 $ source ./dev/start -i miniforge
 ```
-```
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
@@ -101,7 +96,6 @@ $ source ./dev/start -i miniforge
 
 :: Use miniforge
 > .\dev\start.bat -i miniforge
-```
 ```
 
 ````
@@ -138,7 +132,6 @@ $ source ./dev/start -i miniconda
 # Later, set up and activate miniforge-based environment
 $ source ./dev/start -i miniforge
 ```
-```
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
@@ -147,7 +140,6 @@ $ source ./dev/start -i miniforge
 
 :: Later, set up and activate miniforge-based environment
 > .\dev\start.bat -i miniforge
-```
 ```
 
 ````
@@ -186,7 +178,6 @@ $ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compo
 # CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.12 --build-arg default_channel=conda-forge
 $ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
 ```
-```
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
@@ -196,7 +187,6 @@ $ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compo
 > docker compose run interactive
 > set "CONDA_DOCKER_PYTHON="
 > set "CONDA_DOCKER_DEFAULT_CHANNEL="
-```
 ```
 
 ````
@@ -238,7 +228,6 @@ $ pre-commit run
 # automatically running pre-commit during commit
 $ git commit
 ```
-```
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
@@ -257,7 +246,6 @@ $ git commit
 
 :: automatically running pre-commit during commit
 > git commit
-```
 ```
 
 ````
@@ -299,7 +287,6 @@ $ pytest --cov -m "not integration" conda tests
 # or you can use pytest to focus on one specific test
 $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 ```
-```
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
@@ -313,7 +300,6 @@ $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 
 :: or you can use pytest to focus on one specific test
 > pytest --cov tests\test_create.py -k create_install_update_remove_smoketest
-```
 ```
 
 ````
