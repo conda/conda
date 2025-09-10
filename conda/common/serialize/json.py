@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, overload
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from ..path import PathType
+    from . import CacheKey
 
 
 class CondaJSONEncoder(json.JSONEncoder):
@@ -48,14 +50,21 @@ def write(obj: Any, **kwargs) -> str: ...
 
 
 def write(
-    obj: Any, *, fp: IO[str] | None = None, path: PathType | None = None, **kwargs
+    obj: Any,
+    *,
+    fp: IO[str] | None = None,
+    path: PathType | None = None,
+    **kwargs,
 ) -> None | str:
-    if sum(value is not None for value in (fp, path)) > 1:
+    # validate arguments
+    if sum(value is None for value in (fp, path)) != 1:
         raise ValueError("At most one of fp or path must be provided")
 
+    # set default json.dump arguments
     kwargs.setdefault("cls", CondaJSONEncoder)
     kwargs.setdefault("indent", 2)
 
+    # dump to file, stream, or return text
     if fp is not None:
         json.dump(obj, fp, **kwargs)
         return None
@@ -69,11 +78,14 @@ def write(
 
 
 def dump(obj: Any, fp: IO[str], **kwargs) -> None:
-    write(obj, fp=fp, **kwargs)
+    return write(obj, fp=fp, **kwargs)
 
 
 def dumps(obj: Any, **kwargs) -> str:
     return write(obj, **kwargs)
+
+
+_JSON_CACHE: dict[CacheKey, Any] = {}
 
 
 @overload
@@ -93,17 +105,26 @@ def read(
     text: str | None = None,
     fp: IO[str] | None = None,
     path: PathType | None = None,
+    try_cache: bool = False,
     **kwargs,
 ) -> Any:
-    if sum(value is not None for value in (text, fp, path)) != 1:
+    # generate cache key & validate arguments
+    key: CacheKey = (text, fp, path)  # type: ignore[assignment]
+    if sum(value is None for value in key) != 2:
         raise ValueError("Exactly one of text, fp or path must be provided")
 
+    # try cache if requested
+    if try_cache:
+        with suppress(KeyError):
+            return _JSON_CACHE[key]
+
+    # parse data from text, file, or path and cache result
     if fp is not None:
-        return json.load(fp, **kwargs)
+        text = fp.read()
     elif path is not None:
-        return json.loads(Path(path).read_text(), **kwargs)
-    else:
-        return json.loads(text, **kwargs)
+        text = Path(path).read_text()
+    _JSON_CACHE[key] = result = json.loads(text, **kwargs)
+    return result
 
 
 def load(fp: IO[str], **kwargs) -> Any:

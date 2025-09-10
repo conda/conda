@@ -2,12 +2,25 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """YAML and JSON serialization and deserialization functions."""
 
+from __future__ import annotations
+
 import functools
 from io import StringIO
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 from .json import CondaJSONEncoder, loads
+
+if TYPE_CHECKING:
+    from io import IO
+
+    from ..path import PathType
+
+    TextCacheKey = tuple[str, None, None]
+    FileCacheKey = tuple[None, IO[str], None]
+    PathCacheKey = tuple[None, None, PathType]
+    CacheKey = TextCacheKey | FileCacheKey | PathCacheKey
 
 log = getLogger(__name__)
 
