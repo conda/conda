@@ -4,7 +4,7 @@
 
 Clone the repo you just forked on GitHub to your local machine. Configure your repo to point to both "upstream" (the main conda repo) and your fork ("origin").
 
-```{tab-set}
+````{tab-set}
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
@@ -38,13 +38,13 @@ $ git remote add upstream git@github.com:conda/conda
 ```
 ```
 
-```
+````
 
 ## Development Environment Setup
 
 Create a local development environment and activate it using the `dev/start` scripts:
 
-```{tab-set}
+````{tab-set}
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
@@ -58,7 +58,7 @@ $ source ./dev/start
 ```
 ```
 
-```
+````
 
 This command will create a project-specific base environment (see `devenv` in your repo directory after running this command). If the base environment already exists this command will simply activate the already-created `devenv` environment.
 
@@ -82,7 +82,7 @@ Enter choice [1]:
 
 You can also specify the installer directly using the `-i` or `--installer` flag:
 
-```{tab-set}
+````{tab-set}
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
@@ -104,7 +104,7 @@ $ source ./dev/start -i miniforge
 ```
 ```
 
-```
+````
 
 ### Additional Options
 
@@ -128,7 +128,7 @@ $ source ./dev/start -n
 
 You can maintain separate development environments for different installers and switch between them:
 
-```{tab-set}
+````{tab-set}
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
@@ -150,7 +150,7 @@ $ source ./dev/start -i miniforge
 ```
 ```
 
-```
+````
 
 Each installer creates its own isolated environment, so you can test conda behavior with both the defaults and conda-forge channels.
 
@@ -177,7 +177,7 @@ By default, it will use Miniconda-based, Python 3.9 installation configured for 
 
 For example, if you need a conda-forge based 3.12 image:
 
-```{tab-set}
+````{tab-set}
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
@@ -199,7 +199,7 @@ $ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compo
 ```
 ```
 
-```
+````
 
 > The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your editor will be reflected live while the Docker container is running.
 
@@ -218,7 +218,7 @@ Feel free to read up on everything pre-commit related in their
 [docs](https://pre-commit.com/#quick-start) but we've included the gist of
 what you need to get started below:
 
-```{tab-set}
+````{tab-set}
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
@@ -260,7 +260,7 @@ $ git commit
 ```
 ```
 
-```
+````
 
 Beware that some of the tools run by pre-commit can potentially modify the
 code (see [black](https://github.com/psf/black),
@@ -281,7 +281,7 @@ We use pytest to run our test suite. Please consult pytest's
 [docs](https://docs.pytest.org/en/6.2.x/usage.html) for detailed instructions
 but generally speaking all you need is the following:
 
-```{tab-set}
+````{tab-set}
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
@@ -316,7 +316,7 @@ $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 ```
 ```
 
-```
+````
 
 If you are not measuring code coverage, `pytest` can be run without the `--cov`
 option. The `docker compose` tests pass `--cov`.
