@@ -68,6 +68,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--platform",
         "--subdir",
         action="append",
+        dest="platforms",
         help="Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64)",
     )
     add_parser_prefix(p)
@@ -134,9 +135,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Determine target platforms for export
     target_platforms = []
-    if args.platform:
+    if args.platforms:
         # Use platforms specified on command line
-        target_platforms = args.platform
+        target_platforms = args.platforms
     elif context.export_platforms:
         # Use platforms from condarc configuration
         target_platforms = list(context.export_platforms)
