@@ -545,6 +545,7 @@ class Environment:
             config=EnvironmentConfig.from_context(),
         )
 
+    @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:
         history = History(prefix)
         spec_map = history.get_requested_specs_map()

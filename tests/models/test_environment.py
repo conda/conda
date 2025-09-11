@@ -9,7 +9,8 @@ from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from conda.base.constants import ChannelPriority
-from conda.base.context import reset_context
+from conda.base.context import context, reset_context
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
@@ -576,3 +577,35 @@ def test_from_cli_environment_inject_default_packages_override_file(
     assert MatchSpec("numpy==2.0.0") not in env.requested_packages
     assert MatchSpec("numpy==2.3.1") in env.requested_packages
     assert env.explicit_packages == []
+
+
+def test_extrapolate(tmp_env: TmpEnvFixture):
+    package_name = "zlib"
+    package_version = "1.2.12"
+    dependencies = {
+        "linux-64": 3,
+        "osx-arm64": 1,
+        "win-64": 5,
+    }
+
+    with tmp_env(f"{package_name}=={package_version}") as prefix:
+        assert PrefixData(prefix).get(package_name).version == package_version
+        env = Environment.from_prefix(prefix, None, context.subdir)
+        for platform in set(dependencies) - {context.subdir}:
+            extrapolated = env.extrapolate(platform)
+            assert len(extrapolated.requested_packages) == 1
+            assert len(extrapolated.explicit_packages) == dependencies[platform]
+            assert extrapolated.config == env.config
+            assert extrapolated.prefix == f"{prefix}/conda-meta/{platform}"
+            assert extrapolated.platform == platform
+            assert extrapolated.name is None
+            assert extrapolated.variables == env.variables
+            assert extrapolated.virtual_packages == env.virtual_packages
+            assert (
+                next(
+                    package
+                    for package in extrapolated.explicit_packages
+                    if package.name == package_name
+                ).version
+                == package_version
+            )
