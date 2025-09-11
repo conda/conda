@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Added support for parsing RFC 9457 formatted response bodies and ceased uppercasing of HTTP reason phrase.
+* If an HTTP error response includes a field named "detail", relay that as the error message. Ceased uppercasing of error message.
 
 ### Bug fixes
 
