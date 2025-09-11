@@ -72,7 +72,7 @@ class PrefixDataType(type):
     )
     def __call__(
         cls,
-        prefix_path: str | os.PathLike | Path,
+        prefix_path: PathType,
         interoperability: bool | None = None,
     ) -> PrefixData:
         if isinstance(prefix_path, PrefixData):

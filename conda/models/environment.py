@@ -27,7 +27,7 @@ from .match_spec import MatchSpec
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
-    from typing import Self, TypeVar
+    from typing import TypeVar
 
     from ..base.constants import (
         ChannelPriority,
@@ -35,6 +35,7 @@ if TYPE_CHECKING:
         SatSolverChoice,
         UpdateModifier,
     )
+    from ..common.path import PathType
     from .records import PackageRecord
 
     T = TypeVar("T")
@@ -544,8 +545,7 @@ class Environment:
             config=EnvironmentConfig.from_context(),
         )
 
-    def from_history(self: Self | str) -> list[MatchSpec]:  # type: ignore[misc]
-        prefix = self.prefix if isinstance(self, Environment) else str(self)
+    def from_history(prefix: PathType) -> list[MatchSpec]:
         history = History(prefix)
         spec_map = history.get_requested_specs_map()
         # Get MatchSpec objects from history; they'll be serialized to bracket format later
@@ -559,7 +559,7 @@ class Environment:
 
         prefix = f"{self.prefix}/conda-meta/{platform}"
         solver_backend = context.plugin_manager.get_cached_solver_backend()
-        requested_packages = self.from_history()
+        requested_packages = self.from_history(self.prefix)
 
         for repodata_manager in Repodatas(self.config.repodata_fns, {}):
             with repodata_manager as repodata_fn:

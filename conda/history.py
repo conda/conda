@@ -17,6 +17,7 @@ from itertools import islice
 from operator import itemgetter
 from os.path import isdir, isfile, join
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
@@ -31,6 +32,9 @@ from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder, version_relation_re
+
+if TYPE_CHECKING:
+    from .common.path import PathType
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +88,7 @@ class History:
     spec_pat = re.compile(r"#\s*(\w+)\s*specs:\s*(.+)?")
     conda_v_pat = re.compile(r"#\s*conda version:\s*(.+)")
 
-    def __init__(self, prefix):
+    def __init__(self, prefix: PathType):
         self.prefix = prefix
         self.meta_dir = join(prefix, "conda-meta")
         self.path = join(self.meta_dir, "history")
