@@ -16,6 +16,7 @@ from ..base.context import context
 # TODO: this cli import will be removed once the Environment.from_cli method
 # is updated to use the environment spec plugins to read environment files.
 from ..cli.common import specs_from_url
+from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import is_package_file
 from ..core.prefix_data import PrefixData
@@ -208,15 +209,12 @@ class EnvironmentConfig:
 
 
 @dataclass
-class Environment:
+class VirtualEnvironment:
     """
     **Experimental** While experimental, expect both major and minor changes across minor releases.
 
     Data model for a conda environment.
     """
-
-    #: Prefix the environment is installed into (required).
-    prefix: str
 
     #: The platform this environment may be installed on (required)
     platform: str
@@ -233,9 +231,6 @@ class Environment:
     #: eg. after a solve, or from an explicit environment spec
     explicit_packages: list[PackageRecord] = field(default_factory=list)
 
-    #: Environment name
-    name: str | None = None
-
     #: User requested specs for this environment.
     requested_packages: list[MatchSpec] = field(default_factory=list)
 
@@ -247,10 +242,6 @@ class Environment:
     virtual_packages: list[PackageRecord] = field(default_factory=list)
 
     def __post_init__(self):
-        # an environment must have a name of prefix
-        if not self.prefix:
-            raise CondaValueError("'Environment' needs a 'prefix'.")
-
         # an environment must have a platform
         if not self.platform:
             raise CondaValueError("'Environment' needs a 'platform'.")
@@ -277,7 +268,7 @@ class Environment:
                     )
 
     @classmethod
-    def merge(cls, *environments):
+    def merge(cls, *environments, **kwargs):
         """
         **Experimental** While experimental, expect both major and minor changes across minor releases.
 
@@ -286,32 +277,15 @@ class Environment:
         * Concatenates and deduplicates requirements.
         * Reduces configuration and variables (last key wins).
         """
-        name = None
-        prefix = None
-        platform = None
-        names = [env.name for env in environments if env.name]
-        prefixes = [env.prefix for env in environments if env.prefix]
-
-        if names:
-            name = names[0]
-            if len(names) > 1:
-                log.debug("Several names passed %s. Picking first one %s", names, name)
-
-        if prefixes:
-            prefix = prefixes[0]
-            if len(prefixes) > 1:
-                log.debug(
-                    "Several prefixes passed %s. Picking first one %s", prefixes, prefix
-                )
-
-        platforms = [env.platform for env in environments if env.platform]
         # Ensure that all environments have the same platform
-        if len(set(platforms)) == 1:
+        platform = None
+        platforms = iter({env.platform for env in environments if env.platform})
+        if len(platforms) == 1:
             platform = platforms[0]
         else:
             raise CondaValueError(
                 "Conda can not merge environments of different platforms. "
-                f"Received environments with platforms: {platforms}"
+                f"Received environments with platforms: {dashlist(platforms)}"
             )
 
         requested_packages = list(
@@ -353,19 +327,62 @@ class Environment:
                     external_packages[k] = v
 
         config = EnvironmentConfig.merge(
-            *[env.config for env in environments if env.config is not None]
+            *(env.config for env in environments if env.config)
         )
 
         return cls(
-            config=config,
-            external_packages=external_packages,
-            explicit_packages=explicit_packages,
-            name=name,
-            platform=platform,
-            prefix=prefix,
-            requested_packages=requested_packages,
-            variables=variables,
-            virtual_packages=virtual_packages,
+            **{
+                "config": config,
+                "external_packages": external_packages,
+                "explicit_packages": explicit_packages,
+                "platform": platform,
+                "requested_packages": requested_packages,
+                "variables": variables,
+                "virtual_packages": virtual_packages,
+                **kwargs,  # allows overriding
+            }
+        )
+
+
+class Environment(VirtualEnvironment):
+    #: Prefix the environment is installed into (required).
+    prefix: str
+
+    #: Environment name
+    name: str | None = None
+
+    def __post_init__(self):
+        # an environment must have a name of prefix
+        if not self.prefix:
+            raise CondaValueError("'Environment' needs a 'prefix'.")
+
+        super().__post_init__()
+
+    @classmethod
+    def merge(cls, *environments, **kwargs):
+        name = None
+        names = [env.name for env in environments if env.name]
+        if names:
+            name = names[0]
+            if len(names) > 1:
+                log.debug("Several names passed %s. Picking first one %s", names, name)
+
+        prefix = None
+        prefixes = [env.prefix for env in environments if env.prefix]
+        if prefixes:
+            prefix = prefixes[0]
+            if len(prefixes) > 1:
+                log.debug(
+                    "Several prefixes passed %s. Picking first one %s", prefixes, prefix
+                )
+
+        return super().merge(
+            *environments,
+            **{
+                "name": name,
+                "prefix": prefix,
+                **kwargs,  # allows overriding
+            },
         )
 
     @classmethod
