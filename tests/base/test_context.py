@@ -391,8 +391,7 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
 def test_channels_empty(context_testdata: None):
     """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())
-    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
-        assert context.channels == ("defaults",)
+    assert context.channels == ()
 
 
 def test_channels_defaults_condarc(context_testdata: None):
