@@ -137,12 +137,26 @@
     @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
 )
 
-:: downloading installer
+:: Remove zero-byte installer files before download
+@IF EXIST "%_INSTALLER_FILE%" (
+    @IF NOT EXIST "%_INSTALLER_FILE%" (
+        REM File does not exist, skip
+    ) ELSE (
+        @FOR %%F IN ("%_INSTALLER_FILE%") DO @IF %%~zF EQU 0 (
+            @ECHO Warning: removing empty installer file %_INSTALLER_FILE%
+            @DEL /F /Q "%_INSTALLER_FILE%"
+        )
+    )
+)
+
 @IF EXIST "%_INSTALLER_FILE%" @GOTO DOWNLOADED
 @ECHO Downloading %_INSTALLER_DISPLAY%...
 @powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
-@IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to download %_INSTALLER_DISPLAY% 1>&2
+@FOR %%F IN ("%_INSTALLER_FILE%") DO @IF NOT EXIST "%%F" (
+    @ECHO Error: failed to download %_INSTALLER_DISPLAY% (file missing) 1>&2
+    @EXIT /B 1
+) ELSE IF %%~zF EQU 0 (
+    @ECHO Error: failed to download %_INSTALLER_DISPLAY% (file empty) 1>&2
     @EXIT /B 1
 )
 :DOWNLOADED

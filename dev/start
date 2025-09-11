@@ -264,15 +264,21 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
         Darwin|Linux) _INSTALLER_FILE="${_INSTALLER_FILE}.sh" ;;
     esac
 
+    # Remove zero-byte installer files before download
+    if [ -f "${_INSTALLER_FILE}" ] && [ ! -s "${_INSTALLER_FILE}" ]; then
+        echo "Warning: removing empty installer file ${_INSTALLER_FILE}"
+        rm -f "${_INSTALLER_FILE}"
+    fi
+
     if ! [ -f "${_INSTALLER_FILE}" ]; then
         echo "Downloading ${_INSTALLER_DISPLAY}..."
         if [ "${_MACH}" = "Darwin" ] || [ "${_MACH}" = "Linux" ]; then
-            curl -s "${_DOWNLOAD_URL}" -o "${_INSTALLER_FILE}"
+            curl -L --fail --silent --show-error "${_DOWNLOAD_URL}" -o "${_INSTALLER_FILE}"
         else
             powershell.exe -Command "Invoke-WebRequest -Uri '${_DOWNLOAD_URL}' -OutFile '${_INSTALLER_FILE}' | Out-Null"
         fi
-        if ! [ $? = 0 ]; then
-            echo "Error: failed to download ${_INSTALLER_DISPLAY}" 1>&2
+        if ! [ $? = 0 ] || [ ! -s "${_INSTALLER_FILE}" ]; then
+            echo "Error: failed to download ${_INSTALLER_DISPLAY} (file missing or empty)" 1>&2
             return 1
         fi
     fi
