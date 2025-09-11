@@ -12,7 +12,6 @@ from pytest_mock import MockerFixture
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
-from conda.common.io import captured
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
@@ -45,7 +44,10 @@ def username_not_in_post_mock(post_mock, username):
     return True
 
 
-def test_TooManyArgumentsError(monkeypatch: MonkeyPatch) -> None:
+def test_TooManyArgumentsError(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     expected = 2
     received = 5
     offending_arguments = "groot"
@@ -55,11 +57,11 @@ def test_TooManyArgumentsError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert (
         json_obj["exception_type"] == "<class 'conda.exceptions.TooManyArgumentsError'>"
     )
@@ -74,11 +76,11 @@ def test_TooManyArgumentsError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "TooManyArgumentsError:  Got 5 arguments (g, r, o, o, t) but expected 2.",
@@ -88,7 +90,7 @@ def test_TooManyArgumentsError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_BasicClobberError(monkeypatch: MonkeyPatch) -> None:
+def test_BasicClobberError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     source_path = "some/path/on/goodwin.ave"
     target_path = "some/path/to/wright.st"
     exc = BasicClobberError(source_path, target_path, context)
@@ -97,11 +99,11 @@ def test_BasicClobberError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.path_conflict == PathConflict.prevent
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "ClobberError: Conda was asked to clobber an existing path.",
@@ -115,7 +117,10 @@ def test_BasicClobberError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_KnownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
+def test_KnownPackageClobberError(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     target_path = "some/where/on/goodwin.ave"
     colliding_dist_being_linked = "Groot"
     colliding_linked_dist = "Liquid"
@@ -127,11 +132,11 @@ def test_KnownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.path_conflict == PathConflict.prevent
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "ClobberError: The package 'Groot' cannot be installed due to a",
@@ -147,7 +152,10 @@ def test_KnownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_UnknownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
+def test_UnknownPackageClobberError(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     target_path = "siebel/center/for/c.s"
     colliding_dist_being_linked = "Groot"
     exc = UnknownPackageClobberError(target_path, colliding_dist_being_linked, context)
@@ -156,11 +164,11 @@ def test_UnknownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.path_conflict == PathConflict.prevent
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "ClobberError: The package 'Groot' cannot be installed due to a",
@@ -176,7 +184,10 @@ def test_UnknownPackageClobberError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_SharedLinkPathClobberError(monkeypatch: MonkeyPatch) -> None:
+def test_SharedLinkPathClobberError(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     target_path = "some/where/in/shampoo/banana"
     incompatible_package_dists = "Groot"
     exc = SharedLinkPathClobberError(target_path, incompatible_package_dists, context)
@@ -185,11 +196,11 @@ def test_SharedLinkPathClobberError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.path_conflict == PathConflict.prevent
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "ClobberError: This transaction has incompatible packages due to a shared path.",
@@ -203,7 +214,10 @@ def test_SharedLinkPathClobberError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_CondaFileNotFoundError(monkeypatch: MonkeyPatch) -> None:
+def test_CondaFileNotFoundError(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     filename = "Groot"
     exc = PathNotFoundError(filename)
 
@@ -211,11 +225,11 @@ def test_CondaFileNotFoundError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert json_obj["exception_type"] == "<class 'conda.exceptions.PathNotFoundError'>"
     assert json_obj["exception_name"] == "PathNotFoundError"
     assert json_obj["message"] == str(exc)
@@ -225,14 +239,17 @@ def test_CondaFileNotFoundError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(("", "PathNotFoundError: Groot", "", ""))
+    assert not stdout
+    assert stderr == "\n".join(("", "PathNotFoundError: Groot", "", ""))
 
 
-def test_DirectoryNotFoundError(monkeypatch: MonkeyPatch) -> None:
+def test_DirectoryNotFoundError(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     directory = "Groot"
     exc = DirectoryNotFoundError(directory)
 
@@ -240,11 +257,11 @@ def test_DirectoryNotFoundError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert (
         json_obj["exception_type"]
         == "<class 'conda.exceptions.DirectoryNotFoundError'>"
@@ -258,14 +275,14 @@ def test_DirectoryNotFoundError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(("", "DirectoryNotFoundError: Groot", "", ""))
+    assert not stdout
+    assert stderr == "\n".join(("", "DirectoryNotFoundError: Groot", "", ""))
 
 
-def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
+def test_MD5MismatchError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     url = "https://download.url/path/to/file.tar.bz2"
     target_full_path = "/some/path/on/disk/another-name.tar.bz2"
     expected_md5sum = "abc123"
@@ -278,11 +295,11 @@ def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert (
         json_obj["exception_type"] == "<class 'conda.exceptions.ChecksumMismatchError'>"
     )
@@ -298,11 +315,11 @@ def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "ChecksumMismatchError: Conda detected a mismatch between the expected content and downloaded content",
@@ -317,7 +334,7 @@ def test_MD5MismatchError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
+def test_PackageNotFoundError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     package = "Potato"
     exc = PackagesNotFoundError((package,))
 
@@ -325,11 +342,11 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert (
         json_obj["exception_type"] == "<class 'conda.exceptions.PackagesNotFoundError'>"
     )
@@ -340,14 +357,15 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "PackagesNotFoundError: The following packages are missing from the target environment:",
+            "",
             "  - Potato",
             "",
             "",
@@ -356,7 +374,7 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_CondaKeyError(monkeypatch: MonkeyPatch) -> None:
+def test_CondaKeyError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     key = "Potato"
     message = "Potato is not a key."
     exc = CondaKeyError(key, message)
@@ -365,11 +383,11 @@ def test_CondaKeyError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert json_obj["exception_type"] == "<class 'conda.exceptions.CondaKeyError'>"
     assert json_obj["exception_name"] == "CondaKeyError"
     assert json_obj["message"] == str(exc)
@@ -380,16 +398,16 @@ def test_CondaKeyError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         ("", "CondaKeyError: 'Potato': Potato is not a key.", "", "")
     )
 
 
-def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
+def test_CondaHTTPError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     msg = "Potato"
     url = "https://download.url/path/to/Potato.tar.gz"
     status_code = "Potato"
@@ -401,11 +419,11 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert json_obj["exception_type"] == "<class 'conda.exceptions.CondaHTTPError'>"
     assert json_obj["exception_name"] == "CondaHTTPError"
     assert json_obj["message"] == str(exc)
@@ -419,11 +437,11 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "CondaHTTPError: HTTP Potato COULD NOT CONNECT for url <https://download.url/path/to/Potato.tar.gz>",
@@ -436,7 +454,10 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
+def test_CommandNotFoundError_simple(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     cmd = "instate"
     exc = CommandNotFoundError(cmd)
 
@@ -444,11 +465,11 @@ def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert (
         json_obj["exception_type"] == "<class 'conda.exceptions.CommandNotFoundError'>"
     )
@@ -459,11 +480,11 @@ def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "CommandNotFoundError: No command 'conda instate'.",
@@ -474,7 +495,10 @@ def test_CommandNotFoundError_simple(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_CommandNotFoundError_conda_build(monkeypatch: MonkeyPatch) -> None:
+def test_CommandNotFoundError_conda_build(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     cmd = "build"
     exc = CommandNotFoundError(cmd)
 
@@ -482,11 +506,11 @@ def test_CommandNotFoundError_conda_build(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert (
         json_obj["exception_type"] == "<class 'conda.exceptions.CommandNotFoundError'>"
     )
@@ -497,11 +521,11 @@ def test_CommandNotFoundError_conda_build(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "CommandNotFoundError: To use 'conda build', install conda-build.",
@@ -649,20 +673,21 @@ def test_print_unexpected_error_message_upload_username_with_spaces(
     pwuid,
     post_mock,
     monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
 ) -> None:
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
     reset_context()
     assert context.report_errors
 
-    with captured() as c:
-        ExceptionHandler()(_raise_helper, AssertionError())
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
     error_data = json.loads(post_mock.call_args[1].get("data"))
     assert error_data.get("has_spaces") is True
     assert error_data.get("is_ascii") is True
     assert post_mock.call_count == 2
-    assert c.stdout == ""
-    assert "conda version" in c.stderr
+    assert stdout == ""
+    assert "conda version" in stderr
 
 
 @patch(
@@ -681,20 +706,21 @@ def test_print_unexpected_error_message_upload_username_with_unicode(
     pwuid,
     post_mock,
     monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
 ) -> None:
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
     reset_context()
     assert context.report_errors
 
-    with captured() as c:
-        ExceptionHandler()(_raise_helper, AssertionError())
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
     error_data = json.loads(post_mock.call_args[1].get("data"))
     assert error_data.get("has_spaces") is False
     assert error_data.get("is_ascii") is False
     assert post_mock.call_count == 2
-    assert c.stdout == ""
-    assert "conda version" in c.stderr
+    assert stdout == ""
+    assert "conda version" in stderr
 
 
 @patch("requests.post", return_value=None)
@@ -703,35 +729,44 @@ def test_print_unexpected_error_message_opt_out_1(
     input_mock,
     post_mock,
     monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
 ) -> None:
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "false")
     reset_context()
     assert not context.report_errors
 
-    with captured() as c:
-        ExceptionHandler()(_raise_helper, AssertionError())
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
     assert input_mock.call_count == 0
     assert post_mock.call_count == 0
-    assert c.stdout == ""
-    print(c.stderr, file=sys.stderr)
-    assert "conda version" in c.stderr
+    assert stdout == ""
+    print(stderr, file=sys.stderr)
+    assert "conda version" in stderr
 
 
 @patch("requests.post", return_value=None)
 @patch("builtins.input", return_value="n")
 @patch("os.isatty", return_value=True)
-def test_print_unexpected_error_message_opt_out_2(isatty_mock, input_mock, post_mock):
-    with captured() as c:
-        ExceptionHandler()(_raise_helper, AssertionError())
+def test_print_unexpected_error_message_opt_out_2(
+    isatty_mock,
+    input_mock,
+    post_mock,
+    capsys: CaptureFixture,
+):
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
     assert input_mock.call_count == 1
     assert post_mock.call_count == 0
-    assert c.stdout == ""
-    assert "conda version" in c.stderr
+    assert stdout == ""
+    assert "conda version" in stderr
 
 
-def test_BinaryPrefixReplacementError(monkeypatch: MonkeyPatch) -> None:
+def test_BinaryPrefixReplacementError(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
     new_data_length = 1104
     original_data_length = 1404
     new_prefix = "some/where/on/goodwin.ave"
@@ -745,11 +780,11 @@ def test_BinaryPrefixReplacementError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert (
         json_obj["exception_type"]
         == "<class 'conda.exceptions.BinaryPrefixReplacementError'>"
@@ -767,11 +802,11 @@ def test_BinaryPrefixReplacementError(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "BinaryPrefixReplacementError: Refusing to replace mismatched data length in binary file.",

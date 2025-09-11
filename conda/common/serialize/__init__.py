@@ -32,9 +32,9 @@ log = getLogger(__name__)
 )
 @functools.cache
 def _yaml_round_trip():
-    import ruamel.yaml as yaml
+    from ruamel.yaml import YAML
 
-    parser = yaml.YAML(typ="rt")
+    parser = YAML(typ="rt")
     parser.indent(mapping=2, offset=2, sequence=4)
     return parser
 
@@ -46,9 +46,9 @@ def _yaml_round_trip():
 )
 @functools.cache
 def _yaml_safe():
-    import ruamel.yaml as yaml
+    from ruamel.yaml import YAML
 
-    parser = yaml.YAML(typ="safe", pure=True)
+    parser = YAML(typ="safe", pure=True)
     parser.indent(mapping=2, offset=2, sequence=4)
     parser.default_flow_style = False
     parser.sort_base_mapping_type_on_output = False

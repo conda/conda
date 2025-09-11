@@ -167,7 +167,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..cli.common import stdout_json
     from ..core.envs_manager import query_all_prefixes
-    from ..core.index import calculate_channel_urls
     from ..core.subdir_data import SubdirData
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -248,17 +247,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     if not matches:
-        channels_urls = tuple(
-            calculate_channel_urls(
-                channel_urls=context.channels,
-                prepend=not args.override_channels,
-                platform=subdirs[0],
-                use_local=args.use_local,
-            )
-        )
         from ..exceptions import PackagesNotFoundError
+        from ..models.channel import all_channel_urls
 
-        raise PackagesNotFoundError((str(spec),), channels_urls)
+        raise PackagesNotFoundError([spec], all_channel_urls(context.channels, subdirs))
 
     if context.json:
         json_obj = defaultdict(list)
