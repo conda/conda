@@ -454,7 +454,7 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> Non
     )
 
 
-def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch) -> None:
+def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     msg = ""
     url = "https://download.url/path/to/something.tar.gz"
     status_code = "403"
@@ -466,11 +466,10 @@ def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert json_obj["exception_type"] == "<class 'conda.exceptions.CondaHTTPError'>"
     assert json_obj["exception_name"] == "CondaHTTPError"
     assert json_obj["message"] == str(exc)
@@ -484,11 +483,8 @@ def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
-
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "CondaHTTPError: HTTP 403 -->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------ for url <https://download.url/path/to/something.tar.gz>",
@@ -501,7 +497,7 @@ def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_http_error_rfc_9457(monkeypatch: MonkeyPatch) -> None:
+def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     msg = ""
     url = "https://download.url/path/to/something.tar.gz"
     status_code = "403"
@@ -528,22 +524,18 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
-    json_obj = json.loads(c.stdout)
-    assert not c.stderr
+    json_obj = json.loads(stdout)
+    assert not stderr
     assert json_obj["json"]["detail"] == detail
 
     monkeypatch.setenv("CONDA_JSON", "no")
     reset_context()
     assert not context.json
 
-    with captured() as c:
-        conda_exception_handler(_raise_helper, exc)
-
-    assert not c.stdout
-    assert c.stderr == "\n".join(
+    assert not stdout
+    assert stderr == "\n".join(
         (
             "",
             "CondaHTTPError: HTTP 403 CONNECTION FAILED for url <https://download.url/path/to/something.tar.gz>",
