@@ -585,6 +585,7 @@ class UnavailableInvalidChannel(ChannelError):
             reason = body.get("reason", None) or reason
             message = body.get("message", None) or message
             # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # See https://datatracker.ietf.org/doc/html/rfc9457
             message = body.get("detail", message)
 
         # standardize arguments
@@ -690,6 +691,7 @@ class CondaHTTPError(CondaError):
             reason = body.get("reason", None) or reason
             message = body.get("message", None) or message
             # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # See https://datatracker.ietf.org/doc/html/rfc9457
             message = body.get("detail", message)
 
         # standardize arguments
