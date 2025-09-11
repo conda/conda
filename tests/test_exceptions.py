@@ -454,7 +454,9 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> Non
     )
 
 
-def test_http_error_custom_reason_code(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
+def test_http_error_custom_reason_code(
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture
+) -> None:
     msg = ""
     url = "https://download.url/path/to/something.tar.gz"
     status_code = "403"
