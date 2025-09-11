@@ -586,7 +586,7 @@ class UnavailableInvalidChannel(ChannelError):
             message = body.get("message") or message
             # if RFC 9457 'detail' is present, it is preferred over 'message'
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail", message) or message
+            message = body.get("detail") or message
 
         # standardize arguments
         status_code = status_code or "000"
