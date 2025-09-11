@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import re
-import sys
 from logging import getLogger
 from os.path import (
     dirname,
@@ -26,12 +25,10 @@ from ..base.constants import (
     PREFIX_MAGIC_FILE,
 )
 from ..base.context import context, env_name
-from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
-    CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
