@@ -519,7 +519,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     response = MockResponse({"detail": detail})
 
     elapsed_time = 1.26
-    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
+    CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
