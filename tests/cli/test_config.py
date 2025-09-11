@@ -119,8 +119,7 @@ def test_channels_add_empty(conda_cli: CondaCLIFixture):
             *("--add", "channels", "test"),
         )
         assert stdout == stderr == ""
-        # TODO: Update in 25.3
-        assert _read_test_condarc(rc) == _channels_as_yaml("test", "defaults")
+        assert _read_test_condarc(rc) == _channels_as_yaml("test")
 
 
 def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
@@ -133,11 +132,6 @@ def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
             *("--add", "channels", "defaults"),
         )
         assert stdout == ""
-        # TODO: Update in 25.3
-        assert (
-            stderr.strip()
-            == "Warning: 'defaults' already in 'channels' list, moving to the top"
-        )
         assert _read_test_condarc(rc) == _channels_as_yaml("defaults", "test")
 
 
@@ -456,7 +450,7 @@ def test_set_map_key(key, from_val, to_val, conda_cli: CondaCLIFixture):
 
 
 def test_set_unconfigured_key(conda_cli: CondaCLIFixture):
-    key, to_val = "restore_free_channel", "true"
+    key, to_val = "use_only_tar_bz2", "true"
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, to_val)
         assert stdout == stderr == ""
@@ -516,11 +510,11 @@ def test_remove_key_duplicate(conda_cli: CondaCLIFixture):
 
 
 def test_remove_unconfigured_key(conda_cli: CondaCLIFixture):
-    key = "restore_free_channel"
+    key = "use_only_tar_bz2"
     with make_temp_condarc(CONDARC_BASE) as rc:
         with pytest.raises(
             CondaKeyError,
-            match=r"'restore_free_channel': undefined in config",
+            match=r"'use_only_tar_bz2': undefined in config",
         ):
             conda_cli("config", "--file", rc, "--remove-key", key)
 
@@ -550,7 +544,7 @@ def test_set_check_types(key, str_value, py_value, conda_cli: CondaCLIFixture):
 
 
 def test_set_and_get_bool(conda_cli: CondaCLIFixture):
-    key = "restore_free_channel"
+    key = "use_only_tar_bz2"
     with make_temp_condarc() as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, "yes")
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", key)

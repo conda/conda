@@ -214,17 +214,6 @@ def test_custom_multichannels(context_testdata: None):
     )
 
 
-def test_restore_free_channel(monkeypatch: MonkeyPatch) -> None:
-    free_channel = "https://repo.anaconda.com/pkgs/free"
-    assert free_channel not in context.default_channels
-
-    monkeypatch.setenv("CONDA_RESTORE_FREE_CHANNEL", "true")
-    reset_context()
-    assert context.restore_free_channel
-
-    assert context.default_channels[1] == free_channel
-
-
 def test_proxy_servers(context_testdata: None):
     assert context.proxy_servers["http"] == "http://user:pass@corp.com:8080"
     assert context.proxy_servers["https"] is None
@@ -391,8 +380,7 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
 def test_channels_empty(context_testdata: None):
     """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())
-    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
-        assert context.channels == ("defaults",)
+    assert context.channels == ()
 
 
 def test_channels_defaults_condarc(context_testdata: None):
@@ -420,8 +408,7 @@ def test_specify_channels_cli_not_adding_defaults_no_condarc(context_testdata: N
     See https://github.com/conda/conda/issues/14217 for context.
     """
     reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
-    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
-        assert context.channels == ("conda-forge", "defaults")
+    assert context.channels == ("conda-forge",)
 
 
 def test_specify_channels_cli_condarc(context_testdata: None):

@@ -211,24 +211,6 @@ def ssl_verify_validation(value: str) -> str | Literal[True]:
     return True
 
 
-def _warn_defaults_deprecation() -> None:
-    deprecated.topic(
-        "24.9",
-        "25.9",
-        topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
-        addendum=(
-            "\n\n"
-            "To remove this warning, please choose a default channel explicitly "
-            "with conda's regular configuration system, e.g. "
-            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n\n"
-            f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
-            "\n\n"
-            "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
-        ),
-        deprecation_type=FutureWarning,
-    )
-
-
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -448,10 +430,6 @@ class Context(Configuration):
     denylist_channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True,
-    )
-    _restore_free_channel = ParameterLoader(
-        PrimitiveParameter(False),
-        aliases=("restore_free_channel",),
     )
     repodata_fns = ParameterLoader(
         SequenceParameter(
@@ -931,17 +909,6 @@ class Context(Configuration):
         #   - are meant to be prepended with channel_alias
         return self.custom_multichannels[DEFAULTS_CHANNEL_NAME]
 
-    @property
-    @deprecated(
-        "24.9",
-        "25.9",
-        addendum="See "
-        "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
-        "for more details.",
-    )
-    def restore_free_channel(self) -> bool:
-        return self._restore_free_channel
-
     @memoizedproperty
     def custom_multichannels(self) -> dict[str, tuple[Channel, ...]]:
         from ..models.channel import Channel
@@ -954,18 +921,6 @@ class Context(Configuration):
             default_channels = list(DEFAULT_CHANNELS_WIN)
         else:
             default_channels = list(self._default_channels)
-
-        if self._restore_free_channel:
-            deprecated.topic(
-                "24.9",
-                "25.9",
-                topic="Adding the 'free' channel using `restore_free_channel` config",
-                addendum="See "
-                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
-                "for more details.",
-                deprecation_type=FutureWarning,
-            )
-            default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
 
         reserved_multichannel_urls = {
             DEFAULTS_CHANNEL_NAME: default_channels,
@@ -1031,28 +986,7 @@ class Context(Configuration):
                     "--override-channels."
                 )
 
-        # add 'defaults' channel when necessary if --channel is given via the command line
-        if cli_channels:
-            # Add condition to make sure that we add the 'defaults'
-            # channel only when no channels are defined in condarc
-            # We need to get the config_files and then check that they
-            # don't define channels
-            channel_in_config_files = any(
-                "channels" in context.raw_data[rc_file] for rc_file in self.config_files
-            )
-            if cli_channels and not channel_in_config_files:
-                _warn_defaults_deprecation()
-                return validate_channels(
-                    (*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME)
-                )
-
-        if self._channels:
-            channels = self._channels
-        else:
-            _warn_defaults_deprecation()
-            channels = [DEFAULTS_CHANNEL_NAME]
-
-        return validate_channels((*local_channels, *channels))
+        return validate_channels((*local_channels, *self._channels))
 
     @property
     def config_files(self) -> tuple[PathType, ...]:
@@ -1338,7 +1272,6 @@ class Context(Configuration):
                 "migrated_custom_channels",
                 "add_anaconda_token",
                 "allow_non_channel_urls",
-                "restore_free_channel",
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
@@ -1889,12 +1822,6 @@ class Context(Configuration):
                 Opt in, or opt out, of automatic error reporting to core maintainers. Error
                 reports are anonymous, with only the error stack trace and information given
                 by `conda info` being sent.
-                """
-            ),
-            restore_free_channel=dals(
-                """"
-                Add the "free" channel back into defaults, behind "main" in priority. The "free"
-                channel was removed from the collection of default channels in conda 4.7.0.
                 """
             ),
             rollback_enabled=dals(
