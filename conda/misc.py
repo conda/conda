@@ -99,7 +99,6 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
         yield MatchSpec(url, **checksums)
 
 
-@deprecated.argument("25.3", "25.9", "index_args")
 def explicit(
     specs: Iterable[str],
     prefix: str,
@@ -200,14 +199,6 @@ def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCache
 
     # Get the package records from the cache
     return _get_package_record_from_specs(fetch_specs)
-
-
-@deprecated("25.3", "25.9")
-def rel_path(prefix, path, windows_forward_slashes=True):
-    res = path[len(prefix) + 1 :]
-    if on_win and windows_forward_slashes:
-        res = res.replace("\\", "/")
-    return res
 
 
 def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
