@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import captured, env_vars
+from conda.common.io import env_vars
 from conda.exceptions import CondaSystemExit, DryRunExit
 from conda.plugins.reporter_backends.console import TQDMProgressBar
 from conda.reporters import (
@@ -94,25 +94,23 @@ def test_confirm_yn_always_yes():
         confirm_yn()
 
 
-def test_confirm_yn_yes(monkeypatch: MonkeyPatch):
+def test_confirm_yn_yes(monkeypatch: MonkeyPatch, capsys: CaptureFixture):
     monkeypatch.setattr("sys.stdin", StringIO("blah\ny\n"))
 
-    with (
-        env_vars(
-            {
-                "CONDA_ALWAYS_YES": "false",
-                "CONDA_DRY_RUN": "false",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        captured() as cap,
+    with env_vars(
+        {
+            "CONDA_ALWAYS_YES": "false",
+            "CONDA_DRY_RUN": "false",
+        },
+        stack_callback=conda_tests_ctxt_mgmt_def_pol,
     ):
         assert not context.always_yes
         assert not context.dry_run
 
         assert confirm_yn()
 
-    assert "Invalid choice" in cap.stdout
+    stdout, stderr = capsys.readouterr()
+    assert "Invalid choice" in stdout
 
 
 def test_confirm_yn_no(monkeypatch: MonkeyPatch):

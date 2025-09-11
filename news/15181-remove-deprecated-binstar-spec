@@ -1,0 +1,22 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda env create` `remote_definition` argument. (#15181)
+* Remove `conda env update` `remote_definition` argument. (#15181)
+* Remove `conda.env.specs.binstar.BinstarSpec` class. (#15181)
+* Remove experimental Binstar environment spec plugin. (#15181)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

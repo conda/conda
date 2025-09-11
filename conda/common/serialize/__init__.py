@@ -6,8 +6,6 @@ import functools
 from io import StringIO
 from logging import getLogger
 
-import ruamel.yaml as yaml
-
 from ...deprecations import deprecated
 from .json import CondaJSONEncoder, loads
 
@@ -16,14 +14,18 @@ log = getLogger(__name__)
 
 @functools.cache
 def _yaml_round_trip():
-    parser = yaml.YAML(typ="rt")
+    from ruamel.yaml import YAML
+
+    parser = YAML(typ="rt")
     parser.indent(mapping=2, offset=2, sequence=4)
     return parser
 
 
 @functools.cache
 def _yaml_safe():
-    parser = yaml.YAML(typ="safe", pure=True)
+    from ruamel.yaml import YAML
+
+    parser = YAML(typ="safe", pure=True)
     parser.indent(mapping=2, offset=2, sequence=4)
     parser.default_flow_style = False
     parser.sort_base_mapping_type_on_output = False
