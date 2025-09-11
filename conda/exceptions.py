@@ -582,11 +582,11 @@ class UnavailableInvalidChannel(ChannelError):
         except (AttributeError, JSONDecodeError):
             body = {}
         else:
-            reason = body.get("reason", None) or reason
-            message = body.get("message", None) or message
+            reason = body.get("reason") or reason
+            message = body.get("message") or message
             # if RFC 9457 'detail' is present, it is preferred over 'message'
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail", message)
+            message = body.get("detail", message) or message
 
         # standardize arguments
         status_code = status_code or "000"
@@ -688,11 +688,11 @@ class CondaHTTPError(CondaError):
         except (AttributeError, JSONDecodeError):
             body = {}
         else:
-            reason = body.get("reason", None) or reason
-            message = body.get("message", None) or message
+            reason = body.get("reason") or reason
+            message = body.get("message") or message
             # if RFC 9457 'detail' is present, it is preferred over 'message'
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail", message)
+            message = body.get("detail") or message
 
         # standardize arguments
         url = maybe_unquote(url)
