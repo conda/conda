@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* `conda init --dry-run` now indicates that a dry run was performed and no changes were made. (#15097 via #15211)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
