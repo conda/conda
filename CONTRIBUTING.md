@@ -52,7 +52,7 @@ as well as possible and follow the submission guidelines (this makes everyone's 
 
 ### Contributing your changes to conda
 
-Here are the steps you need to take to contribute to conda:
+Here are the high level steps you need to take to contribute to conda:
 
 1. [Signup for a GitHub account][github signup] (if you haven't already) and
    [install Git on your system][install git].
@@ -62,6 +62,99 @@ Here are the steps you need to take to contribute to conda:
    instructions.
 4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup][development-environment]
 5. When you are ready to submit a change, create a new pull request so that we can merge your changes to our repository.
+
+#### Feature development
+
+For new features, begin by creating documentation for the new feature within
+the project so that you can get early input on the design. Documentation
+includes design mockups, API reference docs, recording the planned approach in
+the feature issue, and creating CLI argument demos without the functionality of
+the feature.
+
+#### Change process
+
+In order to maintain proper tracking and visibility, make sure that there are
+issues for adding features, fixing bugs, and major refactoring work. For larger
+features, break down the work into smaller, manageable issues that are added
+to the backlog. When creating a new issue, make sure to use the issue template.
+
+When making a change, try to scope changes to what can be accomplished in less
+than a day of work with minimal code changes to facilitate rapid code
+reviews—typically fewer than 200
+lines of code.
+
+For each change, create a new local branch. However, as long as a
+feature remains on the roadmap or backlog, do not create long-lived feature
+branches that span multiple pull requests. Instead, you should integrate small
+slices of an overall feature directly into the main branch to avoid complex
+integration challenges.
+
+#### Continuous code improvement
+
+When making changes, try to follow the Campsite Rule to leave things better
+than when you found them. You should enhance the code you encounter, even if
+the primary goal is unrelated. This could involve refactoring small sections,
+improving readability, or fixing minor bugs. The rule is not about massive
+overhauls but about consistently making small, positive changes.
+
+#### Pull Requests
+
+##### Pre-submission Steps
+
+1. Install and run pre-commit hooks
+2. Make sure all tests are passing
+3. Rebase changes on main if other changes were merged during development
+4. Use the Pull Request template if one exists for the project
+5. Self-review your code with fresh eyes before requesting external review
+6. Draft pull requests are acceptable for early feedback
+
+The Pull Request title should clearly explain the contents of the change. Like
+the first line of a commit message, it should be a maximum of 50 characters,
+written in an imperative mood, and have no ending period. It should stay
+updated if the Pull Request is further refined so that if the Pull Request is
+squashed and merged, the commit message reflects what was delivered.
+
+##### Review Requirements
+
+###### Standard Review
+Most code changes require one reviewer from the
+conda-maintainers team. Directly request a review from the person you
+previously identified. If you paired with them during development, continuous
+review counts as this requirement.
+
+###### Second Review
+Required only when the code author or the first reviewer feels
+like it is necessary to get another set of eyes on a proposed change. In this
+case, they add someone specific through GitHub’s Request Review feature.
+Normally they should also put a comment to the person on what they want the
+person to look for.
+
+#### Code review process
+
+The primary goal of code review is ensuring future maintainability of
+integrated code. Reviews should not focus on:
+- Code formatting (handled by pre-commit hooks)
+- Spelling (handled by automated checks)
+- Personal coding style preferences
+- Test coverage and performance (measured by CI)
+
+##### Review Comments
+
+If you are providing feedback outside the core review focus (nitpicks, tips,
+suggestions), clearly mark these as non-blocking comments that don't need to be
+addressed before merging.
+
+##### Merging Code
+
+If you are the approving reviewer (typically the first reviewer, or the second
+reviewer when needed) and you have completed your review and approved the
+changes, you should merge the code immediately to maintain development
+velocity.
+
+Normally, we use squash and merge to keep a clean git history. If you are
+merging a Pull Request, help ensure that the Pull Request title is updated.
+Also you should update the description to remove the list of commit messages
+and instead add a detailed explanation of the "what" and "why" of changes.
 
 ### Issue sorting
 
