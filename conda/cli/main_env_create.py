@@ -8,14 +8,12 @@ Creates new conda environments with the specified packages.
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreAction,
     _SubParsersAction,
 )
 from pathlib import Path
 
 from .. import CondaError
 from ..cli.main_config import set_keys
-from ..deprecations import deprecated
 from ..notices import notices
 from ..models.environment import EnvironmentConfig
 from ..gateways.disk.create import mkdir_p
@@ -23,7 +21,6 @@ from ..gateways.disk.create import mkdir_p
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..common.constants import NULL
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -89,18 +86,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # Add environment spec plugin args
     add_parser_environment_specifier(p)
 
-    p.add_argument(
-        "remote_definition",
-        help="Remote environment definition / IPython notebook",
-        action=deprecated.action(
-            "24.7",
-            "25.9",
-            _StoreAction,
-            addendum="Use `conda env create --file=URL` instead.",
-        ),
-        default=NULL,
-        nargs="?",
-    )
     add_parser_default_packages(p)
     add_output_and_prompt_options(p)
     add_parser_solver(p)

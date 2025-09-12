@@ -35,6 +35,7 @@ if TYPE_CHECKING:
         SatSolverChoice,
         UpdateModifier,
     )
+    from ..common.path import PathType
     from .records import PackageRecord
 
     T = TypeVar("T")
@@ -403,10 +404,7 @@ class Environment:
 
         # Handle --from-history case
         if from_history:
-            history = History(prefix)
-            spec_map = history.get_requested_specs_map()
-            # Get MatchSpec objects from history; they'll be serialized to bracket format later
-            requested_packages = list(spec_map.values())
+            requested_packages = cls.from_history(prefix)
             conda_precs = []  # No conda packages to process for channel extraction
         else:
             # Use PrefixData's package extraction methods
@@ -545,4 +543,41 @@ class Environment:
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
             config=EnvironmentConfig.from_context(),
+        )
+
+    @staticmethod
+    def from_history(prefix: PathType) -> list[MatchSpec]:
+        history = History(prefix)
+        spec_map = history.get_requested_specs_map()
+        # Get MatchSpec objects from history; they'll be serialized to bracket format later
+        return list(spec_map.values())
+
+    def extrapolate(self, platform: str) -> Environment:
+        """
+        Given the current environment, extrapolate the environment for the given platform.
+        """
+        from ..cli.install import Repodatas
+
+        prefix = f"{self.prefix}/conda-meta/{platform}"
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        requested_packages = self.from_history(self.prefix)
+
+        for repodata_manager in Repodatas(self.config.repodata_fns, {}):
+            with repodata_manager as repodata_fn:
+                solver = solver_backend(
+                    prefix=prefix,
+                    channels=context.channels,
+                    subdirs=(platform, "noarch"),
+                    specs_to_add=requested_packages,
+                    repodata_fn=repodata_fn,
+                    command="create",
+                )
+                explicit_packages = solver.solve_final_state()
+        return Environment(
+            prefix=prefix,
+            platform=platform,
+            config=EnvironmentConfig.from_context(),
+            requested_packages=requested_packages,
+            explicit_packages=explicit_packages,
+            external_packages=self.external_packages,
         )
