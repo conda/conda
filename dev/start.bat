@@ -23,7 +23,6 @@
 )
 @IF "%_ARG%"=="/I" (
     @SET "_INSTALLER_TYPE=%~2"
-    @SET "_INSTALLER_TYPE_SET=1"
     @SHIFT
     @SHIFT
     @GOTO :ARGS_LOOP
@@ -68,11 +67,10 @@
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
 :: read installer_type from ~\.condarc
-@IF "%_INSTALLER_TYPE%"=="miniconda" @IF "%_INSTALLER_TYPE_SET%"=="" @CALL :INSTALLER_TYPE_CONDARC
+@IF "%_INSTALLER_TYPE%"=="miniconda" @CALL :INSTALLER_TYPE_CONDARC
 
 :: prompt for installer type if not specified
 @IF NOT "%_INSTALLER_TYPE%"=="miniconda" @GOTO SKIP_PROMPT
-@IF "%_INSTALLER_TYPE_SET%"=="1" @GOTO SKIP_PROMPT
 @ECHO Choose conda installer:
 @ECHO   1^) miniconda ^(default - Anaconda defaults channel^)
 @ECHO   2^) miniforge ^(conda-forge channel^)
@@ -281,7 +279,6 @@
 @SET _INSTALLER_FILE=
 @SET _INSTALLER_INITIAL=
 @SET _INSTALLER_TYPE=
-@SET _INSTALLER_TYPE_SET=
 @SET _NAME=
 @SET _PATH=
 @SET _PYTHON=

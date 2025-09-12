@@ -29,7 +29,6 @@ cleanup() {
     unset _INSTALLER_FILE
     unset _INSTALLER_INITIAL
     unset _INSTALLER_TYPE
-    unset _INSTALLER_TYPE_SET
     unset _MACH
     unset _NAME
     unset _PYTHON
@@ -97,13 +96,11 @@ while [ $# -gt 0 ]; do
             ;;
         -i|--installer)
             _INSTALLER_TYPE="$2"
-            _INSTALLER_TYPE_SET="true"
             shift
             shift
             ;;
         --installer=*)
             _INSTALLER_TYPE="${1#*=}"
-            _INSTALLER_TYPE_SET="true"
             shift
             ;;
         -u|--update)
@@ -165,7 +162,7 @@ if [ -f ~/.condarc ]; then
 fi
 
 # prompt for installer type if not specified
-if [ "${_INSTALLER_TYPE}" = "${_DEFAULT_INSTALLER}" ] && [ -z "${_INSTALLER_TYPE_SET:-}" ]; then
+if [ "${_INSTALLER_TYPE}" = "${_DEFAULT_INSTALLER}" ]; then
     echo "Choose conda installer:"
     echo "  1) miniconda (default - Anaconda defaults channel)"
     echo "  2) miniforge (conda-forge channel)"
