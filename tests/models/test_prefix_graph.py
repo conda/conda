@@ -6,10 +6,10 @@ from functools import cache
 from pprint import pprint
 
 import pytest
+from pytest import MonkeyPatch
 
 import conda.models.prefix_graph
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import env_var
+from conda.base.context import context, reset_context
 from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import GeneralGraph, PrefixGraph
@@ -655,77 +655,76 @@ def test_windows_sort_orders_1(tmpdir, monkeypatch):
 @pytest.mark.xfail(
     reason="We changed menuinst special casing outside windows; needs to be updated"
 )
-def test_windows_sort_orders_2(tmpdir):
+def test_windows_sort_orders_2(monkeypatch: MonkeyPatch, tmpdir):
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
 
-    with env_var(
-        "CONDA_ALLOW_CYCLES", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        old_on_win = conda.models.prefix_graph.on_win
-        conda.models.prefix_graph.on_win = False
-        try:
-            records, specs = get_windows_conda_build_record_set(tmpdir)
-            graph = PrefixGraph(records, specs)
+    monkeypatch.setenv("CONDA_ALLOW_CYCLES", "false")
+    reset_context()
+    old_on_win = conda.models.prefix_graph.on_win
+    conda.models.prefix_graph.on_win = False
+    try:
+        records, specs = get_windows_conda_build_record_set(tmpdir)
+        graph = PrefixGraph(records, specs)
 
-            python_node = graph.get_node_by_name("python")
-            pip_node = graph.get_node_by_name("pip")
-            assert pip_node in graph.graph[python_node]
-            assert python_node in graph.graph[pip_node]
+        python_node = graph.get_node_by_name("python")
+        pip_node = graph.get_node_by_name("pip")
+        assert pip_node in graph.graph[python_node]
+        assert python_node in graph.graph[pip_node]
 
-            nodes = tuple(rec.name for rec in graph.records)
-            pprint(nodes)
-            order = (
-                "ca-certificates",
-                "conda-env",
-                "vs2015_runtime",
-                "vc",
-                "openssl",
-                "python",
-                "yaml",
-                "affine",
-                "asn1crypto",
-                "beautifulsoup4",
-                "certifi",
-                "chardet",
-                "colour",
-                "cryptography-vectors",
-                "filelock",
-                "glob2",
-                "idna",
-                "markupsafe",
-                "pkginfo",
-                "psutil",
-                "pycosat",
-                "pycparser",
-                "pywin32",
-                "pyyaml",
-                "ruamel_yaml",
-                "six",
-                "spiffy-test-app",
-                "win_inet_pton",
-                "wincertstore",
-                "cffi",
-                "menuinst",  # not on_win, menuinst isn't changed
-                "pysocks",
-                "setuptools",
-                "uses-spiffy-test-app",
-                "cryptography",
-                "jinja2",
-                "wheel",
-                "pip",  # pip always comes after python
-                "pyopenssl",
-                "urllib3",
-                "requests",
-                "conda",  # not on_win, no special treatment for noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
-                "conda-build",
-            )
-            assert nodes == order
-        finally:
-            conda.models.prefix_graph.on_win = old_on_win
+        nodes = tuple(rec.name for rec in graph.records)
+        pprint(nodes)
+        order = (
+            "ca-certificates",
+            "conda-env",
+            "vs2015_runtime",
+            "vc",
+            "openssl",
+            "python",
+            "yaml",
+            "affine",
+            "asn1crypto",
+            "beautifulsoup4",
+            "certifi",
+            "chardet",
+            "colour",
+            "cryptography-vectors",
+            "filelock",
+            "glob2",
+            "idna",
+            "markupsafe",
+            "pkginfo",
+            "psutil",
+            "pycosat",
+            "pycparser",
+            "pywin32",
+            "pyyaml",
+            "ruamel_yaml",
+            "six",
+            "spiffy-test-app",
+            "win_inet_pton",
+            "wincertstore",
+            "cffi",
+            "menuinst",  # not on_win, menuinst isn't changed
+            "pysocks",
+            "setuptools",
+            "uses-spiffy-test-app",
+            "cryptography",
+            "jinja2",
+            "wheel",
+            "pip",  # pip always comes after python
+            "pyopenssl",
+            "urllib3",
+            "requests",
+            "conda",  # not on_win, no special treatment for noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
+            "conda-build",
+        )
+        assert nodes == order
+    finally:
+        conda.models.prefix_graph.on_win = old_on_win
 
 
-def test_sort_without_prep(tmpdir, mocker):
+def test_sort_without_prep(tmpdir, mocker, monkeypatch: MonkeyPatch):
     # Test the _toposort_prepare_graph method, here by not running it at all.
     # The method is invoked in every other test.  This is what happens when it's not invoked.
 
@@ -791,12 +790,12 @@ def test_sort_without_prep(tmpdir, mocker):
         )
         assert nodes == order
 
-        with env_var(
-            "CONDA_ALLOW_CYCLES", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
-        ):
-            records, specs = get_windows_conda_build_record_set(tmpdir)
-            with pytest.raises(CyclicalDependencyError):
-                graph = PrefixGraph(records, specs)
+        monkeypatch.setenv("CONDA_ALLOW_CYCLES", "false")
+        reset_context()
+
+        records, specs = get_windows_conda_build_record_set(tmpdir)
+        with pytest.raises(CyclicalDependencyError):
+            graph = PrefixGraph(records, specs)
 
 
 def test_deep_cyclical_dependency(tmpdir):

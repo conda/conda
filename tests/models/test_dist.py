@@ -5,10 +5,10 @@ from os.path import join
 from tempfile import gettempdir
 
 import pytest
+from pytest import MonkeyPatch
 
 from conda.base.constants import UNKNOWN_CHANNEL
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
-from conda.common.io import env_var
+from conda.base.context import context, reset_context
 from conda.common.url import join_url, path_to_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -56,7 +56,7 @@ def test_channel(fmt):
 
 
 @pytest.mark.parametrize("fmt", [".conda", ".tar.bz2"])
-def test_dist_with_channel_url(fmt):
+def test_dist_with_channel_url(monkeypatch: MonkeyPatch, fmt):
     reset_context()
 
     # standard named channel
@@ -99,23 +99,21 @@ def test_dist_with_channel_url(fmt):
     conda_bld_path = join(gettempdir(), "conda-bld")
     try:
         mkdir_p(conda_bld_path)
-        with env_var(
-            "CONDA_BLD_PATH",
-            conda_bld_path,
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            url = path_to_url(
-                join_url(context.croot, "osx-64", f"bcrypt-3.1.1-py35_2{fmt}")
-            )
-            d = Dist(url)
-            assert d.channel == "local"
-            assert d.name == "bcrypt"
-            assert d.version == "3.1.1"
-            assert d.build_string == "py35_2"
-            assert d.fmt == fmt
+        monkeypatch.setenv("CONDA_BLD_PATH", conda_bld_path)
+        reset_context()
 
-            assert d.to_url() == url
-            assert d.is_channel is True
+        url = path_to_url(
+            join_url(context.croot, "osx-64", f"bcrypt-3.1.1-py35_2{fmt}")
+        )
+        d = Dist(url)
+        assert d.channel == "local"
+        assert d.name == "bcrypt"
+        assert d.version == "3.1.1"
+        assert d.build_string == "py35_2"
+        assert d.fmt == fmt
+
+        assert d.to_url() == url
+        assert d.is_channel is True
     finally:
         rm_rf(conda_bld_path)
 
