@@ -67,7 +67,22 @@ The `dev/start` script supports two different conda installers:
 - **miniconda** (default): Uses the Anaconda defaults channel and official Miniconda installer
 - **miniforge**: Uses the conda-forge channel and community-maintained Miniforge installer
 
-When you run the script for the first time without specifying an installer, you'll be prompted to choose:
+#### Configuration Options
+
+You can specify the installer type in several ways, in order of precedence:
+
+1. **Command line flag** (highest priority)
+2. **Configuration file** (`~/.condarc`)
+3. **Interactive prompt** (lowest priority)
+
+To avoid being prompted every time, you can set your preferred installer in your `~/.condarc` file:
+
+```yaml
+# ~/.condarc
+installer_type: miniforge  # or miniconda
+```
+
+When you run the script for the first time without specifying an installer and no configuration file setting, you'll be prompted to choose:
 
 ```text
 Choose conda installer:
