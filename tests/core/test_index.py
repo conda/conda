@@ -366,7 +366,7 @@ def test_calculate_channel_urls():
 @pytest.mark.integration
 def test_get_index_lazy():
     subdir = PLATFORMS[(platform.system(), platform.machine())]
-    index = Index(channels=["conda-forge"], platform=subdir)
+    index = Index(channels=["defaults", "conda-forge"], platform=subdir)
     main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
     conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
 
