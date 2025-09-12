@@ -354,9 +354,9 @@ class Context(Configuration):
     _subdirs = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", str)), aliases=("subdirs",)
     )
-    export_platforms = ParameterLoader(
+    _export_platforms = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", str)),
-        aliases=("extra_platforms",),
+        aliases=("export_platforms", "extra_platforms"),
     )
 
     local_repodata_ttl = ParameterLoader(
@@ -736,8 +736,17 @@ class Context(Configuration):
         return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
-    def known_subdirs(self) -> set[str]:
+    def known_subdirs(self) -> frozenset[str]:
         return frozenset((*KNOWN_SUBDIRS, *self.subdirs))
+
+    @property
+    def export_platforms(self) -> tuple[str, ...]:
+        argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
+        if argparse_args.get("override_platforms"):
+            platforms = argparse_args.get("export_platforms") or ()
+        else:
+            platforms = self._export_platforms
+        return tuple(dict.fromkeys((self.subdir, *platforms)))
 
     @property
     def bits(self) -> int:

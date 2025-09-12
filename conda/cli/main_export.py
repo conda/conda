@@ -68,8 +68,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--platform",
         "--subdir",
         action="append",
-        dest="platforms",
+        dest="export_platforms",
         help="Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64)",
+    )
+    p.add_argument(
+        "--override-platforms",
+        action="store_true",
+        help="Override the platforms specified in the condarc",
     )
     add_parser_prefix(p)
 
@@ -134,17 +139,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .common import stdout_json
 
     # Determine target platforms for export
-    target_platforms = []
-    if args.platforms:
-        # Use platforms specified on command line
-        target_platforms = args.platforms
-    elif context.export_platforms:
-        # Use platforms from condarc configuration
-        target_platforms = list(context.export_platforms)
-
-    # If no platforms specified, use current platform only
-    if not target_platforms:
-        target_platforms = [context.subdir]
+    target_platforms = context.export_platforms
 
     # TODO: Check if platform targets are valid
 
@@ -190,7 +185,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     env = Environment.from_prefix(
         prefix=prefix,
         name=env_name(prefix),
-        platform=context.subdir,
+        platform=target_platforms[0],
         from_history=args.from_history,
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,
