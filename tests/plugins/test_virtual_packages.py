@@ -105,10 +105,7 @@ def test_cuda_override(
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", override_value)
     reset_context()
 
-    if override_value:
-        version = cuda.cached_cuda_version()
-    else:
-        version = cuda.cuda_version()
+    version = cuda.cuda_version()
     assert version == expected
 
 
