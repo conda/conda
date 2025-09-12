@@ -187,7 +187,7 @@ def test_use_only_tar_bz2(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
 
 def test_subdir_data_coverage(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    monkeypatch.setattr("conda.models.channel.Channel._cache_", {}, raising=False)
+    monkeypatch.setattr("conda.models.channel.Channel._cache_", {})
     monkeypatch.setenv("CONDA_PLATFORM", platform)
     monkeypatch.setenv("CONDA_SSL_VERIFY", "false")
     reset_context()
