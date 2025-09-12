@@ -138,6 +138,16 @@ integrated code. Reviews should not focus on:
 - Personal coding style preferences
 - Test coverage and performance (measured by CI)
 
+If you are conducting a review, adhere to these best practices:
+- Provide comprehensive feedback in the first review to minimize review rounds
+- Follow-up reviews should focus on whether requested changes resolve original
+  comments
+- Code should be production-ready and maintainable when merged, but doesn't
+  need to be perfect
+- If providing feedback outside the core review focus (nitpicks, tips,
+  suggestions), clearly mark these as non-blocking comments that don't need to
+  be addressed before merging.
+
 ##### Review Comments
 
 If you are providing feedback outside the core review focus (nitpicks, tips,
