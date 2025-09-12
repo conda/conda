@@ -15,6 +15,8 @@ from pathlib import Path
 from .. import CondaError
 from ..cli.main_config import set_keys
 from ..notices import notices
+from ..models.environment import EnvironmentConfig
+from ..gateways.disk.create import mkdir_p
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -94,6 +96,16 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
+def write_env_condarc(prefix: str, config: EnvironmentConfig):
+    from .main_config import _write_rc
+    path = Path(prefix, ".condarc")
+    condarc_config = {}
+    for k, v in vars(config).items():
+        if v:
+            condarc_config[k] = v
+    _write_rc(path, condarc_config)
+
+
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
@@ -140,6 +152,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     prefix_data.validate_path()
     prefix_data.validate_name()
+
+    # HACK: write condarc to prefix
+    mkdir_p(prefix)
+    write_env_condarc(prefix, env.config)
+    # reload the context
+    context.__init__(argparse_args=args)
 
     # TODO, add capability
     # common.ensure_override_channels_requires_channel(args)

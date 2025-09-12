@@ -37,11 +37,11 @@ def _solve(
     """
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
-    channel_urls = [chan for chan in env.config.channels if chan != "nodefaults"]
+    # channel_urls = [chan for chan in env.config.channels if chan != "nodefaults"]
 
-    if "nodefaults" not in env.config.channels:
-        channel_urls.extend(context.channels)
-    _channel_priority_map = prioritize_channels(channel_urls)
+    # if "nodefaults" not in env.config.channels:
+    #     channel_urls.extend(context.channels)
+    _channel_priority_map = prioritize_channels(context.channels)
 
     channels = IndexedSet(Channel(url) for url in _channel_priority_map)
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
@@ -67,7 +67,7 @@ def dry_run(
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
     return EnvironmentYaml(
-        name=env.name, dependencies=[str(p) for p in pkgs], channels=env.config.channels
+        name=env.name, dependencies=[str(p) for p in pkgs], channels=context.channels
     )
 
 
