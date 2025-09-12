@@ -296,13 +296,11 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
         echo "Error: failed to install development environment" 1>&2
         return 1
     fi
-
 fi
 
 # create empty env if it doesn't exist
 if ! [ -d "${_ENV}" ]; then
     echo "Creating ${_NAME}..."
-
     if ! PYTHONPATH="" "${_BASEEXE}" create --yes --quiet "--prefix=${_ENV}" > /dev/null; then
         echo "Error: failed to create ${_NAME}" 1>&2
         return 1
