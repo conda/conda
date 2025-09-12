@@ -14,7 +14,6 @@ from collections.abc import Mapping, Sequence
 from itertools import chain
 from logging import getLogger
 from os.path import isfile, join
-from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from ..base.context import Context
+    from ..common.path import PathType
 
 log = getLogger(__name__)
 
@@ -266,7 +266,7 @@ def format_dict(d):
 
 
 def parameter_description_builder(name, context=None, plugins=False):
-    from ..common.serialize import json, yaml_round_trip_dump
+    from ..common.serialize import json, yaml
 
     # Keeping this for backward-compatibility, in case no context instance is provided
     if context is None:
@@ -308,7 +308,7 @@ def parameter_description_builder(name, context=None, plugins=False):
     builder = ["# " + line for line in builder]
 
     builder.extend(
-        yaml_round_trip_dump({f"{name_prefix}{name}": json.loads(default_value_str)})
+        yaml.dumps({f"{name_prefix}{name}": json.loads(default_value_str)})
         .strip()
         .split("\n")
     )
@@ -545,46 +545,22 @@ def _remove_key(key: str, config: dict) -> None:
         raise CondaKeyError(key, "undefined in config")
 
 
-def _read_rc(path: str | os.PathLike | Path) -> dict:
-    from ..common.serialize import yaml_round_trip_load
+def _read_rc(path: PathType) -> dict:
+    from ..common.serialize import yaml
 
     try:
-        return yaml_round_trip_load(Path(path).read_text()) or {}
+        return yaml.read(path=path) or {}
     except FileNotFoundError:
         # FileNotFoundError: path does not exist
         return {}
 
 
-def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
-    from ruamel.yaml.representer import RoundTripRepresenter
-
+def _write_rc(path: PathType, config: dict) -> None:
     from .. import CondaError
-    from ..base.constants import (
-        ChannelPriority,
-        DepsModifier,
-        PathConflict,
-        SafetyChecks,
-        SatSolverChoice,
-        UpdateModifier,
-    )
-    from ..common.serialize import yaml_round_trip_dump
-
-    # Add representers for enums.
-    # Because a representer cannot be added for the base Enum class (it must be added for
-    # each specific Enum subclass - and because of import rules), I don't know of a better
-    # location to do this.
-    def enum_representer(dumper, data):
-        return dumper.represent_str(str(data))
-
-    RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
-    RoundTripRepresenter.add_representer(PathConflict, enum_representer)
-    RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
-    RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
-    RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
-    RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
+    from ..common.serialize import yaml
 
     try:
-        Path(path).write_text(yaml_round_trip_dump(config))
+        yaml.write(config, path=path)
     except OSError as e:
         raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
 
@@ -615,7 +591,7 @@ def _validate_provided_parameters(
         )
 
 
-def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
+def set_keys(*args: tuple[str, Any], path: PathType) -> None:
     config = _read_rc(path)
     for key, value in args:
         _set_key(key, value, config)
