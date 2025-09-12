@@ -62,22 +62,32 @@
 
 :: fallback to default values
 @IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
-@IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
+:: Note: _INSTALLER_TYPE is set explicitly or left empty for later processing
 @IF "%_UPDATE%"=="" @SET "_UPDATE=1"
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
-:: read installer_type from ~\.condarc
-@IF "%_INSTALLER_TYPE%"=="miniconda" @CALL :INSTALLER_TYPE_CONDARC
+:: read installer_type from ~\.condarc if not explicitly set
+@IF "%_INSTALLER_TYPE%"=="" @CALL :INSTALLER_TYPE_CONDARC
 
-:: prompt for installer type if not specified
-@IF NOT "%_INSTALLER_TYPE%"=="miniconda" @GOTO SKIP_PROMPT
+:: prompt for installer type if still not specified
+@IF NOT "%_INSTALLER_TYPE%"=="" @GOTO SKIP_PROMPT
 @ECHO Choose conda installer:
 @ECHO   1^) miniconda ^(default - Anaconda defaults channel^)
 @ECHO   2^) miniforge ^(conda-forge channel^)
 @SET /P "_CHOICE=Enter choice [1]: "
+@IF "%_CHOICE%"=="" @SET "_INSTALLER_TYPE=miniconda"
+@IF "%_CHOICE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
+@IF "%_CHOICE%"=="miniconda" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_CHOICE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
 @IF "%_CHOICE%"=="miniforge" @SET "_INSTALLER_TYPE=miniforge"
+@IF "%_INSTALLER_TYPE%"=="" (
+    @ECHO Error: invalid choice '%_CHOICE%'. Please run again and choose 1 or 2. 1>&2
+    @EXIT /B 1
+)
 :SKIP_PROMPT
+
+:: set default if still empty (shouldn't happen, but safety fallback)
+@IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 
 :: validate installer type
 @IF "%_INSTALLER_TYPE%"=="miniconda" @GOTO INSTALLER_VALID
@@ -316,10 +326,10 @@
 :INSTALLER_TYPE_CONDARC
 :: read installer_type from ~\.condarc
 :: check if ~\.condarc exists
-@IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
+@IF NOT EXIST "%USERPROFILE%\.condarc" @GOTO :EOF
 :: check if installer_type key is defined
 @FINDSTR /R /C:"^installer_type:" "%USERPROFILE%\.condarc" > NUL
-@IF NOT %ErrorLevel%==0 @EXIT /B 1
+@IF NOT %ErrorLevel%==0 @GOTO :EOF
 :: read installer_type key
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^installer_type:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value"`) DO @SET "_INSTALLER_TYPE=%%I"
 @GOTO :EOF
