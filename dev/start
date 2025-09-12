@@ -247,7 +247,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
             case "${_MACH}" in
                 Darwin) _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${_ARCH}.sh" ;;
                 Linux)  _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${_ARCH}.sh" ;;
-                *)      _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe" ; _INSTALLER_FILE="${_INSTALLER}/miniconda.exe" ;;
+                *)      _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe" ;;
             esac
             ;;
         miniforge)
@@ -256,7 +256,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
             case "${_MACH}" in
                 Darwin) _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-${_ARCH}.sh" ;;
                 Linux)  _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-${_ARCH}.sh" ;;
-                *)      _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe" ; _INSTALLER_FILE="${_INSTALLER}/miniforge.exe" ;;
+                *)      _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe" ;;
             esac
             ;;
     esac
@@ -264,6 +264,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     # downloading installer
     case "${_MACH}" in
         Darwin|Linux) _INSTALLER_FILE="${_INSTALLER_FILE}.sh" ;;
+        *)            _INSTALLER_FILE="${_INSTALLER_FILE}.exe" ;;
     esac
 
     # Remove zero-byte installer files before download
