@@ -8,8 +8,9 @@
 
 ### Deprecations
 
-* Remove deprecated property `conda.base.context.restore_free_channel` (#15195)
-* Remove field `conda.base.context._restore_free_channel` (#15195)
+* Remove free channel from channel configuration. (#15195)
+* Remove deprecated property `conda.base.context.restore_free_channel`. (#15195)
+* Remove field `conda.base.context._restore_free_channel`. (#15195)
 
 ### Docs
 
