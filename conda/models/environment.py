@@ -209,7 +209,7 @@ class EnvironmentConfig:
 
 
 @dataclass
-class VirtualEnvironment:
+class AbstractEnvironment:
     """
     **Experimental** While experimental, expect both major and minor changes across minor releases.
 
@@ -344,7 +344,7 @@ class VirtualEnvironment:
         )
 
 
-class Environment(VirtualEnvironment):
+class Environment(AbstractEnvironment):
     #: Prefix the environment is installed into (required).
     prefix: str
 
