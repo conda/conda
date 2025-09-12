@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -61,6 +62,9 @@ from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+
+if TYPE_CHECKING:
+    from typing import Any
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -131,7 +135,8 @@ def check_prefix(prefix: str, json=False):
         )
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
+@deprecated.argument("26.3", "26.9", "index_args")
+def clone(src_arg, dst_prefix, json=False, quiet=False):
     # Validate source
     if os.sep in src_arg:
         source_prefix_data = PrefixData(abspath(src_arg))
@@ -145,7 +150,10 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         print(f"Destination: {dst_prefix}")
 
     actions, untracked_files = clone_env(
-        src_prefix, dst_prefix, verbose=not json, quiet=quiet, index_args=index_args
+        src_prefix,
+        dst_prefix,
+        verbose=not json,
+        quiet=quiet,
     )
 
     if json:
@@ -171,7 +179,8 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def get_index_args(args) -> dict[str, any]:
+@deprecated("26.3", "26.9")
+def get_index_args(args) -> dict[str, Any]:
     """Returns a dict of args required for fetching an index
     :param args: The args provided by the cli
     :returns: dict of index args
@@ -188,13 +197,17 @@ def get_index_args(args) -> dict[str, any]:
 
 
 class TryRepodata:
+    @deprecated.argument("26.3", "26.9", "index_args")
     def __init__(
-        self, notify_success, repodata, last_repodata, index_args, allowed_errors
+        self,
+        notify_success,
+        repodata,
+        last_repodata,
+        allowed_errors,
     ):
         self.notify_success = notify_success
         self.repodata = repodata
         self.last_repodata = last_repodata
-        self.index_args = index_args
         self.allowed_errors = allowed_errors
 
     def __enter__(self):
@@ -234,9 +247,9 @@ class TryRepodata:
 
 
 class Repodatas:
-    def __init__(self, repodata_fns, index_args, allows_errors=()):
+    @deprecated.argument("26.3", "26.9", "index_args")
+    def __init__(self, repodata_fns, allows_errors=()):
         self.repodata_fns = repodata_fns
-        self.index_args = index_args
         self.success = False
         self.allowed_errors = (
             ResolvePackageNotFound,
@@ -250,7 +263,6 @@ class Repodatas:
                 self.succeed,
                 repodata,
                 self.repodata_fns[-1],
-                self.index_args,
                 self.allowed_errors,
             )
             if self.success:
@@ -326,7 +338,6 @@ def install(args, parser, command="install"):
         return install_clone(args, parser)
 
     prefix = context.target_prefix
-    index_args = get_index_args(args=args)
 
     # common validations for all types of installs
     validate_install_command(prefix=prefix, command=command)
@@ -374,7 +385,6 @@ def install(args, parser, command="install"):
 
     for repodata_fn in Repodatas(
         repodata_fns,
-        index_args,
         (UnsatisfiableError, SpecsConfigurationConflictError, SystemExit),
     ):
         with repodata_fn as repodata:
@@ -421,7 +431,6 @@ def install(args, parser, command="install"):
 def install_clone(args, parser):
     """Executes an install of a new conda environment by cloning."""
     prefix = context.target_prefix
-    index_args = get_index_args(args)
 
     # common validations for all types of installs
     validate_install_command(prefix=prefix, command="create")
@@ -431,14 +440,12 @@ def install_clone(args, parser):
         prefix,
         json=context.json,
         quiet=context.quiet,
-        index_args=index_args,
     )
 
 
 def install_revision(args, parser):
     """Install a previous version of a conda environment"""
     prefix = context.target_prefix
-    index_args = get_index_args(args)
 
     # common validations for all types of installs
     validate_install_command(prefix=prefix, command="install")
@@ -458,22 +465,10 @@ def install_revision(args, parser):
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    for repodata_fn in Repodatas(repodata_fns, index_args):
+    for repodata_fn in Repodatas(repodata_fns):
         with repodata_fn as repodata:
             with get_spinner(f"Collecting package metadata ({repodata})"):
-                index = Index(
-                    channels=index_args["channel_urls"],
-                    prepend=index_args["prepend"],  # --override-channels
-                    platform=None,
-                    # these options were commented out in the version of this
-                    # code bit that used the now-deprecated `get_index` function
-                    # we have left them here so that this information is not lost
-                    # use_cache=index_args["use_cache"],  # --use-index-cache
-                    # unknown=index_args["unknown"],  # --unknown
-                    use_local=index_args["use_local"],
-                    prefix=prefix,
-                    repodata_fn=repodata,
-                )
+                index = Index(prefix=prefix, repodata_fn=repodata)
             revision_idx = get_revision(args.revision)
             with get_spinner(f"Reverting to revision {revision_idx}"):
                 unlink_link_transaction = revert_actions(prefix, revision_idx, index)
