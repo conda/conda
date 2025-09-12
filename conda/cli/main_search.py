@@ -22,12 +22,12 @@ if TYPE_CHECKING:
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..common.constants import NULL
     from .helpers import (
         add_parser_channels,
         add_parser_json,
         add_parser_known,
         add_parser_networking,
+        add_parser_platform,
     )
 
     summary = "Search for packages and display associated information using the MatchSpec format."
@@ -91,15 +91,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Provide detailed information about each package.",
     )
-    p.add_argument(
-        "--subdir",
-        "--platform",
-        action="store",
-        dest="subdir",
-        help="Search the given subdir. Should be formatted like 'osx-64', 'linux-32', "
-        "'win-64', and so on. The default is to search the current platform.",
-        default=NULL,
-    )
+    add_parser_platform(p, help="Specify which platform to search.")
     p.add_argument(
         "--skip-flexible-search",
         action="store_true",
