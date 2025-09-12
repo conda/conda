@@ -129,7 +129,7 @@ while [ $# -gt 0 ]; do
             echo ""
             echo "Options:"
             echo "  -p, --python    VERSION    Python version for the env to activate. (default: ${_DEFAULT_PYTHON})"
-            echo "  -i, --installer INSTALLER  Installer to use: miniconda or miniforge. (default: ${_DEFAULT_INSTALLER})"
+            echo "  -i, --installer INSTALLER  Installer to use: miniconda or miniforge, can also be defined in ~/.condarc. (default: ${_DEFAULT_INSTALLER})"
             echo "  -m, --mach      MACHINE    Machine type for the env to activate. (default: ${_DEFAULT_MACH})"
             echo "  -a, --arch      ARCH       Architecture for the env to activate. (default: ${_DEFAULT_ARCH})"
             echo "  -u, --update               Force update packages. (default: ${_DEFAULT_UPDATE}, update every 24 hours)"
@@ -158,6 +158,11 @@ _MACH="${_MACH:-${_DEFAULT_MACH}}"
 _ARCH="${_ARCH:-${_DEFAULT_ARCH}}"
 _UPDATE="${_UPDATE:-${_DEFAULT_UPDATE}}"
 _DRYRUN="${_DRYRUN:-${_DEFAULT_DRYRUN}}"
+
+# read installer_type key from ~/.condarc
+if [ -f ~/.condarc ]; then
+    _INSTALLER_TYPE="${_INSTALLER_TYPE:-$(grep "^installer_type:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
+fi
 
 # prompt for installer type if not specified
 if [ "${_INSTALLER_TYPE}" = "${_DEFAULT_INSTALLER}" ] && [ -z "${_INSTALLER_TYPE_SET:-}" ]; then

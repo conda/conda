@@ -49,7 +49,7 @@
     @ECHO.
     @ECHO Options:
     @ECHO   /P  VERSION    Python version for the env to activate. ^(default: 3.10^)
-    @ECHO   /I  INSTALLER  Installer to use: miniconda or miniforge. ^(default: miniconda^)
+    @ECHO   /I  INSTALLER  Installer to use: miniconda or miniforge, can also be defined in ~\.condarc. ^(default: miniconda^)
     @ECHO   /U             Force update packages. ^(default: update every 24 hours^)
     @ECHO   /D  PATH       Path to base env install, can also be defined in ~\.condarc.
     @ECHO                  Path is appended with Windows. ^(default: devenv^)
@@ -66,6 +66,9 @@
 @IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_UPDATE%"=="" @SET "_UPDATE=1"
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
+
+:: read installer_type from ~\.condarc
+@IF "%_INSTALLER_TYPE%"=="miniconda" @IF "%_INSTALLER_TYPE_SET%"=="" @CALL :INSTALLER_TYPE_CONDARC
 
 :: prompt for installer type if not specified
 @IF NOT "%_INSTALLER_TYPE%"=="miniconda" @GOTO SKIP_PROMPT
@@ -311,6 +314,17 @@
 @IF NOT %ErrorLevel%==0 @EXIT /B 1
 :: read devenv key
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
+@GOTO :EOF
+
+:INSTALLER_TYPE_CONDARC
+:: read installer_type from ~\.condarc
+:: check if ~\.condarc exists
+@IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
+:: check if installer_type key is defined
+@FINDSTR /R /C:"^installer_type:" "%USERPROFILE%\.condarc" > NUL
+@IF NOT %ErrorLevel%==0 @EXIT /B 1
+:: read installer_type key
+@FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^installer_type:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value"`) DO @SET "_INSTALLER_TYPE=%%I"
 @GOTO :EOF
 
 :UPDATING
