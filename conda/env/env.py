@@ -13,7 +13,11 @@ from ..common.path import expand
 from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
-from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from ..exceptions import (
+    EnvironmentFileEmpty,
+    EnvironmentFileNotFound,
+    EnvironmentSectionNotValid,
+)
 from ..gateways.connection.download import download_text
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..history import History
@@ -24,8 +28,10 @@ from ..models.match_spec import MatchSpec
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
 
 
-def validate_keys(data, kwargs):
-    """Check for unknown keys, remove them and print a warning"""
+def validate_keys(data, kwargs, strict=False):
+    """Check for unknown keys. In strict mode, will raise an error.
+    Otherwise remove the unknown keys and print a warning.
+    """
     invalid_keys = []
     new_data = data.copy() if data else {}
     for key in data.keys():
@@ -37,13 +43,16 @@ def validate_keys(data, kwargs):
         filename = kwargs.get("filename")
         verb = "are" if len(invalid_keys) != 1 else "is"
         plural = "s" if len(invalid_keys) != 1 else ""
-        print(
-            f"\nEnvironmentSectionNotValid: The following section{plural} on "
-            f"'{filename}' {verb} invalid and will be ignored:"
-        )
-        for key in invalid_keys:
-            print(f" - {key}")
-        print()
+        if strict:
+            raise EnvironmentSectionNotValid(filename, invalid_keys, plural, verb)
+        else:
+            print(
+                f"\nEnvironmentSectionNotValid: The following section{plural} on "
+                f"'{filename}' {verb} invalid and will be ignored:"
+            )
+            for key in invalid_keys:
+                print(f" - {key}")
+            print()
 
     deps = data.get("dependencies", [])
     depsplit = re.compile(r"[<>~\s=]")
@@ -124,13 +133,13 @@ def from_environment(
     )
 
 
-def from_yaml(yamlstr, **kwargs):
-    """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string"""
+def from_yaml(yamlstr, strict=False, **kwargs):
+    """Load and return a ``Environment`` from a given ``yaml`` string"""
     data = yaml_safe_load(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
-    data = validate_keys(data, kwargs)
+    data = validate_keys(data, kwargs, strict=strict)
 
     if kwargs is not None:
         for key, value in kwargs.items():
@@ -146,8 +155,8 @@ def _expand_channels(data):
     ]
 
 
-def from_file(filename):
-    """Load and return an ``EnvironmentYaml`` from a given file"""
+def from_file(filename, strict=False):
+    """Load and return an ``Environment`` from a given file"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         yamlstr = download_text(filename)
@@ -160,7 +169,7 @@ def from_file(filename):
                 yamlstr = yamlb.decode("utf-8")
             except UnicodeDecodeError:
                 yamlstr = yamlb.decode("utf-16")
-    return from_yaml(yamlstr, filename=filename)
+    return from_yaml(yamlstr, filename=filename, strict=strict)
 
 
 class Dependencies(dict):
