@@ -1,0 +1,30 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove constant `win_path_to_unix`. (#15184)
+* Remove constant `unix_path_to_win`. (#15184)
+* Remove `conda.exports.iteritems`. Use builtin `dict.items()` instead. (#15184)
+* Remove unused class `conda.exports.Completer`. (#15184)
+* Remove unused class `conda.exports.InstalledPackages`. (#15184)
+* Remove constant `move_to_trash`. (#15184)
+* Remove constant `KEYS`. (#15184)
+* Remove constant `KEYS_DIR`. (#15184)
+* Remove unused method `conda.exports.verify`. (#15184)
+* Remove `conda.exports.symlink_conda`. Use `conda.activate` instead. (#15184)
+* Remove `conda.exports._symlink_conda_help`. Use `conda.activate` instead. (#15184)
+* Remove `conda.exports.win_conda_bat_redirect`. Use `conda.activate` instead. (#15184)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
