@@ -40,7 +40,9 @@ def get_pandas_record_set(tmpdir):
 
 
 @cache
-def get_windows_conda_build_record_set(tmpdir, merge_noarch=True):
+def get_windows_conda_build_record_set(
+    monkeypatch: MonkeyPatch, tmpdir, merge_noarch=True
+):
     # TODO: We run into stale cache conditions if channels are updated in <1s
     # Remove when https://github.com/conda/conda/issues/13783 is addressed
     time.sleep(0.5)
@@ -51,13 +53,15 @@ def get_windows_conda_build_record_set(tmpdir, merge_noarch=True):
         MatchSpec("colour"),
         MatchSpec("uses-spiffy-test-app"),
     )
-    with get_solver_5(tmpdir, specs, add_pip=True, merge_noarch=merge_noarch) as solver:
+    with get_solver_5(
+        monkeypatch, tmpdir, specs, add_pip=True, merge_noarch=merge_noarch
+    ) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
 
 @cache
-def get_sqlite_cyclical_record_set(tmpdir):
+def get_sqlite_cyclical_record_set(monkeypatch: MonkeyPatch, tmpdir):
     # sqlite-3.20.1-haaaaaaa_4
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
@@ -69,12 +73,12 @@ def get_sqlite_cyclical_record_set(tmpdir):
         MatchSpec(spec),
         MatchSpec("flask"),
     )
-    with get_solver_4(tmpdir, specs) as solver:
+    with get_solver_4(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
 
-def test_prefix_graph_1(monkeypatch, tmpdir):
+def test_prefix_graph_1(monkeypatch: MonkeyPatch, tmpdir):
     # Basic initial test for public methods of PrefixGraph.
 
     records, specs = get_conda_build_record_set(monkeypatch, tmpdir)
@@ -594,12 +598,14 @@ def test_remove_youngest_descendant_nodes_with_specs(monkeypatch: MonkeyPatch, t
     assert removed_nodes == order
 
 
-def test_windows_sort_orders_1(tmpdir, monkeypatch):
+def test_windows_sort_orders_1(monkeypatch: MonkeyPatch, tmpdir):
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
 
     monkeypatch.setattr(conda.models.prefix_graph, "on_win", True)
-    records, specs = get_windows_conda_build_record_set(tmpdir, merge_noarch=False)
+    records, specs = get_windows_conda_build_record_set(
+        monkeypatch, tmpdir, merge_noarch=False
+    )
     graph = PrefixGraph(records, specs)
 
     nodes = tuple(rec.name for rec in graph.records)
@@ -664,7 +670,7 @@ def test_windows_sort_orders_2(monkeypatch: MonkeyPatch, tmpdir):
     old_on_win = conda.models.prefix_graph.on_win
     conda.models.prefix_graph.on_win = False
     try:
-        records, specs = get_windows_conda_build_record_set(tmpdir)
+        records, specs = get_windows_conda_build_record_set(monkeypatch, tmpdir)
         graph = PrefixGraph(records, specs)
 
         python_node = graph.get_node_by_name("python")
@@ -724,7 +730,7 @@ def test_windows_sort_orders_2(monkeypatch: MonkeyPatch, tmpdir):
         conda.models.prefix_graph.on_win = old_on_win
 
 
-def test_sort_without_prep(tmpdir, mocker, monkeypatch: MonkeyPatch):
+def test_sort_without_prep(monkeypatch: MonkeyPatch, tmpdir, mocker):
     # Test the _toposort_prepare_graph method, here by not running it at all.
     # The method is invoked in every other test.  This is what happens when it's not invoked.
 
@@ -733,7 +739,7 @@ def test_sort_without_prep(tmpdir, mocker, monkeypatch: MonkeyPatch):
         "_toposort_prepare_graph",
         return_value=None,
     ):
-        records, specs = get_windows_conda_build_record_set(tmpdir)
+        records, specs = get_windows_conda_build_record_set(monkeypatch, tmpdir)
         graph = PrefixGraph(records, specs)
 
         python_node = graph.get_node_by_name("python")
@@ -793,12 +799,12 @@ def test_sort_without_prep(tmpdir, mocker, monkeypatch: MonkeyPatch):
         monkeypatch.setenv("CONDA_ALLOW_CYCLES", "false")
         reset_context()
 
-        records, specs = get_windows_conda_build_record_set(tmpdir)
+        records, specs = get_windows_conda_build_record_set(monkeypatch, tmpdir)
         with pytest.raises(CyclicalDependencyError):
             graph = PrefixGraph(records, specs)
 
 
-def test_deep_cyclical_dependency(tmpdir):
+def test_deep_cyclical_dependency(monkeypatch: MonkeyPatch, tmpdir):
     # Basically, the whole purpose of this test is to make sure nothing blows up with
     # recursion errors or anything like that.  Cyclical dependencies will always lead to
     # problems, and the tests here document the behavior.
@@ -820,7 +826,7 @@ def test_deep_cyclical_dependency(tmpdir):
     #   "timestamp": 1505666646842,
     #   "version": "3.20.1"
     # },
-    graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set(monkeypatch, tmpdir))
 
     nodes = tuple(rec.name for rec in graph.records)
     pprint(nodes)
@@ -869,25 +875,25 @@ def test_deep_cyclical_dependency(tmpdir):
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
-    graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set(monkeypatch, tmpdir))
     removed_nodes = graph.remove_spec(MatchSpec("python"))
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
-    graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set(monkeypatch, tmpdir))
     removed_nodes = graph.remove_spec(MatchSpec("jinja2"))
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
-    graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set(monkeypatch, tmpdir))
     removed_nodes = graph.remove_spec(MatchSpec("markupsafe"))
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
-    graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set(monkeypatch, tmpdir))
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
     removed_nodes = tuple(rec.name for rec in removed_nodes)
     pprint(removed_nodes)
@@ -912,7 +918,7 @@ def test_deep_cyclical_dependency(tmpdir):
     )
     assert removed_nodes == expected_removal
 
-    graph = PrefixGraph(*get_sqlite_cyclical_record_set(tmpdir))
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set(monkeypatch, tmpdir))
     markupsafe_node = graph.get_node_by_name("markupsafe")
     markupsafe_ancestors = graph.all_ancestors(markupsafe_node)
     nodes = tuple(rec.name for rec in markupsafe_ancestors)
