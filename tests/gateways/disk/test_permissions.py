@@ -143,21 +143,21 @@ def test_make_writable_dir_EROFS(tmp_path: Path):
         assert not make_writable(tmp_path)
 
 
-def test_recursive_make_writable():
+def test_recursive_make_writable(tmp_path: Path):
     from conda.gateways.disk.permissions import recursive_make_writable
 
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        assert isfile(test_path)
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    assert test_path.is_file()
+    _try_open(test_path)
+    _make_read_only(test_path)
+    with pytest.raises((IOError, OSError)):
         _try_open(test_path)
-        _make_read_only(test_path)
-        pytest.raises((IOError, OSError), _try_open, test_path)
-        recursive_make_writable(test_path)
-        _try_open(test_path)
-        assert _can_write_file(test_path, "welcome to the ministry of silly walks")
-        os.remove(test_path)
-        assert not isfile(test_path)
+    recursive_make_writable(test_path)
+    _try_open(test_path)
+    assert _can_write_file(test_path, "welcome to the ministry of silly walks")
+    test_path.unlink()
+    assert not test_path.exists()
 
 
 def test_make_executable():
