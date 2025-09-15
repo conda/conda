@@ -96,7 +96,7 @@ def dependencies_validation(dependencies: list):
         else:
             # All other types are invalid
             raise EnvironmentFileInvalid(
-                "'{dep}' is an invalid type for a 'dependency'"
+                f"'{dep}' is an invalid type for a 'dependency'"
             )
 
 

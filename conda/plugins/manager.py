@@ -617,13 +617,13 @@ class CondaPluginManager(pluggy.PluginManager):
                 return self.get_environment_specifier_by_name(
                     source=source, name="environment.yml"
                 )
-            except (PluginError, CondaValueError):
+            except (PluginError, CondaValueError) as exc:
                 # raise error if no plugins found that can read the environment file
                 raise EnvironmentSpecPluginNotDetected(
                     name=source,
                     plugin_names=hooks,
                     autodetect_disabled_plugins=autodetect_disabled_plugins,
-                )
+                ) from exc
         elif len(found) == 1:
             # return the plugin if only one is found
             return found[0]

@@ -24,7 +24,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
     _environment = None
     extensions = {".yaml", ".yml"}
 
-    def __init__(self, filename=None, **kwargs):
+    def __init__(self, filename: str | None = None, **kwargs):
         self.filename = filename
 
     def can_handle(self):
@@ -46,7 +46,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
         _, file_ext = os.path.splitext(self.filename)
 
         # Check if the file has a supported extension and exists
-        if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
+        if file_ext.lower() not in self.extensions:
             return False
 
         try:
