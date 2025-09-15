@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Report environments marked as frozen with 🔒 in `conda info --envs` and `conda env list`. (#15213)
+* Report environments marked as frozen with `+` in `conda info --envs` and `conda env list`. (#15213)
 
 ### Bug fixes
 
