@@ -419,8 +419,7 @@ def test_specify_channels_cli_not_adding_defaults_no_condarc(context_testdata: N
     See https://github.com/conda/conda/issues/14217 for context.
     """
     reset_context((), argparse_args=AttrDict(channel=["conda-forge"]))
-    with pytest.warns((PendingDeprecationWarning, FutureWarning)):
-        assert context.channels == ("conda-forge", "defaults")
+    assert context.channels == ("conda-forge",)
 
 
 def test_specify_channels_cli_condarc(context_testdata: None):
