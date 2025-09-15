@@ -3,60 +3,22 @@
 
 from __future__ import annotations
 
-import errno
 import os
-import uuid
-from contextlib import contextmanager
 from errno import EACCES, ENOENT, EPERM, EROFS
-from os.path import join, lexists
-from shutil import rmtree
+from pathlib import Path
 from stat import (
     S_IRGRP,
     S_IROTH,
     S_IRUSR,
-    S_IRWXG,
-    S_IRWXO,
-    S_IRWXU,
     S_IXGRP,
     S_IXOTH,
     S_IXUSR,
 )
-from tempfile import gettempdir
-from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
 from conda.gateways.disk.update import touch
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-
-def create_temp_location():
-    tempdirdir = gettempdir()
-    dirname = str(uuid.uuid4())[:8]
-    return join(tempdirdir, dirname)
-
-
-@contextmanager
-def tempdir():
-    prefix = create_temp_location()
-    try:
-        os.makedirs(prefix)
-        yield prefix
-    finally:
-        if lexists(prefix):
-            rmtree(prefix, ignore_errors=False, onerror=_remove_read_only)
-
-
-def _remove_read_only(func, path, exc):
-    excvalue = exc[1]
-    if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
-        os.chmod(path, S_IRWXU | S_IRWXG | S_IRWXO)
-        func(path)
-    else:
-        pass
 
 
 def _make_read_only(path):
@@ -112,7 +74,7 @@ def test_make_writable_doesnt_exist():
     from conda.gateways.disk.permissions import make_writable
 
     with pytest.raises((IOError, OSError)) as exc:
-        make_writable(join("some", "path", "that", "definitely", "doesnt", "exist"))
+        make_writable(Path("some", "path", "that", "definitely", "doesnt", "exist"))
     assert exc.value.errno == ENOENT
 
 
