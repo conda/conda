@@ -116,14 +116,13 @@ def test_make_writable_doesnt_exist():
     assert exc.value.errno == ENOENT
 
 
-def test_make_writable_dir_EPERM():
+def test_make_writable_dir_EPERM(tmp_path: Path):
     import conda.gateways.disk.permissions
     from conda.gateways.disk.permissions import make_writable
 
     with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
         chmod_mock.side_effect = OSError(EPERM, "some message", "foo")
-        with tempdir() as td:
-            assert not make_writable(td)
+        assert not make_writable(tmp_path)
 
 
 def test_make_writable_dir_EACCES():
