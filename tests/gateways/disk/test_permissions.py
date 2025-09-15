@@ -8,7 +8,7 @@ import os
 import uuid
 from contextlib import contextmanager
 from errno import EACCES, ENOENT, EPERM, EROFS
-from os.path import isfile, join, lexists
+from os.path import join, lexists
 from shutil import rmtree
 from stat import (
     S_IRGRP,
@@ -160,15 +160,14 @@ def test_recursive_make_writable(tmp_path: Path):
     assert not test_path.exists()
 
 
-def test_make_executable():
+def test_make_executable(tmp_path: Path):
     from conda.gateways.disk.permissions import make_executable
 
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        assert isfile(test_path)
-        _try_open(test_path)
-        _make_read_only(test_path)
-        assert not _can_write_file(test_path, "welcome to the ministry of silly walks")
-        assert not _can_execute(test_path)
-        make_executable(test_path)
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    assert test_path.is_file()
+    _try_open(test_path)
+    _make_read_only(test_path)
+    assert not _can_write_file(test_path, "welcome to the ministry of silly walks")
+    assert not _can_execute(test_path)
+    make_executable(test_path)
