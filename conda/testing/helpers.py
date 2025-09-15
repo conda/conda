@@ -300,7 +300,7 @@ def _get_index_r_base(
         subdir_datas.append(sd)
 
         with context._override("add_pip_as_python_dependency", add_pip):
-	        sd._process_raw_repodata_str(json.dumps(repodata))
+            sd._process_raw_repodata_str(json.dumps(repodata))
 
         sd._loaded = True
         SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
