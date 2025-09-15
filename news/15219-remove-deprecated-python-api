@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove deprecated module `conda.cli.python_api`. (#15219)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
