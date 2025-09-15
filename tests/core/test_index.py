@@ -21,7 +21,6 @@ from conda.core.index import (
     dist_str_in_index,
 )
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import OperationNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
