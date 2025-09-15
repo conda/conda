@@ -20,13 +20,13 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
 @cache
-def get_conda_build_record_set(tmpdir):
+def get_conda_build_record_set(monkeypatch: MonkeyPatch, tmpdir):
     specs = (
         MatchSpec("conda"),
         MatchSpec("conda-build"),
         MatchSpec("intel-openmp"),
     )
-    with get_solver_4(tmpdir, specs) as solver:
+    with get_solver_4(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
@@ -74,10 +74,10 @@ def get_sqlite_cyclical_record_set(tmpdir):
     return final_state, frozenset(specs)
 
 
-def test_prefix_graph_1(tmpdir):
+def test_prefix_graph_1(monkeypatch, tmpdir):
     # Basic initial test for public methods of PrefixGraph.
 
-    records, specs = get_conda_build_record_set(tmpdir)
+    records, specs = get_conda_build_record_set(monkeypatch, tmpdir)
     graph = PrefixGraph(records, specs)
 
     channel_name = next(graph.records).channel.canonical_name
@@ -310,8 +310,8 @@ def test_prefix_graph_1(tmpdir):
     assert removed_nodes == order
 
 
-def test_prefix_graph_2(tmpdir):
-    records, specs = get_conda_build_record_set(tmpdir)
+def test_prefix_graph_2(monkeypatch: MonkeyPatch, tmpdir):
+    records, specs = get_conda_build_record_set(monkeypatch, tmpdir)
     graph = PrefixGraph(records, specs)
 
     conda_build_node = graph.get_node_by_name("conda-build")
@@ -423,8 +423,8 @@ def test_prefix_graph_2(tmpdir):
     assert removed_nodes == order
 
 
-def test_remove_youngest_descendant_nodes_with_specs(tmpdir):
-    records, specs = get_conda_build_record_set(tmpdir)
+def test_remove_youngest_descendant_nodes_with_specs(monkeypatch: MonkeyPatch, tmpdir):
+    records, specs = get_conda_build_record_set(monkeypatch, tmpdir)
     graph = PrefixGraph(records, tuple(specs) + (MatchSpec("python:requests"),))
 
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
