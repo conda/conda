@@ -203,11 +203,11 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         if not output:
             return ""
 
-        output = ["", "# conda environments:", "#", "# *  -> active", "# 🔒 -> frozen"]
+        output = ["", "# conda environments:", "#", "# *  -> active", "# + -> frozen"]
 
         def disp_env(prefix):
             active = "*" if prefix == context.active_prefix else " "
-            protected = "🔒" if Path(prefix, PREFIX_FROZEN_FILE).is_file() else "  "
+            protected = "+" if Path(prefix, PREFIX_FROZEN_FILE).is_file() else " "
             if prefix == context.root_prefix:
                 name = ROOT_ENV_NAME
             elif any(

@@ -112,7 +112,7 @@ def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env):
 
         stdout, stderr, err = conda_cli("info", "--envs")
         assert stdout == ConsoleReporterRenderer.envs_list(prefixes)
-        assert "🔒" in stdout
+        assert " + " in stdout
         assert not stderr
         assert not err
 
