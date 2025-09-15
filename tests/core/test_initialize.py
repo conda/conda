@@ -45,6 +45,7 @@ from conda.core.initialize import (
     make_entry_point_exe,
     make_initialize_plan,
     make_install_plan,
+    print_plan_results,
 )
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
@@ -644,8 +645,6 @@ def test_print_plan_results_dry_run_with_changes(verbose):
 
     with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with captured() as c:
-            from conda.core.initialize import print_plan_results
-
             print_plan_results(plan)
 
     output = c.stdout
@@ -673,8 +672,6 @@ def test_print_plan_results_dry_run_with_no_changes(verbose):
 
     with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
         with captured() as c:
-            from conda.core.initialize import print_plan_results
-
             print_plan_results(plan)
 
     output = c.stdout
@@ -696,8 +693,6 @@ def test_print_plan_results_real_run_with_changes(verbose):
         "CONDA_DRY_RUN", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
     ):
         with captured() as c:
-            from conda.core.initialize import print_plan_results
-
             print_plan_results(plan)
 
     output = c.stdout
@@ -719,8 +714,6 @@ def test_print_plan_results_real_run_no_changes(verbose):
         "CONDA_DRY_RUN", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
     ):
         with captured() as c:
-            from conda.core.initialize import print_plan_results
-
             print_plan_results(plan)
 
     output = c.stdout
