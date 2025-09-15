@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 from ...common.serialize import yaml_safe_load
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
-from .yaml_file import YamlFileSpec
 
 if TYPE_CHECKING:
     from ...models.environment import Environment

@@ -614,7 +614,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if not found:
             # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
             # FUTURE: Remove this final try at using the environment.yml to read the environment
-            # file. This should be removed in "26.9" when the deprecations warning for 
+            # file. This should be removed in "26.9" when the deprecations warning for
             # environment.yml's that are not compliant with cep-0024 are removed.
             try:
                 return self.get_environment_specifier_by_name(

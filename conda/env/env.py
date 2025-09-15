@@ -97,13 +97,12 @@ def dependencies_validation(dependencies: list):
             pass
         else:
             # All other types are invalid
-            errors.append(EnvironmentFileInvalid(
-                f"'{dep}' is an invalid type for a 'dependency'"
-            ))
-    
+            errors.append(
+                EnvironmentFileInvalid(f"'{dep}' is an invalid type for a 'dependency'")
+            )
+
     if errors:
         raise CondaMultiError(errors)
-
 
 
 def channels_validation(channels: list):
