@@ -242,7 +242,7 @@ def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> No
 
     class SpecialPlugin:
         @plugins.hookimpl
-        def conda_virtual_packages(*args):
+        def conda_subcommands(*args):
             yield NoNameCondaPlugin(None)
             yield NoNamePlugin(None)
 
@@ -251,12 +251,7 @@ def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> No
         PluginError,
         match=r"(?s)Invalid plugin names found.+NoNameCondaPlugin.+NoNamePlugin",
     ):
-        plugin_manager.get_virtual_packages()
-
-
-def test_get_virtual_packages(plugin_manager: CondaPluginManager):
-    assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
-    assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
+        plugin_manager.get_subcommands()
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):

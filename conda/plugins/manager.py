@@ -414,14 +414,6 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
-    @deprecated(
-        "25.3",
-        "25.9",
-        addendum="Use `conda.plugins.manager.get_virtual_package_records` instead.",
-    )
-    def get_virtual_packages(self) -> tuple[CondaVirtualPackage, ...]:
-        return tuple(self.get_hook_results("virtual_packages"))
-
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))
 
