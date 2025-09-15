@@ -134,14 +134,13 @@ def test_make_writable_dir_EACCES(tmp_path: Path):
         assert not make_writable(tmp_path)
 
 
-def test_make_writable_dir_EROFS():
+def test_make_writable_dir_EROFS(tmp_path: Path):
     import conda.gateways.disk.permissions
     from conda.gateways.disk.permissions import make_writable
 
     with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
         chmod_mock.side_effect = OSError(EROFS, "some message", "foo")
-        with tempdir() as td:
-            assert not make_writable(td)
+        assert not make_writable(tmp_path)
 
 
 def test_recursive_make_writable():
