@@ -4,10 +4,10 @@ import os
 from pathlib import Path
 
 import pytest
-from pytest import raises
+from pytest import MonkeyPatch, raises
 from pytest_mock import MockerFixture
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import context, reset_context
 from conda.cli.common import (
     check_non_admin,
     is_active_prefix,
@@ -15,38 +15,35 @@ from conda.cli.common import (
     validate_subdir_config,
 )
 from conda.common.compat import on_win
-from conda.common.io import env_vars
 from conda.exceptions import EnvironmentFileNotFound, OperationNotAllowed
 
 
-def test_check_non_admin_enabled_false():
-    with env_vars(
-        {"CONDA_NON_ADMIN_ENABLED": "false"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        if on_win:
-            from conda.common._os.windows import is_admin_on_windows
+def test_check_non_admin_enabled_false(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_NON_ADMIN_ENABLED", "false")
+    reset_context()
 
-            if is_admin_on_windows():
-                check_non_admin()
-            else:
-                with raises(OperationNotAllowed):
-                    check_non_admin()
+    if on_win:
+        from conda.common._os.windows import is_admin_on_windows
+
+        if is_admin_on_windows():
+            check_non_admin()
         else:
-            if os.geteuid() == 0 or os.getegid() == 0:
+            with raises(OperationNotAllowed):
                 check_non_admin()
-            else:
-                with raises(OperationNotAllowed):
-                    check_non_admin()
+    else:
+        if os.geteuid() == 0 or os.getegid() == 0:
+            check_non_admin()
+        else:
+            with raises(OperationNotAllowed):
+                check_non_admin()
 
 
-def test_check_non_admin_enabled_true():
-    with env_vars(
-        {"CONDA_NON_ADMIN_ENABLED": "true"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        check_non_admin()
-        assert True
+def test_check_non_admin_enabled_true(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_NON_ADMIN_ENABLED", "true")
+    reset_context()
+
+    check_non_admin()
+    assert True
 
 
 @pytest.mark.parametrize("prefix,active", [("", False), ("active_prefix", True)])
