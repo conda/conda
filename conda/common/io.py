@@ -14,11 +14,10 @@ from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
-from itertools import cycle
 from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-from threading import Event, Lock, RLock, Thread
-from time import sleep, time
+from threading import Lock
+from time import time
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
