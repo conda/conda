@@ -12,15 +12,18 @@ from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
 from ..base.constants import REPODATA_FN
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
+from ..base.context import context, reset_context
 from ..common.io import captured as common_io_captured
-from ..common.io import env_var
 from ..common.serialize import json
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
@@ -254,6 +257,7 @@ def _patch_for_local_exports(name, subdir_data):
 
 
 def _get_index_r_base(
+    monkeypatch: MonkeyPatch,
     json_filename_or_packages,
     channel_name,
     subdir=context.subdir,
@@ -294,12 +298,11 @@ def _get_index_r_base(
         channels.append(channel)
         sd = SubdirData(channel)
         subdir_datas.append(sd)
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            str(add_pip).lower(),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            sd._process_raw_repodata_str(json.dumps(repodata))
+
+        monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", str(add_pip).lower())
+        reset_context()
+        sd._process_raw_repodata_str(json.dumps(repodata))
+
         sd._loaded = True
         SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
         _patch_for_local_exports(channel_name, sd)
@@ -483,6 +486,7 @@ def _get_solver_base(
     history_specs=(),
     add_pip=False,
     merge_noarch=False,
+    monkeypatch: MonkeyPatch = None,
 ):
     tmpdir = tmpdir.strpath
     pd = PrefixData(tmpdir)
@@ -536,14 +540,10 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with (
-        patch.object(History, "get_requested_specs_map", return_value=spec_map),
-        env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            str(add_pip).lower(),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-    ):
+    monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", str(add_pip).lower())
+    reset_context()
+
+    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
         # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
         # get_index_r_*) to cover solver logics that need to load from disk instead of
         # hitting the SubdirData cache
