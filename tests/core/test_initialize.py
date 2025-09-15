@@ -53,6 +53,8 @@ from conda.models.enums import LinkType
 from conda.testing.helpers import tempdir
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from conda.testing.fixtures import CondaCLIFixture
 
 CONDA_EXE = "conda.exe" if on_win else "conda"
@@ -629,7 +631,7 @@ def test__get_python_info(verbose):
     assert site_packages_dir.endswith("site-packages")
 
 
-def test_print_plan_results_dry_run_with_changes(verbose):
+def test_print_plan_results_dry_run_with_changes(verbose, monkeypatch: MonkeyPatch):
     plan = [
         {
             "function": "make_entry_point",
@@ -643,9 +645,10 @@ def test_print_plan_results_dry_run_with_changes(verbose):
         },
     ]
 
-    with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            print_plan_results(plan)
+    monkeypatch.setenv("CONDA_DRY_RUN", "true")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
 
     output = c.stdout
     assert "modified" in output
@@ -656,7 +659,7 @@ def test_print_plan_results_dry_run_with_changes(verbose):
     assert "For changes to take effect" not in output
 
 
-def test_print_plan_results_dry_run_with_no_changes(verbose):
+def test_print_plan_results_dry_run_with_no_changes(verbose, monkeypatch: MonkeyPatch):
     plan = [
         {
             "function": "make_entry_point",
@@ -670,9 +673,10 @@ def test_print_plan_results_dry_run_with_no_changes(verbose):
         },
     ]
 
-    with env_var("CONDA_DRY_RUN", "true", stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        with captured() as c:
-            print_plan_results(plan)
+    monkeypatch.setenv("CONDA_DRY_RUN", "true")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
 
     output = c.stdout
     assert "no change" in output
@@ -680,7 +684,7 @@ def test_print_plan_results_dry_run_with_no_changes(verbose):
     assert "No action taken." not in output
 
 
-def test_print_plan_results_real_run_with_changes(verbose):
+def test_print_plan_results_real_run_with_changes(verbose, monkeypatch: MonkeyPatch):
     plan = [
         {
             "function": "make_entry_point",
@@ -689,11 +693,10 @@ def test_print_plan_results_real_run_with_changes(verbose):
         },
     ]
 
-    with env_var(
-        "CONDA_DRY_RUN", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        with captured() as c:
-            print_plan_results(plan)
+    monkeypatch.setenv("CONDA_DRY_RUN", "false")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
 
     output = c.stdout
     assert "modified" in output
@@ -701,7 +704,7 @@ def test_print_plan_results_real_run_with_changes(verbose):
     assert "DRY RUN" not in output
 
 
-def test_print_plan_results_real_run_no_changes(verbose):
+def test_print_plan_results_real_run_no_changes(verbose, monkeypatch: MonkeyPatch):
     plan = [
         {
             "function": "make_entry_point",
@@ -710,11 +713,10 @@ def test_print_plan_results_real_run_no_changes(verbose):
         },
     ]
 
-    with env_var(
-        "CONDA_DRY_RUN", "false", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        with captured() as c:
-            print_plan_results(plan)
+    monkeypatch.setenv("CONDA_DRY_RUN", "false")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
 
     output = c.stdout
     assert "no change" in output
