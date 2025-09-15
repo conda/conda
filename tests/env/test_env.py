@@ -24,7 +24,7 @@ from conda.env.env import (
     prefix_validation,
     variables_validation,
 )
-from conda.exceptions import CondaHTTPError, EnvironmentFileInvalid
+from conda.exceptions import CondaMultiError, CondaHTTPError, EnvironmentFileInvalid
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -402,16 +402,17 @@ def test_dependency_validation(dependencies):
 
 
 @pytest.mark.parametrize(
-    "dependencies,error_message",
+    "dependencies,error_type,error_message",
     (
-        (None, "Invalid type for 'dependencies', expected a list"),
-        (["nota~matchspec"], "Invalid spec 'nota~matchspec'"),
-        (["python", ["this-should", "not-be-a", "list"]], "is an invalid type"),
-        ({"wrong": "type"}, "Invalid type for 'dependencies'"),
+        (None, EnvironmentFileInvalid, "Invalid type for 'dependencies', expected a list"),
+        (["nota~matchspec", "also!!not"], CondaMultiError, "Invalid spec 'nota~matchspec'"),
+        (["nota~matchspec", "also!!not"], CondaMultiError, "Invalid spec 'also!!not'"),
+        (["python", ["this-should", "not-be-a", "list"]], CondaMultiError, "is an invalid type"),
+        ({"wrong": "type"}, EnvironmentFileInvalid, "Invalid type for 'dependencies'"),
     ),
 )
-def test_dependency_validation_errors(dependencies, error_message):
-    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+def test_dependency_validation_errors(dependencies, error_type, error_message):
+    with pytest.raises(error_type, match=error_message):
         dependencies_validation(dependencies)
 
 
