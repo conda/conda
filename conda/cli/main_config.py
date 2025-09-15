@@ -849,13 +849,9 @@ def execute_config(args, parser):
 
     # read existing condarc
     if os.path.exists(rc_path):
-        with open(rc_path) as fh:
-            # round trip load required because... we need to round trip
-            rc_config = yaml_round_trip_load(fh) or {}
+        rc_config = _read_rc(rc_path)
     elif os.path.exists(sys_rc_path):
-        # In case the considered rc file doesn't exist, fall back to the system rc
-        with open(sys_rc_path) as fh:
-            rc_config = yaml_round_trip_load(fh) or {}
+        rc_config = _read_rc(sys_rc_path)
     else:
         rc_config = {}
 
