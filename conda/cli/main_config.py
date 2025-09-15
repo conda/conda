@@ -18,8 +18,6 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
-from ..base.constants import DEFAULTS_CHANNEL_NAME
-
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any
