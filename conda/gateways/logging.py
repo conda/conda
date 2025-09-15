@@ -134,7 +134,7 @@ class StdStreamHandler(StreamHandler):
             self.handleError(record)
 
 
-# Don't use initialize_logging/initialize_root_logger/set_conda_log_level in
+# Don't use initialize_logging/set_conda_log_level in
 # cli.python_api! There we want the user to have control over their logging,
 # e.g., using their own levels, handlers, formatters and propagation settings.
 
@@ -182,12 +182,6 @@ def initialize_std_loggers():
     verbose_handler.addFilter(TokenURLFilter())
     verbose_logger.addHandler(verbose_handler)
     verbose_logger.propagate = False
-
-
-@deprecated("25.3", "25.9", addendum="Unused.")
-def initialize_root_logger(level=ERROR):
-    attach_stderr_handler(level=level, filters=[TokenURLFilter()])
-
 
 def set_conda_log_level(level=WARN):
     attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])

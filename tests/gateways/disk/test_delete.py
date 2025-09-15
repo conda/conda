@@ -184,23 +184,3 @@ def test_try_rmdir_all_empty_doesnt_exist():
         assert isdir(td)
         rm_rf(td)
         assert not isdir(td)
-
-
-@pytest.mark.parametrize(
-    "function,raises,kwargs",
-    [
-        ("rm_rf", TypeError, {"max_retries": 5}),
-        ("rm_rf", TypeError, {"trash": True}),
-        ("try_rmdir_all_empty", TypeError, None),
-        ("move_to_trash", TypeError, None),
-        ("move_path_to_trash", TypeError, None),
-    ],
-)
-def test_deprecations(
-    function: str,
-    raises: type[Exception] | None,
-    kwargs: dict[str, Any] | None,
-) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(delete, function)(**(kwargs or {}))
