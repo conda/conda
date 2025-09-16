@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from errno import ENOENT
-from os.path import isdir, join, lexists
+from os.path import isdir, lexists
 from typing import TYPE_CHECKING
 
 import pytest
@@ -162,14 +162,13 @@ def test_backoff_unlink(tmp_path: Path):
     assert not tmp_path.is_dir()
 
 
-def test_backoff_unlink_doesnt_exist():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        try:
-            backoff_rmdir(join(test_path, "some", "path", "in", "utopia"))
-        except Exception as e:
-            assert e.value.errno == ENOENT
+def test_backoff_unlink_doesnt_exist(tmp_path: Path):
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    try:
+        backoff_rmdir(test_path / "some" / "path" / "in" / "utopia")
+    except Exception as e:
+        assert e.value.errno == ENOENT
 
 
 def test_try_rmdir_all_empty_doesnt_exist():
