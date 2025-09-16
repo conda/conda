@@ -51,7 +51,7 @@ def test_console_reporter_renderer_envs_list(mocker):
 
     output = console_reporter_renderer.envs_list(["/tmp/envs"])
 
-    assert "envs                   /tmp/envs" in output
+    assert "envs                     /tmp/envs" in output
 
 
 def test_console_reporter_renderer_envs_list_output_false():
