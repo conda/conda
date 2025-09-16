@@ -1739,6 +1739,11 @@ class Context(Configuration):
                 see much benefit here.
                 """
             ),
+            export_platforms=dals(
+                """
+                Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64).
+                """
+            ),
             fetch_threads=dals(
                 """
                 Threads to use when downloading packages.  When not set,
