@@ -22,6 +22,7 @@ from conda.models.enums import LinkType
 from .test_permissions import _make_read_only, _try_open, tempdir
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Any
 
 
@@ -31,16 +32,16 @@ def _write_file(path, content):
         fh.close()
 
 
-def test_remove_file():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        assert isfile(test_path)
+def test_remove_file(tmp_path: Path):
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    assert test_path.is_file()
+    _try_open(test_path)
+    _make_read_only(test_path)
+    with pytest.raises((IOError, OSError)):
         _try_open(test_path)
-        _make_read_only(test_path)
-        pytest.raises((IOError, OSError), _try_open, test_path)
-        assert rm_rf(test_path)
-        assert not isfile(test_path)
+    assert rm_rf(test_path)
+    assert not test_path.exists()
 
 
 def test_remove_file_to_trash():
