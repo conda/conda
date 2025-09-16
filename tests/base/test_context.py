@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+from argparse import Namespace
 from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
@@ -838,3 +839,24 @@ def test_create_default_packages_will_warn_for_explicit_packages(
     ):
         # Ensure only valid packages are returned
         assert context.create_default_packages == (PYTHON_SPEC,)
+
+
+def test_export_platforms(monkeypatch: MonkeyPatch):
+    reset_context([])
+    assert not context.export_platforms
+
+    monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64")
+    reset_context()
+    assert context.export_platforms == ("linux-64", "osx-64")
+
+    monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64,win-64")
+    reset_context()
+    assert context.export_platforms == ("linux-64", "osx-64", "win-64")
+
+    reset_context(argparse_args=Namespace(export_platforms=["linux-32"]))
+    assert context.export_platforms == ("linux-32", "linux-64", "osx-64", "win-64")
+
+    reset_context(
+        argparse_args=Namespace(export_platforms=["linux-32"], override_platforms=True)
+    )
+    assert context.export_platforms == ("linux-32",)
