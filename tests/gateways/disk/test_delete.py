@@ -2,14 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from contextlib import nullcontext
 from os.path import lexists
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.common.compat import on_win
-from conda.gateways.disk import delete
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import backoff_rmdir, rm_rf
 from conda.gateways.disk.link import symlink
@@ -21,7 +19,6 @@ from .test_permissions import _make_read_only, _try_open
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Any
 
 
 def test_remove_file(tmp_path: Path):
@@ -166,23 +163,3 @@ def test_try_rmdir_all_empty_doesnt_exist(tmp_path: Path):
     assert tmp_path.is_dir()
     rm_rf(tmp_path)
     assert not tmp_path.is_dir()
-
-
-@pytest.mark.parametrize(
-    "function,raises,kwargs",
-    [
-        ("rm_rf", TypeError, {"max_retries": 5}),
-        ("rm_rf", TypeError, {"trash": True}),
-        ("try_rmdir_all_empty", TypeError, None),
-        ("move_to_trash", TypeError, None),
-        ("move_path_to_trash", TypeError, None),
-    ],
-)
-def test_deprecations(
-    function: str,
-    raises: type[Exception] | None,
-    kwargs: dict[str, Any] | None,
-) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(delete, function)(**(kwargs or {}))
