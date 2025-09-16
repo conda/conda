@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove class `conda.common.io.Spinner`. Use `conda.reporters.get_spinner` instead. (#15221)
+* Remove class `conda.common.io.ProgressBar`. Use `conda.reporters.get_progress_bar` instead. (#15221)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
