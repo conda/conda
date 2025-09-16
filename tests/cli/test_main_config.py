@@ -37,6 +37,169 @@ if TYPE_CHECKING:
     )
 
 
+@pytest.mark.integration
+def test_env_create_with_channels_from_yaml(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Test that channels specified in environment.yaml are used when creating an environment.
+    This verifies that the environment config from the YAML file is properly loaded into
+    the context during environment creation.
+    """
+    from conda.common.serialize import yaml_safe_dump
+    from conda.core.prefix_data import PrefixData
+    from conda.testing.integration import package_is_installed
+
+    # Create a temporary environment.yml file with custom channels
+    env_content = yaml_safe_dump(
+        {
+            "name": "test-env-with-channels",
+            "channels": ["conda-forge", "defaults"],
+            "dependencies": [
+                "ca-certificates"
+            ],  # Use a simple package available in both channels
+        }
+    )
+
+    env_file = tmp_path / "environment.yml"
+    env_file.write_text(env_content)
+
+    # Create environment using the YAML file
+    # Use temp prefix for easy cleanup
+    prefix = path_factory()
+    stdout, stderr, _ = conda_cli(
+        "env", "create", f"--file={env_file}", f"--prefix={prefix}", "--yes"
+    )
+
+    # Verify environment was created successfully
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "ca-certificates")
+
+    # Check that the .condarc file was created with the channels from the YAML
+    condarc_path = prefix / ".condarc"
+    assert condarc_path.exists()
+
+    condarc_content = condarc_path.read_text()
+    assert "conda-forge" in condarc_content
+    assert "defaults" in condarc_content
+
+
+@pytest.mark.integration
+def test_env_create_with_all_config_options_from_yaml(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Test that ALL configuration options specified in environment.yaml are used
+    when creating an environment, not just channels.
+    """
+    from conda.common.serialize import yaml_safe_dump
+    from conda.core.prefix_data import PrefixData
+    from conda.testing.integration import package_is_installed
+
+    # Create a temporary environment.yml file with multiple config options
+    env_content = yaml_safe_dump(
+        {
+            "name": "test-env-full-config",
+            "channels": ["conda-forge", "defaults"],
+            "dependencies": ["ca-certificates"],
+            "variables": {
+                "VARIABLE": "value",
+            },
+        }
+    )
+
+    env_file = tmp_path / "environment.yml"
+    env_file.write_text(env_content)
+
+    # Create environment using the YAML file
+    prefix = path_factory()
+    stdout, stderr, _ = conda_cli(
+        "env",
+        "create",
+        f"--file={env_file}",
+        f"--prefix={prefix}",
+    )
+
+    # Verify environment was created successfully
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "ca-certificates")
+
+    # Check that the .condarc file was created
+    condarc_path = prefix / ".condarc"
+    assert condarc_path.exists()
+
+    condarc_content = condarc_path.read_text()
+    assert "conda-forge" in condarc_content
+    assert "defaults" in condarc_content
+
+    # Check that the conda-meta/state file was created with the environment variables from the YAML
+    conda_state_path = prefix / "conda-meta/state"
+    assert conda_state_path.exists()
+
+    conda_state_content = conda_state_path.read_text()
+    assert "VARIABLE" in conda_state_content
+    assert "value" in conda_state_content
+
+
+@pytest.mark.integration
+def test_env_create_dry_run_with_channels_from_yaml(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Test that channels specified in environment.yaml are used during dry-run
+    without writing to disk. This verifies that the environment config is properly
+    loaded into the context even for dry-run operations.
+    """
+    from conda.common.serialize import yaml_safe_dump, yaml_safe_load
+    from conda.core.prefix_data import PrefixData
+
+    # Create a temporary environment.yml file with custom channels
+    env_content = yaml_safe_dump(
+        {
+            "name": "test-env-dry-run",
+            "channels": ["conda-forge", "defaults"],
+            "dependencies": ["ca-certificates"],
+        }
+    )
+
+    env_file = tmp_path / "environment.yml"
+    env_file.write_text(env_content)
+
+    # Run dry-run to see what would be created
+    prefix = path_factory()
+    stdout, stderr, _ = conda_cli(
+        "env", "create", f"--file={env_file}", f"--prefix={prefix}", "--dry-run"
+    )
+
+    # Verify no environment was actually created
+    assert not PrefixData(prefix).is_environment()
+
+    # Parse the dry-run output to verify channels are included
+    lines = stdout.splitlines()
+    yaml_start = None
+    for i, line in enumerate(lines):
+        if line.startswith("name:"):
+            yaml_start = i
+            break
+
+    assert yaml_start is not None, "Could not find YAML output in dry-run"
+    yaml_output = yaml_safe_load("\n".join(lines[yaml_start:]))
+
+    # Verify the dry-run output includes the channels from the YAML
+    assert "channels" in yaml_output
+    assert "conda-forge" in yaml_output["channels"]
+    assert "defaults" in yaml_output["channels"]
+
+
 @pytest.mark.parametrize(
     "args",
     [
