@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from errno import ENOENT
-from os.path import isdir, lexists
+from os.path import lexists
 from typing import TYPE_CHECKING
 
 import pytest
@@ -18,7 +18,7 @@ from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
 
-from .test_permissions import _make_read_only, _try_open, tempdir
+from .test_permissions import _make_read_only, _try_open
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -171,11 +171,10 @@ def test_backoff_unlink_doesnt_exist(tmp_path: Path):
         assert e.value.errno == ENOENT
 
 
-def test_try_rmdir_all_empty_doesnt_exist():
-    with tempdir() as td:
-        assert isdir(td)
-        rm_rf(td)
-        assert not isdir(td)
+def test_try_rmdir_all_empty_doesnt_exist(tmp_path: Path):
+    assert tmp_path.is_dir()
+    rm_rf(tmp_path)
+    assert not tmp_path.is_dir()
 
 
 @pytest.mark.parametrize(
