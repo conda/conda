@@ -24,12 +24,6 @@ if TYPE_CHECKING:
     from typing import Any
 
 
-def _write_file(path, content):
-    with open(path, "a") as fh:
-        fh.write(content)
-        fh.close()
-
-
 def test_remove_file(tmp_path: Path):
     test_path = tmp_path / "test_path"
     touch(test_path)
@@ -71,7 +65,7 @@ def test_remove_dir(tmp_path: Path):
 def test_remove_link_to_file(tmp_path: Path):
     dst_link = tmp_path / "test_link"
     src_file = tmp_path / "test_file"
-    _write_file(src_file, "welcome to the ministry of silly walks")
+    src_file.write_text("welcome to the ministry of silly walks")
     if not softlink_supported(src_file, tmp_path) and on_win:
         pytest.skip("softlink not supported")
 
