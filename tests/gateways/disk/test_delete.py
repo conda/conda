@@ -153,14 +153,13 @@ def test_rm_rf_couldnt(tmp_path: Path):
     assert rm_rf(test_path)
 
 
-def test_backoff_unlink():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        _try_open(test_path)
-        assert isdir(td)
-        backoff_rmdir(td)
-        assert not isdir(td)
+def test_backoff_unlink(tmp_path: Path):
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    _try_open(test_path)
+    assert tmp_path.is_dir()
+    backoff_rmdir(tmp_path)
+    assert not tmp_path.is_dir()
 
 
 def test_backoff_unlink_doesnt_exist():
