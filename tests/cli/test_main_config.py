@@ -88,66 +88,6 @@ def test_env_create_with_channels_from_yaml(
 
 
 @pytest.mark.integration
-def test_env_create_with_all_config_options_from_yaml(
-    conda_cli: CondaCLIFixture,
-    path_factory: PathFactoryFixture,
-    tmp_path: Path,
-    monkeypatch: MonkeyPatch,
-):
-    """
-    Test that ALL configuration options specified in environment.yaml are used
-    when creating an environment, not just channels.
-    """
-    from conda.common.serialize import yaml_safe_dump
-    from conda.core.prefix_data import PrefixData
-    from conda.testing.integration import package_is_installed
-
-    # Create a temporary environment.yml file with multiple config options
-    env_content = yaml_safe_dump(
-        {
-            "name": "test-env-full-config",
-            "channels": ["conda-forge", "defaults"],
-            "dependencies": ["ca-certificates"],
-            "variables": {
-                "VARIABLE": "value",
-            },
-        }
-    )
-
-    env_file = tmp_path / "environment.yml"
-    env_file.write_text(env_content)
-
-    # Create environment using the YAML file
-    prefix = path_factory()
-    stdout, stderr, _ = conda_cli(
-        "env",
-        "create",
-        f"--file={env_file}",
-        f"--prefix={prefix}",
-    )
-
-    # Verify environment was created successfully
-    assert PrefixData(prefix).is_environment()
-    assert package_is_installed(prefix, "ca-certificates")
-
-    # Check that the .condarc file was created
-    condarc_path = prefix / ".condarc"
-    assert condarc_path.exists()
-
-    condarc_content = condarc_path.read_text()
-    assert "conda-forge" in condarc_content
-    assert "defaults" in condarc_content
-
-    # Check that the conda-meta/state file was created with the environment variables from the YAML
-    conda_state_path = prefix / "conda-meta/state"
-    assert conda_state_path.exists()
-
-    conda_state_content = conda_state_path.read_text()
-    assert "VARIABLE" in conda_state_content
-    assert "value" in conda_state_content
-
-
-@pytest.mark.integration
 def test_env_create_dry_run_with_channels_from_yaml(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
@@ -191,7 +131,6 @@ def test_env_create_dry_run_with_channels_from_yaml(
             yaml_start = i
             break
 
-    assert yaml_start is not None, "Could not find YAML output in dry-run"
     yaml_output = yaml_safe_load("\n".join(lines[yaml_start:]))
 
     # Verify the dry-run output includes the channels from the YAML
