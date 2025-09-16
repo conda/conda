@@ -133,15 +133,15 @@ def test_rm_rf_does_not_follow_symlinks(tmp_path: Path):
     assert real_file.is_file()
 
 
-def test_rm_rf():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        _try_open(test_path)
-        assert isdir(td)
-        assert isfile(test_path)
-        rm_rf(td, test_path)
-        assert not isfile(test_path)
+def test_rm_rf(tmp_path: Path):
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    _try_open(test_path)
+    assert tmp_path.is_dir()
+    assert test_path.is_file()
+    rm_rf(test_path, True)
+    assert not test_path.is_file()
+    assert not tmp_path.is_dir()
 
 
 def test_rm_rf_couldnt():
