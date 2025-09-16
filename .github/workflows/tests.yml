@@ -909,6 +909,9 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
+          --file ../conda-build/tests/requirements.txt
+          --file ../conda-build/tests/requirements-ci.txt
+          --file ../conda-build/tests/requirements-${{ runner.os }}.txt
           python=${{ matrix.python-version }}
 
       - name: Install conda-build
