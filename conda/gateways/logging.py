@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from functools import cache, partial
 from logging import (
     DEBUG,
-    ERROR,
     INFO,
     WARN,
     Filter,
@@ -20,7 +19,6 @@ from logging import (
 
 from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
-from ..deprecations import deprecated
 
 log = getLogger(__name__)
 _VERBOSITY_LEVELS = {
@@ -182,6 +180,7 @@ def initialize_std_loggers():
     verbose_handler.addFilter(TokenURLFilter())
     verbose_logger.addHandler(verbose_handler)
     verbose_logger.propagate = False
+
 
 def set_conda_log_level(level=WARN):
     attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])

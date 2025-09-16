@@ -256,7 +256,9 @@ def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> No
 
 def test_get_virtual_packages(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
-    assert plugin_manager.get_virtual_package_records() == (DummyVirtualPackage.to_virtual_package(),)
+    assert plugin_manager.get_virtual_package_records() == (
+        DummyVirtualPackage.to_virtual_package(),
+    )
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):

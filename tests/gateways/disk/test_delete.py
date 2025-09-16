@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import os
-from contextlib import nullcontext
 from errno import ENOENT
 from os.path import isdir, isfile, join, lexists
-from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.common.compat import on_win
-from conda.gateways.disk import delete
 from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
 from conda.gateways.disk.delete import backoff_rmdir, rm_rf
 from conda.gateways.disk.link import islink, symlink
@@ -20,9 +17,6 @@ from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
 
 from .test_permissions import _make_read_only, _try_open, tempdir
-
-if TYPE_CHECKING:
-    from typing import Any
 
 
 def _write_file(path, content):

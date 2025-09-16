@@ -23,7 +23,6 @@ from ..auxlib.ish import dals
 from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
