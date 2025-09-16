@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from errno import ENOENT
-from os.path import isdir, isfile, join, lexists
+from os.path import isdir, join, lexists
 from typing import TYPE_CHECKING
 
 import pytest
@@ -144,14 +144,13 @@ def test_rm_rf(tmp_path: Path):
     assert not tmp_path.is_dir()
 
 
-def test_rm_rf_couldnt():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        _try_open(test_path)
-        assert isdir(td)
-        assert isfile(test_path)
-        assert rm_rf(test_path)
+def test_rm_rf_couldnt(tmp_path: Path):
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    _try_open(test_path)
+    assert tmp_path.is_dir()
+    assert test_path.is_file()
+    assert rm_rf(test_path)
 
 
 def test_backoff_unlink():
