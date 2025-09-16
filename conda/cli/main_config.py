@@ -556,6 +556,8 @@ def _read_rc(path: str | os.PathLike | Path) -> dict:
 
 
 def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
+    from ruamel.yaml.representer import RoundTripRepresenter
+
     from .. import CondaError
     from ..base.constants import (
         ChannelPriority,
@@ -565,7 +567,7 @@ def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
         SatSolverChoice,
         UpdateModifier,
     )
-    from ..common.serialize import yaml, yaml_round_trip_dump
+    from ..common.serialize import yaml_round_trip_dump
 
     # Add representers for enums.
     # Because a representer cannot be added for the base Enum class (it must be added for
@@ -574,24 +576,12 @@ def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
     def enum_representer(dumper, data):
         return dumper.represent_str(str(data))
 
-    yaml.representer.RoundTripRepresenter.add_representer(
-        SafetyChecks, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        PathConflict, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        DepsModifier, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        UpdateModifier, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        ChannelPriority, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        SatSolverChoice, enum_representer
-    )
+    RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
+    RoundTripRepresenter.add_representer(PathConflict, enum_representer)
+    RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
+    RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
+    RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
+    RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
 
     try:
         Path(path).write_text(yaml_round_trip_dump(config))

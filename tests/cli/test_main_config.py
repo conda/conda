@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda.exceptions
+from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
 from conda.cli.main_config import (
     _get_key,
@@ -237,8 +238,17 @@ def test_config_read_rc(tmp_path: Path) -> None:
 def test_config_write_rc(tmp_path: Path) -> None:
     condarc = tmp_path / ".condarc"
 
-    _write_rc(condarc, {"changeps1": False, "auto_stack": 5})
-    assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
+    _write_rc(
+        condarc,
+        {
+            "changeps1": False,
+            "auto_stack": 5,
+            "safety_checks": SafetyChecks.disabled,
+        },
+    )
+    assert condarc.read_text() == (
+        "changeps1: false\nauto_stack: 5\nsafety_checks: disabled\n"
+    )
 
 
 def test_config_set_keys(tmp_path: Path) -> None:

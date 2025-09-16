@@ -1,0 +1,25 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove constant `conda.utils.path_identity`. Use `conda.common.path.path_identity` instead. (#15191)
+* Remove `conda.utils.unix_path_to_win`. Use `conda.common.path.unix_path_to_win` instead. (#15191)
+* Remove `conda.utils.win_path_to_cygwin`. Use `conda.common.path.win_path_to_cygwin` instead. (#15191)
+* Remove `conda.utils.translate_stream`. (#15191)
+* Remove constant `conda.utils._UNIX_SHELL_BASE`. Use `conda.activate` instead. (#15191)
+* Remove constant `conda.utils._MSYS2_SHELL_BASE`. Use `conda.activate` instead. (#15191)
+* Remove constant `conda.utils._SHELLS`. Use `conda.activate` instead. (#15191)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

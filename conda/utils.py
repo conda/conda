@@ -16,32 +16,19 @@ from shutil import which
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
-from .common.path import path_identity as _path_identity
-from .common.path import unix_path_to_win as _unix_path_to_win
-from .common.path import win_path_to_unix as _win_path_to_unix
 from .common.url import path_to_url
 from .deprecations import deprecated
 
 log = logging.getLogger(__name__)
 
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "path_identity",
-    _path_identity,
-    addendum="Use `conda.common.path.path_identity` instead.",
-)
-
-
 @deprecated(
     "25.3",
-    "25.9",
+    "26.3",
     addendum="Use `conda.common.path.unix_path_to_win` instead.",
 )
 def unix_path_to_win(path, root_prefix=""):
     """Convert a path or :-separated string of paths into a Windows representation
-
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
     if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
@@ -63,27 +50,8 @@ def unix_path_to_win(path, root_prefix=""):
     return translation
 
 
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.common.path.win_path_to_unix` instead.",
-)
-def win_path_to_cygwin(path):
-    return _win_path_to_unix(path, cygdrive=True)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.common.path.unix_path_to_win` instead.",
-)
-def cygwin_path_to_win(path):
-    return _unix_path_to_win(path, cygdrive=True)
-
-
-@deprecated("25.3", "25.9", addendum="Unused.")
-def translate_stream(stream, translator):
-    return "\n".join(translator(line) for line in stream.split("\n"))
+deprecated.constant("25.3", "26.3", "unix_path_to_win", unix_path_to_win)
+del unix_path_to_win
 
 
 def human_bytes(n):
@@ -110,165 +78,6 @@ def human_bytes(n):
         return f"{m:.1f} MB"
     g = m / 1024
     return f"{g:.2f} GB"
-
-
-# TODO: this should be done in a more extensible way
-#     (like files for each shell, with some registration mechanism.)
-
-# defaults for unix shells.  Note: missing "exe" entry, which should be set to
-#    either an executable on PATH, or a full path to an executable for a shell
-_UNIX_SHELL_BASE = dict(
-    binpath="/bin/",  # mind the trailing slash.
-    echo="echo",
-    env_script_suffix=".sh",
-    nul="2>/dev/null",
-    path_from=_path_identity,
-    path_to=_path_identity,
-    pathsep=":",
-    printdefaultenv="echo $CONDA_DEFAULT_ENV",
-    printpath="echo $PATH",
-    printps1="echo $CONDA_PROMPT_MODIFIER",
-    promptvar="PS1",
-    sep="/",
-    set_var="export ",
-    shell_args=["-l", "-c"],
-    shell_suffix="",
-    slash_convert=("\\", "/"),
-    source_setup="source",
-    test_echo_extra="",
-    var_format="${}",
-)
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "unix_shell_base",
-    _UNIX_SHELL_BASE,
-    addendum="Use `conda.activate` instead.",
-)
-
-_MSYS2_SHELL_BASE = dict(
-    _UNIX_SHELL_BASE,
-    path_from=_unix_path_to_win,
-    path_to=_win_path_to_unix,
-    binpath="/bin/",  # mind the trailing slash.
-    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",
-)
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "msys2_shell_base",
-    _MSYS2_SHELL_BASE,
-    addendum="Use `conda.activate` instead.",
-)
-
-if on_win:
-    _SHELLS = {
-        # "powershell.exe": dict(
-        #    echo="echo",
-        #    test_echo_extra=" .",
-        #    var_format="${var}",
-        #    binpath="/bin/",  # mind the trailing slash.
-        #    source_setup="source",
-        #    nul='2>/dev/null',
-        #    set_var='export ',
-        #    shell_suffix=".ps",
-        #    env_script_suffix=".ps",
-        #    printps1='echo $PS1',
-        #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
-        #    printpath="echo %PATH%",
-        #    exe="powershell.exe",
-        #    path_from=_path_identity,
-        #    path_to=_path_identity,
-        #    slash_convert = ("/", "\\"),
-        # ),
-        "cmd.exe": dict(
-            echo="@echo",
-            var_format="%{}%",
-            binpath="\\Scripts\\",  # mind the trailing slash.
-            source_setup="call",
-            test_echo_extra="",
-            nul="1>NUL 2>&1",
-            set_var="set ",
-            shell_suffix=".bat",
-            env_script_suffix=".bat",
-            printps1="@echo %PROMPT%",
-            promptvar="PROMPT",
-            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
-            printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
-            "echo %CONDA_DEFAULT_ENV% ) ELSE (\n"
-            "echo()",
-            printpath="@echo %PATH%",
-            exe="cmd.exe",
-            shell_args=["/d", "/c"],
-            path_from=_path_identity,
-            path_to=_path_identity,
-            slash_convert=("/", "\\"),
-            sep="\\",
-            pathsep=";",
-        ),
-        "cygwin": dict(
-            _UNIX_SHELL_BASE,
-            exe="bash.exe",
-            binpath="/Scripts/",  # mind the trailing slash.
-            path_from=cygwin_path_to_win,
-            path_to=win_path_to_cygwin,
-        ),
-        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
-        #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
-        #    filesystem root.
-        "bash.exe": dict(
-            _MSYS2_SHELL_BASE,
-            exe="bash.exe",
-        ),
-        "bash": dict(
-            _MSYS2_SHELL_BASE,
-            exe="bash",
-        ),
-        "sh.exe": dict(
-            _MSYS2_SHELL_BASE,
-            exe="sh.exe",
-        ),
-        "zsh.exe": dict(
-            _MSYS2_SHELL_BASE,
-            exe="zsh.exe",
-        ),
-        "zsh": dict(
-            _MSYS2_SHELL_BASE,
-            exe="zsh",
-        ),
-    }
-
-else:
-    _SHELLS = {
-        "bash": dict(
-            _UNIX_SHELL_BASE,
-            exe="bash",
-        ),
-        "dash": dict(
-            _UNIX_SHELL_BASE,
-            exe="dash",
-            source_setup=".",
-        ),
-        "zsh": dict(
-            _UNIX_SHELL_BASE,
-            exe="zsh",
-        ),
-        "fish": dict(
-            _UNIX_SHELL_BASE,
-            exe="fish",
-            pathsep=" ",
-        ),
-    }
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "shells",
-    _SHELLS,
-    addendum="Use `conda.activate` instead.",
-)
 
 
 # ##########################################

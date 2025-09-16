@@ -214,17 +214,6 @@ def test_custom_multichannels(context_testdata: None):
     )
 
 
-def test_restore_free_channel(monkeypatch: MonkeyPatch) -> None:
-    free_channel = "https://repo.anaconda.com/pkgs/free"
-    assert free_channel not in context.default_channels
-
-    monkeypatch.setenv("CONDA_RESTORE_FREE_CHANNEL", "true")
-    reset_context()
-    assert context.restore_free_channel
-
-    assert context.default_channels[1] == free_channel
-
-
 def test_proxy_servers(context_testdata: None):
     assert context.proxy_servers["http"] == "http://user:pass@corp.com:8080"
     assert context.proxy_servers["https"] is None

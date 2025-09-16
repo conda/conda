@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.cli.main_env_remove.execute`.Use `conda.cli.main_remove.execute` instead. (#15182)
+* Remove `conda.cli.install.validate_new_prefix`. Use `conda.cli.install.validate_new_prefix` instead. (#15182)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
