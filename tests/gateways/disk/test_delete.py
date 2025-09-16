@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from contextlib import nullcontext
 from errno import ENOENT
-from os.path import isdir, isfile, join, lexists
+from os.path import isdir, isfile, join
 from typing import TYPE_CHECKING
 
 import pytest
@@ -70,24 +70,23 @@ def test_remove_dir(tmp_path: Path):
     assert not test_path.exists(follow_symlinks=False)
 
 
-def test_remove_link_to_file():
-    with tempdir() as td:
-        dst_link = join(td, "test_link")
-        src_file = join(td, "test_file")
-        _write_file(src_file, "welcome to the ministry of silly walks")
-        if not softlink_supported(src_file, td) and on_win:
-            pytest.skip("softlink not supported")
+def test_remove_link_to_file(tmp_path: Path):
+    dst_link = tmp_path / "test_link"
+    src_file = tmp_path / "test_file"
+    _write_file(src_file, "welcome to the ministry of silly walks")
+    if not softlink_supported(src_file, tmp_path) and on_win:
+        pytest.skip("softlink not supported")
 
-        symlink(src_file, dst_link)
-        assert isfile(src_file)
-        assert not islink(src_file)
-        assert islink(dst_link)
-        assert rm_rf(dst_link)
-        assert isfile(src_file)
-        assert rm_rf(src_file)
-        assert not isfile(src_file)
-        assert not islink(dst_link)
-        assert not lexists(dst_link)
+    symlink(src_file, dst_link)
+    assert src_file.is_file()
+    assert not src_file.is_symlink()
+    assert dst_link.is_symlink()
+    assert rm_rf(dst_link)
+    assert src_file.is_file()
+    assert rm_rf(src_file)
+    assert not src_file.is_file()
+    assert not dst_link.is_symlink()
+    assert not dst_link.exists(follow_symlinks=False)
 
 
 @pytest.mark.xfail(on_win, reason="Windows permission errors make a mess here")
