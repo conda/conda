@@ -30,8 +30,10 @@ from .cli.helpers import (  # noqa: F401
 from .common import compat  # noqa: F401
 from .common.serialize.json import CondaJSONEncoder
 from .common.toposort import _toposort  # noqa: F401
-from .core.index import dist_str_in_index  # noqa: F401
-from .core.index import get_index as _get_index
+from .core.index import (
+    Index,
+    dist_str_in_index  # noqa: F401
+)
 from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
@@ -136,8 +138,8 @@ def get_index(
     unknown=None,
     prefix=None,
 ):
-    index = _get_index(
-        channel_urls, prepend, platform, use_local, use_cache, unknown, prefix
+    index = Index(
+        channel_urls, prepend, platform, use_local, use_cache, unknown, prefix, context.repodata_fns[-1]
     )
     return {Dist(prec): prec for prec in index.values()}
 
