@@ -1332,6 +1332,7 @@ class ConfigurationType(type):
         self._parameter_loaders = cls._parameter_loaders
         return self
 
+
 DEFAULT_CONDARC_FILENAME: Final = ".condarc"
 CONDARC_FILENAMES = (DEFAULT_CONDARC_FILENAME, "condarc")
 YAML_EXTENSIONS = (".yml", ".yaml")

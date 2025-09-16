@@ -23,8 +23,8 @@ from ..base.constants import (
     UpdateModifier,
 )
 from ..base.context import context
-from ..common.constants import NULL
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
+from ..common.constants import NULL
 from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData

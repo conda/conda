@@ -11,7 +11,6 @@ import pytest
 import conda.exceptions
 from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
-from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.cli.main_config import (
     _get_key,
     _key_exists,
@@ -22,6 +21,7 @@ from conda.cli.main_config import (
     _write_rc,
     set_keys,
 )
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
