@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
-from errno import ENOENT
 from os.path import lexists
 from typing import TYPE_CHECKING
 
@@ -163,12 +162,10 @@ def test_backoff_unlink(tmp_path: Path):
 
 
 def test_backoff_unlink_doesnt_exist(tmp_path: Path):
-    test_path = tmp_path / "test_path"
-    touch(test_path)
-    try:
-        backoff_rmdir(test_path / "some" / "path" / "in" / "utopia")
-    except Exception as e:
-        assert e.value.errno == ENOENT
+    path = tmp_path / "missing"
+    assert not path.exists()
+    backoff_rmdir(path)
+    assert not path.exists()
 
 
 def test_try_rmdir_all_empty_doesnt_exist(tmp_path: Path):
