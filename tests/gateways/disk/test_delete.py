@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from errno import ENOENT
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile, join, lexists
 from typing import TYPE_CHECKING
 
 import pytest
@@ -66,7 +66,7 @@ def test_remove_dir(tmp_path: Path):
     assert rm_rf(test_path)
     assert not tmp_path.is_dir()
     assert not test_path.is_file()
-    assert not test_path.exists(follow_symlinks=False)
+    assert not lexists(test_path)
 
 
 def test_remove_link_to_file(tmp_path: Path):
@@ -85,7 +85,7 @@ def test_remove_link_to_file(tmp_path: Path):
     assert rm_rf(src_file)
     assert not src_file.is_file()
     assert not dst_link.is_symlink()
-    assert not dst_link.exists(follow_symlinks=False)
+    assert not lexists(dst_link)
 
 
 @pytest.mark.xfail(on_win, reason="Windows permission errors make a mess here")
@@ -106,7 +106,7 @@ def test_remove_link_to_dir(tmp_path: Path):
     assert rm_rf(dst_link)
     assert not dst_link.is_dir()
     assert not dst_link.is_symlink()
-    assert not dst_link.exists(follow_symlinks=False)
+    assert not lexists(dst_link)
     assert src_dir.is_dir()
     assert rm_rf(src_dir)
     assert not src_dir.is_dir()
