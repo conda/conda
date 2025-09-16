@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Restore `conda.utils.unix_path_to_win`. (#15230)
+
+### Deprecations
+
+* Mark `unix_path_to_win` for removal in `26.3`. (#15230)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
