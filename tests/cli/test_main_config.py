@@ -58,9 +58,7 @@ def test_env_create_with_channels_from_yaml(
         {
             "name": "test-env-with-channels",
             "channels": ["conda-forge", "defaults"],
-            "dependencies": [
-                "ca-certificates"
-            ],  # Use a simple package available in both channels
+            "dependencies": ["ca-certificates"],
         }
     )
 
