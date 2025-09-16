@@ -736,19 +736,3 @@ class SubdirData(metaclass=SubdirDataType):
         if with_credentials:
             return self.url_w_credentials
         return self.url_w_subdir
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
-)
-def make_feature_record(feature_name: str) -> PackageRecord:
-    """
-    Create a feature record based on the given feature name.
-
-    :param feature_name: The name of the feature
-    :return: The created PackageRecord for the feature.
-    """
-    # necessary for the SAT solver to do the right thing with features
-    return PackageRecord.feature(feature_name)
