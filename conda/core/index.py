@@ -610,7 +610,7 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
-@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "26.3", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
     """
     Loads and populates virtual package records from conda plugins
