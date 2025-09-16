@@ -165,8 +165,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if isinstance(environment_exporter, CondaMultiPlatformEnvironmentExporter):
         # TODO: solve for other platforms
+        # envs = (env.extrapolate(platform) for platform in context.export_platforms)
         exported_content = environment_exporter.export([env])
     else:
+        # TODO: error if multiple platforms
+        # if context.export_platforms:
+        #     raise ValueError("Multiple platforms are not supported for this exporter")
         exported_content = environment_exporter.export(env)
 
     # Add trailing newline to the exported content
