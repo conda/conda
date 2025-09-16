@@ -468,6 +468,7 @@ def test_http_error_custom_reason_code(
     reset_context()
     assert context.json
 
+    conda_exception_handler(_raise_helper, exc)
     stdout, stderr = capsys.readouterr()
 
     json_obj = json.loads(stdout)
@@ -484,6 +485,9 @@ def test_http_error_custom_reason_code(
     monkeypatch.setenv("CONDA_JSON", "no")
     reset_context()
     assert not context.json
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
     assert not stdout
     assert stderr == "\n".join(
@@ -521,11 +525,12 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     response = MockResponse({"detail": detail})
 
     elapsed_time = 1.26
-    CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
+    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
 
+    conda_exception_handler(_raise_helper, exc)
     stdout, stderr = capsys.readouterr()
 
     json_obj = json.loads(stdout)
@@ -535,6 +540,9 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     monkeypatch.setenv("CONDA_JSON", "no")
     reset_context()
     assert not context.json
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
 
     assert not stdout
     assert stderr == "\n".join(
