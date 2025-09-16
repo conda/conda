@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import os
 from contextlib import nullcontext
 from errno import ENOENT
 from os.path import isdir, isfile, join
@@ -12,9 +11,9 @@ import pytest
 
 from conda.common.compat import on_win
 from conda.gateways.disk import delete
-from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
+from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import backoff_rmdir, rm_rf
-from conda.gateways.disk.link import islink, symlink
+from conda.gateways.disk.link import symlink
 from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
@@ -114,26 +113,24 @@ def test_remove_link_to_dir(tmp_path: Path):
     assert not src_dir.is_symlink()
 
 
-def test_rm_rf_does_not_follow_symlinks():
-    with TemporaryDirectory() as tmp:
-        # make a file in some temp folder
-        real_file = os.path.join(tmp, "testfile")
-        with open(real_file, "w") as f:
-            f.write("weee")
-        # make a subfolder
-        subdir = os.path.join(tmp, "subfolder")
-        os.makedirs(subdir)
-        # link to the file in the subfolder
-        link_path = join(subdir, "file_link")
-        if not softlink_supported(real_file, tmp) and on_win:
-            pytest.skip("softlink not supported")
+def test_rm_rf_does_not_follow_symlinks(tmp_path: Path):
+    # make a file in some temp folder
+    real_file = tmp_path / "testfile"
+    real_file.write_text("weee")
+    # make a subfolder
+    subdir = tmp_path / "subfolder"
+    subdir.mkdir()
+    # link to the file in the subfolder
+    link_path = subdir / "file_link"
+    if not softlink_supported(real_file, tmp_path) and on_win:
+        pytest.skip("softlink not supported")
 
-        create_link(real_file, link_path, link_type=LinkType.softlink)
-        assert islink(link_path)
-        # rm_rf the subfolder
-        rm_rf(subdir)
-        # assert that the file still exists in the root folder
-        assert os.path.isfile(real_file)
+    create_link(real_file, link_path, link_type=LinkType.softlink)
+    assert link_path.is_symlink()
+    # rm_rf the subfolder
+    rm_rf(subdir)
+    # assert that the file still exists in the root folder
+    assert real_file.is_file()
 
 
 def test_rm_rf():
