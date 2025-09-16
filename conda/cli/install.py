@@ -24,6 +24,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
@@ -559,7 +560,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         if context.subdir != context._native_subdir():
             set_keys(
                 ("subdir", context.subdir),
-                path=Path(prefix, ".condarc"),
+                path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
 
     if context.json:

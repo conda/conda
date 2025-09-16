@@ -33,6 +33,7 @@ from ..common._os.linux import linux_get_libc_version
 from ..common._os.osx import mac_ver
 from ..common.compat import NoneType, on_win
 from ..common.configuration import (
+    DEFAULT_CONDARC_FILENAME,
     Configuration,
     ConfigurationLoadError,
     MapParameter,
@@ -126,8 +127,8 @@ _arch_names = {
     64: "x86_64",
 }
 
-user_rc_path: PathType = abspath(expanduser("~/.condarc"))
-sys_rc_path: PathType = join(sys.prefix, ".condarc")
+user_rc_path: PathType = abspath(expanduser(f"~/{DEFAULT_CONDARC_FILENAME}"))
+sys_rc_path: PathType = join(sys.prefix, DEFAULT_CONDARC_FILENAME)
 
 
 def user_data_dir(  # noqa: F811

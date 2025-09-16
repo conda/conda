@@ -23,6 +23,7 @@ import pytest
 
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.base.constants import (
     PREFIX_MAGIC_FILE,
     PREFIX_PINNED_FILE,
@@ -2406,7 +2407,7 @@ def test_create_env_different_platform(
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
         assert (
-            yaml_round_trip_load((prefix / ".condarc").read_text())["subdir"]
+            yaml_round_trip_load((prefix / DEFAULT_CONDARC_FILENAME).read_text())["subdir"]
             == platform
         )
 

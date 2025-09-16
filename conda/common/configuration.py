@@ -60,7 +60,7 @@ del _register
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Sequence
     from re import Match
-    from typing import Any
+    from typing import Any, Final
 
     from ..common.path import PathsType
 
@@ -1332,8 +1332,8 @@ class ConfigurationType(type):
         self._parameter_loaders = cls._parameter_loaders
         return self
 
-
-CONDARC_FILENAMES = (".condarc", "condarc")
+DEFAULT_CONDARC_FILENAME: Final = ".condarc"
+CONDARC_FILENAMES = (DEFAULT_CONDARC_FILENAME, "condarc")
 YAML_EXTENSIONS = (".yml", ".yaml")
 _RE_CUSTOM_EXPANDVARS = compile(
     rf"""
