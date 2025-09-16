@@ -900,6 +900,9 @@ jobs:
           condarc-file: conda/.github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
 
+      - name: Install conda, conda-build source code
+        run: python -m pip install -e conda/ -e conda-build/  -vv --no-deps --no-build-isolation
+
       - name: Conda Install
         working-directory: conda
         run: >
@@ -913,9 +916,6 @@ jobs:
           --file ../conda-build/tests/requirements-ci.txt
           --file ../conda-build/tests/requirements-${{ runner.os }}.txt
           python=${{ matrix.python-version }}
-
-      - name: Install conda-build
-        run: python -m pip install -e conda-build/ -vv --no-deps
 
       - name: Conda Info
         run: python -m conda info --verbose
