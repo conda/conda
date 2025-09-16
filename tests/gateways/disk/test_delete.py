@@ -90,29 +90,28 @@ def test_remove_link_to_file(tmp_path: Path):
 
 
 @pytest.mark.xfail(on_win, reason="Windows permission errors make a mess here")
-def test_remove_link_to_dir():
-    with tempdir() as td:
-        dst_link = join(td, "test_link")
-        src_dir = join(td, "test_dir")
-        test_file = join(td, "test_file")
-        mkdir_p(src_dir)
-        touch(test_file)
-        assert isdir(src_dir)
-        assert not islink(src_dir)
-        assert not islink(dst_link)
-        if not softlink_supported(test_file, td) and on_win:
-            pytest.skip("softlink not supported")
+def test_remove_link_to_dir(tmp_path: Path):
+    dst_link = tmp_path / "test_link"
+    src_dir = tmp_path / "test_dir"
+    test_file = tmp_path / "test_file"
+    mkdir_p(src_dir)
+    touch(test_file)
+    assert src_dir.is_dir()
+    assert not src_dir.is_symlink()
+    assert not dst_link.is_symlink()
+    if not softlink_supported(test_file, tmp_path) and on_win:
+        pytest.skip("softlink not supported")
 
-        symlink(src_dir, dst_link)
-        assert islink(dst_link)
-        assert rm_rf(dst_link)
-        assert not isdir(dst_link)
-        assert not islink(dst_link)
-        assert not lexists(dst_link)
-        assert isdir(src_dir)
-        assert rm_rf(src_dir)
-        assert not isdir(src_dir)
-        assert not islink(src_dir)
+    symlink(src_dir, dst_link)
+    assert dst_link.is_symlink()
+    assert rm_rf(dst_link)
+    assert not dst_link.is_dir()
+    assert not dst_link.is_symlink()
+    assert not dst_link.exists(follow_symlinks=False)
+    assert src_dir.is_dir()
+    assert rm_rf(src_dir)
+    assert not src_dir.is_dir()
+    assert not src_dir.is_symlink()
 
 
 def test_rm_rf_does_not_follow_symlinks():
