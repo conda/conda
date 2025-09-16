@@ -610,6 +610,20 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
+@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
+def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
+    """
+    Loads and populates virtual package records from conda plugins
+    and adds them to the provided index, unless there is a naming
+    conflict.
+    :param index: The package index to supplement.
+    """
+    if isinstance(index, Index):
+        return
+    for package in context.plugin_manager.get_virtual_package_records():
+        index[package] = package
+
+
 def get_archspec_name() -> str | None:
     """
     Determine the architecture specification name for the current environment.
