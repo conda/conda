@@ -901,7 +901,7 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Install conda, conda-build source code
-        run: python -m pip install -e conda/ -e conda-build/  -vv --no-deps --no-build-isolation
+        run: python -m pip install hatchling hatch-vcs -e conda/ -e conda-build/  -vv --no-deps --no-build-isolation
 
       - name: Conda Install
         working-directory: conda
