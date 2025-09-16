@@ -56,19 +56,18 @@ def test_remove_file_to_trash(tmp_path: Path):
     assert not test_path.exists()
 
 
-def test_remove_dir():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        _try_open(test_path)
-        assert isfile(test_path)
-        assert isdir(td)
-        assert not islink(test_path)
-        assert rm_rf(td)
-        assert rm_rf(test_path)
-        assert not isdir(td)
-        assert not isfile(test_path)
-        assert not lexists(test_path)
+def test_remove_dir(tmp_path: Path):
+    test_path = tmp_path / "test_path"
+    touch(test_path)
+    _try_open(test_path)
+    assert test_path.is_file()
+    assert tmp_path.is_dir()
+    assert not test_path.is_symlink()
+    assert rm_rf(tmp_path)
+    assert rm_rf(test_path)
+    assert not tmp_path.is_dir()
+    assert not test_path.is_file()
+    assert not test_path.exists(follow_symlinks=False)
 
 
 def test_remove_link_to_file():
