@@ -746,7 +746,9 @@ class Context(Configuration):
             platforms = argparse_args.get("export_platforms") or ()
         else:
             platforms = self._export_platforms
-        return tuple(dict.fromkeys((self.subdir, *platforms)))
+        all_platforms = (self.subdir, *platforms)
+        unique_platforms = tuple(dict.fromkeys(all_platforms))
+        return unique_platforms[1:]  # remove the current platform
 
     @property
     def bits(self) -> int:
@@ -1741,7 +1743,8 @@ class Context(Configuration):
             ),
             export_platforms=dals(
                 """
-                Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64).
+                Additional platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64), current
+                platform is always included.
                 """
             ),
             fetch_threads=dals(
