@@ -667,42 +667,6 @@ def _supplement_index_with_prefix(
             index[prefix_record] = prefix_record
 
 
-@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
-def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
-    """
-    Supplement the given index with packages from the cache.
-
-    :param index: The package index to supplement.
-    """
-    # supplement index with packages from the cache
-    for pcrec in PackageCacheData.get_all_extracted_entries():
-        if pcrec in index:
-            # The downloaded repodata takes priority
-            current_record = index[pcrec]
-            index[pcrec] = PackageCacheRecord.from_objects(current_record, pcrec)
-        else:
-            index[pcrec] = pcrec
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.core.models.records.PackageRecord.virtual_package` instead.",
-)
-def _make_virtual_package(
-    name: str, version: str | None = None, build_string: str | None = None
-) -> PackageRecord:
-    """
-    Create a virtual package record.
-
-    :param name: The name of the virtual package.
-    :param version: The version of the virtual package, defaults to "0".
-    :param build_string: The build string of the virtual package, defaults to "0".
-    :return: A PackageRecord representing the virtual package.
-    """
-    return PackageRecord.virtual_package(name, version, build_string)
-
-
 @deprecated(
     "25.3",
     "25.9",

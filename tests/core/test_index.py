@@ -16,8 +16,6 @@ from conda.common.compat import on_linux, on_mac, on_win
 from conda.core import index
 from conda.core.index import (
     Index,
-    _make_virtual_package,
-    _supplement_index_with_cache,
     _supplement_index_with_prefix,
     _supplement_index_with_system,
     calculate_channel_urls,
@@ -319,34 +317,6 @@ def test__supplement_index_with_prefix_index_class(
     assert type(ref) is PackageRecord
     assert type(pkg) is PrefixRecord
     assert ref == pkg
-
-
-def test__supplement_index_with_cache():
-    idx = {}
-    with pytest.deprecated_call():
-        _supplement_index_with_cache(idx)
-        _supplement_index_with_cache(idx)
-    tzdata = [p for p in idx.values() if p.name == "tzdata"][0]
-    tzdata = PackageRecord.from_objects(tzdata)
-    idx = {tzdata: tzdata}
-    with pytest.deprecated_call():
-        _supplement_index_with_cache(idx)
-    augmented_tzdata = idx[tzdata]
-    assert type(tzdata) is PackageRecord
-    assert type(augmented_tzdata) is PackageCacheRecord
-    assert tzdata == augmented_tzdata
-
-
-def test__make_virtual_package():
-    """
-    Ensures that the deprecated call and the new call are equivalent.
-
-    TODO: Remove this test when the deprecated call is removed.
-    """
-    with pytest.deprecated_call():
-        virtual_package = _make_virtual_package("name", "1.0", "0")
-    ref = PackageRecord.virtual_package("name", "1.0", "0")
-    assert virtual_package == ref
 
 
 def test_calculate_channel_urls():
