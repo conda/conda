@@ -15,7 +15,6 @@ from pathlib import Path
 from .. import CondaError
 from ..base.context import fresh_context
 from ..cli.main_config import set_keys
-from ..models.environment import EnvironmentConfig
 from ..notices import notices
 
 
@@ -96,18 +95,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-def _write_env_condarc(prefix: str, config: EnvironmentConfig):
-    """Write the .condarc file for the environment config object."""
-    from .main_config import _write_rc
-
-    path = Path(prefix, ".condarc")
-    condarc_config = {}
-    for k, v in vars(config).items():
-        if v:
-            condarc_config[k] = v
-    _write_rc(path, condarc_config)
-
-
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
@@ -159,9 +146,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # NOTE: Only channels and environment variables are currently supported in
     # environment.yaml files.
     env_vars = {}
-    # Add environment variables from YAML (convert all values to strings)
-    if env.variables:
-        env_vars.update({k: str(v) for k, v in env.variables.items()})
 
     if env.config.channels:
         env_vars["CONDA_CHANNELS"] = ",".join(env.config.channels)
@@ -231,9 +215,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                             """
                         )
                     )
-
-            # Write .condarc file with environment configuration
-            _write_env_condarc(prefix, env.config)
 
             if context.subdir != context._native_subdir():
                 set_keys(

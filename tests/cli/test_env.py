@@ -715,13 +715,6 @@ def test_create_env_with_channels_from_yaml(
     assert PrefixData(prefix).is_environment()
     assert package_is_installed(prefix, "ca-certificates")
 
-    # Check that the .condarc file was created with the channels from the YAML
-    condarc_path = prefix / ".condarc"
-    assert condarc_path.exists()
-    condarc_content = condarc_path.read_text()
-    assert "conda-forge" in condarc_content
-    assert "defaults" in condarc_content
-
 
 @pytest.mark.integration
 def test_create_env_with_channels_from_yaml_dry_run(
@@ -736,7 +729,7 @@ def test_create_env_with_channels_from_yaml_dry_run(
     # Verify no environment was actually created
     assert not PrefixData(prefix).is_environment()
 
-    # Extract YAML portion from stdout and remove progress indicators
+    # Extract YAML portion from stdout and
     lines = stdout.splitlines()
     yaml_start = None
     for i, line in enumerate(lines):
@@ -763,13 +756,6 @@ def test_create_env_with_channels_and_variables_from_yaml(
     # Verify environment was created successfully
     assert PrefixData(prefix).is_environment()
     assert package_is_installed(prefix, "ca-certificates")
-
-    # Check that the .condarc file was created with the channels from the YAML
-    condarc_path = prefix / ".condarc"
-    assert condarc_path.exists()
-    condarc_content = condarc_path.read_text()
-    assert "conda-forge" in condarc_content
-    assert "defaults" in condarc_content
 
     # Verify variables are stored in state file
     env_vars = PrefixData(prefix).get_environment_env_vars()
