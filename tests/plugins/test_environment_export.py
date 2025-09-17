@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 import yaml
 
+from conda import plugins
 from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
@@ -25,9 +26,13 @@ from conda.plugins.environment_exporters.environment_yml import (
 )
 from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
 from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
-from conda.plugins.types import CondaEnvironmentExporter
+from conda.plugins.types import (
+    CondaEnvironmentExporter,
+    CondaMultiPlatformEnvironmentExporter,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
     from typing import Any, Callable
 
@@ -35,6 +40,40 @@ if TYPE_CHECKING:
     from pytest import FixtureRequest
 
     from conda.plugins.manager import CondaPluginManager
+
+
+class ExportPlugin:
+    @staticmethod
+    def single_platform_export(env: Environment) -> str:
+        return f"# platform: {env.platform}\n" + ";".join(
+            map(
+                str,
+                (
+                    *env.requested_packages,
+                    *env.explicit_packages,
+                    *(f"pip::{pkg}" for pkg in env.external_packages.get("pip", [])),
+                ),
+            )
+        )
+
+    @classmethod
+    def multi_platform_export(cls, envs: Iterable[Environment]) -> str:
+        return "\n".join(map(cls.single_platform_export, envs))
+
+    @plugins.hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="test-single-platform",
+            aliases=(),
+            default_filenames=(),
+            export=self.single_platform_export,
+        )
+        yield CondaMultiPlatformEnvironmentExporter(
+            name="test-multi-platform",
+            aliases=(),
+            default_filenames=(),
+            export=self.multi_platform_export,
+        )
 
 
 @pytest.fixture
@@ -48,7 +87,9 @@ def plugin_manager_with_exporters(
         requirements_txt,
     )
 
-    plugin_manager.load_plugins(environment_yml, explicit, requirements_txt)
+    plugin_manager.load_plugins(
+        environment_yml, explicit, requirements_txt, ExportPlugin()
+    )
     return plugin_manager
 
 
@@ -319,6 +360,8 @@ def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginMan
         ENVIRONMENT_JSON_FORMAT,
         EXPLICIT_FORMAT,
         REQUIREMENTS_FORMAT,
+        "test-single-platform",
+        "test-multi-platform",
     }
 
 
@@ -503,3 +546,48 @@ def test_compare_export_commands(
             f"--format={format}",
         )
         assert old_output == new_output
+
+
+def test_single_platform_export(
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env: Environment,
+):
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        "test-single-platform"
+    )
+    assert exporter is not None
+    assert exporter.export == ExportPlugin.single_platform_export
+    result = exporter.export(test_env)
+    lines = iter(result.strip().split("\n"))
+    platform = next(lines)
+    packages = iter(next(lines).split(";"))
+    assert platform == f"# platform: {test_env.platform}"
+    for pkg in test_env.requested_packages:
+        assert next(packages) == str(pkg)
+    for pkg in test_env.explicit_packages:
+        assert next(packages) == str(pkg)
+    for pkg in test_env.external_packages.get("pip", []):
+        assert next(packages) == f"pip::{pkg}"
+
+
+def test_multi_platform_export(
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env: Environment,
+):
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        "test-multi-platform"
+    )
+    assert exporter is not None
+    assert exporter.export == ExportPlugin.multi_platform_export
+    result = exporter.export([test_env, test_env])
+    lines = iter(result.strip().split("\n"))
+    for _ in range(2):
+        platform = next(lines)
+        packages = iter(next(lines).split(";"))
+        assert platform == f"# platform: {test_env.platform}"
+        for pkg in test_env.requested_packages:
+            assert next(packages) == str(pkg)
+        for pkg in test_env.explicit_packages:
+            assert next(packages) == str(pkg)
+        for pkg in test_env.external_packages.get("pip", []):
+            assert next(packages) == f"pip::{pkg}"
