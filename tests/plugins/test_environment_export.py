@@ -563,10 +563,10 @@ def test_single_platform_export(
     platform = next(lines)
     packages = iter(next(lines).split(";"))
     assert platform == f"# platform: {test_env.platform}"
-    for pkg in test_env.requested_packages:
-        assert next(packages) == str(pkg)
-    for pkg in test_env.explicit_packages:
-        assert next(packages) == str(pkg)
+    for match_spec in test_env.requested_packages:
+        assert next(packages) == str(match_spec)
+    for record in test_env.explicit_packages:
+        assert next(packages) == str(record)
     for pkg in test_env.external_packages.get("pip", []):
         assert next(packages) == f"pip::{pkg}"
 
@@ -587,9 +587,9 @@ def test_multi_platform_export(
         platform = next(lines)
         packages = iter(next(lines).split(";"))
         assert platform == f"# platform: {test_env.platform}"
-        for pkg in test_env.requested_packages:
-            assert next(packages) == str(pkg)
-        for pkg in test_env.explicit_packages:
-            assert next(packages) == str(pkg)
+        for match_spec in test_env.requested_packages:
+            assert next(packages) == str(match_spec)
+        for record in test_env.explicit_packages:
+            assert next(packages) == str(record)
         for pkg in test_env.external_packages.get("pip", []):
             assert next(packages) == f"pip::{pkg}"
