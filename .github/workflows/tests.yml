@@ -921,6 +921,12 @@ jobs:
           --file ../conda-build/tests/requirements-${{ runner.os }}.txt
           python=${{ matrix.python-version }}
 
+      - name: Install conda, conda-build source code again for some reason
+        env:
+          PIP_NO_BUILD_ISOLATION: '1'
+        run: |
+          python -m pip install -e conda -e conda-build -vv --no-deps
+
       - name: Conda Info
         run: python -m conda info --verbose
 
@@ -931,7 +937,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Check correct conda, conda-build installed
-        run: python -c "import conda; print(conda.__file__); import conda_build; print(conda_build.__file__)"
+        run: python -c "import conda, conda_build; print(conda.__file__, conda_build.__file__)"
 
       - name: Check conda-build tests for missing imports
         working-directory: conda-build
