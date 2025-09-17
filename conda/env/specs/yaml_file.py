@@ -66,5 +66,5 @@ class YamlFileSpec(EnvironmentSpecBase):
     @property
     def env(self) -> Environment:
         if not self._environment:
-            self.can_handle()
+            self._environment = env.from_file(self.filename, suppress_invalid_key_warning=True)
         return self._environment.to_environment_model()

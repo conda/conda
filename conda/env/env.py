@@ -24,7 +24,7 @@ from ..models.match_spec import MatchSpec
 VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
 
 
-def validate_keys(data, kwargs):
+def validate_keys(data, kwargs, suppress_invalid_key_warning: bool = False):
     """Check for unknown keys, remove them and print a warning"""
     invalid_keys = []
     new_data = data.copy() if data else {}
@@ -33,7 +33,7 @@ def validate_keys(data, kwargs):
             invalid_keys.append(key)
             new_data.pop(key)
 
-    if invalid_keys:
+    if not suppress_invalid_key_warning and invalid_keys:
         filename = kwargs.get("filename")
         verb = "are" if len(invalid_keys) != 1 else "is"
         plural = "s" if len(invalid_keys) != 1 else ""
@@ -124,13 +124,13 @@ def from_environment(
     )
 
 
-def from_yaml(yamlstr, **kwargs):
+def from_yaml(yamlstr: str, suppress_invalid_key_warning: bool = False, **kwargs):
     """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string"""
     data = yaml_safe_load(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
-    data = validate_keys(data, kwargs)
+    data = validate_keys(data, kwargs, suppress_invalid_key_warning=suppress_invalid_key_warning)
 
     if kwargs is not None:
         for key, value in kwargs.items():
@@ -146,7 +146,7 @@ def _expand_channels(data):
     ]
 
 
-def from_file(filename):
+def from_file(filename: str, suppress_invalid_key_warning: bool = False):
     """Load and return an ``EnvironmentYaml`` from a given file"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
@@ -160,7 +160,7 @@ def from_file(filename):
                 yamlstr = yamlb.decode("utf-8")
             except UnicodeDecodeError:
                 yamlstr = yamlb.decode("utf-16")
-    return from_yaml(yamlstr, filename=filename)
+    return from_yaml(yamlstr, filename=filename, suppress_invalid_key_warning=suppress_invalid_key_warning)
 
 
 class Dependencies(dict):
