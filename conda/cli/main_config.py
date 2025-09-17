@@ -18,6 +18,8 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any
@@ -815,7 +817,7 @@ def execute_config(args, parser):
         rc_path = sys_rc_path
     elif args.env:
         if context.active_prefix:
-            rc_path = join(context.active_prefix, ".condarc")
+            rc_path = join(context.active_prefix, DEFAULT_CONDARC_FILENAME)
         else:
             rc_path = user_rc_path
     elif args.file:
@@ -823,7 +825,7 @@ def execute_config(args, parser):
     elif args.prefix or args.name:
         prefix_data = PrefixData.from_context()
         prefix_data.assert_environment()
-        rc_path = str(prefix_data.prefix_path / ".condarc")
+        rc_path = str(prefix_data.prefix_path / DEFAULT_CONDARC_FILENAME)
     else:
         rc_path = user_rc_path
 
