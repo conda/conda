@@ -556,6 +556,7 @@ def test_single_platform_export(
         "test-single-platform"
     )
     assert exporter is not None
+    assert isinstance(exporter, CondaEnvironmentExporter)
     assert exporter.export == ExportPlugin.single_platform_export
     result = exporter.export(test_env)
     lines = iter(result.strip().split("\n"))
@@ -578,6 +579,7 @@ def test_multi_platform_export(
         "test-multi-platform"
     )
     assert exporter is not None
+    assert isinstance(exporter, CondaMultiPlatformEnvironmentExporter)
     assert exporter.export == ExportPlugin.multi_platform_export
     result = exporter.export([test_env, test_env])
     lines = iter(result.strip().split("\n"))
