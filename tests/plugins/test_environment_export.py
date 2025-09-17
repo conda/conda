@@ -88,7 +88,10 @@ def plugin_manager_with_exporters(
     )
 
     plugin_manager.load_plugins(
-        environment_yml, explicit, requirements_txt, ExportPlugin()
+        environment_yml,
+        explicit,
+        requirements_txt,
+        ExportPlugin(),
     )
     return plugin_manager
 
