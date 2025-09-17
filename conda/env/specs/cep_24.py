@@ -33,8 +33,6 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
             * the provided file exists
             * the provided file ends in the supported file extensions (.yaml or .yml)
             * the provided file is compliant with the CEP-0024
-            * the env file can be interpreted and transformed into
-              a `conda.env.env.Environment`
 
         :return: True or False
         """
