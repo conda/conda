@@ -138,9 +138,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import env_name
     from .common import stdout_json
 
-    # Determine target platforms for export
-    target_platforms = context.export_platforms
-
     # TODO: Check if platform targets are valid
 
     # Early format validation - fail fast if format is unsupported
@@ -180,12 +177,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     #       we need to specify the source platform and then export to
     #       the target platform?  If so, is this done in the
     #       environment_exporter?
-    # target_platform = target_platforms[0] if target_platforms else context.subdir
+    # target_platforms = context.export_platforms
 
     env = Environment.from_prefix(
         prefix=prefix,
         name=env_name(prefix),
-        platform=target_platforms[0],
+        platform=context.subdir,
         from_history=args.from_history,
         no_builds=args.no_builds,
         ignore_channels=args.ignore_channels,
