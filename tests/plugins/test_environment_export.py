@@ -61,7 +61,7 @@ class ExportPlugin:
         return "\n".join(map(cls.single_platform_export, envs))
 
     @plugins.hookimpl
-    def conda_environment_exporters(self):
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         yield CondaEnvironmentExporter(
             name="test-single-platform",
             aliases=(),
