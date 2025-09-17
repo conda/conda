@@ -936,11 +936,3 @@ jobs:
         # clear filterwarnings, only looking for test initialization failures
         run: python -m pytest --collect-only --filterwarnings=
 
-      - name: Upload Test Results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: test-results-${{ env.HASH }}
-          path: |
-            conda-build/test-report.xml
-          retention-days: 1  # temporary, combined in aggregate below
