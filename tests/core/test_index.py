@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda
+from conda.base.constants import DEFAULTS_CHANNEL_NAME
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.core import index
@@ -357,7 +358,9 @@ def test__make_virtual_package():
 
 
 def test_calculate_channel_urls():
-    urls = calculate_channel_urls(use_local=False, prepend=True)
+    urls = calculate_channel_urls(
+        channel_urls=[DEFAULTS_CHANNEL_NAME], use_local=False, prepend=True
+    )
     assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
     assert len(urls) == 6 if on_win else 4
 
@@ -366,7 +369,7 @@ def test_calculate_channel_urls():
 @pytest.mark.integration
 def test_get_index_lazy():
     subdir = PLATFORMS[(platform.system(), platform.machine())]
-    index = Index(channels=["conda-forge"], platform=subdir)
+    index = Index(channels=["defaults", "conda-forge"], platform=subdir)
     main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
     conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
 
