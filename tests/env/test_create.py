@@ -161,10 +161,7 @@ def test_create_empty_env(
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    with pytest.warns(
-        PendingDeprecationWarning,
-        match="Using a non-compliant CEP-0024 environment file",
-    ):
+    with pytest.deprecated_call():
         conda_cli(
             *("env", "create"),
             *("--name", env_name),
