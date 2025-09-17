@@ -354,6 +354,10 @@ class Context(Configuration):
     _subdirs = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", str)), aliases=("subdirs",)
     )
+    _export_platforms = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", str)),
+        aliases=("export_platforms", "extra_platforms"),
+    )
 
     local_repodata_ttl = ParameterLoader(
         PrimitiveParameter(1, element_type=(bool, int))
@@ -728,8 +732,19 @@ class Context(Configuration):
         return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
-    def known_subdirs(self) -> set[str]:
+    def known_subdirs(self) -> frozenset[str]:
         return frozenset((*KNOWN_SUBDIRS, *self.subdirs))
+
+    @property
+    def export_platforms(self) -> tuple[str, ...]:
+        argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
+        if argparse_args.get("override_platforms"):
+            platforms = argparse_args.get("export_platforms") or ()
+        else:
+            platforms = self._export_platforms
+        all_platforms = (self.subdir, *platforms)
+        unique_platforms = tuple(dict.fromkeys(all_platforms))
+        return unique_platforms[1:]  # remove the current platform
 
     @property
     def bits(self) -> int:
@@ -1389,6 +1404,7 @@ class Context(Configuration):
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
                 "envvars_force_uppercase",
+                "export_platforms",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1695,6 +1711,12 @@ class Context(Configuration):
                 Threads to use when performing the unlink/link transaction.  When not set,
                 defaults to 1.  This step is pretty strongly I/O limited, and you may not
                 see much benefit here.
+                """
+            ),
+            export_platforms=dals(
+                """
+                Additional platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64), current
+                platform is always included.
                 """
             ),
             fetch_threads=dals(
