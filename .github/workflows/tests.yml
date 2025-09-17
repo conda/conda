@@ -930,10 +930,8 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
-      - name: Setup Shells
-        # for tests/shell, so only necessary for integration tests
-        if: matrix.test-type == 'integration'
-        run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
+      - name: Check correct conda, conda-build installed
+        run: python -c "import conda; print(conda.__file__); import conda_build; print(conda_build.__file__)"
 
       - name: Check conda-build tests for missing imports
         working-directory: conda-build
