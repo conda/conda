@@ -702,7 +702,7 @@ def test_invalid_extensions(
 
 
 @pytest.mark.integration
-def test_env_create_with_channels_from_yaml(
+def test_create_env_with_channels_from_yaml(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
 ):
@@ -724,7 +724,7 @@ def test_env_create_with_channels_from_yaml(
 
 
 @pytest.mark.integration
-def test_env_create_dry_run_with_channels_from_yaml(
+def test_create_env_with_channels_from_yaml_dry_run(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
 ):
@@ -736,13 +736,22 @@ def test_env_create_dry_run_with_channels_from_yaml(
     # Verify no environment was actually created
     assert not PrefixData(prefix).is_environment()
 
-    # Parse dry-run output to verify channels are included
-    parsed_output = yaml_safe_load(stdout)
+    # Extract YAML portion from stdout and remove progress indicators
+    lines = stdout.splitlines()
+    yaml_start = None
+    for i, line in enumerate(lines):
+        if line.startswith("name:"):
+            yaml_start = i
+            break
+
+    # Parse only the YAML portion
+    yaml_content = "\n".join(lines[yaml_start:])
+    parsed_output = yaml_safe_load(yaml_content)
     assert parsed_output["channels"] == ["conda-forge", "defaults"]
 
 
 @pytest.mark.integration
-def test_env_create_with_channels_and_variables_from_yaml(
+def test_create_env_with_channels_and_variables_from_yaml(
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
 ):
