@@ -97,6 +97,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def _write_env_condarc(prefix: str, config: EnvironmentConfig):
+    """Write the .condarc file for the environment config object."""
     from .main_config import _write_rc
 
     path = Path(prefix, ".condarc")
