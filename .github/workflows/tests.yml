@@ -934,5 +934,6 @@ jobs:
       - name: Check conda-build tests for missing imports
         working-directory: conda-build
         # clear warnings, only looking for test initialization failures
-        run: python -m pytest --collect-only -p no:warnings -p no:errors
-
+        run: |
+          python -c "import re, sys, pathlib; pyproject = pathlib.Path('pyproject.toml'); pyproject.write_text(re.sub('(filterwarnings.*?])', '', pyproject.read_text(), flags=re.MULTILINE |  re.DOTALL))"
+          python -m pytest --collect-only
