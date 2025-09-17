@@ -96,7 +96,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-def write_env_condarc(prefix: str, config: EnvironmentConfig):
+def _write_env_condarc(prefix: str, config: EnvironmentConfig):
     from .main_config import _write_rc
 
     path = Path(prefix, ".condarc")
@@ -232,7 +232,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     )
 
             # Write .condarc file with environment configuration
-            write_env_condarc(prefix, env.config)
+            _write_env_condarc(prefix, env.config)
 
             if context.subdir != context._native_subdir():
                 set_keys(
