@@ -16,7 +16,11 @@ from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base import context as context_module
 from conda.base.context import context, reset_context
-from conda.common.configuration import ConfigurationLoadError, CustomValidationError
+from conda.common.configuration import (
+    DEFAULT_CONDARC_FILENAME,
+    ConfigurationLoadError,
+    CustomValidationError,
+)
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
@@ -119,8 +123,7 @@ def test_channels_add_empty(conda_cli: CondaCLIFixture):
             *("--add", "channels", "test"),
         )
         assert stdout == stderr == ""
-        # TODO: Update in 25.3
-        assert _read_test_condarc(rc) == _channels_as_yaml("test", "defaults")
+        assert _read_test_condarc(rc) == _channels_as_yaml("test")
 
 
 def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
@@ -133,11 +136,6 @@ def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
             *("--add", "channels", "defaults"),
         )
         assert stdout == ""
-        # TODO: Update in 25.3
-        assert (
-            stderr.strip()
-            == "Warning: 'defaults' already in 'channels' list, moving to the top"
-        )
         assert _read_test_condarc(rc) == _channels_as_yaml("defaults", "test")
 
 
@@ -594,7 +592,7 @@ def test_set_rc_without_user_rc(
     monkeypatch: MonkeyPatch,
 ):
     sys_rc_path = tmp_path / "condarc"
-    user_rc_path = tmp_path / ".condarc"
+    user_rc_path = tmp_path / DEFAULT_CONDARC_FILENAME
 
     with sys_rc_path.open("w") as fh:
         yaml_round_trip_dump({"channels": ["conda-forge"]}, fh)

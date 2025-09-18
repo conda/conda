@@ -253,5 +253,13 @@ it can be edited directly. Below is an example ``.condarc`` file:
   # and in 'conda list'. The default is False.
   show_channel_urls: True
 
+  # Development environment settings (used by dev/start scripts)
+  # Custom path for conda development environments
+  devenv: ~/my-conda-devenv
+
+  # Preferred installer type for conda development environments
+  # Options: miniconda, miniforge
+  installer_type: miniforge
+
   # For more information about this file see:
   # https://conda.io/docs/user-guide/configuration/use-condarc.html
