@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `CondaMultiPlatformEnvironmentExporter`, a subclass of `CondaEnvironmentExporter`, supporting export formats with multiple platforms. (#15159 via #15142)
+* Add `CondaMultiPlatformEnvironmentExporter`, a subclass of `CondaEnvironmentExporter`, supporting export formats with multiple platforms. (#15159 via #15240)
 
 ### Bug fixes
 
