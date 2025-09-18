@@ -45,6 +45,7 @@ from conda.core.initialize import (
     make_entry_point_exe,
     make_initialize_plan,
     make_install_plan,
+    print_plan_results,
 )
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
@@ -628,6 +629,110 @@ def test__get_python_info(verbose):
     assert samefile(python_exe, sys.executable)
     assert python_version == "%d.%d.%d" % sys.version_info[:3]
     assert site_packages_dir.endswith("site-packages")
+
+
+def test_print_plan_results_dry_run_with_changes(verbose, monkeypatch: MonkeyPatch):
+    plan = [
+        {
+            "function": "make_entry_point",
+            "kwargs": {"target_path": "/test/path/conda"},
+            "result": Result.MODIFIED,
+        },
+        {
+            "function": "install_conda_sh",
+            "kwargs": {"target_path": "/test/path/conda.sh"},
+            "result": Result.MODIFIED,
+        },
+    ]
+
+    monkeypatch.setenv("CONDA_DRY_RUN", "true")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
+
+    output = c.stdout
+    assert "modified" in output
+    assert (
+        "DRY RUN: The above changes would have been made. NO ACTUAL CHANGES WERE MADE."
+        in output
+    )
+    assert "For changes to take effect" not in output
+
+
+def test_print_plan_results_dry_run_with_no_changes(verbose, monkeypatch: MonkeyPatch):
+    plan = [
+        {
+            "function": "make_entry_point",
+            "kwargs": {"target_path": "/test/path/conda"},
+            "result": Result.NO_CHANGE,
+        },
+        {
+            "function": "install_conda_sh",
+            "kwargs": {"target_path": "/test/path/conda.sh"},
+            "result": Result.NO_CHANGE,
+        },
+    ]
+
+    monkeypatch.setenv("CONDA_DRY_RUN", "true")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
+
+    output = c.stdout
+    assert "no change" in output
+    assert "DRY RUN: No action would have been taken." in output
+    assert "No action taken." not in output
+
+
+def test_print_plan_results_real_run_with_changes(verbose, monkeypatch: MonkeyPatch):
+    plan = [
+        {
+            "function": "make_entry_point",
+            "kwargs": {"target_path": "/test/path/conda"},
+            "result": Result.MODIFIED,
+        },
+    ]
+
+    monkeypatch.setenv("CONDA_DRY_RUN", "false")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
+
+    output = c.stdout
+    assert "modified" in output
+    assert "For changes to take effect, close and re-open your current shell." in output
+    assert "DRY RUN" not in output
+
+
+def test_print_plan_results_real_run_no_changes(verbose, monkeypatch: MonkeyPatch):
+    plan = [
+        {
+            "function": "make_entry_point",
+            "kwargs": {"target_path": "/test/path/conda"},
+            "result": Result.NO_CHANGE,
+        },
+    ]
+
+    monkeypatch.setenv("CONDA_DRY_RUN", "false")
+    reset_context()
+    with captured() as c:
+        print_plan_results(plan)
+
+    output = c.stdout
+    assert "no change" in output
+    assert "No action taken." in output
+    assert "DRY RUN" not in output
+
+
+def test_conda_init_dry_run(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("init", "--dry-run", "bash")
+
+    assert not err
+    assert "DRY RUN:" in stdout or "NO ACTUAL CHANGES WERE MADE" in stdout
+    assert (
+        "For changes to take effect, close and re-open your current shell."
+        not in stdout
+    )
 
 
 def test_install_1(verbose, monkeypatch: MonkeyPatch):
