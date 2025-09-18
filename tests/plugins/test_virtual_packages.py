@@ -6,13 +6,13 @@ import platform
 from typing import TYPE_CHECKING
 
 import pytest
+from pytest import MonkeyPatch
 
 import conda.core.index
 from conda import __version__, plugins
 from conda.base.context import context, reset_context
 from conda.common._os.osx import mac_ver
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
 from conda.plugins.virtual_packages import cuda
@@ -92,16 +92,21 @@ def test_cuda_detection(clear_cuda_version):
     assert version is None or isinstance(version, str)
 
 
-def test_cuda_override(clear_cuda_version):
-    with env_var("CONDA_OVERRIDE_CUDA", "4.5"):
-        version = cuda.cached_cuda_version()
-        assert version == "4.5"
+@pytest.mark.parametrize(
+    "override_value,expected",
+    [
+        pytest.param("4.5", "4.5", id="override-set"),
+        pytest.param("", None, id="override-empty"),
+    ],
+)
+def test_cuda_override(
+    clear_cuda_version, override_value, expected, monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", override_value)
+    reset_context()
 
-
-def test_cuda_override_none(clear_cuda_version):
-    with env_var("CONDA_OVERRIDE_CUDA", ""):
-        version = cuda.cuda_version()
-        assert version is None
+    version = cuda.cuda_version()
+    assert version == expected
 
 
 def get_virtual_precs() -> Iterable[PackageRecord]:

@@ -1,0 +1,27 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.core.index.get_index`. Use `conda.core.Index` instead. (#15223)
+* Remove `conda.core.index.fetch_index`. Use `conda.core.Index` instead. (#15223)
+* Remove `conda.core.index._supplement_index_with_prefix`. Use `conda.core.Index.reload` instead. (#15223)
+* Remove `conda.core.index._supplement_index_with_cache`. Use `conda.core.Index.reload` instead. (#15223)
+* Remove `conda.core.index._make_virtual_package`. Use `conda.core.models.records.PackageRecord.virtual_package` instead. (#15223)
+* Remove `conda.core.index._supplement_index_with_features`. Use `conda.core.Index.reload(features=True)` instead. (#15223)
+* Remove `conda.core.index.get_reduced_index`. Use `conda.core.ReducedIndex` or `conda.core.Index.get_reduced_index` instead. (#15223)
+* Remove `conda.core.subdir.make_feature_record`. Use `conda.core.models.records.PackageRecord.feature` instead. (#15223)
+* Mark `conda.core.index._supplement_index_with_system` for removal in `26.3.x`
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
