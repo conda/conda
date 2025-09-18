@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove deprecation warning `conda.base.context._warn_defaults_deprecation`. (#15196)
+* Don't implicitly add the `defaults` channel to the channel list. (#15196)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda.exceptions
+from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
 from conda.cli.main_config import (
     _get_key,
@@ -20,6 +21,7 @@ from conda.cli.main_config import (
     _write_rc,
     set_keys,
 )
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
@@ -228,21 +230,30 @@ def test_config_remove_key() -> None:
 
 
 def test_config_read_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
     condarc.write_text("changeps1: false\nauto_stack: 5\n")
 
     assert _read_rc(path=condarc) == {"changeps1": False, "auto_stack": 5}
 
 
 def test_config_write_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
-    _write_rc(condarc, {"changeps1": False, "auto_stack": 5})
-    assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
+    _write_rc(
+        condarc,
+        {
+            "changeps1": False,
+            "auto_stack": 5,
+            "safety_checks": SafetyChecks.disabled,
+        },
+    )
+    assert condarc.read_text() == (
+        "changeps1: false\nauto_stack: 5\nsafety_checks: disabled\n"
+    )
 
 
 def test_config_set_keys(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
     set_keys(("changeps1", True), path=condarc)
     assert condarc.read_text() == "changeps1: true\n"
@@ -255,7 +266,7 @@ def test_config_set_keys(tmp_path: Path) -> None:
 
 
 def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
     set_keys(("auto_activate_base", True), path=condarc)
     assert condarc.read_text() == "auto_activate: true\n"

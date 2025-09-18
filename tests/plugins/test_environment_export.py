@@ -31,10 +31,10 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Any, Callable
 
+    from conda.tests.fixtures import CondaCliFixture, TmpEnvFixture
     from pytest import FixtureRequest
 
     from conda.plugins.manager import CondaPluginManager
-    from conda.tests.fixtures import CondaCliFixture, TmpEnvFixture
 
 
 @pytest.fixture

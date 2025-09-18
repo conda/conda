@@ -11,6 +11,7 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing.integration import package_is_installed
@@ -394,7 +395,7 @@ def test_create_env_custom_platform(
         assert prefix_data.exists()
         assert prefix_data.is_environment()
 
-        config = prefix / ".condarc"
+        config = prefix / DEFAULT_CONDARC_FILENAME
 
         assert config.is_file()
         assert f"subdir: {platform}" in config.read_text()
