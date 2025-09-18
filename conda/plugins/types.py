@@ -16,7 +16,8 @@ from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
-from ..exceptions import PluginError
+from ..base.context import context
+from ..exceptions import CondaValueError, PluginError
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
@@ -524,6 +525,13 @@ class CondaEnvironmentExporter(CondaPlugin):
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
 
+    def __call__(self, env: Environment) -> str:
+        if context.export_platforms:
+            raise CondaValueError(
+                "Multiple platforms are not supported for the `{self.name}` exporter"
+            )
+        return self.export(env)
+
 
 @dataclass
 class CondaMultiPlatformEnvironmentExporter(CondaEnvironmentExporter):
@@ -539,3 +547,9 @@ class CondaMultiPlatformEnvironmentExporter(CondaEnvironmentExporter):
     """
 
     export: Callable[[Iterable[Environment]], str]
+
+    def __call__(self, env: Environment) -> str:
+        extra_envs = [
+            env.extrapolate(platform) for platform in context.export_platforms
+        ]
+        return self.export([env, *extra_envs])

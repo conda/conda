@@ -14,13 +14,11 @@ from argparse import (
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.constants import NULL
-from ..exceptions import CondaValueError
 from ..models.environment import Environment
 from ..plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_JSON_FORMAT,
     ENVIRONMENT_YAML_FORMAT,
 )
-from ..plugins.types import CondaMultiPlatformEnvironmentExporter
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -185,20 +183,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         channels=context.channels,
     )
 
-    # Depending on the exporter, we may need to extrapolate the environment for other platforms
-    if isinstance(environment_exporter, CondaMultiPlatformEnvironmentExporter):
-        exported_content = environment_exporter.export(
-            [
-                env,
-                *(env.extrapolate(platform) for platform in context.export_platforms),
-            ]
-        )
-    else:
-        if context.export_platforms:
-            raise CondaValueError(
-                f"Multiple platforms are not supported for the `{environment_exporter.name}` exporter"
-            )
-        exported_content = environment_exporter.export(env)
+    exported_content = environment_exporter(env)
 
     # Add trailing newline to the exported content
     exported_content = exported_content.rstrip() + "\n"
