@@ -5,11 +5,13 @@
 Creates new conda environments with the specified packages.
 """
 
+import os
 from argparse import (
     ArgumentParser,
     Namespace,
     _SubParsersAction,
 )
+from collections.abc import Sequence
 from pathlib import Path
 
 from .. import CondaError
@@ -17,6 +19,31 @@ from ..base.context import fresh_context
 from ..cli.main_config import set_keys
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
+
+
+def _merge_with_env_var(env_var_name: str, new_values: Sequence[str]) -> str:
+    """
+    Merge new values with existing environment variable values.
+
+    Args:
+        env_var_name: Name of the environment variable (e.g., 'CONDA_CHANNELS')
+        new_values: Sequence of new values to merge (list, tuple, etc.)
+
+    Returns:
+        Comma-separated string of merged values
+    """
+    # Get existing environment variable values
+    existing = os.environ.get(env_var_name, "")
+    existing_list = [v.strip() for v in existing.split(",") if v.strip()]
+
+    # Combine and deduplicate while preserving order
+    all_values = existing_list + list(new_values)
+    unique_values = []
+    for value in all_values:
+        if value not in unique_values:
+            unique_values.append(value)
+
+    return ",".join(unique_values)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -149,7 +176,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     env_vars = {}
 
     if env.config.channels:
-        env_vars["CONDA_CHANNELS"] = ",".join(env.config.channels)
+        env_vars["CONDA_CHANNELS"] = _merge_with_env_var(
+            "CONDA_CHANNELS", env.config.channels
+        )
 
     # TODO: Add other config options when they're supported in environment.yaml
     # if env.config.channel_priority:
