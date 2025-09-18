@@ -15,6 +15,7 @@ from pathlib import Path
 from .. import CondaError
 from ..base.context import fresh_context
 from ..cli.main_config import set_keys
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
 
 
@@ -219,7 +220,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             if context.subdir != context._native_subdir():
                 set_keys(
                     ("subdir", context.subdir),
-                    path=Path(prefix, ".condarc"),
+                    path=Path(prefix, DEFAULT_CONDARC_FILENAME),
                 )
 
             # Environment variables from environment.yaml are set in conda-meta/state file

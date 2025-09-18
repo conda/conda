@@ -454,6 +454,110 @@ def test_CondaHTTPError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> Non
     )
 
 
+def test_http_error_custom_reason_code(
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture
+) -> None:
+    msg = ""
+    url = "https://download.url/path/to/something.tar.gz"
+    status_code = "403"
+    reason = "-->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------"
+    elapsed_time = 1.25
+    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
+
+    json_obj = json.loads(stdout)
+    assert not stderr
+    assert json_obj["exception_type"] == "<class 'conda.exceptions.CondaHTTPError'>"
+    assert json_obj["exception_name"] == "CondaHTTPError"
+    assert json_obj["message"] == str(exc)
+    assert json_obj["error"] == repr(exc)
+    assert json_obj["url"] == url
+    assert json_obj["status_code"] == status_code
+    assert json_obj["reason"] == reason
+    assert json_obj["elapsed_time"] == elapsed_time
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
+
+    assert not stdout
+    assert stderr == "\n".join(
+        (
+            "",
+            "CondaHTTPError: HTTP 403 -->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------ for url <https://download.url/path/to/something.tar.gz>",
+            "Elapsed: 1.25",
+            "",
+            "",
+            "",
+            "",
+        )
+    )
+
+
+def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
+    msg = ""
+    url = "https://download.url/path/to/something.tar.gz"
+    status_code = "403"
+    # in HTTP/2, reason will be empty
+    reason = ""
+    # in a RFC 9457 compliant response, the "detail" field is what we want to capture
+    detail = "-->>> Requested item is quarantined -->>> FOR DETAILS SEE -->>> https://someurl/foo <<<------"
+
+    # Create a mock Response object
+    class MockResponse:
+        def __init__(self, json_data):
+            self.json_data = json_data
+            self.headers = {}
+
+        def json(self):
+            return self.json_data
+
+    # Create the response with a detail field
+    response = MockResponse({"detail": detail})
+
+    elapsed_time = 1.26
+    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
+
+    json_obj = json.loads(stdout)
+    assert not stderr
+    assert json_obj["json"]["detail"] == detail
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    assert not context.json
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
+
+    assert not stdout
+    assert stderr == "\n".join(
+        (
+            "",
+            "CondaHTTPError: HTTP 403 CONNECTION FAILED for url <https://download.url/path/to/something.tar.gz>",
+            "Elapsed: 1.26",
+            "",
+            detail,
+            "",
+            "",
+        )
+    )
+
+
 def test_CommandNotFoundError_simple(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
