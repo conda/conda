@@ -333,7 +333,7 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     channel_customization_options.add_argument(
         "--experimental",
         action=LazyAppendAction,
-        choices=lambda: sorted(context.plugin_manager.get_experimental_features),
+        choices=lambda: sorted(context.plugin_manager.get_experimental_features()),
         help=lambda: "\n".join(
             str(feature)
             for _, feature in sorted(
