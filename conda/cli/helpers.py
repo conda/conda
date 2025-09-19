@@ -10,16 +10,48 @@ from argparse import (
     SUPPRESS,
     Action,
     BooleanOptionalAction,
+    _AppendAction,
     _HelpAction,
     _StoreAction,
     _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
 
+from ..auxlib.decorators import memoizedproperty
+from ..auxlib.type_coercion import maybecall
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
 
+class LazyMixin:
+    @memoizedproperty
+    def choices(self):
+        """Dynamically evaluate choices for help generation and validation."""
+        return maybecall(self._choices)
+
+    @choices.setter  # type: ignore[no-redef]
+    def choices(self, value):
+        """Store value as is, if it is a callable it will be evaluated on first access."""
+        self._choices = value
+
+    @memoizedproperty
+    def help(self):
+        """Dynamically evaluate help for help generation and validation."""
+        return maybecall(self._help)
+
+    @help.setter  # type: ignore[no-redef]
+    def help(self, value):
+        """Store value as is, if it is a callable it will be evaluated on first access."""
+        self._help = value
+
+
+LazyAppendAction = type("LazyAppend", (LazyMixin, _AppendAction), {})
+LazyStoreAction = type("LazyStore", (LazyMixin, _StoreAction), {})
+
+
+@deprecated("26.3", "26.9", addendum="Use `conda.cli.helpers.LazyStoreAction` instead.")
 class LazyChoicesAction(Action):
     def __init__(self, option_strings, dest, choices_func, **kwargs):
         self.choices_func = choices_func
