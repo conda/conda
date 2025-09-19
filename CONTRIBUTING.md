@@ -85,7 +85,7 @@ When making a change, try to scope changes to what can be accomplished in less
 than a day of work with minimal code changes to facilitate rapid code
 reviews—typically fewer than 200 lines of code.
 
-For each change, create a new local branch. Keep your changes focused on a
+Create a new local branch for each change. Keep your changes focused on a
 single issue to make reviews easier.
 
 #### Pull Requests
