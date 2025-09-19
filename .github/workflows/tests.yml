@@ -850,3 +850,90 @@ jobs:
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+
+  # check conda-build imports
+  downstream:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+    strategy:
+      fail-fast: false
+      matrix:
+        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+        python-version: ['3.13']
+        default-channel: [defaults]
+
+    steps:
+      - name: Checkout conda/conda
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          repository: conda/conda
+          path: conda
+
+      - name: Checkout conda/conda-build
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          repository: conda/conda-build
+          path: conda-build
+
+      - name: Hash + Timestamp + Job
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ github.job }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+
+      - name: Cache Conda
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/conda_pkgs_dir
+          key: cache-${{ env.HASH }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        with:
+          condarc-file: conda/.github/condarc-${{ matrix.default-channel }}
+          run-post: false  # skip post cleanup
+
+      - name: Conda Install
+        working-directory: conda
+        run: >
+          conda install
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          --file ../conda-build/tests/requirements.txt
+          --file ../conda-build/tests/requirements-ci.txt
+          --file ../conda-build/tests/requirements-${{ runner.os }}.txt
+          python=${{ matrix.python-version }}
+
+      - name: Install conda, conda-build source code
+        env:
+          PIP_NO_BUILD_ISOLATION: '1'
+        run: |
+          python -m pip install -e conda -e conda-build -v --no-deps
+
+      - name: Conda Info
+        run: python -m conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
+
+      - name: Conda List
+        run: conda list --show-channel-urls
+
+      - name: Check correct conda, conda-build installed
+        run: python -c "import conda, conda_build; print(conda.__file__, conda_build.__file__)"
+
+      - name: Check conda-build tests for missing imports
+        working-directory: conda-build
+        # clear warnings, only looking for test initialization failures
+        run: |
+          python -c "import re, sys, pathlib; pyproject = pathlib.Path('pyproject.toml'); pyproject.write_text(re.sub('(filterwarnings.*?])', '', pyproject.read_text(), flags=re.MULTILINE | re.DOTALL))"
+          python -m pytest --collect-only
