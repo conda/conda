@@ -116,7 +116,7 @@ integrated code. Reviews will focus on:
 
 - Code correctness and logic
 - Maintainability and readability
-- Consistency with project patterns and best practices
+- Consistency with project patterns and practices
 
 Reviews will NOT focus on:
 - Code formatting (handled by pre-commit hooks)
