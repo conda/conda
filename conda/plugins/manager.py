@@ -32,6 +32,7 @@ from ..exceptions import (
 from . import (
     environment_exporters,
     environment_specifiers,
+    experimental_features,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
@@ -57,6 +58,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExperimentalFeaturePlugin,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -272,6 +274,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["experimental_features"]
+    ) -> list[CondaExperimentalFeaturePlugin]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -818,6 +825,15 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
+    def get_experimental_features(self) -> dict[str, CondaExperimentalFeaturePlugin]:
+        """
+        Returns all detected experimental features.
+        """
+        return {
+            feature.name: feature
+            for feature in self.get_hook_results("experimental_features")
+        }
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -837,6 +853,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,
+        experimental_features,
     )
     plugin_manager.load_entrypoints(spec_name)
     return plugin_manager

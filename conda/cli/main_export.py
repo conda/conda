@@ -22,7 +22,7 @@ from ..plugins.environment_exporters.environment_yml import (
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
+    from .helpers import LazyStoreAction, add_parser_json, add_parser_prefix
 
     summary = "Export a given environment"
     description = summary
@@ -94,10 +94,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--format",
         default=NULL,
         required=False,
-        action=LazyChoicesAction,
-        choices_func=lambda: sorted(
-            context.plugin_manager.get_exporter_format_mapping()
-        ),
+        action=LazyStoreAction,
+        choices=lambda: sorted(context.plugin_manager.get_exporter_format_mapping()),
         help=(
             "Format for the exported environment. "
             "If not specified, format will be determined by file extension or default to YAML."
