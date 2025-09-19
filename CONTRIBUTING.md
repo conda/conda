@@ -67,11 +67,11 @@ Here are steps you need to take to contribute to conda:
 
 For your first contribution, we recommend:
 
-- Looking for issues labeled with `good first issue`
-- Starting with small changes like documentation or minor bug fixes
-- Reading through existing code to understand the project structure and our
+- Look for issues labeled with `good first issue`
+- Start with small changes like documentation or minor bug fixes
+- Read through existing code to understand the project structure and our
   patterns
-- Asking questions if you need help issues, on the
+- Ask questions if you need help, on the
   [community chat channels](https://conda.zulip.com), or on the
   [conda discourse forum](https://conda.discourse.group)
 
