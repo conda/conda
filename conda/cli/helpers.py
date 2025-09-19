@@ -566,21 +566,29 @@ def add_parser_default_packages(p: ArgumentParser) -> None:
     )
 
 
-def add_parser_platform(parser):
-    from ..base.constants import KNOWN_SUBDIRS
+def add_parser_platform(parser: ArgumentParser, *, help: str | None = None) -> None:
+    from ..base.context import context
     from ..common.constants import NULL
 
+    help = (
+        help
+        or (
+            "Use packages built for this platform. "
+            "The new environment will be configured to remember this choice. "
+        )
+    ).strip()
     parser.add_argument(
         "--subdir",
         "--platform",
         default=NULL,
         dest="subdir",
-        choices=[s for s in KNOWN_SUBDIRS if s != "noarch"],
+        choices=sorted(context.known_subdirs - {"noarch"}),
         metavar="SUBDIR",
-        help="Use packages built for this platform. "
-        "The new environment will be configured to remember this choice. "
-        "Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
-        "Defaults to the current (native) platform.",
+        help=(
+            f"{help}{' ' if help else ''}"
+            f"Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
+            f"Defaults to the current (native) platform."
+        ),
     )
 
 
