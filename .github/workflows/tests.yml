@@ -865,7 +865,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+        # check missing imports in one representative environment
         python-version: ['3.13']
         default-channel: [defaults]
 
@@ -923,17 +923,17 @@ jobs:
         run: python -m conda info --verbose
 
       - name: Conda Config
-        run: conda config --show-sources
+        run: python -m conda config --show-sources
 
       - name: Conda List
-        run: conda list --show-channel-urls
+        run: python -m conda list --show-channel-urls
 
       - name: Check correct conda, conda-build installed
         run: python -c "import conda, conda_build; print(conda.__file__, conda_build.__file__)"
 
       - name: Check conda-build tests for missing imports
         working-directory: conda-build
-        # clear warnings, only looking for test initialization failures
+        # The inline script removes the filterwarnings = section from pyproject.toml; I wasn't able to find a suitable command line argument to do the same.
         run: |
           python -c "import re, sys, pathlib; pyproject = pathlib.Path('pyproject.toml'); pyproject.write_text(re.sub('(filterwarnings.*?])', '', pyproject.read_text(), flags=re.MULTILINE | re.DOTALL))"
           python -m pytest --collect-only
