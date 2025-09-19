@@ -21,6 +21,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExperimentalFeaturePlugin,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -728,5 +729,23 @@ class CondaSpecs:
                     default_filenames=("environment.toml",),
                     export=export_toml,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_experimental_features(self) -> Iterable[CondaExperimentalFeaturePlugin]:
+        """
+        Register new experimental features
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            @plugins.hookimpl
+            def conda_experimental_features():
+                yield plugins.CondaExperimentalFeaturePlugin(name="experimental-feature")
         """
         yield from ()
