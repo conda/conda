@@ -54,7 +54,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 @pytest.mark.benchmark
 @pytest.mark.flaky(reruns=5)
-def test_solve_1(tmpdir, request):
+def test_solve_1(monkeypatch: MonkeyPatch, tmpdir, request):
     """
     This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
 
@@ -82,7 +82,7 @@ def test_solve_1(tmpdir, request):
     """
     specs = (MatchSpec("numpy"),)
 
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(
@@ -101,6 +101,7 @@ def test_solve_1(tmpdir, request):
 
     specs_to_add = (MatchSpec("python=2"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state,
@@ -123,7 +124,7 @@ def test_solve_1(tmpdir, request):
         assert convert_to_dist_str(final_state) == order
 
 
-def test_solve_2(tmpdir):
+def test_solve_2(monkeypatch: MonkeyPatch, tmpdir):
     if context.solver == "libmamba":
         pytest.skip(
             "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
@@ -131,7 +132,7 @@ def test_solve_2(tmpdir):
 
     specs = (MatchSpec("numpy"),)
 
-    with get_solver_aggregate_1(tmpdir, specs) as solver:
+    with get_solver_aggregate_1(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(
@@ -151,6 +152,7 @@ def test_solve_2(tmpdir):
 
     specs_to_add = (MatchSpec("channel-4::numpy"),)
     with get_solver_aggregate_1(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state,
@@ -212,7 +214,7 @@ def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch: MonkeyP
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         _ = solver.solve_final_state()
         ssc = solver.ssc
         # Check the cuda virtual package is included in the solver
@@ -238,7 +240,7 @@ def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version, monkeypatch: MonkeyPa
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
@@ -250,7 +252,7 @@ def test_cuda_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "9.2")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(("channel-1::cudatoolkit-9.0-0",))
@@ -262,20 +264,20 @@ def test_cuda_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(("channel-1::cudatoolkit-10.0-0",))
         assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_fail_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+def test_cuda_fail_1(monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version):
     specs = (MatchSpec("cudatoolkit"),)
 
     # No cudatoolkit in index for CUDA 8.0
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
@@ -305,13 +307,13 @@ Your installed version is: 8.0"""
         )
 
 
-def test_cuda_fail_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+def test_cuda_fail_2(monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version):
     specs = (MatchSpec("cudatoolkit"),)
 
     # No CUDA on system
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
@@ -340,12 +342,12 @@ Your installed version is: not available"""
         )
 
 
-def test_cuda_constrain_absent(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+def test_cuda_constrain_absent(monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-constrain"),)
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(("channel-1::cuda-constrain-11.0-0",))
@@ -353,12 +355,12 @@ def test_cuda_constrain_absent(tmpdir, clear_cuda_version, monkeypatch: MonkeyPa
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+def test_cuda_constrain_sat(monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-constrain"),)
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(("channel-1::cuda-constrain-10.0-0",))
@@ -366,13 +368,13 @@ def test_cuda_constrain_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_unsat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+def test_cuda_constrain_unsat(monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-constrain"),)
 
     # No cudatoolkit in index for CUDA 8.0
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
@@ -387,13 +389,13 @@ Your installed version is: 8.0"""
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+def test_cuda_glibc_sat(monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
     monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.23")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(("channel-1::cuda-glibc-10.0-0",))
@@ -402,13 +404,13 @@ def test_cuda_glibc_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+def test_cuda_glibc_unsat_depend(monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version):
     specs = (MatchSpec("cuda-glibc"),)
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
     monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.23")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
@@ -425,14 +427,14 @@ Your installed version is: 8.0"""
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
 def test_cuda_glibc_unsat_constrain(
-    tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch
+    monkeypatch: MonkeyPatch, tmpdir, clear_cuda_version
 ):
     specs = (MatchSpec("cuda-glibc"),)
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
     monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.12")
 
-    with get_solver_cuda(tmpdir, specs) as solver:
+    with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state()
 
@@ -442,8 +444,8 @@ def test_cuda_glibc_unsat_constrain(
     reason="archspec is only supported on win, mac or linux",
 )
 def test_archspec_call(
-    tmpdir,
     monkeypatch: MonkeyPatch,
+    tmpdir,
 ):
     specs = (MatchSpec("numpy"),)
 
@@ -452,12 +454,12 @@ def test_archspec_call(
     reset_context()
 
     with patch("archspec.cpu.host") as archspec:
-        with get_solver_cuda(tmpdir, specs) as solver:
+        with get_solver_cuda(monkeypatch, tmpdir, specs) as solver:
             solver.solve_final_state()
             archspec.assert_called()
 
 
-def test_prune_1(tmpdir, request):
+def test_prune_1(monkeypatch: MonkeyPatch, tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -472,7 +474,7 @@ def test_prune_1(tmpdir, request):
         MatchSpec("accelerate"),
     )
 
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -505,6 +507,7 @@ def test_prune_1(tmpdir, request):
 
     specs_to_remove = (MatchSpec("numbapro"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_remove=specs_to_remove,
         prefix_records=final_state_1,
@@ -537,7 +540,7 @@ def test_prune_1(tmpdir, request):
         assert convert_to_dist_str(link_precs) == link_order
 
 
-def test_update_prune_1(tmpdir):
+def test_update_prune_1(monkeypatch: MonkeyPatch, tmpdir):
     """Regression test: Ensure that update with prune is not taking the history
     into account, since that stops it from removing packages that were removed
     from the environment specs.
@@ -547,7 +550,7 @@ def test_update_prune_1(tmpdir):
         MatchSpec("python=2.7.3"),
     )
 
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -569,6 +572,7 @@ def test_update_prune_1(tmpdir):
     new_environment_specs = (MatchSpec("python=2.7.3"),)
 
     with get_solver(
+        monkeypatch,
         tmpdir,
         new_environment_specs,
         prefix_records=final_state_1,
@@ -592,7 +596,7 @@ def test_update_prune_1(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_update_prune_2(tmpdir, request):
+def test_update_prune_2(monkeypatch: MonkeyPatch, tmpdir, request):
     """Regression test: Ensure that update with prune is pruning dependencies
     of packages that are removed from environment as well.
     """
@@ -609,7 +613,7 @@ def test_update_prune_2(tmpdir, request):
         MatchSpec("accelerate"),
     )
 
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -646,6 +650,7 @@ def test_update_prune_2(tmpdir, request):
     new_environment_specs = (MatchSpec("python=2.7.3"),)
 
     with get_solver(
+        monkeypatch,
         tmpdir,
         new_environment_specs,
         prefix_records=final_state_1,
@@ -670,7 +675,7 @@ def test_update_prune_2(tmpdir, request):
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_update_prune_3(tmpdir, request):
+def test_update_prune_3(monkeypatch: MonkeyPatch, tmpdir, request):
     """Ensure that update with prune is not removing packages that are still
     needed by remaining specs.
     """
@@ -688,7 +693,7 @@ def test_update_prune_3(tmpdir, request):
         MatchSpec("accelerate"),
     )
 
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -729,6 +734,7 @@ def test_update_prune_3(tmpdir, request):
     )
 
     with get_solver(
+        monkeypatch,
         tmpdir,
         new_environment_specs,
         prefix_records=final_state_1,
@@ -754,7 +760,7 @@ def test_update_prune_3(tmpdir, request):
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_update_prune_4(tmpdir):
+def test_update_prune_4(monkeypatch: MonkeyPatch, tmpdir):
     """Regression test: Ensure that update with prune is not taking the history
     into account, since that stops it from removing packages that were removed
     from the environment specs.
@@ -764,7 +770,7 @@ def test_update_prune_4(tmpdir):
         MatchSpec("python=2.7.3"),
     )
 
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -786,6 +792,7 @@ def test_update_prune_4(tmpdir):
     new_environment_specs = (MatchSpec("python=2.7.3"),)
 
     with get_solver(
+        monkeypatch,
         tmpdir,
         new_environment_specs,
         prefix_records=final_state_1,
@@ -813,7 +820,7 @@ def test_update_prune_4(tmpdir):
 
 
 @pytest.mark.parametrize("prune", [True, False])
-def test_update_prune_5(tmpdir, prune, capsys, request):
+def test_update_prune_5(monkeypatch: MonkeyPatch, tmpdir, prune, capsys, request):
     """Regression test: Check that prefix data is not taken into account when solving on prune."""
     # "Create" a conda env with specs that "pin" dependencies.
     request.applymarker(
@@ -828,7 +835,7 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
         MatchSpec("python=2.7"),
         MatchSpec("numexpr==2.0.1=np17py27_p3"),
     )
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
 
     out, _ = capsys.readouterr()
@@ -840,6 +847,7 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
         MatchSpec("numexpr==2.0.1=np17py27_p2"),
     )
     with get_solver(
+        monkeypatch,
         tmpdir,
         new_environment_specs,
         prefix_records=final_state_1,
@@ -852,7 +860,7 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
     assert ("Updating numexpr is constricted by" in out) is solve_using_prefix_data
 
 
-def test_force_remove_1(tmpdir, request):
+def test_force_remove_1(monkeypatch: MonkeyPatch, tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -863,7 +871,7 @@ def test_force_remove_1(tmpdir, request):
     )
 
     specs = (MatchSpec("numpy[version=*,build=*py27*]"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -885,6 +893,7 @@ def test_force_remove_1(tmpdir, request):
     #    so numpy goes away.  All of pythons' deps are also pruned.
     specs_to_remove = (MatchSpec("python"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_remove=specs_to_remove,
         prefix_records=final_state_1,
@@ -902,6 +911,7 @@ def test_force_remove_1(tmpdir, request):
     #    this leaves an inconsistent env
     specs_to_remove = (MatchSpec("python"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_remove=specs_to_remove,
         prefix_records=final_state_1,
@@ -924,7 +934,7 @@ def test_force_remove_1(tmpdir, request):
         assert convert_to_dist_str(final_state_2) == order
 
     # re-solving restores order
-    with get_solver(tmpdir, prefix_records=final_state_2) as solver:
+    with get_solver(monkeypatch, tmpdir, prefix_records=final_state_2) as solver:
         final_state_3 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_3))
@@ -943,9 +953,9 @@ def test_force_remove_1(tmpdir, request):
         assert convert_to_dist_str(final_state_3) == order
 
 
-def test_no_deps_1(tmpdir):
+def test_no_deps_1(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("python=2"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -964,7 +974,11 @@ def test_no_deps_1(tmpdir):
 
     specs_to_add = (MatchSpec("numba"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -989,7 +1003,11 @@ def test_no_deps_1(tmpdir):
 
     specs_to_add = (MatchSpec("numba"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier="NO_DEPS")
         # PrefixDag(final_state_2, specs).open_url()
@@ -1009,9 +1027,9 @@ def test_no_deps_1(tmpdir):
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_only_deps_1(tmpdir):
+def test_only_deps_1(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("numba[version=*,build=*py27*]"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1033,12 +1051,12 @@ def test_only_deps_1(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_only_deps_2(tmpdir):
+def test_only_deps_2(monkeypatch: MonkeyPatch, tmpdir):
     specs = (
         MatchSpec("numpy=1.5"),
         MatchSpec("python=2.7.3"),
     )
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1057,7 +1075,7 @@ def test_only_deps_2(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = (MatchSpec("numba=0.5"),)
-    with get_solver(tmpdir, specs_to_add) as solver:
+    with get_solver(monkeypatch, tmpdir, specs_to_add) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
@@ -1083,7 +1101,11 @@ def test_only_deps_2(tmpdir):
     # fails because numpy=1.5 is in our history as an explicit spec
     specs_to_add = (MatchSpec("numba=0.5"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         with pytest.raises(UnsatisfiableError):
             final_state_2 = solver.solve_final_state(
@@ -1092,7 +1114,11 @@ def test_only_deps_2(tmpdir):
 
     specs_to_add = MatchSpec("numba=0.5"), MatchSpec("numpy")
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
@@ -1117,7 +1143,7 @@ def test_only_deps_2(tmpdir):
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_update_all_1(tmpdir):
+def test_update_all_1(monkeypatch: MonkeyPatch, tmpdir):
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # Libmamba requires MatchSpec.conda_build_form() internally, which depends on `version` and
@@ -1131,7 +1157,7 @@ def test_update_all_1(tmpdir):
         MatchSpec("python=2.6"),
         MatchSpec(system_spec),
     )
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1151,7 +1177,11 @@ def test_update_all_1(tmpdir):
 
     specs_to_add = MatchSpec("numba=0.6"), MatchSpec("numpy")
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -1176,7 +1206,11 @@ def test_update_all_1(tmpdir):
 
     specs_to_add = (MatchSpec("numba=0.6"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state(
             update_modifier=UpdateModifier.UPDATE_ALL
@@ -1202,12 +1236,12 @@ def test_update_all_1(tmpdir):
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_broken_install(tmpdir):
+def test_broken_install(monkeypatch: MonkeyPatch, tmpdir):
     if context.solver == "libmamba":
         pytest.skip("conda-libmamba-solver does not use a Solver._r (Resolve) object")
 
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1240,7 +1274,11 @@ def test_broken_install(tmpdir):
 
     specs_to_add = (MatchSpec("flask"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1_modified, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1_modified,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -1274,7 +1312,11 @@ def test_broken_install(tmpdir):
         MatchSpec("numpy 1.6.*"),
     )
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1_modified, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1_modified,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -1310,7 +1352,7 @@ def test_broken_install(tmpdir):
     assert not solver._r.environment_is_consistent(final_state_2_mod)
 
 
-def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
+def test_conda_downgrade(monkeypatch: MonkeyPatch, tmpdir, request):
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
@@ -1326,7 +1368,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
     reset_context()
 
-    with get_solver_aggregate_1(tmpdir, specs) as solver:
+    with get_solver_aggregate_1(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -1385,6 +1427,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
     try:
         sys.prefix = tmpdir.strpath
         with get_solver_aggregate_1(
+            monkeypatch,
             tmpdir,
             specs_to_add=specs_to_add,
             prefix_records=final_state_1,
@@ -1405,6 +1448,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
             MatchSpec("conda"),
         )
         with get_solver_aggregate_1(
+            monkeypatch,
             tmpdir,
             specs_to_add=specs_to_add,
             prefix_records=final_state_1,
@@ -1422,6 +1466,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
             MatchSpec("python"),
         )
         with get_solver_aggregate_1(
+            monkeypatch,
             tmpdir,
             specs_to_add=specs_to_add,
             prefix_records=final_state_1,
@@ -1529,7 +1574,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
         sys.prefix = saved_sys_prefix
 
 
-def test_unfreeze_when_required(tmpdir):
+def test_unfreeze_when_required(monkeypatch: MonkeyPatch, tmpdir):
     # The available packages are:
     # libfoo 1.0, 2.0
     # libbar 1.0, 2.0
@@ -1543,7 +1588,7 @@ def test_unfreeze_when_required(tmpdir):
     # If foobar is frozen then no solution exists.
 
     specs = [MatchSpec("foobar"), MatchSpec("qux")]
-    with get_solver_must_unfreeze(tmpdir, specs) as solver:
+    with get_solver_must_unfreeze(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -1557,7 +1602,7 @@ def test_unfreeze_when_required(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
     specs = (MatchSpec("foobar"),)
-    with get_solver_must_unfreeze(tmpdir, specs) as solver:
+    with get_solver_must_unfreeze(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -1572,13 +1617,17 @@ def test_unfreeze_when_required(tmpdir):
     # When frozen there is no solution - but conda tries really hard to not freeze things that conflict
     #    this section of the test broke when we improved the detection of conflicting specs.
     # specs_to_add = MatchSpec("qux"),
-    # with get_solver_must_unfreeze(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    # with get_solver_must_unfreeze(monkeypatch, specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
     #     with pytest.raises(UnsatisfiableError):
     #         solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
     specs_to_add = (MatchSpec("qux"),)
     with get_solver_must_unfreeze(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state(
             update_modifier=UpdateModifier.UPDATE_SPECS
@@ -1596,9 +1645,9 @@ def test_unfreeze_when_required(tmpdir):
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_auto_update_conda(tmpdir, monkeypatch: MonkeyPatch):
+def test_auto_update_conda(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("conda=1.3"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1622,7 +1671,11 @@ def test_auto_update_conda(tmpdir, monkeypatch: MonkeyPatch):
     reset_context()
     specs_to_add = (MatchSpec("pytz"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -1656,7 +1709,11 @@ def test_auto_update_conda(tmpdir, monkeypatch: MonkeyPatch):
 
         specs_to_add = (MatchSpec("pytz"),)
         with get_solver(
-            tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+            monkeypatch,
+            tmpdir,
+            specs_to_add,
+            prefix_records=final_state_1,
+            history_specs=specs,
         ) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
@@ -1683,7 +1740,11 @@ def test_auto_update_conda(tmpdir, monkeypatch: MonkeyPatch):
 
         specs_to_add = (MatchSpec("pytz"),)
         with get_solver(
-            tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+            monkeypatch,
+            tmpdir,
+            specs_to_add,
+            prefix_records=final_state_1,
+            history_specs=specs,
         ) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
@@ -1708,9 +1769,9 @@ def test_auto_update_conda(tmpdir, monkeypatch: MonkeyPatch):
         sys.prefix = saved_sys_prefix
 
 
-def test_explicit_conda_downgrade(tmpdir, monkeypatch: MonkeyPatch):
+def test_explicit_conda_downgrade(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("conda=1.5"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -1735,7 +1796,11 @@ def test_explicit_conda_downgrade(tmpdir, monkeypatch: MonkeyPatch):
 
     specs_to_add = (MatchSpec("conda=1.3"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -1767,7 +1832,11 @@ def test_explicit_conda_downgrade(tmpdir, monkeypatch: MonkeyPatch):
         reset_context()
         specs_to_add = (MatchSpec("conda=1.3"),)
         with get_solver(
-            tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+            monkeypatch,
+            tmpdir,
+            specs_to_add,
+            prefix_records=final_state_1,
+            history_specs=specs,
         ) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
@@ -1793,7 +1862,11 @@ def test_explicit_conda_downgrade(tmpdir, monkeypatch: MonkeyPatch):
 
         specs_to_add = (MatchSpec("conda=1.3"),)
         with get_solver(
-            tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+            monkeypatch,
+            tmpdir,
+            specs_to_add,
+            prefix_records=final_state_1,
+            history_specs=specs,
         ) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
@@ -1817,12 +1890,16 @@ def test_explicit_conda_downgrade(tmpdir, monkeypatch: MonkeyPatch):
         sys.prefix = saved_sys_prefix
 
 
-def test_aggressive_update_packages(tmpdir, monkeypatch: MonkeyPatch):
+def test_aggressive_update_packages(monkeypatch: MonkeyPatch, tmpdir):
     def solve(prev_state, specs_to_add, order):
         final_state_1, specs = prev_state
         specs_to_add = tuple(MatchSpec(spec_str) for spec_str in specs_to_add)
         with get_solver(
-            tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+            monkeypatch,
+            tmpdir,
+            specs_to_add,
+            prefix_records=final_state_1,
+            history_specs=specs,
         ) as solver:
             final_state_2 = solver.solve_final_state()
             print(convert_to_dist_str(final_state_2))
@@ -1935,11 +2012,11 @@ def test_aggressive_update_packages(tmpdir, monkeypatch: MonkeyPatch):
     )
 
 
-def test_python2_update(tmpdir):
+def test_python2_update(monkeypatch: MonkeyPatch, tmpdir):
     # Here we're actually testing that a user-request will uninstall incompatible packages
     # as necessary.
     specs = MatchSpec("conda"), MatchSpec("python=2")
-    with get_solver_4(tmpdir, specs) as solver:
+    with get_solver_4(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order1 = add_subdir_to_iter(
@@ -1983,7 +2060,11 @@ def test_python2_update(tmpdir):
 
     specs_to_add = (MatchSpec("python=3.7"),)
     with get_solver_4(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_2))
@@ -2045,9 +2126,9 @@ def test_python2_update(tmpdir):
             assert full_solution == order
 
 
-def test_update_deps_1(tmpdir):
+def test_update_deps_1(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("python=2"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         # print(convert_to_dist_str(final_state_1))
@@ -2066,7 +2147,7 @@ def test_update_deps_1(tmpdir):
 
     specs2 = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
     with get_solver(
-        tmpdir, specs2, prefix_records=final_state_1, history_specs=specs
+        monkeypatch, tmpdir, specs2, prefix_records=final_state_1, history_specs=specs
     ) as solver:
         final_state_2 = solver.solve_final_state()
         print(convert_to_dist_str(final_state_2))
@@ -2087,7 +2168,11 @@ def test_update_deps_1(tmpdir):
 
     specs_to_add = (MatchSpec("iopro"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_2,
+        history_specs=specs2,
     ) as solver:
         final_state_3a = solver.solve_final_state()
         print(convert_to_dist_str(final_state_3a))
@@ -2110,7 +2195,11 @@ def test_update_deps_1(tmpdir):
 
     specs_to_add = (MatchSpec("iopro"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_2,
+        history_specs=specs2,
     ) as solver:
         final_state_3 = solver.solve_final_state(
             update_modifier=UpdateModifier.UPDATE_DEPS
@@ -2135,7 +2224,11 @@ def test_update_deps_1(tmpdir):
 
     specs_to_add = (MatchSpec("iopro"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_2, history_specs=specs2
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_2,
+        history_specs=specs2,
     ) as solver:
         final_state_3 = solver.solve_final_state(
             update_modifier=UpdateModifier.UPDATE_DEPS,
@@ -2160,9 +2253,11 @@ def test_update_deps_1(tmpdir):
         assert convert_to_dist_str(final_state_3) == order
 
 
-def test_update_deps_2(tmpdir):
+def test_update_deps_2(monkeypatch: MonkeyPatch, tmpdir):
+    print(f"Channel priority: {context.channel_priority}")
+    print(f"All context values: {vars(context)}")
     specs = MatchSpec("flask==0.12"), MatchSpec("jinja2==2.8")
-    with get_solver_aggregate_2(tmpdir, specs) as solver:
+    with get_solver_aggregate_2(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order1 = add_subdir_to_iter(
@@ -2195,7 +2290,11 @@ def test_update_deps_2(tmpdir):
     # The "conda update flask" case is held back by the jinja2==2.8 user-requested spec.
     specs_to_add = (MatchSpec("flask"),)
     with get_solver_aggregate_2(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
@@ -2208,7 +2307,11 @@ def test_update_deps_2(tmpdir):
     # Now solve with UPDATE_DEPS
     specs_to_add = (MatchSpec("flask"),)
     with get_solver_aggregate_2(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         unlink_precs, link_precs = solver.solve_for_diff(
             update_modifier=UpdateModifier.UPDATE_DEPS
@@ -2231,13 +2334,13 @@ def test_update_deps_2(tmpdir):
         assert convert_to_dist_str(link_precs) == link_order
 
 
-def test_fast_update_with_update_modifier_not_set(tmpdir):
+def test_fast_update_with_update_modifier_not_set(monkeypatch: MonkeyPatch, tmpdir):
     specs = (
         MatchSpec("python=2"),
         MatchSpec("openssl==1.0.2l"),
         MatchSpec("sqlite=3.21"),
     )
-    with get_solver_4(tmpdir, specs) as solver:
+    with get_solver_4(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order1 = add_subdir_to_iter(
@@ -2260,7 +2363,11 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
 
     specs_to_add = (MatchSpec("python"),)
     with get_solver_4(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
@@ -2297,7 +2404,11 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
 
     specs_to_add = (MatchSpec("sqlite"),)
     with get_solver_4(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
@@ -2342,7 +2453,11 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
         MatchSpec("python"),
     )
     with get_solver_4(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state(
             update_modifier=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
@@ -2352,9 +2467,9 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
 
 
 @pytest.mark.integration
-def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
+def test_pinned_1(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("numpy"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         pprint(convert_to_dist_str(final_state_1))
@@ -2376,7 +2491,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
     reset_context()
 
     specs = (MatchSpec("system=5.8=0"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         pprint(convert_to_dist_str(final_state_1))
@@ -2386,6 +2501,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
     # ignore_pinned=True
     specs_to_add = (MatchSpec("python"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_1,
@@ -2410,6 +2526,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
     # ignore_pinned=False
     specs_to_add = (MatchSpec("python"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_1,
@@ -2434,6 +2551,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
     # incompatible CLI and configured specs
     specs_to_add = (MatchSpec("scikit-learn==0.13"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_1,
@@ -2462,6 +2580,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
         MatchSpec("system=5.8=0"),
     )
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_2,
@@ -2495,6 +2614,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
         MatchSpec("numba"),
     )
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_3,
@@ -2530,6 +2650,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
         MatchSpec("numba"),
     )
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_4,
@@ -2574,6 +2695,7 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
         MatchSpec("numba"),
     )
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_4,
@@ -2602,12 +2724,12 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
         assert convert_to_dist_str(final_state_5) == order
 
 
-def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
+def test_no_update_deps_1(monkeypatch: MonkeyPatch, tmpdir):  # i.e. FREEZE_DEPS
     # NOTE: So far, NOT actually testing the FREEZE_DEPS flag.  I'm unable to contrive a
     # situation where it's actually needed.
 
     specs = (MatchSpec("python=2"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -2626,7 +2748,11 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
 
     specs_to_add = (MatchSpec("zope.interface"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -2648,7 +2774,11 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
 
     specs_to_add = (MatchSpec("zope.interface>4.1"),)
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         with pytest.raises(UnsatisfiableError):
             final_state_2 = solver.solve_final_state()
@@ -2656,7 +2786,11 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
     # allow python to float
     specs_to_add = MatchSpec("zope.interface>4.1"), MatchSpec("python")
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
@@ -2677,9 +2811,9 @@ def test_no_update_deps_1(tmpdir):  # i.e. FREEZE_DEPS
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_force_reinstall_1(tmpdir):
+def test_force_reinstall_1(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("python=2"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
         print(convert_to_dist_str(final_state_1))
@@ -2698,7 +2832,11 @@ def test_force_reinstall_1(tmpdir):
 
     specs_to_add = specs
     with get_solver(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         unlink_dists, link_dists = solver.solve_for_diff()
         assert not unlink_dists
@@ -2713,9 +2851,9 @@ def test_force_reinstall_1(tmpdir):
         assert not link_dists
 
 
-def test_force_reinstall_2(tmpdir):
+def test_force_reinstall_2(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("python=2"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
         assert not unlink_dists
         # PrefixDag(final_state_1, specs).open_url()
@@ -2734,9 +2872,9 @@ def test_force_reinstall_2(tmpdir):
         assert convert_to_dist_str(link_dists) == order
 
 
-def test_timestamps_1(tmpdir):
+def test_timestamps_1(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("python=3.6.2"),)
-    with get_solver_4(tmpdir, specs) as solver:
+    with get_solver_4(monkeypatch, tmpdir, specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
         assert not unlink_dists
         pprint(convert_to_dist_str(link_dists))
@@ -2761,7 +2899,7 @@ def test_timestamps_1(tmpdir):
         assert convert_to_dist_str(link_dists) == order
 
 
-def test_channel_priority_churn_minimized(tmpdir):
+def test_channel_priority_churn_minimized(monkeypatch: MonkeyPatch, tmpdir):
     """
     get_solver_aggregate_2 has [channel-4, channel-2].
     When the channels are reverted in the second operation, we put
@@ -2774,7 +2912,7 @@ def test_channel_priority_churn_minimized(tmpdir):
         MatchSpec("conda-build"),
         MatchSpec("itsdangerous"),
     )
-    with get_solver_aggregate_2(tmpdir, specs) as solver:
+    with get_solver_aggregate_2(monkeypatch, tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
 
     pprint(convert_to_dist_str(final_state))
@@ -2786,6 +2924,7 @@ def test_channel_priority_churn_minimized(tmpdir):
     else:
         solver_kwargs = {}
     with get_solver_aggregate_2(
+        monkeypatch,
         tmpdir,
         [MatchSpec("itsdangerous")],
         prefix_records=final_state,
@@ -2802,14 +2941,14 @@ def test_channel_priority_churn_minimized(tmpdir):
         assert len(link_dists) == 1
 
 
-def test_remove_with_constrained_dependencies(tmpdir):
+def test_remove_with_constrained_dependencies(monkeypatch: MonkeyPatch, tmpdir):
     # This is a regression test for #6904. Up through conda 4.4.10, removal isn't working
     # correctly with constrained dependencies.
     specs = (
         MatchSpec("conda"),
         MatchSpec("conda-build"),
     )
-    with get_solver_4(tmpdir, specs) as solver:
+    with get_solver_4(monkeypatch, tmpdir, specs) as solver:
         unlink_dists_1, link_dists_1 = solver.solve_for_diff()
         assert not unlink_dists_1
         pprint(convert_to_dist_str(link_dists_1))
@@ -2864,6 +3003,7 @@ def test_remove_with_constrained_dependencies(tmpdir):
 
     specs_to_remove = (MatchSpec("pycosat"),)
     with get_solver_4(
+        monkeypatch,
         tmpdir,
         specs_to_remove=specs_to_remove,
         prefix_records=link_dists_1,
@@ -2883,7 +3023,7 @@ def test_remove_with_constrained_dependencies(tmpdir):
             assert spec in convert_to_dist_str(unlink_dists_2)
 
 
-def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
+def test_priority_1(monkeypatch: MonkeyPatch, tmpdir, request):
     if context.solver == "libmamba":
         request.applymarker(
             pytest.mark.xfail(
@@ -2906,7 +3046,7 @@ def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
     reset_context()
 
-    with get_solver_aggregate_1(tmpdir, specs) as solver:
+    with get_solver_aggregate_1(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -2931,7 +3071,7 @@ def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
     reset_context()
 
     with get_solver_aggregate_1(
-        tmpdir, specs, prefix_records=final_state_1, history_specs=specs
+        monkeypatch, tmpdir, specs, prefix_records=final_state_1, history_specs=specs
     ) as solver:
         final_state_2 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_2))
@@ -2953,7 +3093,7 @@ def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
     # python and pandas will be updated as they are explicit specs.  Other stuff may or may not,
     #     as required to satisfy python and pandas
     with get_solver_aggregate_1(
-        tmpdir, specs, prefix_records=final_state_2, history_specs=specs
+        monkeypatch, tmpdir, specs, prefix_records=final_state_2, history_specs=specs
     ) as solver:
         final_state_3 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_3))
@@ -2969,6 +3109,7 @@ def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
     specs_to_add = (MatchSpec("six<1.10"),)
     specs_to_remove = (MatchSpec("pytz"),)
     with get_solver_aggregate_1(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         specs_to_remove=specs_to_remove,
@@ -2988,7 +3129,7 @@ def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
         assert "pandas" not in convert_to_dist_str(final_state_4)
 
 
-def test_features_solve_1(tmpdir, request, monkeypatch: MonkeyPatch):
+def test_features_solve_1(monkeypatch: MonkeyPatch, tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
             context.solver == "libmamba",
@@ -3005,7 +3146,7 @@ def test_features_solve_1(tmpdir, request, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
     reset_context()
 
-    with get_solver_aggregate_1(tmpdir, specs) as solver:
+    with get_solver_aggregate_1(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -3027,7 +3168,7 @@ def test_features_solve_1(tmpdir, request, monkeypatch: MonkeyPatch):
     monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
     reset_context()
 
-    with get_solver_aggregate_1(tmpdir, specs) as solver:
+    with get_solver_aggregate_1(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -3056,9 +3197,9 @@ def test_features_solve_1(tmpdir, request, monkeypatch: MonkeyPatch):
 
 
 @pytest.mark.integration  # this test is slower, so we'll lump it into integration
-def test_freeze_deps_1(tmpdir):
+def test_freeze_deps_1(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("six=1.7"),)
-    with get_solver_2(tmpdir, specs) as solver:
+    with get_solver_2(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         order = add_subdir_to_iter(
@@ -3077,7 +3218,11 @@ def test_freeze_deps_1(tmpdir):
 
     specs_to_add = (MatchSpec("bokeh"),)
     with get_solver_2(
-        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        monkeypatch,
+        tmpdir,
+        specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
     ) as solver:
         unlink_precs, link_precs = solver.solve_for_diff()
         pprint(convert_to_dist_str(unlink_precs))
@@ -3105,6 +3250,7 @@ def test_freeze_deps_1(tmpdir):
     # now we can't install the latest bokeh 0.12.5, but instead we get bokeh 0.12.4
     specs_to_add = (MatchSpec("bokeh"),)
     with get_solver_2(
+        monkeypatch,
         tmpdir,
         specs_to_add,
         prefix_records=final_state_1,
@@ -3137,6 +3283,7 @@ def test_freeze_deps_1(tmpdir):
     with pytest.raises(UnsatisfiableError):
         specs_to_add = (MatchSpec("bokeh=0.12.5"),)
         with get_solver_2(
+            monkeypatch,
             tmpdir,
             specs_to_add,
             prefix_records=final_state_1,
@@ -3150,6 +3297,7 @@ def test_freeze_deps_1(tmpdir):
     #    to solve it with that spec.
     specs_to_add = MatchSpec("bokeh=0.12.5"), MatchSpec("python")
     with get_solver_2(
+        monkeypatch,
         tmpdir,
         specs_to_add,
         prefix_records=final_state_1,
@@ -3203,6 +3351,7 @@ def test_freeze_deps_1(tmpdir):
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
     specs_to_add = (MatchSpec("bokeh=0.12.5"),)
     with get_solver_2(
+        monkeypatch,
         tmpdir,
         specs_to_add,
         prefix_records=final_state_1,
@@ -3332,9 +3481,9 @@ def test_current_repodata_fallback(tmpdir):
         raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
-def test_downgrade_python_prevented_with_sane_message(tmpdir):
+def test_downgrade_python_prevented_with_sane_message(monkeypatch: MonkeyPatch, tmpdir):
     specs = (MatchSpec("python=2.6"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
     # PrefixDag(final_state_1, specs).open_url()
     pprint(convert_to_dist_str(final_state_1))
@@ -3354,6 +3503,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
     # incompatible CLI and configured specs
     specs_to_add = (MatchSpec("scikit-learn==0.13"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_1,
@@ -3383,6 +3533,7 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
 
     specs_to_add = (MatchSpec("unsatisfiable-with-py26"),)
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_1,
@@ -3770,7 +3921,9 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
 
 
 @pytest.mark.integration
-def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
+def test_indirect_dep_optimized_by_version_over_package_count(
+    monkeypatch: MonkeyPatch, tmpdir
+):
     """We need to adjust the Anaconda metapackage - custom version - so that it keeps
     dependencies on all of its components.  That custom package is intended to free up constraints.  However,
     We learned the hard way that the changes in conda 4.7 can end up removing all components, because
@@ -3783,7 +3936,7 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
     version.
     """
     specs = (MatchSpec("anaconda=1.4"),)
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
 
     # start out with the oldest anaconda.  Using that state, free up zeromq.  Doing this should result in
@@ -3796,6 +3949,7 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
     #     and it must be supplied as an explicit spec to override that history.
     specs_to_add = MatchSpec("zeromq"), MatchSpec("anaconda")
     with get_solver(
+        monkeypatch,
         tmpdir,
         specs_to_add=specs_to_add,
         prefix_records=final_state_1,
@@ -3817,19 +3971,19 @@ def test_indirect_dep_optimized_by_version_over_package_count(tmpdir):
 
 
 @pytest.mark.integration
-def test_globstr_matchspec_compatible(tmpdir):
+def test_globstr_matchspec_compatible(monkeypatch: MonkeyPatch, tmpdir):
     # This should work -- build strings are compatible
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np17*"))
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         solver.solve_final_state()
 
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np17py27*"))
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         solver.solve_final_state()
 
 
 @pytest.mark.integration
-def test_globstr_matchspec_non_compatible(tmpdir):
+def test_globstr_matchspec_non_compatible(monkeypatch: MonkeyPatch, tmpdir):
     # This should fail -- build strings are not compatible
 
     # This one fails with ValueError (glob str match_spec checks)
@@ -3837,7 +3991,7 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # fails during the Solver INSTANTIATION; i.e. in get_solver(...)
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=np16*"))
     with pytest.raises(ValueError):
-        with get_solver(tmpdir, specs) as solver:
+        with get_solver(monkeypatch, tmpdir, specs) as solver:
             solver.solve_final_state()
 
     # This one fails later, because we cannot anticipate whether a package
@@ -3846,13 +4000,13 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # which is only raised when the solve starts. Note how the pytest.raises
     # context manager is now in the inner block!
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
             solver.solve_final_state()
 
     # Same here; the index has no accelerate pkg with BOTH np15 and py33
     specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
-    with get_solver(tmpdir, specs) as solver:
+    with get_solver(monkeypatch, tmpdir, specs) as solver:
         with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
             solver.solve_final_state()
 

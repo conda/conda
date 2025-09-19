@@ -12,15 +12,18 @@ from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
 from ..base.constants import REPODATA_FN
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
+from ..base.context import context, reset_context
 from ..common.io import captured as common_io_captured
-from ..common.io import env_var
 from ..common.serialize import json
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
@@ -254,6 +257,7 @@ def _patch_for_local_exports(name, subdir_data):
 
 
 def _get_index_r_base(
+    monkeypatch: MonkeyPatch,
     json_filename_or_packages,
     channel_name,
     subdir=context.subdir,
@@ -294,12 +298,10 @@ def _get_index_r_base(
         channels.append(channel)
         sd = SubdirData(channel)
         subdir_datas.append(sd)
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            str(add_pip).lower(),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
+
+        with context._override("add_pip_as_python_dependency", add_pip):
             sd._process_raw_repodata_str(json.dumps(repodata))
+
         sd._loaded = True
         SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
         _patch_for_local_exports(channel_name, sd)
@@ -314,8 +316,11 @@ def _get_index_r_base(
 
 
 # this fixture appears to introduce a test-order dependency if cached
-def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
+def get_index_r_1(
+    monkeypatch: MonkeyPatch, subdir=context.subdir, add_pip=True, merge_noarch=False
+):
     return _get_index_r_base(
+        monkeypatch,
         "index.json",
         "channel-1",
         subdir=subdir,
@@ -325,8 +330,11 @@ def get_index_r_1(subdir=context.subdir, add_pip=True, merge_noarch=False):
 
 
 @cache
-def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
+def get_index_r_2(
+    monkeypatch: MonkeyPatch, subdir=context.subdir, add_pip=True, merge_noarch=False
+):
     return _get_index_r_base(
+        monkeypatch,
         "index2.json",
         "channel-2",
         subdir=subdir,
@@ -336,8 +344,11 @@ def get_index_r_2(subdir=context.subdir, add_pip=True, merge_noarch=False):
 
 
 @cache
-def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
+def get_index_r_4(
+    monkeypatch: MonkeyPatch, subdir=context.subdir, add_pip=True, merge_noarch=False
+):
     return _get_index_r_base(
+        monkeypatch,
         "index4.json",
         "channel-4",
         subdir=subdir,
@@ -347,8 +358,11 @@ def get_index_r_4(subdir=context.subdir, add_pip=True, merge_noarch=False):
 
 
 @cache
-def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
+def get_index_r_5(
+    monkeypatch: MonkeyPatch, subdir=context.subdir, add_pip=False, merge_noarch=False
+):
     return _get_index_r_base(
+        monkeypatch,
         "index5.json",
         "channel-5",
         subdir=subdir,
@@ -358,7 +372,9 @@ def get_index_r_5(subdir=context.subdir, add_pip=False, merge_noarch=False):
 
 
 @cache
-def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=False):
+def get_index_must_unfreeze(
+    monkeypatch: MonkeyPatch, subdir=context.subdir, add_pip=True, merge_noarch=False
+):
     repodata = {
         "foobar-1.0-0.tar.bz2": {
             "build": "0",
@@ -433,6 +449,7 @@ def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=Fa
         },
     }
     _get_index_r_base(
+        monkeypatch,
         repodata,
         "channel-freeze",
         subdir=subdir,
@@ -442,8 +459,11 @@ def get_index_must_unfreeze(subdir=context.subdir, add_pip=True, merge_noarch=Fa
 
 
 # Do not memoize this get_index to allow different CUDA versions to be detected
-def get_index_cuda(subdir=context.subdir, add_pip=True, merge_noarch=False):
+def get_index_cuda(
+    monkeypatch: MonkeyPatch, subdir=context.subdir, add_pip=True, merge_noarch=False
+):
     return _get_index_r_base(
+        monkeypatch,
         "index.json",
         "channel-1",
         subdir=subdir,
@@ -475,6 +495,7 @@ def record(
 
 
 def _get_solver_base(
+    monkeypatch: MonkeyPatch,
     channel_id,
     tmpdir,
     specs_to_add=(),
@@ -491,24 +512,24 @@ def _get_solver_base(
     }
     spec_map = {spec.name: spec for spec in history_specs}
     if channel_id == "channel-1":
-        get_index_r_1(context.subdir, add_pip, merge_noarch)
+        get_index_r_1(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),)
     elif channel_id == "channel-2":
-        get_index_r_2(context.subdir, add_pip, merge_noarch)
+        get_index_r_2(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),)
     elif channel_id == "channel-4":
-        get_index_r_4(context.subdir, add_pip, merge_noarch)
+        get_index_r_4(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),)
     elif channel_id == "channel-5":
-        get_index_r_5(context.subdir, add_pip, merge_noarch)
+        get_index_r_5(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-5")
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-5"),)
     elif channel_id == "aggregate-1":
-        get_index_r_2(context.subdir, add_pip, merge_noarch)
-        get_index_r_4(context.subdir, add_pip, merge_noarch)
+        get_index_r_2(monkeypatch, context.subdir, add_pip, merge_noarch)
+        get_index_r_4(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
         channels = (
@@ -516,8 +537,8 @@ def _get_solver_base(
             Channel(f"{EXPORTED_CHANNELS_DIR}/channel-4"),
         )
     elif channel_id == "aggregate-2":
-        get_index_r_2(context.subdir, add_pip, merge_noarch)
-        get_index_r_4(context.subdir, add_pip, merge_noarch)
+        get_index_r_2(monkeypatch, context.subdir, add_pip, merge_noarch)
+        get_index_r_4(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-4")
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-2")
         # This is the only difference with aggregate-1: the priority
@@ -526,24 +547,20 @@ def _get_solver_base(
             Channel(f"{EXPORTED_CHANNELS_DIR}/channel-2"),
         )
     elif channel_id == "must-unfreeze":
-        get_index_must_unfreeze(context.subdir, add_pip, merge_noarch)
+        get_index_must_unfreeze(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-freeze")
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-freeze"),)
     elif channel_id == "cuda":
-        get_index_cuda(context.subdir, add_pip, merge_noarch)
+        get_index_cuda(monkeypatch, context.subdir, add_pip, merge_noarch)
         _alias_canonical_channel_name_cache_to_file_prefixed("channel-1")
         channels = (Channel(f"{EXPORTED_CHANNELS_DIR}/channel-1"),)
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with (
-        patch.object(History, "get_requested_specs_map", return_value=spec_map),
-        env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            str(add_pip).lower(),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-    ):
+    monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", str(add_pip).lower())
+    reset_context()
+
+    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
         # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
         # get_index_r_*) to cover solver logics that need to load from disk instead of
         # hitting the SubdirData cache
@@ -558,6 +575,7 @@ def _get_solver_base(
 
 @contextmanager
 def get_solver(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -567,6 +585,7 @@ def get_solver(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "channel-1",
         tmpdir,
         specs_to_add=specs_to_add,
@@ -580,6 +599,7 @@ def get_solver(
 
 @contextmanager
 def get_solver_2(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -589,6 +609,7 @@ def get_solver_2(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "channel-2",
         tmpdir,
         specs_to_add=specs_to_add,
@@ -602,6 +623,7 @@ def get_solver_2(
 
 @contextmanager
 def get_solver_4(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -611,6 +633,7 @@ def get_solver_4(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "channel-4",
         tmpdir,
         specs_to_add=specs_to_add,
@@ -624,6 +647,7 @@ def get_solver_4(
 
 @contextmanager
 def get_solver_5(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -633,6 +657,7 @@ def get_solver_5(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "channel-5",
         tmpdir,
         specs_to_add=specs_to_add,
@@ -646,6 +671,7 @@ def get_solver_5(
 
 @contextmanager
 def get_solver_aggregate_1(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -655,6 +681,7 @@ def get_solver_aggregate_1(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "aggregate-1",
         tmpdir,
         specs_to_add=specs_to_add,
@@ -668,6 +695,7 @@ def get_solver_aggregate_1(
 
 @contextmanager
 def get_solver_aggregate_2(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -677,6 +705,7 @@ def get_solver_aggregate_2(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "aggregate-2",
         tmpdir,
         specs_to_add=specs_to_add,
@@ -690,6 +719,7 @@ def get_solver_aggregate_2(
 
 @contextmanager
 def get_solver_must_unfreeze(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -699,6 +729,7 @@ def get_solver_must_unfreeze(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "must-unfreeze",
         tmpdir,
         specs_to_add=specs_to_add,
@@ -712,6 +743,7 @@ def get_solver_must_unfreeze(
 
 @contextmanager
 def get_solver_cuda(
+    monkeypatch: MonkeyPatch,
     tmpdir,
     specs_to_add=(),
     specs_to_remove=(),
@@ -721,6 +753,7 @@ def get_solver_cuda(
     merge_noarch=False,
 ):
     yield from _get_solver_base(
+        monkeypatch,
         "cuda",
         tmpdir,
         specs_to_add=specs_to_add,

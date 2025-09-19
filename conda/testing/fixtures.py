@@ -24,10 +24,9 @@ from conda.deprecations import deprecated
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
-from ..common.io import env_vars
 from ..common.serialize import json, yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
@@ -128,15 +127,14 @@ def reset_conda_context():
 
 
 @pytest.fixture()
-def temp_package_cache(tmp_path_factory):
+def temp_package_cache(tmp_path_factory, monkeypatch: MonkeyPatch) -> Iterator[Path]:
     """
     Used to isolate package or index cache from other tests.
     """
     pkgs_dir = tmp_path_factory.mktemp("pkgs")
-    with env_vars(
-        {"CONDA_PKGS_DIRS": str(pkgs_dir)}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        yield pkgs_dir
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(pkgs_dir))
+    reset_context()
+    yield pkgs_dir
 
 
 @pytest.fixture(
