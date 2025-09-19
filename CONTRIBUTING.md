@@ -64,7 +64,7 @@ Here are steps you need to take to contribute to conda:
 5. When you are ready to submit a change, create a new pull request so that we
    can merge your changes to our repository.
 
-#### Getting started with your first contribution
+#### Your first contribution
 
 For your first contribution, we recommend:
 
