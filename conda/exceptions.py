@@ -1249,6 +1249,12 @@ class CondaEnvException(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileInvalid(CondaEnvException):
+    def __init__(self, msg: str, *args, **kwargs):
+        msg = f"Provided environment.yaml is invalid: {msg}"
+        super().__init__(msg, *args, **kwargs)
+
+
 class EnvironmentFileNotFound(CondaEnvException):
     def __init__(self, filename: os.PathLike, *args, **kwargs):
         msg = f"'{filename}' file not found"
@@ -1313,7 +1319,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         self.name = name
         msg = dals(
             f"""
-            Environment at {name} is not readable by any installed environment specifier plugins.
+            Environment at {name} is not able to be detected by any installed environment specifier plugins.
 
             Available plugins: {dashlist(plugin_names, 16)}
 
