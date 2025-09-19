@@ -52,7 +52,7 @@ as well as possible and follow the submission guidelines (this makes everyone's 
 
 ### Contributing your changes to conda
 
-Here are the high level steps you need to take to contribute to conda:
+Here are steps you need to take to contribute to conda:
 
 1. [Signup for a GitHub account][github signup] (if you haven't already) and
    [install Git on your system][install git].
