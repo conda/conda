@@ -111,7 +111,7 @@ reviewer.
 
 ##### What to expect during code review
 
-The primary goal of code review is ensuring future maintainability of
+The primary goal of code review is to ensure maintainability of
 integrated code. Reviews will focus on:
 
 - Code correctness and logic
