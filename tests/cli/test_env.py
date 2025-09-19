@@ -79,6 +79,24 @@ ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     }
 )
 
+# Test data for our new functionality
+ENVIRONMENT_CUSTOM_CHANNELS = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "channels": ["conda-forge", "defaults"],
+        "dependencies": ["ca-certificates"],
+    }
+)
+
+ENVIRONMENT_CUSTOM_CHANNELS_WITH_VARIABLES = yaml_safe_dump(
+    {
+        "name": TEST_ENV1,
+        "channels": ["conda-forge", "defaults"],
+        "dependencies": ["ca-certificates"],
+        "variables": {"VARIABLE": "value"},
+    }
+)
+
 ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     {
         "name": TEST_ENV1,
@@ -681,3 +699,64 @@ def test_invalid_extensions(
 
     with pytest.raises(SpecNotFound):
         conda_cli("env", "create", f"--file={env_yml}", "--yes")
+
+
+@pytest.mark.integration
+def test_create_env_with_channels_from_yaml(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """Test that custom channels from environment.yaml are used and written to .condarc."""
+    prefix = path_factory()
+    create_env(ENVIRONMENT_CUSTOM_CHANNELS)
+    conda_cli("env", "create", f"--prefix={prefix}", "--yes")
+
+    # Verify environment was created successfully
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "ca-certificates")
+
+
+@pytest.mark.integration
+def test_create_env_with_channels_from_yaml_dry_run(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """Test that custom channels from environment.yaml are used during dry-run without writing to disk."""
+    prefix = path_factory()
+    create_env(ENVIRONMENT_CUSTOM_CHANNELS)
+    stdout, stderr, _ = conda_cli("env", "create", f"--prefix={prefix}", "--dry-run")
+
+    # Verify no environment was actually created
+    assert not PrefixData(prefix).is_environment()
+
+    # Extract YAML portion from stdout and
+    lines = stdout.splitlines()
+    yaml_start = None
+    for i, line in enumerate(lines):
+        if line.startswith("name:"):
+            yaml_start = i
+            break
+
+    # Parse only the YAML portion
+    yaml_content = "\n".join(lines[yaml_start:])
+    parsed_output = yaml_safe_load(yaml_content)
+    assert parsed_output["channels"] == ["conda-forge", "defaults"]
+
+
+@pytest.mark.integration
+def test_create_env_with_channels_and_variables_from_yaml(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """Test that both custom channels and variables from environment.yaml are handled correctly."""
+    prefix = path_factory()
+    create_env(ENVIRONMENT_CUSTOM_CHANNELS_WITH_VARIABLES)
+    conda_cli("env", "create", f"--prefix={prefix}", "--yes")
+
+    # Verify environment was created successfully
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "ca-certificates")
+
+    # Verify variables are stored in state file
+    env_vars = PrefixData(prefix).get_environment_env_vars()
+    assert env_vars["VARIABLE"] == "value"
