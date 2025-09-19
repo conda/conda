@@ -71,9 +71,8 @@ For your first contribution, we recommend:
 - Start with small changes like documentation or minor bug fixes
 - Read through existing code to understand the project structure and our
   patterns
-- Ask questions if you need help, on the
-  [community chat channels](https://conda.zulip.com), or on the
-  [conda discourse forum](https://conda.discourse.group)
+- Asking questions if you need help, see the [getting help](#getting-help)
+  section below.
 
 #### Change process
 
