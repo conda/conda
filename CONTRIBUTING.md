@@ -61,8 +61,7 @@ Here are steps you need to take to contribute to conda:
    "Fork" button on [https://github.com/conda/conda](https://github.com/conda/conda) and follow GitHub's
    instructions.
 4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup][development-environment]
-5. When you are ready to submit a change, create a new pull request so that we
-   can merge your changes to our repository.
+5. When you are ready to submit a change, create a pull request.
 
 #### Your first contribution
 
