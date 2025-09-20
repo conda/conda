@@ -838,3 +838,16 @@ def test_create_default_packages_will_warn_for_explicit_packages(
     ):
         # Ensure only valid packages are returned
         assert context.create_default_packages == (PYTHON_SPEC,)
+
+
+# test that context._override() works correctly with reset_context()
+# // debug, don't merge
+def test_context_override_with_reset(monkeypatch):
+    from conda.base.context import context, reset_context
+
+    with context._override("add_pip_as_python_dependency", False):
+        assert context.add_pip_as_python_dependency is False
+        monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "True")
+        reset_context()
+        # will likely fail?
+        assert context.add_pip_as_python_dependency is False
