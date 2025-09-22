@@ -9,6 +9,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ...common.serialize import yaml_safe_load
+from ...exceptions import CondaError
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
@@ -53,7 +54,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
             if errors:
                 return False
             return True
-        except Exception:
+        except CondaError:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
             return False
 
