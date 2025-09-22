@@ -433,8 +433,8 @@ def test_dependency_validation_errors(dependencies, error_type, error_message):
     (
         ({"wrong": "type"}, "Invalid type for 'channels'"),
         ([{"wrong": "type"}], "`channels` key must only contain strings."),
-         ([1], "`channels` key must only contain strings."),
-        (["one", "two"], None)
+        ([1], "`channels` key must only contain strings."),
+        (["one", "two"], None),
     ),
 )
 def test_channels_validation(channels, error_message):
