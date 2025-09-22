@@ -21,7 +21,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
-        CondaExperimentalFeaturePlugin,
+        CondaExperimentalFeature,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -733,7 +733,7 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_experimental_features(self) -> Iterable[CondaExperimentalFeaturePlugin]:
+    def conda_experimental_features(self) -> Iterable[CondaExperimentalFeature]:
         """
         Register new experimental features
 

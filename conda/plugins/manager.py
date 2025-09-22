@@ -58,7 +58,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
-        CondaExperimentalFeaturePlugin,
+        CondaExperimentalFeature,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -278,7 +278,7 @@ class CondaPluginManager(pluggy.PluginManager):
     @overload
     def get_hook_results(
         self, name: Literal["experimental_features"]
-    ) -> list[CondaExperimentalFeaturePlugin]: ...
+    ) -> list[CondaExperimentalFeature]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -825,7 +825,7 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
-    def get_experimental_features(self) -> dict[str, CondaExperimentalFeaturePlugin]:
+    def get_experimental_features(self) -> dict[str, CondaExperimentalFeature]:
         """
         Returns all detected experimental features.
         """

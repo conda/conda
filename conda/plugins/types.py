@@ -525,7 +525,7 @@ class CondaEnvironmentExporter(CondaPlugin):
 
 
 @dataclass
-class CondaExperimentalFeaturePlugin(CondaPlugin):
+class CondaExperimentalFeature(CondaPlugin):
     """
     Return the name of an experimental feature that needs to be supported by the `--experimental` flag.
 

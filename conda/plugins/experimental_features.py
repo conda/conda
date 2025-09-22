@@ -3,16 +3,16 @@
 """Experimental features for conda."""
 
 from . import hookimpl
-from .types import CondaExperimentalFeaturePlugin
+from .types import CondaExperimentalFeature
 
 
 @hookimpl
 def conda_experimental_features():
-    yield CondaExperimentalFeaturePlugin(
+    yield CondaExperimentalFeature(
         name="jlap",
         help="Download incremental package index data from repodata.jlap; implies 'lock'.",
     )
-    yield CondaExperimentalFeaturePlugin(
+    yield CondaExperimentalFeature(
         name="lock",
         help="Use locking when reading, updating index (repodata.json) cache. Now enabled.",
     )
