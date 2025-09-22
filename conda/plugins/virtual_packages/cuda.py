@@ -28,7 +28,7 @@ def cuda_version():
     Returns: version string (e.g., '9.2') or None if CUDA is not found.
     """
     if "CONDA_OVERRIDE_CUDA" in os.environ:
-        return os.environ["CONDA_OVERRIDE_CUDA"].strip() or None
+        return os.environ["CONDA_OVERRIDE_CUDA"].strip() or None  # can be deleted
 
     # Do not inherit file descriptors and handles from the parent process.
     # The `fork` start method should be considered unsafe as it can lead to
