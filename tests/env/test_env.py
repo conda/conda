@@ -433,10 +433,15 @@ def test_dependency_validation_errors(dependencies, error_type, error_message):
     (
         ({"wrong": "type"}, "Invalid type for 'channels'"),
         ([{"wrong": "type"}], "`channels` key must only contain strings."),
+         ([1], "`channels` key must only contain strings."),
+        (["one", "two"], None)
     ),
 )
-def test_channels_validation_errors(channels, error_message):
-    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+def test_channels_validation(channels, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            channels_validation(channels)
+    else:
         channels_validation(channels)
 
 
@@ -444,27 +449,45 @@ def test_channels_validation_errors(channels, error_message):
     "variables,error_message",
     (
         (["wrong", "type"], "Invalid type for 'variables'"),
-        ({"name": ["wrong", "type"]}, "`variables` values must be strings"),
+        ({"name": "a"}, None),
+        ({"name": 1, "word": True, "list": ["1", "2"]}, None),
     ),
 )
-def test_variables_validation_errors(variables, error_message):
-    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+def test_variables_validation(variables, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            variables_validation(variables)
+    else:
         variables_validation(variables)
 
 
 @pytest.mark.parametrize(
     "name,error_message",
-    ((["wrong", "type"], "Invalid type for 'name'"),),
+    (
+        (["wrong", "type"], "Invalid type for 'name'"),
+        (1, "Invalid type for 'name'"),
+        ("name", None),
+    ),
 )
-def test_name_validation_errors(name, error_message):
-    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+def test_name_validation(name, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            name_validation(name)
+    else:
         name_validation(name)
 
 
 @pytest.mark.parametrize(
     "prefix,error_message",
-    ((["wrong", "type"], "Invalid type for 'prefix'"),),
+    (
+        (["wrong", "type"], "Invalid type for 'prefix'"),
+        (1, "Invalid type for 'prefix'"),
+        ("path/to/prefix", None),
+    ),
 )
-def test_prefix_validation_errors(prefix, error_message):
-    with pytest.raises(EnvironmentFileInvalid, match=error_message):
+def test_prefix_validation(prefix, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            prefix_validation(prefix)
+    else:
         prefix_validation(prefix)

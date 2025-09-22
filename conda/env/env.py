@@ -129,9 +129,6 @@ def variables_validation(variables: dict[str, str]):
       * all entries are strings
     """
     field_type_validation("variables", variables, dict)
-    for value in variables.values():
-        if not isinstance(value, str):
-            raise EnvironmentFileInvalid("`variables` values must be strings")
 
 
 SCHEMA_VALIDATORS = {
