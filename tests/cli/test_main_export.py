@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test conda export."""
 
+from __future__ import annotations
+
 import json
 import uuid
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
+from conda import plugins
 from conda.base.context import context
 from conda.common.serialize import yaml_safe_load
 from conda.core.prefix_data import PrefixData
@@ -16,12 +19,24 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
-from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
+from conda.plugins.types import (
+    CondaEnvironmentExporter,
+    CondaMultiPlatformEnvironmentExporter,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from conda.models.environment import Environment
+    from conda.plugins.manager import CondaPluginManager
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
     """Test default export behavior - should export as YAML to stdout."""
     name = uuid.uuid4().hex
+    assert not context.export_platforms
     stdout, stderr, code = conda_cli("export", f"--name={name}")
     assert not stderr
     assert not code
@@ -790,7 +805,10 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
 
 
 def test_export_explicit_format_validation_errors(
-    tmp_env, conda_cli, pip_cli: PipCLIFixture, wheelhouse: Path
+    tmp_env,
+    conda_cli,
+    pip_cli: PipCLIFixture,
+    wheelhouse: Path,
 ):
     """Test that explicit format properly errors on invalid environments."""
     # Create an environment with conda packages and pip dependencies
@@ -813,38 +831,94 @@ def test_export_explicit_format_validation_errors(
         assert "external packages" in error_msg
 
 
-def test_export_platform_argument(conda_cli: CondaCLIFixture) -> None:
+class ExportPlugin:
+    def single_platform_export(self, env: Environment) -> str:
+        return f"name: {env.name}\nsingle-platform: {env.platform}"
+
+    def multi_platform_export(self, envs: Iterable[Environment]) -> str:
+        env, *envs = envs
+        return "\n".join(
+            (
+                f"name: {env.name}",
+                "multi-platforms:",
+                f"  - {env.platform}",
+                *(f"  - {env.platform}" for env in envs),
+            )
+        )
+
+    @plugins.hookimpl
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        yield CondaEnvironmentExporter(
+            name="test-single-platform",
+            aliases=(),
+            default_filenames=(),
+            export=self.single_platform_export,
+        )
+        yield CondaMultiPlatformEnvironmentExporter(
+            name="test-multi-platform",
+            aliases=(),
+            default_filenames=(),
+            export=self.multi_platform_export,
+        )
+
+
+@pytest.fixture
+def plugin_manager_with_exporters(
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+) -> CondaPluginManager:
+    from conda.plugins import solvers
+    from conda.plugins.hookspec import spec_name
+
+    plugin_manager_with_reporter_backends.load_plugins(ExportPlugin(), solvers)
+    plugin_manager_with_reporter_backends.load_entrypoints(spec_name)
+    return plugin_manager_with_reporter_backends
+
+
+def test_export_platform_argument(
+    conda_cli: CondaCLIFixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    tmp_path: Path,
+) -> None:
     """Test export with platform argument."""
     name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
     stdout, stderr, code = conda_cli(
         "export",
         f"--name={name}",
-        "--platform=linux-64",
-        "--format=environment-yaml",
+        "--format=test-single-platform",
+        f"--file={output}",
     )
+    assert not stdout
     assert not stderr
     assert not code
-    assert stdout
 
     # Verify the output is valid YAML
-    yaml_data = yaml_safe_load(stdout)
+    yaml_data = yaml_safe_load(output.read_text())
     assert yaml_data["name"] == name
 
 
-def test_export_multiple_platforms(conda_cli: CondaCLIFixture) -> None:
+def test_export_multiple_platforms(
+    conda_cli: CondaCLIFixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    tmp_path: Path,
+) -> None:
     """Test export with multiple platform arguments."""
     name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+    platforms = ["linux-64", "osx-64"]
     stdout, stderr, code = conda_cli(
         "export",
         f"--name={name}",
-        "--platform=linux-64",
-        "--platform=osx-64",
-        "--format=environment-yaml",
+        *(f"--platform={platform}" for platform in platforms),
+        "--format=test-multi-platform",
+        f"--file={output}",
     )
+    assert "Collecting package metadata" in stdout
     assert not stderr
     assert not code
-    assert stdout
 
     # Verify the output is valid YAML
-    yaml_data = yaml_safe_load(stdout)
+    yaml_data = yaml_safe_load(output.read_text())
     assert yaml_data["name"] == name
+    platforms = list(dict.fromkeys([context.subdir, *platforms]))
+    assert yaml_data["multi-platforms"] == platforms
