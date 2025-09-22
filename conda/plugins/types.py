@@ -530,6 +530,7 @@ class CondaExperimentalFeature(CondaPlugin):
     Return the name of an experimental feature that needs to be supported by the `--experimental` flag.
 
     :param name: name of the feature (e.g., ``experimental-feature``)
+    :param help: help text for the feature
     """
 
     name: str
