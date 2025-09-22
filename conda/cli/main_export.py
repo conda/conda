@@ -193,11 +193,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 *(env.extrapolate(platform) for platform in context.export_platforms),
             ]
         )
+    elif context.export_platforms:
+        raise CondaValueError(
+            f"Multiple platforms are not supported for the `{environment_exporter.name}` exporter"
+        )
     else:
-        if context.export_platforms:
-            raise CondaValueError(
-                f"Multiple platforms are not supported for the `{environment_exporter.name}` exporter"
-            )
         exported_content = environment_exporter.export(env)
 
     # Add trailing newline to the exported content
