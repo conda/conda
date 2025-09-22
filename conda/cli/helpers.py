@@ -47,8 +47,8 @@ class LazyMixin:
         self._help = value
 
 
-LazyAppendAction = type("LazyAppend", (LazyMixin, _AppendAction), {})
-LazyStoreAction = type("LazyStore", (LazyMixin, _StoreAction), {})
+LazyAppendAction = type("LazyAppendAction", (LazyMixin, _AppendAction), {})
+LazyStoreAction = type("LazyStoreAction", (LazyMixin, _StoreAction), {})
 
 
 @deprecated("26.3", "26.9", addendum="Use `conda.cli.helpers.LazyStoreAction` instead.")
