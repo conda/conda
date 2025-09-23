@@ -83,22 +83,24 @@ def dependencies_validation(dependencies: list):
     field_type_validation("dependencies", dependencies, list)
 
     errors = []
-    for dep in dependencies:
-        if isinstance(dep, str):
+    for dependency in dependencies:
+        if isinstance(dependency, str):
             # If the dependency is a string type, it must be
             # MatchSpec compatible.
             try:
-                MatchSpec(dep)
+                MatchSpec(dependency)
             except InvalidMatchSpec as err:
                 errors.append(EnvironmentFileInvalid(str(err)))
-        elif isinstance(dep, dict):
+        elif isinstance(dependency, dict):
             # dict types are also allowed. There are no requirements
             # for the form of this entry
             pass
         else:
             # All other types are invalid
             errors.append(
-                EnvironmentFileInvalid(f"'{dep}' is an invalid type for a 'dependency'")
+                EnvironmentFileInvalid(
+                    f"'{dependency}' is an invalid type for a 'dependency'"
+                )
             )
 
     if errors:
