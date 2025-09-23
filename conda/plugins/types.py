@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from typing import Any, Callable, ClassVar, Literal, TypeAlias
 
     from ..common.configuration import Parameter
+    from ..common.constants import NULL
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
@@ -109,13 +110,10 @@ class CondaVirtualPackage(CondaPlugin):
                 f"__{self.name}", self.get_version(), self.build
             )
 
-    def get_version(self) -> str | None | Literal[CondaVirtualPackage.SKIP]:
+    def get_version(self) -> str | None | Literal[NULL]:
         if callable(self.version):
             return self.version()
         return self.version
-
-
-CondaVirtualPackage.SKIP = object()
 
 
 @dataclass

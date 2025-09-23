@@ -10,6 +10,7 @@ import os
 import platform
 from contextlib import suppress
 
+from ...common.constants import NULL
 from .. import hookimpl
 from ..types import CondaVirtualPackage
 
@@ -58,7 +59,7 @@ def cuda_version():
 def cached_cuda_version():
     """A cached version of the cuda detection system."""
     version = cuda_version()
-    return version or CondaVirtualPackage.SKIP
+    return version or NULL
 
 
 @hookimpl
