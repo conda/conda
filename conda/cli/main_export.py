@@ -187,9 +187,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
 
     signature = inspect.signature(environment_exporter.export).parameters
-    if "extra_platforms" in signature:
-        exported_content = environment_exporter.export(env, context.export_platforms)
-    elif "extra_envs" in signature:
+    if "extra_envs" in signature:
         exported_content = environment_exporter.export(
             env,
             [env.extrapolate(platform) for platform in context.export_platforms],
