@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda
+from conda import plugins
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
     Configuration,
@@ -19,10 +20,12 @@ from conda.common.configuration import (
 )
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
+from conda.plugins import environment_exporters, solvers
 from conda.plugins.config import PluginConfig
-from conda.plugins.hookspec import CondaSpecs
+from conda.plugins.hookspec import CondaSpecs, spec_name
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
+from conda.plugins.types import CondaEnvironmentExporter
 
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
@@ -31,6 +34,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from pytest_mock import MockerFixture
+
+    from conda.models.environment import Environment
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
@@ -144,6 +149,78 @@ def plugin_manager_with_reporter_backends(plugin_manager) -> CondaPluginManager:
     plugin_manager.load_plugins(*reporter_backend_plugins)
 
     return plugin_manager
+
+
+class Exporters:
+    @staticmethod
+    def single_platform_export(env: Environment) -> str:
+        return "\n".join(
+            (
+                "# This is a single-platform export",
+                f"name: {env.name}",
+                f"single-platform: {env.platform}",
+                "packages:",
+                *(f"- {pkg}" for pkg in env.requested_packages),
+                *(f"- {pkg}" for pkg in env.explicit_packages),
+                *(f"- pip::{pkg}" for pkg in env.external_packages.get("pip", [])),
+            )
+        )
+
+    @staticmethod
+    def multi_platform_export(
+        env: Environment,
+        envs: Iterable[Environment],
+    ) -> str:
+        envs = [env, *envs]
+        return "\n".join(
+            (
+                "# This is a multi-platform export",
+                f"name: {env.name}",
+                "multi-platforms:",
+                *(f"  - {env.platform}" for env in envs),
+                "packages:",
+                *(
+                    f"  - {pkg}"
+                    for env in envs
+                    for pkg in (
+                        *env.requested_packages,
+                        *env.explicit_packages,
+                        *(
+                            f"pip::{pkg}"
+                            for pkg in env.external_packages.get("pip", [])
+                        ),
+                    )
+                ),
+            )
+        )
+
+    @plugins.hookimpl
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        yield CondaEnvironmentExporter(
+            name="test-single-platform",
+            aliases=(),
+            default_filenames=(),
+            export=self.single_platform_export,
+        )
+        yield CondaEnvironmentExporter(
+            name="test-multi-platform",
+            aliases=(),
+            default_filenames=(),
+            multiplatform_export=self.multi_platform_export,
+        )
+
+
+@pytest.fixture
+def plugin_manager_with_exporters(
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+) -> CondaPluginManager:
+    plugin_manager_with_reporter_backends.load_plugins(
+        solvers,
+        *environment_exporters.plugins,
+        Exporters(),
+    )
+    plugin_manager_with_reporter_backends.load_entrypoints(spec_name)
+    return plugin_manager_with_reporter_backends
 
 
 @pytest.fixture

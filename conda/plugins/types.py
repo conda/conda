@@ -514,7 +514,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     name: str
     aliases: tuple[str, ...]
     default_filenames: tuple[str, ...]
-    export: SinglePlatformEnvironmentExport | MultiPlatformEnvironmentExport
+    export: SinglePlatformEnvironmentExport | None = None
+    multiplatform_export: MultiPlatformEnvironmentExport | None = None
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -526,3 +527,8 @@ class CondaEnvironmentExporter(CondaPlugin):
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        if bool(self.export) == bool(self.multiplatform_export):
+            raise PluginError(
+                f"Exactly one of export or multiplatform_export must be set for {self!r}"
+            )

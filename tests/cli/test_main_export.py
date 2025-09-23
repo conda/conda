@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda import plugins
 from conda.base.context import context
 from conda.common.serialize import yaml_safe_load
 from conda.core.prefix_data import PrefixData
@@ -19,13 +18,10 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
-from conda.plugins.types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
     from pathlib import Path
 
-    from conda.models.environment import Environment
     from conda.plugins.manager import CondaPluginManager
     from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
 
@@ -826,50 +822,6 @@ def test_export_explicit_format_validation_errors(
         error_msg = str(exc_info.value)
         assert "Cannot export explicit format" in error_msg
         assert "external packages" in error_msg
-
-
-class ExportPlugin:
-    def single_platform_export(self, env: Environment) -> str:
-        return f"# This is a single-platform export\nname: {env.name}\nsingle-platform: {env.platform}"
-
-    def multi_platform_export(
-        self, env: Environment, extra_envs: Iterable[Environment]
-    ) -> str:
-        return "\n".join(
-            (
-                "# This is a multi-platform export",
-                f"name: {env.name}",
-                "multi-platforms:",
-                *(f"  - {env.platform}" for env in (env, *extra_envs)),
-            )
-        )
-
-    @plugins.hookimpl
-    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
-        yield CondaEnvironmentExporter(
-            name="test-single-platform",
-            aliases=(),
-            default_filenames=(),
-            export=self.single_platform_export,
-        )
-        yield CondaEnvironmentExporter(
-            name="test-multi-platform",
-            aliases=(),
-            default_filenames=(),
-            export=self.multi_platform_export,
-        )
-
-
-@pytest.fixture
-def plugin_manager_with_exporters(
-    plugin_manager_with_reporter_backends: CondaPluginManager,
-) -> CondaPluginManager:
-    from conda.plugins import solvers
-    from conda.plugins.hookspec import spec_name
-
-    plugin_manager_with_reporter_backends.load_plugins(ExportPlugin(), solvers)
-    plugin_manager_with_reporter_backends.load_entrypoints(spec_name)
-    return plugin_manager_with_reporter_backends
 
 
 def test_export_platform_argument(
