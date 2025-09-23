@@ -16,8 +16,7 @@ from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
-from ..base.context import context
-from ..exceptions import CondaValueError, PluginError
+from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
@@ -38,6 +37,12 @@ if TYPE_CHECKING:
         [PathType, dict[str, PrefixRecord]],
         dict[str, PrefixRecord],
     ]
+
+    SinglePlatformEnvironmentExport = Callable[[Environment], str]
+    MultiPlatformEnvironmentExport = (
+        Callable[[Environment, Iterable[Environment]], str]
+        | Callable[[Environment, Iterable[str]], str]
+    )
 
 
 @dataclass
@@ -512,7 +517,7 @@ class CondaEnvironmentExporter(CondaPlugin):
     name: str
     aliases: tuple[str, ...]
     default_filenames: tuple[str, ...]
-    export: Callable[[Environment], str]
+    export: SinglePlatformEnvironmentExport | MultiPlatformEnvironmentExport
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -524,32 +529,3 @@ class CondaEnvironmentExporter(CondaPlugin):
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
-
-    def __call__(self, env: Environment) -> str:
-        if context.export_platforms:
-            raise CondaValueError(
-                "Multiple platforms are not supported for the `{self.name}` exporter"
-            )
-        return self.export(env)
-
-
-@dataclass
-class CondaMultiPlatformEnvironmentExporter(CondaEnvironmentExporter):
-    """
-    **EXPERIMENTAL**
-
-    Return type to use when defining a conda environment exporter plugin hook supporting multiple platforms.
-
-    :param name: name of the exporter (e.g., ``environment-yaml-multi``)
-    :param aliases: user-friendly format aliases (e.g., ("yaml",))
-    :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
-    :param export: callable that exports an Environment collection to string format
-    """
-
-    export: Callable[[Iterable[Environment]], str]
-
-    def __call__(self, env: Environment) -> str:
-        extra_envs = [
-            env.extrapolate(platform) for platform in context.export_platforms
-        ]
-        return self.export([env, *extra_envs])

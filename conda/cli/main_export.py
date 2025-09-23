@@ -135,7 +135,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    import inspect
+
     from ..base.context import env_name
+    from ..exceptions import CondaValueError
     from .common import stdout_json
 
     # TODO: Check if platform targets are valid
@@ -183,7 +186,20 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         channels=context.channels,
     )
 
-    exported_content = environment_exporter(env)
+    signature = inspect.signature(environment_exporter.export).parameters
+    if "extra_platforms" in signature:
+        exported_content = environment_exporter.export(env, context.export_platforms)
+    elif "extra_envs" in signature:
+        exported_content = environment_exporter.export(
+            env,
+            [env.extrapolate(platform) for platform in context.export_platforms],
+        )
+    elif context.export_platforms:
+        raise CondaValueError(
+            "Multiple platforms are not supported for the `{environment_exporter.name}` exporter"
+        )
+    else:
+        exported_content = environment_exporter.export(env)
 
     # Add trailing newline to the exported content
     exported_content = exported_content.rstrip() + "\n"
