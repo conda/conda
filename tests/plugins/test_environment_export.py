@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
@@ -31,6 +32,7 @@ from conda.plugins.types import CondaEnvironmentExporter
 from ..conftest import Exporters
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
     from typing import Any, Callable
 
@@ -544,3 +546,33 @@ def test_multi_platform_export(
             assert next(packages) == str(record)
         for pkg in test_env.external_packages.get("pip", []):
             assert next(packages) == f"pip::{pkg}"
+
+
+@pytest.mark.parametrize(
+    "export, multiplatform_export, raises",
+    [
+        pytest.param(None, None, True, id="none"),
+        pytest.param(lambda env: "test", lambda env, envs: "test", True, id="both"),
+        pytest.param(lambda env: "test", None, False, id="export"),
+        pytest.param(None, lambda env, envs: "test", False, id="multiplatform_export"),
+    ],
+)
+def test_only_one_export(
+    export: Callable[[Environment], str] | None,
+    multiplatform_export: Callable[[Environment, Iterable[Environment]], str] | None,
+    raises: bool,
+):
+    with (
+        pytest.raises(
+            PluginError, match="Exactly one of export or multiplatform_export"
+        )
+        if raises
+        else nullcontext()
+    ):
+        CondaEnvironmentExporter(
+            name="test-exporter",
+            aliases=(),
+            default_filenames=(),
+            export=export,
+            multiplatform_export=multiplatform_export,
+        )
