@@ -24,7 +24,7 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, ClassVar, TypeAlias
+    from typing import Any, Callable, ClassVar, Literal, TypeAlias
 
     from ..common.configuration import Parameter
     from ..common.path import PathType
@@ -106,8 +106,16 @@ class CondaVirtualPackage(CondaPlugin):
             )
         else:
             return PackageRecord.virtual_package(
-                f"__{self.name}", self.version, self.build
+                f"__{self.name}", self.get_version(), self.build
             )
+
+    def get_version(self) -> str | None | Literal[CondaVirtualPackage.SKIP]:
+        if callable(self.version):
+            return self.version()
+        return self.version
+
+
+CondaVirtualPackage.SKIP = object()
 
 
 @dataclass

@@ -57,7 +57,8 @@ def cuda_version():
 @functools.cache
 def cached_cuda_version():
     """A cached version of the cuda detection system."""
-    return cuda_version()
+    version = cuda_version()
+    return version or CondaVirtualPackage.SKIP
 
 
 @hookimpl
