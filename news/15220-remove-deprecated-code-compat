@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove deprecated constant `FILESYSTEM_ENCODING` from `conda.common.compat`. (#15220)
+* Remove deprecated function `open` from `conda.common.compat`. Use `conda.common.compat.open_utf8` instead. (#15220)
+* Remove deprecated function `six_with_metaclass` from `conda.common.compat`. Use class' `metaclass=` keyword argument instead. (#15220)
+* Remove deprecated function `ensure_unicode` from `conda.common.compat`.
+* Remove deprecated function `ensure_fs_path_encoding` from `conda.common.compat`.
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

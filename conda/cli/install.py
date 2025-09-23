@@ -23,11 +23,9 @@ from ..base.constants import (
     UpdateModifier,
 )
 from ..base.context import context
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..common.constants import NULL
-from ..core.index import (
-    Index,
-    calculate_channel_urls,
-)
+from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
@@ -56,6 +54,7 @@ from ..misc import (
     clone_env,
     install_explicit_packages,
 )
+from ..models.channel import all_channel_urls
 from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
@@ -228,17 +227,11 @@ class TryRepodata:
         ):
             return True
         elif isinstance(exc_value, ResolvePackageNotFound):
-            # transform a ResolvePackageNotFound into PackagesNotFoundError
-            channels_urls = tuple(
-                calculate_channel_urls(
-                    channel_urls=self.index_args["channel_urls"],
-                    prepend=self.index_args["prepend"],
-                    platform=None,
-                    use_local=self.index_args["use_local"],
-                )
-            )
             # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(exc_value._formatted_chains, channels_urls)
+            raise PackagesNotFoundError(
+                exc_value._formatted_chains,
+                all_channel_urls(context.channels),
+            )
 
 
 class Repodatas:
@@ -567,7 +560,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         if context.subdir != context._native_subdir():
             set_keys(
                 ("subdir", context.subdir),
-                path=Path(prefix, ".condarc"),
+                path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
 
     if context.json:

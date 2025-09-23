@@ -26,7 +26,6 @@ from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
-from ...deprecations import deprecated
 from . import MAX_TRIES
 from .link import islink, lexists
 from .permissions import make_writable
@@ -196,8 +195,6 @@ def remove_empty_parent_paths(path):
         parent_path = dirname(parent_path)
 
 
-@deprecated.argument("25.3", "25.9", "max_retries")
-@deprecated.argument("25.3", "25.9", "trash")
 def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     """
     Completely delete path
@@ -223,12 +220,6 @@ def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     if clean_empty_parents:
         remove_empty_parent_paths(path)
     return True
-
-
-# aliases that all do the same thing (legacy compat)
-deprecated.constant("25.3", "25.9", "try_rmdir_all_empty", rm_rf)
-deprecated.constant("25.3", "25.9", "move_to_trash", rm_rf)
-deprecated.constant("25.3", "25.9", "move_path_to_trash", rm_rf)
 
 
 def delete_trash(prefix):

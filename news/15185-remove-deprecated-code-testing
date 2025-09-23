@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove constants `conda.testing.CondaCLIFixture`, `conda.testing.conda_cli`, `conda.testing.PathFactoryFixture`, `conda.testing.path_factory`, `conda.testing.TmpEnvFixture`, `conda.testing.tmp_env`, `conda.testing.TmpChannelFixture`, `conda.testing.tmp_channel`, `conda.testing.context_aware_monkeypatch`, `conda.testing.tmp_pkgs_dir`, `conda.testing.tmp_envs_dir`. (#15185)
+* Remove constant `conda.testing.integration.BIN_DIRECTORY`. (#15185)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

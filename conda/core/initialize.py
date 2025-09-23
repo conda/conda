@@ -1116,12 +1116,21 @@ def print_plan_results(plan, stream=None):
 
     changed = any(step.get("result") == Result.MODIFIED for step in plan)
     if changed:
-        print(
-            "\n==> For changes to take effect, close and re-open your current shell. <==\n",
-            file=stream,
-        )
+        if context.dry_run:
+            print(
+                "\n==> DRY RUN: The above changes would have been made. NO ACTUAL CHANGES WERE MADE. <==\n",
+                file=stream,
+            )
+        else:
+            print(
+                "\n==> For changes to take effect, close and re-open your current shell. <==\n",
+                file=stream,
+            )
     else:
-        print("No action taken.", file=stream)
+        if context.dry_run:
+            print("DRY RUN: No action would have been taken.", file=stream)
+        else:
+            print("No action taken.", file=stream)
 
 
 # #####################################################

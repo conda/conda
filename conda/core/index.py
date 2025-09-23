@@ -5,19 +5,16 @@
 from __future__ import annotations
 
 from collections import UserDict
-from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
 from ..base.context import context, validate_channels
-from ..common.io import ThreadLimitedThreadPoolExecutor, time_recorder
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaKeyError,
     InvalidSpec,
-    OperationNotAllowed,
     PackagesNotFoundError,
 )
 from ..models.channel import Channel, all_channel_urls
@@ -601,74 +598,6 @@ class ReducedIndex(Index):
         self._data.update(self.system_packages)
 
 
-@time_recorder("get_index")
-@deprecated("25.3", "25.9", addendum="Use `conda.core.Index` instead.")
-def get_index(
-    channel_urls: Iterable[str | Channel] = (),
-    prepend: bool = True,
-    platform: str | None = None,
-    use_local: bool = False,
-    use_cache: bool = False,
-    unknown: bool | None = None,
-    prefix: str | None = None,
-    repodata_fn: str = context.repodata_fns[-1],
-) -> Index:
-    """
-    Return the index of packages available on the channels
-
-    If prepend=False, only the channels passed in as arguments are used.
-    If platform=None, then the current platform is used.
-    If prefix is supplied, then the packages installed in that prefix are added.
-
-    :param channel_urls: Channels to include in the index.
-    :param prepend: If False, only the channels passed in are used.
-    :param platform: Target platform for the index.
-    :param use_local: Whether to use local channels.
-    :param use_cache: Whether to use cached index information.
-    :param unknown: Include unknown packages.
-    :param prefix: Path to environment prefix to include in the index.
-    :param repodata_fn: Filename of the repodata file.
-    :return: A dictionary representing the package index.
-    """
-    return Index(
-        channel_urls,
-        prepend,
-        platform,
-        None,
-        use_local,
-        unknown,
-        prefix,
-        repodata_fn,
-    )
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.core.Index` instead.")
-def fetch_index(
-    channel_urls: list[str],
-    use_cache: bool = False,
-    index: dict | None = None,
-    repodata_fn: str = context.repodata_fns[-1],
-) -> dict:
-    """
-    Fetch the package index from the specified channels.
-
-    :param channel_urls: A list of channel URLs to fetch the index from.
-    :param use_cache: Whether to use the cached index data.
-    :param index: An optional pre-existing index to update.
-    :param repodata_fn: The name of the repodata file.
-    :return: A dictionary representing the fetched or updated package index.
-    """
-    log.debug("channel_urls=" + repr(channel_urls))
-    index = {}
-    with ThreadLimitedThreadPoolExecutor() as executor:
-        subdir_instantiator = lambda url: SubdirData(
-            Channel(url), repodata_fn=repodata_fn
-        )
-        for f in executor.map(subdir_instantiator, channel_urls):
-            index.update((rec, rec) for rec in f.iter_records())
-    return index
-
-
 def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     """
     Check if a distribution string matches any package in the index.
@@ -681,122 +610,12 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     return any(match_spec.match(prec) for prec in index.values())
 
 
-@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
-def _supplement_index_with_prefix(
-    index: Index | dict[Any, Any],
-    prefix: PathType | PrefixData,
-) -> None:
-    """
-    Supplement the given index with information from the specified environment prefix.
-
-    :param index: The package index to supplement.
-    :param prefix: The path to the environment prefix.
-    """
-    # supplement index with information from prefix/conda-meta
-    prefix_data = prefix if isinstance(prefix, PrefixData) else PrefixData(prefix)
-    if isinstance(index, Index):
-        if index.prefix_data != prefix_data:
-            raise OperationNotAllowed(
-                "An index can only be supplemented with its own prefix."
-            )
-        index.reload(prefix=True)
-        return
-
-    for prefix_record in prefix_data.iter_records():
-        if prefix_record in index:
-            current_record = index[prefix_record]
-            if current_record.channel == prefix_record.channel:
-                # The downloaded repodata takes priority, so we do not overwrite.
-                # We do, however, copy the link information so that the solver (i.e. resolve)
-                # knows this package is installed.
-                link = prefix_record.get("link") or EMPTY_LINK
-                index[prefix_record] = PrefixRecord.from_objects(
-                    current_record, prefix_record, link=link
-                )
-            else:
-                # If the local packages channel information does not agree with
-                # the channel information in the index then they are most
-                # likely referring to different packages.  This can occur if a
-                # multi-channel changes configuration, e.g. defaults with and
-                # without the free channel. In this case we need to fake the
-                # channel data for the existing package.
-                prefix_channel = prefix_record.channel
-                prefix_channel._Channel__canonical_name = prefix_channel.url()
-                del prefix_record._PackageRecord__pkey
-                index[prefix_record] = prefix_record
-        else:
-            # If the package is not in the repodata, use the local data.
-            # If the channel is known but the package is not in the index, it
-            # is because 1) the channel is unavailable offline, or 2) it no
-            # longer contains this package. Either way, we should prefer any
-            # other version of the package to this one. On the other hand, if
-            # it is in a channel we don't know about, assign it a value just
-            # above the priority of all known channels.
-            index[prefix_record] = prefix_record
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
-def _supplement_index_with_cache(index: dict[Any, Any]) -> None:
-    """
-    Supplement the given index with packages from the cache.
-
-    :param index: The package index to supplement.
-    """
-    # supplement index with packages from the cache
-    for pcrec in PackageCacheData.get_all_extracted_entries():
-        if pcrec in index:
-            # The downloaded repodata takes priority
-            current_record = index[pcrec]
-            index[pcrec] = PackageCacheRecord.from_objects(current_record, pcrec)
-        else:
-            index[pcrec] = pcrec
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.core.models.records.PackageRecord.virtual_package` instead.",
-)
-def _make_virtual_package(
-    name: str, version: str | None = None, build_string: str | None = None
-) -> PackageRecord:
-    """
-    Create a virtual package record.
-
-    :param name: The name of the virtual package.
-    :param version: The version of the virtual package, defaults to "0".
-    :param build_string: The build string of the virtual package, defaults to "0".
-    :return: A PackageRecord representing the virtual package.
-    """
-    return PackageRecord.virtual_package(name, version, build_string)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use :meth:`~conda.core.Index.reload(features=True)` instead.",
-)
-def _supplement_index_with_features(
-    index: dict[PackageRecord, PackageRecord], features: list[str] = []
-) -> None:
-    """
-    Supplement the given index with virtual feature records.
-
-    :param index: The package index to supplement.
-    :param features: A list of feature names to add to the index.
-    """
-    for feature in chain(context.track_features, features):
-        rec = PackageRecord.feature(feature)
-        index[rec] = rec
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.core.Index.reload` instead.")
+@deprecated("25.3", "26.3", addendum="Use `conda.core.Index.reload` instead.")
 def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
     """
     Loads and populates virtual package records from conda plugins
     and adds them to the provided index, unless there is a naming
     conflict.
-
     :param index: The package index to supplement.
     """
     if isinstance(index, Index):
@@ -834,6 +653,11 @@ def get_archspec_name() -> str | None:
         return str(archspec.cpu.host())
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.models.channel.all_channel_urls(context.channels)` instead.",
+)
 def calculate_channel_urls(
     channel_urls: tuple[str] = (),
     prepend: bool = True,
@@ -856,42 +680,3 @@ def calculate_channel_urls(
 
     subdirs = (platform, "noarch") if platform is not None else context.subdirs
     return all_channel_urls(channel_urls, subdirs=subdirs)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.core.ReducedIndex` or `conda.core.Index.get_reduced_index` instead.",
-)
-def get_reduced_index(
-    prefix: str | None,
-    channels: list[str],
-    subdirs: list[str],
-    specs: list[MatchSpec],
-    repodata_fn: str,
-) -> dict:
-    """
-    Generate a reduced package index based on the given specifications.
-
-    This function is useful for optimizing the solver by reducing the amount
-    of data it needs to consider.
-
-    :param prefix: Path to an environment prefix to include installed packages.
-    :param channels: A list of channel names to include in the index.
-    :param subdirs: A list of subdirectories to consider for each channel.
-    :param specs: A list of MatchSpec objects to filter the packages.
-    :param repodata_fn: Filename of the repodata file to use.
-    :return: A dictionary representing the reduced package index.
-    """
-
-    return ReducedIndex(
-        specs,
-        channels=channels,
-        prepend=False,
-        subdirs=subdirs,
-        use_local=False,
-        use_cache=None,
-        prefix=prefix,
-        repodata_fn=repodata_fn,
-        use_system=True,
-    )

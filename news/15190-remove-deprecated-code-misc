@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.misc.rel_path`. (#15190)
+* Remove argument `index_args` `conda.misc.explicit`. (#15190)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

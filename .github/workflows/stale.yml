@@ -33,12 +33,12 @@ jobs:
             days-before-issue-stale: 90
             days-before-issue-close: 21
     steps:
-      - uses: conda/actions/read-yaml@eb545bb8ab48d499b31c057a6df3cf46753fdbcb # v25.3.1
+      - uses: conda/actions/read-yaml@87cb4b58e6a169cb41db8af4d49ace6275f7b213 # v25.9.0
         id: read_yaml
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
 
-      - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0
+      - uses: actions/stale@3a9db7e6a41a89f618792c92c0e97cc736e1b13f # v10.0.0
         id: stale
         with:
           # Only issues with these labels are checked whether they are stale

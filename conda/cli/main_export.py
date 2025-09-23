@@ -57,6 +57,25 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Do not include .condarc channels",
     )
+    # NOTE: This is a different platform option from the one in helpers.py
+    # This is because we want to:
+    # - Allow users to specify multiple platforms for export
+    # - Change the help so that it's clearer that this is for export
+    #
+    #  The add_parser_platform in helpers.py is used to specify a single platform/subdir
+    # for the current environment.  We may want to change the helper.
+    p.add_argument(
+        "--platform",
+        "--subdir",
+        action="append",
+        dest="export_platforms",
+        help="Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64)",
+    )
+    p.add_argument(
+        "--override-platforms",
+        action="store_true",
+        help="Override the platforms specified in the condarc",
+    )
     add_parser_prefix(p)
 
     p.add_argument(
@@ -119,6 +138,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import env_name
     from .common import stdout_json
 
+    # TODO: Check if platform targets are valid
+
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
     environment_exporter = None
@@ -152,6 +173,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = context.target_prefix
 
     # Create models.Environment directly
+    # TODO: Figure out how to handle source and target platforms.  Do we
+    #       we need to specify the source platform and then export to
+    #       the target platform?  If so, is this done in the
+    #       environment_exporter?
+    # target_platforms = context.export_platforms
+
     env = Environment.from_prefix(
         prefix=prefix,
         name=env_name(prefix),

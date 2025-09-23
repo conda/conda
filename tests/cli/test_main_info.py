@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
+from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
 from conda.cli.main_info import get_info_components, iter_info_components
 from conda.common.path import paths_equal
@@ -101,6 +103,18 @@ def test_info_envs(conda_cli: CondaCLIFixture):
     assert parsed["envs"] == prefixes
     assert not stderr
     assert not err
+
+
+def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env):
+    with tmp_env("ca-certificates") as prefix:
+        Path(prefix, PREFIX_FROZEN_FILE).touch()
+        prefixes = list_all_known_prefixes()
+
+        stdout, stderr, err = conda_cli("info", "--envs")
+        assert stdout == ConsoleReporterRenderer.envs_list(prefixes)
+        assert " + " in stdout
+        assert not stderr
+        assert not err
 
 
 # conda info --system [--json]

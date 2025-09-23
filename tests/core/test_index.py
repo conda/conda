@@ -4,28 +4,24 @@ from __future__ import annotations
 
 import copy
 import platform
+from contextlib import nullcontext
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 import pytest
 
 import conda
+from conda.base.constants import DEFAULTS_CHANNEL_NAME
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
+from conda.core import index
 from conda.core.index import (
     Index,
-    _make_virtual_package,
-    _supplement_index_with_cache,
-    _supplement_index_with_prefix,
-    _supplement_index_with_system,
     calculate_channel_urls,
     check_allowlist,
     dist_str_in_index,
-    fetch_index,
-    get_reduced_index,
 )
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import OperationNotAllowed
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
@@ -145,13 +141,6 @@ def patch_pkg_cache(mocker, pkg_cache_entries):
     mocker.patch("conda.base.context.context.track_features", ("test_feature",))
 
 
-def test_deprecated_supplement_index_with_system() -> None:
-    index: dict[PackageRecord, PackageRecord] = {}
-    with pytest.deprecated_call():
-        _supplement_index_with_system(index)
-    assert index == Index().system_packages
-
-
 def test_supplement_index_with_system() -> None:
     index = Index().system_packages
 
@@ -243,119 +232,16 @@ def test_get_index_platform(platform: str) -> None:
         assert platform_in_record(platform, record), (platform, record.url)
 
 
-@pytest.mark.integration
-def test_basic_get_reduced_index():
-    """
-    TODO: test should be removed when `get_reduced_index` is removed.
-    """
-    with pytest.deprecated_call():
-        get_reduced_index(
-            None,
-            (Channel("defaults"), Channel("conda-test")),
-            context.subdirs,
-            (MatchSpec("flask"),),
-            "repodata.json",
-        )
-
-
-def test_fetch_index(test_recipes_channel: Path) -> None:
-    with pytest.deprecated_call():
-        idx = fetch_index(Channel(str(test_recipes_channel)).urls())
-        assert len(idx) == 25
-
-
 def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
     assert not dist_str_in_index(idx.data, "test-1.4.0-0")
     assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
 
 
-def test__supplement_index_with_prefix(
-    test_recipes_channel: Path,
-    tmp_env: Path,
-) -> None:
-    ref = PackageRecord(
-        channel=Channel(str(test_recipes_channel)),
-        name="dependent",
-        subdir="noarch",
-        version="2.0",
-        build_number=0,
-        build="0",
-        fn="dependent-2.0-0.tar.bz2",
-    )
-    pkg_spec = "dependent=2.0"
-    index = {ref: ref}
-
-    with pytest.deprecated_call():
-        with tmp_env(pkg_spec) as prefix:
-            _supplement_index_with_prefix(index, prefix)
-        with tmp_env(pkg_spec) as prefix:
-            _supplement_index_with_prefix(index, PrefixData(prefix))
-
-    pkg = index[ref]
-    assert type(ref) is PackageRecord
-    assert type(pkg) is PrefixRecord
-    assert ref == pkg
-
-
-def test__supplement_index_with_prefix_index_class(
-    test_recipes_channel: Path,
-    tmp_env: Path,
-) -> None:
-    ref = PackageRecord(
-        channel=Channel(str(test_recipes_channel)),
-        name="dependent",
-        subdir="noarch",
-        version="2.0",
-        build_number=0,
-        build="0",
-        fn="dependent-2.0-0.tar.bz2",
-    )
-    index = Index()
-    pkg_spec = "dependent=2.0"
-    with pytest.deprecated_call():
-        with tmp_env(pkg_spec) as prefix:
-            with pytest.raises(OperationNotAllowed):
-                _supplement_index_with_prefix(index, prefix)
-        with tmp_env(pkg_spec) as prefix:
-            index = Index(prefix=prefix)
-            _supplement_index_with_prefix(index, prefix)
-    pkg = index[ref]
-    assert type(ref) is PackageRecord
-    assert type(pkg) is PrefixRecord
-    assert ref == pkg
-
-
-def test__supplement_index_with_cache():
-    idx = {}
-    with pytest.deprecated_call():
-        _supplement_index_with_cache(idx)
-        _supplement_index_with_cache(idx)
-    tzdata = [p for p in idx.values() if p.name == "tzdata"][0]
-    tzdata = PackageRecord.from_objects(tzdata)
-    idx = {tzdata: tzdata}
-    with pytest.deprecated_call():
-        _supplement_index_with_cache(idx)
-    augmented_tzdata = idx[tzdata]
-    assert type(tzdata) is PackageRecord
-    assert type(augmented_tzdata) is PackageCacheRecord
-    assert tzdata == augmented_tzdata
-
-
-def test__make_virtual_package():
-    """
-    Ensures that the deprecated call and the new call are equivalent.
-
-    TODO: Remove this test when the deprecated call is removed.
-    """
-    with pytest.deprecated_call():
-        virtual_package = _make_virtual_package("name", "1.0", "0")
-    ref = PackageRecord.virtual_package("name", "1.0", "0")
-    assert virtual_package == ref
-
-
 def test_calculate_channel_urls():
-    urls = calculate_channel_urls(use_local=False, prepend=True)
+    urls = calculate_channel_urls(
+        channel_urls=[DEFAULTS_CHANNEL_NAME], use_local=False, prepend=True
+    )
     assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
     assert len(urls) == 6 if on_win else 4
 
@@ -364,7 +250,7 @@ def test_calculate_channel_urls():
 @pytest.mark.integration
 def test_get_index_lazy():
     subdir = PLATFORMS[(platform.system(), platform.machine())]
-    index = Index(channels=["conda-forge"], platform=subdir)
+    index = Index(channels=["defaults", "conda-forge"], platform=subdir)
     main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
     conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
 
@@ -555,3 +441,15 @@ def test_check_allowlist_deprecation_warning():
     """
     with pytest.deprecated_call():
         check_allowlist(("defaults",))
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("calculate_channel_urls", None),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(index, function)()

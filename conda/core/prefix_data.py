@@ -73,7 +73,7 @@ class PrefixDataType(type):
     )
     def __call__(
         cls,
-        prefix_path: str | os.PathLike | Path,
+        prefix_path: PathType,
         interoperability: bool | None = None,
     ) -> PrefixData:
         if isinstance(prefix_path, PrefixData):
@@ -668,8 +668,19 @@ def get_conda_anchor_files_and_records(
         )
     ).match
 
+    # We could fix this earlier in the PrefixRecord instantiation, but then
+    # we would pay for this conversion every time we load any record.
+    # However we only need this fix for conda list, which is the only one
+    # that uses PrefixData with pip_interop_enabled=True. This function is
+    # only called in that code path.
+    # See https://github.com/conda/conda/pull/14523 for more context.
     for prefix_record in python_records:
-        anchor_paths = tuple(fpath for fpath in prefix_record.files if matcher(fpath))
+        anchor_paths = []
+        for fpath in prefix_record.files:
+            if on_win:
+                fpath = fpath.replace("\\", "/")
+            if matcher(fpath):
+                anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
             anchor_path = sorted(anchor_paths, key=len)[0]
             log.info(

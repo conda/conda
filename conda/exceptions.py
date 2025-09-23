@@ -582,14 +582,15 @@ class UnavailableInvalidChannel(ChannelError):
         except (AttributeError, JSONDecodeError):
             body = {}
         else:
-            reason = body.get("reason", None) or reason
-            message = body.get("message", None) or message
+            reason = body.get("reason") or reason
+            message = body.get("message") or message
+            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # See https://datatracker.ietf.org/doc/html/rfc9457
+            message = body.get("detail") or message
 
         # standardize arguments
         status_code = status_code or "000"
         reason = reason or "UNAVAILABLE OR INVALID"
-        if isinstance(reason, str):
-            reason = reason.upper()
 
         self.status_code = status_code
 
@@ -687,15 +688,16 @@ class CondaHTTPError(CondaError):
         except (AttributeError, JSONDecodeError):
             body = {}
         else:
-            reason = body.get("reason", None) or reason
-            message = body.get("message", None) or message
+            reason = body.get("reason") or reason
+            message = body.get("message") or message
+            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # See https://datatracker.ietf.org/doc/html/rfc9457
+            message = body.get("detail") or message
 
         # standardize arguments
         url = maybe_unquote(url)
         status_code = status_code or "000"
         reason = reason or "CONNECTION FAILED"
-        if isinstance(reason, str):
-            reason = reason.upper()
         elapsed_time = elapsed_time or "-"
         if isinstance(elapsed_time, timedelta):
             elapsed_time = str(elapsed_time).split(":", 1)[-1]
@@ -742,47 +744,43 @@ class PackagesNotFoundError(CondaError):
         packages: Iterable[MatchSpec | PackageRecord | str],
         channel_urls: Iterable[str] = (),
     ):
-        format_list = lambda iterable: "  - " + "\n  - ".join(str(x) for x in iterable)
-
         if channel_urls:
             message = dals(
                 """
-            The following packages are not available from current channels:
+                The following packages are not available from current channels:
+                %(packages_formatted)s
 
-            %(packages_formatted)s
+                Current channels:
+                %(channels_formatted)s
 
-            Current channels:
+                To search for alternate channels that may provide the conda package you're
+                looking for, navigate to
 
-            %(channels_formatted)s
+                    https://anaconda.org
 
-            To search for alternate channels that may provide the conda package you're
-            looking for, navigate to
-
-                https://anaconda.org
-
-            and use the search bar at the top of the page.
-            """
+                and use the search bar at the top of the page.
+                """
             )
             from .base.context import context
 
             if context.use_only_tar_bz2:
                 message += dals(
                     """
-                Note: 'use_only_tar_bz2' is enabled. This might be omitting some
-                packages from the index. Set this option to 'false' and retry.
-                """
+                    Note: 'use_only_tar_bz2' is enabled. This might be omitting some
+                    packages from the index. Set this option to 'false' and retry.
+                    """
                 )
-            packages_formatted = format_list(packages)
-            channels_formatted = format_list(channel_urls)
+            packages_formatted = dashlist(packages)
+            channels_formatted = dashlist(channel_urls)
         else:
             message = dals(
                 """
-            The following packages are missing from the target environment:
-            %(packages_formatted)s
-            """
+                The following packages are missing from the target environment:
+                %(packages_formatted)s
+                """
             )
-            packages_formatted = format_list(packages)
-            channels_formatted = ()
+            packages_formatted = dashlist(packages)
+            channels_formatted = ""
 
         super().__init__(
             message,
@@ -1121,12 +1119,15 @@ class NoWritablePkgsDirError(CondaError):
 
 class EnvironmentIsFrozenError(CondaError):
     def __init__(self, prefix: os.PathLike, message: str = "", **kwargs):
-        error = f"Cannot not modify '{prefix}'. The environment is marked as frozen. "
+        error = f"Cannot modify '{prefix}'. The environment is marked as frozen. "
         if message:
             error += "Reason:\n\n"
             error += indent(message, "    ")
             error += "\n\n"
-        error += "You can ignore this error with the `--override-frozen` flag, at your own risk."
+        error += (
+            "You can bypass these protections with the `--override-frozen` flag,"
+            " at your own risk."
+        )
         super().__init__(error, **kwargs)
 
 
