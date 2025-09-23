@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib.ish import dals
-from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
+from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..exceptions import (
@@ -40,7 +40,7 @@ from . import (
     virtual_packages,
 )
 from .config import PluginConfig
-from .hookspec import CondaSpecs, spec_name
+from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
@@ -94,11 +94,8 @@ class CondaPluginManager(pluggy.PluginManager):
     #: method.
     get_cached_request_headers: Callable[[str, str], dict[str, str]]
 
-    def __init__(self, project_name: str | None = None, *args, **kwargs):
-        # Setting the default project name to the spec name for ease of use
-        if project_name is None:
-            project_name = spec_name
-        super().__init__(project_name, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(APP_NAME, *args, **kwargs)
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -838,5 +835,5 @@ def get_plugin_manager() -> CondaPluginManager:
         *environment_specifiers.plugins,
         *environment_exporters.plugins,
     )
-    plugin_manager.load_entrypoints(spec_name)
+    plugin_manager.load_entrypoints(APP_NAME)
     return plugin_manager
