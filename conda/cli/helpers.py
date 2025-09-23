@@ -17,34 +17,35 @@ from argparse import (
 )
 from typing import TYPE_CHECKING
 
-from ..auxlib.decorators import memoizedproperty
 from ..auxlib.type_coercion import maybecall
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+    from typing import Any
 
 
 class LazyMixin:
-    @memoizedproperty
-    def choices(self):
-        """Dynamically evaluate choices for help generation and validation."""
-        return maybecall(self._choices)
+    _cache_: dict[str, Any]
 
-    @choices.setter  # type: ignore[no-redef]
-    def choices(self, value):
-        """Store value as is, if it is a callable it will be evaluated on first access."""
-        self._choices = value
+    def __getattribute__(self, name: str) -> Any:
+        # check if name is a field (i.e., already in __dict__)
+        fields = super().__getattribute__("__dict__")
+        if name not in fields:
+            return super().__getattribute__(name)
 
-    @memoizedproperty
-    def help(self):
-        """Dynamically evaluate help for help generation and validation."""
-        return maybecall(self._help)
+        # create cache if it doesn't exist
+        try:
+            cache = super().__getattribute__("_cache_")
+        except AttributeError:
+            cache = self._cache_ = {}
 
-    @help.setter  # type: ignore[no-redef]
-    def help(self, value):
-        """Store value as is, if it is a callable it will be evaluated on first access."""
-        self._help = value
+        # populate cache if value doesn't exist
+        if name not in cache:
+            cache[name] = maybecall(super().__getattribute__(name))
+
+        # return cached value
+        return cache[name]
 
 
 LazyAppendAction = type("LazyAppendAction", (LazyMixin, _AppendAction), {})
