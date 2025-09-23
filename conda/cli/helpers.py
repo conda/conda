@@ -10,49 +10,20 @@ from argparse import (
     SUPPRESS,
     Action,
     BooleanOptionalAction,
-    _AppendAction,
     _HelpAction,
     _StoreAction,
     _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
 
-from ..auxlib.type_coercion import maybecall
 from ..deprecations import deprecated
+from .actions import LazyAppendAction, LazyStoreAction
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
-    from typing import Any
 
 
-class LazyMixin:
-    _cache_: dict[str, Any]
-
-    def __getattribute__(self, name: str) -> Any:
-        # check if name is a field (i.e., already in __dict__)
-        fields = super().__getattribute__("__dict__")
-        if name not in fields:
-            return super().__getattribute__(name)
-
-        # create cache if it doesn't exist
-        try:
-            cache = super().__getattribute__("_cache_")
-        except AttributeError:
-            cache = self._cache_ = {}
-
-        # populate cache if value doesn't exist
-        if name not in cache:
-            cache[name] = maybecall(super().__getattribute__(name))
-
-        # return cached value
-        return cache[name]
-
-
-LazyAppendAction = type("LazyAppendAction", (LazyMixin, _AppendAction), {})
-LazyStoreAction = type("LazyStoreAction", (LazyMixin, _StoreAction), {})
-
-
-@deprecated("26.3", "26.9", addendum="Use `conda.cli.helpers.LazyStoreAction` instead.")
+@deprecated("26.3", "26.9", addendum="Use `conda.cli.actions.LazyStoreAction` instead.")
 class LazyChoicesAction(Action):
     def __init__(self, option_strings, dest, choices_func, **kwargs):
         self.choices_func = choices_func

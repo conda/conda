@@ -4,9 +4,16 @@
 Collection of custom argparse actions.
 """
 
-from argparse import Action, _CountAction
+from __future__ import annotations
 
+from argparse import Action, _AppendAction, _CountAction, _StoreAction
+from typing import TYPE_CHECKING
+
+from ..auxlib.type_coercion import maybecall
 from ..common.constants import NULL
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class NullCountAction(_CountAction):
@@ -56,3 +63,30 @@ class ExtendConstAction(Action):
         items = [] if items is None else items[:]
         items.extend(values or [self.const])
         setattr(namespace, self.dest, items)
+
+
+class LazyMixin:
+    _cache_: dict[str, Any]
+
+    def __getattribute__(self, name: str) -> Any:
+        # check if name is a field (i.e., already in __dict__)
+        fields = super().__getattribute__("__dict__")
+        if name not in fields:
+            return super().__getattribute__(name)
+
+        # create cache if it doesn't exist
+        try:
+            cache = super().__getattribute__("_cache_")
+        except AttributeError:
+            cache = self._cache_ = {}
+
+        # populate cache if value doesn't exist
+        if name not in cache:
+            cache[name] = maybecall(super().__getattribute__(name))
+
+        # return cached value
+        return cache[name]
+
+
+LazyAppendAction = type("LazyAppendAction", (LazyMixin, _AppendAction), {})
+LazyStoreAction = type("LazyStoreAction", (LazyMixin, _StoreAction), {})
