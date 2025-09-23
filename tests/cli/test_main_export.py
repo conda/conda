@@ -19,10 +19,7 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
-from conda.plugins.types import (
-    CondaEnvironmentExporter,
-    CondaMultiPlatformEnvironmentExporter,
-)
+from conda.plugins.types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -833,16 +830,17 @@ def test_export_explicit_format_validation_errors(
 
 class ExportPlugin:
     def single_platform_export(self, env: Environment) -> str:
-        return f"name: {env.name}\nsingle-platform: {env.platform}"
+        return f"# This is a single-platform export\nname: {env.name}\nsingle-platform: {env.platform}"
 
-    def multi_platform_export(self, envs: Iterable[Environment]) -> str:
-        env, *envs = envs
+    def multi_platform_export(
+        self, env: Environment, extra_envs: Iterable[Environment]
+    ) -> str:
         return "\n".join(
             (
+                "# This is a multi-platform export",
                 f"name: {env.name}",
                 "multi-platforms:",
-                f"  - {env.platform}",
-                *(f"  - {env.platform}" for env in envs),
+                *(f"  - {env.platform}" for env in (env, *extra_envs)),
             )
         )
 
@@ -854,7 +852,7 @@ class ExportPlugin:
             default_filenames=(),
             export=self.single_platform_export,
         )
-        yield CondaMultiPlatformEnvironmentExporter(
+        yield CondaEnvironmentExporter(
             name="test-multi-platform",
             aliases=(),
             default_filenames=(),

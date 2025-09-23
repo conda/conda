@@ -26,10 +26,7 @@ from conda.plugins.environment_exporters.environment_yml import (
 )
 from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
 from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
-from conda.plugins.types import (
-    CondaEnvironmentExporter,
-    CondaMultiPlatformEnvironmentExporter,
-)
+from conda.plugins.types import CondaEnvironmentExporter
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -57,8 +54,10 @@ class ExportPlugin:
         )
 
     @classmethod
-    def multi_platform_export(cls, envs: Iterable[Environment]) -> str:
-        return "\n".join(map(cls.single_platform_export, envs))
+    def multi_platform_export(
+        cls, env: Environment, extra_envs: Iterable[Environment]
+    ) -> str:
+        return "\n".join(map(cls.single_platform_export, (env, *extra_envs)))
 
     @plugins.hookimpl
     def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
@@ -68,7 +67,7 @@ class ExportPlugin:
             default_filenames=(),
             export=self.single_platform_export,
         )
-        yield CondaMultiPlatformEnvironmentExporter(
+        yield CondaEnvironmentExporter(
             name="test-multi-platform",
             aliases=(),
             default_filenames=(),
@@ -582,9 +581,9 @@ def test_multi_platform_export(
         "test-multi-platform"
     )
     assert exporter is not None
-    assert isinstance(exporter, CondaMultiPlatformEnvironmentExporter)
+    assert isinstance(exporter, CondaEnvironmentExporter)
     assert exporter.export == ExportPlugin.multi_platform_export
-    result = exporter.export([test_env, test_env])
+    result = exporter.export(test_env, [test_env])
     lines = iter(result.strip().split("\n"))
     for _ in range(2):
         platform = next(lines)
