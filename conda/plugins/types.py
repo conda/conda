@@ -94,7 +94,7 @@ class CondaVirtualPackage(CondaPlugin):
     """
 
     name: str
-    version: str | None
+    version: str | None | Callable[[], str | None]
     build: str | None
 
     def to_virtual_package(self) -> PackageRecord:
