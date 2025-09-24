@@ -7,7 +7,6 @@ Removes the specified packages from an existing environment.
 
 import logging
 from argparse import ArgumentParser, Namespace, _SubParsersAction
-from os.path import isfile, join
 
 from ..reporters import confirm_yn
 
@@ -21,6 +20,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_channels,
+        add_parser_frozen_env,
         add_parser_networking,
         add_parser_prefix,
         add_parser_prune,
@@ -72,6 +72,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+    add_parser_frozen_env(p)
     add_parser_pscheck(p)
 
     add_parser_prefix(p)
@@ -145,14 +146,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.link import PrefixSetup, UnlinkLinkTransaction
     from ..core.prefix_data import PrefixData
     from ..exceptions import (
+        CondaEnvException,
         CondaEnvironmentError,
         CondaValueError,
-        DirectoryNotACondaEnvironmentError,
-        EnvironmentLocationNotFound,
         PackagesNotFoundError,
     )
     from ..gateways.disk.delete import path_is_clean, rm_rf
-    from ..gateways.disk.test import is_conda_environment
     from ..models.match_spec import MatchSpec
     from .common import check_non_admin, specs_from_args
     from .install import handle_txn
@@ -162,26 +161,30 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             'no package names supplied,\n       try "conda remove -h" for more details'
         )
 
-    prefix = context.target_prefix
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+    if context.protect_frozen_envs:
+        prefix_data.assert_not_frozen()
     check_non_admin()
+    prefix = str(prefix_data.prefix_path)
 
-    if not is_conda_environment(prefix):
-        raise EnvironmentLocationNotFound(prefix)
-
-    if args.all and prefix == context.default_prefix:
+    if args.all and prefix_data == PrefixData(context.default_prefix):
         msg = "Cannot remove current environment. Deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
+
+    if args.all and prefix_data == PrefixData(context.default_activation_prefix):
+        raise CondaEnvException(
+            "Cannot remove an environment if it is configured as `default_activation_env`."
+        )
 
     if args.all and path_is_clean(prefix):
         return 0
 
     if args.all:
-        if prefix == context.root_prefix:
+        if prefix_data.is_base():
             raise CondaEnvironmentError(
                 "cannot remove root environment, add -n NAME or -p PREFIX option"
             )
-        if not isfile(join(prefix, "conda-meta", "history")):
-            raise DirectoryNotACondaEnvironmentError(prefix)
         if not args.json:
             print(f"\nRemove all packages in environment {prefix}:\n")
 
@@ -206,7 +209,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             if not args.keep_env:
                 if not args.json:
                     confirm_yn(
-                        f"Everything found within the environment ({prefix}), including any conda environment configurations and any non-conda files, will be deleted. Do you wish to continue?\n",
+                        f"Everything found within the environment ({prefix}), including "
+                        "any conda environment configurations and any non-conda files, will "
+                        "be deleted. Do you wish to continue?\n",
                         default="no",
                         dry_run=False,
                     )

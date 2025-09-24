@@ -15,10 +15,16 @@ from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
     Environment,
+    EnvironmentYaml,
+    channels_validation,
+    dependencies_validation,
     from_environment,
     from_file,
+    name_validation,
+    prefix_validation,
+    variables_validation,
 )
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, CondaMultiError, EnvironmentFileInvalid
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -58,7 +64,7 @@ def get_invalid_keys_environment():
 
 def test_returns_Environment():
     e = get_simple_environment()
-    assert isinstance(e, Environment)
+    assert isinstance(e, EnvironmentYaml)
 
 
 def test_retains_full_filename():
@@ -120,30 +126,30 @@ def test_envvars():
 
 
 def test_has_empty_filename_by_default():
-    e = Environment()
+    e = EnvironmentYaml()
     assert e.filename is None
 
 
 def test_has_filename_if_provided():
     r = random.randint(100, 200)
     random_filename = f"/path/to/random/environment-{r}.yml"
-    e = Environment(filename=random_filename)
+    e = EnvironmentYaml(filename=random_filename)
     assert e.filename == random_filename
 
 
 def test_has_empty_name_by_default():
-    e = Environment()
+    e = EnvironmentYaml()
     assert e.name is None
 
 
 def test_has_name_if_provided():
     random_name = f"random-{random.randint(100, 200)}"
-    e = Environment(name=random_name)
+    e = EnvironmentYaml(name=random_name)
     assert e.name == random_name
 
 
 def test_dependencies_are_empty_by_default():
-    e = Environment()
+    e = EnvironmentYaml()
     assert not e.dependencies
 
 
@@ -155,19 +161,19 @@ def test_parses_dependencies_from_raw_file():
 
 def test_builds_spec_from_line_raw_dependency():
     # TODO Refactor this inside conda to not be a raw string
-    e = Environment(dependencies=["nltk=3.0.0=np18py27_0"])
+    e = EnvironmentYaml(dependencies=["nltk=3.0.0=np18py27_0"])
     expected = {"conda": ["nltk==3.0.0=np18py27_0"]}
     assert e.dependencies == expected
 
 
 def test_args_are_wildcarded():
-    e = Environment(dependencies=["python=2.7"])
+    e = EnvironmentYaml(dependencies=["python=2.7"])
     expected = {"conda": ["python=2.7"]}
     assert e.dependencies == expected
 
 
 def test_other_tips_of_dependencies_are_supported():
-    e = Environment(dependencies=["nltk", {"pip": ["foo", "bar"]}])
+    e = EnvironmentYaml(dependencies=["nltk", {"pip": ["foo", "bar"]}])
     expected = {
         "conda": ["nltk", "pip"],
         "pip": ["foo", "bar"],
@@ -176,32 +182,34 @@ def test_other_tips_of_dependencies_are_supported():
 
 
 def test_channels_default_to_empty_list():
-    e = Environment()
+    e = EnvironmentYaml()
     assert isinstance(e.channels, list)
     assert not e.channels
 
 
 def test_add_channels():
-    e = Environment()
+    e = EnvironmentYaml()
     e.add_channels(["dup", "dup", "unique"])
     assert e.channels == ["dup", "unique"]
 
 
 def test_remove_channels():
-    e = Environment(channels=["channel"])
+    e = EnvironmentYaml(channels=["channel"])
     e.remove_channels()
     assert not e.channels
 
 
 def test_channels_are_provided_by_kwarg():
     random_channels = (random.randint(100, 200), random)
-    e = Environment(channels=random_channels)
+    e = EnvironmentYaml(channels=random_channels)
     assert e.channels == random_channels
 
 
 def test_to_dict_returns_dictionary_of_data():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -212,14 +220,16 @@ def test_to_dict_returns_dictionary_of_data():
 
 
 def test_to_dict_returns_just_name_if_only_thing_present():
-    e = Environment(name="simple")
+    e = EnvironmentYaml(name="simple")
     expected = {"name": "simple"}
     assert e.to_dict() == expected
 
 
 def test_to_yaml_returns_yaml_parseable_string():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = {
         "name": random_name,
@@ -233,7 +243,9 @@ def test_to_yaml_returns_yaml_parseable_string():
 
 def test_to_yaml_returns_proper_yaml():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     expected = "\n".join(
         [
@@ -252,7 +264,9 @@ def test_to_yaml_returns_proper_yaml():
 
 def test_to_yaml_takes_stream():
     random_name = f"random{random.randint(100, 200)}"
-    e = Environment(name=random_name, channels=["javascript"], dependencies=["nodejs"])
+    e = EnvironmentYaml(
+        name=random_name, channels=["javascript"], dependencies=["nodejs"]
+    )
 
     s = FakeStream()
     e.to_yaml(stream=s)
@@ -296,10 +310,22 @@ def test_valid_keys():
 
 
 def test_invalid_keys():
-    e = get_invalid_keys_environment()
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="Using a non-compliant CEP-0024 environment file",
+    ):
+        e = get_invalid_keys_environment()
+        e_dict = e.to_dict()
+        assert "name" in e_dict
+        assert len(e_dict) == 1
+
+
+def test_empty_deps():
+    e = get_environment("empty_deps.yml")
     e_dict = e.to_dict()
     assert "name" in e_dict
-    assert len(e_dict) == 1
+    assert "channels" in e_dict
+    assert len(e_dict) == 2
 
 
 def test_creates_file_on_save(tmp_path: Path):
@@ -307,7 +333,7 @@ def test_creates_file_on_save(tmp_path: Path):
 
     assert not tmp.exists()
 
-    env = Environment(filename=tmp, name="simple")
+    env = EnvironmentYaml(filename=tmp, name="simple")
     env.save()
 
     assert tmp.exists()
@@ -315,20 +341,23 @@ def test_creates_file_on_save(tmp_path: Path):
 
 
 @pytest.mark.integration
-def test_create_advanced_pip(
+def test_env_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
-    tmp_envs_dir: Path,
+    support_file_isolated,
 ):
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "true")
 
     prefix = path_factory()
     assert not prefix.exists()
+
+    pip_argh = support_file_isolated("pip_argh.yml")
+
     conda_cli(
         *("env", "create"),
         *("--prefix", prefix),
-        *("--file", support_file("pip_argh.yml")),
+        *("--file", str(pip_argh)),
     )
     assert prefix.exists()
     PrefixData._cache_.clear()
@@ -351,3 +380,114 @@ def test_from_history():
         assert len(out.to_dict()["dependencies"]) == 4
 
         m.assert_called()
+
+
+def test_environment_deprecated() -> None:
+    with pytest.deprecated_call():
+        Environment(filename="idontexist", name="simple")
+
+
+@pytest.mark.parametrize(
+    "dependencies",
+    (
+        ["python"],
+        [],
+        ["python", "numpy"],
+        ["python", "pip", {"pip": ["scipy"]}],
+        [{"something-unknown": "idontknow"}],
+    ),
+)
+def test_dependency_validation(dependencies):
+    dependencies_validation(dependencies)
+
+
+@pytest.mark.parametrize(
+    "dependencies,error_type,error_message",
+    (
+        (
+            None,
+            EnvironmentFileInvalid,
+            "Invalid type for 'dependencies', expected a list",
+        ),
+        (
+            ["nota~matchspec", "also!!not"],
+            CondaMultiError,
+            "Invalid spec 'nota~matchspec'",
+        ),
+        (["nota~matchspec", "also!!not"], CondaMultiError, "Invalid spec 'also!!not'"),
+        (
+            ["python", ["this-should", "not-be-a", "list"]],
+            CondaMultiError,
+            "is an invalid type",
+        ),
+        ({"wrong": "type"}, EnvironmentFileInvalid, "Invalid type for 'dependencies'"),
+    ),
+)
+def test_dependency_validation_errors(dependencies, error_type, error_message):
+    with pytest.raises(error_type, match=error_message):
+        dependencies_validation(dependencies)
+
+
+@pytest.mark.parametrize(
+    "channels,error_message",
+    (
+        ({"wrong": "type"}, "Invalid type for 'channels'"),
+        ([{"wrong": "type"}], "`channels` key must only contain strings."),
+        ([1], "`channels` key must only contain strings."),
+        (["one", "two"], None),
+    ),
+)
+def test_channels_validation(channels, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            channels_validation(channels)
+    else:
+        channels_validation(channels)
+
+
+@pytest.mark.parametrize(
+    "variables,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'variables'"),
+        ({"name": "a"}, None),
+        ({"name": 1, "word": True, "list": ["1", "2"]}, None),
+    ),
+)
+def test_variables_validation(variables, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            variables_validation(variables)
+    else:
+        variables_validation(variables)
+
+
+@pytest.mark.parametrize(
+    "name,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'name'"),
+        (1, "Invalid type for 'name'"),
+        ("name", None),
+    ),
+)
+def test_name_validation(name, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            name_validation(name)
+    else:
+        name_validation(name)
+
+
+@pytest.mark.parametrize(
+    "prefix,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'prefix'"),
+        (1, "Invalid type for 'prefix'"),
+        ("path/to/prefix", None),
+    ),
+)
+def test_prefix_validation(prefix, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            prefix_validation(prefix)
+    else:
+        prefix_validation(prefix)

@@ -4,10 +4,10 @@ import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.cli.common import arg2spec, spec_from_line
+from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
 from conda.common.io import env_unmodified
-from conda.exceptions import CondaValueError, InvalidMatchSpec, InvalidSpec
+from conda.exceptions import InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
@@ -612,25 +612,37 @@ def test_license_match():
     assert MatchSpec("*[license='*v3+']").match(record)
 
 
-def test_simple():
-    assert arg2spec("python") == "python"
-    assert arg2spec("python=2.6") == "python=2.6"
-    assert arg2spec("python=2.6*") == "python=2.6"
-    assert arg2spec("ipython=0.13.2") == "ipython=0.13.2"
-    assert arg2spec("ipython=0.13.0") == "ipython=0.13.0"
-    assert arg2spec("ipython==0.13.0") == "ipython==0.13.0"
-    assert arg2spec("foo=1.3.0=3") == "foo==1.3.0=3"
+@pytest.mark.parametrize(
+    "spec,expected_result",
+    [
+        ("python", "python"),
+        ("python=2.6", "python=2.6"),
+        ("python=2.6*", "python=2.6"),
+        ("ipython=0.13.2", "ipython=0.13.2"),
+        ("ipython=0.13.0", "ipython=0.13.0"),
+        ("ipython==0.13.0", "ipython==0.13.0"),
+        ("foo=1.3.0=3", "foo==1.3.0=3"),
+    ],
+)
+def test_simple(spec, expected_result):
+    assert str(MatchSpec(spec)) == expected_result
 
 
-def test_pip_style():
-    assert arg2spec("foo>=1.3") == "foo[version='>=1.3']"
-    assert arg2spec("zope.int>=1.3,<3.0") == "zope.int[version='>=1.3,<3.0']"
-    assert arg2spec("numpy >=1.9") == "numpy[version='>=1.9']"
+@pytest.mark.parametrize(
+    "spec,expected_result",
+    [
+        ("foo>=1.3", "foo[version='>=1.3']"),
+        ("zope.int>=1.3,<3.0", "zope.int[version='>=1.3,<3.0']"),
+        ("numpy >=1.9", "numpy[version='>=1.9']"),
+    ],
+)
+def test_pip_style(spec, expected_result):
+    assert str(MatchSpec(spec)) == expected_result
 
 
-def test_invalid_arg2spec():
-    with pytest.raises(CondaValueError):
-        arg2spec("!xyz 1.3")
+def test_invalid_match_spec():
+    with pytest.raises(InvalidMatchSpec):
+        str(MatchSpec("!xyz 1.3"))
 
 
 def cb_form(spec_str):
@@ -1422,3 +1434,82 @@ def test_invalid_version_reports_spec(spec):
     with pytest.raises(InvalidMatchSpec) as exc:
         MatchSpec(spec)
     assert spec in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "build,version,expected_result",
+    [
+        (None, None, "python"),
+        ("*123*", None, "python * *123*"),
+        (None, "3.*", "python 3.*"),
+        ("*123*", "3.17", "python 3.17 *123*"),
+    ],
+    ids=["name_only", "build_only", "version_only", "build_version"],
+)
+def test_conda_build_form(build, version, expected_result):
+    """conda_build_form method handles missing values for build and/or version gracefully"""
+    kwargs = {"build": build, "version": version}
+    # only pass values that are not None
+    kwargs = {key: value for key, value in kwargs.items() if value is not None}
+    assert MatchSpec("python", **kwargs).conda_build_form() == expected_result
+
+
+@pytest.mark.parametrize(
+    "input_spec,expected_output",
+    [
+        # Regular case with build string
+        ("numpy==1.21.0=py39h1234567_0", "numpy=1.21.0=py39h1234567_0"),
+        # No-builds case (fuzzy version)
+        ("numpy=1.21.0", "numpy=1.21.0"),
+        # With channel prefix
+        ("conda-forge::numpy==1.21.0=py39h1234567_0", "numpy=1.21.0=py39h1234567_0"),
+        # With channel/subdir prefix
+        ("pkgs/main::pandas==1.3.0=py39h123_0", "pandas=1.3.0=py39h123_0"),
+        # Simple exact version
+        ("python==3.9.7", "python=3.9.7"),
+        # With namespace (hypothetical future feature)
+        ("scipy==1.7.0=py39h456_0", "scipy=1.7.0=py39h456_0"),
+    ],
+)
+def test_conda_env_form(input_spec, expected_output):
+    """Test MatchSpec.conda_env_form() produces correct conda env export format."""
+    spec = MatchSpec(input_spec)
+    result = spec.conda_env_form()
+    assert result == expected_output
+
+
+def test_conda_env_form_comprehensive():
+    """Test conda_env_form() with comprehensive real-world examples."""
+    # Test cases that would come from actual Environment.from_prefix usage
+    test_cases = [
+        # Regular conda packages
+        MatchSpec("pkgs/main::numpy==1.21.0=py39h1234567_0"),
+        MatchSpec("conda-forge::scipy==1.7.0=py39h9876543_0"),
+        # No-builds versions
+        MatchSpec("pandas=1.3.0"),
+        MatchSpec("matplotlib=3.5.0"),
+        # Simple names
+        MatchSpec("pip==21.2.4=py39h_0"),
+    ]
+
+    expected_results = [
+        "numpy=1.21.0=py39h1234567_0",
+        "scipy=1.7.0=py39h9876543_0",
+        "pandas=1.3.0",
+        "matplotlib=3.5.0",
+        "pip=21.2.4=py39h_0",
+    ]
+
+    for spec, expected in zip(test_cases, expected_results):
+        result = spec.conda_env_form()
+        assert result == expected, (
+            f"Expected {expected!r}, got {result!r} for spec {spec}"
+        )
+
+
+def test_no_triple_equals_roundtrip():
+    """Regression test for https://github.com/conda/conda/issues/15123"""
+    ms = MatchSpec('numpy[version="=2"]')
+    assert "===" not in str(ms)
+    assert str(ms) == "numpy=2"
+    assert MatchSpec("numpy=2").version == ms.version

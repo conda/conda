@@ -8,7 +8,6 @@ import abc
 import datetime
 import errno
 import hashlib
-import json
 import logging
 import os
 import pathlib
@@ -24,6 +23,7 @@ from ... import CondaError
 from ...auxlib.logz import stringify
 from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from ...base.context import context
+from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
 from ...core.package_cache_data import PackageCacheData
 from ...exceptions import (
@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata.json.zst or repodata.jlap were unavailable, check again later.
+# if repodata_shards.msgpack.zst, repodata.json.zst or repodata.jlap were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
@@ -87,8 +87,6 @@ class RepodataOnDisk(Exception):
 
 
 class RepoInterface(abc.ABC):
-    # TODO: Support async operations
-    # TODO: Support progress bars
     def repodata(self, state: dict) -> str:
         """
         Given a mutable state dictionary with information about the cache,
@@ -493,6 +491,8 @@ class RepodataCache:
     (<hex-string>*.json inside `dir`)
 
     Avoid race conditions while loading, saving repodata.json and cache state.
+
+    Also support bytes as in repodata_shards.msgpack.zst
     """
 
     def __init__(self, base, repodata_fn):
@@ -517,11 +517,18 @@ class RepodataCache:
         )
 
     @property
+    def cache_path_shards(self):
+        return pathlib.Path(
+            self.cache_dir,
+            self.name + ("1" if context.use_only_tar_bz2 else "") + ".msgpack.zst",
+        )
+
+    @property
     def cache_path_state(self):
         """Out-of-band etag and other state needed by the RepoInterface."""
         return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
-    def load(self, *, state_only=False) -> str:
+    def load(self, *, state_only=False, binary=False) -> str | bytes:
         # read state and repodata.json with locking
 
         # lock {CACHE_STATE_SUFFIX} file
@@ -534,14 +541,19 @@ class RepodataCache:
             # it will release the lock early
             state = json.loads(state_file.read())
 
+            cache_path = self.cache_path_shards if binary else self.cache_path_json
+
             # json and state files should match. must read json before checking
             # stat (if json_data is to be trusted)
             if state_only:
-                json_data = ""
+                json_data = b"" if binary else ""
             else:
-                json_data = self.cache_path_json.read_text()
+                if binary:
+                    json_data = cache_path.read_bytes()
+                else:
+                    json_data = cache_path.read_text()
 
-            json_stat = self.cache_path_json.stat()
+            json_stat = cache_path.stat()
             if not (
                 state.get("mtime_ns") == json_stat.st_mtime_ns
                 and state.get("size") == json_stat.st_size
@@ -555,49 +567,41 @@ class RepodataCache:
                         "size": 0,
                     }
                 )
+            # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
-            self.state.update(
-                state
-            )  # will aliased _mod, _etag (not cleared above) pass through as mod, etag?
+            self.state.update(state)
 
         return json_data
 
-        # check repodata.json stat(); mtime_ns must equal value in
-        # {CACHE_STATE_SUFFIX} file, or it is stale.
-        # read repodata.json
-        # check repodata.json stat() again: st_size, st_mtime_ns must be equal
-
-        # repodata.json is okay - use it somewhere
-
-        # repodata.json is not okay - maybe use it, but don't allow cache updates
-
-        # unlock {CACHE_STATE_SUFFIX} file
-
-        # also, add refresh_ns instead of touching repodata.json file
-
-    def load_state(self):
+    def load_state(self, binary=False):
         """
-        Update self.state without reading repodata.json.
+        Update self.state without reading repodata.
 
         Return self.state.
         """
         try:
-            self.load(state_only=True)
+            self.load(state_only=True, binary=binary)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
                 log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
             self.state.clear()
         return self.state
 
-    def save(self, data: str):
-        """Write data to <repodata>.json cache path, synchronize state."""
+    def save(self, data: str | bytes):
+        """Write data to <repodata> cache path, by calling self.replace()."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
+        if isinstance(data, bytes):
+            mode = "bx"
+            target = self.cache_path_shards
+        else:
+            mode = "x"
+            target = self.cache_path_json
 
         try:
-            with temp_path.open("x") as temp:  # exclusive mode, error if exists
+            with temp_path.open(mode) as temp:  # exclusive mode, error if exists
                 temp.write(data)
 
-            return self.replace(temp_path)
+            return self.replace(temp_path, target)
 
         finally:
             try:
@@ -605,28 +609,30 @@ class RepodataCache:
             except OSError:
                 pass
 
-    def replace(self, temp_path: Path):
+    def replace(self, temp_path: Path, target=None):
         """
-        Rename path onto <repodata>.json path, synchronize state.
+        Rename path onto <repodata> path, synchronize state.
 
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
+        if target is None:
+            target = self.cache_path_json
         with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
-            # XXX make sure self.state has the correct etag, etc. for temp_path.
             # UserDict has inscrutable typing, which we ignore
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
             try:
-                temp_path.rename(self.cache_path_json)
+                temp_path.rename(target)
             except FileExistsError:  # Windows
-                self.cache_path_json.unlink()
-                temp_path.rename(self.cache_path_json)
+                target.unlink()
+                temp_path.rename(target)
+
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):

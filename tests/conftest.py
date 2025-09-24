@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import logging
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -10,8 +12,14 @@ import pytest
 
 import conda
 from conda.base.context import context, reset_context
+from conda.common.configuration import (
+    Configuration,
+    ParameterLoader,
+    PrimitiveParameter,
+)
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
+from conda.plugins.config import PluginConfig
 from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
@@ -19,6 +27,7 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from . import TEST_RECIPES_CHANNEL, http_test_server
 
 if TYPE_CHECKING:
+    import http.server
     from collections.abc import Iterable
 
     from pytest_mock import MockerFixture
@@ -54,6 +63,12 @@ def test_recipes_channel(mocker: MockerFixture) -> Path:
 
 
 @pytest.fixture
+def wheelhouse() -> Path:
+    """Return the path to the directory containing pre-built wheel files used in tests."""
+    return Path(__file__).parent / "data" / "wheelhouse"
+
+
+@pytest.fixture
 def clear_cache():
     from conda.core.subdir_data import SubdirData
 
@@ -61,7 +76,7 @@ def clear_cache():
 
 
 @pytest.fixture(scope="session")
-def support_file_server():
+def support_file_server() -> Iterable[http.server.ThreadingHTTPServer]:
     """Open a local web server to test remote support files."""
     base = Path(__file__).parents[0] / "env" / "support"
     http = http_test_server.run_test_server(str(base))
@@ -72,12 +87,30 @@ def support_file_server():
 
 
 @pytest.fixture
-def support_file_server_port(support_file_server):
+def support_file_server_port(
+    support_file_server: http.server.ThreadingHTTPServer,
+) -> int:
     return support_file_server.socket.getsockname()[1]
 
 
 @pytest.fixture
-def clear_cuda_version():
+def support_file_isolated(tmp_path):
+    """
+    Copy support files to temporary path, avoid polluting source checkout.
+    """
+    source = Path(__file__).parents[0] / "env" / "support"
+    base = tmp_path / "support"
+    if not base.exists():  # tmp_path is session scoped
+        shutil.copytree(source, base)
+
+    def inner(path):
+        return base / path
+
+    return inner
+
+
+@pytest.fixture
+def clear_cuda_version() -> None:
     from conda.plugins.virtual_packages import cuda
 
     cuda.cached_cuda_version.cache_clear()
@@ -143,3 +176,62 @@ def clear_package_cache() -> Iterable[None]:
     yield
 
     PackageCacheData.clear()
+
+
+@pytest.fixture(scope="function")
+def plugin_config(mocker) -> tuple[type[Configuration], str]:
+    """
+    Fixture to create a plugin configuration class that can be created and used in tests
+    """
+    app_name = "TEST_APP_NAME"
+
+    class PluginTest(PluginConfig):
+        def get_descriptions(self) -> dict[str, str]:
+            return {"bar": "Test plugins.bar"}
+
+    PluginTest.add_plugin_setting("bar", PrimitiveParameter(""))
+
+    class MockContext(Configuration):
+        foo = ParameterLoader(PrimitiveParameter(""))
+        json = ParameterLoader(PrimitiveParameter(False))
+
+        def __init__(self, *args, **kwargs):
+            """
+            Defines the bare minimum of context object properties to be compatible with the
+            rest of conda.
+
+            TODO: Depending on how this fixture is used, we may need to add more properties
+            """
+            super().__init__(**kwargs)
+            self._set_env_vars(app_name)
+            self.no_plugins = False
+            self.log_level = logging.WARNING
+            self.active_prefix = ""
+            self.plugin_manager = mocker.MagicMock()
+            self.repodata_fns = ["repodata.json", "current_repodata.json"]
+            self.subdir = mocker.MagicMock()
+
+        @property
+        def plugins(self) -> PluginConfig:
+            return PluginTest(self.raw_data)
+
+        def get_descriptions(self) -> dict[str, str]:
+            return {
+                "foo": "Test foo",
+                "json": "Test json",
+            }
+
+    return MockContext, app_name
+
+
+@pytest.fixture(scope="function")
+def minimal_env(tmp_path: Path) -> Path:
+    """
+    Provides a minimal environment that only contains the "magic" file identifying it as a
+    conda environment.
+    """
+    meta_dir = tmp_path.joinpath("conda-meta")
+    meta_dir.mkdir()
+    (meta_dir / "history").touch()
+
+    return tmp_path

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from argparse import (
     SUPPRESS,
+    Action,
     BooleanOptionalAction,
     _HelpAction,
     _StoreAction,
@@ -17,6 +18,38 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+
+class LazyChoicesAction(Action):
+    def __init__(self, option_strings, dest, choices_func, **kwargs):
+        self.choices_func = choices_func
+        self._cached_choices = None
+        super().__init__(option_strings, dest, **kwargs)
+
+    @property
+    def choices(self):
+        """Dynamically evaluate choices for help generation and validation."""
+        if self._cached_choices is None:
+            self._cached_choices = self.choices_func()
+        return self._cached_choices
+
+    @choices.setter
+    def choices(self, value):
+        """Ignore attempts to set choices since we use choices_func."""
+        # argparse tries to set self.choices during __init__, but we ignore it
+        # since we dynamically generate choices via choices_func
+        pass
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        valid_choices = self.choices
+        if values not in valid_choices:
+            choices_string = ", ".join(f"'{val}'" for val in valid_choices)
+            # Use the same format as argparse for consistency
+            option_display = "/".join(self.option_strings)
+            parser.error(
+                f"argument {option_display}: invalid choice: {values!r} (choose from {choices_string})"
+            )
+        setattr(namespace, self.dest, values)
 
 
 class _ValidatePackages(_StoreAction):
@@ -203,6 +236,18 @@ def add_output_and_prompt_options(p: ArgumentParser) -> _ArgumentGroup:
         "Users will not be asked to confirm any adding, deleting, backups, etc.",
     )
     return output_and_prompt_options
+
+
+def add_parser_frozen_env(p: ArgumentParser):
+    from ..common.constants import NULL
+
+    p.add_argument(
+        "--override-frozen",
+        action="store_false",
+        default=NULL,
+        help="DANGEROUS. Use at your own risk. Ignore protections if the environment is frozen.",
+        dest="protect_frozen_envs",
+    )
 
 
 def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
@@ -411,7 +456,8 @@ def add_parser_solver(p: ArgumentParser) -> None:
     group.add_argument(
         "--solver",
         dest="solver",
-        choices=context.plugin_manager.get_solvers(),
+        action=LazyChoicesAction,
+        choices_func=context.plugin_manager.get_solvers,
         help="Choose which solver backend to use.",
         default=NULL,
     )
@@ -565,3 +611,24 @@ def add_parser_verbose(parser: ArgumentParser | _ArgumentGroup) -> None:
         help=SUPPRESS,
         default=NULL,
     )
+
+
+def add_parser_environment_specifier(p: ArgumentParser) -> None:
+    from ..base.context import context
+    from ..common.constants import NULL
+
+    p.add_argument(
+        "--environment-specifier",
+        "--env-spec",  # for brevity
+        action=LazyChoicesAction,
+        choices_func=context.plugin_manager.get_environment_specifiers,
+        default=NULL,
+        help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
+    )
+
+
+def comma_separated_stripped(value: str) -> list[str]:
+    """
+    Custom type for argparse to handle comma-separated strings with stripping
+    """
+    return [item.strip() for item in value.split(",")]

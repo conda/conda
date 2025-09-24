@@ -4,15 +4,11 @@
 
 from __future__ import annotations
 
-import errno
-import functools
-import os
 from builtins import input  # noqa: F401, UP029
 from io import StringIO  # noqa: F401, for conda-build
 from typing import TYPE_CHECKING
 
 from . import CondaError  # noqa: F401
-from .auxlib.entity import EntityEncoder  # noqa: F401
 from .base.constants import (  # noqa: F401
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
@@ -32,11 +28,12 @@ from .cli.helpers import (  # noqa: F401
     add_parser_prefix,
 )
 from .common import compat  # noqa: F401
-from .common.compat import on_win
-from .common.path import win_path_to_unix
+from .common.serialize.json import CondaJSONEncoder
 from .common.toposort import _toposort  # noqa: F401
-from .core.index import dist_str_in_index  # noqa: F401
-from .core.index import get_index as _get_index
+from .core.index import (
+    Index,
+    dist_str_in_index,  # noqa: F401
+)
 from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
@@ -56,7 +53,6 @@ from .gateways.connection.download import download as _download
 from .gateways.connection.session import CondaSession  # noqa: F401
 from .gateways.disk.create import TemporaryDirectory  # noqa: F401
 from .gateways.disk.delete import delete_trash  # noqa: F401
-from .gateways.disk.delete import rm_rf as move_to_trash
 from .gateways.disk.link import lchmod  # noqa: F401
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
 from .misc import untracked, walk_prefix  # noqa: F401
@@ -70,7 +66,7 @@ from .resolve import (  # noqa: F401
     ResolvePackageNotFound,
     Unsatisfiable,
 )
-from .utils import human_bytes, unix_path_to_win, url_path  # noqa: F401
+from .utils import human_bytes, url_path  # noqa: F401
 
 if TYPE_CHECKING:
     from typing import Any
@@ -117,57 +113,13 @@ def __getattr__(name: str) -> Any:
 
 
 deprecated.constant(
-    "25.3",
-    "25.9",
-    "win_path_to_unix",
-    win_path_to_unix,
-    addendum="Use `conda.common.path.win_path_to_unix` instead.",
+    "26.3",
+    "26.9",
+    "EntityEncoder",
+    CondaJSONEncoder,
+    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
-del win_path_to_unix
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "unix_path_to_win",
-    unix_path_to_win,
-    addendum="Use `conda.common.path.unix_path_to_win` instead.",
-)
-del unix_path_to_win
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use builtin `dict.items()` instead.",
-)
-def iteritems(d, **kw):
-    return iter(d.items(**kw))
-
-
-@deprecated("25.3", "25.9", addendum="Unused.")
-class Completer:  # pragma: no cover
-    def get_items(self):
-        return self._get_items()
-
-    def __contains__(self, item):
-        return True
-
-    def __iter__(self):
-        return iter(self.get_items())
-
-
-@deprecated("25.3", "25.9", addendum="Unused.")
-class InstalledPackages:
-    pass
-
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "move_to_trash",
-    move_to_trash,
-    addendum="Use `conda.gateways.disk.delete.rm_rf` instead.",
-)
-del move_to_trash
+del CondaJSONEncoder
 
 
 def rm_rf(path, max_retries=5, trash=True):
@@ -175,20 +127,6 @@ def rm_rf(path, max_retries=5, trash=True):
 
     rm_rf(path)
     delete_prefix_from_linked_data(path)
-
-
-deprecated.constant("25.3", "25.9", "KEYS", None, addendum="Unused.")
-deprecated.constant("25.3", "25.9", "KEYS_DIR", None, addendum="Unused.")
-
-
-@deprecated("25.3", "25.9", addendum="Unused.")
-def hash_file(_):
-    return None  # pragma: no cover
-
-
-@deprecated("25.3", "25.9", addendum="Unused.")
-def verify(_):
-    return False  # pragma: no cover
 
 
 def get_index(
@@ -200,7 +138,7 @@ def get_index(
     unknown=None,
     prefix=None,
 ):
-    index = _get_index(
+    index = Index(
         channel_urls, prepend, platform, use_local, use_cache, unknown, prefix
     )
     return {Dist(prec): prec for prec in index.values()}
@@ -222,100 +160,6 @@ def package_cache():
             PackageCacheData.first_writable().remove(Dist(dist).to_package_ref())
 
     return package_cache()
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
-def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
-    # do not symlink root env - this clobbers activate incorrectly.
-    # prefix should always be longer than, or outside the root dir.
-    if os.path.normcase(os.path.normpath(prefix)) in os.path.normcase(
-        os.path.normpath(root_dir)
-    ):
-        return
-    if on_win:
-        where = "condabin"
-        symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
-    else:
-        where = "bin"
-        symlink_fn = os.symlink
-    if not os.path.isdir(os.path.join(prefix, where)):
-        os.makedirs(os.path.join(prefix, where))
-    _symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
-def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
-    scripts = ["conda", "activate", "deactivate"]
-    prefix_where = os.path.join(prefix, where)
-    if not os.path.isdir(prefix_where):
-        os.makedirs(prefix_where)
-    for f in scripts:
-        root_file = os.path.join(root_dir, where, f)
-        prefix_file = os.path.join(prefix_where, f)
-        try:
-            # try to kill stale links if they exist
-            if os.path.lexists(prefix_file):
-                rm_rf(prefix_file)
-            # if they're in use, they won't be killed.  Skip making new symlink.
-            if not os.path.lexists(prefix_file):
-                symlink_fn(root_file, prefix_file)
-        except OSError as e:
-            if os.path.lexists(prefix_file) and (
-                e.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST)
-            ):
-                # Cannot symlink root_file to prefix_file. Ignoring since link already exists
-                pass
-            else:
-                raise
-
-
-if on_win:  # pragma: no cover
-
-    @deprecated("25.3", "25.9", addendum="Use `conda.activate` instead.")
-    def win_conda_bat_redirect(src, dst, shell):
-        """Special function for Windows XP where the `CreateSymbolicLink`
-        function is not available.
-
-        Simply creates a `.bat` file at `dst` which calls `src` together with
-        all command line arguments.
-
-        Works of course only with callable files, e.g. `.bat` or `.exe` files.
-        """
-        from .utils import _SHELLS
-
-        try:
-            os.makedirs(os.path.dirname(dst))
-        except OSError as exc:  # Python >2.5
-            if exc.errno == errno.EEXIST and os.path.isdir(os.path.dirname(dst)):
-                pass
-            else:
-                raise
-
-        # bat file redirect
-        if not os.path.isfile(dst + ".bat"):
-            with open(dst + ".bat", "w") as f:
-                f.write(f'@echo off\ncall "{src}" %*\n')
-
-        # TODO: probably need one here for powershell at some point
-
-        # This one is for bash/cygwin/msys
-        # set default shell to bash.exe when not provided, as that's most common
-        if not shell:
-            shell = "bash.exe"
-
-        # technically these are "links" - but islink doesn't work on win
-        if not os.path.isfile(dst):
-            with open(dst, "w") as f:
-                f.write("#!/usr/bin/env bash \n")
-                if src.endswith("conda"):
-                    f.write('{} "$@"'.format(_SHELLS[shell]["path_to"](src + ".exe")))
-                else:
-                    f.write('source {} "$@"'.format(_SHELLS[shell]["path_to"](src)))
-            # Make the new file executable
-            # http://stackoverflow.com/a/30463972/1170370
-            mode = os.stat(dst).st_mode
-            mode |= (mode & 292) >> 2  # copy R bits to X
-            os.chmod(dst, mode)
 
 
 def linked_data(prefix, ignore_channels=False):

@@ -1,118 +1,212 @@
 # Development Environment
 
-1. Clone the repo you just forked on GitHub to your local machine. Configure
-   your repo to point to both "upstream" (the main conda repo) and your fork
-   ("origin"). For detailed directions, see below:
+## Repository Setup
 
-   **Bash (macOS, Linux, Windows)**
+Clone the repo you just forked on GitHub to your local machine. Configure your repo to point to both "upstream" (the main conda repo) and your fork ("origin").
 
-   ```bash
-   # choose the repository location
-   # warning: not the location of an existing conda installation!
-   $ CONDA_PROJECT_ROOT="$HOME/conda"
+````{tab-set}
 
-   # clone the project
-   # replace `your-username` with your actual GitHub username
-   $ git clone git@github.com:your-username/conda "$CONDA_PROJECT_ROOT"
-   $ cd "$CONDA_PROJECT_ROOT"
+```{tab-item} Bash (macOS, Linux, Windows)
+```bash
+# choose the repository location
+# warning: not the location of an existing conda installation!
+$ CONDA_PROJECT_ROOT="$HOME/conda"
 
-   # set the `upstream` as the the main repository
-   $ git remote add upstream git@github.com:conda/conda
-   ```
+# clone the project
+# replace `your-username` with your actual GitHub username
+$ git clone git@github.com:your-username/conda "$CONDA_PROJECT_ROOT"
+$ cd "$CONDA_PROJECT_ROOT"
 
-   **cmd.exe (Windows)**
+# set the `upstream` as the the main repository
+$ git remote add upstream git@github.com:conda/conda
+```
 
-   ```batch
-   # choose the repository location
-   # warning: not the location of an existing conda installation!
-   > set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
+```{tab-item} cmd.exe (Windows)
+```batch
+# choose the repository location
+# warning: not the location of an existing conda installation!
+> set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
 
-   # clone the project
-   # replace `your-username` with your actual GitHub username
-   > git clone git@github.com:your-username/conda "%CONDA_PROJECT_ROOT%"
-   > cd "%CONDA_PROJECT_ROOT%"
+# clone the project
+# replace `your-username` with your actual GitHub username
+> git clone git@github.com:your-username/conda "%CONDA_PROJECT_ROOT%"
+> cd "%CONDA_PROJECT_ROOT%"
 
-   # set the `upstream` as the main repository
-   > git remote add upstream git@github.com:conda/conda
-   ```
+# set the `upstream` as the main repository
+> git remote add upstream git@github.com:conda/conda
+```
 
-2. One option is to create a local development environment and activate that environment
+````
 
-   **Bash (macOS, Linux, Windows)**
+## Development Environment Setup
 
-   ```bash
-   $ source ./dev/start
-   ```
+Create a local development environment and activate it using the `dev/start` scripts:
 
-   **cmd.exe (Windows)**
+````{tab-set}
 
-   ```batch
-   > .\dev\start.bat
-   ```
+```{tab-item} Bash (macOS, Linux, Windows)
+```bash
+$ source ./dev/start
+```
 
-   This command will create a project-specific base environment (see `devenv`
-   in your repo directory after running this command). If the base environment
-   already exists this command will simply activate the already-created
-   `devenv` environment.
+```{tab-item} cmd.exe (Windows)
+```batch
+> .\dev\start.bat
+```
 
-   To be sure that the conda code being interpreted is the code in the project
-   directory, look at the value of `conda location:` in the output of
-   `conda info --all`.
+````
 
-3. Alternatively, for Linux development only, you can use the same Docker
-   image the CI pipelines use. Note that you can run this from all three
-   operating systems! We are using `docker compose`, which provides three
-   actions for you:
+This command will create a project-specific base environment (see `devenv` in your repo directory after running this command). If the base environment already exists this command will simply activate the already-created `devenv` environment.
 
-   - `unit-tests`: Run all unit tests.
-   - `integration-tests`: Run all integration tests.
-   - `interactive`: You are dropped in a pre-initialized Bash session,
-     where you can run all your `pytest` commands as required.
+To be sure that the conda code being interpreted is the code in the project directory, look at the value of `conda location:` in the output of `conda info --all`.
 
-   Use them with `docker compose run <action>`. For example:
+### Choosing Your Installer
 
+The `dev/start` script supports two different conda installers:
 
-   **Any shell (macOS, Linux, Windows)**
+- **miniconda** (default): Uses the Anaconda defaults channel and official Miniconda installer
+- **miniforge**: Uses the conda-forge channel and community-maintained Miniforge installer
 
-   ```bash
-   $ docker compose run unit-tests
-   ```
+#### Configuration Options
 
-   This builds the same Docker image as used in continuous
-   integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci)
-   and starts `bash` with the conda development mode already enabled.
+You can specify the installer type in several ways, in order of precedence:
 
-   By default, it will use Miniconda-based, Python 3.9 installation configured for
-   the `defaults` channel. You can customize this with two environment variables:
+1. **Command line flag** (highest priority)
+2. **Configuration file** (`~/.condarc`)
+3. **Interactive prompt** (lowest priority)
 
-   - `CONDA_DOCKER_PYTHON`: `major.minor` value; e.g. `3.11`.
-   - `CONDA_DOCKER_DEFAULT_CHANNEL`: either `defaults` or `conda-forge`
+To avoid being prompted every time, you can set your preferred installer in your `~/.condarc` file:
 
-   For example, if you need a conda-forge based 3.12 image:
+```yaml
+# ~/.condarc
+installer_type: miniforge  # or miniconda
+```
 
-   **Bash (macOS, Linux, Windows)**
+When you run the script for the first time without specifying an installer and no configuration file setting, you'll be prompted to choose:
 
-   ```bash
-   $ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache
-   # --- in some systems you might also need to re-supply the same values as CLI flags:
-   # CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.12 --build-arg default_channel=conda-forge
-   $ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
-   ```
+```text
+Choose conda installer:
+  1) miniconda (default - Anaconda defaults channel)
+  2) miniforge (conda-forge channel)
+Enter choice [1]:
+```
 
-   **cmd.exe (Windows)**
+You can also specify the installer directly using the `-i` or `--installer` flag:
 
-   ```batch
-   > set CONDA_DOCKER_PYTHON=3.12
-   > set CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge
-   > docker compose build --no-cache
-   > docker compose run interactive
-   > set "CONDA_DOCKER_PYTHON="
-   > set "CONDA_DOCKER_DEFAULT_CHANNEL="
-   ```
+````{tab-set}
 
->  The `conda` repository will be mounted to `/opt/conda-src`, so all changes
-   done in your editor will be reflected live while the Docker container is
-   running.
+```{tab-item} Bash (macOS, Linux, Windows)
+```bash
+# Use miniconda (default behavior)
+$ source ./dev/start -i miniconda
+
+# Use miniforge
+$ source ./dev/start -i miniforge
+```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+:: Use miniconda (default behavior)
+> .\dev\start.bat -i miniconda
+
+:: Use miniforge
+> .\dev\start.bat -i miniforge
+```
+
+````
+
+### Additional Options
+
+The `dev/start` script supports several other options for customizing your development environment:
+
+```bash
+# See all available options
+$ source ./dev/start --help
+
+# Use a specific Python version
+$ source ./dev/start -p 3.11
+
+# Force update packages
+$ source ./dev/start -u
+
+# Preview what would be done without making changes
+$ source ./dev/start -n
+```
+
+### Switching Between Installers
+
+You can maintain separate development environments for different installers and switch between them:
+
+````{tab-set}
+
+```{tab-item} Bash (macOS, Linux, Windows)
+```bash
+# Set up and activate miniconda-based environment
+$ source ./dev/start -i miniconda
+
+# Later, set up and activate miniforge-based environment
+$ source ./dev/start -i miniforge
+```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+:: Set up and activate miniconda-based environment
+> .\dev\start.bat -i miniconda
+
+:: Later, set up and activate miniforge-based environment
+> .\dev\start.bat -i miniforge
+```
+
+````
+
+Each installer creates its own isolated environment, so you can test conda behavior with both the defaults and conda-forge channels.
+
+## Docker Alternative
+
+Alternatively, for Linux development only, you can use the same Docker image the CI pipelines use. Note that you can run this from all three operating systems! We are using `docker compose`, which provides three actions for you:
+
+- `unit-tests`: Run all unit tests.
+- `integration-tests`: Run all integration tests.
+- `interactive`: You are dropped in a pre-initialized Bash session, where you can run all your `pytest` commands as required.
+
+Use them with `docker compose run <action>`. For example:
+
+```bash
+$ docker compose run unit-tests
+```
+
+This builds the same Docker image as used in continuous integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci) and starts `bash` with the conda development mode already enabled.
+
+By default, it will use Miniconda-based, Python 3.9 installation configured for the `defaults` channel. You can customize this with two environment variables:
+
+- `CONDA_DOCKER_PYTHON`: `major.minor` value; e.g. `3.11`.
+- `CONDA_DOCKER_DEFAULT_CHANNEL`: either `defaults` or `conda-forge`
+
+For example, if you need a conda-forge based 3.12 image:
+
+````{tab-set}
+
+```{tab-item} Bash (macOS, Linux, Windows)
+```bash
+$ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache
+# --- in some systems you might also need to re-supply the same values as CLI flags:
+# CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.12 --build-arg default_channel=conda-forge
+$ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
+```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+> set CONDA_DOCKER_PYTHON=3.12
+> set CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge
+> docker compose build --no-cache
+> docker compose run interactive
+> set "CONDA_DOCKER_PYTHON="
+> set "CONDA_DOCKER_DEFAULT_CHANNEL="
+```
+
+````
+
+> The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your editor will be reflected live while the Docker container is running.
 
 ## Static Code Analysis
 
@@ -129,8 +223,9 @@ Feel free to read up on everything pre-commit related in their
 [docs](https://pre-commit.com/#quick-start) but we've included the gist of
 what you need to get started below:
 
-**Bash (macOS, Linux, Windows)**
+````{tab-set}
 
+```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
 # reuse the development environment created above
 $ source ./dev/start
@@ -149,8 +244,7 @@ $ pre-commit run
 $ git commit
 ```
 
-**cmd.exe (Windows)**
-
+```{tab-item} cmd.exe (Windows)
 ```batch
 :: reuse the development environment created above
 > .\dev\start.bat
@@ -168,6 +262,8 @@ $ git commit
 :: automatically running pre-commit during commit
 > git commit
 ```
+
+````
 
 Beware that some of the tools run by pre-commit can potentially modify the
 code (see [black](https://github.com/psf/black),
@@ -188,8 +284,9 @@ We use pytest to run our test suite. Please consult pytest's
 [docs](https://docs.pytest.org/en/6.2.x/usage.html) for detailed instructions
 but generally speaking all you need is the following:
 
-**Bash (macOS, Linux, Windows)**
+````{tab-set}
 
+```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
 # reuse the development environment created above
 $ source ./dev/start
@@ -206,8 +303,7 @@ $ pytest --cov -m "not integration" conda tests
 $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 ```
 
-**cmd.exe (Windows)**
-
+```{tab-item} cmd.exe (Windows)
 ```batch
 :: reuse the development environment created above
 > .\dev\start.bat
@@ -221,6 +317,8 @@ $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 > pytest --cov tests\test_create.py -k create_install_update_remove_smoketest
 ```
 
+````
+
 If you are not measuring code coverage, `pytest` can be run without the `--cov`
 option. The `docker compose` tests pass `--cov`.
 
@@ -228,12 +326,9 @@ Note: Some integration tests require you build a package with conda-build before
 This is taking care of if you run `docker compose run integration-tests`, but you need
 to do it manually in other modes:
 
-**Bash (macOS, Linux, Windows)**
-
 ```bash
 $ conda install conda-build
 $ conda-build tests/test-recipes/activate_deactivate_package tests/test-recipes/pre_link_messages_package
-
 ```
 
 Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.

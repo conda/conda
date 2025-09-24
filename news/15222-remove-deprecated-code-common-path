@@ -1,0 +1,31 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove constant `conda.common.path._VERSION_REGEX`. Use `conda.common.path.python._VERSION_REGEX` instead. (#15222)
+* Remove function `conda.common.path.get_bin_directory_short_path`. Use `conda.common.path.BIN_DIRECTORY` instead. (#15222)
+* Remove function `conda.common.path.is_private_env_name`. (#15222)
+* Remove function `conda.common.path.is_private_env_path`. (#15222)
+* Remove constant `conda.common.path.which`.Use builtin `shutil.which` instead. (#15222)
+* Remove constant `conda.common.path._cygwin.RE_UNIX`. Use `conda.common.path._cygpath.RE_WIN_DRIVE` instead. (#15222)
+* Remove function `conda.common.path._cygwin.translate_unix`. Use `conda.common.path._cygpath._to_unix_drive` instead. (#15222)
+* Remove constant `conda.common.path._cygwin.RE_DRIVE`. Use `conda.common.path._cygpath.RE_UNIX_DRIVE` instead. (#15222)
+* Remove constant `conda.common.path._cygwin.translation_drive`. Use `conda.common.path._cygpath._to_win_drive` instead. (#15222)
+* Remove constant `conda.common.path._cygwin.RE_MOUNT`. Use `conda.common.path._cygpath.RE_UNIX_MOUNT` instead. (#15222)
+* Remove constant `conda.common.path._cygwin.translation_mount`. Use `conda.common.path._cygpath._to_win_mount` instead. (#15222)
+* Remove constant `conda.common.path._cygwin.RE_ROOT`. Use `conda.common.path._cygpath.RE_UNIX_ROOT` instead. (#15222)
+* Remove constant `conda.common.path._cygwin.translation_root`. Use `conda.common.path._cygpath._to_win_root` instead. (#15222)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

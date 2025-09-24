@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.cli.common.confirm`. Use `conda.reporters.confirm_yn` instead. (#15180)
+* Remove `conda.cli.common.confirm_yn`. Use `conda.reporters.confirm_yn` instead. (#15180)
+* Remove `conda.cli.common.print_envs_list`. Use `conda.reporters.render(style='env_list')` instead. (#15180)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

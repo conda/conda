@@ -12,16 +12,32 @@ import sys
 from errno import EPIPE, ESHUTDOWN
 from itertools import cycle
 from os.path import basename, dirname
+from pathlib import Path
 from threading import Event, Thread
 from time import sleep
+from typing import TYPE_CHECKING
 
-from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
+from ...base.constants import (
+    DEFAULT_CONSOLE_REPORTER_BACKEND,
+    PREFIX_FROZEN_FILE,
+    ROOT_ENV_NAME,
+)
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from ...exceptions import CondaError
-from .. import CondaReporterBackend, hookimpl
-from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
+from .. import hookimpl
+from ..types import (
+    CondaReporterBackend,
+    ProgressBarBase,
+    ReporterRendererBase,
+    SpinnerBase,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from ...common.path import PathType
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -182,14 +198,16 @@ class ConsoleReporterRenderer(ReporterRendererBase):
 
         return "\n".join(table_parts)
 
-    def envs_list(self, prefixes, output=True, **kwargs) -> str:
+    @staticmethod
+    def envs_list(prefixes: Iterable[PathType], output=True, **kwargs) -> str:
         if not output:
             return ""
 
-        output = ["", "# conda environments:", "#"]
+        output = ["", "# conda environments:", "#", "# *  -> active", "# + -> frozen"]
 
         def disp_env(prefix):
             active = "*" if prefix == context.active_prefix else " "
+            protected = "+" if Path(prefix, PREFIX_FROZEN_FILE).is_file() else " "
             if prefix == context.root_prefix:
                 name = ROOT_ENV_NAME
             elif any(
@@ -198,7 +216,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
                 name = basename(prefix)
             else:
                 name = ""
-            return f"{name:20} {active} {prefix}"
+            return f"{name:20} {active} {protected} {prefix}"
 
         for env_prefix in prefixes:
             output.append(disp_env(env_prefix))

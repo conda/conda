@@ -32,6 +32,7 @@ from ..auxlib.entity import (
 )
 from ..base.context import context
 from ..common.compat import isiterable
+from ..deprecations import deprecated
 from ..exceptions import PathNotFoundError
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
@@ -249,9 +250,9 @@ class PackageRecord(DictSafeMixin, Entity):
     It captures all the relevant information about a given package archive, including its source,
     in the following attributes.
 
-    Note that there are two subclasses, :class:`PrefixRecord` and
+    Note that there are three subclasses, :class:`SolvedRecord`, :class:`PrefixRecord` and
     :class:`PackageCacheRecord`. These capture the same information, but are augmented with
-    additional information relevant for these two sources of packages.
+    additional information relevant for these sources of packages.
 
     Further note that :class:`PackageRecord` makes use of its :attr:`_pkey`
     for comparison and hash generation.
@@ -321,12 +322,17 @@ class PackageRecord(DictSafeMixin, Entity):
     )
 
     @property
-    def schannel(self):
+    def channel_name(self) -> str | None:
         """str: The canonical name of the channel of this package.
 
         Part of the :attr:`_pkey`.
         """
-        return self.channel.canonical_name
+        return getattr(self.channel, "canonical_name", None)
+
+    @property
+    @deprecated("25.9", "26.3", addendum="Use .channel_name instead")
+    def schannel(self):
+        return self.channel_name
 
     @property
     def _pkey(self):
@@ -338,7 +344,7 @@ class PackageRecord(DictSafeMixin, Entity):
 
         The included fields are:
 
-        * :attr:`schannel`
+        * :attr:`channel_name`
         * :attr:`subdir`
         * :attr:`name`
         * :attr:`version`
@@ -470,6 +476,16 @@ class PackageRecord(DictSafeMixin, Entity):
     def namekey(self):
         return "global:" + self.name
 
+    @property
+    def spec(self):
+        """Return package spec: name=version=build"""
+        return f"{self.name}={self.version}={self.build}"
+
+    @property
+    def spec_no_build(self):
+        """Return package spec without build: name=version"""
+        return f"{self.name}={self.version}"
+
     def record_id(self):
         # WARNING: This is right now only used in link.py _change_report_str(). It is not
         #          the official record_id / uid until it gets namespace.  Even then, we might
@@ -597,7 +613,19 @@ class PackageCacheRecord(PackageRecord):
             return md5sum
 
 
-class PrefixRecord(PackageRecord):
+class SolvedRecord(PackageRecord):
+    """Representation of a package that has been returned as part of a solver solution.
+
+    This sits between :class:`PackageRecord` and :class:`PrefixRecord`, simply adding
+    ``requested_spec`` so it can be used in lockfiles without requiring the artifact on
+    disk.
+    """
+
+    #: str: The :class:`MatchSpec` that the user requested or ``None`` if the package it was installed as a dependency.
+    requested_spec = StringField(required=False)
+
+
+class PrefixRecord(SolvedRecord):
     """Representation of a package that is installed in a local conda environmnet.
 
     Specialization of :class:`PackageRecord` that adds information for packages that are installed
@@ -629,9 +657,6 @@ class PrefixRecord(PackageRecord):
     link = ComposableField(Link, required=False)
 
     # app = ComposableField(App, required=False)
-
-    #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
-    requested_spec = StringField(required=False)
 
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.

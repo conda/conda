@@ -14,6 +14,7 @@ Authors are sorted alphabetically.
 * Alex Hall
 * Alex Liew
 * Alex Wiltschko
+* Ali Abbas Zaidi
 * Alisue
 * Almar Klein
 * Amelio Vazquez-Reina
@@ -130,6 +131,7 @@ Authors are sorted alphabetically.
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
+* Faith Rider
 * Faustin Carter
 * FelisNivalis
 * Filipe Laíns
@@ -261,6 +263,7 @@ Authors are sorted alphabetically.
 * Martin Kou
 * Martin Prüsse
 * Martin Raden
+* Mary M
 * Matt Craig
 * Matt Kramer
 * Matthew Anderson
@@ -330,6 +333,7 @@ Authors are sorted alphabetically.
 * Peter Cable
 * Peter Talley
 * Peter Williams
+* Peyton Murray
 * Phil Elson
 * Philip Thomas
 * Philippe Mathieu

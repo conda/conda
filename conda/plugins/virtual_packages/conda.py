@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Expose conda version."""
 
-from .. import CondaVirtualPackage, hookimpl
+from .. import hookimpl
+from ..types import CondaVirtualPackage
 
 
 @hookimpl

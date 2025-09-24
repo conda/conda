@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -10,11 +11,12 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaEnvException, CondaValueError
+from conda.exceptions import CondaValueError
 from conda.testing.integration import package_is_installed
 
-from . import support_file
+from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -103,15 +105,42 @@ def test_create_host_port(
 def test_create_advanced_pip(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
+    tmp_path: Path,
     tmp_envs_dir: Path,
+    support_file_isolated,
 ):
+    # Create a temporary copy of the advanced-pip repository
+    advanced_pip_dir = support_file_isolated("advanced-pip")
+    argh_dir = advanced_pip_dir / "argh"
+    assert argh_dir.exists()
+
+    # Initialize git repository in the argh directory
+    for args in (
+        ["git", "init", "--initial-branch=main"],
+        ["git", "config", "user.name", "Test User"],
+        ["git", "config", "user.email", "test@example.com"],
+        ["git", "add", "."],
+        ["git", "commit", "-m", "Initial commit"],
+    ):
+        subprocess.run(args, cwd=argh_dir, check=True)
+
+    # Get template content for environment.yml
+    template_content = (advanced_pip_dir / "env_template.yml").read_text()
+
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
+
+    environment_yml = advanced_pip_dir / "environment.yml"
+
+    # Create environment.yml from template in the isolated location
+    env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
+    environment_yml.write_text(env_content)
 
     stdout, stderr, _ = conda_cli(
         *("env", "create"),
         *("--name", env_name),
-        *("--file", support_file("advanced-pip/environment.yml")),
+        *("--file", str(environment_yml)),
+        "--verbose",
     )
 
     PrefixData._cache_.clear()
@@ -132,12 +161,13 @@ def test_create_empty_env(
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    conda_cli(
-        *("env", "create"),
-        *("--name", env_name),
-        *("--file", support_file("empty_env.yml")),
-    )
-    assert prefix.exists()
+    with pytest.deprecated_call():
+        conda_cli(
+            *("env", "create"),
+            *("--name", env_name),
+            *("--file", support_file("empty_env.yml")),
+        )
+        assert prefix.exists()
 
 
 @pytest.mark.integration
@@ -208,9 +238,8 @@ def test_create_update_remote_env_file(
         *("--name", env_name),
         *(
             "--file",
-            support_file(
+            remote_support_file(
                 "example/environment_pinned.yml",
-                remote=True,
                 port=support_file_server_port,
             ),
         ),
@@ -230,9 +259,8 @@ def test_create_update_remote_env_file(
         *("--name", env_name),
         *(
             "--file",
-            support_file(
+            remote_support_file(
                 "example/environment_pinned_updated.yml",
-                remote=True,
                 port=support_file_server_port,
             ),
         ),
@@ -261,7 +289,7 @@ def test_fail_to_create_env_in_dir_with_colon(
 
     with pytest.raises(
         CondaValueError,
-        match="Cannot create a conda environment with ':' in the prefix.",
+        match="Environment paths cannot contain ':'.",
     ):
         conda_cli("create", f"--prefix={colon_dir}/tester")
 
@@ -291,7 +319,29 @@ def test_protected_dirs_error_for_env_create(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
 ):
     with tmp_env() as prefix:
-        with pytest.raises(CondaEnvException) as error:
+        with pytest.raises(
+            CondaValueError,
+            match="Environment paths cannot be immediately nested under another conda environment",
+        ):
+            conda_cli(
+                "env",
+                "create",
+                f"--prefix={prefix}/envs",
+                "--file",
+                support_file("example/environment_pinned.yml"),
+            )
+
+
+def test_create_env_from_non_existent_plugin(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "nonexistent_plugin")
+    with tmp_env() as prefix:
+        with pytest.raises(
+            CondaValueError,
+        ) as excinfo:
             conda_cli(
                 "env",
                 "create",
@@ -301,6 +351,52 @@ def test_protected_dirs_error_for_env_create(
             )
 
         assert (
-            "appears to be a top level directory within an existing conda environment"
-            in str(error.value)
+            "You have chosen an unrecognized environment specifier type (nonexistent_plugin)"
+            in str(excinfo.value)
         )
+
+
+def test_create_env_custom_platform(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+    test_recipes_channel: str,
+):
+    """
+    Ensures that the `--platform` option works correctly when creating an environment by
+    creating a `.condarc` file with `subir: osx-64`.
+    """
+    env_file = path_factory("test_recipes_channel.yml")
+    env_file.write_text(
+        f"""
+        name: test-env
+        channels:
+          - {test_recipes_channel}
+        dependencies:
+          - dependency
+        """
+    )
+
+    if context._native_subdir() == "osx-arm64":
+        platform = "linux-64"
+    else:
+        platform = "osx-arm64"
+
+    with tmp_env() as prefix:
+        conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            str(env_file),
+            f"--platform={platform}",
+        )
+        prefix_data = PrefixData(prefix)
+
+        assert prefix_data.exists()
+        assert prefix_data.is_environment()
+
+        config = prefix / DEFAULT_CONDARC_FILENAME
+
+        assert config.is_file()
+        assert f"subdir: {platform}" in config.read_text()

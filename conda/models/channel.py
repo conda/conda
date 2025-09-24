@@ -12,7 +12,6 @@ Object inheritance:
 from __future__ import annotations
 
 from copy import copy
-from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -40,9 +39,11 @@ from ..common.url import (
 )
 
 if TYPE_CHECKING:
-    from typing import Self
+    from collections.abc import Iterable, Iterator
+    from typing import Any
 
     from ..base.context import Context
+    from ..common.path import PathType
 
 
 log = getLogger(__name__)
@@ -85,18 +86,18 @@ class Channel(metaclass=ChannelType):
     _cache_ = {}
 
     @staticmethod
-    def _reset_state():
+    def _reset_state() -> None:
         Channel._cache_ = {}
 
     def __init__(
         self,
-        scheme=None,
-        auth=None,
-        location=None,
-        token=None,
-        name=None,
-        platform=None,
-        package_filename=None,
+        scheme: str | None = None,
+        auth: str | None = None,
+        location: str | None = None,
+        token: str | None = None,
+        name: str | None = None,
+        platform: str | None = None,
+        package_filename: str | None = None,
     ):
         self.scheme = scheme
         self.auth = auth
@@ -107,27 +108,27 @@ class Channel(metaclass=ChannelType):
         self.package_filename = package_filename
 
     @property
-    def channel_location(self):
+    def channel_location(self) -> str | None:
         return self.location
 
     @property
-    def channel_name(self):
+    def channel_name(self) -> str:
         return self.name
 
     @property
-    def subdir(self):
+    def subdir(self) -> str | None:
         return self.platform
 
     @staticmethod
-    def from_url(url):
+    def from_url(url: str) -> Channel:
         return parse_conda_channel_url(url)
 
     @staticmethod
-    def from_channel_name(channel_name):
+    def from_channel_name(channel_name: str) -> Channel:
         return _get_channel_for_name(channel_name)
 
     @staticmethod
-    def from_value(value: str | None) -> Self:
+    def from_value(value: str | None) -> Channel:
         """Construct a new :class:`Channel` from a single value.
 
         Args:
@@ -177,7 +178,9 @@ class Channel(metaclass=ChannelType):
                 return Channel.from_channel_name(value)
 
     @staticmethod
-    def make_simple_channel(channel_alias, channel_url, name=None):
+    def make_simple_channel(
+        channel_alias: Channel, channel_url: str, name: str | None = None
+    ) -> Channel:
         ca = channel_alias
         test_url, scheme, auth, token = split_scheme_auth_token(channel_url)
         if name and scheme:
@@ -212,7 +215,7 @@ class Channel(metaclass=ChannelType):
             )
 
     @property
-    def canonical_name(self):
+    def canonical_name(self) -> str:
         try:
             return self.__canonical_name
         except AttributeError:
@@ -252,7 +255,11 @@ class Channel(metaclass=ChannelType):
             cn = self.__canonical_name = join_url(self.location, self.name).lstrip("/")
             return cn
 
-    def urls(self, with_credentials=False, subdirs=None):
+    def urls(
+        self,
+        with_credentials: bool = False,
+        subdirs: Iterable[str] | None = None,
+    ) -> list[str]:
         if subdirs is None:
             subdirs = context.subdirs
 
@@ -267,7 +274,7 @@ class Channel(metaclass=ChannelType):
         base.append(self.name)
         base = join_url(*base)
 
-        def _platforms():
+        def _platforms() -> Iterator[str]:
             if self.platform:
                 yield self.platform
                 if self.platform != "noarch":
@@ -281,7 +288,7 @@ class Channel(metaclass=ChannelType):
         else:
             return [f"{self.scheme}://{b}" for b in bases]
 
-    def url(self, with_credentials=False):
+    def url(self, with_credentials: bool = False) -> str | None:
         if self.canonical_name == UNKNOWN_CHANNEL:
             return None
 
@@ -307,35 +314,39 @@ class Channel(metaclass=ChannelType):
             return f"{self.scheme}://{base}"
 
     @property
-    def base_url(self):
+    def base_url(self) -> str | None:
         if self.canonical_name == UNKNOWN_CHANNEL:
             return None
         return f"{self.scheme}://{join_url(self.location, self.name)}"
 
     @property
-    def base_urls(self):
+    def base_urls(self) -> tuple[str | None, ...]:
         return (self.base_url,)
 
     @property
-    def subdir_url(self):
+    def subdir_url(self) -> str:
         url = self.url(True)
         if self.package_filename and url:
             url = url.rsplit("/", 1)[0]
         return url
 
-    def __str__(self):
+    @property
+    def channels(self) -> tuple[Channel, ...]:
+        return (self,)
+
+    def __str__(self) -> str:
         base = self.base_url or self.name
         if self.subdir:
             return join_url(base, self.subdir)
         else:
             return base
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Channel("%s")' % (
             join_url(self.name, self.subdir) if self.subdir else self.name
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, Channel):
             return self.location == other.location and self.name == other.name
         else:
@@ -346,23 +357,23 @@ class Channel(metaclass=ChannelType):
                 log.debug("%r", e)
                 return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.location, self.name))
 
-    def __nonzero__(self):
+    def __nonzero__(self) -> bool:
         return any((self.location, self.name))
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.__nonzero__()
 
-    def __json__(self):
+    def __json__(self) -> dict[str, Any]:
         return self.__dict__
 
     @property
-    def url_channel_wtf(self):
+    def url_channel_wtf(self) -> tuple[str | None, str]:
         return self.base_url, self.canonical_name
 
-    def dump(self):
+    def dump(self) -> dict[str, Any]:
         return {
             "scheme": self.scheme,
             "auth": self.auth,
@@ -375,17 +386,22 @@ class Channel(metaclass=ChannelType):
 
 
 class MultiChannel(Channel):
-    def __init__(self, name, channels, platform=None):
+    def __init__(
+        self,
+        name: str,
+        channels: Iterable[Channel],
+        platform: str | None = None,
+    ):
         self.name = name
         self.location = None
 
+        # assume all channels are Channels (not MultiChannels)
         if platform:
-            self._channels = tuple(
+            channels = (
                 Channel(**{**channel.dump(), "platform": platform})
                 for channel in channels
             )
-        else:
-            self._channels = channels
+        self._channels = tuple(channels)
 
         self.scheme = None
         self.auth = None
@@ -394,39 +410,51 @@ class MultiChannel(Channel):
         self.package_filename = None
 
     @property
-    def channel_location(self):
-        return self.location
-
-    @property
-    def canonical_name(self):
+    def canonical_name(self) -> str:
         return self.name
 
-    def urls(self, with_credentials=False, subdirs=None):
-        _channels = self._channels
-        return list(
-            chain.from_iterable(c.urls(with_credentials, subdirs) for c in _channels)
-        )
+    def urls(
+        self,
+        with_credentials: bool = False,
+        subdirs: Iterable[str] | None = None,
+    ) -> list[str]:
+        return [
+            url
+            for channel in self.channels
+            for url in channel.urls(with_credentials, subdirs)
+        ]
 
     @property
-    def base_url(self):
+    def base_url(self) -> None:
         return None
 
     @property
-    def base_urls(self):
-        return tuple(c.base_url for c in self._channels)
+    def base_urls(self) -> tuple[str | None, ...]:
+        return tuple(channel.base_url for channel in self.channels)
 
-    def url(self, with_credentials=False):
+    def url(self, with_credentials: bool = False) -> None:
         return None
 
-    def dump(self):
-        return {"name": self.name, "channels": tuple(c.dump() for c in self._channels)}
+    @property
+    def channels(self) -> tuple[Channel, ...]:
+        return self._channels
+
+    def dump(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "channels": tuple(channel.dump() for channel in self.channels),
+        }
 
 
-def tokenized_startswith(test_iterable, startswith_iterable):
+def tokenized_startswith(
+    test_iterable: Iterable[Any], startswith_iterable: Iterable[Any]
+) -> bool:
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
 
 
-def tokenized_conda_url_startswith(test_url, startswith_url):
+def tokenized_conda_url_startswith(
+    test_url: Iterable[str], startswith_url: Iterable[str]
+) -> bool:
     test_url, startswith_url = urlparse(test_url), urlparse(startswith_url)
     if (
         test_url.hostname != startswith_url.hostname
@@ -439,8 +467,8 @@ def tokenized_conda_url_startswith(test_url, startswith_url):
     )
 
 
-def _get_channel_for_name(channel_name):
-    def _get_channel_for_name_helper(name):
+def _get_channel_for_name(channel_name: str) -> Channel:
+    def _get_channel_for_name_helper(name: str) -> Channel | None:
         if name in context.custom_channels:
             return context.custom_channels[name]
         else:
@@ -472,7 +500,9 @@ def _get_channel_for_name(channel_name):
         )
 
 
-def _read_channel_configuration(scheme, host, port, path):
+def _read_channel_configuration(
+    scheme: str | None, host: str | None, port: str | None, path: str | None
+) -> tuple[str | None, str | None, str | None, str | None, str | None]:
     # return location, name, scheme, auth, token
 
     path = path and path.rstrip("/")
@@ -562,7 +592,7 @@ def _read_channel_configuration(scheme, host, port, path):
     )
 
 
-def parse_conda_channel_url(url):
+def parse_conda_channel_url(url: str) -> Channel:
     (
         scheme,
         auth,
@@ -606,22 +636,38 @@ def parse_conda_channel_url(url):
 
 
 # backward compatibility for conda-build
-def get_conda_build_local_url():
+def get_conda_build_local_url() -> tuple[PathType]:
     return (context.local_build_root,)
 
 
-def prioritize_channels(channels, with_credentials=True, subdirs=None):
-    # prioritize_channels returns a dict with platform-specific channel
-    #   urls as the key, and a tuple of canonical channel name and channel priority
-    #   number as the value
-    # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
-    channels = chain.from_iterable(
-        (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
-        for c in (Channel(c) for c in channels)
-    )
+def prioritize_channels(
+    channels: Iterable[Channel | str],
+    with_credentials: bool = True,
+    subdirs: Iterable[str] | None = None,
+) -> dict[str, tuple[str, int]]:
+    """Make a dictionary of channel priorities.
+
+    Maps channel names to priorities, e.g.:
+
+    .. code-block:: pycon
+
+       >>> prioritize_channels(["conda-canary", "defaults", "conda-forge"])
+       {
+           'https://conda.anaconda.org/conda-canary/osx-arm64': ('conda-canary', 0),
+           'https://conda.anaconda.org/conda-canary/noarch': ('conda-canary', 0),
+           'https://repo.anaconda.com/pkgs/main/osx-arm64': ('defaults', 1),
+           'https://repo.anaconda.com/pkgs/main/noarch': ('defaults', 1),
+           'https://repo.anaconda.com/pkgs/r/osx-arm64': ('defaults', 2),
+           'https://repo.anaconda.com/pkgs/r/noarch': ('defaults', 2),
+           'https://conda.anaconda.org/conda-forge/osx-arm64': ('conda-forge', 3),
+           'https://conda.anaconda.org/conda-forge/noarch': ('conda-forge', 3),
+       }
+
+    Compare with ``conda.resolve.Resolve._make_channel_priorities``.
+    """
+    channels = (channel for name in channels for channel in Channel(name).channels)
     result = {}
-    for priority_counter, chn in enumerate(channels):
-        channel = Channel(chn)
+    for priority_counter, channel in enumerate(channels):
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
@@ -632,7 +678,11 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
     return result
 
 
-def all_channel_urls(channels, subdirs=None, with_credentials=True):
+def all_channel_urls(
+    channels: Iterable[str | Channel],
+    subdirs: Iterable[str] | None = None,
+    with_credentials: bool = True,
+) -> IndexedSet:
     result = IndexedSet()
     for chn in channels:
         channel = Channel(chn)
@@ -640,11 +690,11 @@ def all_channel_urls(channels, subdirs=None, with_credentials=True):
     return result
 
 
-def offline_keep(url):
+def offline_keep(url: Any) -> bool:
     return not context.offline or not is_url(url) or url.startswith("file:/")
 
 
-def get_channel_objs(ctx: Context):
+def get_channel_objs(ctx: Context) -> tuple[Channel, ...]:
     """Return current channels as Channel objects"""
     return tuple(Channel(chn) for chn in ctx.channels)
 

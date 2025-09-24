@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import re
 
 import pytest
 from requests.auth import HTTPBasicAuth
@@ -76,6 +75,6 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(CustomAuthPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting `auth_handlers` plugins found")
+        PluginError, match=r"Conflicting plugins found for `auth_handlers`"
     ):
         plugin_manager.get_auth_handler(PLUGIN_NAME)

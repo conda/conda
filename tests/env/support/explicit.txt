@@ -1,0 +1,5 @@
+# This is a comment
+@EXPLICIT
+# Some explicit packages
+https://repo.anaconda.com/pkgs/main/linux-64/_libgcc_mutex-0.1-main.conda
+https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2025.2.25-h06a4308_0.conda

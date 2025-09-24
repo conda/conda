@@ -8,9 +8,12 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+import conda.exceptions
+from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
 from conda.cli.main_config import (
     _get_key,
+    _key_exists,
     _read_rc,
     _remove_item,
     _remove_key,
@@ -18,6 +21,7 @@ from conda.cli.main_config import (
     _write_rc,
     set_keys,
 )
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
@@ -25,11 +29,12 @@ if TYPE_CHECKING:
     from typing import Any
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
+    from conda.common.configuration import Configuration
     from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
-        TmpEnvFixture,
     )
 
 
@@ -131,10 +136,9 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
     assert warnings == ["Unknown key: 'unknown'"]
 
 
-def test_config_set_key() -> None:
+def test_config_set_key(capsys) -> None:
     config: dict[str, Any] = {}
 
-    # unknown
     with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
         _set_key("unknown", None, config)
 
@@ -226,21 +230,30 @@ def test_config_remove_key() -> None:
 
 
 def test_config_read_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
     condarc.write_text("changeps1: false\nauto_stack: 5\n")
 
     assert _read_rc(path=condarc) == {"changeps1": False, "auto_stack": 5}
 
 
 def test_config_write_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
-    _write_rc(condarc, {"changeps1": False, "auto_stack": 5})
-    assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
+    _write_rc(
+        condarc,
+        {
+            "changeps1": False,
+            "auto_stack": 5,
+            "safety_checks": SafetyChecks.disabled,
+        },
+    )
+    assert condarc.read_text() == (
+        "changeps1: false\nauto_stack: 5\nsafety_checks: disabled\n"
+    )
 
 
 def test_config_set_keys(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
     set_keys(("changeps1", True), path=condarc)
     assert condarc.read_text() == "changeps1: true\n"
@@ -252,26 +265,59 @@ def test_config_set_keys(tmp_path: Path) -> None:
     assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
 
 
+def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
+
+    set_keys(("auto_activate_base", True), path=condarc)
+    assert condarc.read_text() == "auto_activate: true\n"
+
+    set_keys(("auto_activate", True), path=condarc)
+    assert condarc.read_text() == "auto_activate: true\n"
+
+    out, err, rc = conda_cli(
+        "config", "--show", "auto_activate_base", "--file", condarc
+    )
+    assert not rc
+    assert "auto_activate: True\n" == out
+
+    out, err, rc = conda_cli("config", "--get", "auto_activate_base", "--file", condarc)
+    assert not rc
+    assert "--set auto_activate True\n" == out
+
+    out, err, rc = conda_cli(
+        "config", "--describe", "auto_activate_base", "--file", condarc
+    )
+    assert not rc
+    assert "auto_activate: true" in out
+
+    out, err, rc = conda_cli(
+        "config", "--remove-key", "auto_activate_base", "--file", condarc
+    )
+    assert not rc
+
+
 def test_config_set_and_get_key_for_env(
-    tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    minimal_env: Path,
 ) -> None:
+    """
+    Ensures that setting configuration for a specific environment works as expected.
+    """
     test_channel_name = "my-super-special-channel"
-    with tmp_env() as prefix:
-        # add config to prefix
-        conda_cli(
-            "config", "--append", "channels", test_channel_name, "--prefix", prefix
-        )
+    # add config to prefix
+    conda_cli(
+        "config", "--append", "channels", test_channel_name, "--prefix", minimal_env
+    )
 
-        # check config is added to the prefix config
-        stdout, _, _ = conda_cli("config", "--show", "--prefix", prefix, "--json")
-        parsed = json.loads(stdout.strip())
-        assert test_channel_name in parsed["channels"]
+    # check config is added to the prefix config
+    stdout, _, _ = conda_cli("config", "--show", "--prefix", minimal_env, "--json")
+    parsed = json.loads(stdout.strip())
+    assert test_channel_name in parsed["channels"]
 
-        # check config is not added to the config of the base environment
-        stdout, _, _ = conda_cli("config", "--show", "--json")
-        parsed = json.loads(stdout.strip())
-        assert test_channel_name not in parsed["channels"]
+    # check config is not added to the config of the base environment
+    stdout, _, _ = conda_cli("config", "--show", "--json")
+    parsed = json.loads(stdout.strip())
+    assert test_channel_name not in parsed["channels"]
 
 
 def test_config_env_does_not_exist(
@@ -281,3 +327,201 @@ def test_config_env_does_not_exist(
         conda_cli(
             "config", "--get", "channels", "--prefix", "ireallydontexist", "--json"
         )
+
+
+@pytest.mark.parametrize("is_json", [True, False])
+def test_key_exists(monkeypatch, plugin_config, is_json):
+    """
+    Ensure that key_exists works as expected, testing both when key is present and
+    when it is not. We also use "is_json" as a parameter to get complete branch coverage.
+    """
+    MockContext, app_name = plugin_config
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+    monkeypatch.setenv(f"{app_name}_FOO", "another_value")
+    monkeypatch.setenv(f"{app_name}_JSON", "1" if is_json else "0")
+
+    mock_context = MockContext(search_path=())
+
+    assert mock_context.json == is_json
+
+    assert _key_exists("json", [], mock_context)
+    assert _key_exists("foo", [], mock_context)
+    assert _key_exists("plugins.bar", [], mock_context)
+
+    assert not _key_exists("baz", [], mock_context)
+    assert not _key_exists("plugins.baz", [], mock_context)
+
+
+def test_config_show(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    plugin_config: tuple[type[Configuration], str],
+):
+    """
+    Ensure that the config show command works as expected, testing when plugin and non-plugin
+    parameters are present.
+    """
+    mock_context, app_name = plugin_config
+    mock_context = mock_context(search_path=())
+    mocker.patch("conda.base.context.context", mock_context)
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+    monkeypatch.setenv(f"{app_name}_FOO", "test")
+
+    out, err, rc = conda_cli("config", "--show", "foo")
+
+    assert out == "foo: test\n"
+
+    out, err, rc = conda_cli("config", "--show", "plugins.bar")
+
+    assert out == ("plugins:\n  bar: test_value\n")
+
+
+def test_config_show_errors(conda_cli: CondaCLIFixture):
+    """
+    Ensure that the correct message is displayed when we attempt to show configuration
+    parameters that don't actually exist.
+    """
+    with pytest.raises(
+        conda.exceptions.ArgumentError,
+        match="Invalid configuration parameters: \n  - foo",
+    ):
+        conda_cli("config", "--show", "foo")
+
+    with pytest.raises(
+        conda.exceptions.ArgumentError,
+        match="Invalid configuration parameters: \n  - plugins.foo",
+    ):
+        conda_cli("config", "--show", "plugins.foo")
+
+
+def test_config_describe(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    plugin_config: tuple[type[Configuration], str],
+):
+    """
+    Ensure that the config describe command works as expected, testing when plugin and non-plugin
+    parameters are present.
+    """
+    mock_context, app_name = plugin_config
+    mock_context = mock_context(search_path=())
+    mocker.patch("conda.base.context.context", mock_context)
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+    monkeypatch.setenv(f"{app_name}_FOO", "test")
+
+    out, err, rc = conda_cli("config", "--describe", "foo")
+
+    expected = (
+        "# # foo (str)",
+        "# #   Test foo",
+        "# # ",
+        "# foo: ''",
+        "",
+        "",
+    )
+    assert out == "\n".join(expected)
+
+    out, err, rc = conda_cli("config", "--describe", "plugins.bar")
+
+    expected = (
+        "# # plugins.bar (str)",
+        "# #   Test plugins.bar",
+        "# # ",
+        "# plugins.bar: ''",
+        "",
+        "",
+    )
+    assert out == "\n".join(expected)
+
+    out, err, rc = conda_cli("config", "--describe", "foo", "plugins.bar")
+
+    expected = (
+        "# # foo (str)",
+        "# #   Test foo",
+        "# # ",
+        "# foo: ''",
+        "",
+        "# # plugins.bar (str)",
+        "# #   Test plugins.bar",
+        "# # ",
+        "# plugins.bar: ''",
+        "",
+        "",
+    )
+    assert out == "\n".join(expected)
+
+
+def test_config_describe_json(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    plugin_config: tuple[type[Configuration], str],
+):
+    """
+    Ensure that the config describe command works as expected, testing when plugin and non-plugin
+    parameters are present when using the --json flag.
+    """
+    mock_context, app_name = plugin_config
+    mock_context = mock_context(search_path=())
+    mocker.patch("conda.base.context.context", mock_context)
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+    monkeypatch.setenv(f"{app_name}_FOO", "test")
+
+    out, err, rc = conda_cli("config", "--describe", "foo", "--json")
+
+    json_out = json.loads(out)
+    assert json_out == [
+        {
+            "aliases": [],
+            "default_value": "",
+            "description": "Test foo",
+            "element_types": ["str"],
+            "name": "foo",
+            "parameter_type": "primitive",
+        }
+    ]
+
+    out, err, rc = conda_cli("config", "--describe", "plugins.bar", "--json")
+
+    json_out = json.loads(out)
+    assert json_out == [
+        {
+            "aliases": [],
+            "default_value": "",
+            "description": "Test plugins.bar",
+            "element_types": ["str"],
+            "name": "plugins.bar",
+            "parameter_type": "primitive",
+        }
+    ]
+
+    out, err, rc = conda_cli("config", "--describe", "foo", "plugins.bar", "--json")
+
+    json_out = json.loads(out)
+    # Sort the output to ensure consistent comparisons
+    json_out_sorted = sorted(json_out, key=lambda x: x["name"])
+
+    assert json_out_sorted == [
+        {
+            "aliases": [],
+            "default_value": "",
+            "description": "Test foo",
+            "element_types": ["str"],
+            "name": "foo",
+            "parameter_type": "primitive",
+        },
+        {
+            "aliases": [],
+            "default_value": "",
+            "description": "Test plugins.bar",
+            "element_types": ["str"],
+            "name": "plugins.bar",
+            "parameter_type": "primitive",
+        },
+    ]

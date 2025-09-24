@@ -87,12 +87,14 @@ A list of environments appears, similar to the following::
 .. tip::
    The active environment is the one with an asterisk (*).
 
-To change your current environment back to the default ``base``::
+To change your current environment back to the default one::
 
    conda activate
 
 .. tip::
-    When the environment is deactivated, its name is no longer shown in your prompt, and the asterisk (*) returns to ``base``. To verify, you can repeat the  ``conda info --envs`` command.
+    When the environment is deactivated, its name is no longer shown in your prompt,
+    and the asterisk (*) returns to the default env. To verify, you can repeat the
+    ``conda info --envs`` command.
 
 Installing packages
 ===================
