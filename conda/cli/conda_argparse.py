@@ -7,14 +7,13 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from argparse import (
-    SUPPRESS,
-    RawDescriptionHelpFormatter,
-)
+from argparse import SUPPRESS, ArgumentError
 from argparse import ArgumentParser as ArgumentParserBase
+from argparse import RawDescriptionHelpFormatter as RawDescriptionHelpFormatterBase
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
+from typing import TYPE_CHECKING
 
 from .. import __version__
 from ..auxlib.ish import dals
@@ -65,6 +64,10 @@ from .main_rename import configure_parser as configure_parser_rename
 from .main_run import configure_parser as configure_parser_run
 from .main_search import configure_parser as configure_parser_search
 from .main_update import configure_parser as configure_parser_update
+
+if TYPE_CHECKING:
+    from argparse import _Action
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -213,6 +216,17 @@ def find_builtin_commands(parser):
     return tuple(parser._subparsers._group_actions[0].choices.keys())
 
 
+class RawDescriptionHelpFormatter(RawDescriptionHelpFormatterBase):
+    def _split_lines(self, text: str, width: int) -> list[str]:
+        # preserve newlines and wrap each paragraph separately
+        split_lines = super()._split_lines
+        return [
+            line
+            for paragraph in text.splitlines()
+            for line in split_lines(paragraph, width)
+        ]
+
+
 class ArgumentParser(ArgumentParserBase):
     def __init__(self, *args, add_help=True, **kwargs):
         kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
@@ -227,12 +241,33 @@ class ArgumentParser(ArgumentParserBase):
             action.choices, dict
         ):
             action.choices = dict(sorted(action.choices.items()))
+
+        # derived from argparse.ArgumentParser._check_value with improved choice quoting
+        choices = action.choices
+        if choices is None:
+            # no choices specified, nothing to check
+            return
+        if isinstance(choices, str):
+            choices = tuple(choices)
+
+        def check_value(action: _Action, value: Any) -> None:
+            # converted value must be one of the choices
+            if value not in choices:
+                from gettext import gettext as _
+
+                args = {
+                    "value": str(value),
+                    "choices": ", ".join(f"'{choice}'" for choice in action.choices),
+                }
+                msg = _("invalid choice: %(value)r (choose from %(choices)s)")
+                raise ArgumentError(action, msg % args)
+
         # extend to properly handle when we accept multiple choices and the default is a list
-        if action.choices is not None and isiterable(value):
+        if isiterable(value):
             for element in value:
-                super()._check_value(action, element)
+                check_value(action, element)
         else:
-            super()._check_value(action, value)
+            check_value(action, value)
 
     def parse_args(self, *args, override_args=None, **kwargs):
         parsed_args = super().parse_args(*args, **kwargs)

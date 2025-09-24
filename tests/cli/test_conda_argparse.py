@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-import sys
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -18,6 +17,8 @@ from conda.cli.conda_argparse import (
 
 if TYPE_CHECKING:
     from typing import Any, Callable
+
+    from pytest import CaptureFixture
 
     from conda.testing.fixtures import CondaCLIFixture
 
@@ -99,7 +100,7 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
     assert validate(getattr(module, attr))
 
 
-def test_sorted_commands_in_error(capsys):
+def test_sorted_commands_in_error(capsys: CaptureFixture):
     p = ArgumentParser()
     sp = p.add_subparsers(
         metavar="COMMAND",
@@ -116,18 +117,6 @@ def test_sorted_commands_in_error(capsys):
     except SystemExit:
         stderr = capsys.readouterr().err
         # ...but the suggestions here are sorted
-
-        # Linux Python 3.12.3 and possibly other 3.12 builds appear to use the
-        # quoted style:
-        old_style = "invalid choice: 'd' (choose from 'a', 'b', 'c')"
-        new_style = "invalid choice: 'd' (choose from a, b, c)"
-
-        if sys.version_info < (3, 12):
-            # FUTURE: Python 3.12+: remove this test case
-            assert old_style in stderr
-        elif sys.version_info[:2] == (3, 12):
-            assert old_style in stderr or new_style in stderr
-        else:
-            assert new_style in stderr
+        assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in stderr
     else:
         pytest.fail("Did not raise")

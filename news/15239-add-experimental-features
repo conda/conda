@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add `conda.cli.actions.LazyMixin` to support lazy evaluated fields for ArgumentParser arguments. (#15244)
+* Add `conda.plugins.types.CondaExperiementalFeature` plugin type allowing downstream packages to extend the experimental feature selection that can be toggled via `--experimental`. (#15239 via #15244)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.cli.helpers.LazyChoicesAction` as pending deprecation, to remove in 26.9. Use `conda.cli.actions.LazyStoreAction` instead. (#15244)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

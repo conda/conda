@@ -522,3 +522,19 @@ class CondaEnvironmentExporter(CondaPlugin):
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+
+@dataclass
+class CondaExperimentalFeature(CondaPlugin):
+    """
+    Return the name of an experimental feature that needs to be supported by the `--experimental` flag.
+
+    :param name: name of the feature (e.g., ``experimental-feature``)
+    :param help: help text for the feature
+    """
+
+    name: str
+    help: str
+
+    def __str__(self):
+        return f"{self.name}: {self.help}"

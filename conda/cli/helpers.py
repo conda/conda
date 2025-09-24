@@ -16,10 +16,14 @@ from argparse import (
 )
 from typing import TYPE_CHECKING
 
+from ..deprecations import deprecated
+from .actions import LazyAppendAction, LazyStoreAction
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
 
+@deprecated("26.3", "26.9", addendum="Use `conda.cli.actions.LazyStoreAction` instead.")
 class LazyChoicesAction(Action):
     def __init__(self, option_strings, dest, choices_func, **kwargs):
         self.choices_func = choices_func
@@ -251,6 +255,7 @@ def add_parser_frozen_env(p: ArgumentParser):
 
 
 def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
+    from ..base.context import context
     from ..common.constants import NULL
 
     channel_customization_options = p.add_argument_group("Channel Customization")
@@ -299,10 +304,14 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     )
     channel_customization_options.add_argument(
         "--experimental",
-        action="append",
-        choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        action=LazyAppendAction,
+        choices=lambda: sorted(context.plugin_manager.get_experimental_features()),
+        help=lambda: "\n".join(
+            str(feature)
+            for _, feature in sorted(
+                context.plugin_manager.get_experimental_features().items()
+            )
+        ),
     )
     channel_customization_options.add_argument(
         "--no-lock",
@@ -456,8 +465,8 @@ def add_parser_solver(p: ArgumentParser) -> None:
     group.add_argument(
         "--solver",
         dest="solver",
-        action=LazyChoicesAction,
-        choices_func=context.plugin_manager.get_solvers,
+        action=LazyStoreAction,
+        choices=lambda: sorted(context.plugin_manager.get_solvers()),
         help="Choose which solver backend to use.",
         default=NULL,
     )
@@ -620,8 +629,8 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
-        action=LazyChoicesAction,
-        choices_func=context.plugin_manager.get_environment_specifiers,
+        action=LazyStoreAction,
+        choices=lambda: sorted(context.plugin_manager.get_environment_specifiers()),
         default=NULL,
         help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
     )
