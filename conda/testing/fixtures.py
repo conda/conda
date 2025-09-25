@@ -143,7 +143,6 @@ def temp_package_cache(tmp_path_factory, monkeypatch: MonkeyPatch) -> Iterator[P
 )
 def parametrized_solver_fixture(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["libmamba", "classic"]]:
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
@@ -167,23 +166,21 @@ def parametrized_solver_fixture(
                 pytest.skip("...")
             ...
     """
-    yield from _solver_helper(request, monkeypatch, request.param)
+    yield from _solver_helper(request, request.param)
 
 
 @pytest.fixture
 def solver_classic(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["classic"]]:
-    yield from _solver_helper(request, monkeypatch, "classic")
+    yield from _solver_helper(request, "classic")
 
 
 @pytest.fixture
 def solver_libmamba(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["libmamba"]]:
-    yield from _solver_helper(request, monkeypatch, "libmamba")
+    yield from _solver_helper(request, "libmamba")
 
 
 Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
