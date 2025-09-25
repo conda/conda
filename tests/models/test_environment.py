@@ -590,6 +590,10 @@ def test_extrapolate(tmp_env: TmpEnvFixture):
         for platform in platforms:
             extrapolated = env.extrapolate(platform)
 
+            if platform == env.platform:
+                assert env is extrapolated
+                continue
+
             # assert the package with no dependents is the requested package
             package = list(PrefixGraph(extrapolated.explicit_packages).records)[-1]
             assert package.name == package_name
