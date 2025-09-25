@@ -20,7 +20,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
 @cache
-def get_conda_build_record_set(monkeypatch: MonkeyPatch, tmpdir):
+def get_conda_build_record_set(tmpdir):
     specs = (
         MatchSpec("conda"),
         MatchSpec("conda-build"),
