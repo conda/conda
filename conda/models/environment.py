@@ -566,7 +566,7 @@ class Environment:
             with repodata_manager as repodata_fn:
                 solver = solver_backend(
                     prefix=prefix,
-                    channels=context.channels,
+                    channels=self.config.channels,
                     subdirs=(platform, "noarch"),
                     specs_to_add=requested_packages,
                     repodata_fn=repodata_fn,
