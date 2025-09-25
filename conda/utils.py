@@ -17,8 +17,41 @@ from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
+from .deprecations import deprecated
 
 log = logging.getLogger(__name__)
+
+
+@deprecated(
+    "25.3",
+    "26.3",
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
+def unix_path_to_win(path, root_prefix=""):
+    """Convert a path or :-separated string of paths into a Windows representation
+    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+    """
+    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
+        # already a windows path
+        return path.replace("/", "\\")
+    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
+
+    def _translation(found_path):
+        group = found_path.group(0)
+        return "{}:{}".format(
+            group[len(root_prefix) + 1],
+            group[len(root_prefix) + 2 :].replace("/", "\\"),
+        )
+
+    translation = re.sub(path_re, _translation, path)
+    translation = re.sub(
+        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
+    )
+    return translation
+
+
+deprecated.constant("25.3", "26.3", "unix_path_to_win", unix_path_to_win)
+del unix_path_to_win
 
 
 def human_bytes(n):

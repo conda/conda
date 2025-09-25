@@ -12,6 +12,7 @@ from pytest import MonkeyPatch, raises
 from conda.auxlib.ish import dals
 from conda.common.compat import on_win
 from conda.common.configuration import (
+    DEFAULT_CONDARC_FILENAME,
     Configuration,
     ConfigurationObject,
     CustomValidationError,
@@ -452,7 +453,7 @@ def test_env_var_config_empty_sequence():
 
 
 def test_load_raw_configs(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
     condarcd = tmp_path / "condarc.d"
     f1 = condarcd / "file1.yml"
     f2 = condarcd / "file2.yml"

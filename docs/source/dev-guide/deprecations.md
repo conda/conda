@@ -1,4 +1,4 @@
-[cep9]: https://github.com/conda-incubator/ceps/blob/main/cep-9.md
+[cep9]: https://github.com/conda/ceps/blob/main/cep-0009.md
 
 # Deprecations
 

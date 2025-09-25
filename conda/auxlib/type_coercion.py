@@ -6,7 +6,7 @@ from re import IGNORECASE, compile
 from enum import Enum
 
 from ..deprecations import deprecated
-from .compat import isiterable
+from ..common.compat import isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 

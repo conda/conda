@@ -24,7 +24,6 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.serialize import json
 from ..common.url import join_url
-from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
@@ -736,19 +735,3 @@ class SubdirData(metaclass=SubdirDataType):
         if with_credentials:
             return self.url_w_credentials
         return self.url_w_subdir
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
-)
-def make_feature_record(feature_name: str) -> PackageRecord:
-    """
-    Create a feature record based on the given feature name.
-
-    :param feature_name: The name of the feature
-    :return: The created PackageRecord for the feature.
-    """
-    # necessary for the SAT solver to do the right thing with features
-    return PackageRecord.feature(feature_name)
