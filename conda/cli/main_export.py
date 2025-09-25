@@ -172,7 +172,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     # If user requested multiple platforms, we need an exporter that supports it
-    if context.export_platforms and not environment_exporter.multiplatform_export:
+    if (
+        len(context.export_platforms) > 1
+        and not environment_exporter.multiplatform_export
+    ):
         raise CondaValueError(
             f"Multiple platforms are not supported for the `{environment_exporter.name}` exporter"
         )
@@ -191,13 +194,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
 
     # Export using the appropriate method
+    envs = [env.extrapolate(platform) for platform in context.export_platforms]
     if environment_exporter.multiplatform_export:
-        exported_content = environment_exporter.multiplatform_export(
-            env,
-            [env.extrapolate(platform) for platform in context.export_platforms],
-        )
+        exported_content = environment_exporter.multiplatform_export(envs)
     elif environment_exporter.export:
-        exported_content = environment_exporter.export(env)
+        exported_content = environment_exporter.export(envs[0])
     else:
         raise CondaValueError(
             f"No export method found for {environment_exporter.name} exporter"

@@ -532,7 +532,7 @@ def test_multi_platform_export(
     assert exporter is not None
     assert isinstance(exporter, CondaEnvironmentExporter)
     assert exporter.multiplatform_export == Exporters.multi_platform_export
-    result = exporter.multiplatform_export(test_env, [test_env])
+    result = exporter.multiplatform_export([test_env, test_env])
     first, text = result.strip().split("\n", 1)
     assert first == "# This is a multi-platform export"
     parsed = yaml_safe_load(text)

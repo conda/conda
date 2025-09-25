@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 def test_export(conda_cli: CondaCLIFixture) -> None:
     """Test default export behavior - should export as YAML to stdout."""
     name = uuid.uuid4().hex
-    assert not context.export_platforms
+    assert context.export_platforms == (context.subdir,)
     stdout, stderr, code = conda_cli("export", f"--name={name}")
     assert not stderr
     assert not code
@@ -870,5 +870,37 @@ def test_export_multiple_platforms(
     # Verify the output is valid YAML
     yaml_data = yaml_safe_load(output.read_text())
     assert yaml_data["name"] == name
-    platforms = list(dict.fromkeys([context.subdir, *platforms]))
     assert yaml_data["multi-platforms"] == platforms
+
+
+def test_export_single_platform_different_platform(
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    # pick a platform that is not the current platform
+    platform = ({"linux-64", "osx-arm64"} - {context.subdir}).pop()
+    assert platform != context.subdir
+
+    # export for a different platform
+    name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        "--override-platforms",
+        f"--platform={platform}",
+        "--format=test-single-platform",
+        f"--file={output}",
+    )
+    assert "Collecting package metadata" in stdout
+    assert not stderr
+    assert not code
+
+    # verify the output is valid YAML
+    yaml_data = yaml_safe_load(output.read_text())
+    from pprint import pprint
+
+    pprint(yaml_data)
+    assert yaml_data["name"] == name
+    assert yaml_data["single-platform"] == platform

@@ -167,15 +167,12 @@ class Exporters:
         )
 
     @staticmethod
-    def multi_platform_export(
-        env: Environment,
-        envs: Iterable[Environment],
-    ) -> str:
-        envs = [env, *envs]
+    def multi_platform_export(envs: Iterable[Environment]) -> str:
+        envs = tuple(envs)
         return "\n".join(
             (
                 "# This is a multi-platform export",
-                f"name: {env.name}",
+                f"name: {envs[0].name}",
                 "multi-platforms:",
                 *(f"  - {env.platform}" for env in envs),
                 "packages:",

@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     ]
 
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
-    MultiPlatformEnvironmentExport = Callable[[Environment, Iterable[Environment]], str]
+    MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
 
 @dataclass
