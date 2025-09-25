@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
 from ..base.constants import REPODATA_FN
-from ..base.context import context, reset_context
+from ..base.context import context
 from ..common.io import captured as common_io_captured
 from ..common.serialize import json
 from ..core.prefix_data import PrefixData
@@ -557,20 +557,18 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", str(add_pip).lower())
-    reset_context()
-
-    with patch.object(History, "get_requested_specs_map", return_value=spec_map):
-        # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-        # get_index_r_*) to cover solver logics that need to load from disk instead of
-        # hitting the SubdirData cache
-        yield context.plugin_manager.get_solver_backend()(
-            tmpdir,
-            channels,
-            subdirs,
-            specs_to_add=specs_to_add,
-            specs_to_remove=specs_to_remove,
-        )
+    with context._override("add_pip_as_python_dependency", add_pip):
+        with patch.object(History, "get_requested_specs_map", return_value=spec_map):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
+            # get_index_r_*) to cover solver logics that need to load from disk instead of
+            # hitting the SubdirData cache
+            yield context.plugin_manager.get_solver_backend()(
+                tmpdir,
+                channels,
+                subdirs,
+                specs_to_add=specs_to_add,
+                specs_to_remove=specs_to_remove,
+            )
 
 
 @contextmanager
