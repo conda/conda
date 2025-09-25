@@ -167,7 +167,7 @@ def parametrized_solver_fixture(
                 pytest.skip("...")
             ...
     """
-    yield from _solver_helper(request, request.param)
+    yield from _solver_helper(request, monkeypatch, request.param)
 
 
 @pytest.fixture
@@ -175,7 +175,7 @@ def solver_classic(
     request: FixtureRequest,
     monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["classic"]]:
-    yield from _solver_helper(request, "classic")
+    yield from _solver_helper(request, monkeypatch, "classic")
 
 
 @pytest.fixture
@@ -183,7 +183,7 @@ def solver_libmamba(
     request: FixtureRequest,
     monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["libmamba"]]:
-    yield from _solver_helper(request, "libmamba")
+    yield from _solver_helper(request, monkeypatch, "libmamba")
 
 
 Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
