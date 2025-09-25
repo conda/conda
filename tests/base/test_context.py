@@ -858,16 +858,3 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
         )
     )
     assert context.export_platforms == remove_subdir("linux-32")
-
-
-# test that context._override() works correctly with reset_context()
-# // debug, don't merge
-def test_context_override_with_reset(monkeypatch):
-    from conda.base.context import context, reset_context
-
-    with context._override("add_pip_as_python_dependency", False):
-        assert context.add_pip_as_python_dependency is False
-        monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "True")
-        reset_context()
-        # will likely fail?
-        assert context.add_pip_as_python_dependency is False
