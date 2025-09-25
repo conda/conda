@@ -78,6 +78,10 @@
 @IF "%_INSTALLER_TYPE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
+@IF "%_INSTALLER_TYPE%"!="miniconda" @IF "%_INSTALLER_TYPE%"!="miniforge" (
+    @ECHO Error: invalid choice '%_INSTALLER_TYPE%'. Please run again and choose 1 or 2. 1>&2
+    @EXIT /B 1
+)
 :SKIP_PROMPT
 
 :: fallback to default values if not set

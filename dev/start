@@ -162,6 +162,9 @@ if [ -z "${_INSTALLER_TYPE}" ]; then
     case "${_INSTALLER_TYPE}" in
         1|"") _INSTALLER_TYPE="miniconda" ;;
         2) _INSTALLER_TYPE="miniforge" ;;
+        *)
+            echo "Error: invalid choice '${_INSTALLER_TYPE}'. Please run again and choose 1 or 2." >&2
+            return 1
     esac
 fi
 
