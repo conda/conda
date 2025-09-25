@@ -191,18 +191,16 @@ Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
 
 def _solver_helper(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
     solver: Solver,
 ) -> Iterable[Solver]:
     # clear cached solver backends before & after each test
     context.plugin_manager.get_cached_solver_backend.cache_clear()
     request.addfinalizer(context.plugin_manager.get_cached_solver_backend.cache_clear)
 
-    monkeypatch.setenv("CONDA_SOLVER", solver)
-    reset_context()
-    assert context.solver == solver
+    with context._override("solver", solver):
+        assert context.solver == solver
 
-    yield solver
+        yield solver
 
 
 @pytest.fixture(scope="session")
