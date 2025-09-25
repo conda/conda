@@ -587,7 +587,7 @@ def test_extrapolate(tmp_env: TmpEnvFixture):
     with tmp_env(f"{package_name}=={package_version}") as prefix:
         assert PrefixData(prefix).get(package_name).version == package_version
         env = Environment.from_prefix(prefix, None, context.subdir)
-        for platform in platforms - {context.subdir}:
+        for platform in platforms:
             extrapolated = env.extrapolate(platform)
 
             # assert the package with no dependents is the requested package
@@ -596,7 +596,7 @@ def test_extrapolate(tmp_env: TmpEnvFixture):
             assert package.version == package_version
 
             # assert the extrapolated environment is as expected
-            assert extrapolated.prefix == f"{prefix}/conda-meta/{platform}"
+            assert extrapolated.prefix == prefix
             assert extrapolated.platform == platform
             assert extrapolated.config == env.config
             assert extrapolated.external_packages == env.external_packages
