@@ -9,12 +9,8 @@ import functools
 import pathlib
 import time
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING
 
 import pytest
-
-if TYPE_CHECKING:
-    from pytest import MonkeyPatch
 
 from ..base.context import context
 from ..common.serialize import json
@@ -31,11 +27,11 @@ from . import helpers
 
 
 @functools.cache
-def index_packages(monkeypatch: MonkeyPatch, num):
+def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
     get_index = getattr(helpers, f"get_index_r_{num}")
-    index, _ = get_index(monkeypatch, context.subdir)
+    index, _ = get_index(context.subdir)
     return list(index.values())
 
 
@@ -241,12 +237,12 @@ class SolverTests:
                 == entries
             )
 
-    def test_empty(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_empty(self, env):
+        env.repo_packages = index_packages(1)
         assert env.install() == set()
 
-    def test_iopro_mkl(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_iopro_mkl(self, env):
+        env.repo_packages = index_packages(1)
         assert env.install("iopro 1.4*", "python 2.7*", "numpy 1.7*") == {
             "test::iopro-1.4.3-np17py27_p0",
             "test::numpy-1.7.1-py27_0",
@@ -262,8 +258,8 @@ class SolverTests:
             "test::pip-1.3.1-py27_1",
         }
 
-    def test_iopro_nomkl(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_iopro_nomkl(self, env):
+        env.repo_packages = index_packages(1)
         assert env.install(
             "iopro 1.4*", "python 2.7*", "numpy 1.7*", MatchSpec(track_features="mkl")
         ) == {
@@ -282,20 +278,20 @@ class SolverTests:
             "test::pip-1.3.1-py27_1",
         }
 
-    def test_mkl(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_mkl(self, env):
+        env.repo_packages = index_packages(1)
         assert env.install("mkl") == env.install(
             "mkl 11*", MatchSpec(track_features="mkl")
         )
 
-    def test_accelerate(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_accelerate(self, env):
+        env.repo_packages = index_packages(1)
         assert env.install("accelerate") == env.install(
             "accelerate", MatchSpec(track_features="mkl")
         )
 
-    def test_scipy_mkl(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_scipy_mkl(self, env):
+        env.repo_packages = index_packages(1)
         records = env.install(
             "scipy",
             "python 2.7*",
@@ -311,14 +307,14 @@ class SolverTests:
         assert "test::numpy-1.7.1-py27_p0" in package_string_set(records)
         assert "test::scipy-0.12.0-np17py27_p0" in package_string_set(records)
 
-    def test_anaconda_nomkl(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_anaconda_nomkl(self, env):
+        env.repo_packages = index_packages(1)
         records = env.install("anaconda 1.5.0", "python 2.7*", "numpy 1.7*")
         assert len(records) == 107
         assert "test::scipy-0.12.0-np17py27_0" in records
 
-    def test_pseudo_boolean(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_pseudo_boolean(self, env):
+        env.repo_packages = index_packages(1)
         # The latest version of iopro, 1.5.0, was not built against numpy 1.5
         assert env.install("iopro", "python 2.7*", "numpy 1.5*") == {
             "test::iopro-1.4.3-np15py27_p0",
@@ -352,8 +348,8 @@ class SolverTests:
             "test::pip-1.3.1-py27_1",
         }
 
-    def test_unsat_from_r1(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_unsat_from_r1(self, env):
+        env.repo_packages = index_packages(1)
 
         with pytest.raises(UnsatisfiableError) as exc_info:
             env.install("numpy 1.5*", "scipy 0.12.0b1")
@@ -400,8 +396,8 @@ class SolverTests:
             ],
         )
 
-    def test_get_dists(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_get_dists(self, env):
+        env.repo_packages = index_packages(1)
         records = env.install("anaconda 1.4.0")
         assert "test::anaconda-1.4.0-np17py33_0" in records
         assert "test::freetype-2.4.10-0" in records
@@ -606,8 +602,8 @@ class SolverTests:
         with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
             env.install("numpy 1.5")
 
-    def test_timestamps_and_deps(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1) + [
+    def test_timestamps_and_deps(self, env):
+        env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="mypackage",
                 version="1.0",
@@ -646,8 +642,8 @@ class SolverTests:
         # even though it has a lower timestamp
         assert env.install("mypackage") == records_15
 
-    def test_nonexistent_deps(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1) + [
+    def test_nonexistent_deps(self, env):
+        env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="mypackage",
                 version="1.0",
@@ -716,7 +712,7 @@ class SolverTests:
         time.sleep(1)
 
         # This time, the latest version is messed up
-        env.repo_packages = index_packages(monkeypatch, 1) + [
+        env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="mypackage",
                 version="1.0",
@@ -788,8 +784,8 @@ class SolverTests:
             "test::pip-1.3.1-py33_1",
         }
 
-    def test_install_package_with_feature(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1) + [
+    def test_install_package_with_feature(self, env):
+        env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="mypackage",
                 version="1.0",
@@ -806,16 +802,14 @@ class SolverTests:
         # should not raise
         env.install("mypackage", "feature 1.0")
 
-    def test_unintentional_feature_downgrade(self, env, monkeypatch):
+    def test_unintentional_feature_downgrade(self, env):
         # See https://github.com/conda/conda/issues/6765
         # With the bug in place, this bad build of scipy
         # will be selected for install instead of a later
         # build of scipy 0.11.0.
         good_rec_match = MatchSpec("channel-1::scipy==0.11.0=np17py33_3")
         good_rec = next(
-            prec
-            for prec in index_packages(monkeypatch, 1)
-            if good_rec_match.match(prec)
+            prec for prec in index_packages(1) if good_rec_match.match(prec)
         )
         bad_deps = tuple(d for d in good_rec.depends if not d.startswith("numpy"))
         bad_rec = PackageRecord.from_objects(
@@ -828,13 +822,13 @@ class SolverTests:
             url=good_rec.url.replace("_3", "_x0"),
         )
 
-        env.repo_packages = index_packages(monkeypatch, 1) + [bad_rec]
+        env.repo_packages = index_packages(1) + [bad_rec]
         records = env.install("scipy 0.11.0")
         assert "test::scipy-0.11.0-np17py33_x0" not in records
         assert "test::scipy-0.11.0-np17py33_3" in records
 
-    def test_circular_dependencies(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1) + [
+    def test_circular_dependencies(self, env):
+        env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="package1",
                 depends=["package2"],
@@ -850,8 +844,8 @@ class SolverTests:
             == env.install("package2")
         )
 
-    def test_irrational_version(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_irrational_version(self, env):
+        env.repo_packages = index_packages(1)
         assert env.install("pytz 2012d", "python 3*") == {
             "test::distribute-0.6.36-py33_1",
             "test::openssl-1.0.1c-0",
@@ -865,8 +859,8 @@ class SolverTests:
             "test::zlib-1.2.7-0",
         }
 
-    def test_no_features(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_no_features(self, env):
+        env.repo_packages = index_packages(1)
 
         assert env.install("python 2.6*", "numpy 1.6*", "scipy 0.11*") == {
             "test::distribute-0.6.36-py26_1",
@@ -965,7 +959,7 @@ class SolverTests:
         #      the other tests but no luck.
         env.repo_packages = {}
         env.repo_packages["channel-A"] = []
-        env.repo_packages["channel-1"] = index_packages(monkeypatch, 1)
+        env.repo_packages["channel-1"] = index_packages(1)
 
         pandas_0 = self.find_package(
             channel="channel-1",
@@ -1060,8 +1054,8 @@ class SolverTests:
         reason="There is some weird global state making "
         "this test fail when the whole test suite is run"
     )
-    def test_remove(self, env, monkeypatch):
-        env.repo_packages = index_packages(monkeypatch, 1)
+    def test_remove(self, env):
+        env.repo_packages = index_packages(1)
         records = env.install("pandas", "python 2.7*", as_specs=True)
         assert package_string_set(records) == {
             "test::dateutil-2.1-py27_1",
