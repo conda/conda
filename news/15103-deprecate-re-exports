@@ -1,0 +1,35 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark re-exports from `conda.plugins.types` in `conda.plugins` as pending deprecation, to be removed in 26.9. Import from `conda.plugins.types` instead:
+  * `conda.plugins.CondaAuthHandler` → `conda.plugins.types.CondaAuthHandler`
+  * `conda.plugins.CondaEnvironmentSpecifier` → `conda.plugins.types.CondaEnvironmentSpecifier`
+  * `conda.plugins.CondaHealthCheck` → `conda.plugins.types.CondaHealthCheck`
+  * `conda.plugins.CondaPostCommand` → `conda.plugins.types.CondaPostCommand`
+  * `conda.plugins.CondaPostSolve` → `conda.plugins.types.CondaPostSolve`
+  * `conda.plugins.CondaPostTransactionAction` → `conda.plugins.types.CondaPostTransactionAction`
+  * `conda.plugins.CondaPreCommand` → `conda.plugins.types.CondaPreCommand`
+  * `conda.plugins.CondaPrefixDataLoader` → `conda.plugins.types.CondaPrefixDataLoader`
+  * `conda.plugins.CondaPreSolve` → `conda.plugins.types.CondaPreSolve`
+  * `conda.plugins.CondaPreTransactionAction` → `conda.plugins.types.CondaPreTransactionAction`
+  * `conda.plugins.CondaReporterBackend` → `conda.plugins.types.CondaReporterBackend`
+  * `conda.plugins.CondaRequestHeader` → `conda.plugins.types.CondaRequestHeader`
+  * `conda.plugins.CondaSetting` → `conda.plugins.types.CondaSetting`
+  * `conda.plugins.CondaSolver` → `conda.plugins.types.CondaSolver`
+  * `conda.plugins.CondaSubcommand` → `conda.plugins.types.CondaSubcommand`
+  * `conda.plugins.CondaVirtualPackage` → `conda.plugins.types.CondaVirtualPackage`
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

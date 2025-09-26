@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import pickle
 from collections import UserList, defaultdict
 from functools import partial
@@ -23,8 +22,8 @@ from ..base.context import context
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
+from ..common.serialize import json
 from ..common.url import join_url
-from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
@@ -41,6 +40,9 @@ from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
+    from typing import Any, Self
+
     from ..gateways.repodata import RepodataCache, RepoInterface
 
 log = getLogger(__name__)
@@ -51,7 +53,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 
 class SubdirDataType(type):
-    def __call__(cls, channel, repodata_fn=REPODATA_FN):
+    def __call__(cls, channel: Channel, repodata_fn: str = REPODATA_FN) -> SubdirData:
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
@@ -77,9 +79,30 @@ class SubdirDataType(type):
 
 
 class PackageRecordList(UserList):
-    """Lazily convert dicts to PackageRecord."""
+    """
+    Lazily convert dicts to PackageRecord.
 
-    def __getitem__(self, i):
+    This class inherits from the built-in UserList class and provides a way to lazily convert
+    dictionaries to PackageRecord objects. It overrides the __getitem__ method to check if the
+    item at the given index is a PackageRecord object. If not, it converts the dictionary to a
+    PackageRecord object and stores it in the data list.
+
+    :param data: The list of items
+    """
+
+    def __getitem__(self, i: int) -> PackageRecord:
+        """
+        Returns the PackageRecord at index i. If i is a slice, returns a new instance of
+        PackageRecordList containing the PackageRecords at the indices in i. If the PackageRecord
+        at index i is not already an instance of PackageRecord, it is converted to one and stored
+        back in the data list.
+
+        :param i: An integer or slice object indicating the index or indices of the
+                  PackageRecord(s) to be returned.
+        :return: If i is a slice, returns a new instance of PackageRecordList containing the
+                 PackageRecords at the indices in i. If i is an integer, returns the PackageRecord
+                 at index i.
+        """
         if isinstance(i, slice):
             return self.__class__(self.data[i])
         else:
@@ -91,10 +114,29 @@ class PackageRecordList(UserList):
 
 
 class SubdirData(metaclass=SubdirDataType):
-    _cache_ = {}
+    """
+    A class representing the SubdirData.
+
+    This class provides functionality for managing and caching SubdirData instances.
+
+    :param channel: The channel object
+    :param repodata_fn: The name of the repodata file. Defaults to REPODATA_FN
+    :return: A SubdirData instance.
+    """
+
+    _cache_: dict[tuple[str, str], PackageRecordList | SubdirData] = {}
 
     @classmethod
-    def clear_cached_local_channel_data(cls, exclude_file=True):
+    def clear_cached_local_channel_data(cls, exclude_file: bool = True) -> None:
+        """
+        Clear the cached local channel data.
+
+        This method is used to clear the cached local channel data. It is primarily used during
+        unit tests to handle changes in the CONDA_USE_ONLY_TAR_BZ2 environment variable during the
+        process lifetime.
+
+        :param exclude_file: A flag indicating whether to exclude file:// URLs from the cache.
+        """
         # This should only ever be needed during unit tests, when
         # CONDA_USE_ONLY_TAR_BZ2 may change during process lifetime.
         if exclude_file:
@@ -106,13 +148,27 @@ class SubdirData(metaclass=SubdirDataType):
 
     @staticmethod
     def query_all(
-        package_ref_or_match_spec, channels=None, subdirs=None, repodata_fn=REPODATA_FN
-    ):
+        package_ref_or_match_spec: MatchSpec | str,
+        channels: Iterable[Channel | str] | None = None,
+        subdirs: Iterable[str] | None = None,
+        repodata_fn: str = REPODATA_FN,
+    ) -> tuple[PackageRecord, ...]:
+        """
+        Execute a query against all repodata instances in the channel/subdir
+        matrix.
+
+        :param package_ref_or_match_spec: A `MatchSpec` query object.  A `str`
+            will be turned into a      `MatchSpec` automatically.
+        :param channels: An iterable of urls for channels or `Channel` objects.
+            If None, will fall back to `context.channels`.
+        :param subdirs: If None, will fall back to context.subdirs.
+        :param repodata_fn: The filename of the repodata.
+        :return: A tuple of `PackageRecord` objects.
+        """
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
             channels = context.channels
-            # TODO: Raise if 'channels' is empty?
         if subdirs is None:
             subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
@@ -126,7 +182,13 @@ class SubdirData(metaclass=SubdirDataType):
                 )
             channel_urls = IndexedSet(grouped_urls.get(True, ()))
 
-        def subdir_query(url):
+        def subdir_query(url: str) -> tuple[PackageRecord, ...]:
+            """
+            Queries the SubdirData for a given URL and returns a tuple of PackageRecord objects.
+
+            :param url: The URL of the SubdirData to query.
+            :return: A tuple of PackageRecord objects representing the query results.
+            """
             return tuple(
                 SubdirData(Channel(url), repodata_fn=repodata_fn).query(
                     package_ref_or_match_spec
@@ -147,7 +209,15 @@ class SubdirData(metaclass=SubdirDataType):
             )
         return result
 
-    def query(self, package_ref_or_match_spec):
+    def query(
+        self, package_ref_or_match_spec: str | MatchSpec
+    ) -> Iterator[PackageRecord]:
+        """
+        A function that queries for a specific package reference or MatchSpec object.
+
+        :param package_ref_or_match_spec: The package reference or MatchSpec object to query.
+        :yields: PackageRecord objects.
+        """
         if not self._loaded:
             self.load()
         param = package_ref_or_match_spec
@@ -170,8 +240,18 @@ class SubdirData(metaclass=SubdirDataType):
                     yield prec
 
     def __init__(
-        self, channel, repodata_fn=REPODATA_FN, RepoInterface=CondaRepoInterface
+        self,
+        channel: Channel,
+        repodata_fn: str = REPODATA_FN,
+        RepoInterface: type[RepoInterface] = CondaRepoInterface,
     ):
+        """
+        Initializes a new instance of the SubdirData class.
+
+        :param channel: The channel object.
+        :param repodata_fn: The repodata filename.
+        :param RepoInterface: The RepoInterface class.
+        """
         assert channel.subdir
         # metaclass __init__ asserts no package_filename
         if channel.package_filename:  # pragma: no cover
@@ -200,6 +280,9 @@ class SubdirData(metaclass=SubdirDataType):
 
     @property
     def repo_cache(self) -> RepodataCache:
+        """
+        Returns the `RepodataCache` object associated with the current instance of `SubdirData`.
+        """
         return self.repo_fetch.repo_cache
 
     @property
@@ -216,31 +299,56 @@ class SubdirData(metaclass=SubdirDataType):
             repo_interface_cls=self.RepoInterface,
         )
 
-    def reload(self):
+    def reload(self) -> Self:
+        """
+        Update the instance with new information.
+        """
         self._loaded = False
         self.load()
         return self
 
     @property
-    def cache_path_base(self):
+    def cache_path_base(self) -> str:
+        """
+        Get the base path for caching the repodata.json file.
+
+        This method returns the base path for caching the repodata.json file. It is used to
+        construct the full path for caching the file.
+        """
         return join(
             create_cache_dir(),
             splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0],
         )
 
     @property
-    def url_w_repodata_fn(self):
+    def url_w_repodata_fn(self) -> str:
+        """
+        Get the URL with the repodata filename.
+
+        This method returns the URL with the repodata filename.
+        """
         return self.url_w_subdir + "/" + self.repodata_fn
 
     @property
-    def cache_path_json(self):
+    def cache_path_json(self) -> Path:
+        """
+        Get the path to the cache file.
+
+        This method returns the path to the cache file.
+        """
         return Path(
             self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".json"
         )
 
     @property
-    def cache_path_state(self):
-        """Out-of-band etag and other state needed by the RepoInterface."""
+    def cache_path_state(self) -> Path:
+        """
+        Out-of-band etag and other state needed by the RepoInterface.
+
+        Get the path to the cache state file.
+
+        This method returns the path to the cache state file.
+        """
         return Path(
             self.cache_path_base
             + ("1" if context.use_only_tar_bz2 else "")
@@ -248,10 +356,20 @@ class SubdirData(metaclass=SubdirDataType):
         )
 
     @property
-    def cache_path_pickle(self):
+    def cache_path_pickle(self) -> str:
+        """
+        Get the path to the cache pickle file.
+
+        This method returns the path to the cache pickle file.
+        """
         return self.cache_path_base + ("1" if context.use_only_tar_bz2 else "") + ".q"
 
-    def load(self):
+    def load(self) -> Self:
+        """
+        Load the internal state of the SubdirData instance.
+
+        This method loads the internal state of the SubdirData instance.
+        """
         _internal_state = self._load()
         if _internal_state.get("repodata_version", 0) > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(
@@ -279,18 +397,32 @@ class SubdirData(metaclass=SubdirDataType):
         self._loaded = True
         return self
 
-    def iter_records(self):
+    def iter_records(self) -> Iterator[PackageRecord]:
+        """
+        A function that iterates over package records.
+
+        This function checks if the package records are loaded. If not loaded, it loads them. It
+        returns an iterator over the package records. The package_records attribute could
+        potentially be replaced with fully-converted UserList data after going through the entire
+        list.
+        """
         if not self._loaded:
             self.load()
         return iter(self._package_records)
         # could replace self._package_records with fully-converted UserList.data
         # after going through entire list
 
-    def _iter_records_by_name(self, name):
+    def _iter_records_by_name(self, name: str) -> Iterator[PackageRecord]:
+        """
+        A function that iterates over package records by name.
+
+        This function iterates over package records and yields those whose name matches the given
+        name. If include_self is True, it also yields the record with the given name.
+        """
         for i in self._names_index[name]:
             yield self._package_records[i]
 
-    def _load(self):
+    def _load(self) -> dict[str, Any]:
         """
         Try to load repodata. If e.g. we are downloading
         `current_repodata.json`, fall back to `repodata.json` when the former is
@@ -307,7 +439,10 @@ class SubdirData(metaclass=SubdirDataType):
             else:
                 raise
 
-    def _pickle_me(self):
+    def _pickle_me(self) -> None:
+        """
+        Pickle the object to the specified file.
+        """
         try:
             log.debug(
                 "Saving pickled state for %s at %s",
@@ -319,7 +454,10 @@ class SubdirData(metaclass=SubdirDataType):
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
 
-    def _read_local_repodata(self, state: RepodataState):
+    def _read_local_repodata(self, state: RepodataState) -> dict[str, Any]:
+        """
+        Read local repodata from the cache and process it.
+        """
         # first try reading pickled data
         _pickled_state = self._read_pickled(state)
         if _pickled_state:
@@ -332,8 +470,17 @@ class SubdirData(metaclass=SubdirDataType):
         self._pickle_me()
         return _internal_state
 
-    def _pickle_valid_checks(self, pickled_state, mod, etag):
-        """Throw away the pickle if these don't all match."""
+    def _pickle_valid_checks(
+        self, pickled_state: dict[str, Any], mod: str, etag: str
+    ) -> Iterator[tuple[str, Any, Any]]:
+        """
+        Throw away the pickle if these don't all match.
+
+        :param pickled_state: The pickled state to compare against.
+        :param mod: The modification information to check.
+        :param etag: The etag to compare against.
+        :yields: Tuples of the form (check_name, pickled_value, current_value).
+        """
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
         yield (
@@ -350,7 +497,14 @@ class SubdirData(metaclass=SubdirDataType):
         )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
-    def _read_pickled(self, state: RepodataState):
+    def _read_pickled(self, state: RepodataState) -> dict[str, Any] | None:
+        """
+        Read pickled repodata from the cache and process it.
+
+        :param state: The repodata state.
+        :return: A dictionary containing the processed pickled repodata, or None if the repodata is
+            not pickled.
+        """
         if not isinstance(state, RepodataState):
             state = RepodataState(
                 self.cache_path_json,
@@ -373,10 +527,22 @@ class SubdirData(metaclass=SubdirDataType):
             rm_rf(self.cache_path_pickle)
             return None
 
-        def checks():
+        def checks() -> Iterator[tuple[str, str | None, str]]:
+            """
+            Generate a list of checks to verify the validity of a pickled state.
+
+            :return: A list of tuples, where each tuple contains a check name, the value from the
+                pickled state, and the current value.
+            """
             return self._pickle_valid_checks(_pickled_state, state.mod, state.etag)
 
-        def _check_pickled_valid():
+        def _check_pickled_valid() -> Iterator[bool]:
+            """
+            Generate a generator that yields the results of checking the validity of a pickled
+            state.
+
+            :yields: True if the pickled state is valid, False otherwise.
+            """
             for _, left, right in checks():
                 yield left == right
 
@@ -393,14 +559,29 @@ class SubdirData(metaclass=SubdirDataType):
 
     def _process_raw_repodata_str(
         self,
-        raw_repodata_str,
+        raw_repodata_str: str,
         state: RepodataState | None = None,
-    ):
-        """State contains information that was previously in-band in raw_repodata_str."""
+    ) -> dict[str, Any]:
+        """State contains information that was previously in-band in raw_repodata_str.
+
+        Process the raw repodata string and return the processed repodata.
+
+        :param raw_repodata_str: The raw repodata string.
+        :return: A dictionary containing the processed repodata.
+        """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
 
-    def _process_raw_repodata(self, repodata: dict, state: RepodataState | None = None):
+    def _process_raw_repodata(
+        self, repodata: dict[str, Any], state: RepodataState | None = None
+    ) -> dict[str, Any]:
+        """
+        Process the raw repodata dictionary and return the processed repodata.
+
+        :param repodata: The raw repodata dictionary.
+        :param state: The repodata state. Defaults to None.
+        :return: A dictionary containing the processed repodata.
+        """
         if not isinstance(state, RepodataState):
             state = RepodataState(
                 self.cache_path_json,
@@ -520,6 +701,11 @@ class SubdirData(metaclass=SubdirDataType):
         to override that default assumption. See CEP-15 for more details.
 
         This method deals with both cases and returns the appropriate value.
+
+        Get the base URL for the given endpoint.
+
+        :param endpoint: The endpoint for which the base URL is needed.
+        :return: The base URL corresponding to the provided endpoint.
         """
         maybe_base_url = repodata.get("info", {}).get("base_url")
         if maybe_base_url:  # repodata defines base_url field
@@ -549,13 +735,3 @@ class SubdirData(metaclass=SubdirDataType):
         if with_credentials:
             return self.url_w_credentials
         return self.url_w_subdir
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
-)
-def make_feature_record(feature_name):
-    # necessary for the SAT solver to do the right thing with features
-    return PackageRecord.feature(feature_name)

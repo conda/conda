@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Defines local filesystem transport adapter for CondaSession (requests.Session)."""
 
-import json
 from email.utils import formatdate
 from logging import getLogger
 from mimetypes import guess_type
@@ -11,6 +10,7 @@ from tempfile import SpooledTemporaryFile
 
 from ....common.compat import ensure_binary
 from ....common.path import url_to_path
+from ....common.serialize import json
 from .. import BaseAdapter, CaseInsensitiveDict, Response
 
 log = getLogger(__name__)

@@ -1,0 +1,27 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove argument `max_retries` for `conda.gateways.disk.delete.rm_rf`. (#15224)
+* Remove argument `trash` for `conda.gateways.disk.delete.rm_rf`. (#15224)
+* Remove constant `conda.gateways.disk.delete.try_rmdir_all_empty`. (#15224)
+* Remove constant `conda.gateways.disk.delete.move_to_trash`. (#15224)
+* Remove constant `conda.gateways.disk.delete.move_path_to_trash`. (#15224)
+* Remove function `conda.gateways.logging.initialize_root_logger`. (#15224)
+* Remove module `conda.models.leased_path_entry`. (#15224)
+* Remove function `conda.plugins.manager.get_virtual_packages`. Use `conda.plugins.manager.get_virtual_package_records` instead. (#15224)
+* Remove function `conda.env.utils.make_temp_envs_dir`. Use `conda.testing.tmp_envs_dir` instead. (#15224)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -2,15 +2,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common URL utilities."""
 
+from __future__ import annotations
+
 import codecs
 import re
 import socket
+import struct
 from collections import namedtuple
 from functools import cache
 from getpass import getpass
 from os.path import abspath, expanduser
+from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import (  # noqa: F401
-    ParseResult,
     quote,
     quote_plus,
     unquote,
@@ -19,11 +22,19 @@ from urllib.parse import (  # noqa: F401
 from urllib.parse import urlparse as _urlparse
 from urllib.parse import urlunparse as _urlunparse  # noqa: F401
 
+from ..deprecations import deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from re import Pattern
+    from typing import Any, Self
+    from urllib.parse import ParseResult
 
-def hex_octal_to_int(ho):
+
+@deprecated("25.9", "26.3", addendum="Use int(..., 16) instead.")
+def hex_octal_to_int(ho: str) -> int:
     ho = ord(ho.upper())
     o0 = ord("0")
     o9 = ord("9")
@@ -40,11 +51,11 @@ def hex_octal_to_int(ho):
 
 
 @cache
-def percent_decode(path):
+def percent_decode(path: str) -> str:
     # This is not fast so avoid when we can.
     if "%" not in path:
         return path
-    ranges = []
+    ranges: list[tuple[int, int]] = []
     for m in re.finditer(r"(%[0-9A-F]{2})", path, flags=re.IGNORECASE):
         ranges.append((m.start(), m.end()))
     if not len(ranges):
@@ -63,13 +74,7 @@ def percent_decode(path):
         if c == b"%":
             for r in ranges:
                 if i == r[0]:
-                    import struct
-
-                    emit = struct.pack(
-                        "B",
-                        hex_octal_to_int(path[i + 1]) * 16
-                        + hex_octal_to_int(path[i + 2]),
-                    )
+                    emit = struct.pack("B", int(path[i + 1 : i + 3], 16))
                     skips = 2
                     break
         if emit:
@@ -92,7 +97,7 @@ def url_to_path(url):
 
 
 @cache
-def path_to_url(path):
+def path_to_url(path: str) -> str:
     if not path:
         raise ValueError(f"Not allowed: {path!r}")
     if path.startswith(file_scheme):
@@ -161,14 +166,14 @@ class Url(namedtuple("Url", url_attrs)):
 
     def __new__(
         cls,
-        scheme=None,
-        path=None,
-        query=None,
-        fragment=None,
-        username=None,
-        password=None,
-        hostname=None,
-        port=None,
+        scheme: str | None = None,
+        path: str | None = None,
+        query: str | None = None,
+        fragment: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
+        hostname: str | None = None,
+        port: str | None = None,
     ):
         if path and not path.startswith("/"):
             path = "/" + path
@@ -181,19 +186,19 @@ class Url(namedtuple("Url", url_attrs)):
         )
 
     @property
-    def auth(self):
+    def auth(self) -> str | None:
         if self.username and self.password:
             return f"{self.username}:{self.password}"
         elif self.username:
             return self.username
 
     @property
-    def netloc(self):
+    def netloc(self) -> str | None:
         if self.port:
             return f"{self.hostname}:{self.port}"
         return self.hostname
 
-    def __str__(self):
+    def __str__(self) -> str:
         scheme, path, query, fragment, username, password, hostname, port = self
         url = ""
 
@@ -214,16 +219,16 @@ class Url(namedtuple("Url", url_attrs)):
 
         return url
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, str | None]:
         """Provide a public interface for namedtuple's _asdict"""
         return self._asdict()
 
-    def replace(self, **kwargs) -> "Url":
+    def replace(self, **kwargs) -> Self:
         """Provide a public interface for namedtuple's _replace"""
         return self._replace(**kwargs)
 
     @classmethod
-    def from_parse_result(cls, parse_result: ParseResult) -> "Url":
+    def from_parse_result(cls, parse_result: ParseResult) -> Self:
         values = {fld: getattr(parse_result, fld, "") for fld in url_attrs}
         return cls(**values)
 
@@ -238,7 +243,7 @@ def urlparse(url: str) -> Url:
     return Url.from_parse_result(_urlparse(url))
 
 
-def url_to_s3_info(url):
+def url_to_s3_info(url: str) -> tuple[str, str]:
     """Convert an s3 url to a tuple of bucket and key.
 
     Examples:
@@ -251,7 +256,7 @@ def url_to_s3_info(url):
     return bucket, key
 
 
-def is_url(url):
+def is_url(url: Any) -> bool:
     """
     Examples:
         >>> is_url(None)
@@ -267,7 +272,7 @@ def is_url(url):
         return False
 
 
-def is_ipv4_address(string_ip):
+def is_ipv4_address(string_ip: str) -> bool:
     """
     Examples:
         >>> [is_ipv4_address(ip) for ip in ('8.8.8.8', '192.168.10.10', '255.255.255.255')]
@@ -282,7 +287,7 @@ def is_ipv4_address(string_ip):
     return string_ip.count(".") == 3
 
 
-def is_ipv6_address(string_ip):
+def is_ipv6_address(string_ip: str) -> bool:
     """
     Examples:
         >> [is_ipv6_address(ip) for ip in ('::1', '2001:db8:85a3::370:7334', '1234:'*7+'1234')]
@@ -297,7 +302,7 @@ def is_ipv6_address(string_ip):
     return True
 
 
-def is_ip_address(string_ip):
+def is_ip_address(string_ip: str) -> bool:
     """
     Examples:
         >> is_ip_address('192.168.10.10')
@@ -310,7 +315,7 @@ def is_ip_address(string_ip):
     return is_ipv4_address(string_ip) or is_ipv6_address(string_ip)
 
 
-def join(*args):
+def join(*args: str):
     start = "/" if not args[0] or args[0].startswith("/") else ""
     return start + "/".join(y for y in (x.strip("/") for x in args if x) if y)
 
@@ -318,11 +323,11 @@ def join(*args):
 join_url = join
 
 
-def has_scheme(value):
+def has_scheme(value: str) -> bool:
     return re.match(r"[a-z][a-z0-9]{0,11}://", value)
 
 
-def strip_scheme(url):
+def strip_scheme(url: str) -> str:
     """
     Examples:
         >>> strip_scheme("https://www.conda.io")
@@ -333,12 +338,12 @@ def strip_scheme(url):
     return url.split("://", 1)[-1]
 
 
-def mask_anaconda_token(url):
+def mask_anaconda_token(url: str) -> str:
     _, token = split_anaconda_token(url)
     return url.replace(token, "<TOKEN>", 1) if token else url
 
 
-def split_anaconda_token(url):
+def split_anaconda_token(url: str):
     """
     Examples:
         >>> split_anaconda_token("https://1.2.3.4/t/tk-123-456/path")
@@ -360,7 +365,7 @@ def split_anaconda_token(url):
     return cleaned_url.rstrip("/"), token
 
 
-def split_platform(known_subdirs, url):
+def split_platform(known_subdirs: Iterable[str], url: str) -> tuple[str, str]:
     """
 
     Examples:
@@ -376,14 +381,14 @@ def split_platform(known_subdirs, url):
 
 
 @cache
-def _split_platform_re(known_subdirs):
+def _split_platform_re(known_subdirs: Iterable[str]) -> Pattern[str]:
     _platform_match_regex = r"/({})(?:/|$)".format(
         r"|".join(rf"{d}" for d in known_subdirs)
     )
     return re.compile(_platform_match_regex, re.IGNORECASE)
 
 
-def has_platform(url, known_subdirs):
+def has_platform(url: str, known_subdirs: Iterable[str]) -> bool | None:
     url_no_package_name, _ = split_filename(url)
     if not url_no_package_name:
         return None
@@ -391,7 +396,9 @@ def has_platform(url, known_subdirs):
     return maybe_a_platform in known_subdirs and maybe_a_platform or None
 
 
-def split_scheme_auth_token(url):
+def split_scheme_auth_token(
+    url: str,
+) -> tuple[str | None, str | None, str | None, str | None]:
     """
     Examples:
         >>> split_scheme_auth_token("https://u:p@conda.io/t/x1029384756/more/path")
@@ -413,7 +420,21 @@ def split_scheme_auth_token(url):
     return str(remainder_url), url_parts.scheme, url_parts.auth, token
 
 
-def split_conda_url_easy_parts(known_subdirs, url):
+class _SplitUrlParts(NamedTuple):
+    scheme: str | None
+    auth: str | None
+    token: str | None
+    platform: str | None
+    package_filename: str | None
+    hostname: str | None
+    port: str | None
+    path: str | None
+    query: str | None
+
+
+def split_conda_url_easy_parts(
+    known_subdirs: Iterable[str], url: str
+) -> _SplitUrlParts:
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
@@ -427,7 +448,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
     # TODO: split out namespace using regex
     url_parts = urlparse(cleaned_url)
 
-    return (
+    return _SplitUrlParts(
         url_parts.scheme,
         url_parts.auth,
         token,
@@ -441,7 +462,7 @@ def split_conda_url_easy_parts(known_subdirs, url):
 
 
 @cache
-def get_proxy_username_and_pass(scheme):
+def get_proxy_username_and_pass(scheme: str) -> tuple[str, str]:
     username = input(f"\n{scheme} proxy username: ")
     passwd = getpass("Password: ")
     return username, passwd
@@ -459,7 +480,7 @@ def add_username_and_password(url: str, username: str, password: str) -> str:
     return str(url_with_auth)
 
 
-def maybe_add_auth(url: str, auth: str, force=False) -> str:
+def maybe_add_auth(url: str, auth: str, force: bool = False) -> str:
     """Add auth if the url doesn't currently have it.
 
     By default, does not replace auth if it already exists.  Setting ``force`` to ``True``
@@ -485,7 +506,7 @@ def maybe_add_auth(url: str, auth: str, force=False) -> str:
     return str(url_parts)
 
 
-def maybe_unquote(url):
+def maybe_unquote(url: str) -> str:
     return unquote_plus(remove_auth(url)) if url else url
 
 

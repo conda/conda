@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Atomic actions that make up a package installation or removal transaction."""
 
+from __future__ import annotations
+
 import re
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, join
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from .. import CondaError
@@ -27,7 +29,9 @@ from ..common.path import (
     url_to_path,
     win_path_ok,
 )
+from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaUpgradeError,
     CondaVerificationError,
@@ -67,6 +71,9 @@ from .envs_manager import get_user_environments_txt_file, register_env, unregist
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 try:
     FileNotFoundError
 except NameError:
@@ -82,27 +89,80 @@ REPR_IGNORE_KWARGS = (
 )
 
 
-class _Action(metaclass=ABCMeta):
+class Action:
+    """Base class for path manipulation actions, including linking, unlinking, and others.
+
+    Pre and post-transaction plugins should inherit this class to implement their
+    own verification, execution, reversing, and cleanup steps. These methods are
+    guaranteed to be called in the following order:
+
+        1. ``verify``
+        2. ``execute``
+        3. ``reverse`` (only if ``execute`` raises an exception)
+        4. ``cleanup``
+
+
+    :param transaction_context: Mapping between target prefixes and PrefixActions
+        instances
+    :param target_prefix: Target prefix for the action
+    :param unlink_precs: Package records to be unlinked
+    :param link_precs: Package records to link
+    :param remove_specs: Specs to be removed
+    :param update_specs: Specs to be updated
+    :param neutered_specs: Specs to be neutered
+    """
+
     _verified = False
 
-    @abstractmethod
-    def verify(self):
-        # if verify fails, it should return an exception object rather than raise
-        #  at the end of a verification run, all errors will be raised as a CondaMultiError
-        # after successful verification, the verify method should set self._verified = True
-        raise NotImplementedError()
+    def __init__(
+        self,
+        transaction_context: dict[str, str] | None = None,
+        target_prefix: str | None = None,
+        unlink_precs: Iterable[PackageRecord] | None = None,
+        link_precs: Iterable[PackageRecord] | None = None,
+        remove_specs: Iterable[MatchSpec] | None = None,
+        update_specs: Iterable[MatchSpec] | None = None,
+        neutered_specs: Iterable[MatchSpec] | None = None,
+    ):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+        self.unlink_precs = unlink_precs
+        self.link_precs = link_precs
+        self.remove_specs = remove_specs
+        self.update_specs = update_specs
+        self.neutered_specs = neutered_specs
 
     @abstractmethod
-    def execute(self):
-        raise NotImplementedError()
+    def verify(self) -> Exception | None:
+        """Carry out any pre-execution verification.
+
+        Should set self._verified = True upon success.
+
+        :return: On failure, this function should return (not raise!) an exception
+        object. At the end of the verification run, all errors will be raised as a
+        CondaMultiError.
+        """
 
     @abstractmethod
-    def reverse(self):
-        raise NotImplementedError()
+    def execute(self) -> None:
+        """Execute the action.
+
+        Called after ``self.verify()``. If this function raises an exception,
+        ``self.reverse()`` will be called.
+        """
 
     @abstractmethod
-    def cleanup(self):
-        raise NotImplementedError()
+    def reverse(self) -> None:
+        """Reverse what was done in execute.
+
+        Called only if ``self.execute()`` raises an exception.
+        """
+        pass
+
+    @abstractmethod
+    def cleanup(self) -> None:
+        """Carry out any post-execution tasks."""
+        pass
 
     @property
     def verified(self):
@@ -117,13 +177,22 @@ class _Action(metaclass=ABCMeta):
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
-class PathAction(_Action, metaclass=ABCMeta):
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "_Action",
+    Action,
+    addendum="Use `conda.core.path_actions.Action` instead.",
+)
+
+
+class PathAction(Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_path(self):
         raise NotImplementedError()
 
 
-class MultiPathAction(_Action, metaclass=ABCMeta):
+class MultiPathAction(Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_paths(self):
         raise NotImplementedError()
@@ -1362,7 +1431,7 @@ class ExtractPackageAction(PathAction):
 
         try:
             raw_index_json = read_index_json(self.target_full_path)
-        except (OSError, JSONDecodeError, FileNotFoundError):
+        except (OSError, json.JSONDecodeError, FileNotFoundError):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print(

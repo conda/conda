@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from contextlib import nullcontext
 from importlib.util import find_spec
 from logging import getLogger
 from pathlib import Path
@@ -15,7 +16,7 @@ from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
-from conda.exceptions import CondaExitZero
+from conda.exceptions import CondaExitZero, OfflineError
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
@@ -30,6 +31,8 @@ from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 
 if TYPE_CHECKING:
+    import http.server
+
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
@@ -38,19 +41,7 @@ if TYPE_CHECKING:
 BOTO3_AVAILABLE = bool(find_spec("boto3"))
 log = getLogger(__name__)
 
-
-@pytest.fixture(autouse=True)
-def clean_up_object_cache():
-    """
-    We use this to clean up the class/function cache on various things in the
-    ``conda.gateways.connection.session`` module.
-    """
-    try:
-        del CondaSession._thread_local.sessions
-    except AttributeError:
-        pass
-
-    get_session.cache_clear()
+pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
 
 
 def test_add_binstar_token():
@@ -483,3 +474,23 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
+
+
+@pytest.mark.parametrize("offline", [True, False])
+def test_offline(
+    offline: bool,
+    mocker: MockerFixture,
+    support_file_server: http.server.ThreadingHTTPServer,
+) -> None:
+    """Ensure offline mode raises OfflineError."""
+    host, port = support_file_server.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}/"
+
+    mocker.patch(
+        "conda.base.context.Context.offline",
+        new_callable=mocker.PropertyMock,
+        return_value=offline,
+    )
+    with pytest.raises(OfflineError) if offline else nullcontext():
+        CondaSession().get(url)

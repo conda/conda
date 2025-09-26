@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import platform
-import re
 from typing import TYPE_CHECKING
 
 import pytest
+from pytest import MonkeyPatch
 
 import conda.core.index
 from conda import __version__, plugins
 from conda.base.context import context, reset_context
 from conda.common._os.osx import mac_ver
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
 from conda.plugins.virtual_packages import cuda
@@ -55,12 +54,12 @@ def plugin(plugin_manager):
 
 
 def test_invoked(plugin):
-    index = conda.core.index.get_reduced_index(
-        context.default_prefix,
-        context.default_channels,
-        context.subdirs,
-        (),
-        context.repodata_fns[0],
+    index = conda.core.index.ReducedIndex(
+        prefix=context.default_prefix,
+        channels=context.default_channels,
+        subdirs=context.subdirs,
+        specs=(),
+        repodata_fn=context.repodata_fns[0],
     )
 
     packages = package_dict(index)
@@ -76,14 +75,14 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(VirtualPackagesPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting `virtual_packages` plugins found")
+        PluginError, match=r"Conflicting plugins found for `virtual_packages`"
     ):
-        conda.core.index.get_reduced_index(
-            context.default_prefix,
-            context.default_channels,
-            context.subdirs,
-            (),
-            context.repodata_fns[0],
+        conda.core.index.ReducedIndex(
+            prefix=context.default_prefix,
+            channels=context.default_channels,
+            subdirs=context.subdirs,
+            specs=(),
+            repodata_fn=context.repodata_fns[0],
         )
 
 
@@ -93,28 +92,35 @@ def test_cuda_detection(clear_cuda_version):
     assert version is None or isinstance(version, str)
 
 
-def test_cuda_override(clear_cuda_version):
-    with env_var("CONDA_OVERRIDE_CUDA", "4.5"):
-        version = cuda.cached_cuda_version()
-        assert version == "4.5"
+@pytest.mark.parametrize(
+    "override_value,expected",
+    [
+        pytest.param("4.5", "4.5", id="override-set"),
+        pytest.param("", None, id="override-empty"),
+    ],
+)
+def test_cuda_override(
+    clear_cuda_version, override_value, expected, monkeypatch: MonkeyPatch
+):
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", override_value)
+    reset_context()
 
-
-def test_cuda_override_none(clear_cuda_version):
-    with env_var("CONDA_OVERRIDE_CUDA", ""):
-        version = cuda.cuda_version()
-        assert version is None
+    version = cuda.cuda_version()
+    assert version == expected
 
 
 def get_virtual_precs() -> Iterable[PackageRecord]:
+    index = conda.core.index.ReducedIndex(
+        prefix=context.default_prefix,
+        channels=context.default_channels,
+        subdirs=context.subdirs,
+        specs=(),
+        repodata_fn=context.repodata_fns[0],
+    )
+
     yield from (
         prec
-        for prec in conda.core.index.get_reduced_index(
-            context.default_prefix,
-            context.default_channels,
-            context.subdirs,
-            (),
-            context.repodata_fns[0],
-        )
+        for prec in index
         if prec.channel.name == "@" and prec.name.startswith("__")
     )
 

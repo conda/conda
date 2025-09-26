@@ -71,8 +71,8 @@ class Shell:
         raise FileNotFoundError(f"{shell} not found")
 
     @contextmanager
-    def interactive(self) -> InteractiveShell:
-        with InteractiveShell(self) as interactive:
+    def interactive(self, *args, **kwargs) -> InteractiveShell:
+        with InteractiveShell(self, *args, **kwargs) as interactive:
             yield interactive
 
 
@@ -170,6 +170,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
         print_env_var: str,
         exit_cmd: str | None = None,
         base_shell: str | None = None,  # ignored
+        env: dict[str, str] | None = None,
     ):
         shell = Shell.resolve(shell)
         self.shell_name = shell.name
@@ -181,6 +182,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.init_command = init_command
         self.print_env_var = print_env_var
         self.exit_cmd = exit_cmd
+        self.env = env or {}
 
     def __enter__(self):
         self.p = PopenSpawn(
@@ -192,7 +194,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
             cwd=os.getcwd(),
             env={
                 **os.environ,
-                "CONDA_AUTO_ACTIVATE_BASE": "false",
+                "CONDA_AUTO_ACTIVATE": "false",
                 "CONDA_AUTO_STACK": "0",
                 "CONDA_CHANGEPS1": "true",
                 # "CONDA_ENV_PROMPT": "({default_env}) ",
@@ -208,6 +210,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
                 # ensure PATH is shared with any msys2 bash shell, rather than starting fresh
                 "MSYS2_PATH_TYPE": "inherit",
                 "CHERE_INVOKING": "1",
+                **self.env,
             },
             encoding="utf-8",
             codec_errors="strict",

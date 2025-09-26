@@ -47,6 +47,8 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
+pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
+
 
 @pytest.mark.integration
 def test_download_connectionerror(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
@@ -112,7 +114,6 @@ def test_resume_download(tmp_path):
     responses.add(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
     )
@@ -141,7 +142,6 @@ def test_resume_download(tmp_path):
     responses.replace(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
         status=206,  # partial content
@@ -190,7 +190,6 @@ def test_download_when_ranges_not_supported(tmp_path):
     responses.add(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "none"},
     )
@@ -382,7 +381,6 @@ def test_download_text():
     responses.add(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         body=test_file,
     )

@@ -11,16 +11,18 @@ import pytest
 from conda.base.context import context, locate_prefix_by_name
 from conda.common.compat import on_win
 from conda.core.envs_manager import list_all_known_prefixes
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     CondaEnvException,
     CondaError,
     CondaValueError,
+    EnvironmentLocationNotFound,
     EnvironmentNameNotFound,
 )
-from conda.gateways.disk.test import is_conda_environment
+from conda.testing.fixtures import TmpEnvFixture
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
@@ -40,7 +42,7 @@ def env_rename(conda_cli: CondaCLIFixture) -> Iterable[str]:
     yield name
 
     # Teardown
-    if is_conda_environment(name):
+    if PrefixData.from_name(name).is_environment():
         conda_cli("remove", "--all", "--yes", "--name", name)
 
 
@@ -53,7 +55,7 @@ def env_one(conda_cli: CondaCLIFixture) -> Iterable[str]:
     yield name
 
     # Teardown
-    if is_conda_environment(name):
+    if PrefixData.from_name(name).is_environment():
         conda_cli("remove", "--all", "--yes", "--name", name)
 
 
@@ -66,7 +68,7 @@ def env_two(conda_cli: CondaCLIFixture) -> Iterable[str]:
     yield name
 
     # Teardown
-    if is_conda_environment(name):
+    if PrefixData.from_name(name).is_environment():
         conda_cli("remove", "--all", "--yes", "--name", name)
 
 
@@ -75,8 +77,8 @@ def test_rename_by_name_success(
     env_one: str,
     env_rename: str,
 ):
-    conda_cli("rename", "--name", env_one, env_rename)
-
+    out, err, rc = conda_cli("rename", "--name", env_one, env_rename)
+    assert not rc
     assert locate_prefix_by_name(env_rename)
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(env_one)
@@ -104,7 +106,7 @@ def test_rename_by_name_name_already_exists_error(
     """Test to ensure that we do not rename if the name already exists"""
     with pytest.raises(
         CondaEnvException,
-        match=f"The environment '{env_one}' already exists. Override with --yes",
+        match=f"The environment '.*{env_one}' already exists. Override with --yes.",
     ):
         conda_cli("rename", "--name", env_one, env_one)
 
@@ -119,7 +121,7 @@ def test_rename_by_path_path_already_exists_error(
     """Test to ensure that we do not rename if the path already exists"""
     with pytest.raises(
         CondaEnvException,
-        match=f"The environment '{tmp_path.name}' already exists. Override with --yes",
+        match=f"The environment '.*{tmp_path.name}' already exists. Override with --yes.",
     ):
         conda_cli("rename", "--name", env_one, tmp_path)
 
@@ -176,10 +178,10 @@ def test_cannot_rename_active_env_by_name(
 
 def test_cannot_rename_nonexistent_env(conda_cli: CondaCLIFixture, env_rename: str):
     """Show a useful error message when trying to rename a non-existing env"""
-    env_dir = Path(context.root_prefix) / "foo"
+    env_dir = Path(context.root_prefix) / "envs" / "foo"
     with pytest.raises(
-        CondaEnvException,
-        match="The environment you have specified does not exist.",
+        EnvironmentLocationNotFound,
+        match="Not a conda environment",
     ):
         conda_cli("rename", "--prefix", env_dir, env_rename)
 
@@ -296,29 +298,58 @@ def test_rename_with_force_and_dry_run(
     assert not err
 
 
-def test_protected_dirs_error_for_rename(conda_cli: CondaCLIFixture, env_one: str):
-    with pytest.raises(CondaEnvException) as error:
+def test_protected_dirs_error_for_rename(
+    conda_cli: CondaCLIFixture, env_one: str, tmp_env: Iterator[TmpEnvFixture]
+):
+    with (
+        tmp_env() as source,
+        pytest.raises(
+            CondaValueError,
+            match="Environment paths cannot be immediately nested under another conda environment.",
+        ),
+    ):
         conda_cli(
             "rename",
-            f"--prefix={context.root_prefix}/envs",
-            env_one,
+            f"--prefix={source}",
+            f"{context.root_prefix}/{env_one}",
         )
-
-    assert (
-        "appears to be a top level directory within an existing conda environment"
-        in str(error.value)
-    )
 
 
 @pytest.mark.skipif(not on_win, reason="windows-specific test")
 def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
     bad_env_name = "/" + env_one
 
-    with pytest.raises(CondaValueError) as error:
+    with pytest.raises(
+        CondaValueError,
+        match="Environment names cannot contain path separators",
+    ):
         conda_cli(
             "rename",
             f"--name={bad_env_name}",
             env_two,
         )
 
-    assert "Invalid environment name" in str(error.value)
+
+def test_rename_default_activation_env(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_path: Path,
+):
+    """Check that renaming the default_activation_env raises an exception."""
+    with tmp_env() as prefix:
+        conda_cli(
+            "config",
+            "--set",
+            "default_activation_env",
+            prefix,
+        )
+        assert prefix == context.default_activation_prefix
+        with pytest.raises(
+            CondaEnvException,
+            match="Cannot rename an environment if it is configured as `default_activation_env`.",
+        ):
+            conda_cli(
+                "rename",
+                f"--prefix={prefix}",
+                tmp_path,
+            )

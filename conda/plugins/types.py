@@ -12,24 +12,55 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
+from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Iterable
     from contextlib import AbstractContextManager
-    from typing import Any, Callable
+    from typing import Any, Callable, ClassVar, TypeAlias
 
     from ..common.configuration import Parameter
+    from ..common.path import PathType
+    from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
+    from ..models.records import PrefixRecord
+
+    CondaPrefixDataLoaderCallable: TypeAlias = Callable[
+        [PathType, dict[str, PrefixRecord]],
+        dict[str, PrefixRecord],
+    ]
+
+    SinglePlatformEnvironmentExport = Callable[[Environment], str]
+    MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
 
 @dataclass
-class CondaSubcommand:
+class CondaPlugin:
+    """
+    Base class for all conda plugins.
+    """
+
+    #: User-facing name of the plugin used for selecting & filtering plugins and error messages.
+    name: str
+
+    def __post_init__(self):
+        try:
+            self.name = self.name.lower().strip()
+        except AttributeError:
+            # AttributeError: name is not a string
+            raise PluginError(f"Invalid plugin name for {self!r}")
+
+
+@dataclass
+class CondaSubcommand(CondaPlugin):
     """
     Return type to use when defining a conda subcommand plugin hook.
 
@@ -51,7 +82,8 @@ class CondaSubcommand:
     configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
 
 
-class CondaVirtualPackage(NamedTuple):
+@dataclass
+class CondaVirtualPackage(CondaPlugin):
     """
     Return type to use when defining a conda virtual package plugin hook.
 
@@ -71,7 +103,8 @@ class CondaVirtualPackage(NamedTuple):
         return PackageRecord.virtual_package(f"__{self.name}", self.version, self.build)
 
 
-class CondaSolver(NamedTuple):
+@dataclass
+class CondaSolver(CondaPlugin):
     """
     Return type to use when defining a conda solver plugin hook.
 
@@ -86,7 +119,8 @@ class CondaSolver(NamedTuple):
     backend: type[Solver]
 
 
-class CondaPreCommand(NamedTuple):
+@dataclass
+class CondaPreCommand(CondaPlugin):
     """
     Return type to use when defining a conda pre-command plugin hook.
 
@@ -103,7 +137,8 @@ class CondaPreCommand(NamedTuple):
     run_for: set[str]
 
 
-class CondaPostCommand(NamedTuple):
+@dataclass
+class CondaPostCommand(CondaPlugin):
     """
     Return type to use when defining a conda post-command plugin hook.
 
@@ -143,7 +178,8 @@ class ChannelAuthBase(ChannelNameMixin, AuthBase):
     """
 
 
-class CondaAuthHandler(NamedTuple):
+@dataclass
+class CondaAuthHandler(CondaPlugin):
     """
     Return type to use when the defining the conda auth handlers hook.
 
@@ -157,7 +193,8 @@ class CondaAuthHandler(NamedTuple):
     handler: type[ChannelAuthBase]
 
 
-class CondaHealthCheck(NamedTuple):
+@dataclass
+class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
     """
@@ -167,7 +204,7 @@ class CondaHealthCheck(NamedTuple):
 
 
 @dataclass
-class CondaPreSolve:
+class CondaPreSolve(CondaPlugin):
     """
     Return type to use when defining a conda pre-solve plugin hook.
 
@@ -183,7 +220,7 @@ class CondaPreSolve:
 
 
 @dataclass
-class CondaPostSolve:
+class CondaPostSolve(CondaPlugin):
     """
     Return type to use when defining a conda post-solve plugin hook.
 
@@ -199,7 +236,7 @@ class CondaPostSolve:
 
 
 @dataclass
-class CondaSetting:
+class CondaSetting(CondaPlugin):
     """
     Return type to use when defining a conda setting plugin hook.
 
@@ -313,7 +350,7 @@ class ReporterRendererBase(ABC):
 
 
 @dataclass
-class CondaReporterBackend:
+class CondaReporterBackend(CondaPlugin):
     """
     Return type to use when defining a conda reporter backend plugin hook.
 
@@ -333,7 +370,7 @@ class CondaReporterBackend:
 
 
 @dataclass
-class CondaRequestHeader:
+class CondaRequestHeader(CondaPlugin):
     """
     Define vendor specific headers to include HTTP requests
 
@@ -347,3 +384,151 @@ class CondaRequestHeader:
 
     name: str
     value: str
+
+
+@dataclass
+class CondaPreTransactionAction(CondaPlugin):
+    """
+    Return type to use when defining a pre-transaction action hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_transaction_actions`.
+
+    :param name: Pre transaction name (this is just a label)
+    :param action: Action class which implements
+        plugin behavior. See
+        :class:`~conda.core.path_actions.Action` for
+        implementation details
+    """
+
+    name: str
+    action: type[Action]
+
+
+@dataclass
+class CondaPostTransactionAction(CondaPlugin):
+    """
+    Return type to use when defining a post-transaction action hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_post_transaction_actions`.
+
+    :param name: Post transaction name (this is just a label)
+    :param action: Action class which implements
+        plugin behavior. See
+        :class:`~conda.core.path_actions.Action` for
+        implementation details
+    """
+
+    name: str
+    action: type[Action]
+
+
+@dataclass
+class CondaPrefixDataLoader(CondaPlugin):
+    """
+    Define new loaders to expose non-conda packages in a given prefix
+    as ``PrefixRecord`` objects.
+
+    :param name: name of the loader
+    :param loader: a function that takes a prefix and a dictionary that maps
+        package names to ``PrefixRecord`` objects. The newly loaded packages
+        must be inserted in the passed dictionary accordingly, and also
+        returned as a separate dictionary.
+    """
+
+    name: str
+    loader: CondaPrefixDataLoaderCallable
+
+
+class EnvironmentSpecBase(ABC):
+    """
+    **EXPERIMENTAL**
+
+    Base class for all environment specifications.
+
+    Environment specs parse different types of environment definition files
+    (environment.yml, requirements.txt, pyproject.toml, etc.) into a common
+    Environment object model.
+    """
+
+    # Determines if the EnvSpec plugin should be included in the set
+    # of available plugins checked during environment_spec plugin detection.
+    # If set to False, the only way to use the plugin will be through explicitly
+    # requesting it as a cli argument or setting in .condarc. By default,
+    # autodetection is enabled.
+    detection_supported: ClassVar[bool] = True
+
+    @abstractmethod
+    def can_handle(self) -> bool:
+        """
+        Determines if the EnvSpec plugin can read and operate on the
+        environment described by the `filename`.
+
+        :returns bool: returns True, if the plugin can interpret the file.
+        """
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def env(self) -> Environment:
+        """
+        Express the provided environment file as a conda environment object.
+
+        :returns Environment: the conda environment represented by the file.
+        """
+        raise NotImplementedError()
+
+
+@dataclass
+class CondaEnvironmentSpecifier(CondaPlugin):
+    """
+    **EXPERIMENTAL**
+
+    Return type to use when defining a conda env spec plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
+
+    :param name: name of the spec (e.g., ``environment_yaml``)
+    :param environment_spec: EnvironmentSpecBase subclass handler
+    """
+
+    name: str
+    environment_spec: type[EnvironmentSpecBase]
+
+
+@dataclass
+class CondaEnvironmentExporter(CondaPlugin):
+    """
+    **EXPERIMENTAL**
+
+    Return type to use when defining a conda environment exporter plugin hook supporting a single platform.
+
+    :param name: name of the exporter (e.g., ``environment-yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",))
+    :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
+    :param export: callable that exports an Environment to string format
+    """
+
+    name: str
+    aliases: tuple[str, ...]
+    default_filenames: tuple[str, ...]
+    export: SinglePlatformEnvironmentExport | None = None
+    multiplatform_export: MultiPlatformEnvironmentExport | None = None
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(
+                dict.fromkeys(alias.lower().strip() for alias in self.aliases)
+            )
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        if bool(self.export) == bool(self.multiplatform_export):
+            raise PluginError(
+                f"Exactly one of export or multiplatform_export must be set for {self!r}"
+            )

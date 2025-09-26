@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.activate._Activator.commands`. Use `conda commands` instead. (#15179)
+* Remove `conda.activate._Activator._parse_and_set_arts` argument `arguments`. (#15179)
+* Remove `conda.activate.ensure_binary`. Use `conda.common.compat.ensure_binary` instead.  (#15179)
+* Remove `conda.activate.ensure_fs_path_encoding`. (#15179)
+* Remove constants `conda.activate._cygpath`, `conda.activate.native_path_to_unix`, `conda.activate.unix_path_to_native`, `conda.activate.path_identity`. (#15179)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

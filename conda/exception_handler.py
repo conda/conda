@@ -2,25 +2,35 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Error handling and error reporting."""
 
+from __future__ import annotations
+
 import os
 import sys
 from functools import cached_property, partial
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from .common.compat import ensure_text_type, on_win
+
+if TYPE_CHECKING:
+    from types import TracebackType
+    from typing import Any, Callable, TypeVar
+
+    T = TypeVar("T")
 
 log = getLogger(__name__)
 
 
 class ExceptionHandler:
-    def __call__(self, func, *args, **kwargs):
+    # FUTURE: Python 3.10+, use typing.ParamSpec
+    def __call__(self, func: Callable[..., T], *args, **kwargs) -> T | int:
         try:
             return func(*args, **kwargs)
         except:
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
-    def write_out(self, *content):
+    def write_out(self, *content: str) -> None:
         from logging import getLogger
 
         from .cli.main import init_loggers
@@ -46,7 +56,7 @@ class ExceptionHandler:
 
         return context.error_upload_url
 
-    def handle_exception(self, exc_val, exc_tb):
+    def handle_exception(self, exc_val: BaseException, exc_tb: TracebackType) -> int:
         from errno import ENOSPC
 
         from .exceptions import (
@@ -74,23 +84,33 @@ class ExceptionHandler:
             return exc_val.code
         return self.handle_unexpected_exception(exc_val, exc_tb)
 
-    def handle_application_exception(self, exc_val, exc_tb):
+    def handle_application_exception(
+        self, exc_val: BaseException, exc_tb: TracebackType
+    ) -> int:
         self._print_conda_exception(exc_val, exc_tb)
         return exc_val.return_code
 
-    def _print_conda_exception(self, exc_val, exc_tb):
+    def _print_conda_exception(
+        self,
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+    ) -> None:
         from .exceptions import print_conda_exception
 
         print_conda_exception(exc_val, exc_tb)
 
-    def handle_unexpected_exception(self, exc_val, exc_tb):
+    def handle_unexpected_exception(
+        self, exc_val: BaseException, exc_tb: TracebackType
+    ) -> int:
         error_report = self.get_error_report(exc_val, exc_tb)
         self.print_unexpected_error_report(error_report)
         self._upload(error_report)
         rc = getattr(exc_val, "return_code", None)
         return rc if rc is not None else 1
 
-    def handle_reportable_application_exception(self, exc_val, exc_tb):
+    def handle_reportable_application_exception(
+        self, exc_val: BaseException, exc_tb: TracebackType
+    ) -> int:
         error_report = self.get_error_report(exc_val, exc_tb)
         from .base.context import context
 
@@ -100,7 +120,11 @@ class ExceptionHandler:
         self._upload(error_report)
         return exc_val.return_code
 
-    def get_error_report(self, exc_val, exc_tb):
+    def get_error_report(
+        self,
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+    ) -> dict[str, str]:
         from .exceptions import CondaError, _format_exc
 
         command = " ".join(ensure_text_type(s) for s in sys.argv)
@@ -135,7 +159,7 @@ class ExceptionHandler:
 
         return error_report
 
-    def print_unexpected_error_report(self, error_report):
+    def print_unexpected_error_report(self, error_report: dict[str, str]) -> None:
         from .base.context import context
 
         if context.json:
@@ -187,7 +211,7 @@ class ExceptionHandler:
             )
             self.write_out(*message_builder)
 
-    def print_expected_error_report(self, error_report):
+    def print_expected_error_report(self, error_report: dict[str, str]) -> None:
         from .base.context import context
 
         if context.json:
@@ -232,14 +256,14 @@ class ExceptionHandler:
             self.write_out(*message_builder)
 
     @cached_property
-    def _isatty(self):
+    def _isatty(self) -> bool:
         try:
             return os.isatty(0) or on_win
         except Exception as e:
             log.debug("%r", e)
             return True
 
-    def _upload(self, error_report) -> None:
+    def _upload(self, error_report: dict[str, str]) -> None:
         """Determine whether or not to upload the error report."""
         from .base.context import context
 
@@ -271,7 +295,7 @@ class ExceptionHandler:
             # post submission text
             self._post_upload(do_upload)
 
-    def _ask_upload(self):
+    def _ask_upload(self) -> bool:
         from .auxlib.type_coercion import boolify
         from .common.io import timeout
 
@@ -291,11 +315,10 @@ class ExceptionHandler:
             log.debug("%r", e)
             return False
 
-    def _execute_upload(self, error_report):
+    def _execute_upload(self, error_report: dict[str, Any]) -> None:
         import getpass
-        import json
 
-        from .auxlib.entity import EntityEncoder
+        from .common.serialize import json
 
         headers = {
             "User-Agent": self.user_agent,
@@ -306,7 +329,7 @@ class ExceptionHandler:
             True if all(ord(c) < 128 for c in username) else False
         )
         error_report["has_spaces"] = True if " " in str(username) else False
-        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + "\n"
+        data = json.dumps(error_report, sort_keys=True) + "\n"
         data = data.replace(str(username), "USERNAME_REMOVED")
         response = None
         try:
@@ -351,7 +374,7 @@ class ExceptionHandler:
         except Exception as e:
             log.debug(f"{e!r}")
 
-    def _post_upload(self, do_upload):
+    def _post_upload(self, do_upload: bool) -> None:
         if do_upload is True:
             # report was submitted
             self.write_out(
@@ -381,7 +404,7 @@ class ExceptionHandler:
             )
 
 
-def conda_exception_handler(func, *args, **kwargs):
+def conda_exception_handler(func: Callable[..., T], *args, **kwargs) -> T | int:
     exception_handler = ExceptionHandler()
     return_value = exception_handler(func, *args, **kwargs)
     return return_value

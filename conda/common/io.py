@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
 
-import json
 import logging
 import os
 import signal
@@ -15,15 +14,15 @@ from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
-from itertools import cycle
 from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-from threading import Event, Lock, RLock, Thread
-from time import sleep, time
+from threading import Lock
+from time import time
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
+from ..common.serialize import json
 from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL
@@ -392,185 +391,6 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             return ret
         except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
             return default_return
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.get_spinner` instead.",
-)
-class Spinner:
-    """
-    Args:
-        message (str):
-            A message to prefix the spinner with. The string ': ' is automatically appended.
-        enabled (bool):
-            If False, usage is a no-op.
-        json (bool):
-           If True, will not output non-json to stdout.
-
-    """
-
-    # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
-    spinner_cycle = cycle("/-\\|")
-
-    def __init__(self, message, enabled=True, json=False, fail_message="failed\n"):
-        self.message = message
-        self.enabled = enabled
-        self.json = json
-
-        self._stop_running = Event()
-        self._spinner_thread = Thread(target=self._start_spinning)
-        self._indicator_length = len(next(self.spinner_cycle)) + 1
-        self.fh = sys.stdout
-        self.show_spin = enabled and not json and IS_INTERACTIVE
-        self.fail_message = fail_message
-
-    def start(self):
-        if self.show_spin:
-            self._spinner_thread.start()
-        elif not self.json:
-            self.fh.write("...working... ")
-            self.fh.flush()
-
-    def stop(self):
-        if self.show_spin:
-            self._stop_running.set()
-            self._spinner_thread.join()
-            self.show_spin = False
-
-    def _start_spinning(self):
-        try:
-            while not self._stop_running.is_set():
-                self.fh.write(next(self.spinner_cycle) + " ")
-                self.fh.flush()
-                sleep(0.10)
-                self.fh.write("\b" * self._indicator_length)
-        except OSError as e:
-            if e.errno in (EPIPE, ESHUTDOWN):
-                self.stop()
-            else:
-                raise
-
-    @swallow_broken_pipe
-    def __enter__(self):
-        if not self.json:
-            sys.stdout.write(f"{self.message}: ")
-            sys.stdout.flush()
-        self.start()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-        if not self.json:
-            with swallow_broken_pipe:
-                if exc_type or exc_val:
-                    sys.stdout.write(self.fail_message)
-                else:
-                    sys.stdout.write("done\n")
-                sys.stdout.flush()
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.get_progress_bar` instead.",
-)
-class ProgressBar:
-    @classmethod
-    def get_lock(cls):
-        # Used only for --json (our own sys.stdout.write/flush calls).
-        if not hasattr(cls, "_lock"):
-            cls._lock = RLock()
-        return cls._lock
-
-    def __init__(
-        self, description, enabled=True, json=False, position=None, leave=True
-    ):
-        """
-        Args:
-            description (str):
-                The name of the progress bar, shown on left side of output.
-            enabled (bool):
-                If False, usage is a no-op.
-            json (bool):
-                If true, outputs json progress to stdout rather than a progress bar.
-                Currently, the json format assumes this is only used for "fetch", which
-                maintains backward compatibility with conda 4.3 and earlier behavior.
-        """
-        self.description = description
-        self.enabled = enabled
-        self.json = json
-
-        if json:
-            pass
-        elif enabled:
-            if IS_INTERACTIVE:
-                bar_format = "{desc}{bar} | {percentage:3.0f}% "
-                try:
-                    self.pbar = self._tqdm(
-                        desc=description,
-                        bar_format=bar_format,
-                        ascii=True,
-                        total=1,
-                        file=sys.stdout,
-                        position=position,
-                        leave=leave,
-                    )
-                except OSError as e:
-                    if e.errno in (EPIPE, ESHUTDOWN):
-                        self.enabled = False
-                    else:
-                        raise
-            else:
-                self.pbar = None
-                sys.stdout.write(f"{description} ...working...")
-
-    def update_to(self, fraction):
-        try:
-            if self.enabled:
-                if self.json:
-                    with self.get_lock():
-                        sys.stdout.write(
-                            f'{{"fetch":"{self.description}","finished":false,"maxval":1,"progress":{fraction:f}}}\n\0'
-                        )
-                elif IS_INTERACTIVE:
-                    self.pbar.update(fraction - self.pbar.n)
-                elif fraction == 1:
-                    sys.stdout.write(" done\n")
-        except OSError as e:
-            if e.errno in (EPIPE, ESHUTDOWN):
-                self.enabled = False
-            else:
-                raise
-
-    def finish(self):
-        self.update_to(1)
-
-    def refresh(self):
-        """Force refresh i.e. once 100% has been reached"""
-        if self.enabled and not self.json and IS_INTERACTIVE:
-            self.pbar.refresh()
-
-    @swallow_broken_pipe
-    def close(self):
-        if self.enabled:
-            if self.json:
-                with self.get_lock():
-                    sys.stdout.write(
-                        f'{{"fetch":"{self.description}","finished":true,"maxval":1,"progress":1}}\n\0'
-                    )
-                    sys.stdout.flush()
-            elif IS_INTERACTIVE:
-                self.pbar.close()
-            else:
-                sys.stdout.write(" done\n")
-
-    @staticmethod
-    def _tqdm(*args, **kwargs):
-        """Deferred import so it doesn't hit the `conda activate` paths."""
-        from tqdm.auto import tqdm
-
-        return tqdm(*args, **kwargs)
 
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
