@@ -194,12 +194,13 @@ def _solver_helper(
     context.plugin_manager.get_cached_solver_backend.cache_clear()
     request.addfinalizer(context.plugin_manager.get_cached_solver_backend.cache_clear)
 
-    with context._override("solver", solver):
-        # Force context refresh after override
-        reset_context()
-        assert context.solver == solver
+    mp = request.getfixturevalue("monkeypatch")
 
-        yield solver
+    mp.setenv("CONDA_SOLVER", solver)
+    reset_context()
+    assert context.solver == solver
+
+    yield solver
 
 
 @pytest.fixture(scope="session")
