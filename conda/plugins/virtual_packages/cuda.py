@@ -10,6 +10,7 @@ import os
 import platform
 from contextlib import suppress
 
+from ...common.constants import NULL
 from .. import hookimpl
 from ..types import CondaVirtualPackage
 
@@ -27,8 +28,6 @@ def cuda_version():
 
     Returns: version string (e.g., '9.2') or None if CUDA is not found.
     """
-    if "CONDA_OVERRIDE_CUDA" in os.environ:
-        return os.environ["CONDA_OVERRIDE_CUDA"].strip() or None
 
     # Do not inherit file descriptors and handles from the parent process.
     # The `fork` start method should be considered unsafe as it can lead to
@@ -59,14 +58,15 @@ def cuda_version():
 @functools.cache
 def cached_cuda_version():
     """A cached version of the cuda detection system."""
-    return cuda_version()
+    version = cuda_version()
+    return version or NULL
 
 
 @hookimpl
 def conda_virtual_packages():
     cuda_version = cached_cuda_version()
-    if cuda_version is not None:
-        yield CondaVirtualPackage("cuda", cuda_version, None)
+    if cuda_version not in (None, NULL):
+        yield CondaVirtualPackage("cuda", cached_cuda_version, None)
 
 
 def _cuda_driver_version_detector_target(queue):

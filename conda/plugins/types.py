@@ -9,6 +9,7 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
+from ..base.constants import APP_NAME
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
@@ -96,11 +98,26 @@ class CondaVirtualPackage(CondaPlugin):
     """
 
     name: str
-    version: str | None
+    version: str | None | Callable[[], str | None]
     build: str | None
 
     def to_virtual_package(self) -> PackageRecord:
-        return PackageRecord.virtual_package(f"__{self.name}", self.version, self.build)
+        env_var_name = f"{APP_NAME}_OVERRIDE_{self.name.upper()}"
+
+        if os.environ.get(env_var_name):
+            version = os.environ.get(env_var_name).strip()
+        elif os.environ.get(env_var_name) in ("", None):
+            version = None
+        elif callable(self.version):
+            version = self.version()
+        else:
+            version = self.version
+
+        return PackageRecord.virtual_package(
+            f"__{self.name}",
+            version or None,
+            self.build,
+        )
 
 
 @dataclass
