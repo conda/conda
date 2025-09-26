@@ -24,10 +24,9 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, ClassVar, Literal, TypeAlias
+    from typing import Any, Callable, ClassVar, TypeAlias
 
     from ..common.configuration import Parameter
-    from ..common.constants import NULL
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
@@ -99,20 +98,22 @@ class CondaVirtualPackage(CondaPlugin):
     build: str | None
 
     def to_virtual_package(self) -> PackageRecord:
-        override_flag = f"{APP_NAME}_OVERRIDE_{self.name.upper()}"
-        if not (version := os.environ.get(override_flag)):
-            version = self.get_version()
+        env_var_name = f"{APP_NAME}_OVERRIDE_{self.name.upper()}"
+
+        if os.environ.get(env_var_name):
+            version = os.environ.get(env_var_name).strip()
+        elif os.environ.get(env_var_name) in ("", None):
+            version = None
+        elif callable(self.version):
+            version = self.version()
+        else:
+            version = self.version
 
         return PackageRecord.virtual_package(
             f"__{self.name}",
             version or None,
             self.build,
         )
-
-    def get_version(self) -> str | None | Literal[NULL]:
-        if callable(self.version):
-            return self.version()
-        return self.version
 
 
 @dataclass

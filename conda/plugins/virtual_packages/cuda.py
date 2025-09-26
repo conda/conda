@@ -65,7 +65,7 @@ def cached_cuda_version():
 @hookimpl
 def conda_virtual_packages():
     cuda_version = cached_cuda_version()
-    if cuda_version is not None:
+    if cuda_version not in (None, NULL):
         yield CondaVirtualPackage("cuda", cached_cuda_version, None)
 
 
