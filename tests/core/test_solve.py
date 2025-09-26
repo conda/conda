@@ -174,6 +174,7 @@ def test_solve_2(tmpdir):
             constrains=(),
             track_features=(),
             features=(),
+            requested_specs=(),
             license="proprietary - Intel",
             license_family="Proprietary",
             timestamp=0,
