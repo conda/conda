@@ -52,8 +52,13 @@
   * `conda.plugins.CondaSolver` → `conda.plugins.types.CondaSolver`
   * `conda.plugins.CondaSubcommand` → `conda.plugins.types.CondaSubcommand`
   * `conda.plugins.CondaVirtualPackage` → `conda.plugins.types.CondaVirtualPackage`
-* Add deprecation warnings for invalid fields in environment.yml files (#15120)
-* Mark `conda.core.index.calculate_channel_urls` as pending deprecation in 26.9. Use `conda.models.channel.all_channel_urls(conda.base.context.context.channels)` instead. (#15173)
+* Add deprecation warnings for invalid fields in environment.yml files. (#15120)
+* Mark `conda.core.index.calculate_channel_urls` as pending deprecation, to be removed in 26.9. Use `conda.models.channel.all_channel_urls(conda.base.context.context.channels)` instead. (#15173)
+* Don't implicitly add the `defaults` channel to the channel list. (#15196)
+* Mark `conda.core.index._supplement_index_with_system` as pending deprecation, to be removed in 26.3.
+* Postpone `conda.utils.unix_path_to_win` deprecation to `26.3`. Use `conda.common.path.unix_path_to_win` instead. (#15230)
+* Constrain minimum compatible conda-build version as >= 25.9 (#15235)
+* Mark `conda.auxlib.compat.isiterable` as pending deprecation, to be removed in 26.9. Use `conda.common.compat.isiterable` instead. (#15252)
 * Remove `conda.activate._Activator.commands`. Use `conda commands` instead. (#15179)
 * Remove `conda.activate._Activator._parse_and_set_arts` argument `arguments`. (#15179)
 * Remove `conda.activate.ensure_binary`. Use `conda.common.compat.ensure_binary` instead.  (#15179)
@@ -94,7 +99,6 @@
 * Remove deprecated property `conda.base.context.restore_free_channel`. (#15195)
 * Remove field `conda.base.context._restore_free_channel`. (#15195)
 * Remove deprecation warning `conda.base.context._warn_defaults_deprecation`. (#15196)
-* Don't implicitly add the `defaults` channel to the channel list. (#15196)
 * Remove deprecated module `conda.cli.python_api`. (#15219)
 * Remove deprecated module `conda.common.disk`. (#15219)
 * Remove deprecated constant `FILESYSTEM_ENCODING` from `conda.common.compat`. (#15220)
@@ -125,7 +129,6 @@
 * Remove `conda.core.index._supplement_index_with_features`. Use `conda.core.Index.reload(features=True)` instead. (#15223)
 * Remove `conda.core.index.get_reduced_index`. Use `conda.core.ReducedIndex` or `conda.core.Index.get_reduced_index` instead. (#15223)
 * Remove `conda.core.subdir.make_feature_record`. Use `conda.core.models.records.PackageRecord.feature` instead. (#15223)
-* Mark `conda.core.index._supplement_index_with_system` for removal in `26.3.x`
 * Remove argument `max_retries` for `conda.gateways.disk.delete.rm_rf`. (#15224)
 * Remove argument `trash` for `conda.gateways.disk.delete.rm_rf`. (#15224)
 * Remove constant `conda.gateways.disk.delete.try_rmdir_all_empty`. (#15224)
@@ -135,9 +138,6 @@
 * Remove module `conda.models.leased_path_entry`. (#15224)
 * Remove function `conda.plugins.manager.get_virtual_packages`. Use `conda.plugins.manager.get_virtual_package_records` instead. (#15224)
 * Remove function `conda.env.utils.make_temp_envs_dir`. Use `conda.testing.tmp_envs_dir` instead. (#15224)
-* Postpone `conda.utils.unix_path_to_win` deprecation to `26.3`. Use `conda.common.path.unix_path_to_win` instead. (#15230)
-* Constrain minimum compatible conda-build version as >= 25.9 (#15235)
-* Mark `conda.auxlib.compat.isiterable` as pending deprecation, to be removed in 26.9. Use `conda.common.compat.isiterable` instead. (#15252)
 
 ### Docs
 
