@@ -104,12 +104,15 @@ string_types = str
 text_type = str
 
 
+# FUTURE: conda 26.3+ remove this
 def __getattr__(name: str) -> Any:
     # lazy load the deprecated module
     if name == "plan":
         from . import plan
 
         return plan
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 deprecated.constant(
