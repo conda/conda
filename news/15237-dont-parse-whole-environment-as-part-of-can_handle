@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Don't load the environment.yml environment as part of it's `can_handle` function. This function should just verify if the plugin will be able to interpret the provided file. For the environment.yml plugin, it can read any `.yml`/`.yaml` file. (#15237)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
