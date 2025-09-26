@@ -359,8 +359,8 @@ Authors are sorted alphabetically.
 * Robin
 * Roger Erens
 * Rollin Thomas
-* Ryan
 * Ryan Grout
+* Ryan Keith
 * Rüdiger Busche
 * Saad Parwaiz
 * Sachin G Biradar

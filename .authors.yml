@@ -106,13 +106,16 @@
   num_commits: 1
   first_commit: 2019-02-07 07:19:18
   github: davemasino
-- name: Ryan
+- name: Ryan Keith
   email: rkeith@anaconda.com
   github: ryanskeith
   num_commits: 5
   first_commit: 2015-06-17 19:53:57
   alternate_emails:
   - rskeith@gmail.com
+  - rkeith@anaconda.com
+  aliases:
+  - Ryan
 - name: ugurthemaster
   email: ugurthemaster@gmail.com
   num_commits: 7
