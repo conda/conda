@@ -21,6 +21,7 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Iterable
     from contextlib import AbstractContextManager
     from typing import Any, Callable, ClassVar, TypeAlias
 
@@ -36,6 +37,9 @@ if TYPE_CHECKING:
         [PathType, dict[str, PrefixRecord]],
         dict[str, PrefixRecord],
     ]
+
+    SinglePlatformEnvironmentExport = Callable[[Environment], str]
+    MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
 
 @dataclass
@@ -499,7 +503,7 @@ class CondaEnvironmentExporter(CondaPlugin):
     """
     **EXPERIMENTAL**
 
-    Return type to use when defining a conda environment exporter plugin hook.
+    Return type to use when defining a conda environment exporter plugin hook supporting a single platform.
 
     :param name: name of the exporter (e.g., ``environment-yaml``)
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
@@ -510,7 +514,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     name: str
     aliases: tuple[str, ...]
     default_filenames: tuple[str, ...]
-    export: Callable[[Environment], str]
+    export: SinglePlatformEnvironmentExport | None = None
+    multiplatform_export: MultiPlatformEnvironmentExport | None = None
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -522,3 +527,8 @@ class CondaEnvironmentExporter(CondaPlugin):
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        if bool(self.export) == bool(self.multiplatform_export):
+            raise PluginError(
+                f"Exactly one of export or multiplatform_export must be set for {self!r}"
+            )

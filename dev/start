@@ -10,7 +10,6 @@ cleanup() {
     unset _ARCH
     unset _BASEEXE
     unset _CHANNEL_NAME
-    unset _CHOICE
     unset _CMD
     unset _DEFAULT_ARCH
     unset _DEFAULT_DEVENV
@@ -143,9 +142,36 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# fallback to default values
+# read values key from ~/.condarc if not set
+if [ -f ~/.condarc ]; then
+    _INSTALLER_TYPE="${_INSTALLER_TYPE:-$(grep "^installer_type:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
+    _DEVENV="${_DEVENV:-$(grep "^devenv:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
+fi
+
+# prompt for installer type if not set
+if [ -z "${_INSTALLER_TYPE}" ]; then
+    echo "Choose conda installer:"
+    echo "  1) miniconda (default - Anaconda defaults channel)"
+    echo "  2) miniforge (conda-forge channel)"
+    echo ""
+    echo "Note: This choice can be overridden by setting the 'installer_type' key in ~/.condarc."
+    echo ""
+    printf "Enter choice [1]: "
+    read -r _INSTALLER_TYPE
+    # normalize user input
+    case "${_INSTALLER_TYPE}" in
+        1|"") _INSTALLER_TYPE="miniconda" ;;
+        2) _INSTALLER_TYPE="miniforge" ;;
+        *)
+            echo "Error: invalid choice '${_INSTALLER_TYPE}'. Please run again and choose 1 or 2." >&2
+            return 1
+    esac
+fi
+
+# fallback to default values if not set
 _PYTHON="${_PYTHON:-3.10}"
-# Note: _INSTALLER_TYPE is set explicitly or left empty for later processing
+_INSTALLER_TYPE="${_INSTALLER_TYPE:-${_DEFAULT_INSTALLER}}"
+_DEVENV="${_DEVENV:-${_DEFAULT_DEVENV}}"
 # $ uname -sm
 # Linux x86_64
 # Linux aarch64
@@ -156,31 +182,6 @@ _ARCH="${_ARCH:-${_DEFAULT_ARCH}}"
 _UPDATE="${_UPDATE:-${_DEFAULT_UPDATE}}"
 _DRYRUN="${_DRYRUN:-${_DEFAULT_DRYRUN}}"
 
-# read installer_type key from ~/.condarc if not explicitly set
-if [ -z "${_INSTALLER_TYPE}" ] && [ -f ~/.condarc ]; then
-    _INSTALLER_TYPE="$(grep "^installer_type:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")"
-fi
-
-# prompt for installer type if still not specified
-if [ -z "${_INSTALLER_TYPE}" ]; then
-    echo "Choose conda installer:"
-    echo "  1) miniconda (default - Anaconda defaults channel)"
-    echo "  2) miniforge (conda-forge channel)"
-    printf "Enter choice [1]: "
-    read -r _CHOICE
-    case "${_CHOICE}" in
-        1|""|miniconda) _INSTALLER_TYPE="miniconda" ;;
-        2|miniforge) _INSTALLER_TYPE="miniforge" ;;
-        *)
-            echo "Error: invalid choice '${_CHOICE}'. Please run again and choose 1 or 2." >&2
-            return 1
-            ;;
-    esac
-fi
-
-# set default if still empty (shouldn't happen, but safety fallback)
-_INSTALLER_TYPE="${_INSTALLER_TYPE:-${_DEFAULT_INSTALLER}}"
-
 # validate installer type
 case "${_INSTALLER_TYPE}" in
     miniconda|miniforge) ;;
@@ -190,21 +191,16 @@ case "${_INSTALLER_TYPE}" in
         ;;
 esac
 
-# read devenv key from ~/.condarc
-if [ -f ~/.condarc ]; then
-    _DEVENV="${_DEVENV:-$(grep "^devenv:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
-fi
-# fallback to devenv in source default
-_DEVENV="${_DEVENV:-${_DEFAULT_DEVENV}}"
-# tilde expansion
+# devenv tilde expansion
 _DEVENV="${_DEVENV/#\~/${HOME}}"
-# include OS
+# devenv include OS
 _DEVENV="${_DEVENV}/${_MACH}/${_ARCH}"
-# ensure exists and absolute path
+# ensure exists
 if [ ${_DRYRUN} = "false" ]; then
     mkdir -p "${_DEVENV}"
     _DEVENV="$(cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
 fi
+
 # installer location
 _INSTALLER="$(dirname "$(dirname "${_DEVENV}")")"
 

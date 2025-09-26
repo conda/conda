@@ -556,16 +556,18 @@ class Environment:
         """
         Given the current environment, extrapolate the environment for the given platform.
         """
+        if platform == self.platform:
+            return self
+
         from ..cli.install import Repodatas
 
-        prefix = f"{self.prefix}/conda-meta/{platform}"
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         requested_packages = self.from_history(self.prefix)
 
         for repodata_manager in Repodatas(self.config.repodata_fns, {}):
             with repodata_manager as repodata_fn:
                 solver = solver_backend(
-                    prefix=prefix,
+                    prefix="/env/does/not/exist",
                     channels=context.channels,
                     subdirs=(platform, "noarch"),
                     specs_to_add=requested_packages,
@@ -574,7 +576,8 @@ class Environment:
                 )
                 explicit_packages = solver.solve_final_state()
         return Environment(
-            prefix=prefix,
+            prefix=self.prefix,
+            name=self.name,
             platform=platform,
             config=EnvironmentConfig.from_context(),
             requested_packages=requested_packages,

@@ -60,34 +60,36 @@
 @EXIT /B 1
 :ARGS_END
 
-:: fallback to default values
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
-:: Note: _INSTALLER_TYPE is set explicitly or left empty for later processing
-@IF "%_UPDATE%"=="" @SET "_UPDATE=1"
-@IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
-
-:: read installer_type from ~\.condarc if not explicitly set
+:: read values from ~\.condarc if not set
+@IF "%_DEVENV%"=="" @CALL :DEVENV_CONDARC
 @IF "%_INSTALLER_TYPE%"=="" @CALL :INSTALLER_TYPE_CONDARC
 
-:: prompt for installer type if still not specified
+:: prompt for installer type if not set
 @IF NOT "%_INSTALLER_TYPE%"=="" @GOTO SKIP_PROMPT
 @ECHO Choose conda installer:
 @ECHO   1^) miniconda ^(default - Anaconda defaults channel^)
 @ECHO   2^) miniforge ^(conda-forge channel^)
-@SET /P "_CHOICE=Enter choice [1]: "
-@IF "%_CHOICE%"=="" @SET "_INSTALLER_TYPE=miniconda"
-@IF "%_CHOICE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
-@IF "%_CHOICE%"=="miniconda" @SET "_INSTALLER_TYPE=miniconda"
-@IF "%_CHOICE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
-@IF "%_CHOICE%"=="miniforge" @SET "_INSTALLER_TYPE=miniforge"
-@IF "%_INSTALLER_TYPE%"=="" (
-    @ECHO Error: invalid choice '%_CHOICE%'. Please run again and choose 1 or 2. 1>&2
+@ECHO.
+@ECHO Note: This choice can be overridden by setting the 'installer_type' key in ~\.condarc.
+@ECHO.
+@SET /P "_INSTALLER_TYPE=Enter choice [1]: "
+@IF NOT %ErrorLevel%==0 @EXIT /B 1
+:: normalize user input
+@IF "%_INSTALLER_TYPE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
+@IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
+@IF "%_INSTALLER_TYPE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
+@IF "%_INSTALLER_TYPE%"!="miniconda" @IF "%_INSTALLER_TYPE%"!="miniforge" (
+    @ECHO Error: invalid choice '%_INSTALLER_TYPE%'. Please run again and choose 1 or 2. 1>&2
     @EXIT /B 1
 )
 :SKIP_PROMPT
 
-:: set default if still empty (shouldn't happen, but safety fallback)
+:: fallback to default values if not set
+@IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
 @IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
+@IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
+@IF "%_UPDATE%"=="" @SET "_UPDATE=1"
+@IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
 :: validate installer type
 @IF "%_INSTALLER_TYPE%"=="miniconda" @GOTO INSTALLER_VALID
@@ -96,16 +98,13 @@
 @EXIT /B 1
 :INSTALLER_VALID
 
-:: read devenv from ~\.condarc
-@IF "%_DEVENV%"=="" @CALL :CONDARC
-:: fallback to devenv in source default
-@IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
+:: devenv include OS
+@SET "_DEVENV=%_DEVENV%\Windows"
+:: devenv exists
+@IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
+
 :: installer location
 @SET "_INSTALLER=%_DEVENV%"
-:: include OS
-@SET "_DEVENV=%_DEVENV%\Windows"
-:: ensure exists
-@IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
 
 :: other environment variables
 @SET "_NAME=devenv-%_PYTHON%-%_INSTALLER_TYPE%"
@@ -117,7 +116,7 @@
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
 @SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
 
-:: dry-run printout
+:: dryrun printout
 @IF %_DRYRUN%==0 @GOTO :DRYRUN
 
 :: deactivate any prior envs
@@ -277,7 +276,6 @@
 @SET _ARG=
 @SET _BASEEXE=
 @SET _CHANNEL_NAME=
-@SET _CHOICE=
 @SET _CONDABAT=
 @SET _DEVENV=
 @SET _DOWNLOAD_URL=
@@ -312,14 +310,14 @@
 @SET _PATH=
 @GOTO :EOF
 
-:CONDARC
+:DEVENV_CONDARC
 :: read devenv from ~\.condarc
 :: check if ~\.condarc exists
-@IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 2
+@IF NOT EXIST "%USERPROFILE%\.condarc" @GOTO :EOF
 :: check if devenv key is defined
 @FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
-@IF NOT %ErrorLevel%==0 @EXIT /B 1
-:: read devenv key
+@IF NOT %ErrorLevel%==0 @GOTO :EOF
+:: read devenv key (with path expansion)
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
 @GOTO :EOF
 

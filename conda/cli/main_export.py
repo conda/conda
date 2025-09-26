@@ -136,6 +136,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import env_name
+    from ..exceptions import CondaValueError
     from .common import stdout_json
 
     # TODO: Check if platform targets are valid
@@ -170,15 +171,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             context.plugin_manager.get_environment_exporter_by_format(target_format)
         )
 
+    # If user requested multiple platforms, we need an exporter that supports it
+    if (
+        len(context.export_platforms) > 1
+        and not environment_exporter.multiplatform_export
+    ):
+        raise CondaValueError(
+            f"Multiple platforms are not supported for the `{environment_exporter.name}` exporter"
+        )
+
     prefix = context.target_prefix
 
     # Create models.Environment directly
-    # TODO: Figure out how to handle source and target platforms.  Do we
-    #       we need to specify the source platform and then export to
-    #       the target platform?  If so, is this done in the
-    #       environment_exporter?
-    # target_platforms = context.export_platforms
-
     env = Environment.from_prefix(
         prefix=prefix,
         name=env_name(prefix),
@@ -189,7 +193,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         channels=context.channels,
     )
 
-    exported_content = environment_exporter.export(env)
+    # Export using the appropriate method
+    envs = [env.extrapolate(platform) for platform in context.export_platforms]
+    if environment_exporter.multiplatform_export:
+        exported_content = environment_exporter.multiplatform_export(envs)
+    elif environment_exporter.export:
+        exported_content = environment_exporter.export(envs[0])
+    else:
+        raise CondaValueError(
+            f"No export method found for {environment_exporter.name} exporter"
+        )
 
     # Add trailing newline to the exported content
     exported_content = exported_content.rstrip() + "\n"
