@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add support for reading configuration from environment specification files (environment.yaml) as an EnvironmentConfig and applying it during the `conda create env` process. This provides a basis to add more configuration information to the creation process via environment yaml files as the yaml definition spec increases.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -5,17 +5,45 @@
 Creates new conda environments with the specified packages.
 """
 
+import os
 from argparse import (
     ArgumentParser,
     Namespace,
     _SubParsersAction,
 )
+from collections.abc import Sequence
 from pathlib import Path
 
 from .. import CondaError
+from ..base.context import fresh_context
 from ..cli.main_config import set_keys
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
+
+
+def _merge_with_env_var(env_var_name: str, new_values: Sequence[str]) -> str:
+    """
+    Merge new values with existing environment variable values.
+
+    Args:
+        env_var_name: Name of the environment variable (e.g., 'CONDA_CHANNELS')
+        new_values: Sequence of new values to merge (list, tuple, etc.)
+
+    Returns:
+        Comma-separated string of merged values
+    """
+    # Get existing environment variable values
+    existing = os.environ.get(env_var_name, "")
+    existing_list = [v.strip() for v in existing.split(",") if v.strip()]
+
+    # Combine and deduplicate while preserving order
+    all_values = existing_list + list(new_values)
+    unique_values = []
+    for value in all_values:
+        if value not in unique_values:
+            unique_values.append(value)
+
+    return ",".join(unique_values)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -142,70 +170,93 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix_data.validate_path()
     prefix_data.validate_name()
 
-    # TODO, add capability
-    # common.ensure_override_channels_requires_channel(args)
-    # channel_urls = args.channel or ()
+    # Convert all environment configuration to environment variables for fresh_context
+    # NOTE: Only channels and environment variables are currently supported in
+    # environment.yaml files.
+    env_vars = {}
 
-    result = {"conda": None, "pip": None}
-
-    args_packages = (
-        context.create_default_packages if not args.no_default_packages else []
-    )
-
-    if args.dry_run:
-        installer_type = "conda"
-        installer = get_installer(installer_type)
-
-        pkg_specs = [*env.requested_packages, *args_packages]
-
-        solved_env = installer.dry_run(pkg_specs, args, env)
-        if args.json:
-            print(json.dumps(solved_env.to_dict()))
-        else:
-            print(solved_env.to_yaml(), end="")
-
-    else:
-        if args_packages:
-            installer_type = "conda"
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, args_packages, args, env)
-
-        # install conda packages
-        installer_type = "conda"
-        installer = get_installer(installer_type)
-        result[installer_type] = installer.install(
-            prefix, env.requested_packages, args, env
+    if env.config.channels:
+        env_vars["CONDA_CHANNELS"] = _merge_with_env_var(
+            "CONDA_CHANNELS", env.config.channels
         )
 
-        # install all other external packages
-        for installer_type, pkg_specs in env.external_packages.items():
-            try:
-                installer = get_installer(installer_type)
-                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
-            except InvalidInstaller:
-                raise CondaError(
-                    dals(
-                        f"""
-                        Unable to install package for {installer_type}.
+    # TODO: Add other config options when they're supported in environment.yaml
+    # if env.config.channel_priority:
+    #     env_vars['CONDA_CHANNEL_PRIORITY'] = str(env.config.channel_priority)
+    # if env.config.solver:
+    #     env_vars['CONDA_SOLVER'] = env.config.solver
 
-                        Please double check and ensure your dependencies file has
-                        the correct spelling. You might also try installing the
-                        conda-env-{installer_type} package to see if provides
-                        the required installer.
-                        """
-                    )
+    # Use fresh_context to load all environment configuration without writing to disk
+    with fresh_context(argparse_args=args, env=env_vars):
+        # TODO, add capability
+        # common.ensure_override_channels_requires_channel(args)
+        # channel_urls = args.channel or ()
+
+        result = {"conda": None, "pip": None}
+
+        args_packages = (
+            context.create_default_packages if not args.no_default_packages else []
+        )
+
+        if args.dry_run:
+            installer_type = "conda"
+            installer = get_installer(installer_type)
+
+            pkg_specs = [*env.requested_packages, *args_packages]
+
+            solved_env = installer.dry_run(pkg_specs, args, env)
+            if args.json:
+                print(json.dumps(solved_env.to_dict()))
+            else:
+                print(solved_env.to_yaml(), end="")
+
+        else:
+            if args_packages:
+                installer_type = "conda"
+                installer = get_installer(installer_type)
+                result[installer_type] = installer.install(
+                    prefix, args_packages, args, env
                 )
 
-        if context.subdir != context._native_subdir():
-            set_keys(
-                ("subdir", context.subdir),
-                path=Path(prefix, DEFAULT_CONDARC_FILENAME),
+            # install conda packages
+            installer_type = "conda"
+            installer = get_installer(installer_type)
+            result[installer_type] = installer.install(
+                prefix, env.requested_packages, args, env
             )
 
-        if env.variables:
-            prefix_data.set_environment_env_vars(env.variables)
+            # install all other external packages
+            for installer_type, pkg_specs in env.external_packages.items():
+                try:
+                    installer = get_installer(installer_type)
+                    result[installer_type] = installer.install(
+                        prefix, pkg_specs, args, env
+                    )
+                except InvalidInstaller:
+                    raise CondaError(
+                        dals(
+                            f"""
+                            Unable to install package for {installer_type}.
 
-        prefix_data.set_nonadmin()
-        print_result(args, prefix, result)
+                            Please double check and ensure your dependencies file has
+                            the correct spelling. You might also try installing the
+                            conda-env-{installer_type} package to see if provides
+                            the required installer.
+                            """
+                        )
+                    )
+
+            if context.subdir != context._native_subdir():
+                set_keys(
+                    ("subdir", context.subdir),
+                    path=Path(prefix, DEFAULT_CONDARC_FILENAME),
+                )
+
+            # Environment variables from environment.yaml are set in conda-meta/state file
+            if env.variables:
+                prefix_data.set_environment_env_vars(env.variables)
+
+            prefix_data.set_nonadmin()
+            print_result(args, prefix, result)
 
     return 0
