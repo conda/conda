@@ -195,6 +195,8 @@ def _solver_helper(
     request.addfinalizer(context.plugin_manager.get_cached_solver_backend.cache_clear)
 
     with context._override("solver", solver):
+        # Force context refresh after override
+        reset_context()
         assert context.solver == solver
 
         yield solver
