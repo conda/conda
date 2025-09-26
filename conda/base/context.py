@@ -532,6 +532,10 @@ class Context(Configuration):
         aliases=("conda-build", "conda_build"),
     )
 
+    override_virtual_packages = ParameterLoader(
+        MapParameter(PrimitiveParameter(None, element_type=(str, NoneType)))
+    )
+
     ####################################################
     #               Plugin Configuration               #
     ####################################################
