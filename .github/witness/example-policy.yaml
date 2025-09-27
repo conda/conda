@@ -1,0 +1,25 @@
+# Simple Witness Policy for Testing Conda Verify
+expires: "2030-01-01T00:00:00Z"
+steps:
+  - name: build
+    attestations:
+      # Basic attestation types without complex policies
+      - type: https://witness.dev/attestations/command-run/v0.1
+      - type: https://witness.dev/attestations/environment/v0.1
+    functionaries:
+      - type: publickey
+        publickeyid: "test-functionary"
+        
+publickeys:
+  test-functionary:
+    keyid: "test-functionary"
+    key: |
+      -----BEGIN PUBLIC KEY-----
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1V6KqKKLKCRMpKsCQR5l
+      h7gRvLdGwLlEuWbUcvLJvXyf1W4GAuB/Or5e7dyr0Z4TQjdLOtp5q/uw/VPDqxqP
+      AqnhQn3p5C4YzVQGPcMjn6Qf8kjkDylYJlH9induRr+7/qhSbHBnbfqNR2PzLhQR
+      Vz2qLq2VfFsGOmxEAwYO8eHPqv5LoqvuLqEXZhMF5XlFqLNbkuDy0tXnH/fWLLHJ
+      fs42HkXcN72LvEd7N1cufZUEdUVJ6EbBT0vE8fPqaGPPPTkMnDvjYJq7OIlifpRw
+      G6BqRvhFVHlPkLXgKLPktDxTlRwqFRCvGDm5l6DjoJZ8KvujTAOEw/fNMqmATlxN
+      dQIDAQAB
+      -----END PUBLIC KEY-----

@@ -1,0 +1,7 @@
+# Ignore all private keys
+*.pem
+!.gitignore
+
+# Keep public keys and certificates
+!*.pub
+!*-cert.pem
