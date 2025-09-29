@@ -2,6 +2,12 @@
 
 ## 25.9.0 (2025-09-26)
 
+### ✨ Special Announcement ✨
+
+Following feedback from conda users last year about the pre-configuration of the conda code base to favor channels from Anaconda Inc, we've [finished removing](https://github.com/conda/conda/issues/14178) hardcoding Anaconda's channels as the default set of channels in the conda source code.
+
+It is now up to providers of the conda distributions, such as [miniforge](https://github.com/conda-forge/miniforge) or Anaconda (including miniconda), to pre-configure their preferred channels, e.g. by running the necessary `conda config --set channels` command.
+
 ### Enhancements
 
 * Add conda doctor check for if the pinned file is ill-formatted. (#7978 via #15022)
