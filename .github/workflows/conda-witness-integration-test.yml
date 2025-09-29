@@ -6,32 +6,33 @@ on:
     branches:
       - feat/conda-witness
     paths:
-      - '.github/workflows/conda-witness-integration-test.yml'
+      - ".github/workflows/conda-witness-integration-test.yml"
+      - "Makefile"
 
 permissions:
   contents: read
-  id-token: write  # For Sigstore signing
+  id-token: write # For Sigstore signing
 
 jobs:
   integration-test:
     name: Test Conda + Witness Integration
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
+          python-version: "3.11"
+
       - name: Install Dependencies
         run: make witness-deps
-          
+
       - name: Setup Witness Binary
         run: make witness-setup
-          
+
       # =========================================================
       # Build Conda Package WITH Witness Attestation
       # =========================================================
@@ -48,55 +49,55 @@ jobs:
           outfile: conda-build.attestation.json
           # Optional: Add trace for debugging
           trace: false
-          
+
       - name: Create and Sign Verification Policy
         run: make witness-sign-policy
-          
+
       # =========================================================
       # Verify the Built Conda Package with Witness Attestation
       # =========================================================
       - name: Verify Built Package with Conda Verify
         run: make witness-verify
-          
+
       - name: Test Installed Package
         run: |
           # Install the built package
           pip install dist/*.whl
-          
+
           # Test that conda verify command works
           conda verify --help || python -m conda verify --help || python -m conda.cli.main verify --help
-          
+
           echo "✓ Conda with witness integration installed successfully"
-          
+
       - name: Create Test Summary
         run: |
           cat >> $GITHUB_STEP_SUMMARY << 'EOF'
           ## 🎉 Conda + Witness Integration Test Results
-          
+
           ### ✅ Build Phase
           - Conda package built successfully with witness attestation
           - Build process captured in verifiable attestation
           - Attestation signed using GitHub OIDC via Sigstore/Fulcio (keyless signing)
           - Cryptographically bound to this specific GitHub Actions workflow run
-          
+
           ### ✅ Verification Phase  
           - Built package verified using `conda verify` command
           - Attestation validated against policy
           - Supply chain integrity confirmed
-          
+
           ### 🔐 Security Features
           - **Keyless Signing**: No private keys to manage or leak
           - **Identity-based**: Tied to GitHub Actions OIDC token
           - **Non-repudiable**: Proves this exact workflow built the package
           - **Transparent**: Certificate logged to Rekor transparency log
-          
+
           ### 📦 Artifacts
           EOF
-          
+
           echo "- Package: $(ls dist/*.whl)" >> $GITHUB_STEP_SUMMARY
           echo "- Attestation: conda-build.attestation.json" >> $GITHUB_STEP_SUMMARY
           echo "- Policy: build-policy-signed.yaml" >> $GITHUB_STEP_SUMMARY
-          
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
