@@ -99,10 +99,12 @@ class CondaVirtualPackage(CondaPlugin):
     build: str | None
 
     def to_virtual_package(self) -> PackageRecord:
-        if f"{APP_NAME}_OVERRIDE_{self.name.upper()}" in os.environ:
+        if f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}" in os.environ:
             version = (
-                os.environ[f"{APP_NAME}_OVERRIDE_{self.name.upper()}"].strip() or None
+                os.environ[f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}"].strip()
+                or None
             )
+
         else:
             # no override, use self.version
             version = maybecall(self.version)
