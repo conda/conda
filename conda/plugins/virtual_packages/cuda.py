@@ -57,15 +57,12 @@ def cuda_version():
 @functools.cache
 def cached_cuda_version():
     """A cached version of the cuda detection system."""
-    version = cuda_version()
-    return version
+    return cuda_version()
 
 
 @hookimpl
 def conda_virtual_packages():
-    cuda_version = cached_cuda_version()
-    if cuda_version is not None:
-        yield CondaVirtualPackage("cuda", cuda_version, None)
+    yield CondaVirtualPackage("cuda", cuda_version, None)
 
 
 def _cuda_driver_version_detector_target(queue):
