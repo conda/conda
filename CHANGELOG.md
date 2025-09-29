@@ -14,7 +14,7 @@
 * Change the `environment.yml` plugin to be disabled by default. Users can explicitly use it by setting the `--environment-specifier` flag. (#15120)
 * Add `conda.models.environment.Environment.extrapolate` to extrapolate the environment for a different platform. (#15157 via #15183)
 * Add `CondaEnvironmentExporter.multiplatform_export` to support export formats with multiple platforms. (#15159 via #15253, #15261)
-* `dev/start`/`dev\start.bat` scripts support choosing between `miniconda` and `miniforge` installers via `-i/--installer` flag, `installer_type` in `~/.condarc` configuration, or interactive prompt when not specified. (#15084 via #15163)
+* Update `dev/start`/`dev\start.bat` scripts to allow choosing between `miniconda` and `miniforge` installers via `-i/--installer` flag, `installer_type` in `~/.condarc` configuration, or interactive prompt when not specified. (#15084 via #15163)
 * Report environments marked as frozen (CEP 22) with `+` in `conda info --envs` and `conda env list`. (#15213)
 
 ### Bug fixes
