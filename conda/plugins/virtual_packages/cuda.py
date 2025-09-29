@@ -62,7 +62,9 @@ def cached_cuda_version():
 
 @hookimpl
 def conda_virtual_packages():
-    yield CondaVirtualPackage("cuda", cuda_version, None)
+    version = cached_cuda_version()
+    if version is not None:
+        yield CondaVirtualPackage("cuda", cached_cuda_version, None)
 
 
 def _cuda_driver_version_detector_target(queue):
