@@ -121,7 +121,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
     if args.prefix is None and args.name is None:
-        if env.name is None:  # requirements.txt won't populate Environment.name
+        if env.name is None and env.prefix is None:  # requirements.txt won't populate Environment.name
             msg = dals(
                 """
                 Unable to create environment
@@ -132,6 +132,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             )
             raise CondaEnvException(msg)
         args.name = env.name
+        args.prefix = env.prefix
 
     prefix = determine_target_prefix(context, args)
     prefix_data = PrefixData(prefix)
