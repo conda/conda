@@ -2245,11 +2245,11 @@ def test_disallowed_packages(
 def test_dont_remove_conda_1(
     monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
-    with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+    with tmp_env("conda") as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         reset_context()
         assert context.root_prefix == str(prefix)
-        conda_cli("install", f"--prefix={prefix}", "conda", "conda-build", "--yes")
+
         assert package_is_installed(prefix, "conda")
         assert package_is_installed(prefix, "pycosat")
         assert package_is_installed(prefix, "conda-build")
@@ -2274,12 +2274,11 @@ def test_dont_remove_conda_2(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch
 ):
     # regression test for #6904
-    with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+    with tmp_env("conda") as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         reset_context()
         assert context.root_prefix == str(prefix)
 
-        conda_cli("install", f"--prefix={prefix}", "conda", "--yes")
         assert package_is_installed(prefix, "conda")
         assert package_is_installed(prefix, "pycosat")
 
