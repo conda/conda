@@ -10,7 +10,6 @@ import os
 import platform
 from contextlib import suppress
 
-from ...common.constants import NULL
 from .. import hookimpl
 from ..types import CondaVirtualPackage
 
@@ -65,7 +64,7 @@ def cached_cuda_version():
 @hookimpl
 def conda_virtual_packages():
     cuda_version = cached_cuda_version()
-    if cuda_version not in (None, NULL):
+    if cuda_version is not None:
         yield CondaVirtualPackage("cuda", cuda_version, None)
 
 
