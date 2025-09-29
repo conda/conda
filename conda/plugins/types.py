@@ -99,7 +99,7 @@ class CondaVirtualPackage(CondaPlugin):
     build: str | None
 
     def to_virtual_package(self) -> PackageRecord:
-        if "CONDA_OVERRIDE_CUDA" in os.environ:
+        if f"{APP_NAME}_OVERRIDE_{self.name.upper()}" in os.environ:
             version = (
                 os.environ[f"{APP_NAME}_OVERRIDE_{self.name.upper()}"].strip() or None
             )
