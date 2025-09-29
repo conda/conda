@@ -5,31 +5,31 @@
 ### Enhancements
 
 * Add conda doctor check for if the pinned file is ill-formatted. (#7978 via #15022)
-* If an HTTP error response includes a field named "detail", relay that as the error message. Stop uppercasing of error message. (#15021 via #15037)
-* Raise exceptions to prevent renaming or removing the `default_activation_env`. (#15061)
-* `conda list pattern` raises an exception with exit code 1 if the query did not match any packages in the target environment. (#15074 via #15075)
-* Add bytes cache to support sharded repodata. (#15083)
+* If an HTTP error response includes a field named `detail`, relay that as the error message. Stop uppercasing the error message. (#15021 via #15037)
+* Raise exceptions to prevent renaming or removing the environment specified by `default_activation_env`. (#15061)
+* Make `conda list REGEX` raise an exception with exit code 1 when the regular expression does not match any packages in the target environment. (#15074 via #15075)
+* Add a bytes cache to support sharded repodata. (#15083)
 * Add a "file locking" health check to `conda doctor`. (#13921 & #14948 via #15114)
-* Add a new environment spec plugin, called cep-24, that implements the environment.yml specification in cep-0024. This is enabled by default. (#15120)
-* Change the `environment.yml` plugin to be disabled by default. Users can explicitly use it by setting the `--environment-spec` flag. (#15120)
+* Add a new environment spec plugin, called `cep-24`, that implements the `environment.yml` specification in CEP 24. This is enabled by default. (#15120)
+* Change the `environment.yml` plugin to be disabled by default. Users can explicitly use it by setting the `--environment-specifier` flag. (#15120)
 * Add `conda.models.environment.Environment.extrapolate` to extrapolate the environment for a different platform. (#15157 via #15183)
 * Add `CondaEnvironmentExporter.multiplatform_export` to support export formats with multiple platforms. (#15159 via #15253, #15261)
 * `dev/start`/`dev\start.bat` scripts support choosing between `miniconda` and `miniforge` installers via `-i/--installer` flag, `installer_type` in `~/.condarc` configuration, or interactive prompt when not specified. (#15084 via #15163)
-* Report environments marked as frozen with `+` in `conda info --envs` and `conda env list`. (#15213)
+* Report environments marked as frozen (CEP 22) with `+` in `conda info --envs` and `conda env list`. (#15213)
 
 ### Bug fixes
 
 * Slash-normalize `PrefixRecord.files` entries on Windows to emit correct output for `conda list` in environments created by (micro)mamba. (#14523)
 * Silence error in `fish` when undefined environment variables are unset. (#14659 via #14660, #15102)
 * Fix `validate_subdir_config` cli validation -- only search config file context sources for subdir configuration. (#15020 via #15038)
-* Fix `conda install/create/update` command to not ignore cli arguments if an explicit package is specified to install. (#15028)
+* Fix `conda install/create/update` commands to not ignore CLI arguments if an explicit package is specified to install. (#15028)
 * Override `create_default_packages` setting for specs originating from files. (#15041)
 * Don't install explicit packages if invoked with `conda update`. (#15044)
-* `conda create --clone` does not allow users to specify a `--file`. (#15702 via #15073)
+* Update `conda create --clone` to disallow users to specify a `--file` CLI argument. (#15702 via #15073)
 * Ignore explicit packages specified in `create_default_packages` setting and provide a helpful warning message for the setting. (#15115)
 * Avoid triple-equals string exports when the `MatchSpec.version` field starts with a single equals. (#15123 via #15141)
 * Respect `CONDA_PROTECT_FROZEN_ENVS` environment variable in the absence of `--override-frozen`. (#15162)
-* `conda init --dry-run` indicates that a dry run was performed and no changes were made. (#15097 via #15211)
+* Indicate that a dry run was performed and no changes were made when running `conda init --dry-run`. (#15097 via #15211)
 * Don't load the `environment.yml` environment as part of its `can_handle` function. Just verify if the plugin will be able to interpret the provided file. For the `environment.yml` plugin, it can read any `.yml`/`.yaml` file. (#15237)
 
 ### Deprecations
@@ -141,14 +141,14 @@
 
 ### Docs
 
-* Update docs to reflect that conda cli args are higher precedence than env vars. (#15054)
+* Update documentation to reflect that `conda` CLI arguments have a higher precedence than environment variables. (#15054)
 
 ### Other
 
 * Refactor the CLI layer to use the environment model. (#15039)
-* Make the environment.yml plugin try to handle the environment file, if all other environment spec plugins fail (as a final try). (#15120)
-* Update test to accept quotes in Python 3.12 argparse errors. (#15172)
-* Clarify message in `EnvironmentIsFrozenError` exceptions. (#15228)
+* Make the `environment.yml` plugin try to handle the environment file, if all other environment spec plugins fail (as a final try). (#15120)
+* Update the tests to accept quotes in Python 3.12 argparse errors. (#15172)
+* Improve the `EnvironmentIsFrozenError` exception message to indicate how to bypass it with `--override-frozen`. (#15228)
 * Check conda-build source code for missing imports in CI (#15229)
 * Make constant for '.condarc' and 'condarc' filenames. (#15232)
 
