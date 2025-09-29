@@ -149,7 +149,7 @@
 * Make the `environment.yml` plugin try to handle the environment file, if all other environment spec plugins fail (as a final try). (#15120)
 * Update the tests to accept quotes in Python 3.12 argparse errors. (#15172)
 * Improve the `EnvironmentIsFrozenError` exception message to indicate how to bypass it with `--override-frozen`. (#15228)
-* Check conda-build source code for missing imports in CI (#15229)
+* Check conda-build source code for missing imports in CI. (#15229)
 * Make constant for '.condarc' and 'condarc' filenames. (#15232)
 
 ### Contributors
