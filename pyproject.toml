@@ -95,6 +95,13 @@ relative_files = true
 [tool.hatch.build]
 include = ["conda", "conda_env"]
 
+[tool.hatch.build.targets.wheel]
+# Include witness binaries in the wheel
+packages = ["conda", "conda_env"]
+include = [
+  "conda/witness/binaries/witness_*",
+]
+
 [tool.hatch.build.hooks.vcs]
 version-file = "conda/_version.py"
 

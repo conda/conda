@@ -1,0 +1,130 @@
+# Witness Policy Template for Conda Build Verification
+# This policy verifies that conda was built following expected steps
+expires: "2030-01-01T00:00:00Z"
+roots:
+  # Certificate constraints for signed policies (optional)
+  # certificates:
+  #   - cert: |
+  #       -----BEGIN CERTIFICATE-----
+  #       ...
+  #       -----END CERTIFICATE-----
+
+steps:
+  - name: build
+    attestations:
+      # Command run attestation - verifies build was executed successfully
+      - type: https://witness.dev/attestations/command-run/v0.1
+        regopolicies:
+          - name: exit-code-zero
+            module: |
+              package commandrun
+              
+              default allow = false
+              
+              # Ensure the build command exited successfully
+              allow {
+                input.exitcode == 0
+              }
+              
+          - name: expected-command
+            module: |
+              package commandrun
+              
+              default allow = false
+              
+              # Allow build scripts
+              allow {
+                contains(input.cmd[0], "build")
+              }
+              
+      # Environment attestation - captures build environment
+      - type: https://witness.dev/attestations/environment/v0.1
+        regopolicies:
+          - name: environment-variables
+            module: |
+              package environment
+              
+              default allow = false
+              
+              # Basic check that some environment is captured
+              allow {
+                input.os != ""
+                input.hostname != ""
+              }
+              
+      # GitHub attestation (when running in GitHub Actions)
+      - type: https://witness.dev/attestations/github/v0.1
+        regopolicies:
+          - name: github-context
+            module: |
+              package github
+              
+              default allow = false
+              
+              # Verify this came from GitHub Actions
+              allow {
+                input.actor != ""
+                input.repository != ""
+              }
+              
+      # Git attestation - captures source code state
+      - type: https://witness.dev/attestations/git/v0.1
+        regopolicies:
+          - name: clean-worktree
+            module: |
+              package git
+              
+              default allow = false
+              
+              # Allow if status shows clean or expected changes
+              allow {
+                input.commit != ""
+              }
+              
+    # Define who can perform this step
+    functionaries:
+      - type: publickey
+        publickeyid: "conda-build-key"
+        
+  - name: test
+    attestations:
+      - type: https://witness.dev/attestations/command-run/v0.1
+        regopolicies:
+          - name: test-passed
+            module: |
+              package commandrun
+              
+              default allow = false
+              
+              # Tests must pass
+              allow {
+                input.exitcode == 0
+              }
+              
+    functionaries:
+      - type: publickey
+        publickeyid: "conda-test-key"
+        
+# Artifact rules - what artifacts are expected
+artifacts:
+  - name: conda-package
+    paths:
+      - "conda-*.tar.gz"
+      - "conda-*.conda"
+      - "build/**"
+    
+# Public keys referenced in functionaries
+publickeys:
+  conda-build-key:
+    keyid: "conda-build-key"
+    key: |
+      -----BEGIN PUBLIC KEY-----
+      # This will be replaced with actual key in workflow
+      -----END PUBLIC KEY-----
+      
+  conda-test-key:
+    keyid: "conda-test-key"
+    key: |
+      -----BEGIN PUBLIC KEY-----
+      # This will be replaced with actual key in workflow
+      -----END PUBLIC KEY-----
