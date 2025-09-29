@@ -420,7 +420,7 @@ def test_create_users_environment_file_prefix(
         - ca-certificates
         """
     )
-    
+
     # Ensure that the prefix from the environment.yml is used
     conda_cli(
         "env",
@@ -431,7 +431,6 @@ def test_create_users_environment_file_prefix(
     prefix_data = PrefixData(prefix)
     assert prefix_data.exists()
     assert prefix_data.is_environment()
-
 
     # Ensure that the prefix from the cli overwrites the one from environment.yml
     prefix2 = path_factory()
@@ -446,4 +445,3 @@ def test_create_users_environment_file_prefix(
     prefix_data = PrefixData(prefix2)
     assert prefix_data.exists()
     assert prefix_data.is_environment()
-
