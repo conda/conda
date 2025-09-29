@@ -59,7 +59,7 @@ def cuda_version():
 def cached_cuda_version():
     """A cached version of the cuda detection system."""
     version = cuda_version()
-    return version or NULL
+    return version
 
 
 @hookimpl

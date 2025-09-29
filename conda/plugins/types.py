@@ -19,7 +19,6 @@ from requests.auth import AuthBase
 
 from ..auxlib.type_coercion import maybecall
 from ..base.constants import APP_NAME
-from ..common.constants import NULL
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
@@ -100,13 +99,13 @@ class CondaVirtualPackage(CondaPlugin):
     build: str | None
 
     def to_virtual_package(self) -> PackageRecord:
-        version = os.getenv(f"{APP_NAME}_OVERRIDE_{self.name.upper()}")
-        if version is None:
+        if "CONDA_OVERRIDE_CUDA" in os.environ:
+            version = (
+                os.environ[f"{APP_NAME}_OVERRIDE_{self.name.upper()}"].strip() or None
+            )
+        else:
             # no override, use self.version
             version = maybecall(self.version)
-        else:
-            # override found, if override is falsey skip this virtual package
-            version = version.strip() or NULL
 
         return PackageRecord.virtual_package(
             f"__{self.name}",
