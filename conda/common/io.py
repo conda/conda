@@ -3,12 +3,19 @@
 """Common I/O utilities."""
 
 import logging
+import math
 import os
 import signal
 import sys
 from collections import defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
-from concurrent.futures.thread import _WorkItem
+from concurrent.futures import (
+    Executor,
+    Future,
+    ThreadPoolExecutor,
+    _base,
+    as_completed,
+    thread,
+)
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
@@ -364,16 +371,16 @@ def attach_stderr_handler(
 
 
 def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
-    """Enforce a maximum time for a callable to complete.
-    Not yet implemented on Windows.
-    """
+    """Enforce a maximum time for a callable to complete."""
     if on_win:
-        # Why does Windows have to be so difficult all the time? Kind of gets old.
-        # Guess we'll bypass Windows timeouts for now.
-        try:
-            return func(*args, **kwargs)
-        except KeyboardInterrupt:  # pragma: no cover
-            return default_return
+        with ThreadLimitedThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(func, *args, **kwargs)
+            try:
+                return future.result(timeout=timeout_secs)
+            except KeyboardInterrupt:
+                executor._threads.clear()
+                thread._threads_queues.clear()
+                return default_return
     else:
 
         class TimeoutException(Exception):
@@ -383,13 +390,13 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             raise TimeoutException()
 
         signal.signal(signal.SIGALRM, interrupt)
-        signal.alarm(timeout_secs)
+        signal.alarm(math.ceil(timeout_secs))
 
         try:
             ret = func(*args, **kwargs)
             signal.alarm(0)
             return ret
-        except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
+        except (TimeoutException, KeyboardInterrupt):
             return default_return
 
 
@@ -447,7 +454,7 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
                 raise RuntimeError("cannot schedule new futures after shutdown")
 
             f = _base.Future()
-            w = _WorkItem(f, fn, args, kwargs)
+            w = thread._WorkItem(f, fn, args, kwargs)
 
             self._work_queue.put(w)
             try:
