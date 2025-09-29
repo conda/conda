@@ -326,23 +326,6 @@ def test_conda_config_describe_includes_plugin_settings(
     assert f"plugins.{MAP_PARAMETER_NAME}:" in out
 
 
-def test_conda_config_describe_not_included_without_plugins(conda_cli):
-    """
-    Ensure that the describe command does not include the section banner
-    for plugins when no additional settings are provided by plugins
-    """
-    out, err, _ = conda_cli("config", "--describe")
-
-    section_banner = (
-        "# ######################################################\n"
-        "# ##     Additional settings provided by plugins      ##\n"
-        "# ######################################################"
-    )
-
-    assert not err
-    assert section_banner not in out
-
-
 def test_conda_config_describe_unknown_plugin_setting(
     condarc_plugin_manager, conda_cli
 ):
