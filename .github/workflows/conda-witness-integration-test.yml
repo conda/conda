@@ -27,19 +27,10 @@ jobs:
           python-version: '3.11'
           
       - name: Install Dependencies
-        run: |
-          # Build tools
-          pip install build wheel setuptools hatchling hatch-vcs
-          
-          # Conda runtime dependencies
-          pip install ruamel.yaml requests pycosat boltons platformdirs frozendict
-          pip install jsonpatch packaging tqdm urllib3 charset-normalizer idna
+        run: make witness-deps
           
       - name: Setup Witness Binary
-        run: |
-          # Download embedded witness binary
-          python setup_witness.py --current-platform
-          ls -la conda/witness/binaries/
+        run: make witness-setup
           
       # =========================================================
       # Build Conda Package WITH Witness Attestation
@@ -48,8 +39,8 @@ jobs:
         uses: testifysec/witness-run-action@v0.3.3
         with:
           step: "conda-package-build"
-          attestors: "environment,git,github,command-run,material,product"
-          command: "/bin/bash -c 'set -e && echo \"======================================\" && echo \"Building Conda Package with Witness\" && echo \"======================================\" && echo \"Python version: $(python --version)\" && echo \"Current directory: $(pwd)\" && echo \"Git commit: $(git rev-parse HEAD)\" && echo \"Starting build...\" && python -m build --wheel --outdir dist/ && echo \"\" && echo \"Build artifacts:\" && ls -lh dist/ && echo \"\" && echo \"Checksums:\" && cd dist && sha256sum * | tee ../checksums.txt && cd .. && echo \"\" && echo \"Build completed successfully!\"'"
+          attestations: "environment git github command-run material product"
+          command: "make witness-build"
           # Explicitly enable Sigstore for keyless signing
           enable-sigstore: true
           # This uses GitHub's OIDC token for signing via Fulcio
@@ -58,127 +49,14 @@ jobs:
           # Optional: Add trace for debugging
           trace: false
           
-      - name: Generate Local Signing Key
-        run: |
-          # For policy signing
-          openssl genrsa -out policy-key.pem 2048
-          openssl rsa -in policy-key.pem -pubout -out policy-key.pub
-          
-      - name: Create Verification Policy
-        run: |
-          cat > build-policy.yaml << 'EOF'
-          expires: "2025-12-31T23:59:59Z"
-          steps:
-            - name: conda-package-build
-              attestations:
-                # Verify build succeeded
-                - type: https://witness.dev/attestations/command-run/v0.1
-                  regopolicies:
-                    - name: exit-zero
-                      module: |
-                        package commandrun
-                        default allow = false
-                        allow { input.exitcode == 0 }
-                        
-                # Verify conda wheel was produced
-                - type: https://witness.dev/attestations/product/v0.1
-                  regopolicies:
-                    - name: wheel-created
-                      module: |
-                        package product
-                        default allow = false
-                        allow {
-                          some i
-                          contains(input[i].name, ".whl")
-                        }
-                        
-                # Verify it ran in GitHub Actions
-                - type: https://witness.dev/attestations/github/v0.1
-                  regopolicies:
-                    - name: github-build
-                      module: |
-                        package github
-                        default allow = false
-                        allow {
-                          input.workflow != ""
-                          input.repository == "testifysec/conda"
-                        }
-                        
-                # Include other attestations
-                - type: https://witness.dev/attestations/environment/v0.1
-                - type: https://witness.dev/attestations/git/v0.1
-                - type: https://witness.dev/attestations/material/v0.1
-                
-              # Note: When using Sigstore, the functionaries section can be omitted
-              # or can specify certificate constraints for the Fulcio certificate
-          EOF
-          
-      - name: Sign the Policy
-        run: |
-          # Use embedded witness to sign policy
-          python -c "
-          from conda.witness import get_witness_binary_path
-          import subprocess
-          
-          witness = get_witness_binary_path()
-          subprocess.run([
-              str(witness), 'sign',
-              '--key', 'policy-key.pem',
-              '--outfile', 'build-policy-signed.yaml',
-              'build-policy.yaml'
-          ], check=True)
-          "
-          echo "✓ Policy signed"
+      - name: Create and Sign Verification Policy
+        run: make witness-sign-policy
           
       # =========================================================
       # Verify the Built Conda Package with Witness Attestation
       # =========================================================
       - name: Verify Built Package with Conda Verify
-        run: |
-          set -e
-          export PYTHONPATH="${PWD}:${PYTHONPATH}"
-          
-          echo "======================================"
-          echo "Verifying Conda Package with Witness"
-          echo "======================================"
-          
-          # Find the built wheel
-          WHEEL=$(ls dist/*.whl)
-          echo "Package to verify: $WHEEL"
-          
-          # Show attestation info
-          echo ""
-          echo "Attestation summary:"
-          cat conda-build.attestation.json | python -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          print(f\"  Type: {data.get('type', 'unknown')}\")"
-          
-          # Run conda verify
-          echo ""
-          echo "Running conda verify..."
-          python -m conda.cli.main verify \
-            --artifactfile "$WHEEL" \
-            --policy build-policy-signed.yaml \
-            --publickey policy-key.pub \
-            --attestations conda-build.attestation.json \
-            --json > verify-result.json || true
-            
-          # Check result
-          if [ -f verify-result.json ]; then
-            python -c "
-          import json
-          with open('verify-result.json') as f:
-              result = json.load(f)
-              if result.get('verified'):
-                  print('✅ VERIFICATION SUCCESSFUL!')
-                  print(f\"  Artifact: {result.get('artifact')}\" )
-                  print(f\"  Policy: {result.get('policy')}\" )
-              else:
-                  print('❌ Verification failed')
-                  print(f\"  Message: {result.get('message')}\" )
-            "
-          fi
+        run: make witness-verify
           
       - name: Test Installed Package
         run: |
