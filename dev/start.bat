@@ -74,12 +74,19 @@
 @ECHO.
 @CALL :RESET_ERRORLEVEL
 @SET /P "_INSTALLER_TYPE=Enter choice [1]: "
-@IF ERRORLEVEL 1 @EXIT /B 1
+@SET "_INSTALLER_TYPE_PROMPT=%ErrorLevel%"
+@SET "_INSTALLER_TYPE_RAW=%_INSTALLER_TYPE%"
 :: normalize user input
 @IF "%_INSTALLER_TYPE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
-@IF "%_INSTALLER_TYPE%"!="miniconda" @IF "%_INSTALLER_TYPE%"!="miniforge" (
+@IF NOT "%_INSTALLER_TYPE_PROMPT%"=="0" (
+    @IF NOT "%_INSTALLER_TYPE_RAW%"=="" (
+        @ECHO Error: failed to read installer selection 1>&2
+        @EXIT /B 1
+    )
+)
+@IF /I NOT "%_INSTALLER_TYPE%"=="miniconda" @IF /I NOT "%_INSTALLER_TYPE%"=="miniforge" (
     @ECHO Error: invalid choice '%_INSTALLER_TYPE%'. Please run again and choose 1 or 2. 1>&2
     @EXIT /B 1
 )
@@ -288,6 +295,8 @@
 @SET _INSTALLER_FILE=
 @SET _INSTALLER_INITIAL=
 @SET _INSTALLER_TYPE=
+@SET _INSTALLER_TYPE_PROMPT=
+@SET _INSTALLER_TYPE_RAW=
 @SET _NAME=
 @SET _PATH=
 @SET _PYTHON=
