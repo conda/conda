@@ -72,8 +72,9 @@
 @ECHO.
 @ECHO Note: This choice can be overridden by setting the 'installer_type' key in ~\.condarc.
 @ECHO.
+@CALL :RESET_ERRORLEVEL
 @SET /P "_INSTALLER_TYPE=Enter choice [1]: "
-@IF NOT %ErrorLevel%==0 @EXIT /B 1
+@IF ERRORLEVEL 1 @EXIT /B 1
 :: normalize user input
 @IF "%_INSTALLER_TYPE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
@@ -296,6 +297,9 @@
 @SET _UPDATE=
 @SET _UPDATED=
 @GOTO :EOF
+
+:RESET_ERRORLEVEL
+@EXIT /B 0
 
 :CONDA *args
 :: include OpenSSL & git on %PATH%
