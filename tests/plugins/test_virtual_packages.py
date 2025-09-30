@@ -99,7 +99,7 @@ def test_cuda_override(
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", override_value)
     reset_context()
 
-    virtual_package = CondaVirtualPackage("cuda", "4.1", None)
+    virtual_package = CondaVirtualPackage("cuda", "4.1", None, "version")
     pkg_record = virtual_package.to_virtual_package()
     version = pkg_record.version
 
