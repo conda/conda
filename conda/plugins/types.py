@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
+from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall
 from ..base.constants import APP_NAME
 from ..exceptions import PluginError
@@ -102,13 +103,13 @@ class CondaVirtualPackage(CondaPlugin):
         if f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}" in os.environ:
             version = (
                 os.environ[f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}"].strip()
-                or None
+                or NULL
             )
-
         else:
             # no override, use self.version
             version = maybecall(self.version)
-
+        if version is NULL:
+            return NULL
         return PackageRecord.virtual_package(
             f"__{self.name}",
             version,
