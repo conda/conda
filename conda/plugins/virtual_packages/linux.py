@@ -17,7 +17,7 @@ def conda_virtual_packages():
         return
 
     # 1: __unix (lways exported if target subdir is linux-*)
-    yield CondaVirtualPackage("unix", None, None)
+    yield CondaVirtualPackage("unix", None, None, None)
 
     # 2: __linux (always exported if target subdir is linux-*)
     # By convention, the kernel release string should be three or four
@@ -32,7 +32,7 @@ def conda_virtual_packages():
         if dist_name != "Linux":  # dist_version is only valid if we are on Linux!
             dist_version = "0"
     m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
-    yield CondaVirtualPackage("linux", m.group() if m else "0", None)
+    yield CondaVirtualPackage("linux", m.group() if m else "0", None, None)
 
     # 3: __glibc (or another applicable libc)
     libc_family, libc_version = linux_get_libc_version()
@@ -41,5 +41,5 @@ def conda_virtual_packages():
         libc_family = "glibc"
     libc_version = os.getenv(f"CONDA_OVERRIDE_{libc_family.upper()}", libc_version)
     if libc_version:
-        yield CondaVirtualPackage(libc_family, libc_version, None)
+        yield CondaVirtualPackage(libc_family, libc_version, None, None)
     # if a falsey override was found, the __glibc virtual package is not exported

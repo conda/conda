@@ -20,4 +20,4 @@ def win_version():
 def conda_virtual_packages():
     if not context.subdir.startswith("win-"):
         return
-    yield CondaVirtualPackage("win", win_version, None)
+    yield CondaVirtualPackage("win", win_version, None, None)
