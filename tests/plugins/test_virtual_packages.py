@@ -30,19 +30,13 @@ class VirtualPackagesPlugin:
     @plugins.hookimpl
     def conda_virtual_packages(self):
         yield CondaVirtualPackage(
-            name="abc",
-            version="123",
-            build=None,
+            name="abc", version="123", build=None, override_entity=None
         )
         yield CondaVirtualPackage(
-            name="def",
-            version="456",
-            build=None,
+            name="def", version="456", build=None, override_entity=None
         )
         yield CondaVirtualPackage(
-            name="ghi",
-            version="789",
-            build="xyz",
+            name="ghi", version="789", build="xyz", override_entity=None
         )
 
 
