@@ -207,16 +207,13 @@ class EnvironmentConfig:
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Environment:
     """
     **Experimental** While experimental, expect both major and minor changes across minor releases.
 
     Data model for a conda environment.
     """
-
-    #: Prefix the environment is installed into (required).
-    prefix: str
 
     #: The platform this environment may be installed on (required)
     platform: str
@@ -236,6 +233,9 @@ class Environment:
     #: Environment name
     name: str | None = None
 
+    #: Prefix the environment is installed into.
+    prefix: str | None = None
+
     #: User requested specs for this environment.
     requested_packages: list[MatchSpec] = field(default_factory=list)
 
@@ -247,10 +247,6 @@ class Environment:
     virtual_packages: list[PackageRecord] = field(default_factory=list)
 
     def __post_init__(self):
-        # an environment must have a name of prefix
-        if not self.prefix:
-            raise CondaValueError("'Environment' needs a 'prefix'.")
-
         # an environment must have a platform
         if not self.platform:
             raise CondaValueError("'Environment' needs a 'platform'.")
