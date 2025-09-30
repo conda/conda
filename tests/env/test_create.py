@@ -161,12 +161,13 @@ def test_create_empty_env(
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    conda_cli(
-        *("env", "create"),
-        *("--name", env_name),
-        *("--file", support_file("empty_env.yml")),
-    )
-    assert prefix.exists()
+    with pytest.deprecated_call():
+        conda_cli(
+            *("env", "create"),
+            *("--name", env_name),
+            *("--file", support_file("empty_env.yml")),
+        )
+        assert prefix.exists()
 
 
 @pytest.mark.integration

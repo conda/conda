@@ -829,22 +829,19 @@ def test_create_default_packages_will_warn_for_explicit_packages(
 
 
 def test_export_platforms(monkeypatch: MonkeyPatch):
-    def remove_subdir(*platforms) -> tuple[str, ...]:
-        return tuple(platform for platform in platforms if platform != context.subdir)
-
     reset_context([])
-    assert not context.export_platforms
+    assert context.export_platforms == (context.subdir,)
 
     monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64")
     reset_context()
-    assert context.export_platforms == remove_subdir("linux-64", "osx-64")
+    assert context.export_platforms == ("linux-64", "osx-64")
 
     monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64,win-64")
     reset_context()
-    assert context.export_platforms == remove_subdir("linux-64", "osx-64", "win-64")
+    assert context.export_platforms == ("linux-64", "osx-64", "win-64")
 
     reset_context(argparse_args=Namespace(export_platforms=["linux-32"]))
-    assert context.export_platforms == remove_subdir(
+    assert context.export_platforms == (
         "linux-32",
         "linux-64",
         "osx-64",
@@ -857,4 +854,4 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
             override_platforms=True,
         )
     )
-    assert context.export_platforms == remove_subdir("linux-32")
+    assert context.export_platforms == ("linux-32",)

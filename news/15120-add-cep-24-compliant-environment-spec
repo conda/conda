@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add a new environment spec plugin, called cep-24, that implements the environment.yaml specification in cep-0024. This is enabled by default. (#15120)
+* Changing the environment.yml plugin to be disabled by default. Users can explicitly use it by setting the --environment-spec flag. (#15120)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Add deprecation warnings for invalid fields in environment.yml files (#15120)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Make the environment.yml plugin try to handle the environment file, if all other environment spec plugins fail (as a final try). (#15120)
