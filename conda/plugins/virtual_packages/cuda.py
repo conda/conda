@@ -10,6 +10,7 @@ import os
 import platform
 from contextlib import suppress
 
+from ...auxlib import NULL
 from .. import hookimpl
 from ..types import CondaVirtualPackage
 
@@ -48,7 +49,7 @@ def cuda_version():
         detector.kill()  # requires Python 3.7+
 
     if queue.empty():
-        return None
+        return NULL
 
     result = queue.get()
     return result

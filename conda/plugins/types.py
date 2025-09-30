@@ -26,7 +26,7 @@ from ..models.records import PackageRecord
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, ClassVar, TypeAlias
+    from typing import Any, Callable, ClassVar, Literal, TypeAlias
 
     from ..common.configuration import Parameter
     from ..common.path import PathType
@@ -97,23 +97,31 @@ class CondaVirtualPackage(CondaPlugin):
 
     name: str
     version: str | None | Callable[[], str | None]
-    build: str | None
+    build: str | None | Callable[[], str | None]
+    override_entity: Literal["version", "build"] | None
 
     def to_virtual_package(self) -> PackageRecord:
         if f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}" in os.environ:
-            version = (
+            override_value = (
                 os.environ[f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}"].strip()
                 or NULL
             )
+            if self.override_entity == "version":
+                version = override_value
+            elif self.override_entity == "build":
+                build = override_value
         else:
-            # no override, use self.version
+            # no override, use self.version, self.build
             version = maybecall(self.version)
-        if version is NULL:
+            build = maybecall(self.build)
+
+        if (version or build) is NULL:
             return NULL
+
         return PackageRecord.virtual_package(
             f"__{self.name}",
             version,
-            self.build,
+            build,
         )
 
 
