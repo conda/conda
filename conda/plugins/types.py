@@ -10,7 +10,6 @@ Each type corresponds to the plugin hook for which it is used.
 from __future__ import annotations
 
 import os
-import re
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from typing import Any, Callable, ClassVar, Literal, TypeAlias
 
+    from ..auxlib import _Null
     from ..common.configuration import Parameter
     from ..common.path import PathType
     from ..core.path_actions import Action
@@ -105,8 +105,9 @@ class CondaVirtualPackage(CondaPlugin):
     name: str
     version: str | None | Callable[[], str | None]
     build: str | None | Callable[[], str | None]
-    override_entity: Literal["version", "build"] = None
-    empty_override: Literal["0"] = NULL
+    override_entity: Literal["version", "build"] | None = None
+    empty_override: Literal["0"] | _Null = NULL
+    version_validation: Callable[[str, _Null], str | _Null] | None = None
 
     def to_virtual_package(self) -> PackageRecord:
         if f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}" in os.environ:
@@ -115,14 +116,7 @@ class CondaVirtualPackage(CondaPlugin):
                 or self.empty_override
             )
             if self.override_entity == "version":
-                # linux does regex matching on the override version
-                if self.name == "linux":
-                    if override_value:
-                        m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", override_value)
-                    version = m.group() if m else "0"
-                else:
-                    version = override_value
-
+                version = override_value
                 build = self.build
             elif self.override_entity == "build":
                 build = override_value
@@ -131,6 +125,9 @@ class CondaVirtualPackage(CondaPlugin):
             # no override, use self.version, self.build
             version = maybecall(self.version)
             build = maybecall(self.build)
+
+        if self.version_validation:
+            version = self.version_validation(version)
 
         if version is NULL or build is NULL:
             return NULL
