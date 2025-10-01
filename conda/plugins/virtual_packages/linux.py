@@ -10,6 +10,12 @@ from ...common._os.linux import linux_get_libc_version
 from .. import hookimpl
 from ..types import CondaVirtualPackage
 
+# def linux_version():
+#     dist_name, dist_version = context.platform_system_release
+#     if dist_name != "Linux":  # dist_version is only valid if we are on Linux!
+#         dist_version = "0"
+#     m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", dist_version)
+
 
 @hookimpl
 def conda_virtual_packages():

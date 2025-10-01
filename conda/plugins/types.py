@@ -108,8 +108,10 @@ class CondaVirtualPackage(CondaPlugin):
             )
             if self.override_entity == "version":
                 version = override_value
+                build = self.build
             elif self.override_entity == "build":
                 build = override_value
+                version = self.version
         else:
             # no override, use self.version, self.build
             version = maybecall(self.version)
