@@ -72,11 +72,12 @@
 @ECHO.
 @ECHO Note: This choice can be overridden by setting the 'installer_type' key in ~\.condarc.
 @ECHO.
-@CALL :RESET_ERRORLEVEL
 @SET /P "_INSTALLER_TYPE=Enter choice [1]: "
 :: terminated or empty prompt returns errorlevel 1, set default
-@IF %ErrorLevel%==1 @SET "_INSTALLER_TYPE=miniconda"
-@CALL :RESET_ERRORLEVEL
+@IF %ErrorLevel%==1 (
+    @SET "_INSTALLER_TYPE=miniconda"
+    @CALL :RESET_ERRORLEVEL
+)
 :: normalize user input
 @IF "%_INSTALLER_TYPE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
