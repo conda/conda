@@ -10,6 +10,7 @@ from pytest import MonkeyPatch
 
 import conda.core.index
 from conda import __version__, plugins
+from conda.auxlib import NULL
 from conda.base.context import context, reset_context
 from conda.common._os.osx import mac_ver
 from conda.common.compat import on_linux, on_mac, on_win
@@ -87,23 +88,26 @@ def test_cuda_detection(clear_cuda_version):
 
 
 @pytest.mark.parametrize(
-    "override_value,expected",
+    "override_value,expected, expect_pkg",
     [
-        pytest.param("4.5", "4.5", id="override-set"),
-        pytest.param("", None, id="override-empty"),
+        pytest.param("4.5", "4.5", True, id="override-set"),
+        pytest.param("", None, False, id="override-empty"),
     ],
 )
 def test_cuda_override(
-    clear_cuda_version, override_value, expected, monkeypatch: MonkeyPatch
+    clear_cuda_version, override_value, expected, expect_pkg, monkeypatch: MonkeyPatch
 ):
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", override_value)
     reset_context()
 
     virtual_package = CondaVirtualPackage("cuda", "4.1", None, "version")
     pkg_record = virtual_package.to_virtual_package()
-    version = pkg_record.version
 
-    assert version == expected
+    if expect_pkg:
+        assert pkg_record
+        assert pkg_record.version == expected
+    else:
+        assert pkg_record is NULL
 
 
 def get_virtual_precs() -> Iterable[PackageRecord]:

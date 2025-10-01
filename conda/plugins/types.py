@@ -117,7 +117,7 @@ class CondaVirtualPackage(CondaPlugin):
             version = maybecall(self.version)
             build = maybecall(self.build)
 
-        if (version or build) is NULL:
+        if version is NULL or build is NULL:
             return NULL
 
         return PackageRecord.virtual_package(
