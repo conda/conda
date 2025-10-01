@@ -44,5 +44,5 @@ def conda_virtual_packages():
         libc_family = "glibc"
     libc_version = os.getenv(f"CONDA_OVERRIDE_{libc_family.upper()}", libc_version)
     if libc_version:
-        yield CondaVirtualPackage(libc_family, libc_version, None)
+        yield CondaVirtualPackage(libc_family, libc_version, None, "version")
     # if a falsey override was found, the __glibc virtual package is not exported

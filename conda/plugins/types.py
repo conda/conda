@@ -120,7 +120,9 @@ class CondaVirtualPackage(CondaPlugin):
                     if override_value:
                         m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", override_value)
                     version = m.group() if m else "0"
-                version = override_value
+                else:
+                    version = override_value
+
                 build = self.build
             elif self.override_entity == "build":
                 build = override_value
