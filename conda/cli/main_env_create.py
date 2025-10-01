@@ -133,8 +133,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 """
             )
             raise CondaEnvException(msg)
-        args.name = env.name
-        args.prefix = env.prefix
+        elif env.name and env.prefix:
+            msg = (
+                "Environment location is over specified. Provided "
+                f"environment spec '{args.file}' specifies both environment "
+                "'name' and 'prefix'. Please specify only one or the other."
+            )
+            raise CondaEnvException(msg)
+        args.name = env.name or args.name
+        args.prefix = env.prefix or args.prefix
 
     prefix = determine_target_prefix(context, args)
     prefix_data = PrefixData(prefix)
