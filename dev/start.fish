@@ -367,7 +367,7 @@ end
 
 # initialize conda command
 echo "Initializing shell integration..."
-eval (env CONDA_AUTO_ACTIVATE=0 "$_ENVEXE" shell.fish hook) > /dev/null
+eval (env CONDA_AUTO_ACTIVATE=0 "$_BASEEXE" shell.fish hook) > /dev/null
 if not test $status -eq 0
     echo "Error: failed to initialize shell integration" 1>&2
     exit 1
