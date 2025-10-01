@@ -37,8 +37,8 @@ end
 
 function updating
     # check if explicitly updating or if 24 hrs since last update
-    test "$_UPDATE" = "true" && return 0
-    test -f "$_UPDATED" || return 0
+    test "$_UPDATE" = "true" && exit 0
+    test -f "$_UPDATED" || exit 0
     set current_time (date +%s)
     set file_time (date -r "$_UPDATED" +%s)
     set diff_time (math $current_time - $file_time)
@@ -104,7 +104,7 @@ while test $i -le (count $argv)
             echo "                             Path is appended with machine hardware name, see --mach. (default: $_DEFAULT_DEVENV)"
             echo "  -n, --dry-run              Display env to activate. (default: $_DEFAULT_DRYRUN)"
             echo "  -h, --help                 Display this."
-            return 0
+            exit 0
         case '*'
             set arg $argv[$i]
             if test (echo "$arg" | head -c 9) = "--python="
@@ -124,7 +124,7 @@ while test $i -le (count $argv)
                 set i (math $i + 1)
             else
                 echo "Error: unknown option $arg" >&2
-                return 1
+                exit 1
             end
     end
 end
@@ -161,7 +161,7 @@ if test -z "$_INSTALLER_TYPE"
             set _INSTALLER_TYPE "miniforge"
         case '*'
             echo "Error: invalid choice '$_CHOICE'. Please run again and choose 1 or 2." >&2
-            return 1
+            exit 1
     end
 end
 
@@ -174,7 +174,7 @@ switch $_INSTALLER_TYPE
         # valid
     case '*'
         echo "Error: invalid installer type '$_INSTALLER_TYPE'. Must be 'miniconda' or 'miniforge'." >&2
-        return 1
+        exit 1
 end
 
 # read devenv key from ~/.condarc
@@ -223,7 +223,7 @@ if test "$_DRYRUN" = "true"
     echo "Path: $_ENV "(test -e "$_ENV" && echo "[exists]" || echo "[pending]")
     echo ""
     echo "Source: $_SRC"
-    return 0
+    exit 0
 end
 
 # deactivate any prior envs
@@ -291,7 +291,7 @@ if not test -f "$_DEVENV/conda-meta/history"
         end
         if not test $status -eq 0 || not test -s "$_INSTALLER_FILE"
             echo "Error: failed to download $_INSTALLER_DISPLAY (file missing or empty)" 1>&2
-            return 1
+            exit 1
         end
     end
 
@@ -305,7 +305,7 @@ if not test -f "$_DEVENV/conda-meta/history"
     end
     if not test $status -eq 0
         echo "Error: failed to install development environment" 1>&2
-        return 1
+        exit 1
     end
 end
 
@@ -314,7 +314,7 @@ if not test -d "$_ENV"
     echo "Creating $_NAME..."
     if not env PYTHONPATH="" "$_BASEEXE" create --yes --quiet "--prefix=$_ENV" > /dev/null
         echo "Error: failed to create $_NAME" 1>&2
-        return 1
+        exit 1
     end
 end
 
@@ -324,7 +324,7 @@ if updating
 
     if not env PYTHONPATH="" "$_BASEEXE" update --yes --quiet --all "--prefix=$_ENV" > /dev/null
         echo "Error: failed to update development environment" 1>&2
-        return 1
+        exit 1
     end
 
     # set channels based on installer type
@@ -343,7 +343,7 @@ if updating
 
     if not env PYTHONPATH="" "$_BASEEXE" install $install_args > /dev/null
         echo "Error: failed to update $_NAME" 1>&2
-        return 1
+        exit 1
     end
 
     # update timestamp
@@ -362,7 +362,7 @@ end
 echo "Update shell scripts..."
 if not "$_ENVEXE" init --install > /dev/null
     echo "Error: failed to update shell scripts" 1>&2
-    return 1
+    exit 1
 end
 
 # initialize conda command
@@ -370,14 +370,14 @@ echo "Initializing shell integration..."
 eval (env CONDA_AUTO_ACTIVATE=0 "$_ENVEXE" shell.fish hook) > /dev/null
 if not test $status -eq 0
     echo "Error: failed to initialize shell integration" 1>&2
-    return 1
+    exit 1
 end
 
 # activate env
 echo "Activating $_NAME..."
 if not conda activate "$_ENV" > /dev/null
     echo "Error: failed to activate $_NAME" 1>&2
-    return 1
+    exit 1
 end
 
 cleanup
