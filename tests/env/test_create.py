@@ -13,7 +13,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaEnvException, CondaValueError
 from conda.testing.integration import package_is_installed
 
 from . import remote_support_file, support_file
@@ -485,7 +485,7 @@ def test_create_users_environment_file_with_env_name(
     """
     env_file = path_factory("test_prefix.yml")
     env_file.write_text(
-        f"""
+        """
         name: my-special-test-env
         dependencies:
         - ca-certificates
@@ -500,3 +500,52 @@ def test_create_users_environment_file_with_env_name(
         "--dry-run"
     )
     assert "ca-certificates" in stdout
+
+
+@pytest.mark.integration
+def test_create_users_environment_file_with_env_name_and_prefix(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Ensures an error is raised if the environment.yml provides both
+    a name and prefix. In this situation it isn't clear what the 
+    intended install location should be.
+    """
+    env_file = path_factory("test_prefix.yml")
+    env_file.write_text(
+        """
+        name: my-special-test-env
+        prefix: /some/path
+        dependencies:
+        - ca-certificates
+        """
+    )
+
+    # Raises an error if no name or prefix is specified in the cli
+    with pytest.raises(
+        CondaEnvException,
+        match="Environment location is over specified."
+    ):
+        conda_cli(
+            "env",
+            "create",
+            "--file",
+            str(env_file),
+            "--dry-run"
+        )
+    
+    # Don't raise an error if a name or prefix is specified in the
+    # cli.
+    stdout, _, _ = conda_cli(
+        "env",
+        "create",
+        "--file",
+        str(env_file),
+        "--name",
+        "testenv",
+        "--dry-run"
+    )
+    assert "ca-certificates" in stdout
+
+
