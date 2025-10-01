@@ -429,9 +429,9 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     assert len(stdout.split("EnvironmentSectionNotValid")) == 2
 
 
+@pytest.mark.integration
 def test_create_users_environment_file_prefix(
     conda_cli: CondaCLIFixture,
-    tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
 ):
     """
@@ -472,3 +472,31 @@ def test_create_users_environment_file_prefix(
     prefix_data = PrefixData(prefix2)
     assert prefix_data.exists()
     assert prefix_data.is_environment()
+
+
+@pytest.mark.integration
+def test_create_users_environment_file_with_env_name(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Ensures that the `name` field of the environment.yml is used to create
+    an environment, if provided
+    """
+    env_file = path_factory("test_prefix.yml")
+    env_file.write_text(
+        f"""
+        name: my-special-test-env
+        dependencies:
+        - ca-certificates
+        """
+    )
+
+    stdout, stderr, exp = conda_cli(
+        "env",
+        "create",
+        "--file",
+        str(env_file),
+        "--dry-run"
+    )
+    assert "ca-certificates" in stdout
