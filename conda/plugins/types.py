@@ -10,6 +10,7 @@ Each type corresponds to the plugin hook for which it is used.
 from __future__ import annotations
 
 import os
+import re
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
@@ -93,20 +94,32 @@ class CondaVirtualPackage(CondaPlugin):
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
     :param build: Virtual package build string (e.g., ``x86_64``).
+    :param override_entity: Can be set to either to "version" or "build", the corresponding
+                            value will be overridden if the environment variable
+                            ``CONDA_OVERRIDE_<name>`` is set.
+    :param empty_override: Value to use for version or build if the override
+                           environment variable is set to an empty string. By default,
+                           this is ``NULL``.
     """
 
     name: str
     version: str | None | Callable[[], str | None]
     build: str | None | Callable[[], str | None]
-    override_entity: Literal["version", "build"] | None
+    override_entity: Literal["version", "build"] = None
+    empty_override: Literal["0"] = NULL
 
     def to_virtual_package(self) -> PackageRecord:
         if f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}" in os.environ:
             override_value = (
                 os.environ[f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}"].strip()
-                or NULL
+                or self.empty_override
             )
             if self.override_entity == "version":
+                # linux does regex matching on the override version
+                if self.name == "linux":
+                    if override_value:
+                        m = re.match(r"\d+\.\d+(\.\d+)?(\.\d+)?", override_value)
+                    version = m.group() if m else "0"
                 version = override_value
                 build = self.build
             elif self.override_entity == "build":

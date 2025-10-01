@@ -12,4 +12,4 @@ def conda_virtual_packages():
     if not context.subdir.startswith("freebsd-"):
         return
 
-    yield CondaVirtualPackage("unix", None, None, None)
+    yield CondaVirtualPackage("unix", None, None)

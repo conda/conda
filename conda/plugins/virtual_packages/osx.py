@@ -21,7 +21,7 @@ def conda_virtual_packages():
     if not context.subdir.startswith("osx-"):
         return
     # 1: __osx (always exported if the target subdir is osx-*)
-    yield CondaVirtualPackage("unix", None, None, "version")
+    yield CondaVirtualPackage("unix", None, None)
     # 2: __osx
     yield CondaVirtualPackage("osx", osx_version, None, "version")
     # if a falsey override was found, the __osx virtual package is not exported
