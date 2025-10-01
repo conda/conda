@@ -37,8 +37,8 @@ end
 
 function updating
     # check if explicitly updating or if 24 hrs since last update
-    test "$_UPDATE" = "true" && exit 0
-    test -f "$_UPDATED" || exit 0
+    test "$_UPDATE" = "true" && return 0
+    test -f "$_UPDATED" || return 0
     set current_time (date +%s)
     set file_time (date -r "$_UPDATED" +%s)
     set diff_time (math $current_time - $file_time)
@@ -360,14 +360,14 @@ end
 
 # copy latest shell scripts
 echo "Update shell scripts..."
-if not "$_ENVEXE" init --install > /dev/null
+if not "$_BASEEXE" init --install > /dev/null
     echo "Error: failed to update shell scripts" 1>&2
     exit 1
 end
 
 # initialize conda command
 echo "Initializing shell integration..."
-eval (env CONDA_AUTO_ACTIVATE=0 "$_BASEEXE" shell.fish hook) > /dev/null
+eval (env CONDA_AUTO_ACTIVATE=0 "$_BASEEXE" shell.fish hook)
 if not test $status -eq 0
     echo "Error: failed to initialize shell integration" 1>&2
     exit 1
@@ -375,7 +375,7 @@ end
 
 # activate env
 echo "Activating $_NAME..."
-if not conda activate "$_ENV" > /dev/null
+if not conda activate "$_ENV"
     echo "Error: failed to activate $_NAME" 1>&2
     exit 1
 end
