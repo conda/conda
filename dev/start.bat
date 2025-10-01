@@ -74,11 +74,11 @@
 @ECHO.
 @CALL :RESET_ERRORLEVEL
 @SET /P "_INSTALLER_TYPE=Enter choice [1]: "
-@SET "_INSTALLER_TYPE_PROMPT=%ErrorLevel%"
-@SET "_INSTALLER_TYPE_RAW=%_INSTALLER_TYPE%"
+:: terminated or empty prompt returns errorlevel 1, set default
+@IF %ErrorLevel%==1 @SET "_INSTALLER_TYPE=miniconda"
+@CALL :RESET_ERRORLEVEL
 :: normalize user input
 @IF "%_INSTALLER_TYPE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
-@IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
 @IF NOT "%_INSTALLER_TYPE_PROMPT%"=="0" (
     @IF NOT "%_INSTALLER_TYPE_RAW%"=="" (
