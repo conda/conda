@@ -720,14 +720,15 @@ class Context(Configuration):
 
     @property
     def export_platforms(self) -> tuple[str, ...]:
+        # detect if platforms are overridden by the user
         argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
         if argparse_args.get("override_platforms"):
             platforms = argparse_args.get("export_platforms") or ()
         else:
             platforms = self._export_platforms
-        all_platforms = (self.subdir, *platforms)
-        unique_platforms = tuple(dict.fromkeys(all_platforms))
-        return unique_platforms[1:]  # remove the current platform
+
+        # default to the current platform if no platforms are provided
+        return tuple(unique(platforms)) or (self.subdir,)
 
     @property
     def bits(self) -> int:
