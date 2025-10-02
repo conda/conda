@@ -2,21 +2,33 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
 
+from __future__ import annotations
+
 import os
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError
-from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
-from ..env import EnvironmentYaml
+
+if TYPE_CHECKING:
+    from ...models.environment import Environment
+    from ..env import EnvironmentYaml
+
 
 log = getLogger(__name__)
 
 
 class YamlFileSpec(EnvironmentSpecBase):
+    # Do not use this plugin for in the environment spec detection process.
+    # Users must specify using `environment.yaml` with the `--environment-specifier`
+    # option.
+    detection_supported = False
+
     _environment = None
+
     extensions = {".yaml", ".yml"}
 
     def __init__(self, filename=None, **kwargs):
