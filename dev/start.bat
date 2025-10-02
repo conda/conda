@@ -73,12 +73,15 @@
 @ECHO Note: This choice can be overridden by setting the 'installer_type' key in ~\.condarc.
 @ECHO.
 @SET /P "_INSTALLER_TYPE=Enter choice [1]: "
-@IF NOT %ErrorLevel%==0 @EXIT /B 1
+:: terminated or empty prompt returns errorlevel 1, set default
+@IF %ErrorLevel%==1 (
+    @SET "_INSTALLER_TYPE=miniconda"
+    @CALL :RESET_ERRORLEVEL
+)
 :: normalize user input
 @IF "%_INSTALLER_TYPE%"=="1" @SET "_INSTALLER_TYPE=miniconda"
-@IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_INSTALLER_TYPE%"=="2" @SET "_INSTALLER_TYPE=miniforge"
-@IF "%_INSTALLER_TYPE%"!="miniconda" @IF "%_INSTALLER_TYPE%"!="miniforge" (
+@IF NOT "%_INSTALLER_TYPE%"=="miniconda" @IF NOT "%_INSTALLER_TYPE%"=="miniforge" (
     @ECHO Error: invalid choice '%_INSTALLER_TYPE%'. Please run again and choose 1 or 2. 1>&2
     @EXIT /B 1
 )
@@ -295,7 +298,10 @@
 @SET _SRC=
 @SET _UPDATE=
 @SET _UPDATED=
-@GOTO :EOF
+@GOTO :RESET_ERRORLEVEL
+
+:RESET_ERRORLEVEL
+@EXIT /B 0
 
 :CONDA *args
 :: include OpenSSL & git on %PATH%
@@ -313,10 +319,10 @@
 :DEVENV_CONDARC
 :: read devenv from ~\.condarc
 :: check if ~\.condarc exists
-@IF NOT EXIST "%USERPROFILE%\.condarc" @GOTO :EOF
+@IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 0
 :: check if devenv key is defined
 @FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
-@IF NOT %ErrorLevel%==0 @GOTO :EOF
+@IF NOT %ErrorLevel%==0 @EXIT /B 0
 :: read devenv key (with path expansion)
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
 @GOTO :EOF
@@ -324,10 +330,10 @@
 :INSTALLER_TYPE_CONDARC
 :: read installer_type from ~\.condarc
 :: check if ~\.condarc exists
-@IF NOT EXIST "%USERPROFILE%\.condarc" @GOTO :EOF
+@IF NOT EXIST "%USERPROFILE%\.condarc" @EXIT /B 0
 :: check if installer_type key is defined
 @FINDSTR /R /C:"^installer_type:" "%USERPROFILE%\.condarc" > NUL
-@IF NOT %ErrorLevel%==0 @GOTO :EOF
+@IF NOT %ErrorLevel%==0 @EXIT /B 0
 :: read installer_type key
 @FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^installer_type:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value"`) DO @SET "_INSTALLER_TYPE=%%I"
 @GOTO :EOF
