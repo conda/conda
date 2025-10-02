@@ -9,6 +9,8 @@ from ...common._os.linux import linux_get_libc_version
 from .. import hookimpl
 from ..types import CondaVirtualPackage
 
+linux_version_pattern = re.compile(r"\d+\.\d+(\.\d+)?(\.\d+)?")
+
 
 def linux_version():
     dist_name, dist_version = context.platform_system_release
@@ -18,7 +20,6 @@ def linux_version():
 
 
 def linux_version_validate(version: str) -> str:
-    linux_version_pattern = re.compile(r"\d+\.\d+(\.\d+)?(\.\d+)?")
     match = linux_version_pattern.match(version)
     return match.group() if match else "0"
 
