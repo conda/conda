@@ -22,6 +22,7 @@ import pluggy
 from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
+from ..common.constants import NULL
 from ..common.io import dashlist
 from ..exceptions import (
     CondaValueError,
@@ -439,6 +440,7 @@ class CondaPluginManager(pluggy.PluginManager):
         return tuple(
             hook.to_virtual_package()
             for hook in self.get_hook_results("virtual_packages")
+            if hook.version != NULL
         )
 
     def get_session_headers(self, host: str) -> dict[str, str]:
