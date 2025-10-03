@@ -171,6 +171,44 @@ def test_bare_channel_file():
     ]
 
 
+# Regression test for #14259
+def test_channel_equality_respects_platform():
+    """Test that Channel equality checks include platform attribute.
+    Channels with different platforms should not be considered equal.
+    """
+    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+        channel_no_platform = Channel("conda-forge")
+        channel_linux64 = Channel("conda-forge/linux-64")
+        channel_aarch64 = Channel("conda-forge/linux-aarch64")
+
+        assert channel_no_platform != channel_linux64
+        assert channel_linux64 != channel_aarch64
+        assert channel_no_platform != channel_aarch64
+
+        # test that channels with the same platform should be equal
+        channel_linux64_2 = Channel("conda-forge/linux-64")
+        assert channel_linux64 == channel_linux64_2
+
+        # test that hashes are distinguishable per platform
+        assert hash(channel_no_platform) != hash(channel_linux64)
+        assert hash(channel_linux64) != hash(channel_aarch64)
+        assert hash(channel_linux64) == hash(channel_linux64_2)
+
+        # test dedup
+        channels = [
+            Channel("conda-forge/noarch"),
+            Channel("conda-forge"),
+            Channel("conda-forge/linux-64"),
+        ]
+        deduped = list(dict.fromkeys(channels))
+        assert len(deduped) == 3
+
+        # test that urls are correct
+        deduped_urls = set(url for c in deduped for url in c.urls())
+        assert "https://conda.anaconda.org/conda-forge/noarch" in deduped_urls
+        assert "https://conda.anaconda.org/conda-forge/linux-64" in deduped_urls
+
+
 def test_channel_name_subdir_only():
     with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
         channel = Channel("pkgs/main/win-64")
