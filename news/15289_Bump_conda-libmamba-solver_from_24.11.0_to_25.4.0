@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Bump conda-libmamba-solver from 24.11.0 to 25.4.0 ( #15289 )
+* Require `conda-libmamba-solver >=25.4.0` (#15289)
 
 ### Deprecations
 
