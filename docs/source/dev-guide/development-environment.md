@@ -49,6 +49,11 @@ Create a local development environment and activate it using the `dev/start` scr
 $ source ./dev/start
 ```
 
+```{tab-item} Fish (macOS, Linux, Windows)
+```fish
+$ source ./dev/start.fish
+```
+
 ```{tab-item} cmd.exe (Windows)
 ```batch
 > .\dev\start.bat
