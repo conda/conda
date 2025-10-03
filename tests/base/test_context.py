@@ -268,6 +268,7 @@ def test_context_parameters_have_descriptions(context_testdata: None):
 
 def test_context_override_with_reset(monkeypatch):
     from conda.base.context import context, reset_context
+
     original = context.add_pip_as_python_dependency
     with context._override("add_pip_as_python_dependency", False):
         assert context.add_pip_as_python_dependency is False
