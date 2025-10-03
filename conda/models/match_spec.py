@@ -342,7 +342,7 @@ class MatchSpec(metaclass=MatchSpecType):
                     builder.append(version)
             elif version[-2:] == ".*":
                 builder.append("=" + version[:-2])
-            # Skip wildcard-only versions, to avoid an empty "=*" in the output.
+            # Skip wildcard-only versions, to avoid an empty "=" in the output.
             # See https://github.com/conda/conda/issues/14357 for more info.
             elif version == "*":
                 pass
