@@ -260,9 +260,6 @@ class Channel(metaclass=ChannelType):
         with_credentials: bool = False,
         subdirs: Iterable[str] | None = None,
     ) -> list[str]:
-        # Track whether subdirs was explicitly provided.
-        subdirs_explicit = subdirs is not None
-
         if subdirs is None:
             subdirs = context.subdirs
 
@@ -278,8 +275,9 @@ class Channel(metaclass=ChannelType):
         base = join_url(*base)
 
         def _platforms() -> Iterator[str]:
-            # If subdirs were explicitly passed, we use them instead of self.platform.
-            if subdirs_explicit:
+            # If the provided subdirs differs from the context, use it.
+            # Otherwise, use self.platform if available.
+            if subdirs != context.subdirs:
                 yield from subdirs
             elif self.platform:
                 yield self.platform
