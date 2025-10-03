@@ -400,3 +400,75 @@ def test_create_env_custom_platform(
 
         assert config.is_file()
         assert f"subdir: {platform}" in config.read_text()
+
+@pytest.mark.integration
+def test_create_users_environment_file_prefix(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Ensures that the `prefix` field of the environment.yml is used to create
+    an environment, if provided
+    """
+    env_file = path_factory("test_prefix.yml")
+    prefix = path_factory()
+    env_file.write_text(
+        f"""
+        prefix: {prefix}
+        dependencies:
+        - ca-certificates
+        """
+    )
+
+    # Ensure that the prefix from the environment.yml is used
+    conda_cli(
+        "env",
+        "create",
+        "--file",
+        str(env_file),
+    )
+    prefix_data = PrefixData(prefix)
+    assert prefix_data.exists()
+    assert prefix_data.is_environment()
+
+    # Ensure that the prefix from the cli overwrites the one from environment.yml
+    prefix2 = path_factory()
+    conda_cli(
+        "env",
+        "create",
+        "--file",
+        str(env_file),
+        "--prefix",
+        prefix2,
+    )
+    prefix_data = PrefixData(prefix2)
+    assert prefix_data.exists()
+    assert prefix_data.is_environment()
+
+
+@pytest.mark.integration
+def test_create_users_environment_file_with_env_name(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Ensures that the `name` field of the environment.yml is used to create
+    an environment, if provided
+    """
+    env_file = path_factory("test_prefix.yml")
+    env_file.write_text(
+        f"""
+        name: my-special-test-env
+        dependencies:
+        - ca-certificates
+        """
+    )
+
+    stdout, stderr, exp = conda_cli(
+        "env",
+        "create",
+        "--file",
+        str(env_file),
+        "--dry-run"
+    )
+    assert "ca-certificates" in stdout
