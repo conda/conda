@@ -266,6 +266,18 @@ def test_context_parameters_have_descriptions(context_testdata: None):
         pprint(context.describe_parameter(name))
 
 
+def test_context_override_with_reset(monkeypatch):
+    from conda.base.context import context, reset_context
+
+    original = context.add_pip_as_python_dependency
+    with context._override("add_pip_as_python_dependency", False):
+        assert context.add_pip_as_python_dependency is False
+        monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "True")
+        reset_context()
+        assert context.add_pip_as_python_dependency is False
+    assert context.add_pip_as_python_dependency is original
+
+
 def test_local_build_root_custom_rc(
     context_testdata: None,
     monkeypatch: MonkeyPatch,
