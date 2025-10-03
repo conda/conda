@@ -400,3 +400,26 @@ def test_create_env_custom_platform(
 
         assert config.is_file()
         assert f"subdir: {platform}" in config.read_text()
+
+
+@pytest.mark.integration
+def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
+
+    prefix = path_factory()
+    stdout, stderr, err = conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("invalid_keys.yml"),
+    )
+
+    # When splitting the output on "EnvironmentSectionNotValid", we should
+    # get an array of length 2 if the string only appears once. If it appears
+    # multiple times, the array will have more elements.
+    assert len(stdout.split("EnvironmentSectionNotValid")) == 2
