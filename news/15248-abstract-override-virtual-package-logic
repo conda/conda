@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add three new fields to the `CondaVirtualPackage` class: `override_entity`, `empty_override`, and `version_validation` to allow the version/build_number override logic to be abstracted away from individual virtual packages and instead generalised in the `CondaVirtualPackages` class itself.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
