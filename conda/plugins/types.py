@@ -101,7 +101,7 @@ class CondaVirtualPackage(CondaPlugin):
        1. Direct values: a string or ``None`` (where ``None`` translates to ``0``)
        2. Deferred callables: functions that return either a string, ``None`` (translates to ``0``),
           or ``NULL`` (indicates the virtual package should not be exported)
-    
+
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
     :param build: Virtual package build string (e.g., ``x86_64``).
@@ -122,22 +122,20 @@ class CondaVirtualPackage(CondaPlugin):
     version_validation: Callable[[str], str | None] | None = None
 
     def to_virtual_package(self) -> PackageRecord:
-        if (
-            override_value := os.getenv(
-                f"{APP_NAME}_OVERRIDE_{self.name}".upper()
-            )
-        ) is not None:
-            override_value = override_value.strip() or self.empty_override
-            if self.override_entity == "version":
-                version = override_value
-                build = self.build
-            elif self.override_entity == "build":
-                build = override_value
-                version = self.version
-        else:
-            # no override, use self.version, self.build
-            version = maybecall(self.version)
-            build = maybecall(self.build)
+        version = self.version
+        build = self.build
+
+        if self.override_entity:
+            override_value = os.getenv(f"{APP_NAME}_OVERRIDE_{self.name}".upper())
+            if override_value is not None:
+                override_value = override_value.strip() or self.empty_override
+                if self.override_entity == "version":
+                    version = override_value
+                elif self.override_entity == "build":
+                    build = override_value
+
+        version = maybecall(version)
+        build = maybecall(build)
 
         if version is NULL or build is NULL:
             return NULL
@@ -145,11 +143,7 @@ class CondaVirtualPackage(CondaPlugin):
         if self.version_validation and version is not None:
             version = self.version_validation(version)
 
-        return PackageRecord.virtual_package(
-            f"__{self.name}",
-            version,
-            build,
-        )
+        return PackageRecord.virtual_package(f"__{self.name}", version, build)
 
 
 @dataclass
