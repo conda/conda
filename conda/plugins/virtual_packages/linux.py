@@ -30,7 +30,7 @@ def conda_virtual_packages():
         return
 
     # 1: __unix (lways exported if target subdir is linux-*)
-    yield CondaVirtualPackage("unix", None, None)
+    yield CondaVirtualPackage(name="unix", version=None, build=None)
 
     # 2: __linux (always exported if target subdir is linux-*)
     # By convention, the kernel release string should be three or four
@@ -41,7 +41,12 @@ def conda_virtual_packages():
     # development (`-rcN`) kernels, but that can be a TODO for later.
 
     yield CondaVirtualPackage(
-        "linux", linux_version, None, "version", "0", linux_version_validate
+        name="linux",
+        version=linux_version,
+        build=None,
+        override_entity="version",
+        empty_override=None,
+        version_validation=linux_version_validate,
     )
 
     # 3: __glibc (or another applicable libc)
@@ -49,5 +54,7 @@ def conda_virtual_packages():
     if not (libc_family and libc_version):
         # Default to glibc when using CONDA_SUBDIR var
         libc_family = "glibc"
-    yield CondaVirtualPackage(libc_family, libc_version, None, "version")
+    yield CondaVirtualPackage(
+        name=libc_family, version=libc_version, build=None, override_entity="version"
+    )
     # if a falsey override was found, the __glibc virtual package is not exported

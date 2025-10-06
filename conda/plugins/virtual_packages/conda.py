@@ -10,4 +10,4 @@ from ..types import CondaVirtualPackage
 def conda_virtual_packages():
     from ... import __version__
 
-    yield CondaVirtualPackage("conda", __version__, None)
+    yield CondaVirtualPackage(name="conda", version=__version__, build=None)

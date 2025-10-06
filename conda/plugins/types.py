@@ -105,21 +105,28 @@ class CondaVirtualPackage(CondaPlugin):
                            environment variable is set to an empty string. By default,
                            this is ``NULL``.
     :param version_validation: Optional version validation function to ensure that the override version follows a certain pattern.
+
+    Note:
+    - Both ``version`` and ``build`` parameters can be provided
+      as either a string, ``None``, or a deferred callable returning a string or ``None``.
+    - ``NULL`` is a sentinel value representing an explicitly empty override (``""``),
+      which is distinct from ``None`` (meaning "environment variable not set").
     """
 
     name: str
     version: str | None | Callable[[], str | None]
     build: str | None | Callable[[], str | None]
     override_entity: Literal["version", "build"] | None = None
-    empty_override: Literal["0"] | _Null = NULL
+    empty_override: None | _Null = NULL
     version_validation: Callable[[str, _Null], str | _Null] | None = None
 
     def to_virtual_package(self) -> PackageRecord:
-        if f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}" in os.environ:
-            override_value = (
-                os.environ[f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}"].strip()
-                or self.empty_override
+        if (
+            override_value := os.getenv(
+                f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}"
             )
+        ) is not None:
+            override_value = override_value.strip() or self.empty_override
             if self.override_entity == "version":
                 version = override_value
                 build = self.build
@@ -131,11 +138,11 @@ class CondaVirtualPackage(CondaPlugin):
             version = maybecall(self.version)
             build = maybecall(self.build)
 
-        if self.version_validation:
-            version = self.version_validation(version)
-
         if version is NULL or build is NULL:
             return NULL
+
+        if self.version_validation and version is not None:
+            version = self.version_validation(version)
 
         return PackageRecord.virtual_package(
             f"__{self.name}",
