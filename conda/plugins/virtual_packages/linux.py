@@ -23,7 +23,7 @@ def linux_version() -> str | None:
     dist_name, dist_version = context.platform_system_release
     if dist_name != "Linux":
         # dist_version is only valid if we are on Linux
-        # this happens with `CONDA_SUBDIR=osx-*`/`--platform=osx-*` on a non-Linux machine
+        # this happens with `CONDA_SUBDIR=linux-*`/`--platform=linux-*` on a non-Linux machine
         dist_version = None
     return dist_version
 
