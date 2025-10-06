@@ -7,7 +7,7 @@ from .. import hookimpl
 from ..types import CondaVirtualPackage
 
 
-def osx_version():
+def osx_version() -> str | None:
     dist_name, dist_version = context.os_distribution_name_version
     if dist_name != "OSX":
         # dist_version is only valid if we are on macOS

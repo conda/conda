@@ -7,7 +7,7 @@ from .. import hookimpl
 from ..types import CondaVirtualPackage
 
 
-def win_version():
+def win_version() -> str | None:
     dist_name, dist_version = context.os_distribution_name_version
     if dist_name != "Windows":
         # dist_version is only valid if we are on Windows

@@ -57,7 +57,7 @@ class VerboseSolverPlugin:
         yield VerboseCondaSolver
 
 
-DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build", None)
+DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
 
 
 class DummyVirtualPackagePlugin:
@@ -101,12 +101,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     class SecondArchspec:
         @plugins.hookimpl
         def conda_virtual_packages():
-            yield plugins.CondaVirtualPackage(
-                name="archspec",
-                version="",
-                build=None,
-                override_entity=None,
-            )
+            yield plugins.CondaVirtualPackage("archspec", "", None)
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(

@@ -12,7 +12,7 @@ from ..types import CondaVirtualPackage
 linux_version_pattern = re.compile(r"\d+\.\d+(\.\d+)?(\.\d+)?")
 
 
-def linux_version():
+def linux_version() -> str | None:
     dist_name, dist_version = context.platform_system_release
     if dist_name != "Linux":
         # dist_version is only valid if we are on Linux
