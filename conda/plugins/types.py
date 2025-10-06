@@ -104,6 +104,7 @@ class CondaVirtualPackage(CondaPlugin):
     :param empty_override: Value to use for version or build if the override
                            environment variable is set to an empty string. By default,
                            this is ``NULL``.
+    :param version_validation: Optional version validation function to ensure that the override version follows a certain pattern.
     """
 
     name: str
