@@ -114,11 +114,11 @@ class CondaVirtualPackage(CondaPlugin):
     """
 
     name: str
-    version: str | None | Callable[[], str | None]
-    build: str | None | Callable[[], str | None]
+    version: str | None | Callable[[], str | None | _Null]
+    build: str | None | Callable[[], str | None | _Null]
     override_entity: Literal["version", "build"] | None = None
     empty_override: None | _Null = NULL
-    version_validation: Callable[[str, _Null], str | _Null] | None = None
+    version_validation: Callable[[str | None | _Null], str | None | _Null] | None = None
 
     def to_virtual_package(self) -> PackageRecord:
         if (

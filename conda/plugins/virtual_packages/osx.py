@@ -24,6 +24,9 @@ def conda_virtual_packages():
     yield CondaVirtualPackage(name="unix", version=None, build=None)
     # 2: __osx
     yield CondaVirtualPackage(
-        name="osx", version=osx_version, build=None, override_entity="version"
+        name="osx",
+        version=osx_version,
+        build=None,
+        override_entity="version",
     )
     # if a falsey override was found, the __osx virtual package is not exported

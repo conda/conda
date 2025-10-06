@@ -17,6 +17,9 @@ def archspec_build_num():
 @hookimpl
 def conda_virtual_packages():
     yield CondaVirtualPackage(
-        name="archspec", version="1", build=archspec_build_num, override_entity="build"
+        name="archspec",
+        version="1",
+        build=archspec_build_num,
+        override_entity="build",
     )
     # if a falsey override was found, the __archspec virtual package is not exported

@@ -21,5 +21,8 @@ def conda_virtual_packages():
     if not context.subdir.startswith("win-"):
         return
     yield CondaVirtualPackage(
-        name="win", version=win_version, build=None, override_entity="version"
+        name="win",
+        version=win_version,
+        build=None,
+        override_entity="version",
     )

@@ -55,6 +55,9 @@ def conda_virtual_packages():
         # Default to glibc when using CONDA_SUBDIR var
         libc_family = "glibc"
     yield CondaVirtualPackage(
-        name=libc_family, version=libc_version, build=None, override_entity="version"
+        name=libc_family,
+        version=libc_version,
+        build=None,
+        override_entity="version",
     )
     # if a falsey override was found, the __glibc virtual package is not exported

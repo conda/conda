@@ -31,13 +31,22 @@ class VirtualPackagesPlugin:
     @plugins.hookimpl
     def conda_virtual_packages(self):
         yield CondaVirtualPackage(
-            name="abc", version="123", build=None, override_entity=None
+            name="abc",
+            version="123",
+            build=None,
+            override_entity=None,
         )
         yield CondaVirtualPackage(
-            name="def", version="456", build=None, override_entity=None
+            name="def",
+            version="456",
+            build=None,
+            override_entity=None,
         )
         yield CondaVirtualPackage(
-            name="ghi", version="789", build="xyz", override_entity=None
+            name="ghi",
+            version="789",
+            build="xyz",
+            override_entity=None,
         )
 
 
@@ -95,7 +104,11 @@ def test_cuda_detection(clear_cuda_version):
     ],
 )
 def test_cuda_override(
-    clear_cuda_version, override_value, expected, expect_pkg, monkeypatch: MonkeyPatch
+    clear_cuda_version,
+    override_value: str,
+    expected: str | None,
+    expect_pkg: bool,
+    monkeypatch: MonkeyPatch,
 ):
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", override_value)
     reset_context()
