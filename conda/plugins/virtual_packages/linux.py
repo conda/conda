@@ -14,14 +14,16 @@ linux_version_pattern = re.compile(r"\d+\.\d+(\.\d+)?(\.\d+)?")
 
 def linux_version():
     dist_name, dist_version = context.platform_system_release
-    if dist_name != "Linux":  # dist_version is only valid if we are on Linux!
-        dist_version = "0"
+    if dist_name != "Linux":
+        # dist_version is only valid if we are on Linux
+        # this happens with `CONDA_SUBDIR=osx-*`/`--platform=osx-*` on a non-Linux machine
+        dist_version = None
     return dist_version
 
 
-def linux_version_validate(version: str) -> str:
+def linux_version_validate(version: str) -> str | None:
     match = linux_version_pattern.match(version)
-    return match.group() if match else "0"
+    return match.group() if match else None
 
 
 @hookimpl
@@ -39,7 +41,6 @@ def conda_virtual_packages():
     # discard everything after the last digit of the third or fourth
     # numeric component; note that this breaks version ordering for
     # development (`-rcN`) kernels, but that can be a TODO for later.
-
     yield CondaVirtualPackage(
         name="linux",
         version=linux_version,

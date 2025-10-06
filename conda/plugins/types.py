@@ -95,6 +95,13 @@ class CondaVirtualPackage(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_virtual_packages`.
 
+    .. note::
+       The ``version`` and ``build`` parameters can be provided in two ways:
+
+       1. Direct values: a string or ``None`` (where ``None`` translates to ``0``)
+       2. Deferred callables: functions that return either a string, ``None`` (translates to ``0``),
+          or ``NULL`` (indicates the virtual package should not be exported)
+    
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
     :param build: Virtual package build string (e.g., ``x86_64``).
@@ -105,12 +112,6 @@ class CondaVirtualPackage(CondaPlugin):
                            environment variable is set to an empty string. By default,
                            this is ``NULL``.
     :param version_validation: Optional version validation function to ensure that the override version follows a certain pattern.
-
-    Note:
-    - Both ``version`` and ``build`` parameters can be provided
-      as either a string, ``None``, or a deferred callable returning a string or ``None``.
-    - ``NULL`` is a sentinel value representing an explicitly empty override (``""``),
-      which is distinct from ``None`` (meaning "environment variable not set").
     """
 
     name: str
@@ -118,12 +119,12 @@ class CondaVirtualPackage(CondaPlugin):
     build: str | None | Callable[[], str | None | _Null]
     override_entity: Literal["version", "build"] | None = None
     empty_override: None | _Null = NULL
-    version_validation: Callable[[str | None | _Null], str | None | _Null] | None = None
+    version_validation: Callable[[str], str | None] | None = None
 
     def to_virtual_package(self) -> PackageRecord:
         if (
             override_value := os.getenv(
-                f"{APP_NAME.upper()}_OVERRIDE_{self.name.upper()}"
+                f"{APP_NAME}_OVERRIDE_{self.name}".upper()
             )
         ) is not None:
             override_value = override_value.strip() or self.empty_override

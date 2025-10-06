@@ -101,7 +101,12 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     class SecondArchspec:
         @plugins.hookimpl
         def conda_virtual_packages():
-            yield plugins.CondaVirtualPackage("archspec", "", None, None)
+            yield plugins.CondaVirtualPackage(
+                name="archspec",
+                version="",
+                build=None,
+                override_entity=None,
+            )
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(

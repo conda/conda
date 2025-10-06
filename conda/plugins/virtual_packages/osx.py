@@ -10,9 +10,9 @@ from ..types import CondaVirtualPackage
 def osx_version():
     dist_name, dist_version = context.os_distribution_name_version
     if dist_name != "OSX":
-        # avoid reporting platform.version() of a different OS
-        # this happens with CONDA_SUBDIR=osx-* in a non macOS machine or when `--platform` is used on the CLI
-        dist_version = "0"
+        # dist_version is only valid if we are on macOS
+        # this happens with `CONDA_SUBDIR=osx-*`/`--platform=osx-*` on a non-macOS machine
+        dist_version = None
     return dist_version
 
 
