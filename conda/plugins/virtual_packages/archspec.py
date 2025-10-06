@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 
-def archspec_build_num():
+def archspec_build():
     from ...core.index import get_archspec_name
 
     build_num = get_archspec_name()
@@ -27,7 +27,7 @@ def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
     yield CondaVirtualPackage(
         name="archspec",
         version="1",
-        build=archspec_build_num,
+        build=archspec_build,
         override_entity="build",
         # empty_override=NULL,  # falsy override → skip __archspec
     )

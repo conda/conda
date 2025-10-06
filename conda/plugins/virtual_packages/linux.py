@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 
-linux_version_pattern = re.compile(r"\d+\.\d+(\.\d+)?(\.\d+)?")
+LINUX_VERSION_PATTERN = re.compile(r"\d+\.\d+(\.\d+)?(\.\d+)?")
 
 
 def linux_version() -> str | None:
@@ -35,7 +35,7 @@ def linux_version_validate(version: str) -> str | None:
     # discard everything after the last digit of the third or fourth
     # numeric component; note that this breaks version ordering for
     # development (`-rcN`) kernels, but that can be a TODO for later.
-    match = linux_version_pattern.match(version)
+    match = LINUX_VERSION_PATTERN.match(version)
     return match.group() if match else None
 
 
