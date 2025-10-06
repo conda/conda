@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Detect CUDA version."""
 
+from __future__ import annotations
+
 import ctypes
 import functools
 import itertools
@@ -9,10 +11,14 @@ import multiprocessing
 import os
 import platform
 from contextlib import suppress
+from typing import TYPE_CHECKING
 
 from ...auxlib import NULL
 from .. import hookimpl
 from ..types import CondaVirtualPackage
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def cuda_version():
@@ -62,12 +68,14 @@ def cached_cuda_version():
 
 
 @hookimpl
-def conda_virtual_packages():
+def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
+    # 1: __cuda==VERSION=0
     yield CondaVirtualPackage(
         name="cuda",
         version=cached_cuda_version,
         build=None,
         override_entity="version",
+        # empty_override=NULL,  # falsy override → skip __cuda
     )
 
 

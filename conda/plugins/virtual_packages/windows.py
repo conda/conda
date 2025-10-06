@@ -2,9 +2,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Detect whether this is Windows."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from ...base.context import context
 from .. import hookimpl
 from ..types import CondaVirtualPackage
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def win_version() -> str | None:
@@ -17,12 +24,15 @@ def win_version() -> str | None:
 
 
 @hookimpl
-def conda_virtual_packages():
+def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
     if not context.subdir.startswith("win-"):
         return
+
+    # 1: __win==VERSION=0
     yield CondaVirtualPackage(
         name="win",
         version=win_version,
         build=None,
         override_entity="version",
+        # empty_override=NULL,  # falsy override → skip __win
     )

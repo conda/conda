@@ -2,9 +2,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Detect whether this is macOS."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from ...base.context import context
 from .. import hookimpl
 from ..types import CondaVirtualPackage
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def osx_version() -> str | None:
@@ -17,16 +24,23 @@ def osx_version() -> str | None:
 
 
 @hookimpl
-def conda_virtual_packages():
+def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
     if not context.subdir.startswith("osx-"):
         return
-    # 1: __osx (always exported if the target subdir is osx-*)
-    yield CondaVirtualPackage(name="unix", version=None, build=None)
-    # 2: __osx
+
+    # 1: __unix==0=0 (always exported if the target subdir is osx-*)
+    yield CondaVirtualPackage(
+        name="unix",
+        version=None,
+        build=None,
+        # override_entity=None,  # no override allowed
+    )
+
+    # 2: __osx==VERSION=0
     yield CondaVirtualPackage(
         name="osx",
         version=osx_version,
         build=None,
         override_entity="version",
+        # empty_override=NULL,  # falsy override → skip __osx
     )
-    # if a falsey override was found, the __osx virtual package is not exported
