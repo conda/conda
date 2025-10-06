@@ -121,7 +121,7 @@ class CondaVirtualPackage(CondaPlugin):
     empty_override: None | _Null = NULL
     version_validation: Callable[[str], str | None] | None = None
 
-    def to_virtual_package(self) -> PackageRecord:
+    def to_virtual_package(self) -> PackageRecord | _Null:
         version = self.version
         build = self.build
 
