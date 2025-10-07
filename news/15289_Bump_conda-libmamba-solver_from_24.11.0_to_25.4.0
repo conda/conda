@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Exceptions are now raised to prevent renaming or removing the default_activation_env. (#15061)
+* <news item>
 
 ### Bug fixes
 
-* <news item>
+* Require `conda-libmamba-solver >=25.4.0` (#15289)
 
 ### Deprecations
 

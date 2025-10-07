@@ -17,7 +17,7 @@ from os.path import isfile, join
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
-from ..base.constants import DEFAULTS_CHANNEL_NAME
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -601,7 +601,6 @@ def set_keys(*args: tuple[str, Any], path: PathType) -> None:
 def execute_config(args, parser):
     from .. import CondaError
     from ..base.context import (
-        _warn_defaults_deprecation,
         context,
         sys_rc_path,
         user_rc_path,
@@ -794,7 +793,7 @@ def execute_config(args, parser):
         rc_path = sys_rc_path
     elif args.env:
         if context.active_prefix:
-            rc_path = join(context.active_prefix, ".condarc")
+            rc_path = join(context.active_prefix, DEFAULT_CONDARC_FILENAME)
         else:
             rc_path = user_rc_path
     elif args.file:
@@ -802,7 +801,7 @@ def execute_config(args, parser):
     elif args.prefix or args.name:
         prefix_data = PrefixData.from_context()
         prefix_data.assert_environment()
-        rc_path = str(prefix_data.prefix_path / ".condarc")
+        rc_path = str(prefix_data.prefix_path / DEFAULT_CONDARC_FILENAME)
     else:
         rc_path = user_rc_path
 
@@ -874,15 +873,6 @@ def execute_config(args, parser):
         for key, item in arg:
             key, subkey = key.split(".", 1) if "." in key else (key, None)
 
-            channels_is_unpopulated = key == "channels" and key not in rc_config
-
-            if channels_is_unpopulated:
-                # don't warn if users are literally trying to remove the warning
-                # by explicitly adding the defaults channel to the channels list
-                if item != DEFAULTS_CHANNEL_NAME:
-                    _warn_defaults_deprecation()
-                rc_config[key] = [DEFAULTS_CHANNEL_NAME]
-
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key == "plugins" and subkey in plugin_sequence_parameters:
@@ -903,9 +893,6 @@ def execute_config(args, parser):
                 raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
 
             if item in arglist:
-                # don't warn if users are literally trying to remove the warning
-                if channels_is_unpopulated and item == DEFAULTS_CHANNEL_NAME:
-                    continue
                 message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates
                 location = "top" if prepend else "bottom"

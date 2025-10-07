@@ -582,14 +582,15 @@ class UnavailableInvalidChannel(ChannelError):
         except (AttributeError, JSONDecodeError):
             body = {}
         else:
-            reason = body.get("reason", None) or reason
-            message = body.get("message", None) or message
+            reason = body.get("reason") or reason
+            message = body.get("message") or message
+            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # See https://datatracker.ietf.org/doc/html/rfc9457
+            message = body.get("detail") or message
 
         # standardize arguments
         status_code = status_code or "000"
         reason = reason or "UNAVAILABLE OR INVALID"
-        if isinstance(reason, str):
-            reason = reason.upper()
 
         self.status_code = status_code
 
@@ -687,15 +688,16 @@ class CondaHTTPError(CondaError):
         except (AttributeError, JSONDecodeError):
             body = {}
         else:
-            reason = body.get("reason", None) or reason
-            message = body.get("message", None) or message
+            reason = body.get("reason") or reason
+            message = body.get("message") or message
+            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # See https://datatracker.ietf.org/doc/html/rfc9457
+            message = body.get("detail") or message
 
         # standardize arguments
         url = maybe_unquote(url)
         status_code = status_code or "000"
         reason = reason or "CONNECTION FAILED"
-        if isinstance(reason, str):
-            reason = reason.upper()
         elapsed_time = elapsed_time or "-"
         if isinstance(elapsed_time, timedelta):
             elapsed_time = str(elapsed_time).split(":", 1)[-1]
@@ -1117,12 +1119,15 @@ class NoWritablePkgsDirError(CondaError):
 
 class EnvironmentIsFrozenError(CondaError):
     def __init__(self, prefix: os.PathLike, message: str = "", **kwargs):
-        error = f"Cannot not modify '{prefix}'. The environment is marked as frozen. "
+        error = f"Cannot modify '{prefix}'. The environment is marked as frozen. "
         if message:
             error += "Reason:\n\n"
             error += indent(message, "    ")
             error += "\n\n"
-        error += "You can ignore this error with the `--override-frozen` flag, at your own risk."
+        error += (
+            "You can bypass these protections with the `--override-frozen` flag,"
+            " at your own risk."
+        )
         super().__init__(error, **kwargs)
 
 
@@ -1244,6 +1249,12 @@ class CondaEnvException(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileInvalid(CondaEnvException):
+    def __init__(self, msg: str, *args, **kwargs):
+        msg = f"Provided environment.yaml is invalid: {msg}"
+        super().__init__(msg, *args, **kwargs)
+
+
 class EnvironmentFileNotFound(CondaEnvException):
     def __init__(self, filename: os.PathLike, *args, **kwargs):
         msg = f"'{filename}' file not found"
@@ -1308,7 +1319,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         self.name = name
         msg = dals(
             f"""
-            Environment at {name} is not readable by any installed environment specifier plugins.
+            Environment at {name} is not able to be detected by any installed environment specifier plugins.
 
             Available plugins: {dashlist(plugin_names, 16)}
 

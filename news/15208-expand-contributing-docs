@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Silence error in `fish` when undefined environment variables are unset. (#14659 via #14660, #15102)
+* <news item>
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Expand contributor documentation
 
 ### Other
 

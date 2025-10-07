@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Define YAML spec."""
+"""Define cep-0024 compliant YAML spec."""
 
 from __future__ import annotations
 
@@ -9,32 +9,23 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ...common.serialize import yaml_safe_load
-from ...deprecations import deprecated
-from ...exceptions import CondaValueError
+from ...exceptions import CondaError
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
 if TYPE_CHECKING:
     from ...models.environment import Environment
-    from ..env import EnvironmentYaml
 
 
 log = getLogger(__name__)
 
 
-class YamlFileSpec(EnvironmentSpecBase):
-    # Do not use this plugin for in the environment spec detection process.
-    # Users must specify using `environment.yaml` with the `--environment-specifier`
-    # option.
-    detection_supported = False
-
+class Cep24YamlFileSpec(EnvironmentSpecBase):
     _environment = None
-
     extensions = {".yaml", ".yml"}
 
-    def __init__(self, filename=None, **kwargs):
+    def __init__(self, filename: str | None = None, **kwargs):
         self.filename = filename
-        self.msg = None
 
     def can_handle(self):
         """
@@ -42,7 +33,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         This can handle if:
             * the provided file exists
             * the provided file ends in the supported file extensions (.yaml or .yml)
-            * the yaml file can be loaded and is not empty
+            * the provided file is compliant with the CEP-0024
 
         :return: True or False
         """
@@ -53,31 +44,19 @@ class YamlFileSpec(EnvironmentSpecBase):
         _, file_ext = os.path.splitext(self.filename)
 
         # Check if the file has a supported extension and exists
-        if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
+        if file_ext.lower() not in self.extensions:
             return False
 
         try:
             yamlstr = env.load_file(self.filename)
             data = yaml_safe_load(yamlstr)
-            if data is None:
+            errors = env.get_schema_errors(data)
+            if errors:
                 return False
-        except Exception:
+            return True
+        except CondaError:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
             return False
-
-        return True
-
-    @property
-    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
-    def environment(self) -> EnvironmentYaml:
-        if not self._environment:
-            if not self.can_handle():
-                raise CondaValueError(f"Cannot handle environment file: {self.msg}")
-            self._environment = env.from_file(self.filename)
-
-        if self._environment is None:
-            raise CondaValueError("Environment could not be loaded")
-        return self._environment
 
     @property
     def env(self) -> Environment:
