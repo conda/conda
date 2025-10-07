@@ -21,7 +21,7 @@ from conda.testing.solver_helpers import package_dict
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Literal
+    from typing import Callable, Literal
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
@@ -397,3 +397,42 @@ def test_empty_override(
                 assert package.name == "__foo"
                 assert package.build == "0"
                 assert package.version == (version or "0")
+
+
+def validate_version(version: str) -> str | None:
+    if version not in ["few", "allowed", "versions"]:
+        return "0"
+    return version
+
+
+@pytest.mark.parametrize("version", ["1.2", "few", None, NULL])
+@pytest.mark.parametrize("version_validation", [None, validate_version])
+def test_version_validation(
+    version_validation: Callable[[str], str | None] | None,
+    version: str | None | _Null,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Test setting of the `empty_override` field leads to appropriate results
+    """
+
+    monkeypatch.setenv("CONDA_OVERRIDE_FOO", "")
+    deferred_version = mocker.MagicMock(return_value=version)
+
+    plugin = CondaVirtualPackage(
+        name="foo",
+        version=deferred_version,
+        build="0",
+        version_validation=version_validation,
+    )
+    package = plugin.to_virtual_package()
+
+    if version_validation:
+        if version is not NULL:
+            assert package.name == "__foo"
+            assert package.version == validate_version(version)
+    else:
+        if version is not NULL:
+            assert package.name == "__foo"
+            assert package.version == (version or "0")
