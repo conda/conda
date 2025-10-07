@@ -122,9 +122,14 @@ class CondaVirtualPackage(CondaPlugin):
     version_validation: Callable[[str], str | None] | None = None
 
     def to_virtual_package(self) -> PackageRecord | _Null:
+        # Take the raw version and build as they are.
+        # At this point, they may be callables (evaluated later) or direct values.
         version = self.version
         build = self.build
 
+        # Check for environment overrides.
+        # Overrides always yield a concrete value (string, NULL, or None),
+        # so after this step, version/build will no longer be callables if they were overridden.
         if self.override_entity:
             override_value = os.getenv(f"{APP_NAME}_OVERRIDE_{self.name}".upper())
             if override_value is not None:
@@ -134,6 +139,7 @@ class CondaVirtualPackage(CondaPlugin):
                 elif self.override_entity == "build":
                     build = override_value
 
+        # If version/build were not overridden and are callables, evaluate them now.
         version = maybecall(version)
         build = maybecall(build)
 
