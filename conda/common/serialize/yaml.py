@@ -98,9 +98,6 @@ def dumps(obj: Any) -> str:
     return write(obj)
 
 
-_YAML_CACHE: dict[CacheKey, Any] = {}
-
-
 @overload
 def read(*, text: str) -> Any: ...
 
@@ -128,15 +125,20 @@ def read(
     # try cache if requested
     if try_cache:
         with suppress(KeyError):
-            return _YAML_CACHE[key]
+            return read.__cache__[key]  # type: ignore[attr-defined]
 
     # parse data from text, file, or path and cache result
     if fp is not None:
         text = fp.read()
     elif path is not None:
         text = Path(path).read_text()
-    _YAML_CACHE[key] = result = _yaml().load(text)
+    read.__cache__[key] = result = _yaml().load(text)  # type: ignore[attr-defined]
     return result
+
+
+# mirror functools.cache.cache_clear()
+read.__cache__ = {}  # type: ignore[attr-defined]
+read.cache_clear = lambda: read.__cache__.clear()  # type: ignore[attr-defined]
 
 
 def load(fp: IO[str]) -> Any:
