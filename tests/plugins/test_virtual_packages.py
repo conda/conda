@@ -21,9 +21,12 @@ from conda.testing.solver_helpers import package_dict
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from typing import Literal
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
+    from conda.auxlib import _Null
     from conda.models.records import PackageRecord
 
 
@@ -297,3 +300,100 @@ def test_conda_virtual_package():
         prec.name == "__conda" and prec.version == __version__
         for prec in get_virtual_precs()
     )
+
+
+@pytest.mark.parametrize("override_entity", [None, "version", "build"])
+@pytest.mark.parametrize("version", ["1.2", None, NULL])
+@pytest.mark.parametrize("build", ["1-abc-2", None, NULL])
+def test_override_entity(
+    override_entity: Literal["version", "build"] | None,
+    version: str | None | _Null,
+    build: str | None | _Null,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Test setting of the two override entities leads to appropriate results.
+    """
+    monkeypatch.setenv("CONDA_OVERRIDE_FOO", override := "override")
+    deferred_version = mocker.MagicMock(return_value=version)
+    deferred_build = mocker.MagicMock(return_value=build)
+
+    # create a virtual package plugin
+    plugin = CondaVirtualPackage(
+        name="foo",
+        version=deferred_version,
+        build=deferred_build,
+        override_entity=override_entity,
+    )
+    package = plugin.to_virtual_package()
+
+    if override_entity is None:
+        if version is NULL or build is NULL:
+            # no package generatored when either build or version is NULL
+            assert package is NULL
+        else:
+            assert package is not NULL
+            assert package.name == "__foo"
+            assert package.version == (version or "0")
+            assert package.build == (build or "0")
+    elif override_entity == "version":
+        if build is NULL:
+            assert package is NULL
+        else:
+            assert package is not NULL
+            assert package.name == "__foo"
+            assert package.version == override
+            assert package.build == (build or "0")
+    elif override_entity == "build":
+        if version is NULL:
+            assert package is NULL
+        else:
+            assert package is not NULL
+            assert package.name == "__foo"
+            assert package.version == (version or "0")
+            assert package.build == override
+
+
+@pytest.mark.parametrize("override_entity", ["version", "build"])
+@pytest.mark.parametrize("version", ["1.2", None, NULL])
+@pytest.mark.parametrize("build", ["1-abc-2", None, NULL])
+@pytest.mark.parametrize("empty_override", [None, NULL])
+def test_empty_override(
+    empty_override: None | _Null,
+    override_entity: Literal["version", "build"] | None,
+    version: str | None | _Null,
+    build: str | None | _Null,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Test setting of the `empty_override` field leads to appropriate results
+    """
+
+    monkeypatch.setenv("CONDA_OVERRIDE_FOO", "")
+    deferred_version = mocker.MagicMock(return_value=version)
+    deferred_build = mocker.MagicMock(return_value=build)
+
+    plugin = CondaVirtualPackage(
+        name="foo",
+        version=deferred_version,
+        build=deferred_build,
+        override_entity=override_entity,
+        empty_override=empty_override,
+    )
+    package = plugin.to_virtual_package()
+
+    if empty_override is NULL:
+        assert package is NULL
+    elif empty_override is None:
+        if override_entity == "version":
+            if build is not NULL:
+                assert package.name == "__foo"
+                assert package.version == "0"
+                assert package.build == (build or "0")
+        elif override_entity == "build":
+            if version is not NULL:
+                assert package.name == "__foo"
+                assert package.build == "0"
+                assert package.version == (version or "0")
