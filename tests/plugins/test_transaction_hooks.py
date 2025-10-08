@@ -85,12 +85,10 @@ def transaction_plugin(plugin_manager_with_reporter_backends, mocker):
     )
 
 
-def test_transaction_hooks_invoked(
-    tmp_env, transaction_plugin, caplog, tmp_env_python_spec: str
-):
+def test_transaction_hooks_invoked(tmp_env, transaction_plugin, caplog):
     """Test that the transaction hooks are invoked as expected."""
     with caplog.at_level(logging.INFO):
-        with tmp_env(tmp_env_python_spec, "--solver=classic"):
+        with tmp_env("python=3", "--solver=classic"):
             pass
 
     mock_pre, mock_post = transaction_plugin
@@ -111,9 +109,7 @@ def test_transaction_hooks_invoked(
     mock_post_cleanup.assert_called_once()
 
 
-def test_pre_transaction_raises_exception(
-    tmp_env, transaction_plugin, tmp_env_python_spec: str
-):
+def test_pre_transaction_raises_exception(tmp_env, transaction_plugin):
     """Test that exceptions get bubbled up from inside the pre-transaction hooks."""
     msg = "💥"
 
@@ -122,7 +118,7 @@ def test_pre_transaction_raises_exception(
     mock_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env(tmp_env_python_spec, "--solver=classic"):
+        with tmp_env("python=3", "--solver=classic"):
             pass
 
     mock_verify.assert_called_once()
@@ -135,9 +131,7 @@ def test_pre_transaction_raises_exception(
     mock_cleanup.assert_not_called()
 
 
-def test_post_transaction_raises_exception(
-    tmp_env, transaction_plugin, tmp_env_python_spec: str
-):
+def test_post_transaction_raises_exception(tmp_env, transaction_plugin):
     """Test that exceptions get bubbled up from inside the post-transaction hooks."""
     msg = "💥"
 
@@ -146,7 +140,7 @@ def test_post_transaction_raises_exception(
     mock_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env(tmp_env_python_spec, "--solver=classic"):
+        with tmp_env("python=3", "--solver=classic"):
             pass
 
     mock_verify.assert_called_once()
