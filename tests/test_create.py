@@ -159,7 +159,7 @@ def test_install_python_and_search(
 
 
 def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python=3") as prefix:
+    with tmp_env("python=3.13") as prefix:
         echo_args_py = prefix / "echo-args.py"
         echo_args_py.write_text("import sys\nfor arg in sys.argv[1:]: print(arg)")
         # If 'two two' were 'two' this test would pass.
@@ -185,7 +185,7 @@ def test_create_install_update_remove_smoketest(
 ):
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
-    with tmp_env("python=3") as prefix:
+    with tmp_env("python=3.13") as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "python=3")
 
@@ -1122,7 +1122,7 @@ def test_channel_usage_replacing_python(
 
 
 def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python=3", "flask") as prefix:
+    with tmp_env("python=3.13", "flask") as prefix:
         assert package_is_installed(prefix, "flask")
         assert package_is_installed(prefix, "python=3")
         conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")

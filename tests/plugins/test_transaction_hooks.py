@@ -88,7 +88,7 @@ def transaction_plugin(plugin_manager_with_reporter_backends, mocker):
 def test_transaction_hooks_invoked(tmp_env, transaction_plugin, caplog):
     """Test that the transaction hooks are invoked as expected."""
     with caplog.at_level(logging.INFO):
-        with tmp_env("python=3", "--solver=classic"):
+        with tmp_env("python=3.13", "--solver=classic"):
             pass
 
     mock_pre, mock_post = transaction_plugin
@@ -118,7 +118,7 @@ def test_pre_transaction_raises_exception(tmp_env, transaction_plugin):
     mock_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env("python=3", "--solver=classic"):
+        with tmp_env("python=3.13", "--solver=classic"):
             pass
 
     mock_verify.assert_called_once()
@@ -140,7 +140,7 @@ def test_post_transaction_raises_exception(tmp_env, transaction_plugin):
     mock_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env("python=3", "--solver=classic"):
+        with tmp_env("python=3.13", "--solver=classic"):
             pass
 
     mock_verify.assert_called_once()
