@@ -84,13 +84,13 @@ Here's a minimal example of an environment exporter plugin:
 
     @conda.plugins.hookimpl
     def conda_environment_exporters():
-        yield conda.plugins.CondaEnvironmentExporter(
+        yield conda.plugins.types.CondaEnvironmentExporter(
             name="simple-text",
             aliases=("simple", "txt-simple"),
             default_filenames=("environment.txt",),
             export=export_simple_text,
         )
-        yield conda.plugins.CondaEnvironmentExporter(
+        yield conda.plugins.types.CondaEnvironmentExporter(
             name="multiplatform-text",
             aliases=("multiplatform", "txt-multiplatform"),
             default_filenames=("environment.txt",),
@@ -156,7 +156,7 @@ Here's a more sophisticated example that creates a custom JSON format:
     import json
     from typing import Any, Dict
 
-    import conda.plugins
+    import conda.plugins.types
     from conda.models.environment import Environment
 
 
@@ -199,7 +199,7 @@ Here's a more sophisticated example that creates a custom JSON format:
 
     @conda.plugins.hookimpl
     def conda_environment_exporters():
-        yield conda.plugins.CondaEnvironmentExporter(
+        yield conda.plugins.types.CondaEnvironmentExporter(
             name="custom-json",
             aliases=("cjson",),
             default_filenames=("environment.cjson", "env.cjson"),
