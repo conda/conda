@@ -2251,7 +2251,7 @@ def test_dont_remove_conda_1(
     monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         reset_context()
         assert context.root_prefix == str(prefix)
         conda_cli("install", f"--prefix={prefix}", "conda", "conda-build", "--yes")
@@ -2280,7 +2280,7 @@ def test_dont_remove_conda_2(
 ):
     # regression test for #6904
     with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         reset_context()
         assert context.root_prefix == str(prefix)
 
