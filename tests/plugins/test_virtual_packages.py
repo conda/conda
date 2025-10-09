@@ -376,20 +376,28 @@ def test_override(
     if override_entity:
         if override_value == "":
             if empty_override is NULL:
+                deferred_build.assert_not_called
+                deferred_version.assert_not_called
                 assert package is NULL
             elif empty_override is None:
                 if override_entity == "version":
+                    deferred_version.assert_not_called()
+                    deferred_build.assert_called_once()
                     if build is not NULL:
                         assert package.name == "__foo"
                         assert package.version == "0"
                         assert package.build == (build or "0")
                 elif override_entity == "build":
+                    deferred_build.assert_not_called()
+                    deferred_version.assert_called_once()
                     if version is not NULL:
                         assert package.name == "__foo"
                         assert package.build == "0"
                         assert package.version == (version or "0")
         else:
             if override_entity == "version":
+                deferred_build.assert_called_once()
+                deferred_version.assert_not_called()
                 if build is NULL:
                     assert package is NULL
                 else:
@@ -398,6 +406,8 @@ def test_override(
                     assert package.version == override_value
                     assert package.build == (build or "0")
             elif override_entity == "build":
+                deferred_version.assert_called_once()
+                deferred_build.assert_not_called()
                 if version is NULL:
                     assert package is NULL
                 else:
@@ -406,6 +416,8 @@ def test_override(
                     assert package.version == (version or "0")
                     assert package.build == override_value
     else:
+        deferred_build.assert_called_once()
+        deferred_version.assert_called_once()
         if version is NULL or build is NULL:
             assert package is NULL
         else:
