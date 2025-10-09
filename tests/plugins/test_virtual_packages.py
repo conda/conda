@@ -424,3 +424,107 @@ def test_override(
             assert package.name == "__foo"
             assert package.version == (version or "0")
             assert package.build == (build or "0")
+
+
+##### EXPERIMENT #####
+
+
+@pytest.fixture
+def package_mock(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
+    version, build, override_entity, override_value, empty_override = request.param
+    if override_value is not None:
+        monkeypatch.setenv("CONDA_OVERRIDE_FOO", override_value)
+
+    deferred_version = mocker.MagicMock(return_value=version)
+    deferred_build = mocker.MagicMock(return_value=build)
+
+    plugin = CondaVirtualPackage(
+        name="foo",
+        version=deferred_version,
+        build=deferred_build,
+        override_entity=override_entity,
+        empty_override=empty_override,
+    )
+    package = plugin.to_virtual_package()
+
+    return package, deferred_version, deferred_build
+
+
+@pytest.mark.parametrize(
+    "package_mock, expected_null",
+    [
+        (
+            (NULL, "1-abc-2", None, None, None),
+            True,
+        ),  # NULL version leads to NULL package
+        (("1.2", NULL, None, None, None), True),  # NULL build leads to NULL package
+        (
+            ("1.2", None, "build", "", NULL),
+            True,
+        ),  # empty_override=NULL, override_value ="" leads to NULL package
+        (
+            ("1.2", None, "version", "", None),
+            False,
+        ),  # empty_override=None override_value="" leads to a not-NULL package
+    ],
+    indirect=["package_mock"],
+)
+def test_package_is_NULL(package_mock, expected_null):
+    package, _, _ = package_mock
+    if expected_null:
+        assert package is NULL
+    else:
+        assert package is not NULL
+
+
+@pytest.mark.parametrize(
+    "package_mock, expected_version, expected_build",
+    [
+        (("1.2", "1-abc-2", None, None, None), "1.2", "1-abc-2"),  # no override
+        (
+            ("1.2", "1-abc-2", "version", "override", None),
+            "override",
+            "1-abc-2",
+        ),  # version overriden
+        (
+            ("1.2", "1-abc-2", "build", "override", None),
+            "1.2",
+            "override",
+        ),  # build overriden
+        (
+            ("1.2", None, "version", "", None),
+            "0",
+            "0",
+        ),  # empty_override=None, override_value=""
+        (
+            (None, "1-abc-2", "build", "", None),
+            "0",
+            "0",
+        ),  # empty_override=None, override_value=""
+    ],
+    indirect=["package_mock"],
+)
+def test_override_package_values(package_mock, expected_version, expected_build):
+    package, _, _ = package_mock
+    assert package.name == "__foo"
+    assert package.version == expected_version
+    assert package.build == expected_build
+
+
+@pytest.mark.parametrize(
+    "package_mock, expect_version_called, expect_build_called",
+    [
+        (
+            ("1.2", "1-abc-2", "version", "override", None),
+            False,
+            True,
+        ),  # version overriden
+        (("1.2", "1-abc-2", "build", "override", None), True, False),  # build overriden
+        (("1.2", "1-abc-2", None, None, None), True, True),  # base case, no override
+    ],
+    indirect=["package_mock"],
+)
+def test_override_mock_calls(package_mock, expect_version_called, expect_build_called):
+    _, deferred_version, deferred_build = package_mock
+    assert deferred_version.called == expect_version_called
+    assert deferred_build.called == expect_build_called
