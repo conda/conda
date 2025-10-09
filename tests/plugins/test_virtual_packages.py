@@ -345,13 +345,13 @@ def test_version_validation(
 @pytest.mark.parametrize("version", ["1.2", None, NULL])
 @pytest.mark.parametrize("build", ["1-abc-2", None, NULL])
 @pytest.mark.parametrize("empty_override", [None, NULL])
-@pytest.mark.parametrize("override_value", ["", "override"])
+@pytest.mark.parametrize("override_value", [None, "", "override"])
 def test_override(
     empty_override: None | _Null,
     override_entity: Literal["version", "build"] | None,
     version: str | None | _Null,
     build: str | None | _Null,
-    override_value: str,
+    override_value: str | None,
     mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
 ):
@@ -359,7 +359,7 @@ def test_override(
     Test that the override behavior works as expected
     """
 
-    if override_entity:
+    if override_value is not None:
         monkeypatch.setenv("CONDA_OVERRIDE_FOO", override_value)
     deferred_version = mocker.MagicMock(return_value=version)
     deferred_build = mocker.MagicMock(return_value=build)
@@ -394,7 +394,7 @@ def test_override(
                         assert package.name == "__foo"
                         assert package.build == "0"
                         assert package.version == (version or "0")
-        else:
+        elif override_value is not None and override_value != "":
             if override_entity == "version":
                 deferred_build.assert_called_once()
                 deferred_version.assert_not_called()
