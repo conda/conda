@@ -725,7 +725,7 @@ def test_search_override_channels_enabled(
     stdout, stderr, code = conda_cli(
         "search",
         "--override-channels",
-        "defaults::zlib",
+        "main::zlib",
         "--json",
     )
     assert (parsed := json.loads(stdout))
