@@ -55,6 +55,14 @@ def pytest_report_header(config: pytest.Config):
 
 
 @pytest.fixture
+def tmp_env_python_spec() -> str:
+    """
+    Used to create a temporary enviroment with a bounded Python version.
+    """
+    return "python=3.13"
+
+
+@pytest.fixture
 def test_recipes_channel(mocker: MockerFixture) -> Path:
     mocker.patch(
         "conda.base.context.Context.channels",

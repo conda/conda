@@ -133,7 +133,7 @@ def test_create_advanced_pip(
     environment_yml = advanced_pip_dir / "environment.yml"
 
     # Create environment.yml from template in the isolated location
-    env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
+    env_content = template_content.replace("{ARGH_PATH_PLACEHOLDER}", argh_dir.as_uri())
     environment_yml.write_text(env_content)
 
     stdout, stderr, _ = conda_cli(
