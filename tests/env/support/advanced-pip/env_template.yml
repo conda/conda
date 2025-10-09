@@ -15,7 +15,7 @@ dependencies:
 
     # Install in editable mode.
     # More natural than - "--editable=git+https://github.com/neithere/argh.git#egg=argh
-    - -e git+file:///"ARGH_PATH_PLACEHOLDER#egg=argh"
+    - -e git+{ARGH_PATH_PLACEHOLDER}#egg=argh
 
     # You could also specify a package in a directory.
     # The directory can be relative to this environment file.
