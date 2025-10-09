@@ -1,16 +1,17 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""JSON serialization utilities for conda."""
+"""YAML serialization utilities for conda."""
 
 from __future__ import annotations
 
 from contextlib import suppress
 from enum import Enum
+from functools import cache
+from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, overload
 
-# detect the best json library to use
-from requests.compat import json
+import ruamel.yaml
 
 if TYPE_CHECKING:
     from io import IO
@@ -20,33 +21,48 @@ if TYPE_CHECKING:
     from . import CacheKey
 
 
-class CondaJSONEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
+class CondaYAMLRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
+    def default(self, data: Any) -> Any:
         # Python types
-        if isinstance(obj, Enum):
-            return obj.value
-        elif isinstance(obj, Path):
-            return str(obj)
+        if isinstance(data, Enum):
+            return self.represent_str(data.value)
+        elif isinstance(data, Path):
+            return self.represent_str(str(data))
 
         # auxlib entity types
         for attr in ("dump", "__json__", "to_json", "as_json"):
-            if method := getattr(obj, attr, None):
-                return method()
+            if method := getattr(data, attr, None):
+                return self.represent_data(method())
 
-        # default
-        return super().default(obj)
+        # mirror JSON behavior
+        raise TypeError(
+            f"Object of type {data.__class__.__name__} is not YAML serializable"
+        )
+
+
+CondaYAMLRepresenter.add_representer(None, CondaYAMLRepresenter.default)
+
+
+@cache
+def _yaml() -> ruamel.yaml.YAML:
+    parser = ruamel.yaml.YAML(typ="rt")
+    parser.Representer = CondaYAMLRepresenter
+    parser.indent(mapping=2, offset=2, sequence=4)
+    parser.default_flow_style = False
+    parser.sort_base_mapping_type_on_output = False
+    return parser
 
 
 @overload
-def write(obj: Any, *, fp: IO[str], **kwargs) -> None: ...
+def write(obj: Any, *, fp: IO[str]) -> None: ...
 
 
 @overload
-def write(obj: Any, *, path: PathType, **kwargs) -> None: ...
+def write(obj: Any, *, path: PathType) -> None: ...
 
 
 @overload
-def write(obj: Any, **kwargs) -> str: ...
+def write(obj: Any) -> str: ...
 
 
 def write(
@@ -54,22 +70,19 @@ def write(
     *,
     fp: IO[str] | None = None,
     path: PathType | None = None,
-    **kwargs,
 ) -> None | str:
     # validate arguments
     if sum(value is None for value in (fp, path)) < 1:
         raise ValueError("At most one of fp or path must be provided")
 
-    # set default json.dump arguments
-    kwargs.setdefault("cls", CondaJSONEncoder)
-    kwargs.setdefault("indent", 2)
-
     # dump to file, stream, or return text
     if fp is not None:
-        json.dump(obj, fp, **kwargs)
+        _yaml().dump(obj, fp)
         return None
     else:
-        text = json.dumps(obj, **kwargs)
+        stream = StringIO()
+        _yaml().dump(obj, stream)
+        text = stream.getvalue()
         if path is not None:
             Path(path).write_text(text)
             return None
@@ -77,24 +90,24 @@ def write(
             return text
 
 
-def dump(obj: Any, fp: IO[str], **kwargs) -> None:
-    return write(obj, fp=fp, **kwargs)
+def dump(obj: Any, fp: IO[str]) -> None:
+    return write(obj, fp=fp)
 
 
-def dumps(obj: Any, **kwargs) -> str:
-    return write(obj, **kwargs)
-
-
-@overload
-def read(*, text: str, **kwargs) -> Any: ...
+def dumps(obj: Any) -> str:
+    return write(obj)
 
 
 @overload
-def read(*, fp: IO[str], **kwargs) -> Any: ...
+def read(*, text: str) -> Any: ...
 
 
 @overload
-def read(*, path: PathType, **kwargs) -> Any: ...
+def read(*, fp: IO[str]) -> Any: ...
+
+
+@overload
+def read(*, path: PathType) -> Any: ...
 
 
 def read(
@@ -103,7 +116,6 @@ def read(
     fp: IO[str] | None = None,
     path: PathType | None = None,
     try_cache: bool = False,
-    **kwargs,
 ) -> Any:
     # generate cache key & validate arguments
     key: CacheKey = (text, fp, path)  # type: ignore[assignment]
@@ -120,7 +132,7 @@ def read(
         text = fp.read()
     elif path is not None:
         text = Path(path).read_text()
-    read.__cache__[key] = result = json.loads(text, **kwargs)  # type: ignore[attr-defined]
+    read.__cache__[key] = result = _yaml().load(text)  # type: ignore[attr-defined]
     return result
 
 
@@ -129,12 +141,12 @@ read.__cache__ = {}  # type: ignore[attr-defined]
 read.cache_clear = lambda: read.__cache__.clear()  # type: ignore[attr-defined]
 
 
-def load(fp: IO[str], **kwargs) -> Any:
-    return read(fp=fp, **kwargs)
+def load(fp: IO[str]) -> Any:
+    return read(fp=fp)
 
 
-def loads(s: str, **kwargs) -> Any:
-    return read(text=s, **kwargs)
+def loads(s: str) -> Any:
+    return read(text=s)
 
 
-JSONDecodeError = json.JSONDecodeError
+YAMLError = ruamel.yaml.YAMLError
