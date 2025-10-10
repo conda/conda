@@ -17,7 +17,6 @@ from ..base.context import context
 # is updated to use the environment spec plugins to read environment files.
 from ..cli.common import specs_from_url
 from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import is_package_file
 from ..core.prefix_data import PrefixData
 from ..exceptions import CondaError, CondaValueError
 from ..history import History
@@ -519,10 +518,10 @@ class Environment:
                     specs.append(default_package)
 
         for spec in specs:
-            if is_package_file(spec):
+            if (match_spec := MatchSpec(spec)).get("url"):
                 fetch_explicit_packages.append(spec)
             else:
-                requested_packages.append(MatchSpec(spec))
+                requested_packages.append(match_spec)
 
         # transform explicit packages into package records
         explicit_packages = []

@@ -1,5 +1,20 @@
 [//]: # (current developments)
 
+## 25.9.1 (2025-10-10)
+
+### Bug fixes
+
+* Require `conda-libmamba-solver >=25.4.0`. (#15289)
+* Fix `conda.models.environment.Environment.from_cli`'s spec grouping to correctly categorize `@EXPLICIT` URLs. (#15306 via #15309)
+
+### Contributors
+
+* @dholth
+* @jakirkham
+* @kenodegard
+
+
+
 ## 25.9.0 (2025-09-26)
 
 ### ✨ Special Announcement ✨
