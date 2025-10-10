@@ -301,7 +301,11 @@ def test_conda_virtual_package():
 
 
 @pytest.fixture
-def virtual_package_plugin(mocker: MockerFixture, monkeypatch: MonkeyPatch, request) -> CondaVirtualPackage:
+def virtual_package_plugin(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    request,
+) -> CondaVirtualPackage:
     (
         version,
         build,
@@ -354,7 +358,10 @@ def virtual_package_plugin(mocker: MockerFixture, monkeypatch: MonkeyPatch, requ
     ],
     indirect=["virtual_package_plugin"],
 )
-def test_package_is_NULL(virtual_package_plugin: CondaVirtualPackage, expected_null: bool):
+def test_package_is_NULL(
+    virtual_package_plugin: CondaVirtualPackage,
+    expected_null: bool,
+):
     package = virtual_package_plugin.to_virtual_package()
     if expected_null:
         assert package is NULL
@@ -399,7 +406,9 @@ def test_package_is_NULL(virtual_package_plugin: CondaVirtualPackage, expected_n
     indirect=["virtual_package_plugin"],
 )
 def test_override_package_values(
-    virtual_package_plugin: CondaVirtualPackage, expected_version: str, expected_build: str
+    virtual_package_plugin: CondaVirtualPackage,
+    expected_version: str,
+    expected_build: str,
 ):
     package = virtual_package_plugin.to_virtual_package()
     assert package.name == "__foo"
@@ -432,9 +441,11 @@ def test_override_package_values(
     indirect=["virtual_package_plugin"],
 )
 def test_override_mock_calls(
-    virtual_package_plugin: CondaVirtualPackage, expect_version_called: bool, expect_build_called: bool
+    virtual_package_plugin: CondaVirtualPackage,
+    expect_version_called: bool,
+    expect_build_called: bool,
 ):
-    package = virtual_package_plugin.to_virtual_package()
+    virtual_package_plugin.to_virtual_package()
     assert virtual_package_plugin.version.called == expect_version_called
     assert virtual_package_plugin.build.called == expect_build_called
 
