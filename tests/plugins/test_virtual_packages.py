@@ -331,22 +331,26 @@ def virtual_package_plugin(mocker: MockerFixture, monkeypatch: MonkeyPatch, requ
 @pytest.mark.parametrize(
     "virtual_package_plugin, expected_null",
     [
-        (
+        pytest.param(
             (NULL, "1-abc-2", None, None, None, None),
             True,
-        ),  # NULL version leads to NULL package
-        (
+            id="`version=NULL` returns NULL package ",
+        ),
+        pytest.param(
             ("1.2", NULL, None, None, None, None),
             True,
-        ),  # NULL build leads to NULL package
-        (
+            id="`build=NULL` returns NULL package",
+        ),
+        pytest.param(
             ("1.2", None, "build", "", NULL, None),
             True,
-        ),  # empty_override=NULL, override_value ="" leads to NULL package
-        (
+            id="`empty_override=NULL` returns NULL package",
+        ),
+        pytest.param(
             ("1.2", None, "version", "", None, None),
             False,
-        ),  # empty_override=None override_value="" leads to a not-NULL package
+            id="`empty_override=None` returns valid package",
+        ),
     ],
     indirect=["virtual_package_plugin"],
 )
@@ -361,27 +365,36 @@ def test_package_is_NULL(virtual_package_plugin, expected_null):
 @pytest.mark.parametrize(
     "virtual_package_plugin, expected_version, expected_build",
     [
-        (("1.2", "1-abc-2", None, None, None, None), "1.2", "1-abc-2"),  # no override
-        (
+        pytest.param(
+            ("1.2", "1-abc-2", None, None, None, None),
+            "1.2",
+            "1-abc-2",
+            id="no override",
+        ),  # no override
+        pytest.param(
             ("1.2", "1-abc-2", "version", "override", None, None),
             "override",
             "1-abc-2",
-        ),  # version overriden
-        (
+            id="version override",
+        ),
+        pytest.param(
             ("1.2", "1-abc-2", "build", "override", None, None),
             "1.2",
             "override",
-        ),  # build overriden
-        (
+            id="build override",
+        ),
+        pytest.param(
             ("1.2", None, "version", "", None, None),
             "0",
             "0",
-        ),  # empty_override=None, override_value=""
-        (
+            id="version override with `empty_override=None`",
+        ),
+        pytest.param(
             (None, "1-abc-2", "build", "", None, None),
             "0",
             "0",
-        ),  # empty_override=None, override_value=""
+            id="build override with `empty_override=None`",
+        ),
     ],
     indirect=["virtual_package_plugin"],
 )
@@ -397,21 +410,24 @@ def test_override_package_values(
 @pytest.mark.parametrize(
     "virtual_package_plugin, expect_version_called, expect_build_called",
     [
-        (
+        pytest.param(
             ("1.2", "1-abc-2", "version", "override", None, None),
             False,
             True,
-        ),  # version overriden
-        (
+            id="version overriden",
+        ),
+        pytest.param(
             ("1.2", "1-abc-2", "build", "override", None, None),
             True,
             False,
-        ),  # build overriden
-        (
+            id="build overriden",
+        ),
+        pytest.param(
             ("1.2", "1-abc-2", None, None, None, None),
             True,
             True,
-        ),  # base case, no override
+            id="base case, no override",
+        ),
     ],
     indirect=["virtual_package_plugin"],
 )
@@ -426,30 +442,18 @@ def test_override_mock_calls(
 @pytest.mark.parametrize(
     "virtual_package_plugin",
     [
-        (
-            "random-weird-version",
-            "1-abc-2",
-            None,
-            "",
-            None,
-            None,
-        ),  # no version validation, no override
-        (
-            "1.2",
-            "0",
-            None,
-            "",
-            None,
-            lambda version: "valid",
-        ),  # version validation, no override
-        (
-            "1.2",
-            "0",
-            "version",
-            "override",
-            None,
-            lambda version: "valid",
-        ),  # version validation, override
+        pytest.param(
+            ("random-weird-version", "1-abc-2", None, "", None, None),
+            id="no version validation, no override",
+        ),
+        pytest.param(
+            ("1.2", "0", None, "", None, lambda version: "valid"),
+            id="version validation, no override",
+        ),
+        pytest.param(
+            ("1.2", "0", "version", "override", None, lambda version: "valid"),
+            id="version validation, override",
+        ),
     ],
     indirect=["virtual_package_plugin"],
 )
