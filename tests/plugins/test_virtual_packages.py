@@ -446,8 +446,8 @@ def test_override_mock_calls(
     expect_build_called: bool,
 ):
     virtual_package_plugin.to_virtual_package()
-    assert virtual_package_plugin.version.called == expect_version_called
-    assert virtual_package_plugin.build.called == expect_build_called
+    assert virtual_package_plugin.version.call_count == expect_version_called
+    assert virtual_package_plugin.build.call_count == expect_build_called
 
 
 @pytest.mark.parametrize(
