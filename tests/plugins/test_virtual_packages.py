@@ -300,14 +300,8 @@ def test_conda_virtual_package():
     )
 
 
-def validate_version(version: str) -> str | None:
-    if version not in ["few", "allowed", "versions"]:
-        return "0"
-    return version
-
-
 @pytest.fixture
-def package_mock(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
+def virtual_package_plugin(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
     (
         version,
         build,
@@ -330,13 +324,12 @@ def package_mock(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
         empty_override=empty_override,
         version_validation=version_validation,
     )
-    package = plugin.to_virtual_package()
 
-    return package, deferred_version, deferred_build
+    return plugin
 
 
 @pytest.mark.parametrize(
-    "package_mock, expected_null",
+    "virtual_package_plugin, expected_null",
     [
         (
             (NULL, "1-abc-2", None, None, None, None),
@@ -355,10 +348,10 @@ def package_mock(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
             False,
         ),  # empty_override=None override_value="" leads to a not-NULL package
     ],
-    indirect=["package_mock"],
+    indirect=["virtual_package_plugin"],
 )
-def test_package_is_NULL(package_mock, expected_null):
-    package, _, _ = package_mock
+def test_package_is_NULL(virtual_package_plugin, expected_null):
+    package = virtual_package_plugin.to_virtual_package()
     if expected_null:
         assert package is NULL
     else:
@@ -366,7 +359,7 @@ def test_package_is_NULL(package_mock, expected_null):
 
 
 @pytest.mark.parametrize(
-    "package_mock, expected_version, expected_build",
+    "virtual_package_plugin, expected_version, expected_build",
     [
         (("1.2", "1-abc-2", None, None, None, None), "1.2", "1-abc-2"),  # no override
         (
@@ -390,17 +383,19 @@ def test_package_is_NULL(package_mock, expected_null):
             "0",
         ),  # empty_override=None, override_value=""
     ],
-    indirect=["package_mock"],
+    indirect=["virtual_package_plugin"],
 )
-def test_override_package_values(package_mock, expected_version, expected_build):
-    package, _, _ = package_mock
+def test_override_package_values(
+    virtual_package_plugin, expected_version, expected_build
+):
+    package = virtual_package_plugin.to_virtual_package()
     assert package.name == "__foo"
     assert package.version == expected_version
     assert package.build == expected_build
 
 
 @pytest.mark.parametrize(
-    "package_mock, expect_version_called, expect_build_called",
+    "virtual_package_plugin, expect_version_called, expect_build_called",
     [
         (
             ("1.2", "1-abc-2", "version", "override", None, None),
@@ -418,16 +413,18 @@ def test_override_package_values(package_mock, expected_version, expected_build)
             True,
         ),  # base case, no override
     ],
-    indirect=["package_mock"],
+    indirect=["virtual_package_plugin"],
 )
-def test_override_mock_calls(package_mock, expect_version_called, expect_build_called):
-    _, deferred_version, deferred_build = package_mock
-    assert deferred_version.called == expect_version_called
-    assert deferred_build.called == expect_build_called
+def test_override_mock_calls(
+    virtual_package_plugin, expect_version_called, expect_build_called
+):
+    package = virtual_package_plugin.to_virtual_package()  # noqa: F841
+    assert virtual_package_plugin.version.called == expect_version_called
+    assert virtual_package_plugin.build.called == expect_build_called
 
 
 @pytest.mark.parametrize(
-    "package_mock",
+    "virtual_package_plugin",
     [
         (
             "random-weird-version",
@@ -443,7 +440,7 @@ def test_override_mock_calls(package_mock, expect_version_called, expect_build_c
             None,
             "",
             None,
-            validate_version,
+            lambda version: "valid",
         ),  # version validation, no override
         (
             "1.2",
@@ -451,21 +448,19 @@ def test_override_mock_calls(package_mock, expect_version_called, expect_build_c
             "version",
             "override",
             None,
-            validate_version,
+            lambda version: "valid",
         ),  # version validation, override
     ],
-    indirect=["package_mock"],
+    indirect=["virtual_package_plugin"],
 )
-def test_version_validation(package_mock):
-    package, deferred_version, _ = package_mock
-    version = deferred_version.return_value
-    version_validation = getattr(package, "version_validation", None)
+def test_version_validation(virtual_package_plugin):
+    package = virtual_package_plugin.to_virtual_package()
+    version = virtual_package_plugin.version.return_value
+    version_validation = virtual_package_plugin.version_validation
 
     if version_validation:
-        if version is not NULL:
-            assert package.name == "__foo"
-            assert package.version in ["few", "allowed", "versions"]
+        assert package.name == "__foo"
+        assert package.version == "valid"
     else:
-        if version is not NULL:
-            assert package.name == "__foo"
-            assert package.version == (version or "0")
+        assert package.name == "__foo"
+        assert package.version == (version or "0")
