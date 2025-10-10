@@ -8,6 +8,7 @@ import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from ...common.serialize import yaml_safe_load
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError
 from ...plugins.types import EnvironmentSpecBase
@@ -41,8 +42,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         This can handle if:
             * the provided file exists
             * the provided file ends in the supported file extensions (.yaml or .yml)
-            * the env file can be interpreted and transformed into
-              a `conda.env.env.Environment`
+            * the yaml file can be loaded and is not empty
 
         :return: True or False
         """
@@ -57,11 +57,15 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
         try:
-            self._environment = env.from_file(self.filename)
-            return True
+            yamlstr = env.load_file(self.filename)
+            data = yaml_safe_load(yamlstr)
+            if data is None:
+                return False
         except Exception:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
             return False
+
+        return True
 
     @property
     @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
@@ -69,7 +73,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         if not self._environment:
             if not self.can_handle():
                 raise CondaValueError(f"Cannot handle environment file: {self.msg}")
-            # can_handle() succeeded and set self._environment, so it should not be None
+            self._environment = env.from_file(self.filename)
 
         if self._environment is None:
             raise CondaValueError("Environment could not be loaded")
@@ -78,5 +82,5 @@ class YamlFileSpec(EnvironmentSpecBase):
     @property
     def env(self) -> Environment:
         if not self._environment:
-            self.can_handle()
+            self._environment = env.from_file(self.filename)
         return self._environment.to_environment_model()

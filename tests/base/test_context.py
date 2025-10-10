@@ -774,15 +774,15 @@ def test_default_activation_prefix(
 
     with tmp_env() as prefix:
         name = env_name(prefix)
-        monkeypatch.setenv(key, context.root_prefix)
+        monkeypatch.setenv(key, str(context.root_prefix))
         reset_context()
         assert prefix != context.default_activation_prefix
 
-        monkeypatch.setenv(key, prefix)
+        monkeypatch.setenv(key, str(prefix))
         reset_context()
         assert prefix == context.default_activation_prefix
 
-        monkeypatch.setenv(key, name)
+        monkeypatch.setenv(key, str(name))
         reset_context()
         assert prefix == context.default_activation_prefix
 
