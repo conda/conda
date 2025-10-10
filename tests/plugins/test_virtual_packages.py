@@ -301,7 +301,7 @@ def test_conda_virtual_package():
 
 
 @pytest.fixture
-def virtual_package_plugin(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
+def virtual_package_plugin(mocker: MockerFixture, monkeypatch: MonkeyPatch, request) -> CondaVirtualPackage:
     (
         version,
         build,
@@ -354,7 +354,7 @@ def virtual_package_plugin(mocker: MockerFixture, monkeypatch: MonkeyPatch, requ
     ],
     indirect=["virtual_package_plugin"],
 )
-def test_package_is_NULL(virtual_package_plugin, expected_null):
+def test_package_is_NULL(virtual_package_plugin: CondaVirtualPackage, expected_null: bool):
     package = virtual_package_plugin.to_virtual_package()
     if expected_null:
         assert package is NULL
@@ -399,7 +399,7 @@ def test_package_is_NULL(virtual_package_plugin, expected_null):
     indirect=["virtual_package_plugin"],
 )
 def test_override_package_values(
-    virtual_package_plugin, expected_version, expected_build
+    virtual_package_plugin: CondaVirtualPackage, expected_version: str, expected_build: str
 ):
     package = virtual_package_plugin.to_virtual_package()
     assert package.name == "__foo"
@@ -432,9 +432,9 @@ def test_override_package_values(
     indirect=["virtual_package_plugin"],
 )
 def test_override_mock_calls(
-    virtual_package_plugin, expect_version_called, expect_build_called
+    virtual_package_plugin: CondaVirtualPackage, expect_version_called: bool, expect_build_called: bool
 ):
-    package = virtual_package_plugin.to_virtual_package()  # noqa: F841
+    package = virtual_package_plugin.to_virtual_package()
     assert virtual_package_plugin.version.called == expect_version_called
     assert virtual_package_plugin.build.called == expect_build_called
 
@@ -457,7 +457,7 @@ def test_override_mock_calls(
     ],
     indirect=["virtual_package_plugin"],
 )
-def test_version_validation(virtual_package_plugin):
+def test_version_validation(virtual_package_plugin: CondaVirtualPackage):
     package = virtual_package_plugin.to_virtual_package()
     version = virtual_package_plugin.version.return_value
     version_validation = virtual_package_plugin.version_validation
