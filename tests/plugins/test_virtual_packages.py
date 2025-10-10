@@ -443,7 +443,7 @@ def test_override_mock_calls(
     "virtual_package_plugin",
     [
         pytest.param(
-            ("random-weird-version", "1-abc-2", None, "", None, None),
+            ("1.2", "0", None, "", None, None),
             id="no version validation, no override",
         ),
         pytest.param(
@@ -462,9 +462,8 @@ def test_version_validation(virtual_package_plugin: CondaVirtualPackage):
     version = virtual_package_plugin.version.return_value
     version_validation = virtual_package_plugin.version_validation
 
+    assert package.name == "__foo"
     if version_validation:
-        assert package.name == "__foo"
         assert package.version == "valid"
     else:
-        assert package.name == "__foo"
         assert package.version == (version or "0")
