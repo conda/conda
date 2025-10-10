@@ -1,12 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from dataclasses import fields
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda.base.constants import ChannelPriority
 from conda.base.context import context, reset_context
@@ -16,7 +17,14 @@ from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
-from conda.testing.fixtures import TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import TmpEnvFixture
 
 
 def test_create_environment_missing_required_fields():
@@ -620,3 +628,16 @@ def test_extrapolate(tmp_env: TmpEnvFixture):
                 ).version
                 == package_version
             )
+
+
+def test_explicit_packages(tmp_path: Path):
+    explicit = tmp_path / "explicit.txt"
+    explicit.write_text(
+        "@EXPLICIT\n"
+        "http://repo.anaconda.com/pkgs/main/noarch/pip-25.2-pyhc872135_0.conda#b829d36091ab08d18cafe8994ac6e02b"
+    )
+    env = Environment.from_cli(
+        args=SimpleNamespace(name="test", packages=[], file=[str(explicit)]),
+    )
+    assert len(env.explicit_packages) == 1
+    assert not env.requested_packages
