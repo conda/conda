@@ -21,12 +21,10 @@ from conda.testing.solver_helpers import package_dict
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Callable, Literal
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.auxlib import _Null
     from conda.models.records import PackageRecord
 
 
@@ -308,130 +306,16 @@ def validate_version(version: str) -> str | None:
     return version
 
 
-@pytest.mark.parametrize("version", ["1.2", "few", None, NULL])
-@pytest.mark.parametrize("version_validation", [None, validate_version])
-def test_version_validation(
-    version_validation: Callable[[str], str | None] | None,
-    version: str | None | _Null,
-    mocker: MockerFixture,
-    monkeypatch: MonkeyPatch,
-):
-    """
-    Test setting of the `empty_override` field leads to appropriate results
-    """
-
-    monkeypatch.setenv("CONDA_OVERRIDE_FOO", "")
-    deferred_version = mocker.MagicMock(return_value=version)
-
-    plugin = CondaVirtualPackage(
-        name="foo",
-        version=deferred_version,
-        build="0",
-        version_validation=version_validation,
-    )
-    package = plugin.to_virtual_package()
-
-    if version_validation:
-        if version is not NULL:
-            assert package.name == "__foo"
-            assert package.version == validate_version(version)
-    else:
-        if version is not NULL:
-            assert package.name == "__foo"
-            assert package.version == (version or "0")
-
-
-@pytest.mark.parametrize("override_entity", [None, "version", "build"])
-@pytest.mark.parametrize("version", ["1.2", None, NULL])
-@pytest.mark.parametrize("build", ["1-abc-2", None, NULL])
-@pytest.mark.parametrize("empty_override", [None, NULL])
-@pytest.mark.parametrize("override_value", [None, "", "override"])
-def test_override(
-    empty_override: None | _Null,
-    override_entity: Literal["version", "build"] | None,
-    version: str | None | _Null,
-    build: str | None | _Null,
-    override_value: str | None,
-    mocker: MockerFixture,
-    monkeypatch: MonkeyPatch,
-):
-    """
-    Test that the override behavior works as expected
-    """
-
-    if override_value is not None:
-        monkeypatch.setenv("CONDA_OVERRIDE_FOO", override_value)
-    deferred_version = mocker.MagicMock(return_value=version)
-    deferred_build = mocker.MagicMock(return_value=build)
-
-    plugin = CondaVirtualPackage(
-        name="foo",
-        version=deferred_version,
-        build=deferred_build,
-        override_entity=override_entity,
-        empty_override=empty_override,
-    )
-    package = plugin.to_virtual_package()
-
-    if override_entity:
-        if override_value == "":
-            if empty_override is NULL:
-                deferred_build.assert_not_called
-                deferred_version.assert_not_called
-                assert package is NULL
-            elif empty_override is None:
-                if override_entity == "version":
-                    deferred_version.assert_not_called()
-                    deferred_build.assert_called_once()
-                    if build is not NULL:
-                        assert package.name == "__foo"
-                        assert package.version == "0"
-                        assert package.build == (build or "0")
-                elif override_entity == "build":
-                    deferred_build.assert_not_called()
-                    deferred_version.assert_called_once()
-                    if version is not NULL:
-                        assert package.name == "__foo"
-                        assert package.build == "0"
-                        assert package.version == (version or "0")
-        elif override_value is not None and override_value != "":
-            if override_entity == "version":
-                deferred_build.assert_called_once()
-                deferred_version.assert_not_called()
-                if build is NULL:
-                    assert package is NULL
-                else:
-                    assert package is not NULL
-                    assert package.name == "__foo"
-                    assert package.version == override_value
-                    assert package.build == (build or "0")
-            elif override_entity == "build":
-                deferred_version.assert_called_once()
-                deferred_build.assert_not_called()
-                if version is NULL:
-                    assert package is NULL
-                else:
-                    assert package is not NULL
-                    assert package.name == "__foo"
-                    assert package.version == (version or "0")
-                    assert package.build == override_value
-    else:
-        deferred_build.assert_called_once()
-        deferred_version.assert_called_once()
-        if version is NULL or build is NULL:
-            assert package is NULL
-        else:
-            assert package.name == "__foo"
-            assert package.version == (version or "0")
-            assert package.build == (build or "0")
-
-
-##### EXPERIMENT #####
-
-
 @pytest.fixture
 def package_mock(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
-    version, build, override_entity, override_value, empty_override = request.param
+    (
+        version,
+        build,
+        override_entity,
+        override_value,
+        empty_override,
+        version_validation,
+    ) = request.param
     if override_value is not None:
         monkeypatch.setenv("CONDA_OVERRIDE_FOO", override_value)
 
@@ -444,6 +328,7 @@ def package_mock(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
         build=deferred_build,
         override_entity=override_entity,
         empty_override=empty_override,
+        version_validation=version_validation,
     )
     package = plugin.to_virtual_package()
 
@@ -454,16 +339,19 @@ def package_mock(mocker: MockerFixture, monkeypatch: MonkeyPatch, request):
     "package_mock, expected_null",
     [
         (
-            (NULL, "1-abc-2", None, None, None),
+            (NULL, "1-abc-2", None, None, None, None),
             True,
         ),  # NULL version leads to NULL package
-        (("1.2", NULL, None, None, None), True),  # NULL build leads to NULL package
         (
-            ("1.2", None, "build", "", NULL),
+            ("1.2", NULL, None, None, None, None),
+            True,
+        ),  # NULL build leads to NULL package
+        (
+            ("1.2", None, "build", "", NULL, None),
             True,
         ),  # empty_override=NULL, override_value ="" leads to NULL package
         (
-            ("1.2", None, "version", "", None),
+            ("1.2", None, "version", "", None, None),
             False,
         ),  # empty_override=None override_value="" leads to a not-NULL package
     ],
@@ -480,24 +368,24 @@ def test_package_is_NULL(package_mock, expected_null):
 @pytest.mark.parametrize(
     "package_mock, expected_version, expected_build",
     [
-        (("1.2", "1-abc-2", None, None, None), "1.2", "1-abc-2"),  # no override
+        (("1.2", "1-abc-2", None, None, None, None), "1.2", "1-abc-2"),  # no override
         (
-            ("1.2", "1-abc-2", "version", "override", None),
+            ("1.2", "1-abc-2", "version", "override", None, None),
             "override",
             "1-abc-2",
         ),  # version overriden
         (
-            ("1.2", "1-abc-2", "build", "override", None),
+            ("1.2", "1-abc-2", "build", "override", None, None),
             "1.2",
             "override",
         ),  # build overriden
         (
-            ("1.2", None, "version", "", None),
+            ("1.2", None, "version", "", None, None),
             "0",
             "0",
         ),  # empty_override=None, override_value=""
         (
-            (None, "1-abc-2", "build", "", None),
+            (None, "1-abc-2", "build", "", None, None),
             "0",
             "0",
         ),  # empty_override=None, override_value=""
@@ -515,12 +403,20 @@ def test_override_package_values(package_mock, expected_version, expected_build)
     "package_mock, expect_version_called, expect_build_called",
     [
         (
-            ("1.2", "1-abc-2", "version", "override", None),
+            ("1.2", "1-abc-2", "version", "override", None, None),
             False,
             True,
         ),  # version overriden
-        (("1.2", "1-abc-2", "build", "override", None), True, False),  # build overriden
-        (("1.2", "1-abc-2", None, None, None), True, True),  # base case, no override
+        (
+            ("1.2", "1-abc-2", "build", "override", None, None),
+            True,
+            False,
+        ),  # build overriden
+        (
+            ("1.2", "1-abc-2", None, None, None, None),
+            True,
+            True,
+        ),  # base case, no override
     ],
     indirect=["package_mock"],
 )
@@ -528,3 +424,48 @@ def test_override_mock_calls(package_mock, expect_version_called, expect_build_c
     _, deferred_version, deferred_build = package_mock
     assert deferred_version.called == expect_version_called
     assert deferred_build.called == expect_build_called
+
+
+@pytest.mark.parametrize(
+    "package_mock",
+    [
+        (
+            "random-weird-version",
+            "1-abc-2",
+            None,
+            "",
+            None,
+            None,
+        ),  # no version validation, no override
+        (
+            "1.2",
+            "0",
+            None,
+            "",
+            None,
+            validate_version,
+        ),  # version validation, no override
+        (
+            "1.2",
+            "0",
+            "version",
+            "override",
+            None,
+            validate_version,
+        ),  # version validation, override
+    ],
+    indirect=["package_mock"],
+)
+def test_version_validation(package_mock):
+    package, deferred_version, _ = package_mock
+    version = deferred_version.return_value
+    version_validation = getattr(package, "version_validation", None)
+
+    if version_validation:
+        if version is not NULL:
+            assert package.name == "__foo"
+            assert package.version in ["few", "allowed", "versions"]
+    else:
+        if version is not NULL:
+            assert package.name == "__foo"
+            assert package.version == (version or "0")
