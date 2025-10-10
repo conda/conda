@@ -400,8 +400,10 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         Disables all currently registered plugins except built-in conda plugins
         """
+        # treat conda plugins and conda-libmamba-solver plugins as internal plugins
+        internal_plugins = ("conda.plugins.", "conda_libmamba_solver.")
         for name, plugin in self.list_name_plugin():
-            if not name.startswith("conda.plugins.") and not self.is_blocked(name):
+            if not name.startswith(internal_plugins) and not self.is_blocked(name):
                 self.set_blocked(name)
 
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
