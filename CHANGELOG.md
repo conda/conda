@@ -4,11 +4,13 @@
 
 ### Bug fixes
 
-* Require `conda-libmamba-solver >=25.4.0` (#15289)
-* Fix `conda.models.environment.Environment.from_cli`'s spec grouping to correctly categorize explicit URLs. (#15306 via #15309)
+* Require `conda-libmamba-solver >=25.4.0`. (#15289)
+* Fix `conda.models.environment.Environment.from_cli`'s spec grouping to correctly categorize `@EXPLICIT` URLs. (#15306 via #15309)
 
 ### Contributors
 
+* @dholth
+* @jakirkham
 * @kenodegard
 
 
