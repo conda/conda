@@ -2025,6 +2025,11 @@ class Context(Configuration):
                 Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
                 """
             ),
+            override_virtual_packages=dals(
+                """
+                Set virtual_packages to override values.
+                """
+            ),
         )
 
 
