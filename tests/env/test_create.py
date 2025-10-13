@@ -410,14 +410,18 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
 
-    prefix = path_factory()
-    stdout, stderr, err = conda_cli(
-        "env",
-        "create",
-        f"--prefix={prefix}",
-        "--file",
-        support_file("invalid_keys.yml"),
-    )
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="Provided environment.yaml is invalid: Missing required field 'dependencies'",
+    ):
+        prefix = path_factory()
+        stdout, stderr, err = conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("invalid_keys.yml"),
+        )
 
     # When splitting the output on "EnvironmentSectionNotValid", we should
     # get an array of length 2 if the string only appears once. If it appears
