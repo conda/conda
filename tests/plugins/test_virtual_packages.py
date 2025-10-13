@@ -486,12 +486,12 @@ def test_version_validation(virtual_package_plugin: CondaVirtualPackage):
         pytest.param(
             ("1.2", "0", "version", None, None, None),
             "overriden",
-            id="`CONDA_OVERRIDE_FOO` not set, `context.override_virtual_packages` is set",
+            id="`CONDA_OVERRIDE_FOO` not set, but `context.override_virtual_packages` is set",
         ),
         pytest.param(
             ("1.2", "0", "version", "priority_override", None, None),
             "priority_override",
-            id="`CONDA_OVERRIDE_FOO` takes precedence when `context.override_virtual_packages` is also set.",
+            id="Both `CONDA_OVERRIDE_FOO` gets precedence and `context.override_virtual_packages` are set",
         ),
     ],
     indirect=["virtual_package_plugin"],
@@ -501,8 +501,13 @@ def test_context_override(
     expected_version: str,
     monkeypatch: MonkeyPatch,
 ):
-    reset_context()
     monkeypatch.setattr(context, "override_virtual_packages", {"__foo": "overriden"})
     package = virtual_package_plugin.to_virtual_package()
+    assert package.name == "__foo"
+    assert package.version == expected_version
+
+    # ensure virtuaal package name keys can be with and without double underscores.
+    reset_context()
+    monkeypatch.setattr(context, "override_virtual_packages", {"foo": "overriden"})
     assert package.name == "__foo"
     assert package.version == expected_version
