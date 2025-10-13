@@ -72,6 +72,7 @@ from .constants import (
     RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    UNKNOWN_CHANNEL,
     ChannelPriority,
     DepsModifier,
     PathConflict,
@@ -2260,7 +2261,7 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
                 if allowlist and url not in allowlist:
                     raise ChannelNotAllowed(channel)
 
-    return tuple(dict.fromkeys(channels))
+    return tuple(channel for channel in dict.fromkeys(channels) if Channel(channel).canonical_name != UNKNOWN_CHANNEL)
 
 
 @deprecated(
