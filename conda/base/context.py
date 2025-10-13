@@ -1373,6 +1373,7 @@ class Context(Configuration):
                 "number_channel_notices",
                 "envvars_force_uppercase",
                 "export_platforms",
+                "override_virtual_packages",
             ),
             "CLI-only": (
                 "deps_modifier",
