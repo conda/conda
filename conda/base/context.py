@@ -532,7 +532,7 @@ class Context(Configuration):
         aliases=("conda-build", "conda_build"),
     )
 
-    override_virtual_packages = ParameterLoader(
+    _override_virtual_packages = ParameterLoader(
         MapParameter(PrimitiveParameter(None, element_type=(str, NoneType))),
         aliases=("virtual_packages"),
     )
@@ -1089,6 +1089,14 @@ class Context(Configuration):
             return logging.INFO  # 20
         else:
             return logging.WARNING  # 30
+
+    @property
+    def override_virtual_packages(self) -> dict:
+        """Remove any dunders in the virtual_package name keys"""
+        return {
+            k[2:] if k.startswith("__") else k: v
+            for k, v in self._override_virtual_packages.items()
+        }
 
     def solver_user_agent(self) -> str:
         user_agent = f"solver/{self.solver}"

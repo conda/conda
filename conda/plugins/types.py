@@ -138,11 +138,7 @@ class CondaVirtualPackage(CondaPlugin):
             )  # higher precedence
             # check context only if `CONDA_OVERRIDE_<VIRTUAL_PACKAGE>` is not set.
             if override_value is None and context.override_virtual_packages:
-                override_value = context.override_virtual_packages.get(f"__{self.name}")
-                if override_value is None:
-                    override_value = context.override_virtual_packages.get(
-                        f"{self.name}"
-                    )
+                override_value = context.override_virtual_packages.get(f"{self.name}")
             if override_value is not None:
                 override_value = override_value.strip() or self.empty_override
                 if self.override_entity == "version":

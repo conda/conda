@@ -499,15 +499,13 @@ def test_version_validation(virtual_package_plugin: CondaVirtualPackage):
 def test_context_override(
     virtual_package_plugin: CondaVirtualPackage,
     expected_version: str,
-    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
 ):
-    monkeypatch.setattr(context, "override_virtual_packages", {"__foo": "overriden"})
+    mocker.patch(
+        "conda.base.context.Context.override_virtual_packages",
+        new_callable=mocker.PropertyMock,
+        return_value=({"foo": "overriden"}),
+    )
     package = virtual_package_plugin.to_virtual_package()
-    assert package.name == "__foo"
-    assert package.version == expected_version
-
-    # ensure virtuaal package name keys can be with and without double underscores.
-    reset_context()
-    monkeypatch.setattr(context, "override_virtual_packages", {"foo": "overriden"})
     assert package.name == "__foo"
     assert package.version == expected_version
