@@ -163,7 +163,7 @@ def test_subdirs_kwarg_takes_precedence_over_platform():
             "https://conda.anaconda.org/conda-forge/win-64",
         ]
 
-        # that that URL-based channels also work the same way
+        # check that URL-based channels also work the same way
         channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
         assert channel.urls(subdirs=("linux-64", "noarch")) == [
             "https://repo.anaconda.com/pkgs/main/linux-64",
