@@ -266,6 +266,18 @@ def test_context_parameters_have_descriptions(context_testdata: None):
         pprint(context.describe_parameter(name))
 
 
+def test_context_override_with_reset(monkeypatch):
+    from conda.base.context import context, reset_context
+
+    original = context.add_pip_as_python_dependency
+    with context._override("add_pip_as_python_dependency", False):
+        assert context.add_pip_as_python_dependency is False
+        monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "True")
+        reset_context()
+        assert context.add_pip_as_python_dependency is False
+    assert context.add_pip_as_python_dependency is original
+
+
 def test_local_build_root_custom_rc(
     context_testdata: None,
     monkeypatch: MonkeyPatch,
@@ -762,15 +774,15 @@ def test_default_activation_prefix(
 
     with tmp_env() as prefix:
         name = env_name(prefix)
-        monkeypatch.setenv(key, context.root_prefix)
+        monkeypatch.setenv(key, str(context.root_prefix))
         reset_context()
         assert prefix != context.default_activation_prefix
 
-        monkeypatch.setenv(key, prefix)
+        monkeypatch.setenv(key, str(prefix))
         reset_context()
         assert prefix == context.default_activation_prefix
 
-        monkeypatch.setenv(key, name)
+        monkeypatch.setenv(key, str(name))
         reset_context()
         assert prefix == context.default_activation_prefix
 

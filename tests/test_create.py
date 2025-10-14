@@ -158,8 +158,10 @@ def test_install_python_and_search(
         assert not err
 
 
-def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python=3") as prefix:
+def test_run_preserves_arguments(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, tmp_env_python_spec: str
+):
+    with tmp_env(tmp_env_python_spec) as prefix:
         echo_args_py = prefix / "echo-args.py"
         echo_args_py.write_text("import sys\nfor arg in sys.argv[1:]: print(arg)")
         # If 'two two' were 'two' this test would pass.
@@ -182,10 +184,11 @@ def test_create_install_update_remove_smoketest(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
+    tmp_env_python_spec: str,
 ):
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
-    with tmp_env("python=3") as prefix:
+    with tmp_env(tmp_env_python_spec) as prefix:
         assert (prefix / PYTHON_BINARY).exists()
         assert package_is_installed(prefix, "python=3")
 
@@ -709,7 +712,7 @@ def test_search_override_channels_enabled(
     stdout, stderr, code = conda_cli(
         "search",
         "--override-channels",
-        "--channel=defaults",
+        "--channel=main",
         "zlib",
         "--json",
     )
@@ -722,7 +725,7 @@ def test_search_override_channels_enabled(
     stdout, stderr, code = conda_cli(
         "search",
         "--override-channels",
-        "defaults::zlib",
+        "main::zlib",
         "--json",
     )
     assert (parsed := json.loads(stdout))
@@ -1121,8 +1124,10 @@ def test_channel_usage_replacing_python(
             assert package_is_installed(clone, "main::decorator")
 
 
-def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python=3", "flask") as prefix:
+def test_install_prune_flag(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, tmp_env_python_spec: str
+):
+    with tmp_env(tmp_env_python_spec, "flask") as prefix:
         assert package_is_installed(prefix, "flask")
         assert package_is_installed(prefix, "python=3")
         conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
@@ -2246,7 +2251,7 @@ def test_dont_remove_conda_1(
     monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         reset_context()
         assert context.root_prefix == str(prefix)
         conda_cli("install", f"--prefix={prefix}", "conda", "conda-build", "--yes")
@@ -2275,7 +2280,7 @@ def test_dont_remove_conda_2(
 ):
     # regression test for #6904
     with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", prefix)
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         reset_context()
         assert context.root_prefix == str(prefix)
 

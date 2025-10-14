@@ -12,6 +12,7 @@ import pytest
 
 import conda
 from conda import plugins
+from conda.base.constants import APP_NAME
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
     Configuration,
@@ -22,7 +23,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
 from conda.plugins import environment_exporters, solvers
 from conda.plugins.config import PluginConfig
-from conda.plugins.hookspec import CondaSpecs, spec_name
+from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from conda.plugins.types import CondaEnvironmentExporter
@@ -52,6 +53,14 @@ def pytest_report_header(config: pytest.Config):
     expected = Path(__file__).parent.parent / "conda" / "__init__.py"
     assert expected.samefile(conda.__file__)
     return f"conda.__file__: {conda.__file__}"
+
+
+@pytest.fixture
+def tmp_env_python_spec() -> str:
+    """
+    Used to create a temporary enviroment with a bounded Python version.
+    """
+    return "python=3.13"
 
 
 @pytest.fixture
@@ -216,7 +225,7 @@ def plugin_manager_with_exporters(
         *environment_exporters.plugins,
         Exporters(),
     )
-    plugin_manager_with_reporter_backends.load_entrypoints(spec_name)
+    plugin_manager_with_reporter_backends.load_entrypoints(APP_NAME)
     return plugin_manager_with_reporter_backends
 
 
