@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, overload
 
 import pluggy
 
+from ..auxlib import NULL
 from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
@@ -437,8 +438,9 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
         return tuple(
-            hook.to_virtual_package()
+            virtual_package
             for hook in self.get_hook_results("virtual_packages")
+            if (virtual_package := hook.to_virtual_package()) is not NULL
         )
 
     def get_session_headers(self, host: str) -> dict[str, str]:
