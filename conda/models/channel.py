@@ -260,6 +260,32 @@ class Channel(metaclass=ChannelType):
         with_credentials: bool = False,
         subdirs: Iterable[str] | None = None,
     ) -> list[str]:
+        """Generate URLs for this channel across specified subdirectories.
+
+        Args:
+            with_credentials: If True, include authentication credentials (token, auth) in URLs.
+            subdirs: Specific subdirectories to generate URLs for. If None, uses the channel's
+                    platform (if defined) or falls back to context.subdirs. If this is explicitly
+                    provided, overrides any platform defined in the channel.
+
+        Examples:
+            >>> channel = Channel("conda-forge")
+            >>> channel.urls()  # Uses context.subdirs
+            ['https://conda.anaconda.org/conda-forge/linux-64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+            >>> channel = Channel("conda-forge/linux-aarch64")
+            >>> channel.urls()  # Uses channel's platform
+            ['https://conda.anaconda.org/conda-forge/linux-aarch64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+            >>> channel.urls(subdirs=("osx-64", "noarch"))
+            ['https://conda.anaconda.org/conda-forge/osx-64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+        Returns:
+            list[str]: List of URLs for accessing this channel's specified subdirectories.
+        """
         # Track whether subdirs was explicitly provided.
         subdirs_explicit = subdirs is not None
 
