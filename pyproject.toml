@@ -18,6 +18,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -169,7 +170,7 @@ markers = [
   "benchmark: benchmark tests",
   "memray: memory use tests",
 ]
-minversion = 3.0
+minversion = "3.0"
 norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
@@ -189,7 +190,6 @@ exclude = [
   "tests/data/conda_format_repo",
   "tests/data/env_metadata",
 ]
-target-version = "py39"
 
 [tool.ruff.lint]
 extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1", "TID251"]}
@@ -218,7 +218,7 @@ select = [
   "ISC",  # flake8-implicit-str-concat
   "RUF100",  # Unused noqa directive
   "T10",  # flake8-debugger
-  "TCH",  # flake8-type-checking
+  "TC",  # flake8-type-checking
   "TID251",  # flake8-tidy-imports
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
