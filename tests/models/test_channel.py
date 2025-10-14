@@ -137,9 +137,11 @@ def test_url_channel_w_platform():
         ]
 
 
-# Regression test for #14258
 def test_subdirs_kwarg_takes_precedence_over_platform():
-    """Test that an explicitly passed subdirs parameter will override the channel's platform."""
+    """
+    Test that an explicitly passed subdirs parameter will override the channel's platform.
+    Regression test for https://github.com/conda/conda/issues/14258
+    """
     with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
         channel = Channel("conda-forge/linux-aarch64")
 
