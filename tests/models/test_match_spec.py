@@ -242,8 +242,10 @@ def test_canonical_string_forms():
     # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
 
-# Regression test for #14357
 def test_version_wildcard_serialization():
+    """
+    Regression test for https://github.com/conda/conda/issues/14357
+    """
     assert m("name[version=*,build=*py27*]") == "name[build=*py27*]"
 
     spec = MatchSpec(name="name", version="*", build="*py27*")
