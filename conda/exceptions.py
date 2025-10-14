@@ -786,7 +786,7 @@ class PackagesNotFoundError(CondaError):
             message,
             packages=packages,
             packages_formatted=packages_formatted,
-            channel_urls=channel_urls,
+            channel_urls=list(channel_urls),
             channels_formatted=channels_formatted,
         )
 

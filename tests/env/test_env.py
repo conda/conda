@@ -312,7 +312,7 @@ def test_valid_keys():
 def test_invalid_keys():
     with pytest.warns(
         PendingDeprecationWarning,
-        match="Using a non-compliant CEP-0024 environment file",
+        match="The environment file is not fully CEP 24 compliant",
     ):
         e = get_invalid_keys_environment()
         e_dict = e.to_dict()

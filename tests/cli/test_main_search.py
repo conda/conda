@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 import requests
 
+import conda.common.serialize.json
 from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
 from conda.exceptions import PackagesNotFoundError
@@ -116,21 +117,29 @@ def test_search_3(conda_cli: CondaCLIFixture):
     assert not err
 
 
-@pytest.mark.flaky(reruns=5)
+@pytest.mark.flaky(reruns=1)
 def test_search_4(conda_cli: CondaCLIFixture):
-    stdout, stderr, err = conda_cli(
-        "search",
-        "--json",
-        "--override-channels",
-        "--channel",
-        "defaults",
-        "--use-index-cache",
-        "python",
-    )
-    parsed = json.loads(stdout.strip())
-    assert isinstance(parsed, dict)
-    assert not stderr
-    assert not err
+    """
+    Show error when --use-index-cache is used but index cache is empty.
+    """
+    conda_cli("clean", "--index-cache", "--yes")
+    try:
+        stdout, stderr, err = conda_cli(
+            "search",
+            "--json",
+            "--override-channels",
+            "--channel",
+            "defaults",
+            "--use-index-cache",
+            "python",
+        )
+    except PackagesNotFoundError as e:
+        # conda_cli doesn't output json on exception; check that exception is
+        # json serializable with CondaJSONEncoder.
+
+        error = conda.common.serialize.json.dumps(e.dump_map())
+
+        assert "PackagesNotFoundError" in error  # type: ignore[index]
 
 
 @pytest.mark.flaky(reruns=5)
