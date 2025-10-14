@@ -534,7 +534,7 @@ class Context(Configuration):
 
     _override_virtual_packages = ParameterLoader(
         MapParameter(PrimitiveParameter(None, element_type=(str, NoneType))),
-        aliases=("virtual_packages"),
+        aliases=("virtual_packages", "override_virtual_packages"),
     )
 
     ####################################################
