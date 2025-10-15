@@ -1094,8 +1094,8 @@ class Context(Configuration):
     def override_virtual_packages(self) -> dict:
         """Remove any dunders in the virtual_package name keys"""
         return {
-            k[2:] if k.startswith("__") else k: v
-            for k, v in self._override_virtual_packages.items()
+            name.removeprefix("__"): value
+            for name, value in self._override_virtual_packages.items()
         }
 
     def solver_user_agent(self) -> str:
