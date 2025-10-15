@@ -532,6 +532,11 @@ class Context(Configuration):
         aliases=("conda-build", "conda_build"),
     )
 
+    _override_virtual_packages = ParameterLoader(
+        MapParameter(PrimitiveParameter(None, element_type=(str, NoneType))),
+        aliases=("virtual_packages", "override_virtual_packages"),
+    )
+
     ####################################################
     #               Plugin Configuration               #
     ####################################################
@@ -1085,6 +1090,14 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    @property
+    def override_virtual_packages(self) -> dict[str, str | None]:
+        """Remove any dunders in the virtual_package name keys"""
+        return {
+            name.removeprefix("__"): value
+            for name, value in self._override_virtual_packages.items()
+        }
+
     def solver_user_agent(self) -> str:
         user_agent = f"solver/{self.solver}"
         try:
@@ -1368,6 +1381,7 @@ class Context(Configuration):
                 "number_channel_notices",
                 "envvars_force_uppercase",
                 "export_platforms",
+                "override_virtual_packages",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -2018,6 +2032,11 @@ class Context(Configuration):
                 f"""
                 Configure different backends to be used while rendering normal console output.
                 Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
+                """
+            ),
+            override_virtual_packages=dals(
+                """
+                Set override values for virtual packages.
                 """
             ),
         )
