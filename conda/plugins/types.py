@@ -133,10 +133,9 @@ class CondaVirtualPackage(CondaPlugin):
         # Overrides always yield a concrete value (string, NULL, or None),
         # so after this step, version/build will no longer be callables if they were overridden.
         if self.override_entity:
-            override_value = os.getenv(
-                f"{APP_NAME}_OVERRIDE_{self.name}".upper()
-            )  # higher precedence
-            # check context only if `CONDA_OVERRIDE_<VIRTUAL_PACKAGE>` is not set.
+            # environment variable has highest precedence
+            override_value = os.getenv(f"{APP_NAME}_OVERRIDE_{self.name}".upper())
+            # fallback to context
             if override_value is None and context.override_virtual_packages:
                 override_value = context.override_virtual_packages.get(f"{self.name}")
             if override_value is not None:
