@@ -159,7 +159,6 @@ Links should use the same capitalization conventions as sentences. Because the c
 If you need help with your contribution:
 
 - Comment on the issue you're working on
-- Join our [community chat channels](https://conda.zulip.com)
-- Ask questions on our [conda discourse forum](https://conda.discourse.group)
+- Join our [community chat channels](https://conda.zulipchat.com)
 
 We're here to help and appreciate your contribution!
