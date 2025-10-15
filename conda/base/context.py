@@ -1091,7 +1091,7 @@ class Context(Configuration):
             return logging.WARNING  # 30
 
     @property
-    def override_virtual_packages(self) -> dict:
+    def override_virtual_packages(self) -> dict[str, str | None]:
         """Remove any dunders in the virtual_package name keys"""
         return {
             name.removeprefix("__"): value
