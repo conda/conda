@@ -2036,7 +2036,7 @@ class Context(Configuration):
             ),
             override_virtual_packages=dals(
                 """
-                Set virtual_packages to override values.
+                Set override values for virtual packages.
                 """
             ),
         )
