@@ -171,10 +171,11 @@ def test_bare_channel_file():
     ]
 
 
-# Regression test for #14259
 def test_channel_equality_respects_platform():
-    """Test that Channel equality checks include platform attribute.
+    """
+    Test that Channel equality checks include platform attribute.
     Channels with different platforms should not be considered equal.
+    This is a regression test for https://github.com/conda/conda/issues/14259
     """
     with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
         channel_no_platform = Channel("conda-forge")
