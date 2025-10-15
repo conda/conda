@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a new `override_virtual_packages` (with alias `virtual_packages`) key to `condarc`.
+* Add a new `override_virtual_packages` (with alias `virtual_packages`) key to `condarc`. (#15156 via #15318)
 
 ### Bug fixes
 
