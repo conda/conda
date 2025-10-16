@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import datetime
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
@@ -347,6 +348,40 @@ class PrefixData(metaclass=PrefixDataType):
                 "Environment names cannot contain any of these characters: "
                 f"{PREFIX_NAME_DISALLOWED_CHARS}"
             )
+
+    # endregion
+    # region Metadata
+
+    @property
+    def created(self) -> datetime | None:
+        """
+        Returns the time when the environment was created, as evidenced by the `conda-meta/history`
+        file creation time. If the environment does not exist, returns None.
+        """
+        try:
+            stat = self._magic_file.stat()
+        except FileNotFoundError:
+            return None
+        else:
+            # On Windows, ctime represents creation time. On other platforms, ctime gives
+            # last metadata change; creation time comes from birthtime.
+            # Birthtime was introduced for Windows in Py312, hence the fallback below.
+            creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
+            return datetime.fromtimestamp(creation_time)
+
+    @property
+    def last_modified(self) -> datetime | None:
+        """
+        Returns the time when the environment was last modified, as evidenced by the
+        `conda-meta/history` file modification time. If the environment does not exist, returns
+        None.
+        """
+        try:
+            stat = self._magic_file.stat()
+        except FileNotFoundError:
+            return None
+        else:
+            return datetime.fromtimestamp(stat.st_mtime)
 
     # endregion
     # region Records

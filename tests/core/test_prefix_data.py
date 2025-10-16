@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -909,3 +910,17 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
         pinned_specs = prefix_data.get_pinned_specs()
         assert pinned_specs != specs
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
+    start = datetime.now()
+    with tmp_env() as prefix:
+        pd = PrefixData(prefix)
+        created = pd.created
+        first_modification = pd.last_modified
+        assert created <= first_modification
+        conda_cli("install", "--yes", "--prefix", prefix, "small-executable")
+        second_modification = pd.last_modified
+        assert created == pd.created
+        assert first_modification < second_modification
+        assert start < pd.created < first_modification < second_modification < datetime.now()
