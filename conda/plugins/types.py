@@ -124,6 +124,8 @@ class CondaVirtualPackage(CondaPlugin):
     def to_virtual_package(self) -> PackageRecord | _Null:
         # Take the raw version and build as they are.
         # At this point, they may be callables (evaluated later) or direct values.
+        from conda.base.context import context
+
         version = self.version
         build = self.build
 
@@ -131,7 +133,11 @@ class CondaVirtualPackage(CondaPlugin):
         # Overrides always yield a concrete value (string, NULL, or None),
         # so after this step, version/build will no longer be callables if they were overridden.
         if self.override_entity:
+            # environment variable has highest precedence
             override_value = os.getenv(f"{APP_NAME}_OVERRIDE_{self.name}".upper())
+            # fallback to context
+            if override_value is None and context.override_virtual_packages:
+                override_value = context.override_virtual_packages.get(f"{self.name}")
             if override_value is not None:
                 override_value = override_value.strip() or self.empty_override
                 if self.override_entity == "version":
