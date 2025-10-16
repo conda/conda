@@ -169,8 +169,6 @@ class SubdirData(metaclass=SubdirDataType):
         create_cache_dir()
         if channels is None:
             channels = context.channels
-        if subdirs is None:
-            subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         if context.offline:
             grouped_urls = groupby(lambda url: url.startswith("file://"), channel_urls)
