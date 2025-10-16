@@ -632,6 +632,23 @@ def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixtu
         assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
+def test_no_channels(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+) -> None:
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "zlib",
+        "--yes",
+        "--channel",
+        None,
+        "--override-channels",
+        raises=PackagesNotFoundError,
+    )
+
+
 def test_override_channels_disabled(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
@@ -803,7 +820,7 @@ def test_strict_channel_priority(
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
-    specs = (MatchSpec("anaconda"),)
+    specs = (MatchSpec("zlib"),)
     index = ReducedIndex(
         specs,
         channels=channels,
