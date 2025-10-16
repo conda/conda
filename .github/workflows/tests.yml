@@ -255,7 +255,6 @@ jobs:
         run: >
           conda install
           --yes
-          --freeze-installed
           --override-channels
           --channel conda-forge
           --file tests/requirements-py314.txt
@@ -275,7 +274,6 @@ jobs:
         run: >
           conda install
           --yes
-          --freeze-installed
           --override-channels
           --channel defaults
           --file tests/requirements-py314.txt
