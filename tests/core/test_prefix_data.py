@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -913,7 +913,7 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
 
 
 def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
-    start = datetime.now()
+    start = datetime.now(tz=timezone.utc)
     with tmp_env() as prefix:
         pd = PrefixData(prefix)
         created = pd.created
@@ -928,5 +928,5 @@ def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
             < pd.created
             < first_modification
             < second_modification
-            < datetime.now()
+            < datetime.now(tz=timezone.utc)
         )

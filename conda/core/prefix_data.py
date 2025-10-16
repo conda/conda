@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
+from stat import S_ISDIR
 from typing import TYPE_CHECKING
 
 from ..base.constants import (
@@ -355,11 +356,14 @@ class PrefixData(metaclass=PrefixDataType):
     @property
     def created(self) -> datetime | None:
         """
-        Returns the time when the environment was created, as evidenced by the `conda-meta/history`
-        file creation time. If the environment does not exist, returns None.
+        Returns the time when the environment was created, as evidenced by the `conda-meta`
+        directory creation time. If the environment does not exist, returns None.
         """
         try:
-            stat = self._magic_file.stat()
+            stat = (self.prefix_path / "conda-meta").stat()
+            if not S_ISDIR(stat.st_mode):
+                # check if path is a dir without running stat() again
+                return None
         except FileNotFoundError:
             return None
         else:
@@ -367,7 +371,7 @@ class PrefixData(metaclass=PrefixDataType):
             # last metadata change; creation time comes from birthtime.
             # Birthtime was introduced for Windows in Py312, hence the fallback below.
             creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
-            return datetime.fromtimestamp(creation_time)
+            return datetime.fromtimestamp(creation_time, tz=timezone.utc)
 
     @property
     def last_modified(self) -> datetime | None:
@@ -381,7 +385,7 @@ class PrefixData(metaclass=PrefixDataType):
         except FileNotFoundError:
             return None
         else:
-            return datetime.fromtimestamp(stat.st_mtime)
+            return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
 
     # endregion
     # region Records
