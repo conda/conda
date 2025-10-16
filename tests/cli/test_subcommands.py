@@ -125,6 +125,14 @@ def test_list(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
         assert not code
 
 
+@pytest.mark.benchmark
+def test_env_list_benchmark(conda_cli: CondaCLIFixture):
+    out, err, code = conda_cli("env", "list")
+    assert out
+    assert not err
+    assert not code
+
+
 def test_notices(conda_cli: CondaCLIFixture):
     out, err, code = conda_cli("notices")
     assert out
