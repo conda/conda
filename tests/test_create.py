@@ -820,7 +820,7 @@ def test_strict_channel_priority(
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
-    specs = (MatchSpec("anaconda"),)
+    specs = (MatchSpec("zlib"),)
     index = ReducedIndex(
         specs,
         channels=channels,
