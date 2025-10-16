@@ -188,6 +188,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "conda_version",
         "default_prefix",
         "envs",
+        "envs_details",
         "envs_dirs",
         "pkgs_dirs",
         "platform",
@@ -197,6 +198,15 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "root_writable",
         "solver",
     } <= set(parsed)
+
+    # assert all envs_details keys are present
+    assert {
+        "name",
+        "active",
+        "base",
+        "protected",
+        "writable",
+    } == set(parsed["envs_details"])
 
 
 # conda info --license

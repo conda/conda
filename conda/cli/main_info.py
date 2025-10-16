@@ -467,8 +467,22 @@ class InfoRenderer:
         return get_main_info_display(self._info_dict)
 
     def _envs_component(self):
-        if not self._context.json:
-            return self._info_dict["envs"]
+        if self._context.json:
+            from ..core.prefix_data import PrefixData
+
+            result = {}
+            active_prefix_data = PrefixData(self._context.active_prefix_data)
+            for prefix in self._info_dict["envs"]:
+                prefix_data = PrefixData(prefix)
+                result["prefix"] = {
+                    "name": prefix_data.name,
+                    "active": prefix_data == active_prefix_data,
+                    "base": prefix_data.is_base(),
+                    "protected": prefix_data.is_frozen(),
+                    "writable": prefix_data.is_writable,
+                }
+            return result
+        return self._info_dict["envs"]
 
     def _system_component(self) -> str:
         from .find_commands import find_commands, find_executable
@@ -502,7 +516,9 @@ class InfoRenderer:
         return "\n".join(output)
 
     def _json_all_component(self) -> dict[str, Any]:
-        return self._info_dict
+        info_dict = self._info_dict.copy()
+        info_dict["envs_details"] = self._envs_component()
+        return info_dict
 
 
 @deprecated(
