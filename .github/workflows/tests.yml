@@ -250,14 +250,6 @@ jobs:
           condarc-file: .github/condarc-${{ (matrix.default-channel == 'defaults') && (matrix.python-version == '3.14' && 'defaults-py314' || 'defaults') || (matrix.python-version == '3.14' && 'conda-forge-py314' || 'conda-forge') }}
           run-post: false  # skip post cleanup
 
-      - name: Preinstall frozendict from PyPI (Py3.14)
-        if: matrix.python-version == '3.14'
-        run: python -m pip install --no-deps 'frozendict>=2.4.2'
-
-      - name: Prepare requirements without frozendict (Py3.14)
-        if: matrix.python-version == '3.14'
-        run: grep -v '^frozendict' tests/requirements.txt > /tmp/requirements-no-frozendict.txt
-
       - name: Conda Install (Py3.14, conda-forge)
         if: matrix.default-channel == 'conda-forge' && matrix.python-version == '3.14'
         run: >
@@ -265,14 +257,18 @@ jobs:
           --yes
           --freeze-installed
           --override-channels
-          -c conda-forge/label/python_rc
-          -c conda-forge
-          --file /tmp/requirements-no-frozendict.txt
+          --channel conda-forge
+          --file tests/requirements-py314.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
+
+      - name: Manually add conda-libmamba-solver (Py3.14, conda-forge)
+        if: matrix.default-channel == 'conda-forge' && matrix.python-version == '3.14'
+        run: >
+          conda install --yes https://anaconda.org/conda-forge/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd8ed1ab_0.conda
 
       - name: Conda Install (Py3.14, defaults)
         if: matrix.default-channel == 'defaults' && matrix.python-version == '3.14'
@@ -281,14 +277,18 @@ jobs:
           --yes
           --freeze-installed
           --override-channels
-          -c ad-testing/label/py314
-          -c defaults
-          --file /tmp/requirements-no-frozendict.txt
+          --channel defaults
+          --file tests/requirements-py314.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
+
+      - name: Manually add conda-libmamba-solver (Py3.14, defaults)
+        if: matrix.default-channel == 'defaults' && matrix.python-version == '3.14'
+        run: >
+          conda install --yes https://anaconda.org/main/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd3eb1b0_0.tar.bz2
 
       - name: Conda Install
         if: >-
