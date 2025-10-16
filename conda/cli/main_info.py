@@ -471,7 +471,10 @@ class InfoRenderer:
             from ..core.prefix_data import PrefixData
 
             result = {}
-            active_prefix_data = PrefixData(self._context.active_prefix_data)
+            if active_prefix := self._context.active_prefix:
+                active_prefix_data = PrefixData(active_prefix)
+            else:
+                active_prefix_data = None
             for prefix in self._info_dict["envs"]:
                 prefix_data = PrefixData(prefix)
                 result["prefix"] = {
