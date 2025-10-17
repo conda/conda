@@ -149,13 +149,17 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
+        content = self.command_join.join(commands)
+
+        # Normalize line endings for Unix shells on Windows
+        if on_win and self.path_conversion == win_path_to_unix:
+            content = content.replace("\r\n", "\n")
+
         if ext is None:
-            return self.command_join.join(commands)
+            return content
         elif ext:
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
-                # the default mode is 'w+b', and universal new lines don't work in that mode
-                # command_join should account for that
-                tf.write(self.command_join.join(commands))
+                tf.write(content)
             return tf.name
         else:
             raise NotImplementedError()
