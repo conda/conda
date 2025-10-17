@@ -9,7 +9,7 @@ import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
 from logging import getLogger
-from os.path import basename, dirname, getsize, isdir, join
+from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -1065,6 +1065,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             copy(self.target_full_path, self.hold_path)
 
         h = History(self.target_prefix)
+        if not isfile(h.path):
+            PrefixData(self.target_prefix).set_creation_time()
         h.update()
         h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
 
@@ -1072,6 +1074,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
+        if isfile(hpath := History(self.target_prefix).path):
+            rm_rf(hpath)
 
     def cleanup(self):
         rm_rf(self.hold_path)
