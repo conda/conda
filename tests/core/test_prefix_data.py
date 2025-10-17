@@ -924,9 +924,4 @@ def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
         second_modification = pd.last_modified
         assert created == pd.created
         assert first_modification < second_modification
-        assert (
-            start
-            < pd.created
-            < second_modification
-            < datetime.now(tz=timezone.utc)
-        )
+        assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)

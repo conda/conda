@@ -682,7 +682,9 @@ class PrefixData(metaclass=PrefixDataType):
         Writes a .creation-time file in conda-meta with the current timestamp, meant
         to be used by .created property as a fallback.
         """
-        ts = self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
+        ts = (
+            self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
+        )
         tsfile = self.prefix_path / self.CREATION_TIMESTAMP_FILE
         tsfile.parent.mkdir(parents=True, exist_ok=True)
         tsfile.write_text(str(ts))
