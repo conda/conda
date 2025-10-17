@@ -159,6 +159,7 @@ class _Activator(metaclass=abc.ABCMeta):
             return content
         elif ext:
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
+                # the default mode is 'w+b', and universal new lines don't work in that mode
                 tf.write(content)
             return tf.name
         else:
