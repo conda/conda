@@ -3,6 +3,7 @@
 from contextlib import nullcontext
 from errno import EPIPE
 from io import StringIO
+from pathlib import Path
 
 import pytest
 
@@ -51,7 +52,7 @@ def test_console_reporter_renderer_envs_list(mocker):
 
     output = console_reporter_renderer.envs_list(["/tmp/envs"])
 
-    assert "envs                     /tmp/envs" in output
+    assert f"envs                     {Path('/tmp/envs')}" in output
 
 
 def test_console_reporter_renderer_envs_list_output_false():
