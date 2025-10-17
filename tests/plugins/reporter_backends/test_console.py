@@ -45,7 +45,7 @@ def test_console_reporter_renderer_envs_list(mocker):
     """
     Test for the case where a ``context.envs_dirs`` directory equals the prefix
     """
-    mock_context = mocker.patch("conda.plugins.reporter_backends.console.context")
+    mock_context = mocker.patch("conda.core.prefix_data.context")
     mock_context.envs_dirs = ["/tmp"]
     console_reporter_renderer = ConsoleReporterRenderer()
 
