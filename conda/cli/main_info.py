@@ -477,7 +477,7 @@ class InfoRenderer:
                 active_prefix_data = None
             for prefix in self._info_dict["envs"]:
                 prefix_data = PrefixData(prefix)
-                result["prefix"] = {
+                result[prefix] = {
                     "name": prefix_data.name,
                     "active": prefix_data == active_prefix_data,
                     "base": prefix_data.is_base(),

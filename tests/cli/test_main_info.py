@@ -200,13 +200,18 @@ def test_info_json(conda_cli: CondaCLIFixture):
     } <= set(parsed)
 
     # assert all envs_details keys are present
-    assert {
-        "name",
-        "active",
-        "base",
-        "protected",
-        "writable",
-    } == set(parsed["envs_details"])
+    keys_and_types = {
+        "name": str,
+        "active": bool,
+        "base": bool,
+        "protected": bool,
+        "writable": bool,
+    }
+    for prefix, details in parsed["envs_details"].items():
+        assert isinstance(prefix, str)
+        assert set(keys_and_types.keys()) == set(details.keys())
+        for key, type_ in keys_and_types.items():
+            assert isinstance(details[key], type_)
 
 
 # conda info --license
