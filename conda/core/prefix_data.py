@@ -110,6 +110,7 @@ class PrefixData(metaclass=PrefixDataType):
     """
 
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
+    CREATION_TIMESTAMP_FILE = "conda-meta/.creation-timestamp"
 
     @deprecated.argument(
         "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
@@ -357,7 +358,9 @@ class PrefixData(metaclass=PrefixDataType):
     def created(self) -> datetime | None:
         """
         Returns the time when the environment was created, as evidenced by the `conda-meta`
-        directory creation time. If the environment does not exist, returns None.
+        directory creation time (if available). Falls back to conda-meta/.creation-timestamp.
+        If the environment does not exist or the creation time cannot be identified, returns
+        None.
         """
         try:
             stat = (self.prefix_path / "conda-meta").stat()
@@ -370,7 +373,21 @@ class PrefixData(metaclass=PrefixDataType):
             # On Windows, ctime represents creation time. On other platforms, ctime gives
             # last metadata change; creation time comes from birthtime.
             # Birthtime was introduced for Windows in Py312, hence the fallback below.
-            creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
+            # On Linux, birthtime is only available in kernel 4.11+ via statx and won't be
+            # available in Python until 3.15. The fallback to ctime would be wrong
+            # because in this platform ctime is last metadata change (not creation time!).
+            if os.uname in ("nt", "darwin"):  # windows or mac
+                creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
+            else:
+                try:
+                    creation_time = stat.st_birthtime
+                except AttributeError:
+                    # Fallback to magic file conda-meta/.creation-timestamp
+                    try:
+                        magicfile = self.prefix_path / self.CREATION_TIMESTAMP_FILE
+                        creation_time = float(magicfile.read_text().strip())
+                    except (OSError, ValueError, TypeError):
+                        return None
             return datetime.fromtimestamp(creation_time, tz=timezone.utc)
 
     @property
@@ -659,6 +676,16 @@ class PrefixData(metaclass=PrefixDataType):
                     current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
             self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
+
+    def set_creation_time(self) -> None:
+        """
+        Writes a .creation-time file in conda-meta with the current timestamp, meant
+        to be used by .created property as a fallback.
+        """
+        ts = self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
+        tsfile = self.prefix_path / self.CREATION_TIMESTAMP_FILE
+        tsfile.parent.mkdir(parents=True, exist_ok=True)
+        tsfile.write_text(str(ts))
 
     def set_nonadmin(self) -> None:
         """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""

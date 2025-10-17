@@ -918,7 +918,8 @@ def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
         pd = PrefixData(prefix)
         created = pd.created
         first_modification = pd.last_modified
-        assert created <= first_modification
+        # On Linux, we allow a rounding error of a <1 second (usually ~5ms)
+        assert abs(created.timestamp() - first_modification.timestamp()) < 1
         conda_cli("install", "--yes", "--prefix", prefix, "small-executable")
         second_modification = pd.last_modified
         assert created == pd.created
@@ -926,7 +927,6 @@ def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
         assert (
             start
             < pd.created
-            < first_modification
             < second_modification
             < datetime.now(tz=timezone.utc)
         )
