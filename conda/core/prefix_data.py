@@ -25,7 +25,7 @@ from ..base.constants import (
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import on_win
+from ..common.compat import on_mac, on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import expand, paths_equal
@@ -376,7 +376,7 @@ class PrefixData(metaclass=PrefixDataType):
             # On Linux, birthtime is only available in kernel 4.11+ via statx and won't be
             # available in Python until 3.15. The fallback to ctime would be wrong
             # because in this platform ctime is last metadata change (not creation time!).
-            if os.uname in ("nt", "darwin"):  # windows or mac
+            if on_mac or on_win:
                 creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
             else:
                 try:
