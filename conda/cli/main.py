@@ -71,6 +71,7 @@ def main_sourced(shell, *args, **kwargs):
 
     # This is called any way later in conda.activate, so no point in removing it
     from ..base.context import context
+    from ..common.compat import on_win
 
     context.__init__()
 
@@ -84,7 +85,14 @@ def main_sourced(shell, *args, **kwargs):
         raise CondaError(f"{shell} is not a supported shell.")
 
     activator = activator_cls(args)
-    print(activator.execute(), end="")
+    result = activator.execute()
+
+    # Fix line endings for Unix-like shells on Windows
+    if on_win and shell in ("zsh", "bash", "posix"):
+        result = result.replace("\r", "")
+        sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+
+    print(result, end="")
     return 0
 
 
