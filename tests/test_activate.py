@@ -414,6 +414,67 @@ def test_default_env(tmp_path: Path):
     assert "named-env" == activator._default_env(str(prefix))
 
 
+def test_build_activate_dont_use_PATH(
+    env_activate: tuple[str, str, str],
+):
+    prefix, activate_sh, _ = env_activate
+
+    write_state_file(
+        prefix,
+        PATH="something",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=CONDA_ENV_VARS_UNSET_VAR,
+    )
+
+    activator = PosixActivator()
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
+        CONDA_PREFIX=prefix,
+        CONDA_SHLVL=1,
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
+        # write_state_file
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+    )
+
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": sorted(unset_vars),
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": activator.path_conversion([activate_sh]),
+    }
+
+def test_build_deactivate_dont_use_PATH(
+    env_activate: tuple[str, str, str],
+    monkeypatch: MonkeyPatch,
+):
+    prefix, activate_sh, _ = env_activate
+
+    write_state_file(
+        prefix,
+        PATH="something",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=CONDA_ENV_VARS_UNSET_VAR,
+    )
+
+    activator = PosixActivator()
+    # Ensure that deactivating does not clobber PATH
+    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_SHLVL", 1)
+
+    deactivate = activator.build_deactivate()
+    assert "PATH" not in deactivate["unset_vars"]
+
+
 def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
     prefix, activate_sh, _ = env_activate
 
