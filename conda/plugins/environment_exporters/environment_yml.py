@@ -6,9 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from ruamel.yaml.error import YAMLError
-
-from ...common.serialize import json, yaml_safe_dump
+from ...common.serialize import json, yaml
 from ...exceptions import CondaValueError
 from ..hookspec import hookimpl
 from ..types import CondaEnvironmentExporter
@@ -82,8 +80,8 @@ def export_yaml(env: Environment) -> str:
     """Export Environment to YAML format."""
     env_dict = to_dict(env)
     try:
-        return yaml_safe_dump(env_dict)
-    except YAMLError as e:
+        return yaml.dumps(env_dict)
+    except yaml.YAMLError as e:
         raise CondaValueError(f"Failed to export environment to YAML: {e}")
 
 

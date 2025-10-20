@@ -2,16 +2,34 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """YAML and JSON serialization and deserialization functions."""
 
+from __future__ import annotations
+
 import functools
 from io import StringIO
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from ...deprecations import deprecated
 from .json import CondaJSONEncoder, loads
 
+if TYPE_CHECKING:
+    from io import IO
+
+    from ..path import PathType
+
+    TextCacheKey = tuple[str, None, None]
+    FileCacheKey = tuple[None, IO[str], None]
+    PathCacheKey = tuple[None, None, PathType]
+    CacheKey = TextCacheKey | FileCacheKey | PathCacheKey
+
 log = getLogger(__name__)
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
+)
 @functools.cache
 def _yaml_round_trip():
     from ruamel.yaml import YAML
@@ -21,6 +39,11 @@ def _yaml_round_trip():
     return parser
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
+)
 @functools.cache
 def _yaml_safe():
     from ruamel.yaml import YAML
@@ -32,10 +55,20 @@ def _yaml_safe():
     return parser
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.common.serialize.yaml.load()` instead.",
+)
 def yaml_round_trip_load(string):
     return _yaml_round_trip().load(string)
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.common.serialize.yaml.load()` instead.",
+)
 def yaml_safe_load(string):
     """
     Examples:
@@ -46,6 +79,11 @@ def yaml_safe_load(string):
     return _yaml_safe().load(string)
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.common.serialize.yaml.dump()` instead.",
+)
 def yaml_round_trip_dump(object, stream=None):
     """Dump object to string or stream."""
     ostream = stream or StringIO()
@@ -54,6 +92,11 @@ def yaml_round_trip_dump(object, stream=None):
         return ostream.getvalue()
 
 
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `conda.common.serialize.yaml.dump()` instead.",
+)
 def yaml_safe_dump(object, stream=None):
     """Dump object to string or stream."""
     ostream = stream or StringIO()
