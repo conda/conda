@@ -307,11 +307,16 @@ def parameter_description_builder(name, context=None, plugins=False):
     builder.append("")
     builder = ["# " + line for line in builder]
 
-    builder.extend(
-        yaml_round_trip_dump({f"{name_prefix}{name}": json.loads(default_value_str)})
-        .strip()
-        .split("\n")
-    )
+    # If we are dealing with a plugin parameter, we need to nest it
+    # instead of having it at the top level (YAML-wise).
+    if plugins:
+        yaml_content = yaml_round_trip_dump(
+            {"plugins": {name: json.loads(default_value_str)}}
+        )
+    else:
+        yaml_content = yaml_round_trip_dump({name: json.loads(default_value_str)})
+
+    builder.extend(yaml_content.strip().split("\n"))
 
     builder = ["# " + line for line in builder]
     builder.append("")
