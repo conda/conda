@@ -452,6 +452,7 @@ def test_build_activate_dont_use_PATH(
         "activate_scripts": activator.path_conversion([activate_sh]),
     }
 
+
 def test_build_deactivate_dont_use_PATH(
     env_activate: tuple[str, str, str],
     monkeypatch: MonkeyPatch,
