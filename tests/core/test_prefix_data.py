@@ -381,6 +381,7 @@ def test_dont_unset_reserved_env_vars(prefix_data: PrefixData):
     with pytest.raises(OperationNotAllowed):
         prefix_data.unset_environment_env_vars(["PATH"])
 
+
 @pytest.mark.parametrize("remove_auth", (True, False))
 def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
     (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)

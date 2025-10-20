@@ -598,7 +598,7 @@ class PrefixData(metaclass=PrefixDataType):
         """
         for var in RESERVED_ENV_VARS:
             if var in env_vars_names:
-                 raise OperationNotAllowed(
+                raise OperationNotAllowed(
                     f"Environment variable '{var}' is reserved. It may not be "
                     "modified as part of an environment configuration."
                 )
@@ -624,9 +624,7 @@ class PrefixData(metaclass=PrefixDataType):
         self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def unset_environment_env_vars(
-        self, env_vars: list[str]
-    ) -> dict[str, str] | None:
+    def unset_environment_env_vars(self, env_vars: list[str]) -> dict[str, str] | None:
         self._ensure_no_reserved_env_vars(env_vars)
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
