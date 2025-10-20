@@ -527,3 +527,31 @@ def test_config_describe_json(
             "parameter_type": "primitive",
         },
     ]
+
+
+def test_config_describe_plugins_yaml_format(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    plugin_config: tuple[type[Configuration], str],
+):
+    """
+    Regression test for the issue described in https://github.com/conda/conda/issues/15339.
+
+    Ensure that plugin configuration examples in `conda config --describe`
+    use valid nested YAML format. which is (plugins:\n  setting_name: value),
+    instead of dotted notation (plugins.setting_name: value), which is
+    syntactically invalid in YAML.
+    """
+    mock_context, app_name = plugin_config
+    mock_context = mock_context(search_path=())
+    mocker.patch("conda.base.context.context", mock_context)
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+
+    out, err, rc = conda_cli("config", "--describe", "plugins.bar")
+
+    assert "plugins:" in out
+    assert "  bar: ''" in out
+
+    assert "plugins.bar: ''" not in out
