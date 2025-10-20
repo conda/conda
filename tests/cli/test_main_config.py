@@ -432,7 +432,8 @@ def test_config_describe(
         "# # plugins.bar (str)",
         "# #   Test plugins.bar",
         "# # ",
-        "# plugins.bar: ''",
+        "# plugins:",
+        "#   bar: ''",
         "",
         "",
     )
@@ -449,7 +450,8 @@ def test_config_describe(
         "# # plugins.bar (str)",
         "# #   Test plugins.bar",
         "# # ",
-        "# plugins.bar: ''",
+        "# plugins:",
+        "#   bar: ''",
         "",
         "",
     )
