@@ -13,7 +13,7 @@ import pytest
 from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CondaError, CorruptedEnvironmentError
+from conda.exceptions import CondaError, CorruptedEnvironmentError, OperationNotAllowed
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
@@ -371,6 +371,15 @@ def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
     env_vars = prefix_data.get_environment_env_vars()
     assert env_vars_one == env_vars
 
+
+def test_dont_set_reserved_env_vars(prefix_data: PrefixData):
+    with pytest.raises(OperationNotAllowed):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
+
+
+def test_dont_unset_reserved_env_vars(prefix_data: PrefixData):
+    with pytest.raises(OperationNotAllowed):
+        prefix_data.unset_environment_env_vars(["PATH"])
 
 @pytest.mark.parametrize("remove_auth", (True, False))
 def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):

@@ -20,6 +20,7 @@ from ..base.constants import (
     PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
     RESERVED_ENV_NAMES,
+    RESERVED_ENV_VARS,
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
@@ -42,6 +43,7 @@ from ..exceptions import (
     EnvironmentLocationNotFound,
     EnvironmentNameNotFound,
     EnvironmentNotWritableError,
+    OperationNotAllowed,
     maybe_raise,
 )
 from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
@@ -589,6 +591,18 @@ class PrefixData(metaclass=PrefixDataType):
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         env_vars_file.write_text(json.dumps(state, ensure_ascii=False))
 
+    def _ensure_no_reserved_env_vars(self, env_vars_names: Iterable[str]) -> None:
+        """
+        Ensure that the set of env_var_names does not contain any reserved env vars.
+        Will raise an OperationNotAllowed if a reserved env var is found.
+        """
+        for var in RESERVED_ENV_VARS:
+            if var in env_vars_names:
+                 raise OperationNotAllowed(
+                    f"Environment variable '{var}' is reserved. It may not be "
+                    "modified as part of an environment configuration."
+                )
+
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
         prefix_state = self._get_environment_state_file()
         env_vars_all = dict(prefix_state.get("env_vars", {}))
@@ -600,6 +614,7 @@ class PrefixData(metaclass=PrefixDataType):
     def set_environment_env_vars(
         self, env_vars: dict[str, str]
     ) -> dict[str, str] | None:
+        self._ensure_no_reserved_env_vars(env_vars.keys())
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
@@ -610,8 +625,9 @@ class PrefixData(metaclass=PrefixDataType):
         return env_state_file.get("env_vars")
 
     def unset_environment_env_vars(
-        self, env_vars: dict[str, str]
+        self, env_vars: list[str]
     ) -> dict[str, str] | None:
+        self._ensure_no_reserved_env_vars(env_vars)
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:

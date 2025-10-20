@@ -338,7 +338,7 @@ PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
 PREFIX_PINNED_FILE: Final[PathType] = join("conda-meta", "pinned")
 PACKAGE_ENV_VARS_DIR: Final[PathType] = join("etc", "conda", "env_vars.d")
 CONDA_ENV_VARS_UNSET_VAR: Final = "***unset***"
-
+RESERVED_ENV_VARS: Final = ("PATH",)
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
 NAMESPACES_MAP: Final = {  # base package name, namespace
