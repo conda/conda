@@ -24,6 +24,7 @@ from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
+    NoChannelsError,
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -970,8 +971,6 @@ class Solver:
         )
 
         if not self.channels or len(self.channels) == 0:
-            from ..exceptions import NoChannelsError
-
             raise NoChannelsError(
                 packages=[s.name for s in self.specs_to_add],
             )
