@@ -3939,6 +3939,9 @@ def test_pinned_specs_all(
 def test_no_channels_error(tmpdir, monkeypatch):
     from conda.exceptions import NoChannelsError
 
+    monkeypatch.setenv("CONDA_CHANNELS", "")
+    reset_context()
+
     specs = (MatchSpec("numpy"),)
 
     solver = Solver(
