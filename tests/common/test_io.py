@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import sys
+import time
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
 
 from conda.common.io import (
     CaptureTarget,
+    ThreadLimitedThreadPoolExecutor,
     attach_stderr_handler,
     captured,
 )
@@ -87,3 +89,17 @@ def test_attach_stderr_handler():
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message in c.stderr
+
+
+def test_thread_limited_executor_handles_thread_limit():
+    """
+    Ensure our custom ThreadLimitedThreadPoolExecutor class does what it is
+    intended to do, which is not raise a RuntimeError if the max workers limit
+    is reached.
+    """
+    executor = ThreadLimitedThreadPoolExecutor(max_workers=2)
+    futures = [executor.submit(time.sleep, 0.1) for _ in range(10)]
+
+    # should run without incurring a RuntimeError
+    results = [f.result() for f in futures]
+    assert len(results) == 10
