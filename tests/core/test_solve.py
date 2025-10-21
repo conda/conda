@@ -16,7 +16,7 @@ from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.core.solve import DepsModifier, UpdateModifier, get_pinned_specs
+from conda.core.solve import DepsModifier, Solver, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
     PackagesNotFoundError,
     ResolvePackageNotFound,
@@ -3934,3 +3934,25 @@ def test_pinned_specs_all(
         pinned_specs = get_pinned_specs(prefix)
         assert pinned_specs != specs
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_no_channels_error(tmpdir, monkeypatch):
+    from conda.exceptions import NoChannelsError
+
+    specs = (MatchSpec("numpy"),)
+
+    solver = Solver(
+        prefix=str(tmpdir),
+        channels=[],
+        subdirs=context.subdirs,
+        specs_to_add=specs,
+    )
+
+    with pytest.raises(NoChannelsError) as exc:
+        solver.solve_final_state()
+
+    error_message = str(exc.value)
+
+    assert "No channels are configured" in error_message
+    assert "numpy" in error_message
+    assert "conda config --append channels" in error_message
