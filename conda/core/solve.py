@@ -970,11 +970,6 @@ class Solver:
             )
         )
 
-        if not self.channels or len(self.channels) == 0:
-            raise NoChannelsError(
-                packages=[s.name for s in self.specs_to_add],
-            )
-
         absent_specs = [s for s in ssc.specs_map.values() if not ssc.r.find_matches(s)]
         if absent_specs:
             raise PackagesNotFoundError(absent_specs)
@@ -1294,6 +1289,11 @@ class Solver:
                     additional_channels.add(Channel(channel))
 
             self.channels.update(additional_channels)
+
+            if not self.channels or len(self.channels) == 0:
+                raise NoChannelsError(
+                    packages=[s.name for s in self.specs_to_add if s.name],
+                )
 
             self._prepared_specs = prepared_specs
             self._index = reduced_index = ReducedIndex(
