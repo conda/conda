@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Several bug fixes related to Python 3.14 compatability (#15079 and #15088 via #15340)
+* Several bug fixes related to Python 3.14 compatibility (#15079 and #15088 via #15340)
 
 ### Deprecations
 
