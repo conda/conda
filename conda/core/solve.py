@@ -142,6 +142,11 @@ class Solver:
             UnlinkLinkTransaction:
 
         """
+        if not self.channels or len(self.channels) == 0:
+            raise NoChannelsError(
+                packages=[s.name for s in self.specs_to_add if s.name],
+            )
+
         if self.prefix == context.root_prefix and context.enable_private_envs:
             # This path has the ability to generate a multi-prefix transaction. The basic logic
             # is in the commented out get_install_transaction() function below. Exercised at
@@ -291,6 +296,12 @@ class Solver:
                 the solved state of the environment.
 
         """
+
+        if not self.channels or len(self.channels) == 0:
+            raise NoChannelsError(
+                packages=[s.name for s in self.specs_to_add if s.name],
+            )
+
         if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
             update_modifier = NULL
         if update_modifier is NULL:
@@ -1289,11 +1300,6 @@ class Solver:
                     additional_channels.add(Channel(channel))
 
             self.channels.update(additional_channels)
-
-            if not self.channels or len(self.channels) == 0:
-                raise NoChannelsError(
-                    packages=[s.name for s in self.specs_to_add if s.name],
-                )
 
             self._prepared_specs = prepared_specs
             self._index = reduced_index = ReducedIndex(
