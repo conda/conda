@@ -143,7 +143,11 @@ No matter which environment you run this command in, conda displays its current 
    your terminal window and verify that you are logged
    into the same user account that you used to install conda.
 
-To update conda to the latest version::
+First, change your current environment back to the default one::
+
+   conda activate
+
+Then update conda to the latest version::
 
    conda update conda
 
