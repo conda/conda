@@ -969,6 +969,13 @@ class Solver:
             )
         )
 
+        if not self.channels or len(self.channels) == 0:
+            from ..exceptions import NoChannelsError
+
+            raise NoChannelsError(
+                packages=[s.name for s in self.specs_to_add],
+            )
+
         absent_specs = [s for s in ssc.specs_map.values() if not ssc.r.find_matches(s)]
         if absent_specs:
             raise PackagesNotFoundError(absent_specs)
