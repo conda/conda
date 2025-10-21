@@ -590,7 +590,7 @@ jobs:
     needs: changes
     if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
-    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-13') || 'macos-14' }}
+    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-15-intel') || 'macos-latest' }}
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -782,7 +782,7 @@ jobs:
         include:
           - runner: ubuntu-latest
             subdir: linux-64
-          - runner: macos-13
+          - runner: macos-15-intel
             subdir: osx-64
           - runner: macos-latest
             subdir: osx-arm64
