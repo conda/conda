@@ -62,11 +62,11 @@ Conda allows you to create separate environments, each containing their own file
 
 The most basic way to create a new environment is with the following command::
 
-   conda create -n <env-name>
+   conda create --name <env-name>
 
 To add packages while creating an environment, specify them after the environment name::
 
-   conda create -n myenvironment python numpy pandas
+   conda create --name myenvironment python numpy pandas
 
 For more information on working with environments, see :doc:`Managing environments <tasks/manage-environments>`.
 
