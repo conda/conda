@@ -120,10 +120,10 @@ def test_thread_limited_executor_handles_thread_limit(
     if should_fail:
         mocker.patch(
             "concurrent.futures.ThreadPoolExecutor._adjust_thread_count",
-            side_effect=RuntimeError,
+            side_effect=[None, None, None, RuntimeError],
         )
 
-    with thread_class(max_workers=2) as executor:
+    with thread_class() as executor:
         if should_fail:
             with pytest.raises(RuntimeError):
                 _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
