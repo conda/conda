@@ -50,7 +50,7 @@ To update conda, in your terminal window, run:
 
 .. code::
 
-   conda update conda
+   conda update --name base conda
 
 Conda compares versions and reports what is available to install.
 It also tells you about other packages that will be automatically
