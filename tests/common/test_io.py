@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
+
+import pytest
 
 from conda.common.io import (
     CaptureTarget,
@@ -91,15 +94,38 @@ def test_attach_stderr_handler():
     assert debug_message in c.stderr
 
 
-def test_thread_limited_executor_handles_thread_limit():
+@pytest.mark.parametrize(
+    "thread_class,should_fail",
+    [
+        (ThreadLimitedThreadPoolExecutor, False),
+        (ThreadPoolExecutor, True),
+    ],
+)
+def test_thread_limited_executor_handles_thread_limit(
+    thread_class, should_fail, mocker
+):
     """
     Ensure our custom ThreadLimitedThreadPoolExecutor class does what it is
     intended to do, which is not raise a RuntimeError if the max workers limit
     is reached.
-    """
-    executor = ThreadLimitedThreadPoolExecutor(max_workers=2)
-    futures = [executor.submit(time.sleep, 0.1) for _ in range(10)]
 
-    # should run without incurring a RuntimeError
-    results = [f.result() for f in futures]
-    assert len(results) == 10
+    This only affects users of particular systems like HPC clusters.
+
+    Some historical background can be found here:
+        - https://github.com/conda/conda/pull/6653
+        - https://github.com/conda/conda/issues/7040
+    """
+    jobs = 10
+
+    if should_fail:
+        mocker.patch(
+            "concurrent.futures.ThreadPoolExecutor._adjust_thread_count",
+            side_effect=RuntimeError,
+        )
+
+    with thread_class(max_workers=2) as executor:
+        if should_fail:
+            with pytest.raises(RuntimeError):
+                _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
+        else:
+            _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
