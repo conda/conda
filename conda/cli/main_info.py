@@ -11,6 +11,7 @@ import os
 import re
 import sys
 from argparse import SUPPRESS, _StoreTrueAction
+from functools import cached_property
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
@@ -417,11 +418,7 @@ class InfoRenderer:
     """
 
     def __init__(self, context):
-        from ..core.envs_manager import list_all_known_prefixes
-
         self._context = context
-        self._info_dict = get_info_dict()
-        self._info_dict["envs"] = list_all_known_prefixes()
         self._component_style_map = {
             "base": None,
             "channels": None,
@@ -430,6 +427,18 @@ class InfoRenderer:
             "system": None,
             "json_all": None,
         }
+
+    @cached_property
+    def _info_dict(self):
+        info_dict = get_info_dict()
+        info_dict["envs"] = self._info_dict_envs
+        return info_dict
+
+    @cached_property
+    def _info_dict_envs(self):
+        from ..core.envs_manager import list_all_known_prefixes
+
+        return list_all_known_prefixes()
 
     def render(self, components: Iterable[InfoComponents]):
         """
@@ -468,7 +477,7 @@ class InfoRenderer:
 
     def _envs_component(self):
         if not self._context.json:
-            return self._info_dict["envs"]
+            return self._info_dict_envs
 
     def _system_component(self) -> str:
         from .find_commands import find_commands, find_executable
