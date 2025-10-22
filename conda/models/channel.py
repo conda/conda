@@ -348,17 +348,25 @@ class Channel(metaclass=ChannelType):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Channel):
-            return self.location == other.location and self.name == other.name
+            return (
+                self.location == other.location
+                and self.name == other.name
+                and self.platform == other.platform
+            )
         else:
             try:
                 _other = Channel(other)
-                return self.location == _other.location and self.name == _other.name
+                return (
+                    self.location == _other.location
+                    and self.name == _other.name
+                    and self.platform == _other.platform
+                )
             except Exception as e:
                 log.debug("%r", e)
                 return False
 
     def __hash__(self) -> int:
-        return hash((self.location, self.name))
+        return hash((self.location, self.name, self.platform))
 
     def __nonzero__(self) -> bool:
         return any((self.location, self.name))
