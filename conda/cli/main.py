@@ -87,8 +87,8 @@ def main_sourced(shell, *args, **kwargs):
     activator = activator_cls(args)
     result = activator.execute()
 
-    # Fix line endings for Unix-like shells on Windows
-    if on_win and shell in ("zsh", "bash", "posix"):
+    # Fix line endings for shells that need it on Windows
+    if on_win and activator.needs_line_ending_fix:
         result = result.replace("\r", "")
         sys.stdout.reconfigure(encoding="utf-8", newline="\n")
 

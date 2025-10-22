@@ -104,6 +104,8 @@ class _Activator(metaclass=abc.ABCMeta):
     hook_source_path: Path | None
     inline_hook_source: bool
 
+    needs_line_ending_fix: bool
+
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
 
@@ -829,6 +831,7 @@ class PosixActivator(_Activator):
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = True
 
     # Using `unset %s` would cause issues for people running
     # with shell flag -u set (error on unset).
@@ -873,6 +876,7 @@ class CshActivator(_Activator):
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
+    needs_line_ending_fix = True
 
     unset_var_tmpl = "unsetenv %s"
     export_var_tmpl = 'setenv %s "%s"'
@@ -914,6 +918,7 @@ class XonshActivator(_Activator):
     script_extension = ".bat" if on_win else ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = False
 
     unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
@@ -939,6 +944,7 @@ class CmdExeActivator(_Activator):
     script_extension = ".bat"
     tempfile_extension = ".env"
     command_join = "\n"
+    needs_line_ending_fix = False
 
     # we are not generating a script to run but rather an INI style file
     # with key=value pairs to set environment variables, key= to unset them,
@@ -972,6 +978,7 @@ class FishActivator(_Activator):
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
+    needs_line_ending_fix = True
 
     unset_var_tmpl = "set -e %s || true"
     export_var_tmpl = 'set -gx %s "%s"'
@@ -997,6 +1004,7 @@ class PowerShellActivator(_Activator):
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = False
 
     unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'

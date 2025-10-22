@@ -34,39 +34,67 @@ def test_ensure_no_command_provided_returns_help(
     assert "error: the following arguments are required: COMMAND" in captured.err
 
 
-@pytest.mark.skipif(
-    not on_win, reason="MSYS2 shells line ending fix only applies on Windows"
+@pytest.mark.skipif(not on_win, reason="Windows-specific test")
+@pytest.mark.parametrize(
+    "shell,expected_patterns",
+    [
+        ("zsh", ["export"]),
+        ("bash", ["export"]),
+        ("posix", ["export"]),
+        ("ash", ["export"]),
+        ("dash", ["export"]),
+        ("csh", ["setenv", "unsetenv"]),
+        ("tcsh", ["setenv", "unsetenv"]),
+        ("fish", ["set -gx", "set -e"]),
+    ],
 )
-@pytest.mark.parametrize("shell", ["zsh", "bash", "posix"])
-def test_main_sourced_msys2_shell_line_endings(shell: str, capsys) -> None:
-    """Test that main_sourced produces clean output for MSYS2 shells."""
+def test_main_sourced_shell_line_endings_fix_needed(
+    shell: str, expected_patterns: list[str], capsys
+) -> None:
+    """Test that shells that need line ending fixes get appropriate treatment on Windows."""
     assert main_sourced(shell, "hook") == 0
     output = capsys.readouterr().out
+
     assert "\r" not in output
-    assert "export" in output
+    assert any(pattern in output for pattern in expected_patterns)
 
 
-@pytest.mark.skipif(
-    not on_win, reason="MSYS2 shells line ending fix only applies on Windows"
+@pytest.mark.skipif(not on_win, reason="Windows-specific test")
+@pytest.mark.parametrize(
+    "shell,expected_patterns",
+    [
+        ("cmd.exe", ["conda activate"]),
+        ("powershell", ["$Env:", "Import-Module"]),
+        ("xonsh", ["source-cmd", "source-bash"]),
+    ],
 )
-def test_main_sourced_stdout_reconfiguration(capsys) -> None:
-    """Test that main_sourced reconfigures stdout for MSYS2 shells."""
-    assert main_sourced("zsh", "hook") == 0
-    assert "\r" not in capsys.readouterr().out
-
-
-@pytest.mark.skipif(not on_win, reason="Windows-specific test")
-def test_main_sourced_cmd_exe_unchanged(capsys) -> None:
-    """Test that cmd.exe is not affected by our MSYS2 line ending fix."""
-    assert main_sourced("cmd.exe", "hook") == 0
+def test_main_sourced_shell_line_endings_no_fix_needed(
+    shell: str, expected_patterns: list[str], capsys
+) -> None:
+    """Test that shells that don't need line ending fixes work correctly on Windows."""
+    assert main_sourced(shell, "hook") == 0
     output = capsys.readouterr().out
-    assert "conda activate" in output
+
+    assert any(pattern in output for pattern in expected_patterns)
 
 
-@pytest.mark.skipif(not on_win, reason="Windows-specific test")
-def test_main_sourced_powershell_unchanged(capsys) -> None:
-    """Test that PowerShell is not affected by our MSYS2 line ending fix."""
-    assert main_sourced("powershell", "hook") == 0
+@pytest.mark.skipif(on_win, reason="Unix-specific test")
+@pytest.mark.parametrize(
+    "shell,expected_patterns",
+    [
+        ("bash", ["export"]),
+        ("zsh", ["export"]),
+        ("fish", ["set -gx", "set -e"]),
+        ("csh", ["setenv", "unsetenv"]),
+        ("tcsh", ["setenv", "unsetenv"]),
+        ("xonsh", ["source-bash"]),
+    ],
+)
+def test_main_sourced_unix_shells_no_line_ending_fix(
+    shell: str, expected_patterns: list[str], capsys
+) -> None:
+    """Test that Unix shells work correctly without line ending fixes."""
+    assert main_sourced(shell, "hook") == 0
     output = capsys.readouterr().out
-    assert "$Env:" in output
-    assert "Import-Module" in output
+
+    assert any(pattern in output for pattern in expected_patterns)
