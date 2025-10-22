@@ -149,15 +149,12 @@ to add).
 ## Getting Help
 
 - [Documentation](https://docs.conda.io/projects/conda/en/latest)
-- [Twitter](https://twitter.com/condaproject)
-- [Slack](https://conda.slack.com)
+- [Zulip chat](https://conda.zulipchat.com/)
+- [Bluesky](https://bsky.app/profile/conda.org)
 - [Bug Reports/Feature Requests](https://github.com/conda/conda/issues)
 - [Installer/Package Issues](https://github.com/ContinuumIO/anaconda-issues/issues)
-- [Discourse](https://conda.discourse.group/)
 
 ## Contributing
-
-[![open in gitpod for one-click development][gitpod]](https://gitpod.io/#https://github.com/conda/conda)
 
 Contributions to conda are welcome. See the [contributing](CONTRIBUTING.md) documentation
 for instructions on setting up a development environment.

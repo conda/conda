@@ -9,6 +9,7 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
@@ -16,6 +17,9 @@ from typing import TYPE_CHECKING, Callable
 
 from requests.auth import AuthBase
 
+from ..auxlib import NULL
+from ..auxlib.type_coercion import maybecall
+from ..base.constants import APP_NAME
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
@@ -23,8 +27,9 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from collections.abc import Iterable
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, ClassVar, TypeAlias
+    from typing import Any, Callable, ClassVar, Literal, TypeAlias
 
+    from ..auxlib import _Null
     from ..common.configuration import Parameter
     from ..common.path import PathType
     from ..core.path_actions import Action
@@ -90,17 +95,67 @@ class CondaVirtualPackage(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_virtual_packages`.
 
+    .. note::
+       The ``version`` and ``build`` parameters can be provided in two ways:
+
+       1. Direct values: a string or ``None`` (where ``None`` translates to ``0``)
+       2. Deferred callables: functions that return either a string, ``None`` (translates to ``0``),
+          or ``NULL`` (indicates the virtual package should not be exported)
+
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
     :param build: Virtual package build string (e.g., ``x86_64``).
+    :param override_entity: Can be set to either to "version" or "build", the corresponding
+                            value will be overridden if the environment variable
+                            ``CONDA_OVERRIDE_<name>`` is set.
+    :param empty_override: Value to use for version or build if the override
+                           environment variable is set to an empty string. By default,
+                           this is ``NULL``.
+    :param version_validation: Optional version validation function to ensure that the override version follows a certain pattern.
     """
 
     name: str
-    version: str | None
-    build: str | None
+    version: str | None | Callable[[], str | None | _Null]
+    build: str | None | Callable[[], str | None | _Null]
+    override_entity: Literal["version", "build"] | None = None
+    empty_override: None | _Null = NULL
+    version_validation: Callable[[str], str | None] | None = None
 
-    def to_virtual_package(self) -> PackageRecord:
-        return PackageRecord.virtual_package(f"__{self.name}", self.version, self.build)
+    def to_virtual_package(self) -> PackageRecord | _Null:
+        # Take the raw version and build as they are.
+        # At this point, they may be callables (evaluated later) or direct values.
+        from conda.base.context import context
+
+        version = self.version
+        build = self.build
+
+        # Check for environment overrides.
+        # Overrides always yield a concrete value (string, NULL, or None),
+        # so after this step, version/build will no longer be callables if they were overridden.
+        if self.override_entity:
+            # environment variable has highest precedence
+            override_value = os.getenv(f"{APP_NAME}_OVERRIDE_{self.name}".upper())
+            # fallback to context
+            if override_value is None and context.override_virtual_packages:
+                override_value = context.override_virtual_packages.get(f"{self.name}")
+            if override_value is not None:
+                override_value = override_value.strip() or self.empty_override
+                if self.override_entity == "version":
+                    version = override_value
+                elif self.override_entity == "build":
+                    build = override_value
+
+        # If version/build were not overridden and are callables, evaluate them now.
+        version = maybecall(version)
+        build = maybecall(build)
+
+        if version is NULL or build is NULL:
+            return NULL
+
+        if self.version_validation and version is not None:
+            version = self.version_validation(version)
+
+        return PackageRecord.virtual_package(f"__{self.name}", version, build)
 
 
 @dataclass

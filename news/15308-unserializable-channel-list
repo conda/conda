@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Silence error in `fish` when undefined environment variables are unset. (#14659 via #14660, #15102)
+* Fix where `conda search --json --use-index-cache <package>` could fail to
+  encode message as json, when cache is empty. (#15308)
 
 ### Deprecations
 

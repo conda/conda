@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Require `conda-libmamba-solver >=25.4.0` (#15289)
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Check conda-build source code for missing imports in CI (#15229)
+* <news item>

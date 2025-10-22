@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Exceptions are now raised to prevent renaming or removing the default_activation_env. (#15061)
+* Add a new `override_virtual_packages` (with alias `virtual_packages`) key to `condarc`. (#15156 via #15318)
 
 ### Bug fixes
 

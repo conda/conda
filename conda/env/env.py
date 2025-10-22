@@ -289,7 +289,7 @@ def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
         deprecated.topic(
             "26.3",
             "26.9",
-            topic="Using a non-compliant CEP-0024 environment file",
+            topic="The environment file is not fully CEP 24 compliant",
             addendum=(
                 "In the future, this configuration will be rejected. Please fix the following "
                 "errors in order to make the configuration valid: "
