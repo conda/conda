@@ -7,12 +7,12 @@ from __future__ import annotations
 import os
 import re
 from datetime import datetime, timezone
+import warnings
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
 from stat import S_ISDIR
 from typing import TYPE_CHECKING
-import warnings
 
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
@@ -695,9 +695,7 @@ class PrefixData(metaclass=PrefixDataType):
         self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def unset_environment_env_vars(
-        self, env_vars: list[str]
-    ) -> dict[str, str] | None:
+    def unset_environment_env_vars(self, env_vars: list[str]) -> dict[str, str] | None:
         self._ensure_no_reserved_env_vars(env_vars)
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
