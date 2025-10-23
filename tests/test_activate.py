@@ -2026,6 +2026,27 @@ def test_MSYS2_PATH(
             assert activator.path_conversion(str(library / path / "bin")) not in paths
 
 
+@pytest.mark.skipif(
+    not on_win, reason="MSYS2 shells line ending fix only applies on Windows"
+)
+@pytest.mark.parametrize("shell", ["zsh", "bash", "posix", "ash", "dash"])
+def test_msys2_shell_line_endings(shell: str, capsys) -> None:
+    """Test that MSYS2/zsh shell hooks don't contain Windows line endings."""
+    assert main_sourced(shell, "hook") == 0
+    output = capsys.readouterr().out
+    assert "\r" not in output
+    assert "export" in output
+
+
+@pytest.mark.skipif(
+    not on_win, reason="MSYS2 shells line ending fix only applies on Windows"
+)
+def test_msys2_shell_stdout_reconfiguration(capsys) -> None:
+    """Test that stdout is properly reconfigured for MSYS2 shells."""
+    assert main_sourced("zsh", "hook") == 0
+    assert "\r" not in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
     monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)

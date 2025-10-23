@@ -43,7 +43,7 @@ Conda is also included in the [Anaconda Distribution](https://repo.anaconda.com)
 To update `conda` to the newest version, use the following command:
 
 ```
-$ conda update -n base conda
+$ conda update --name base conda
 ```
 
 > [!TIP]
@@ -55,7 +55,7 @@ $ conda update -n base conda
 > `conda 22.11.1` needs to be installed first:
 >
 > ```
-> $ conda install -n base conda=22.11.1
+> $ conda install --name base conda=22.11.1
 > $ conda update conda
 > ```
 
