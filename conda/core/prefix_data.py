@@ -373,9 +373,11 @@ class PrefixData(metaclass=PrefixDataType):
             # On Windows, ctime represents creation time. On other platforms, ctime gives
             # last metadata change; creation time comes from birthtime.
             # Birthtime was introduced for Windows in Py312, hence the fallback below.
+            # See https://docs.python.org/3/library/os.html#os.stat_result.st_ctime
             # On Linux, birthtime is only available in kernel 4.11+ via statx and won't be
             # available in Python until 3.15. The fallback to ctime would be wrong
             # because in this platform ctime is last metadata change (not creation time!).
+            # See https://discuss.python.org/t/st-birthtime-not-available/104350/2
             if on_mac or on_win:
                 creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
             else:
