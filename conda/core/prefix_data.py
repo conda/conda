@@ -110,7 +110,7 @@ class PrefixData(metaclass=PrefixDataType):
     """
 
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
-    CREATION_TIMESTAMP_FILE = "conda-meta/.creation-timestamp"
+    CREATION_TIMESTAMP_FILE = "conda-meta/created_at"
 
     @deprecated.argument(
         "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
@@ -682,12 +682,12 @@ class PrefixData(metaclass=PrefixDataType):
         Writes a .creation-time file in conda-meta with the current timestamp, meant
         to be used by .created property as a fallback.
         """
-        ts = (
+        timestamp = (
             self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
         )
-        tsfile = self.prefix_path / self.CREATION_TIMESTAMP_FILE
-        tsfile.parent.mkdir(parents=True, exist_ok=True)
-        tsfile.write_text(str(ts))
+        timestamp_file = self.prefix_path / self.CREATION_TIMESTAMP_FILE
+        timestamp_file.parent.mkdir(parents=True, exist_ok=True)
+        timestamp_file.write_text(str(timestamp))
 
     def set_nonadmin(self) -> None:
         """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
