@@ -106,8 +106,8 @@ def test_info_envs(conda_cli: CondaCLIFixture):
     assert not err
 
 
-def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env):
-    with tmp_env("ca-certificates") as prefix:
+def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, test_recipes_channel):
+    with tmp_env() as prefix:
         Path(prefix, PREFIX_FROZEN_FILE).touch()
         prefixes = list_all_known_prefixes()
 
