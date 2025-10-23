@@ -544,7 +544,7 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     ):
         yield "detail"
 
-    if args.envs or args.all:
+    if args.envs or (args.all and not context.json):
         yield "envs"
 
     if (args.system or args.all) and not context.json:
