@@ -204,7 +204,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "name": str,
         "active": bool,
         "base": bool,
-        "protected": bool,
+        "frozen": bool,
         "writable": bool,
     }
     for prefix, details in parsed["envs_details"].items():
