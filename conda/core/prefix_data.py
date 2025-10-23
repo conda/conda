@@ -596,12 +596,15 @@ class PrefixData(metaclass=PrefixDataType):
         Ensure that the set of env_var_names does not contain any reserved env vars.
         Will raise an OperationNotAllowed if a reserved env var is found.
         """
+        invalid_vars = []
         for var in RESERVED_ENV_VARS:
             if var in env_vars_names:
-                raise OperationNotAllowed(
-                    f"Environment variable '{var}' is reserved. It may not be "
-                    "modified as part of an environment configuration."
-                )
+                invalid_vars.append(var)
+        if invalid_vars:
+            raise OperationNotAllowed(
+                f"Environment variable(s) '{' '.join(invalid_vars)}' is reserved. It can not be "
+                "modified as part of an environment configuration."
+            )
 
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
         prefix_state = self._get_environment_state_file()
