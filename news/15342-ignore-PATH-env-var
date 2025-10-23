@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Ignore and warn user if the `PATH` environment variable is set in the environment config.  Conda should not enable modifying the `PATH` to any arbitrary value.
+* Ignore and warn user if the `PATH` environment variable is set in the environment config. Conda should not enable modifying the `PATH` to any arbitrary value. (#15342)
 
 ### Deprecations
 
