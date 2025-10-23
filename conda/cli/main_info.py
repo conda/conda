@@ -524,7 +524,7 @@ class InfoRenderer:
                 "name": prefix_data.name,
                 "active": prefix_data == active_prefix_data,
                 "base": prefix_data.is_base(),
-                "protected": prefix_data.is_frozen(),
+                "frozen": prefix_data.is_frozen(),
                 "writable": prefix_data.is_writable,
             }
         return result

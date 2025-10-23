@@ -208,9 +208,8 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             active = (
                 "*" if paths_equal(prefix.prefix_path, context.active_prefix) else " "
             )
-            protected = "+" if prefix.is_frozen() else " "
-            name = prefix.name
-            return f"{name:20} {active} {protected} {prefix.prefix_path}"
+            frozen = "+" if prefix.is_frozen() else " "
+            return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
 
         for env_prefix in prefixes:
             if not isinstance(env_prefix, PrefixData):
