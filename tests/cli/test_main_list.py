@@ -291,6 +291,19 @@ def test_fields_invalid(conda_cli):
     assert "invalid-field" in str(exc)
 
 
+def test_list_full_name(conda_cli):
+    out, err, exc = conda_cli("list", f"--prefix={sys.prefix}", "--full-name", "python")
+    assert "python" in out
+    assert f"{sys.version_info.major}.{sys.version_info.minor}" in out
+
+
+def test_list_full_name_no_results(conda_cli):
+    out, err, exc = conda_cli(
+        "list", f"--prefix={sys.prefix}", "--full-name", "does-not-exist", "--json"
+    )
+    assert out == "[]"
+
+
 def test_exit_codes(conda_cli):
     # If the package is installed, with or without --check, the exit code must be 0
     out, err, rc = conda_cli("list", f"--prefix={sys.prefix}", "conda")
