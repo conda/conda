@@ -811,7 +811,7 @@ class _Activator(metaclass=abc.ABCMeta):
             if reserved in env_vars.keys():
                 env_vars.pop(reserved)
                 collect_reserved_vars.append(reserved)
-            
+
             if collect_reserved_vars:
                 print(
                     f"WARNING: environment variable(s) '{' '.join(collect_reserved_vars)}' are "
