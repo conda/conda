@@ -358,9 +358,14 @@ class PrefixData(metaclass=PrefixDataType):
     def created(self) -> datetime | None:
         """
         Returns the time when the environment was created, as evidenced by the `conda-meta`
-        directory creation time (if available). Falls back to conda-meta/.creation-timestamp.
-        If the environment does not exist or the creation time cannot be identified, returns
-        None.
+        directory creation time (if available). Falls back to `conda-meta/created_at`.
+
+        This may return None in the following cases:
+
+        - If the environment doesn't exist.
+        - If the creation time cannot be determined. This can happen for existing environments
+          created with conda versions before 25.11 in Linux systems, where the 'birthtime' metadata
+          is only available in kernels 4.11+, and not implemented in Python as of Python 3.14.
         """
         try:
             stat = (self.prefix_path / "conda-meta").stat()
