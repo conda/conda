@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
+from os.path import isdir
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
@@ -197,6 +198,20 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "root_writable",
         "solver",
     } <= set(parsed)
+
+
+# conda info --envs --json
+def test_info_envs_json(conda_cli: CondaCLIFixture):
+    stdout, _, _ = conda_cli("info", "--envs", "--json")
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+
+    # assert only 'envs' is present
+    assert {"envs"} == set(parsed)
+    assert parsed["envs"]
+    assert isinstance(parsed["envs"], list)
+    assert isinstance(parsed["envs"][0], str)
+    assert isdir(parsed["envs"][0])
 
 
 # conda info --license
