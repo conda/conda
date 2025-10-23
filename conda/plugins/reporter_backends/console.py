@@ -206,7 +206,10 @@ class ConsoleReporterRenderer(ReporterRendererBase):
 
         def disp_env(prefix: PrefixData) -> str:
             active = (
-                "*" if paths_equal(prefix.prefix_path, context.active_prefix) else " "
+                "*"
+                if context.active_prefix
+                and paths_equal(prefix.prefix_path, context.active_prefix)
+                else " "
             )
             frozen = "+" if prefix.is_frozen() else " "
             return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
