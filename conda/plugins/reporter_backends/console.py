@@ -202,7 +202,13 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         if not output:
             return ""
 
-        output = ["", "# conda environments:", "#", "# * -> active", "# + -> frozen"]
+        output = [
+            "",
+            "# conda environments:",
+            "#",
+            "# * -> active",
+            "# + -> frozen",
+        ]
 
         def disp_env(prefix: PrefixData) -> str:
             active = (
