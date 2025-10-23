@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     CONDA_PACKAGE_EXTENSIONS,
+    PREFIX_CREATION_TIMESTAMP_FILE,
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
@@ -110,7 +111,6 @@ class PrefixData(metaclass=PrefixDataType):
     """
 
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
-    CREATION_TIMESTAMP_FILE = "conda-meta/created_at"
 
     @deprecated.argument(
         "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
@@ -384,7 +384,7 @@ class PrefixData(metaclass=PrefixDataType):
                 except AttributeError:
                     # Fallback to magic file conda-meta/.creation-timestamp
                     try:
-                        magicfile = self.prefix_path / self.CREATION_TIMESTAMP_FILE
+                        magicfile = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
                         creation_time = float(magicfile.read_text().strip())
                     except (OSError, ValueError, TypeError):
                         return None
@@ -685,7 +685,7 @@ class PrefixData(metaclass=PrefixDataType):
         timestamp = (
             self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
         )
-        timestamp_file = self.prefix_path / self.CREATION_TIMESTAMP_FILE
+        timestamp_file = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
         timestamp_file.parent.mkdir(parents=True, exist_ok=True)
         timestamp_file.write_text(str(timestamp))
 
