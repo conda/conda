@@ -807,16 +807,20 @@ class _Activator(metaclass=abc.ABCMeta):
                     print(f"variable {dup} duplicated", file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
         for reserved in RESERVED_ENV_VARS:
+            collect_reserved_vars = []
             if reserved in env_vars.keys():
+                env_vars.pop(reserved)
+                collect_reserved_vars.append(reserved)
+            
+            if collect_reserved_vars:
                 print(
-                    f"WARNING: environment variable '{reserved}' is configured to be set "
-                    f"to '{env_vars.get(reserved)}'. However, this is a reserved environment "
-                    "variable. This configuration will be ignored.\n"
-                    f"You may remove this invalid configuration by removing the `{reserved}` "
-                    f"key from the file `{env_vars_file}`",
+                    f"WARNING: environment variable(s) '{' '.join(collect_reserved_vars)}' are "
+                    f"configured to be set. However, these are "
+                    "reserved environment variables. This configuration will be ignored.\n"
+                    f"You may remove this invalid configuration by removing the "
+                    f"'{' '.join(collect_reserved_vars)}' key(s) from the file `{env_vars_file}`",
                     file=sys.stderr,
                 )
-                env_vars.pop(reserved)
         return env_vars
 
 
