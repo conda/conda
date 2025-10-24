@@ -498,7 +498,10 @@ class InfoRenderer:
 
     def _envs_component(self):
         if self._context.json:
-            return {"envs": self._info_dict_envs, "envs_details":self._info_dict_envs_details}
+            return {
+                "envs": self._info_dict_envs,
+                "envs_details": self._info_dict_envs_details,
+            }
         return self._info_dict_envs
 
     def _system_component(self) -> str:

@@ -20,7 +20,9 @@ def test_json_handler():
 
     assert json_handler_object.detail_view(test_data) == json.dumps(test_data)
     assert json_handler_object.envs_list(test_envs) == json.dumps({"envs": test_envs})
-    assert json_handler_object.envs_list(test_envs_dict) == json.dumps({"envs": test_envs})
+    assert json_handler_object.envs_list(test_envs_dict) == json.dumps(
+        {"envs": test_envs}
+    )
     assert json_handler_object.render(test_str) == json.dumps(test_str)
 
 
