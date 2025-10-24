@@ -363,7 +363,7 @@ class ReporterRendererBase(ABC):
         """
 
     @abstractmethod
-    def envs_list(self, data, **kwargs) -> str:
+    def envs_list(self, data: list[str] | dict[str, dict[str, str | bool]], **kwargs) -> str:
         """
         Render a list of environments
         """
