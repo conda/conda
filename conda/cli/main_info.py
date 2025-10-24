@@ -497,6 +497,8 @@ class InfoRenderer:
         return get_main_info_display(self._info_dict)
 
     def _envs_component(self):
+        if self._context.json:
+            return {"envs": self._info_dict_envs, "envs_details":self._info_dict_envs_details}
         return self._info_dict_envs
 
     def _system_component(self) -> str:
@@ -567,6 +569,7 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
 
     if args.envs or (args.all and not context.json):
         yield "envs"
+        yield "envs_details"
 
     if (args.system or args.all) and not context.json:
         yield "system"
