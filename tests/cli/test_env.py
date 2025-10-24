@@ -681,3 +681,14 @@ def test_invalid_extensions(
 
     with pytest.raises(SpecNotFound):
         conda_cli("env", "create", f"--file={env_yml}", "--yes")
+
+
+# conda env list [--json]
+def test_list_info_envs(conda_cli: CondaCLIFixture):
+    stdout_env, _, _ = conda_cli("env", "list")
+    stdout_info, _, _ = conda_cli("info", "--envs")
+    assert stdout_env == stdout_info
+
+    stdout_env, _, _ = conda_cli("env", "list", "--json")
+    stdout_info, _, _ = conda_cli("info", "--envs", "--json")
+    assert stdout_env == stdout_info
