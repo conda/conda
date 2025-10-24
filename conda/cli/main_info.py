@@ -432,6 +432,7 @@ class InfoRenderer:
     def _info_dict(self):
         info_dict = get_info_dict()
         info_dict["envs"] = self._info_dict_envs
+        info_dict["envs_details"] = self._info_dict_envs_details
         return info_dict
 
     @cached_property
@@ -439,6 +440,26 @@ class InfoRenderer:
         from ..core.envs_manager import list_all_known_prefixes
 
         return list_all_known_prefixes()
+
+    @cached_property
+    def _info_dict_envs_details(self):
+        from ..core.prefix_data import PrefixData
+
+        result = {}
+        if active_prefix := self._context.active_prefix:
+            active_prefix_data = PrefixData(active_prefix)
+        else:
+            active_prefix_data = None
+        for prefix in self._info_dict_envs:
+            prefix_data = PrefixData(prefix)
+            result[prefix] = {
+                "name": prefix_data.name,
+                "active": prefix_data == active_prefix_data,
+                "base": prefix_data.is_base(),
+                "frozen": prefix_data.is_frozen(),
+                "writable": prefix_data.is_writable,
+            }
+        return result
 
     def render(self, components: Iterable[InfoComponents]):
         """
@@ -509,29 +530,8 @@ class InfoRenderer:
 
         return "\n".join(output)
 
-    def _envs_details_component(self) -> dict[str, dict[str, Any]]:
-        from ..core.prefix_data import PrefixData
-
-        result = {}
-        if active_prefix := self._context.active_prefix:
-            active_prefix_data = PrefixData(active_prefix)
-        else:
-            active_prefix_data = None
-        for prefix in self._info_dict_envs:
-            prefix_data = PrefixData(prefix)
-            result[prefix] = {
-                "name": prefix_data.name,
-                "active": prefix_data == active_prefix_data,
-                "base": prefix_data.is_base(),
-                "frozen": prefix_data.is_frozen(),
-                "writable": prefix_data.is_writable,
-            }
-        return result
-
     def _json_all_component(self) -> dict[str, Any]:
-        info_dict = self._info_dict.copy()
-        info_dict["envs_details"] = self._envs_details_component()
-        return info_dict
+        return self._info_dict
 
 
 @deprecated(
