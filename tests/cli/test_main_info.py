@@ -203,6 +203,8 @@ def test_info_json(conda_cli: CondaCLIFixture):
     # assert all envs_details keys are present
     keys_and_types = {
         "name": str,
+        "created": str,
+        "last_modified": str,
         "active": bool,
         "base": bool,
         "frozen": bool,

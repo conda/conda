@@ -452,8 +452,14 @@ class InfoRenderer:
             active_prefix_data = None
         for prefix in self._info_dict_envs:
             prefix_data = PrefixData(prefix)
+            if created := prefix_data.created:
+                created = created.isoformat()
+            if last_modified := prefix_data.last_modified:
+                last_modified = last_modified.isoformat()
             result[prefix] = {
                 "name": prefix_data.name,
+                "created": created,
+                "last_modified": last_modified,
                 "active": prefix_data == active_prefix_data,
                 "base": prefix_data.is_base(),
                 "frozen": prefix_data.is_frozen(),
