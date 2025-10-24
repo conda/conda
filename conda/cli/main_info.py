@@ -436,13 +436,13 @@ class InfoRenderer:
         return info_dict
 
     @cached_property
-    def _info_dict_envs(self):
+    def _info_dict_envs(self) -> list[str]:
         from ..core.envs_manager import list_all_known_prefixes
 
         return list_all_known_prefixes()
 
     @cached_property
-    def _info_dict_envs_details(self):
+    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None]]:
         from ..core.prefix_data import PrefixData
 
         result = {}

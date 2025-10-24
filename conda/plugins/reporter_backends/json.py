@@ -83,7 +83,7 @@ class JSONReporterRenderer(ReporterRendererBase):
         return json.dumps(data)
 
     def envs_list(
-        self, data: list[str] | dict[str, dict[str, str | bool]], **kwargs
+        self, data: list[str] | dict[str, dict[str, str | bool | None]], **kwargs
     ) -> str:
         if isinstance(data, (list, tuple)):
             return json.dumps({"envs": data})
