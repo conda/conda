@@ -476,8 +476,7 @@ class InfoRenderer:
         return get_main_info_display(self._info_dict)
 
     def _envs_component(self):
-        if not self._context.json:
-            return self._info_dict_envs
+        return self._info_dict_envs
 
     def _system_component(self) -> str:
         from .find_commands import find_commands, find_executable
@@ -566,13 +565,13 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     ):
         yield "detail"
 
-    if (args.envs or args.all) and not context.json:
+    if args.envs or (args.all and not context.json):
         yield "envs"
 
     if (args.system or args.all) and not context.json:
         yield "system"
 
-    if context.json and not args.base and not args.unsafe_channels:
+    if context.json and not args.base and not args.unsafe_channels and not args.envs:
         yield "json_all"
 
 
