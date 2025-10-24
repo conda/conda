@@ -67,7 +67,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "-e",
         "--envs",
         action="store_true",
-        help="List all known conda environments.",
+        help="List all known conda environments. Combine with `--json` to obtain more details.",
     )
     p.add_argument(
         "-l",
