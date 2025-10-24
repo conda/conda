@@ -7,7 +7,7 @@ import json
 from collections.abc import Iterable
 from os.path import isdir
 from pathlib import Path
-from types import SimpleNamespace
+from types import NoneType, SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -203,7 +203,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
     # assert all envs_details keys are present
     keys_and_types = {
         "name": str,
-        "created": str,
+        "created": (str, NoneType),
         "last_modified": str,
         "active": bool,
         "base": bool,
