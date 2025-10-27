@@ -71,13 +71,13 @@ Overriding detected packages
 ============================
 
 For troubleshooting, it is possible to override virtual package detection
-using an environment variable or a setting in your ``.condarc`` file. 
+using an environment variable or a setting in your ``.condarc`` file.
 
 Environment variables
 ---------------------
 
-You can set environment variables when using a ``conda install`` command. 
-This way of overriding has the highest priority, **but the override 
+You can set environment variables when using a ``conda install`` command.
+This way of overriding has the highest priority, **but the override
 variable must be set every time a package requiring that override is installed**.
 
 **Example**:
@@ -90,19 +90,19 @@ Supported variables include:
 
 .. csv-table::
     :header-rows: 1
-    
+
     "Variable Name", "Override Entity", "Example"
     "``CONDA_OVERRIDE_ARCHSPEC``", Build Number", x86_64
     "``CONDA_OVERRIDE_CUDA``", "Version Number", 10.1
     "``CONDA_OVERRIDE_GLIBC``", "Version Number",
-    "``CONDA_OVERRIDE_LINUX``", Version Number, 
+    "``CONDA_OVERRIDE_LINUX``", Version Number,
     "``CONDA_OVERRIDE_OSX``", Version Number,
     "``CONDA_OVERRIDE_WINDOWS``", Version Number,
 
 .. note::
 
     For any custom virtual packages, the variable name is
-    ``CONDA_OVERRIDE_<NAME>`` and the override entity is the 
+    ``CONDA_OVERRIDE_<NAME>`` and the override entity is the
     ``override_entity`` variable value, either "version" or "build".
 
 ``.condarc`` setting
