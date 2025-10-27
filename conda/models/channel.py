@@ -260,11 +260,11 @@ class Channel(metaclass=ChannelType):
         with_credentials: bool = False,
         subdirs: Iterable[str] | None = None,
     ) -> list[str]:
-        """Generate URLs for this channel across specified subdirectories.
+        """Generate URLs for this channel across specified platforms.
 
         Args:
             with_credentials: If True, include authentication credentials (token, auth) in URLs.
-            subdirs: Specific subdirectories to generate URLs for. If None, uses the channel's
+            subdirs: Specific platform subdirs to generate URLs for. If None, uses the channel's
                     platform (if defined) or falls back to `context.subdirs`. If this is explicitly
                     provided, overrides any platform defined in the channel.
 
