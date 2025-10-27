@@ -649,6 +649,8 @@ or specify it on the command line with the ``--console`` option
 
    conda info --console=colors
 
+.. _override-virtual-packages:
+
 ``override_virtual_packages``: Set version or build variables for virtual packages
 ----------------------------------------------------------------------------------
 
@@ -671,8 +673,8 @@ Your ``override_virtual_packages`` dictionary could look like the following:
 .. code-block:: yaml
 
     override_virtual_packages:
-      __cuda: "11.8"
-      __archspec: "x86_64"
+      cuda: "11.8"
+      archspec: "x86_64"
 
 Conda-build configuration
 =========================
