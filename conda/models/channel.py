@@ -286,7 +286,9 @@ class Channel(metaclass=ChannelType):
         Returns:
             list[str]: List of URLs for accessing this channel's specified subdirectories.
         """
-        assert isiterable(subdirs), subdirs  # subdirs must be a non-string iterable
+        if subdirs is not None:
+            # if passed, subdirs must be a non-string iterable
+            assert isiterable(subdirs), subdirs
 
         if self.canonical_name == UNKNOWN_CHANNEL:
             return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, subdirs)
