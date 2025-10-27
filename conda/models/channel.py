@@ -265,7 +265,7 @@ class Channel(metaclass=ChannelType):
         Args:
             with_credentials: If True, include authentication credentials (token, auth) in URLs.
             subdirs: Specific subdirectories to generate URLs for. If None, uses the channel's
-                    platform (if defined) or falls back to context.subdirs. If this is explicitly
+                    platform (if defined) or falls back to `context.subdirs`. If this is explicitly
                     provided, overrides any platform defined in the channel.
 
         Examples:
@@ -286,12 +286,6 @@ class Channel(metaclass=ChannelType):
         Returns:
             list[str]: List of URLs for accessing this channel's specified subdirectories.
         """
-        # Track whether subdirs was explicitly provided.
-        subdirs_explicit = subdirs is not None
-
-        if subdirs is None:
-            subdirs = context.subdirs
-
         assert isiterable(subdirs), subdirs  # subdirs must be a non-string iterable
 
         if self.canonical_name == UNKNOWN_CHANNEL:
@@ -304,15 +298,15 @@ class Channel(metaclass=ChannelType):
         base = join_url(*base)
 
         def _platforms() -> Iterator[str]:
-            # If subdirs were explicitly passed, we use them instead of self.platform.
-            if subdirs_explicit:
+            # kwargs 'subdir' takes precedence, if passed explicitly
+            if subdirs is not None:
                 yield from subdirs
             elif self.platform:
                 yield self.platform
                 if self.platform != "noarch":
                     yield "noarch"
             else:
-                yield from subdirs
+                yield from context.subdirs
 
         bases = (join_url(base, p) for p in _platforms())
         if with_credentials and self.auth:
