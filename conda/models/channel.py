@@ -260,10 +260,36 @@ class Channel(metaclass=ChannelType):
         with_credentials: bool = False,
         subdirs: Iterable[str] | None = None,
     ) -> list[str]:
-        if subdirs is None:
-            subdirs = context.subdirs
+        """Generate URLs for this channel across specified platforms.
 
-        assert isiterable(subdirs), subdirs  # subdirs must be a non-string iterable
+        Args:
+            with_credentials: If True, include authentication credentials (token, auth) in URLs.
+            subdirs: Specific platform subdirs to generate URLs for. If None, uses the channel's
+                    platform (if defined) or falls back to `context.subdirs`. If this is explicitly
+                    provided, overrides any platform defined in the channel.
+
+        Examples:
+            >>> channel = Channel("conda-forge")
+            >>> channel.urls()  # Uses context.subdirs
+            ['https://conda.anaconda.org/conda-forge/linux-64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+            >>> channel = Channel("conda-forge/linux-aarch64")
+            >>> channel.urls()  # Uses channel's platform
+            ['https://conda.anaconda.org/conda-forge/linux-aarch64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+            >>> channel.urls(subdirs=("osx-64", "noarch"))
+            ['https://conda.anaconda.org/conda-forge/osx-64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+        Returns:
+            list[str]: List of URLs for accessing this channel's specified subdirectories.
+        """
+        if subdirs is not None and not isiterable(subdirs):
+            raise ValueError(
+                f"`subdirs` must be an iterable of strings. Got: {subdirs}."
+            )
 
         if self.canonical_name == UNKNOWN_CHANNEL:
             return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, subdirs)
@@ -275,12 +301,15 @@ class Channel(metaclass=ChannelType):
         base = join_url(*base)
 
         def _platforms() -> Iterator[str]:
-            if self.platform:
+            # kwargs 'subdir' takes precedence, if passed explicitly
+            if subdirs is not None:
+                yield from subdirs
+            elif self.platform:
                 yield self.platform
                 if self.platform != "noarch":
                     yield "noarch"
             else:
-                yield from subdirs
+                yield from context.subdirs
 
         bases = (join_url(base, p) for p in _platforms())
         if with_credentials and self.auth:
