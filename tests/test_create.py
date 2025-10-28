@@ -83,8 +83,8 @@ from conda.testing.integration import (
 from .env import support_file
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-    from typing import Callable, Literal
+    from collections.abc import Callable, Iterator
+    from typing import Literal
 
     from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
