@@ -820,10 +820,10 @@ class _Activator(metaclass=abc.ABCMeta):
         if collect_reserved_vars:
             print_reserved_vars = ", ".join(collect_reserved_vars)
             print(
-                f"WARNING: the configured environment variable(s) are reserved and "
-                f"will be ignored: {print_reserved_vars}.\n\n"
+                f"WARNING: the configured environment variable(s) for prefix '{prefix}' "
+                f"are reserved and will be ignored: {print_reserved_vars}.\n\n"
                 f"Remove the invalid configuration with `conda env config vars unset "
-                f"{' '.join(collect_reserved_vars)}`.\n",
+                f"-p {prefix} {' '.join(collect_reserved_vars)}`.\n",
                 file=sys.stderr,
             )
         return env_vars
