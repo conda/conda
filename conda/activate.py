@@ -806,19 +806,24 @@ class _Activator(metaclass=abc.ABCMeta):
                     )
                     print(f"variable {dup} duplicated", file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
+        
+        # Remove reserved environment variables and warn if they're being set
         collect_reserved_vars = []
         for reserved in RESERVED_ENV_VARS:
-            if reserved in env_vars.keys():
+            if reserved in env_vars:
+                # Only warn if the variable is actually being set (not unset)
+                if env_vars[reserved] != CONDA_ENV_VARS_UNSET_VAR:
+                    collect_reserved_vars.append(reserved)
+                # Remove from env_vars regardless
                 env_vars.pop(reserved)
-                collect_reserved_vars.append(reserved)
 
         if collect_reserved_vars:
+            print_reserved_vars = ', '.join(collect_reserved_vars)
             print(
-                f"WARNING: environment variable(s) '{' '.join(collect_reserved_vars)}' are "
-                f"configured to be set. However, these are "
-                "reserved environment variables. This configuration will be ignored.\n"
-                f"You may remove this invalid configuration by removing the "
-                f"'{' '.join(collect_reserved_vars)}' key(s) from the file `{env_vars_file}`",
+                f"WARNING: the configured environment variable(s) are reserved and "
+                f"will be ignored: {print_reserved_vars}.\n\n"
+                f"Remove the invalid configuration with `conda env config vars unset "
+                f"{' '.join(collect_reserved_vars)}`.\n",
                 file=sys.stderr,
             )
         return env_vars
