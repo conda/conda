@@ -806,7 +806,7 @@ class _Activator(metaclass=abc.ABCMeta):
                     )
                     print(f"variable {dup} duplicated", file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
-        
+
         # Remove reserved environment variables and warn if they're being set
         collect_reserved_vars = []
         for reserved in RESERVED_ENV_VARS:
@@ -818,7 +818,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 env_vars.pop(reserved)
 
         if collect_reserved_vars:
-            print_reserved_vars = ', '.join(collect_reserved_vars)
+            print_reserved_vars = ", ".join(collect_reserved_vars)
             print(
                 f"WARNING: the configured environment variable(s) are reserved and "
                 f"will be ignored: {print_reserved_vars}.\n\n"
