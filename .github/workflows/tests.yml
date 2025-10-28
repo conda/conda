@@ -112,6 +112,8 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
@@ -245,6 +247,8 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
       - name: Conda Install
         run: >
@@ -639,9 +643,8 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          # conda not preinstalled in arm64 runners
-          miniconda-version: ${{ (matrix.default-channel == 'defaults' && matrix.runs-on == 'macos-latest') && 'latest' || null }}
-          miniforge-version: ${{ (matrix.default-channel == 'conda-forge' && matrix.runs-on == 'macos-15-intel') && 'latest' || null }}
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
           architecture: ${{ runner.arch }}
 
       - name: Conda Install
