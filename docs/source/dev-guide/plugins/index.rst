@@ -57,7 +57,7 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    name = "conda-example-plugin"
    version = "1.0.0"
    description = "Example conda plugin"
-   requires-python = ">=3.9"
+   requires-python = ">=3.10"
    dependencies = ["conda"]
 
    [project.entry-points."conda"]

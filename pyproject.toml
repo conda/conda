@@ -14,7 +14,6 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -49,7 +48,7 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 name = "conda"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.scripts]
 conda = "conda.cli.main_pip:main"
@@ -129,7 +128,7 @@ ignore_missing_imports = true
 implicit_reexport = false
 no_implicit_optional = true
 pretty = true
-python_version = "3.9"
+python_version = "3.10"
 show_column_numbers = true
 show_error_code_links = true
 show_error_codes = true
