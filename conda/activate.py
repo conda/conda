@@ -466,7 +466,8 @@ class _Activator(metaclass=abc.ABCMeta):
             activate_scripts = ()
             export_path = {"PATH": new_path}
         else:
-            assert old_conda_shlvl > 1
+            if old_conda_shlvl <= 1:
+                raise ValueError("'old_conda_shlvl' must be 2 or larger")
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
