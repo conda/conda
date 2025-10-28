@@ -645,7 +645,6 @@ jobs:
           run-post: false  # skip post cleanup
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
-          architecture: ${{ runner.arch }}
 
       - name: Conda Install
         run: >
