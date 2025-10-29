@@ -1017,7 +1017,8 @@ class Resolve:
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:
-            assert len(tf) == 1
+            if len(tf) != 1:
+                raise RuntimeError
             k = next(iter(tf))
             tgroup = libs = self.trackers.get(k, [])
         else:
@@ -1201,7 +1202,8 @@ class Resolve:
         self,
         must_have: dict[str, PackageRecord],
     ) -> list[PackageRecord]:
-        assert isinstance(must_have, dict)
+        if not isinstance(must_have, dict):
+            raise TypeError("'must_have' must be a dict.")
 
         digraph = {}  # dict[str, set[dependent_package_names]]
         for package_name, prec in must_have.items():
