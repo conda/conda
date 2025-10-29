@@ -79,7 +79,7 @@ def get_major_minor_version(string: str, with_dot=True) -> str:
     #   - lib/python34/site-packages/
     # the last two are dangers because windows doesn't have version information there
     if not isinstance(string, str):
-        raise ValueError("Argument must be a string.")
+        raise TypeError("Argument must be a string.")
     if string.startswith("lib/python"):
         pythonstr = string.split("/")[1]
         start = len("python")

@@ -225,7 +225,7 @@ class EnvRawParameter(RawParameter):
         # primitive or sequential type
         if hasattr(parameter_obj, "string_delimiter"):
             if not isinstance(self._raw_value, str):
-                raise ValueError("Value is not a string.")
+                raise TypeError("Value is not a string.")
             string_delimiter = getattr(parameter_obj, "string_delimiter")
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(
@@ -1663,7 +1663,7 @@ class Configuration(metaclass=ConfigurationType):
 
         parameter = parameter_loader.type
         if not isinstance(parameter, Parameter):
-            raise ValueError(
+            raise TypeError(
                 f"Name '{parameter_name}' did not return a Parameter object."
             )
 
@@ -1721,7 +1721,7 @@ class Configuration(metaclass=ConfigurationType):
 
         parameter = parameter_loader.type
         if not isinstance(parameter, Parameter):
-            raise ValueError(
+            raise TypeError(
                 f"Name '{parameter_name}' did not return a Parameter object."
             )
 
