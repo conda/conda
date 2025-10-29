@@ -73,7 +73,8 @@ def rmtree(path):
                 # that 'path' appears in it. This is not bulletproof but it could save you (me).
                 with open(name) as contents:
                     content = contents.read()
-                    assert path in content
+                    if path not in content:
+                        raise RuntimeError(f"Path {path} not listed in file {name}")
                 comspec = os.getenv("COMSPEC")
                 CREATE_NO_WINDOW = 0x08000000
                 # It is essential that we `pass stdout=None, stderr=None, stdin=None` here because
