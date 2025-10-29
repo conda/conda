@@ -74,20 +74,19 @@ jobs:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.9', '3.13']
+        python-version: ['3.10', '3.13']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - default-channel: conda-forge
-            python-version: '3.9'
+            python-version: '3.10'
           - test-type: unit
             test-group: 3
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests\requirements-truststore.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -124,7 +123,7 @@ jobs:
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
-          ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          --file tests\requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -199,14 +198,14 @@ jobs:
       fail-fast: false
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        runs-on: [ubuntu-latest, ubuntu-24.04-arm]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        runs-on:
+          - ubuntu-latest  # linux-64
+          - ubuntu-24.04-arm  # linux-aarch64
+        python-version: ['3.10', '3.11', '3.12', '3.13']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.9'
-            default-channel: conda-forge
           - python-version: '3.10'
             default-channel: conda-forge
           - python-version: '3.11'
@@ -216,8 +215,6 @@ jobs:
           - test-type: unit
             test-group: 3
           - runs-on: ubuntu-24.04-arm
-            python-version: '3.9'
-          - runs-on: ubuntu-24.04-arm
             python-version: '3.10'
           - runs-on: ubuntu-24.04-arm
             python-version: '3.11'
@@ -226,7 +223,6 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -249,6 +245,8 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
       - name: Conda Install
         run: >
@@ -258,7 +256,7 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -318,8 +316,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.13']
-    env:
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
 
     steps:
       - name: Checkout Source
@@ -351,7 +347,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           --file tests/requirements-benchmarks.txt
-          ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -386,8 +382,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.13']
-    env:
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
 
     steps:
       - name: Checkout Source
@@ -419,7 +413,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           --file tests/requirements-typing.txt
-          ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -591,7 +585,7 @@ jobs:
     needs: changes
     if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
-    runs-on: ${{ (matrix.arch == 'osx-64' && 'macos-15-intel') || 'macos-latest' }}
+    runs-on: ${{ matrix.runs-on }}
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -599,31 +593,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & conda-forge & integration tests)
-        arch: [osx-64, osx-arm64]
-        python-version: ['3.9', '3.13']
+        # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & defaults & integration tests)
+        runs-on:
+          - macos-15-intel  # osx-64
+          - macos-latest  # osx-arm64
+        python-version: ['3.10', '3.13']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - arch: osx-64
+          - runs-on: macos-15-intel
             python-version: '3.13'
-          - arch: osx-64
-            default-channel: conda-forge
-          - arch: osx-64
-            test-type: integration
-          - arch: osx-arm64
-            python-version: '3.9'
-          - arch: osx-arm64
+          - runs-on: macos-15-intel
             default-channel: defaults
-          - arch: osx-arm64
+          - runs-on: macos-15-intel
+            test-type: integration
+          - runs-on: macos-latest
+            python-version: '3.10'
+          - runs-on: macos-latest
+            default-channel: conda-forge
+          - runs-on: macos-latest
             test-type: unit
           - test-type: unit
             test-group: 3
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      REQUIREMENTS_TRUSTSTORE: ${{ contains('3.10|3.11|3.12|3.13', matrix.python-version) && '--file tests/requirements-truststore.txt' || '' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
     steps:
@@ -646,10 +641,8 @@ jobs:
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          # conda not preinstalled in arm64 runners
-          miniconda-version: ${{ (matrix.default-channel == 'defaults' && matrix.arch == 'osx-arm64') && 'latest' || null }}
-          miniforge-version: ${{ (matrix.default-channel == 'conda-forge' && matrix.arch == 'osx-arm64') && 'latest' || null }}
-          architecture: ${{ runner.arch }}
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
       - name: Conda Install
         run: >
@@ -658,7 +651,7 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -781,15 +774,17 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: ubuntu-latest
+          - runs-on: ubuntu-latest
             subdir: linux-64
-          - runner: macos-15-intel
+          - runs-on: ubuntu-24.04-arm
+            subdir: linux-aarch64
+          - runs-on: macos-15-intel
             subdir: osx-64
-          - runner: macos-latest
+          - runs-on: macos-latest
             subdir: osx-arm64
-          - runner: windows-latest
+          - runs-on: windows-latest
             subdir: win-64
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.runs-on }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
