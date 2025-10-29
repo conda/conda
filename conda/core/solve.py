@@ -102,7 +102,9 @@ class Solver:
         self.neutered_specs = ()
         self._command = command
 
-        assert all(s in context.known_subdirs for s in self.subdirs)
+        for s in self.subdirs:
+            if s not in context.known_subdirs:
+                raise ValueError(f"Subdir {s} is not recognized.")
         self._repodata_fn = repodata_fn
         self._index = None
         self._r = None
@@ -1403,12 +1405,10 @@ def diff_for_unlink_link_precs(
 ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
-        assert hasattr(final_precs, "__getitem__"), (
-            "final_precs must support list indexing"
-        )
-        assert hasattr(final_precs, "__sub__"), (
-            "final_precs must support set difference"
-        )
+        if not hasattr(final_precs, "__getitem__"):
+            raise TypeError("final_precs must support list indexing")
+        if not hasattr(final_precs, "__sub__"):
+            raise TypeError("final_precs must support set difference")
 
     previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
     force_reinstall = (
@@ -1428,7 +1428,8 @@ def diff_for_unlink_link_precs(
     if force_reinstall:
         for spec in specs_to_add:
             prec = next((rec for rec in final_precs if spec.match(rec)), None)
-            assert prec
+            if not prec:
+                raise RuntimeError(f"Could not find record for spec {spec}")
             _add_to_unlink_and_link(prec)
 
     # add back 'noarch: python' packages to unlink and link if python version changes
