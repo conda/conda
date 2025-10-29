@@ -112,8 +112,6 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
-          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
