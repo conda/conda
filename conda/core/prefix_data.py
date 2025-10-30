@@ -666,10 +666,9 @@ class PrefixData(metaclass=PrefixDataType):
         if invalid_vars:
             env_vars_file = self.prefix_path / PREFIX_STATE_FILE
             warnings.warn(
-                f"Environment variable(s) '{' '.join(invalid_vars)}' are being modified. "
-                "These are reserved variables and the given configuration will not be applied "
-                "during environment activation. Setting these environment variables may "
-                "produce unexpected results.\n"
+                f"The given configuration will not be applied during environment activation as "
+                 "the Environment variable(s) '{' '.join(invalid_vars)}' being modified are reserved variables."
+                "Setting these environment variables may produce unexpected results.\n"
                 f"You may remove this invalid configuration by removing the "
                 f"'{' '.join(invalid_vars)}' key(s) from the file `{env_vars_file}`",
             )
