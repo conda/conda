@@ -664,13 +664,12 @@ class PrefixData(metaclass=PrefixDataType):
             if var in env_vars_names:
                 invalid_vars.append(var)
         if invalid_vars:
-            env_vars_file = self.prefix_path / PREFIX_STATE_FILE
             warnings.warn(
                 f"The given configuration will not be applied during environment activation as "
-                 "the Environment variable(s) '{' '.join(invalid_vars)}' being modified are reserved variables."
-                "Setting these environment variables may produce unexpected results.\n"
-                f"You may remove this invalid configuration by removing the "
-                f"'{' '.join(invalid_vars)}' key(s) from the file `{env_vars_file}`",
+                f"the environment variable(s) '{' '.join(invalid_vars)}' are reserved. "
+                "Setting these environment variables may produce unexpected results.\n\n"
+                f"Remove the invalid configuration with `conda env config vars unset "
+                f"-p {self.prefix_path} {' '.join(invalid_vars)}`.\n",
             )
 
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
@@ -695,7 +694,6 @@ class PrefixData(metaclass=PrefixDataType):
         return env_state_file.get("env_vars")
 
     def unset_environment_env_vars(self, env_vars: list[str]) -> dict[str, str] | None:
-        self._ensure_no_reserved_env_vars(env_vars)
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
