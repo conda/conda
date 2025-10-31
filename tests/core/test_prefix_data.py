@@ -373,10 +373,9 @@ def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
     assert env_vars_one == env_vars
 
 
-def test_dont_set_reserved_env_vars(prefix_data: PrefixData):
-    with pytest.warns(
-        UserWarning, match=r"Environment variable\(s\) \'PATH\' are being modified.+"
-    ):
+def test_warn_setting_reserved_env_vars(prefix_data: PrefixData):
+    warning_message = r"The given configuration will not be applied during environment activation as the environment variable\(s\) \'PATH\' are reserved.+"
+    with pytest.warns(UserWarning, match=warning_message):
         prefix_data.set_environment_env_vars({"PATH": "very naughty"})
 
     # Ensure the PATH is still set in the env vars
@@ -384,12 +383,12 @@ def test_dont_set_reserved_env_vars(prefix_data: PrefixData):
     assert env_vars.get("PATH") == "very naughty"
 
 
-def test_dont_unset_reserved_env_vars(prefix_data: PrefixData):
-    with pytest.warns(
-        UserWarning, match=r"Environment variable\(s\) \'PATH\' are being modified.+"
-    ):
-        prefix_data.unset_environment_env_vars(["PATH"])
+def test_unset_reserved_env_vars(prefix_data: PrefixData):
+    # Setup prefix data with reserved env var
+    with pytest.warns(UserWarning):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
 
+    prefix_data.unset_environment_env_vars(["PATH"])
     # Ensure that the PATH is fully removed from the state tile
     env_state_file = prefix_data._get_environment_state_file()
     assert "PATH" not in env_state_file.get("env_vars", {})
