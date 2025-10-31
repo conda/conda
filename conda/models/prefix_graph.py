@@ -304,7 +304,8 @@ class PrefixGraph:
         if menuinst_node:
             # add menuinst as a parent if python is a parent and the node
             # isn't a parent of menuinst
-            assert python_node is not None
+            if python_node is None:
+                raise RuntimeError("Found menuinst without Python in prefix graph.")
             menuinst_parents = graph[menuinst_node]
             for node, parents in graph.items():
                 if python_node in parents and node not in menuinst_parents:

@@ -606,7 +606,8 @@ def _read_channel_configuration(
     # Step 6. not-otherwise-specified file://-type urls
     if host is None:
         # this should probably only happen with a file:// type url
-        assert port is None
+        if port is not None:
+            raise ValueError("Port should not be set if host is not set either.")
         location, name = test_url.rsplit("/", 1)
         if not location:
             location = "/"
@@ -653,7 +654,8 @@ def parse_conda_channel_url(url: str) -> Channel:
 
     # if we came out with no channel_location or channel_name, we need to figure it out
     # from host, port, path
-    assert channel_location is not None or channel_name is not None
+    if channel_location is None and channel_name is None:
+        raise ValueError("channel_location and channel_name cannot both be None")
     # These two fields might have URL-encodable characters that we should decode
     # We don't decode the full URL because some %XX values might be part of some auth values
     if channel_name:

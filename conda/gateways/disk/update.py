@@ -155,7 +155,8 @@ def touch(path, mkdir=False, sudo_safe=False):
                 else:
                     mkdir_p(dirpath)
             else:
-                assert isdir(dirname(path))
+                if not isdir(dirname(path)):
+                    raise OSError("Target path is not a directory.")
             with open(path, "a"):
                 pass
             # This chown call causes a false positive PermissionError to be
