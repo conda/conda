@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Remove `return` from `try-finally` per [PEP-765](https://peps.python.org/pep-0765/). (#15370)
+* Remove `return` from `try-finally` per [PEP-765](https://peps.python.org/pep-0765/). (#15370 via #15371)
 
 ### Deprecations
 
