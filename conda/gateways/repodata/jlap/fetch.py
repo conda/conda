@@ -480,7 +480,7 @@ def request_url_jlap_state(
                 )
 
             if full_download:
-                raise RecursionError()  # pragma: no cover
+                raise RecursionError()
 
             return request_url_jlap_state(
                 url,

@@ -102,9 +102,8 @@ class Solver:
         self.neutered_specs = ()
         self._command = command
 
-        for s in self.subdirs:
-            if s not in context.known_subdirs:
-                raise ValueError(f"Subdir {s} is not recognized.")
+        if unknown_subdirs := set(self.subdirs) - context.known_subdirs:
+            raise ValueError(f"Unknown subdir(s):{dashlist(sorted(unknown_subdirs))}")
         self._repodata_fn = repodata_fn
         self._index = None
         self._r = None
