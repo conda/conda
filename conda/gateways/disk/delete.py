@@ -203,21 +203,19 @@ def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     to deleting a directory.
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
-    try:
-        path = abspath(path)
-        log.log(TRACE, "rm_rf %s", path)
-        if isdir(path) and not islink(path):
-            backoff_rmdir(path)
-        elif lexists(path):
-            unlink_or_rename_to_trash(path)
-        else:
-            log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
-    finally:
-        if lexists(path):
-            log.info("rm_rf failed for %s", path)
-            return False
-    if isdir(path):
-        delete_trash(path)
+    path = abspath(path)
+    log.log(TRACE, "rm_rf %s", path)
+    if isdir(path) and not islink(path):
+        backoff_rmdir(path)
+    elif lexists(path):
+        unlink_or_rename_to_trash(path)
+    else:
+        log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
+
+    if lexists(path):
+        log.info("rm_rf failed for %s", path)
+        return False
+
     if clean_empty_parents:
         remove_empty_parent_paths(path)
     return True
