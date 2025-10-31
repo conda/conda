@@ -405,9 +405,10 @@ class Environment:
         if from_history:
             requested_packages = cls.from_history(prefix)
             conda_precs = []  # No conda packages to process for channel extraction
+            explicit_packages = list(prefix_data.iter_records())
         else:
             # Use PrefixData's package extraction methods
-            conda_precs = prefix_data.get_conda_packages()
+            conda_precs = explicit_packages = prefix_data.get_conda_packages()
             python_precs = prefix_data.get_python_packages()
 
             # Create MatchSpecs for conda packages
@@ -431,9 +432,6 @@ class Environment:
                     for python_prec in python_precs
                 ]
                 external_packages["pip"] = python_deps
-
-        # Always populate explicit_packages from prefix data (for explicit export format)
-        explicit_packages = list(prefix_data.iter_records())
 
         # Build channels list
         environment_channels = list(channels or [])
