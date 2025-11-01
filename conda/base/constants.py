@@ -184,6 +184,9 @@ CONDA_LOGS_DIR: Final = ".logs"
 UNKNOWN_CHANNEL: Final = "<unknown>"
 REPODATA_FN: Final = "repodata.json"
 
+#: Name of file where environment paths are listed
+ENVIRONMENTS_FN = "environments.txt"
+
 #: Default name of the notices file on the server we look for
 NOTICES_FN: Final = "notices.json"
 
