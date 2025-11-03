@@ -107,13 +107,12 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
         context=context, content={}, warning_handler=lambda msg: warnings.append(msg)
     )
     # undefined
-    assert config.get_key("changeps1") == {}
+    assert config.get_key("changeps1") == ("changeps1", MISSING)
     assert not warnings
 
     # unknown
     warnings = []
-    value = config.get_key("unknown")
-    assert value is MISSING
+    assert config.get_key("unknown") == ("unknown", MISSING)
     assert warnings == ["Unknown key: 'unknown'"]
 
     # defined
@@ -122,13 +121,13 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
         content={"changeps1": True, "auto_stack": 5, "channels": ["foo", "bar"]},
     )
     warnings = []
-    assert config.get_key("changeps1")
+    assert config.get_key("changeps1") == ("changeps1", True)
     assert not warnings
 
-    assert config.get_key("auto_stack") == 5
+    assert config.get_key("auto_stack") == ("auto_stack", 5)
     assert not warnings
 
-    assert config.get_key("channels") == ["foo", "bar"]
+    assert config.get_key("channels") == ("channels", ["foo", "bar"])
     assert not warnings
 
 

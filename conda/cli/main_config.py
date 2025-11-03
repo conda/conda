@@ -7,6 +7,7 @@ Allows for programmatically interacting with conda's configuration files (e.g., 
 
 from __future__ import annotations
 
+import os
 import sys
 from argparse import SUPPRESS
 from collections.abc import Mapping, Sequence
@@ -25,7 +26,6 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
 
 if TYPE_CHECKING:
-    import os
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from collections.abc import Callable
     from typing import Any
@@ -672,7 +672,7 @@ class CondaRC:
     def get_key(
         self,
         key: str,
-    ) -> Any:
+    ) -> tuple[str, Any]:
         """
         Get a configuration value by key.
 
@@ -682,9 +682,10 @@ class CondaRC:
         key_parts = key.split(".")
 
         if not self.key_exists(key):
-            return MISSING
+            return key, MISSING
 
         if alias := self.context.name_for_alias(key):
+            key = alias
             key_parts = alias.split(".")
 
         sub_config = self.content
@@ -693,8 +694,10 @@ class CondaRC:
                 sub_config = sub_config[part]
         except KeyError:
             pass
+        else:
+            return key, sub_config
 
-        return sub_config
+        return key, MISSING
 
     def set_key(self, key: str, item: Any) -> None:
         """
@@ -1059,14 +1062,21 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         if context.json
         else stderr_write(msg),
     )
-    add_enum_representers()
+
+    # read existing condarc
+    if os.path.exists(rc_path):
+        rc_config.read()
+    elif os.path.exists(sys_rc_path):
+        # In case the considered rc file doesn't exist, fall back to the system rc
+        rc_config.read(sys_rc_path)
 
     # Get
     if args.get is not None:
         context.validate_all()
         for key in args.get or sorted(rc_config.content.keys()):
-            if (value := rc_config.get_key(key)) is not MISSING:
-                get_key_pairs.append((rc_config.context.name_for_alias(key), value))
+            name, value = rc_config.get_key(key)
+            if value is not MISSING:
+                get_key_pairs.append((name, value))
 
     if args.stdin:
         content = timeout(5, sys.stdin.read)
