@@ -251,25 +251,30 @@ jobs:
       - name: Cleanup Old Conda Installation (Windows)
         if: ${{ inputs.runner_os == 'Windows' }}
         shell: powershell
-        env:
-          # Clear CONDA environment variable to ensure we use default installation
-          CONDA: ''
         run: |
           # Remove any leftover incomplete installation at D:\conda if it exists
           if (Test-Path "D:\conda") {
             Write-Host "Removing leftover D:\conda directory..."
             Remove-Item -Path "D:\conda" -Recurse -Force -ErrorAction SilentlyContinue
           }
-          # Clear CONDA env var explicitly
-          $env:CONDA = ''
+          # Clear CONDA env var from all scopes to prevent action from using it
+          # This is critical: setup-miniconda reads CONDA at module load time
+          if (Test-Path env:CONDA) {
+            Remove-Item env:CONDA -ErrorAction SilentlyContinue
+          }
           [Environment]::SetEnvironmentVariable("CONDA", $null, "Process")
-          Write-Host "CONDA env var cleared"
+          [Environment]::SetEnvironmentVariable("CONDA", $null, "User")
+          # Also unset from GitHub Actions env file to be thorough
+          if (Test-Path $env:GITHUB_ENV) {
+            $content = Get-Content $env:GITHUB_ENV -ErrorAction SilentlyContinue | Where-Object { $_ -notmatch "^CONDA=" }
+            $content | Set-Content $env:GITHUB_ENV -ErrorAction SilentlyContinue
+          }
+          Write-Host "CONDA env var cleared from all scopes"
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
-        env:
-          # Explicitly clear CONDA to prevent action from using D:\conda
-          CONDA: ''
+        # Note: We cannot set CONDA: '' here because the action reads process.env["CONDA"]
+        # at module load time (in constants.ts), before our env override takes effect
         with:
           condarc-file: ${{ inputs.checkout_conda && format('{0}/.github/condarc-{1}', inputs.checkout_conda_path, inputs.default_channel) || format('.github/condarc-{0}', inputs.default_channel) }}
           run-post: false
