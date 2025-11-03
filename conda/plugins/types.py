@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from requests.auth import AuthBase
 
@@ -25,9 +26,9 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, ClassVar, Literal, TypeAlias
+    from typing import Any, ClassVar, Literal, TypeAlias
 
     from ..auxlib import _Null
     from ..common.configuration import Parameter
@@ -363,7 +364,9 @@ class ReporterRendererBase(ABC):
         """
 
     @abstractmethod
-    def envs_list(self, data, **kwargs) -> str:
+    def envs_list(
+        self, data: Iterable[str] | dict[str, dict[str, str | bool | None]], **kwargs
+    ) -> str:
         """
         Render a list of environments
         """

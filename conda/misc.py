@@ -359,7 +359,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
 
 def _get_best_prec_match(precs):
-    assert precs
+    if not precs:
+        raise ValueError("'precs' cannot be empty.")
     for channel in context.channels:
         channel_matcher = ChannelMatch(channel)
         prec_matches = tuple(

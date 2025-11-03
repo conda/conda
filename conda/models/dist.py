@@ -252,7 +252,8 @@ class Dist(Entity, metaclass=DistType):
 
     @classmethod
     def from_url(cls, url):
-        assert is_url(url), url
+        if not is_url(url):
+            raise ValueError("'{url}' does not seem to be a valid URL")
         if (
             not any(url.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
             and "::" not in url
@@ -297,19 +298,35 @@ class Dist(Entity, metaclass=DistType):
         return self.channel, self.dist_name
 
     def __lt__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() < other.__key__()
 
     def __gt__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() > other.__key__()
 
     def __le__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() <= other.__key__()
 
     def __ge__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() >= other.__key__()
 
     def __hash__(self):
@@ -326,12 +343,15 @@ class Dist(Entity, metaclass=DistType):
     # ############ conda-build compatibility ################
 
     def split(self, sep=None, maxsplit=-1):
-        assert sep == "::"
+        if sep != "::":
+            raise ValueError("'sep' can only be '::'")
         return [self.channel, self.dist_name] if self.channel else [self.dist_name]
 
     def rsplit(self, sep=None, maxsplit=-1):
-        assert sep == "-"
-        assert maxsplit == 2
+        if sep != "-":
+            raise ValueError("'sep' can only be '-'")
+        if maxsplit != 2:
+            raise ValueError("'maxsplit' can only be 2")
         name = f"{self.channel}::{self.quad[0]}" if self.channel else self.quad[0]
         return name, self.quad[1], self.quad[2]
 

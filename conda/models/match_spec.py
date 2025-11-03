@@ -391,7 +391,8 @@ class MatchSpec(metaclass=MatchSpecType):
     def conda_build_form(self):
         builder = []
         name = self.get_exact_value("name")
-        assert name
+        if not name:
+            raise ValueError(".conda_build_form() requires a non-empty spec name.")
         builder.append(name)
 
         build = self.get_raw_value("build")
@@ -516,7 +517,8 @@ class MatchSpec(metaclass=MatchSpecType):
         val = self.get_raw_value("fn") or self.get_raw_value("url")
         if val:
             val = basename(val)
-        assert val
+        if not val:
+            raise ValueError(".fn cannot be empty.")
         return val
 
     @classmethod

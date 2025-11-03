@@ -189,6 +189,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "conda_version",
         "default_prefix",
         "envs",
+        "envs_details",
         "envs_dirs",
         "pkgs_dirs",
         "platform",
@@ -199,6 +200,22 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "solver",
     } <= set(parsed)
 
+    # assert all envs_details keys are present
+    keys_and_types = {
+        "name": str,
+        "created": (str, type(None)),
+        "last_modified": str,
+        "active": bool,
+        "base": bool,
+        "frozen": bool,
+        "writable": bool,
+    }
+    for prefix, details in parsed["envs_details"].items():
+        assert isinstance(prefix, str)
+        assert set(keys_and_types.keys()) == set(details.keys())
+        for key, type_ in keys_and_types.items():
+            assert isinstance(details[key], type_)
+
 
 # conda info --envs --json
 def test_info_envs_json(conda_cli: CondaCLIFixture):
@@ -207,11 +224,17 @@ def test_info_envs_json(conda_cli: CondaCLIFixture):
     assert isinstance(parsed, dict)
 
     # assert only 'envs' is present
-    assert {"envs"} == set(parsed)
+    assert {"envs", "envs_details"} == set(parsed)
     assert parsed["envs"]
     assert isinstance(parsed["envs"], list)
     assert isinstance(parsed["envs"][0], str)
     assert isdir(parsed["envs"][0])
+    assert parsed["envs_details"]
+    assert isinstance(parsed["envs_details"], dict)
+    first_env = next(iter(parsed["envs_details"].keys()))
+    assert isdir(first_env)
+    first_envs_details = parsed["envs_details"][first_env]
+    assert isinstance(first_envs_details, dict)
 
 
 # conda info --license
@@ -238,7 +261,7 @@ def test_iter_info_components() -> None:
         context=SimpleNamespace(json=False),
     )
     assert isinstance(components, Iterable)
-    assert tuple(components) == ("base", "channels", "envs", "system")
+    assert tuple(components) == ("base", "channels", "envs", "envs_details", "system")
 
 
 def test_get_info_components() -> None:
@@ -254,4 +277,4 @@ def test_get_info_components() -> None:
             context=SimpleNamespace(json=False),
         )
     assert isinstance(components, set)
-    assert components == {"base", "channels", "envs", "system"}
+    assert components == {"base", "channels", "envs", "envs_details", "system"}
