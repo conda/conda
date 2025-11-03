@@ -259,14 +259,15 @@ jobs:
 
       - name: Conda Install
         working-directory: ${{ inputs.checkout_conda && inputs.checkout_conda_path || inputs.working_directory }}
-        # Use default shell for this step (shell input is only for defaults)
+        shell: bash -el {0}
         run: |
+          set -euxo pipefail
           conda install --yes python=${{ inputs.python_version }} \
             --file tests/requirements.txt \
-            ${{ inputs.requirements_os_specific && format('--file tests/requirements-{0}.txt', inputs.runner_os) || '' }} \
             --file tests/requirements-ci.txt \
             --file tests/requirements-s3.txt \
             --file tests/requirements-truststore.txt \
+            ${{ inputs.requirements_os_specific && format('--file tests/requirements-{0}.txt', inputs.runner_os) || '' }} \
             ${{ inputs.checkout_other && inputs.requirements_other_dev != '' && format('--file ../{0}/{1}', inputs.checkout_other_path, inputs.requirements_other_dev) || '' }} \
             ${{ inputs.test_type == 'conda-libmamba-solver' && inputs.requirements_other_tests != '' && format('--file ../{0}/{1}', inputs.checkout_other_path, inputs.requirements_other_tests) || '' }}
 
@@ -322,17 +323,28 @@ jobs:
       - name: Run Upstream Tests
         if: ${{ inputs.test_type != 'conda-libmamba-solver' }}
         working-directory: ${{ inputs.checkout_conda && inputs.checkout_conda_path || inputs.working_directory }}
-        # Use default shell (configured via defaults.run.shell)
+        shell: bash -el {0}
         run: |
-          python -m pytest \
-            --cov=${{ inputs.pytest_cov_package }} \
-            ${{ inputs.runner_os == 'Windows' && format('--basetemp={0}', runner.temp) || '' }} \
-            --durations-path=durations/${{ inputs.runner_os }}.json \
-            --group=${{ inputs.test_group }} \
-            --splits=${{ env.PYTEST_SPLITS }} \
-            ${{ env.PYTEST_RERUNS != '0' && format('--reruns={0}', env.PYTEST_RERUNS) || '' }} \
-            -m "${{ env.PYTEST_MARKER }}" \
-            ${{ inputs.pytest_additional_args }}
+          set -euxo pipefail
+          pytest_args=(
+            --cov=${{ inputs.pytest_cov_package }}
+            --durations-path=durations/${{ inputs.runner_os }}.json
+            --group=${{ inputs.test_group }}
+            --splits=${{ env.PYTEST_SPLITS }}
+            -m "${{ env.PYTEST_MARKER }}"
+          )
+          if [ "${{ inputs.runner_os }}" = "Windows" ]; then
+            pytest_args+=(--basetemp=${{ runner.temp }})
+          fi
+          if [ "${{ env.PYTEST_RERUNS }}" != "0" ]; then
+            pytest_args+=(--reruns=${{ env.PYTEST_RERUNS }})
+          fi
+          if [ -n "${{ inputs.pytest_additional_args }}" ]; then
+            # Split additional args and add them to the array
+            IFS=' ' read -ra ADDL_ARGS <<< "${{ inputs.pytest_additional_args }}"
+            pytest_args+=("${ADDL_ARGS[@]}")
+          fi
+          python -m pytest "${pytest_args[@]}"
 
       - name: Run conda-libmamba-solver Tests
         if: ${{ inputs.test_type == 'conda-libmamba-solver' }}
