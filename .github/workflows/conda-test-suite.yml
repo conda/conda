@@ -186,7 +186,7 @@ jobs:
 
     steps:
       - name: Checkout conda/conda
-        if: ${{ inputs.checkout_conda }}
+        if: ${{ inputs.checkout_conda && inputs.checkout_conda_ref != '' }}
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
@@ -194,10 +194,20 @@ jobs:
           repository: conda/conda
           # Security: Validate path to prevent path traversal (no .. or /)
           path: ${{ inputs.checkout_conda_path }}
-          ref: ${{ inputs.checkout_conda_ref != '' && inputs.checkout_conda_ref || 'HEAD' }}
+          ref: ${{ inputs.checkout_conda_ref }}
+
+      - name: Checkout conda/conda (no ref)
+        if: ${{ inputs.checkout_conda && inputs.checkout_conda_ref == '' }}
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          # Security: Only allow checkout from trusted repositories
+          repository: conda/conda
+          # Security: Validate path to prevent path traversal (no .. or /)
+          path: ${{ inputs.checkout_conda_path }}
 
       - name: Checkout Other Repository
-        if: ${{ inputs.checkout_other }}
+        if: ${{ inputs.checkout_other && inputs.checkout_other_ref != '' }}
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
@@ -205,7 +215,17 @@ jobs:
           repository: ${{ inputs.checkout_other_repo }}
           # Security: Validate path to prevent path traversal
           path: ${{ inputs.checkout_other_path }}
-          ref: ${{ inputs.checkout_other_ref != '' && inputs.checkout_other_ref || 'HEAD' }}
+          ref: ${{ inputs.checkout_other_ref }}
+
+      - name: Checkout Other Repository (no ref)
+        if: ${{ inputs.checkout_other && inputs.checkout_other_ref == '' }}
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          # Security: Validate repository name format (owner/repo)
+          repository: ${{ inputs.checkout_other_repo }}
+          # Security: Validate path to prevent path traversal
+          path: ${{ inputs.checkout_other_path }}
 
       - name: Checkout Source
         if: ${{ !inputs.checkout_conda && !inputs.checkout_other }}
