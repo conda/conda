@@ -250,7 +250,8 @@ jobs:
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
         with:
           condarc-file: ${{ inputs.checkout_conda && format('{0}/.github/condarc-{1}', inputs.checkout_conda_path, inputs.default_channel) || format('.github/condarc-{0}', inputs.default_channel) }}
-          run-post: false
+          # On Windows with custom installation directory, we need run-post: true for proper initialization
+          run-post: ${{ inputs.runner_os == 'Windows' && 'true' || 'false' }}
           pkgs-dirs: ${{ inputs.runner_os == 'Windows' && 'D:\\conda_pkgs_dir' || null }}
           installation-dir: ${{ inputs.runner_os == 'Windows' && 'D:\\conda' || null }}
           miniconda-version: ${{ inputs.miniconda_version != '' && inputs.miniconda_version || (inputs.default_channel == 'defaults' && 'latest' || null) }}
