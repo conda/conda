@@ -261,7 +261,7 @@ jobs:
         working-directory: ${{ inputs.checkout_conda && inputs.checkout_conda_path || inputs.working_directory }}
         shell: bash -el {0}
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           conda install --yes python=${{ inputs.python_version }} \
             --file tests/requirements.txt \
             --file tests/requirements-ci.txt \
@@ -325,7 +325,7 @@ jobs:
         working-directory: ${{ inputs.checkout_conda && inputs.checkout_conda_path || inputs.working_directory }}
         shell: bash -el {0}
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           pytest_args=(
             --cov=${{ inputs.pytest_cov_package }}
             --durations-path=durations/${{ inputs.runner_os }}.json
