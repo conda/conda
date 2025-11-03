@@ -243,7 +243,9 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           enableCrossOsArchive: ${{ inputs.runner_os == 'Windows' && 'true' || 'false' }}
-          path: ${{ inputs.runner_os == 'Windows' && 'D:\\conda_pkgs_dir' || '~/conda_pkgs_dir' }}
+          # Use default conda package cache location (setup-miniconda will use default pkgs-dirs)
+          # This avoids the action inferring installation directory from pkgs-dirs path
+          path: ${{ inputs.runner_os == 'Windows' && format('{0}\\conda_pkgs_dir', env.USERPROFILE) || '~/conda_pkgs_dir' }}
           key: cache-${{ env.HASH }}
 
       - name: Cleanup Old Conda Installation (Windows)
@@ -255,19 +257,24 @@ jobs:
         run: |
           # Remove any leftover incomplete installation at D:\conda if it exists
           if (Test-Path "D:\conda") {
+            Write-Host "Removing leftover D:\conda directory..."
             Remove-Item -Path "D:\conda" -Recurse -Force -ErrorAction SilentlyContinue
           }
-          # Also clear CONDA env var in this step (though env: should handle it)
+          # Clear CONDA env var explicitly
           $env:CONDA = ''
+          [Environment]::SetEnvironmentVariable("CONDA", $null, "Process")
+          Write-Host "CONDA env var cleared"
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        env:
+          # Explicitly clear CONDA to prevent action from using D:\conda
+          CONDA: ''
         with:
           condarc-file: ${{ inputs.checkout_conda && format('{0}/.github/condarc-{1}', inputs.checkout_conda_path, inputs.default_channel) || format('.github/condarc-{0}', inputs.default_channel) }}
           run-post: false
-          # Use custom pkgs-dirs for caching, but omit installation-dir to use default on Windows
-          # to avoid issues with the action not finding the base environment
-          pkgs-dirs: ${{ inputs.runner_os == 'Windows' && 'D:\\conda_pkgs_dir' || null }}
+          # Don't specify pkgs-dirs or installation-dir - use defaults to avoid path inference issues
+          # The action may infer installation directory from pkgs-dirs path
           miniconda-version: ${{ inputs.miniconda_version != '' && inputs.miniconda_version || (inputs.default_channel == 'defaults' && 'latest' || null) }}
           miniforge-version: ${{ inputs.miniforge_version != '' && inputs.miniforge_version || (inputs.default_channel == 'conda-forge' && 'latest' || null) }}
           architecture: ${{ inputs.architecture != '' && inputs.architecture || null }}
