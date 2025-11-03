@@ -246,6 +246,20 @@ jobs:
           path: ${{ inputs.runner_os == 'Windows' && 'D:\\conda_pkgs_dir' || '~/conda_pkgs_dir' }}
           key: cache-${{ env.HASH }}
 
+      - name: Cleanup Old Conda Installation (Windows)
+        if: ${{ inputs.runner_os == 'Windows' }}
+        shell: powershell
+        env:
+          # Clear CONDA environment variable to ensure we use default installation
+          CONDA: ''
+        run: |
+          # Remove any leftover incomplete installation at D:\conda if it exists
+          if (Test-Path "D:\conda") {
+            Remove-Item -Path "D:\conda" -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          # Also clear CONDA env var in this step (though env: should handle it)
+          $env:CONDA = ''
+
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
         with:
