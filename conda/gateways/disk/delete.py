@@ -205,6 +205,8 @@ def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     """
     path = abspath(path)
     log.log(TRACE, "rm_rf %s", path)
+
+    # attempt to delete the path
     if isdir(path) and not islink(path):
         backoff_rmdir(path)
     elif lexists(path):
@@ -212,12 +214,15 @@ def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     else:
         log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
 
+    # post-processing to clean up trash and empty parent paths
+    if isdir(path) and not islink(path):
+        delete_trash(path)
+    if clean_empty_parents:
+        remove_empty_parent_paths(path)
+
     if lexists(path):
         log.info("rm_rf failed for %s", path)
         return False
-
-    if clean_empty_parents:
-        remove_empty_parent_paths(path)
     return True
 
 
