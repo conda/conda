@@ -69,7 +69,7 @@ jobs:
     needs: changes
     if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
-    runs-on: windows-latest
+    uses: ./.github/workflows/conda-test-suite.yml
     strategy:
       fail-fast: false
       matrix:
@@ -83,105 +83,21 @@ jobs:
             python-version: '3.10'
           - test-type: unit
             test-group: 3
-    env:
-      ErrorActionPreference: Stop  # powershell exit immediately on error
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
-
-    steps:
-      - name: Checkout Source
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          fetch-depth: 0
-
-      - name: Hash + Timestamp
-        shell: bash  # use bash to run date command
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-
-      - name: Cache Conda
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          # Use faster GNU tar for all runners
-          enableCrossOsArchive: true
-          path: D:\conda_pkgs_dir
-          key: cache-${{ env.HASH }}
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
-        with:
-          condarc-file: .github\condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
-          pkgs-dirs: D:\conda_pkgs_dir
-          installation-dir: D:\conda
-
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests\requirements.txt
-          --file tests\requirements-${{ runner.os }}.txt
-          --file tests\requirements-ci.txt
-          --file tests\requirements-s3.txt
-          --file tests\requirements-truststore.txt
-          python=${{ matrix.python-version }}
-
-      - name: Conda Info
-        # view test env info (not base)
-        run: python -m conda info --verbose
-
-      - name: Conda Config
-        run: conda config --show-sources
-
-      - name: Conda List
-        run: conda list --show-channel-urls
-
-      - name: Setup PowerShell
-        # for tests/shell, so only necessary for integration tests
-        if: matrix.test-type == 'integration'
-        run: |
-          $PWSH_STABLE = "$env:LOCALAPPDATA\Microsoft\powershell"
-          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Destination `"$PWSH_STABLE`""
-          $PWSH_PREVIEW = "$env:LOCALAPPDATA\Microsoft\powershell-preview"
-          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Preview -Destination `"$PWSH_PREVIEW`""
-          "PWSHPATH=$PWSH_STABLE;$PWSH_PREVIEW" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: PowerShell Info
-        # for tests/shell, so only necessary for integration tests
-        if: matrix.test-type == 'integration'
-        run: |
-          Get-Command -All powershell
-          "$env:PWSHPATH" -split ";" | ForEach-Object { Get-Command -All "$_\pwsh" }
-
-      - name: Run Tests
-        # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
-        # keep the test directories shorter
-        run: >
-          python -m pytest
-          --cov=conda
-          --basetemp=${{ runner.temp }}
-          --durations-path=durations\${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
-
-      - name: Upload Coverage
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
-          token: ${{ secrets.CODECOV_TOKEN }}  # required
-
-      - name: Upload Test Results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: test-results-${{ env.HASH }}
-          include-hidden-files: true
-          path: |
-            .coverage
-            durations\${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1  # temporary, combined in aggregate below
+    with:
+      runs_on: windows-latest
+      runner_os: Windows
+      shell: cmd /C call
+      checkout_conda: false
+      test_type: ${{ matrix.test-type }}
+      test_group: ${{ matrix.test-group }}
+      python_version: ${{ matrix.python-version }}
+      default_channel: ${{ matrix.default-channel }}
+      conda_test_solvers: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      pytest_reruns: '0'
+      pytest_cov_package: conda
+      pytest_additional_args: ''
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # linux test suite
   linux:
@@ -189,11 +105,7 @@ jobs:
     needs: changes
     if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
-    runs-on: ${{ matrix.runs-on }}
-    defaults:
-      run:
-        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+    uses: ./.github/workflows/conda-test-suite.yml
     strategy:
       fail-fast: false
       matrix:
@@ -220,86 +132,21 @@ jobs:
             python-version: '3.11'
           - runs-on: ubuntu-24.04-arm
             python-version: '3.12'
-    env:
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
-
-    steps:
-      - name: Checkout Source
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          fetch-depth: 0
-
-      - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-
-      - name: Cache Conda
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/conda_pkgs_dir
-          key: cache-${{ env.HASH }}
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
-        with:
-          condarc-file: .github/condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
-          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
-          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
-
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
-          python=${{ matrix.python-version }}
-
-      - name: Conda Info
-        # view test env info (not base)
-        run: python -m conda info --verbose
-
-      - name: Conda Config
-        run: conda config --show-sources
-
-      - name: Conda List
-        run: conda list --show-channel-urls
-
-      - name: Setup Shells
-        # for tests/shell, so only necessary for integration tests
-        if: matrix.test-type == 'integration'
-        run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
-
-      - name: Run Tests
-        run: >
-          python -m pytest
-          --cov=conda
-          --durations-path=durations/${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
-
-      - name: Upload Coverage
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
-          token: ${{ secrets.CODECOV_TOKEN }}  # required
-
-      - name: Upload Test Results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: test-results-${{ env.HASH }}
-          include-hidden-files: true
-          path: |
-            .coverage
-            durations/${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1  # temporary, combined in aggregate below
+    with:
+      runs_on: ${{ matrix.runs-on }}
+      runner_os: Linux
+      shell: bash -el {0}
+      checkout_conda: false
+      test_type: ${{ matrix.test-type }}
+      test_group: ${{ matrix.test-group }}
+      python_version: ${{ matrix.python-version }}
+      default_channel: ${{ matrix.default-channel }}
+      conda_test_solvers: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
+      pytest_reruns: '0'
+      pytest_cov_package: conda
+      pytest_additional_args: ''
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # linux benchmarks
   linux-benchmarks:
@@ -585,11 +432,7 @@ jobs:
     needs: changes
     if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
 
-    runs-on: ${{ matrix.runs-on }}
-    defaults:
-      run:
-        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+    uses: ./.github/workflows/conda-test-suite.yml
     strategy:
       fail-fast: false
       matrix:
@@ -616,85 +459,22 @@ jobs:
             test-type: unit
           - test-type: unit
             test-group: 3
-    env:
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
-
-    steps:
-      - name: Checkout Source
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          fetch-depth: 0
-
-      - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-
-      - name: Cache Conda
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/conda_pkgs_dir
-          key: cache-${{ env.HASH }}
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
-        with:
-          condarc-file: .github/condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
-          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
-          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
-
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
-          python=${{ matrix.python-version }}
-
-      - name: Conda Info
-        # view test env info (not base)
-        run: python -m conda info --verbose
-
-      - name: Conda Config
-        run: conda config --show-sources
-
-      - name: Conda List
-        run: conda list --show-channel-urls
-
-      - name: Setup Shells
-        # for tests/shell, so only necessary for integration tests
-        if: matrix.test-type == 'integration'
-        run: brew update && brew install fish xonsh
-
-      - name: Run Tests
-        run: >
-          python -m pytest
-          --cov=conda
-          --durations-path=durations/${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
-
-      - name: Upload Coverage
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
-          token: ${{ secrets.CODECOV_TOKEN }}  # required
-
-      - name: Upload Test Results
-        if: '!cancelled()'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: test-results-${{ env.HASH }}
-          include-hidden-files: true
-          path: |
-            .coverage
-            durations/${{ runner.os }}.json
-            test-report.xml
-          retention-days: 1  # temporary, combined in aggregate below
+    with:
+      runs_on: ${{ matrix.runs-on }}
+      runner_os: macOS
+      shell: bash -el {0}
+      checkout_conda: false
+      test_type: ${{ matrix.test-type }}
+      test_group: ${{ matrix.test-group }}
+      python_version: ${{ matrix.python-version }}
+      default_channel: ${{ matrix.default-channel }}
+      conda_test_solvers: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      pytest_reruns: '0'
+      pytest_cov_package: conda
+      pytest_additional_args: ''
+      requirements_os_specific: false
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # aggregate and upload
   aggregate:

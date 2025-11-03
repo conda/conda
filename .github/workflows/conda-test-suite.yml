@@ -1,0 +1,345 @@
+name: Conda Test Suite
+
+on:
+  workflow_call:
+    inputs:
+      # Runner configuration
+      runs_on:
+        description: 'Runner to use (e.g., ubuntu-latest, windows-latest, macos-latest)'
+        required: true
+        type: string
+      runner_os:
+        description: 'Runner OS (Linux, Windows, macOS)'
+        required: true
+        type: string
+      shell:
+        description: 'Shell to use for steps'
+        required: false
+        type: string
+        default: 'bash -el {0}'
+      # Repository checkout configuration
+      checkout_conda:
+        description: 'Whether to checkout conda/conda repository'
+        required: false
+        type: boolean
+        default: false
+      checkout_conda_path:
+        description: 'Path where conda repo should be checked out'
+        required: false
+        type: string
+        default: 'conda'
+      checkout_conda_ref:
+        description: 'Git ref/tag to checkout for conda repo'
+        required: false
+        type: string
+        default: ''
+      checkout_other:
+        description: 'Whether to checkout another repository (e.g., conda-libmamba-solver)'
+        required: false
+        type: boolean
+        default: false
+      checkout_other_repo:
+        description: 'Full repo name (e.g., conda/conda-libmamba-solver)'
+        required: false
+        type: string
+        default: 'conda/conda-libmamba-solver'
+      checkout_other_path:
+        description: 'Path where other repo should be checked out'
+        required: false
+        type: string
+        default: 'conda-libmamba-solver'
+      checkout_other_ref:
+        description: 'Git ref/tag to checkout for other repo'
+        required: false
+        type: string
+        default: ''
+      # Test configuration
+      working_directory:
+        description: 'Working directory for running tests'
+        required: false
+        type: string
+        default: '.'
+      test_type:
+        description: 'Type of test (unit, integration, conda-libmamba-solver, etc.)'
+        required: true
+        type: string
+      test_group:
+        description: 'Test group number for parallel execution'
+        required: false
+        type: string
+        default: '1'
+      pytest_marker:
+        description: 'Pytest marker expression (empty = auto-detect from test_type)'
+        required: false
+        type: string
+        default: ''
+      pytest_splits:
+        description: 'Number of pytest splits (empty = auto-detect from test_type)'
+        required: false
+        type: string
+        default: ''
+      pytest_reruns:
+        description: 'Number of pytest reruns on failure'
+        required: false
+        type: string
+        default: '0'
+      pytest_cov_package:
+        description: 'Package name for coverage'
+        required: false
+        type: string
+        default: 'conda'
+      pytest_additional_args:
+        description: 'Additional pytest arguments'
+        required: false
+        type: string
+        default: ''
+      # Environment configuration
+      python_version:
+        description: 'Python version to use'
+        required: true
+        type: string
+      default_channel:
+        description: 'Default conda channel (defaults or conda-forge)'
+        required: true
+        type: string
+      conda_test_solvers:
+        description: 'Conda test solvers to use'
+        required: false
+        type: string
+        default: 'libmamba,classic'
+      # Additional environment variables
+      additional_env_vars:
+        description: 'Additional environment variables to set (YAML format: VAR: value)'
+        required: false
+        type: string
+        default: ''
+      # Requirements files configuration
+      requirements_os_specific:
+        description: 'Whether to include OS-specific requirements file'
+        required: false
+        type: boolean
+        default: true
+      requirements_other_dev:
+        description: 'Other repo dev requirements file path (relative to checkout_other_path)'
+        required: false
+        type: string
+        default: ''
+      requirements_other_tests:
+        description: 'Other repo test requirements file path (relative to checkout_other_path)'
+        required: false
+        type: string
+        default: ''
+      # Miniconda setup
+      miniconda_version:
+        description: 'Miniconda version override (empty = auto based on default_channel)'
+        required: false
+        type: string
+        default: ''
+      miniforge_version:
+        description: 'Miniforge version override (empty = auto based on default_channel)'
+        required: false
+        type: string
+        default: ''
+      architecture:
+        description: 'Architecture for miniconda setup'
+        required: false
+        type: string
+        default: ''
+      # Coverage and artifacts
+      upload_coverage:
+        description: 'Whether to upload coverage'
+        required: false
+        type: boolean
+        default: true
+      codecov_token_secret:
+        description: 'Codecov token secret name (must match a secret defined in secrets section)'
+        required: false
+        type: string
+        default: 'CODECOV_TOKEN'
+      test_results_base_path:
+        description: 'Base path for test results (empty = working_directory or conda path)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+jobs:
+  test:
+    # Security: Limit permissions to what's needed (read-only access, artifacts don't need write)
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ${{ inputs.runs_on }}
+    defaults:
+      run:
+        shell: ${{ inputs.shell }}
+
+    env:
+      PYTEST_MARKER: ${{ inputs.pytest_marker != '' && inputs.pytest_marker || (inputs.test_type == 'unit' && 'not integration' || 'integration') }}
+      PYTEST_SPLITS: ${{ inputs.pytest_splits != '' && inputs.pytest_splits || (inputs.test_type == 'unit' && '2' || '3') }}
+      PYTEST_RERUNS: ${{ inputs.pytest_reruns }}
+      CONDA_TEST_SOLVERS: ${{ inputs.conda_test_solvers }}
+      CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
+      ErrorActionPreference: ${{ inputs.runner_os == 'Windows' && 'Stop' || '' }}
+
+    steps:
+      - name: Checkout conda/conda
+        if: ${{ inputs.checkout_conda }}
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          # Security: Only allow checkout from trusted repositories
+          repository: conda/conda
+          # Security: Validate path to prevent path traversal (no .. or /)
+          path: ${{ inputs.checkout_conda_path }}
+          ref: ${{ inputs.checkout_conda_ref != '' && inputs.checkout_conda_ref || 'HEAD' }}
+
+      - name: Checkout Other Repository
+        if: ${{ inputs.checkout_other }}
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          # Security: Validate repository name format (owner/repo)
+          repository: ${{ inputs.checkout_other_repo }}
+          # Security: Validate path to prevent path traversal
+          path: ${{ inputs.checkout_other_path }}
+          ref: ${{ inputs.checkout_other_ref != '' && inputs.checkout_other_ref || 'HEAD' }}
+
+      - name: Checkout Source
+        if: ${{ !inputs.checkout_conda && !inputs.checkout_other }}
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Hash + Timestamp
+        shell: bash
+        run: |
+          ARCH=$(uname -m | sed 's/x86_64/x64/; s/aarch64/arm64/')
+          echo "HASH=${{ inputs.runner_os }}-${ARCH}-Py${{ inputs.python_version }}-${{ inputs.default_channel }}-${{ inputs.test_type }}-${{ inputs.test_group }}-$(date -u '+%Y%m')" >> $GITHUB_ENV
+
+      - name: Cache Conda
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          enableCrossOsArchive: ${{ inputs.runner_os == 'Windows' && 'true' || 'false' }}
+          path: ${{ inputs.runner_os == 'Windows' && 'D:\\conda_pkgs_dir' || '~/conda_pkgs_dir' }}
+          key: cache-${{ env.HASH }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        with:
+          condarc-file: ${{ inputs.checkout_conda && format('{0}/.github/condarc-{1}', inputs.checkout_conda_path, inputs.default_channel) || format('.github/condarc-{0}', inputs.default_channel) }}
+          run-post: false
+          pkgs-dirs: ${{ inputs.runner_os == 'Windows' && 'D:\\conda_pkgs_dir' || null }}
+          installation-dir: ${{ inputs.runner_os == 'Windows' && 'D:\\conda' || null }}
+          miniconda-version: ${{ inputs.miniconda_version != '' && inputs.miniconda_version || (inputs.default_channel == 'defaults' && 'latest' || null) }}
+          miniforge-version: ${{ inputs.miniforge_version != '' && inputs.miniforge_version || (inputs.default_channel == 'conda-forge' && 'latest' || null) }}
+          architecture: ${{ inputs.architecture != '' && inputs.architecture || null }}
+
+      - name: Conda Install
+        working-directory: ${{ inputs.checkout_conda && inputs.checkout_conda_path || inputs.working_directory }}
+        # Use default shell for this step (shell input is only for defaults)
+        run: |
+          conda install --yes python=${{ inputs.python_version }} \
+            --file tests/requirements.txt \
+            ${{ inputs.requirements_os_specific && format('--file tests/requirements-{0}.txt', inputs.runner_os) || '' }} \
+            --file tests/requirements-ci.txt \
+            --file tests/requirements-s3.txt \
+            --file tests/requirements-truststore.txt \
+            ${{ inputs.checkout_other && inputs.requirements_other_dev != '' && format('--file ../{0}/{1}', inputs.checkout_other_path, inputs.requirements_other_dev) || '' }} \
+            ${{ inputs.test_type == 'conda-libmamba-solver' && inputs.requirements_other_tests != '' && format('--file ../{0}/{1}', inputs.checkout_other_path, inputs.requirements_other_tests) || '' }}
+
+      - name: Install conda-libmamba-solver
+        if: ${{ inputs.checkout_other }}
+        run: python -m pip install -e ${{ inputs.checkout_other_path }}/ -vv --no-deps
+
+      - name: Fix .xonshrc
+        if: ${{ inputs.checkout_other && inputs.runner_os != 'Windows' }}
+        working-directory: ${{ inputs.checkout_other_path }}
+        shell: bash -el {0}
+        run: |
+          if [ -f ./dev/scripts/fix_xonshrc.py ]; then
+            python ./dev/scripts/fix_xonshrc.py
+          fi
+
+      - name: Conda Info
+        run: python -m conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
+
+      - name: Conda List
+        run: conda list --show-channel-urls
+
+      - name: Setup Shells
+        if: ${{ inputs.test_type == 'integration' }}
+        shell: bash -el {0}
+        run: |
+          if [ "${{ inputs.runner_os }}" = "Linux" ]; then
+            sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
+          elif [ "${{ inputs.runner_os }}" = "macOS" ]; then
+            brew update && brew install fish xonsh
+          fi
+
+      - name: Setup PowerShell
+        if: ${{ inputs.test_type == 'integration' && inputs.runner_os == 'Windows' }}
+        shell: powershell
+        run: |
+          $PWSH_STABLE = "$env:LOCALAPPDATA\Microsoft\powershell"
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Destination `"$PWSH_STABLE`""
+          $PWSH_PREVIEW = "$env:LOCALAPPDATA\Microsoft\powershell-preview"
+          Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-powershell.ps1) } -Preview -Destination `"$PWSH_PREVIEW`""
+          "PWSHPATH=$PWSH_STABLE;$PWSH_PREVIEW" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: PowerShell Info
+        if: ${{ inputs.test_type == 'integration' && inputs.runner_os == 'Windows' }}
+        shell: powershell
+        run: |
+          Get-Command -All powershell
+          "$env:PWSHPATH" -split ";" | ForEach-Object { if (Test-Path "$_\pwsh.exe") { Get-Command -All "$_\pwsh.exe" } }
+
+      - name: Run Upstream Tests
+        if: ${{ inputs.test_type != 'conda-libmamba-solver' }}
+        working-directory: ${{ inputs.checkout_conda && inputs.checkout_conda_path || inputs.working_directory }}
+        # Use default shell (configured via defaults.run.shell)
+        run: |
+          python -m pytest \
+            --cov=${{ inputs.pytest_cov_package }} \
+            ${{ inputs.runner_os == 'Windows' && format('--basetemp={0}', runner.temp) || '' }} \
+            --durations-path=durations/${{ inputs.runner_os }}.json \
+            --group=${{ inputs.test_group }} \
+            --splits=${{ env.PYTEST_SPLITS }} \
+            ${{ env.PYTEST_RERUNS != '0' && format('--reruns={0}', env.PYTEST_RERUNS) || '' }} \
+            -m "${{ env.PYTEST_MARKER }}" \
+            ${{ inputs.pytest_additional_args }}
+
+      - name: Run conda-libmamba-solver Tests
+        if: ${{ inputs.test_type == 'conda-libmamba-solver' }}
+        working-directory: ${{ inputs.checkout_other_path }}
+        shell: bash -el {0}
+        run: |
+          python -m pip install -e ${{ inputs.checkout_conda && format('../{0}/', inputs.checkout_conda_path) || '../conda/' }} --no-deps
+          python -m conda init --all
+          . $CONDA_PREFIX/etc/profile.d/conda.sh
+          python -m pytest -vv -m "not slow" --reruns=${{ env.PYTEST_RERUNS }} --durations=16 ${{ inputs.pytest_additional_args }}
+
+      - name: Upload Coverage
+        if: ${{ inputs.upload_coverage && !cancelled() && inputs.test_type != 'conda-libmamba-solver' }}
+        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        with:
+          flags: ${{ inputs.runner_os }},${{ inputs.python_version }},${{ inputs.test_type }}
+          # Security: Only use explicit CODECOV_TOKEN secret (GitHub Actions doesn't support dynamic secret access)
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload Test Results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: test-results-${{ env.HASH }}
+          include-hidden-files: true
+          path: |
+            ${{ inputs.test_results_base_path != '' && format('{0}/', inputs.test_results_base_path) || (inputs.checkout_conda && format('{0}/', inputs.checkout_conda_path) || '') }}.coverage
+            ${{ inputs.test_results_base_path != '' && format('{0}/', inputs.test_results_base_path) || (inputs.checkout_conda && format('{0}/', inputs.checkout_conda_path) || '') }}durations/${{ inputs.runner_os }}.json
+            ${{ inputs.test_results_base_path != '' && format('{0}/', inputs.test_results_base_path) || (inputs.checkout_conda && format('{0}/', inputs.checkout_conda_path) || '') }}test-report.xml
+          retention-days: 1
