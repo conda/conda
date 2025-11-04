@@ -270,11 +270,50 @@ jobs:
             $content | Set-Content $env:GITHUB_ENV -ErrorAction SilentlyContinue
           }
           Write-Host "CONDA env var cleared from all scopes"
+          # Verify CONDA is actually unset
+          if ($env:CONDA) {
+            Write-Host "WARNING: CONDA is still set to: $env:CONDA"
+            Remove-Item env:CONDA -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "Verified: CONDA is unset"
+          }
+
+      - name: Verify CONDA is Unset (Windows)
+        if: ${{ inputs.runner_os == 'Windows' }}
+        shell: powershell
+        run: |
+          # Check and clear CONDA from all possible locations
+          $condaValue = $env:CONDA
+          if ($condaValue) {
+            Write-Host "ERROR: CONDA is still set to: $condaValue"
+            Write-Host "Attempting to clear from all scopes..."
+            Remove-Item env:CONDA -ErrorAction SilentlyContinue
+            [Environment]::SetEnvironmentVariable("CONDA", $null, "Process")
+            [Environment]::SetEnvironmentVariable("CONDA", $null, "User")
+            [Environment]::SetEnvironmentVariable("CONDA", $null, "Machine")
+          }
+          
+          # Ensure GITHUB_ENV doesn't have CONDA set
+          if (Test-Path $env:GITHUB_ENV) {
+            $content = Get-Content $env:GITHUB_ENV -ErrorAction SilentlyContinue | Where-Object { $_ -notmatch "^CONDA=" }
+            $content | Set-Content $env:GITHUB_ENV -ErrorAction SilentlyContinue
+          }
+          
+          # Final verification
+          $finalCheck = [Environment]::GetEnvironmentVariable("CONDA", "Process")
+          if ($finalCheck) {
+            Write-Host "WARNING: CONDA still present in process scope: $finalCheck"
+          } else {
+            Write-Host "SUCCESS: CONDA is fully unset"
+          }
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
-        # Note: We cannot set CONDA: '' here because the action reads process.env["CONDA"]
-        # at module load time (in constants.ts), before our env override takes effect
+        # Note: We clear CONDA in the cleanup step above, but also explicitly unset it here
+        # as a safeguard. The action reads process.env["CONDA"] at module load time (in constants.ts),
+        # but setting it here ensures it's unset in the step's process environment.
+        env:
+          CONDA: ''
         with:
           condarc-file: ${{ inputs.checkout_conda && format('{0}/.github/condarc-{1}', inputs.checkout_conda_path, inputs.default_channel) || format('.github/condarc-{0}', inputs.default_channel) }}
           run-post: false
