@@ -654,10 +654,10 @@ or specify it on the command line with the ``--console`` option
 ``override_virtual_packages``: Set version or build variables for virtual packages
 ----------------------------------------------------------------------------------
 
-.. note:: 
+.. note::
    You can also use ``virtual_packages`` for this setting.
 
-The ``override_virtual_packages`` setting is a dictionary that allows you set 
+The ``override_virtual_packages`` setting is a dictionary that allows you set
 specific version or build overrides for virtual package installs.
 
 Conda sets virtual package version and/or build numbers in three ways:
