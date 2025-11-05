@@ -120,5 +120,5 @@ conda also offers the ability to set these overrides in your ``.condarc`` file.
       osx: "11.0"
       mycustompackage: "1.2.3"
 
-See `<override_virtual_packages> override-virtual-packages` for more information on
+See :ref:`<override_virtual_packages> override-virtual-packages` for more information on
 the ``.condarc`` setting.
