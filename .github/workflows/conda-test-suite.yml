@@ -182,6 +182,7 @@ jobs:
       PYTEST_RERUNS: ${{ inputs.pytest_reruns }}
       CONDA_TEST_SOLVERS: ${{ inputs.conda_test_solvers }}
       CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
+      CONDA_BUILD: ''
       ErrorActionPreference: ${{ inputs.runner_os == 'Windows' && 'Stop' || '' }}
 
     steps:
