@@ -90,12 +90,12 @@ Supported variables include:
 
 .. csv-table::
     :header-rows: 1
-    
+
     Variable Name, Override Entity, Example
     ``CONDA_OVERRIDE_ARCHSPEC``, Build Number, x86_64
     ``CONDA_OVERRIDE_CUDA``, Version Number, 12.8
     ``CONDA_OVERRIDE_GLIBC``, Version Number, 2.17
-    ``CONDA_OVERRIDE_LINUX``, Version Number, 
+    ``CONDA_OVERRIDE_LINUX``, Version Number,
     ``CONDA_OVERRIDE_OSX``, Version Number, 11.0
     ``CONDA_OVERRIDE_WIN``, Version Number,
 
