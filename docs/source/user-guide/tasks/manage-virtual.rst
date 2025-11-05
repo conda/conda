@@ -84,31 +84,20 @@ variable must be set every time a package requiring that override is installed**
 
 .. code-block::
 
-    CONDA_OVERRIDE_CUDA=11.8 conda install pytorch
+    CONDA_OVERRIDE_CUDA=12.8 conda install pytorch
 
 Supported variables include:
 
 .. csv-table::
     :header-rows: 1
-<<<<<<< HEAD
     
     Variable Name, Override Entity, Example
     ``CONDA_OVERRIDE_ARCHSPEC``, Build Number, x86_64
-    ``CONDA_OVERRIDE_CUDA``, Version Number, 10.1
-    ``CONDA_OVERRIDE_GLIBC``, Version Number,
+    ``CONDA_OVERRIDE_CUDA``, Version Number, 12.8
+    ``CONDA_OVERRIDE_GLIBC``, Version Number, 2.17
     ``CONDA_OVERRIDE_LINUX``, Version Number, 
-    ``CONDA_OVERRIDE_OSX``, Version Number,
-    ``CONDA_OVERRIDE_WINDOWS``, Version Number,
-=======
-
-    "Variable Name", "Override Entity", "Example"
-    "``CONDA_OVERRIDE_ARCHSPEC``", Build Number", x86_64
-    "``CONDA_OVERRIDE_CUDA``", "Version Number", 10.1
-    "``CONDA_OVERRIDE_GLIBC``", "Version Number",
-    "``CONDA_OVERRIDE_LINUX``", Version Number,
-    "``CONDA_OVERRIDE_OSX``", Version Number,
-    "``CONDA_OVERRIDE_WINDOWS``", Version Number,
->>>>>>> 7fe56b004a21024ded3a5722f18f811e9eb5549d
+    ``CONDA_OVERRIDE_OSX``, Version Number, 11.0
+    ``CONDA_OVERRIDE_WIN``, Version Number,
 
 .. note::
 
@@ -126,11 +115,9 @@ conda also offers the ability to set these overrides in your ``.condarc`` file.
 
     override_virtual_packages:
       archspec: "x86_64"
-      cuda: "11.8"
-      glibc: ""
-      linux: ""
-      osx: ""
-      windows: ""
+      cuda: "12.8"
+      glibc: "2.17"
+      osx: "11.0"
       mycustompackage: "1.2.3"
 
 See `<override_virtual_packages> override-virtual-packages` for more information on

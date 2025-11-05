@@ -677,7 +677,9 @@ Your ``override_virtual_packages`` dictionary could look like the following:
 .. code-block:: yaml
 
     override_virtual_packages:
-      cuda: "11.8"
+      cuda: "12.8"
+      glbc: "2.17"
+      osx: "11.0"
       archspec: "x86_64"
 
 Conda-build configuration
