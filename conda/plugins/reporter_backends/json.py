@@ -82,8 +82,12 @@ class JSONReporterRenderer(ReporterRendererBase):
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         return json.dumps(data)
 
-    def envs_list(self, data, **kwargs) -> str:
-        return json.dumps({"envs": data})
+    def envs_list(
+        self, data: list[str] | dict[str, dict[str, str | bool | None]], **kwargs
+    ) -> str:
+        if isinstance(data, (list, tuple)):
+            return json.dumps({"envs": data})
+        return json.dumps(data)
 
     def progress_bar(
         self,

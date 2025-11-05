@@ -45,8 +45,8 @@ from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-    from typing import Callable, Literal
+    from collections.abc import Callable, Iterable
+    from typing import Literal
 
     from requests.auth import AuthBase
 

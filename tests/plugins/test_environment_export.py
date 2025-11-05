@@ -32,9 +32,9 @@ from conda.plugins.types import CondaEnvironmentExporter
 from ..conftest import Exporters
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from pathlib import Path
-    from typing import Any, Callable
+    from typing import Any
 
     from conda.tests.fixtures import CondaCliFixture, TmpEnvFixture
     from pytest import FixtureRequest

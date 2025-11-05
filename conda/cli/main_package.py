@@ -203,7 +203,11 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     t = tarfile.open(tar_path, "w:bz2")
     h = hashlib.new("sha1")
     for f in files:
-        assert not (f.startswith("/") or f.endswith("/") or "\\" in f or f == ""), f
+        if f.startswith("/") or f.endswith("/") or "\\" in f or f == "":
+            raise ValueError(
+                f"Invalid file path: {f}. "
+                "Must be not empty. Cannot start or end with '/'. Cannot contain '\\'."
+            )
         path = join(prefix, f)
         if f.startswith("bin/") and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))
@@ -246,7 +250,8 @@ def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=Non
 
     if any("/site-packages/" in f for f in files):
         python_version = get_installed_version(prefix, "python")
-        assert python_version is not None
+        if python_version is None:
+            raise ValueError("Python must be installed in target prefix.")
         requires_py = tuple(int(x) for x in python_version[:3].split("."))
     else:
         requires_py = False

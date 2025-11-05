@@ -57,13 +57,19 @@ def EXTRACT_CMD(state, arg):
 
 
 def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):  # pragma: no cover
-    assert isinstance(progressive_fetch_extract, ProgressiveFetchExtract)
+    if not isinstance(progressive_fetch_extract, ProgressiveFetchExtract):
+        raise TypeError(
+            "'progressive_fetch_extract' must be a ProgressiveFetchExtract instance."
+        )
     progressive_fetch_extract.execute()
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):  # pragma: no cover
     unlink_link_transaction = arg
-    assert isinstance(unlink_link_transaction, UnlinkLinkTransaction)
+    if not isinstance(unlink_link_transaction, UnlinkLinkTransaction):
+        raise TypeError(
+            "'unlink_link_transaction' must be an UnlinkLinkTransaction instance."
+        )
     unlink_link_transaction.execute()
 
 

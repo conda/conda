@@ -333,12 +333,13 @@ class NoticeLevel(ValueEnum):
 PACKAGE_CACHE_MAGIC_FILE: Final[PathType] = "urls.txt"
 PREFIX_MAGIC_FILE: Final[PathType] = join("conda-meta", "history")
 PREFIX_FROZEN_FILE: Final[PathType] = join("conda-meta", "frozen")
+PREFIX_CREATION_TIMESTAMP_FILE: Final[PathType] = join("conda-meta", "created_at")
 
 PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
 PREFIX_PINNED_FILE: Final[PathType] = join("conda-meta", "pinned")
 PACKAGE_ENV_VARS_DIR: Final[PathType] = join("etc", "conda", "env_vars.d")
 CONDA_ENV_VARS_UNSET_VAR: Final = "***unset***"
-
+RESERVED_ENV_VARS: Final = ("PATH",)
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
 NAMESPACES_MAP: Final = {  # base package name, namespace

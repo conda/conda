@@ -137,6 +137,40 @@ def test_url_channel_w_platform():
         ]
 
 
+def test_subdirs_kwarg_takes_precedence_over_platform():
+    """
+    Test that an explicitly passed subdirs parameter will override the channel's platform.
+    Regression test for https://github.com/conda/conda/issues/14258
+    """
+    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+        channel = Channel("conda-forge/linux-aarch64")
+
+        assert channel.urls() == [
+            "https://conda.anaconda.org/conda-forge/linux-aarch64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+
+        assert channel.urls(subdirs=("linux-64", "noarch")) == [
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+        assert channel.urls(subdirs=("osx-64", "noarch")) == [
+            "https://conda.anaconda.org/conda-forge/osx-64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+
+        assert channel.urls(subdirs=("win-64",)) == [
+            "https://conda.anaconda.org/conda-forge/win-64",
+        ]
+
+        # check that URL-based channels also work the same way
+        channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
+        assert channel.urls(subdirs=("linux-64", "noarch")) == [
+            "https://repo.anaconda.com/pkgs/main/linux-64",
+            "https://repo.anaconda.com/pkgs/main/noarch",
+        ]
+
+
 def test_bare_channel_http():
     url = "http://conda-01"
     channel = Channel(url)
