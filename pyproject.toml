@@ -208,6 +208,7 @@ ignore = [
 pydocstyle = {convention = "pep257"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
+  "B012",  # bugbear
   "D1",  # pydocstyle
   "E",  # pycodestyle errors
   "F",  # pyflakes
