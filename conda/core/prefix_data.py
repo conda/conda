@@ -657,17 +657,15 @@ class PrefixData(metaclass=PrefixDataType):
         Ensure that the set of env_var_names does not contain any reserved env vars.
         Will raise an OperationNotAllowed if a reserved env var is found.
         """
-        invalid_vars = []
-        for var in RESERVED_ENV_VARS:
-            if var in env_vars_names:
-                invalid_vars.append(var)
+        invalid_vars = [var for var in RESERVED_ENV_VARS if var in env_vars_names]
         if invalid_vars:
+            print_reserved_vars = ', '.join(invalid_vars)
             warnings.warn(
-                f"The given configuration will not be applied during environment activation as "
-                f"the environment variable(s) '{' '.join(invalid_vars)}' are reserved. "
+                f"WARNING: the given environment variable(s) are reserved and "
+                f"will be ignored: {print_reserved_vars}. "
                 "Setting these environment variables may produce unexpected results.\n\n"
                 f"Remove the invalid configuration with `conda env config vars unset "
-                f"-p {self.prefix_path} {' '.join(invalid_vars)}`.\n",
+                f"-p {self.prefix_path} {' '.join(invalid_vars)}`.",
             )
 
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
