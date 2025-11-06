@@ -65,7 +65,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @deprecated(
     "26.3",
     "26.9",
-    addendum="Use `conda.core.prefix_data.PrefixData(prefix, interoperability=True).map_records()` instead.",
+    addendum="Use `conda.core.prefix_data.PrefixData.map_records` instead.",
 )
 def get_packages(prefix):
     from ..core.prefix_data import PrefixData
