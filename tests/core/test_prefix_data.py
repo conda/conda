@@ -374,7 +374,7 @@ def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
 
 
 def test_warn_setting_reserved_env_vars(prefix_data: PrefixData):
-    warning_message = r"The given configuration will not be applied during environment activation as the environment variable\(s\) \'PATH\' are reserved.+"
+    warning_message = r"WARNING: the given environment variable\(s\) are reserved and will be ignored: PATH.+"
     with pytest.warns(UserWarning, match=warning_message):
         prefix_data.set_environment_env_vars({"PATH": "very naughty"})
 
