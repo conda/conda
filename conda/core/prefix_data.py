@@ -659,7 +659,7 @@ class PrefixData(metaclass=PrefixDataType):
         """
         invalid_vars = [var for var in RESERVED_ENV_VARS if var in env_vars_names]
         if invalid_vars:
-            print_reserved_vars = ', '.join(invalid_vars)
+            print_reserved_vars = ", ".join(invalid_vars)
             warnings.warn(
                 f"WARNING: the given environment variable(s) are reserved and "
                 f"will be ignored: {print_reserved_vars}. "
