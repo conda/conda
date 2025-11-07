@@ -553,7 +553,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 raise PluginError(
                     dals(
                         f"""
-                        An error occured when handling '{source}' with plugin '{name}'.
+                        An error occurred when handling '{source}' with plugin '{name}'.
 
                         {type(e).__name__}: {e}
                         """

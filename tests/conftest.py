@@ -58,7 +58,7 @@ def pytest_report_header(config: pytest.Config):
 @pytest.fixture
 def tmp_env_python_spec() -> str:
     """
-    Used to create a temporary enviroment with a bounded Python version.
+    Used to create a temporary environment with a bounded Python version.
     """
     return "python=3.13"
 

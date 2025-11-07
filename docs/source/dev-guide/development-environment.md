@@ -274,7 +274,7 @@ review the code before committing again.
 
 Strictly speaking using pre-commit on your local machine for commits is
 optional (if you don't install pre-commit you will still be able to commit
-normally). But once you open a PR to contribue your changes, pre-commit will
+normally). But once you open a PR to contribute your changes, pre-commit will
 be automatically run at which point any errors that occur will need to be
 addressed prior to proceeding.
 

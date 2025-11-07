@@ -627,7 +627,7 @@ class SolvedRecord(PackageRecord):
 
 
 class PrefixRecord(SolvedRecord):
-    """Representation of a package that is installed in a local conda environmnet.
+    """Representation of a package that is installed in a local conda environment.
 
     Specialization of :class:`PackageRecord` that adds information for packages that are installed
     in a local conda environment or prefix.
