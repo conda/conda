@@ -339,8 +339,16 @@ def test_conda_config_describe_not_included_without_plugins(conda_cli, mocker):
     Ensure that the describe command does not include the section banner
     for plugins when no additional settings are provided by plugins
     """
-    mock = mocker.patch("conda.plugins.manager.CondaPluginManager.get_hook_results")
-    mock.return_value = []
+    from conda.plugins.config import PluginConfig
+
+    # Mock get_settings to return empty dict and clear any existing plugin settings
+    # This ensures that conda-libmamba-solver's use_sharded_repodata setting doesn't
+    # cause the plugin section banner to appear
+    mock_get_settings = mocker.patch("conda.plugins.manager.CondaPluginManager.get_settings")
+    mock_get_settings.return_value = {}
+    PluginConfig.remove_all_plugin_settings()
+    reset_context()
+
     out, err, _ = conda_cli("config", "--describe")
 
     section_banner = (
