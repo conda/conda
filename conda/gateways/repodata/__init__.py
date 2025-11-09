@@ -14,6 +14,11 @@ import pathlib
 import re
 import time
 import warnings
+
+####################
+import chardet                          # Added this import
+####################
+
 from collections import UserDict
 from contextlib import contextmanager
 from os.path import dirname
@@ -99,6 +104,14 @@ class RepoInterface(abc.ABC):
 class Response304ContentUnchanged(Exception):
     pass
 
+####################
+# Added the following lines to detect file encoding
+def detect_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        raw_data = f.read()
+    result = chardet.detect(raw_data)
+    return result['encoding']
+####################
 
 def get_repo_interface() -> type[RepoInterface]:
     if "jlap" in context.experimental:
@@ -551,7 +564,13 @@ class RepodataCache:
                 if binary:
                     json_data = cache_path.read_bytes()
                 else:
-                    json_data = cache_path.read_text()
+                    ####################
+                    # Added the following lines to determine json file encoding (ascii, utf-8, etc)
+                    file_encoding = str(detect_encoding(str(cache_path)))
+                    log.info("Reading file: %s   \t Detected file encoding: %s", str(cache_path), file_encoding)
+                    # Added the encoding parameter to the following line
+                    json_data = cache_path.read_text(encoding=file_encoding)
+                    ####################
 
             json_stat = cache_path.stat()
             if not (
@@ -876,7 +895,15 @@ class RepodataFetch:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata = self.cache_path_json.read_text()
+
+                    ####################
+                    # Added the following lines to determine json file encoding (ascii, utf-8, etc)
+                    file_encoding = str(detect_encoding(str(self.cache_path_json)))
+                    log.info("Reading file: %s   \t Detected file encoding: %s", str(self.cache_path_json), file_encoding)
+                    # Added the encoding parameter to the following line
+                    raw_repodata = self.cache_path_json.read_text(encoding=file_encoding)
+                    ####################
+
                     stat = self.cache_path_json.stat()
                     cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
