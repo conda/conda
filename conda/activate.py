@@ -375,17 +375,16 @@ class _Activator(metaclass=abc.ABCMeta):
 
         if old_conda_shlvl == 0:
             export_vars, unset_vars = self.get_export_unset_vars(
-                PATH=self.pathsep_join(self._add_prefix_to_path(prefix)),
                 CONDA_PREFIX=prefix,
                 CONDA_SHLVL=conda_shlvl,
                 CONDA_DEFAULT_ENV=conda_default_env,
                 CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
                 **env_vars,
             )
+            PATH=self.pathsep_join(self._add_prefix_to_path(prefix))
             deactivate_scripts = ()
         elif stack:
             export_vars, unset_vars = self.get_export_unset_vars(
-                PATH=self.pathsep_join(self._add_prefix_to_path(prefix)),
                 CONDA_PREFIX=prefix,
                 CONDA_SHLVL=conda_shlvl,
                 CONDA_DEFAULT_ENV=conda_default_env,
@@ -396,12 +395,10 @@ class _Activator(metaclass=abc.ABCMeta):
                     f"CONDA_STACKED_{conda_shlvl}": "true",
                 },
             )
+            PATH=self.pathsep_join(self._add_prefix_to_path(prefix))
             deactivate_scripts = ()
         else:
             export_vars, unset_vars = self.get_export_unset_vars(
-                PATH=self.pathsep_join(
-                    self._replace_prefix_in_path(old_conda_prefix, prefix)
-                ),
                 CONDA_PREFIX=prefix,
                 CONDA_SHLVL=conda_shlvl,
                 CONDA_DEFAULT_ENV=conda_default_env,
@@ -411,8 +408,12 @@ class _Activator(metaclass=abc.ABCMeta):
                     f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
                 },
             )
+            PATH=self.pathsep_join(
+                self._replace_prefix_in_path(old_conda_prefix, prefix)
+            )
             deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
+        export_path = {"PATH": PATH}
         set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
@@ -421,6 +422,7 @@ class _Activator(metaclass=abc.ABCMeta):
             "unset_vars": unset_vars,
             "set_vars": set_vars,
             "export_vars": export_vars,
+            "export_path": export_path,
             "deactivate_scripts": deactivate_scripts,
             "activate_scripts": activate_scripts,
         }
