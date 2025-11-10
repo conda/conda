@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context
-from conda.common.compat import on_linux
 from conda.core.prefix_data import PrefixData
 
 if TYPE_CHECKING:
