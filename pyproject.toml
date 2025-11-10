@@ -191,7 +191,6 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1", "TID251"]}
 flake8-type-checking = {exempt-modules = [], strict = true}
 ignore = [
   "D101",  # Missing docstring in public class
@@ -209,6 +208,7 @@ ignore = [
 pydocstyle = {convention = "pep257"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
+  "B012",  # bugbear
   "D1",  # pydocstyle
   "E",  # pycodestyle errors
   "F",  # pyflakes
@@ -216,11 +216,25 @@ select = [
   "I",  # isort
   "ISC",  # flake8-implicit-str-concat
   "RUF100",  # Unused noqa directive
+  "S101",  # forbid assert
   "T10",  # flake8-debugger
   "TC",  # flake8-type-checking
   "TID251",  # flake8-tidy-imports
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"conda/testing/*" = [
+  "S101",  # forbid assert
+]
+"docs/*" = [
+  "D1",  # pydocstyle
+]
+"tests/*" = [
+  "D1",  # pydocstyle
+  "S101",  # forbid assert
+  "TID251",  # flake8-tidy-imports
 ]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]

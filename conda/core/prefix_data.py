@@ -485,9 +485,9 @@ class PrefixData(metaclass=PrefixDataType):
         self._prefix_records[prefix_record.name] = prefix_record
 
     def remove(self, package_name: str) -> None:
-        assert package_name in self._prefix_records
-
-        prefix_record = self._prefix_records[package_name]
+        prefix_record = self._prefix_records.get(package_name)
+        if not prefix_record:
+            raise ValueError(f"Package {package_name} is not in prefix.")
 
         prefix_record_json_path = (
             self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
@@ -535,11 +535,9 @@ class PrefixData(metaclass=PrefixDataType):
                 for prefix_rec in self.iter_records()
                 if param.match(prefix_rec)
             )
-        else:
-            assert isinstance(param, PackageRecord)
-            return (
-                prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param
-            )
+        elif not isinstance(param, PackageRecord):
+            raise TypeError("`package_ref_or_match_spec` is not a valid record.")
+        return (prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param)
 
     def get_conda_packages(self) -> list[PrefixRecord]:
         """Get conda packages sorted alphabetically by name.
