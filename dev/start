@@ -24,7 +24,6 @@ cleanup() {
     unset _ENV
     unset _ENVEXE
     unset _INSTALLER
-    unset _INSTALLER_DISPLAY
     unset _INSTALLER_FILE
     unset _INSTALLER_INITIAL
     unset _INSTALLER_TYPE
@@ -246,7 +245,6 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     case "${_INSTALLER_TYPE}" in
         miniconda)
             _INSTALLER_FILE="${_INSTALLER}/miniconda"
-            _INSTALLER_DISPLAY="miniconda"
             case "${_MACH}" in
                 Darwin) _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${_ARCH}.sh" ;;
                 Linux)  _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${_ARCH}.sh" ;;
@@ -255,7 +253,6 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
             ;;
         miniforge)
             _INSTALLER_FILE="${_INSTALLER}/miniforge"
-            _INSTALLER_DISPLAY="miniforge"
             case "${_MACH}" in
                 Darwin) _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-${_ARCH}.sh" ;;
                 Linux)  _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-${_ARCH}.sh" ;;
@@ -277,14 +274,14 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     fi
 
     if ! [ -f "${_INSTALLER_FILE}" ]; then
-        echo "Downloading ${_INSTALLER_DISPLAY}..."
+        echo "Downloading ${_INSTALLER_TYPE}..."
         if [ "${_MACH}" = "Darwin" ] || [ "${_MACH}" = "Linux" ]; then
             curl -L --fail --silent --show-error "${_DOWNLOAD_URL}" -o "${_INSTALLER_FILE}"
         else
             powershell.exe -Command "Invoke-WebRequest -Uri '${_DOWNLOAD_URL}' -OutFile '${_INSTALLER_FILE}' | Out-Null"
         fi
         if ! [ $? = 0 ] || [ ! -s "${_INSTALLER_FILE}" ]; then
-            echo "Error: failed to download ${_INSTALLER_DISPLAY} (file missing or empty)" 1>&2
+            echo "Error: failed to download ${_INSTALLER_TYPE} (file missing or empty)" 1>&2
             return 1
         fi
     fi

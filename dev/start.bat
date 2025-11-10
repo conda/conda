@@ -142,11 +142,9 @@
 :: set installer-specific values
 @IF "%_INSTALLER_TYPE%"=="miniconda" (
     @SET "_INSTALLER_FILE=%_INSTALLER%\miniconda.exe"
-    @SET "_INSTALLER_DISPLAY=miniconda"
     @SET "_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
 ) ELSE IF "%_INSTALLER_TYPE%"=="miniforge" (
     @SET "_INSTALLER_FILE=%_INSTALLER%\miniforge.exe"
-    @SET "_INSTALLER_DISPLAY=miniforge"
     @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
 )
 
@@ -163,13 +161,13 @@
 )
 
 @IF EXIST "%_INSTALLER_FILE%" @GOTO DOWNLOADED
-@ECHO Downloading %_INSTALLER_DISPLAY%...
+@ECHO Downloading %_INSTALLER_TYPE%...
 @powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
 @FOR %%F IN ("%_INSTALLER_FILE%") DO @IF NOT EXIST "%%F" (
-    @ECHO Error: failed to download %_INSTALLER_DISPLAY% (file missing) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% (file missing) 1>&2
     @EXIT /B 1
 ) ELSE IF %%~zF EQU 0 (
-    @ECHO Error: failed to download %_INSTALLER_DISPLAY% (file empty) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% (file empty) 1>&2
     @EXIT /B 1
 )
 :DOWNLOADED
@@ -286,7 +284,6 @@
 @SET _ENV=
 @SET _ENVEXE=
 @SET _INSTALLER=
-@SET _INSTALLER_DISPLAY=
 @SET _INSTALLER_FILE=
 @SET _INSTALLER_INITIAL=
 @SET _INSTALLER_TYPE=
