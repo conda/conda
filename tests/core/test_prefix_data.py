@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -370,6 +371,27 @@ def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
     prefix_data.unset_environment_env_vars(["WOAH"])
     env_vars = prefix_data.get_environment_env_vars()
     assert env_vars_one == env_vars
+
+
+def test_warn_setting_reserved_env_vars(prefix_data: PrefixData):
+    warning_message = r"WARNING: the given environment variable\(s\) are reserved and will be ignored: PATH.+"
+    with pytest.warns(UserWarning, match=warning_message):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
+
+    # Ensure the PATH is still set in the env vars
+    env_vars = prefix_data.get_environment_env_vars()
+    assert env_vars.get("PATH") == "very naughty"
+
+
+def test_unset_reserved_env_vars(prefix_data: PrefixData):
+    # Setup prefix data with reserved env var
+    with pytest.warns(UserWarning):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
+
+    prefix_data.unset_environment_env_vars(["PATH"])
+    # Ensure that the PATH is fully removed from the state tile
+    env_state_file = prefix_data._get_environment_state_file()
+    assert "PATH" not in env_state_file.get("env_vars", {})
 
 
 @pytest.mark.parametrize("remove_auth", (True, False))
@@ -909,3 +931,18 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
         pinned_specs = prefix_data.get_pinned_specs()
         assert pinned_specs != specs
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
+    start = datetime.now(tz=timezone.utc)
+    with tmp_env() as prefix:
+        pd = PrefixData(prefix)
+        created = pd.created
+        first_modification = pd.last_modified
+        # On Linux, we allow a rounding error of a <1 second (usually ~5ms)
+        assert abs(created.timestamp() - first_modification.timestamp()) < 1
+        conda_cli("install", "--yes", "--prefix", prefix, "small-executable")
+        second_modification = pd.last_modified
+        assert created == pd.created
+        assert first_modification < second_modification
+        assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)

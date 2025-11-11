@@ -171,8 +171,8 @@ def massage_arguments(arguments, errors="assert"):
 
     if isinstance(arguments, str):
         if errors == "assert":
-            # This should be something like 'conda programming bug', it is an assert
-            assert False, "Please ensure arguments are not strings"
+            # This should be something like 'conda programming bug'
+            raise RuntimeError("Please ensure arguments are not strings")
         else:
             arguments = shlex_split_unicode(arguments)
             log.warning(
@@ -183,9 +183,8 @@ def massage_arguments(arguments, errors="assert"):
     if not isiterable(arguments):
         arguments = (arguments,)
 
-    assert not any([isiterable(arg) for arg in arguments]), (
-        "Individual arguments must not be iterable"
-    )
+    if any(isiterable(arg) for arg in arguments):
+        raise ValueError("Individual arguments must not be iterable")
     arguments = list(arguments)
 
     return arguments
@@ -257,14 +256,15 @@ def wrap_subprocess_call(
                 # it needs doing for each line and the caller may as well do that.
                 fh.write(f"{arguments[0]}\n")
             else:
-                assert not any("\n" in arg for arg in arguments), (
-                    "Support for scripts where arguments contain newlines not implemented.\n"
-                    ".. requires writing the script to an external file and knowing how to "
-                    "transform the command-line (e.g. `python -c args` => `python file`) "
-                    "in a tool dependent way, or attempting something like:\n"
-                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
-                    "requirements)"
-                )
+                if any("\n" in arg for arg in arguments):
+                    raise NotImplementedError(
+                        "Support for scripts where arguments contain newlines not implemented.\n"
+                        ".. requires writing the script to an external file and knowing how to "
+                        "transform the command-line (e.g. `python -c args` => `python file`) "
+                        "in a tool dependent way, or attempting something like:\n"
+                        ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
+                        "requirements)"
+                    )
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
