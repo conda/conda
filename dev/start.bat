@@ -65,7 +65,7 @@
 @IF "%_INSTALLER_TYPE%"=="" @CALL :INSTALLER_TYPE_CONDARC
 
 :: prompt for installer type if not set
-@IF NOT "%_INSTALLER_TYPE%"=="" @GOTO SKIP_PROMPT
+@IF NOT "%_INSTALLER_TYPE%"=="" @GOTO :SKIP_PROMPT
 @ECHO Choose conda installer:
 @ECHO   1^) miniconda ^(default - Anaconda defaults channel^)
 @ECHO   2^) miniforge ^(conda-forge channel^)
@@ -95,8 +95,8 @@
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
 :: validate installer type
-@IF "%_INSTALLER_TYPE%"=="miniconda" @GOTO INSTALLER_VALID
-@IF "%_INSTALLER_TYPE%"=="miniforge" @GOTO INSTALLER_VALID
+@IF "%_INSTALLER_TYPE%"=="miniconda" @GOTO :INSTALLER_VALID
+@IF "%_INSTALLER_TYPE%"=="miniforge" @GOTO :INSTALLER_VALID
 @ECHO Error: invalid installer type '%_INSTALLER_TYPE%'. Must be 'miniconda' or 'miniforge'. 1>&2
 @EXIT /B 1
 :INSTALLER_VALID
@@ -134,21 +134,21 @@
 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
 
 :: deactivate any prior envs
-@IF "%CONDA_SHLVL%"=="" @GOTO DEACTIVATED
-@IF %CONDA_SHLVL%==0 @GOTO DEACTIVATED
+@IF "%CONDA_SHLVL%"=="" @GOTO :DEACTIVATED
+@IF %CONDA_SHLVL%==0 @GOTO :DEACTIVATED
 @ECHO Deactivating %CONDA_SHLVL% environment(s)...
 :DEACTIVATING
-@IF "%CONDA_SHLVL%"=="0" @GOTO DEACTIVATED
+@IF "%CONDA_SHLVL%"=="0" @GOTO :DEACTIVATED
 @CALL conda deactivate
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to deactivate environment^(s^) 1>&2
     @EXIT /B 1
 )
-@GOTO DEACTIVATING
+@GOTO :DEACTIVATING
 :DEACTIVATED
 
 :: does conda install exist?
-@IF EXIST "%_DEVENV%\conda-meta\history" @GOTO INSTALLED
+@IF EXIST "%_DEVENV%\conda-meta\history" @GOTO :INSTALLED
 
 :: Remove zero-byte installer files before download
 @IF EXIST "%_INSTALLER_FILE%" (
@@ -162,7 +162,7 @@
     )
 )
 
-@IF EXIST "%_INSTALLER_FILE%" @GOTO DOWNLOADED
+@IF EXIST "%_INSTALLER_FILE%" @GOTO :DOWNLOADED
 @ECHO Downloading %_INSTALLER_TYPE%...
 @powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
 @FOR %%F IN ("%_INSTALLER_FILE%") DO @IF NOT EXIST "%%F" (
@@ -187,7 +187,7 @@
 :INSTALLED
 
 :: create empty env if it doesn't exist
-@IF EXIST "%_ENV%" @GOTO ENVEXISTS
+@IF EXIST "%_ENV%" @GOTO :ENVEXISTS
 @ECHO Creating %_NAME%...
 
 @CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
@@ -199,7 +199,7 @@
 
 :: check if explicitly updating or if 24 hrs since last update
 @CALL :UPDATING
-@IF NOT %ErrorLevel%==0 @GOTO UPTODATE
+@IF NOT %ErrorLevel%==0 @GOTO :UPTODATE
 @ECHO Updating %_NAME%...
 
 @CALL :CONDA "%_BASEEXE%" update --yes --quiet --all "--prefix=%_ENV%" > NUL
