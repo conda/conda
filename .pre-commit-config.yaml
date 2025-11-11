@@ -71,9 +71,10 @@ repos:
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
-        args: [--fix]
+        args: [--fix, --diff]
       # compatible replacement for black
       - id: ruff-format
+        args: [--diff]
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.15.0
     hooks:
