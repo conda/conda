@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import re
+import warnings
 from datetime import datetime, timezone
 from logging import getLogger
 from os.path import basename, lexists
@@ -25,6 +26,7 @@ from ..base.constants import (
     PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
     RESERVED_ENV_NAMES,
+    RESERVED_ENV_VARS,
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
@@ -661,6 +663,22 @@ class PrefixData(metaclass=PrefixDataType):
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         env_vars_file.write_text(json.dumps(state, ensure_ascii=False))
 
+    def _ensure_no_reserved_env_vars(self, env_vars_names: Iterable[str]) -> None:
+        """
+        Ensure that the set of env_var_names does not contain any reserved env vars.
+        Will raise an OperationNotAllowed if a reserved env var is found.
+        """
+        invalid_vars = [var for var in RESERVED_ENV_VARS if var in env_vars_names]
+        if invalid_vars:
+            print_reserved_vars = ", ".join(invalid_vars)
+            warnings.warn(
+                f"WARNING: the given environment variable(s) are reserved and "
+                f"will be ignored: {print_reserved_vars}. "
+                "Setting these environment variables may produce unexpected results.\n\n"
+                f"Remove the invalid configuration with `conda env config vars unset "
+                f"-p {self.prefix_path} {' '.join(invalid_vars)}`.",
+            )
+
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
         prefix_state = self._get_environment_state_file()
         env_vars_all = dict(prefix_state.get("env_vars", {}))
@@ -672,6 +690,7 @@ class PrefixData(metaclass=PrefixDataType):
     def set_environment_env_vars(
         self, env_vars: dict[str, str]
     ) -> dict[str, str] | None:
+        self._ensure_no_reserved_env_vars(env_vars.keys())
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
@@ -681,15 +700,16 @@ class PrefixData(metaclass=PrefixDataType):
         self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def unset_environment_env_vars(
-        self, env_vars: dict[str, str]
-    ) -> dict[str, str] | None:
+    def unset_environment_env_vars(self, env_vars: list[str]) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
             for env_var in env_vars:
                 if env_var in current_env_vars.keys():
-                    current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
+                    if env_var in RESERVED_ENV_VARS:
+                        current_env_vars.pop(env_var)
+                    else:
+                        current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
             self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
