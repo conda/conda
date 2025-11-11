@@ -95,9 +95,9 @@ Supported variables include:
     ``CONDA_OVERRIDE_ARCHSPEC``, Build Number, x86_64
     ``CONDA_OVERRIDE_CUDA``, Version Number, 12.8
     ``CONDA_OVERRIDE_GLIBC``, Version Number, 2.17
-    ``CONDA_OVERRIDE_LINUX``, Version Number,
+    ``CONDA_OVERRIDE_LINUX``, Version Number, 5.15.0
     ``CONDA_OVERRIDE_OSX``, Version Number, 11.0
-    ``CONDA_OVERRIDE_WIN``, Version Number,
+    ``CONDA_OVERRIDE_WIN``, Version Number, 10.0.22631
 
 .. note::
 
