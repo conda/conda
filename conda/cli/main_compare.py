@@ -125,9 +125,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     spec = spec_hook.environment_spec(filename)
     env = spec.env
 
-    if args.prefix is None and args.name is None:
-        args.name = env.name
-
     active_pkgs = prefix_data.map_records()
     specification_pkgs = (
         *env.requested_packages,
