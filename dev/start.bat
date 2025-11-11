@@ -101,13 +101,11 @@
 @EXIT /B 1
 :INSTALLER_VALID
 
+:: installer location is root devenv directory
+@SET "_INSTALLER=%_DEVENV%\installers\Windows"
+
 :: devenv include OS
 @SET "_DEVENV=%_DEVENV%\Windows"
-:: devenv exists
-@IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
-
-:: installer location
-@SET "_INSTALLER=%_DEVENV%"
 
 :: other environment variables
 @SET "_NAME=devenv-%_PYTHON%-%_INSTALLER_TYPE%"
@@ -119,8 +117,21 @@
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
 @SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
 
+:: set installer-specific values
+@IF "%_INSTALLER_TYPE%"=="miniconda" (
+    @SET "_INSTALLER_FILE=%_INSTALLER%\miniconda.exe"
+    @SET "_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+) ELSE IF "%_INSTALLER_TYPE%"=="miniforge" (
+    @SET "_INSTALLER_FILE=%_INSTALLER%\miniforge.exe"
+    @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
+)
+
 :: dryrun printout
 @IF %_DRYRUN%==0 @GOTO :DRYRUN
+
+:: ensure installer and devenv directories exist
+@IF NOT EXIST "%_INSTALLER%" @MKDIR "%_INSTALLER%"
+@IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
 
 :: deactivate any prior envs
 @IF "%CONDA_SHLVL%"=="" @GOTO DEACTIVATED
@@ -138,15 +149,6 @@
 
 :: does conda install exist?
 @IF EXIST "%_DEVENV%\conda-meta\history" @GOTO INSTALLED
-
-:: set installer-specific values
-@IF "%_INSTALLER_TYPE%"=="miniconda" (
-    @SET "_INSTALLER_FILE=%_INSTALLER%\miniconda.exe"
-    @SET "_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
-) ELSE IF "%_INSTALLER_TYPE%"=="miniforge" (
-    @SET "_INSTALLER_FILE=%_INSTALLER%\miniforge.exe"
-    @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
-)
 
 :: Remove zero-byte installer files before download
 @IF EXIST "%_INSTALLER_FILE%" (
@@ -345,17 +347,21 @@
 :DRYRUN
 :: dry-run printout
 @ECHO Python: %_PYTHON%
-@ECHO Installer: %_INSTALLER_TYPE%
-@CALL :UPDATING
-@IF %ErrorLevel%==0 (
-    @ECHO Updating: [yes]
+@IF EXIST "%_INSTALLER_FILE%" (
+    @ECHO Installer [%_INSTALLER_TYPE%]: %_INSTALLER_FILE% [exists]
 ) ELSE (
-    @ECHO Updating: [no]
+    @ECHO Installer [%_INSTALLER_TYPE%]: %_INSTALLER_FILE% [pending]
 )
 @IF EXIST "%_DEVENV%" (
     @ECHO Devenv: %_DEVENV% [exists]
 ) ELSE (
     @ECHO Devenv: %_DEVENV% [pending]
+)
+@CALL :UPDATING
+@IF %ErrorLevel%==0 (
+    @ECHO Updating: [yes]
+) ELSE (
+    @ECHO Updating: [no]
 )
 @ECHO.
 @ECHO Name: %_NAME%
