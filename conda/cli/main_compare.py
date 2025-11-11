@@ -106,31 +106,27 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import SpecNotFound
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
     from .common import stdout_json
 
     prefix_data = PrefixData.from_context(interoperability=True)
     prefix_data.assert_environment()
 
-    try:
-        url_scheme = args.file.split("://", 1)[0]
-        if url_scheme in CONDA_SESSION_SCHEMES:
-            filename = args.file
-        else:
-            filename = abspath(expanduser(expandvars(args.file)))
+    url_scheme = args.file.split("://", 1)[0]
+    if url_scheme in CONDA_SESSION_SCHEMES:
+        filename = args.file
+    else:
+        filename = abspath(expanduser(expandvars(args.file)))
 
-        spec_hook = context.plugin_manager.get_environment_specifier(
-            source=filename,
-            name=context.environment_specifier,
-        )
-        spec = spec_hook.environment_spec(filename)
-        env = spec.env
+    spec_hook = context.plugin_manager.get_environment_specifier(
+        source=filename,
+        name=context.environment_specifier,
+    )
+    spec = spec_hook.environment_spec(filename)
+    env = spec.env
 
-        if args.prefix is None and args.name is None:
-            args.name = env.name
-    except SpecNotFound:
-        raise
+    if args.prefix is None and args.name is None:
+        args.name = env.name
 
     active_pkgs = prefix_data.map_records()
     specification_pkgs = (
