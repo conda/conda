@@ -7,7 +7,12 @@ import uuid
 from typing import TYPE_CHECKING
 
 import pytest
+from requests import Response
 
+from conda.base.constants import PREFIX_PINNED_FILE
+from conda.base.context import context, reset_context
+from conda.common.serialize import yaml_safe_dump
+from conda.gateways.disk import lock
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
@@ -17,13 +22,18 @@ from conda.plugins.subcommands.doctor.health_checks import (
     find_altered_packages,
     find_packages_with_missing_files,
     missing_files,
+    requests_ca_bundle_check,
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
-    from typing import Iterable
 
+    from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from tests.conftest import test_recipes_channel
 
 
 @pytest.fixture(params=[".pyo", ".pyc"])
@@ -97,10 +107,12 @@ def env_altered_files(
     env_ok: tuple[Path, str, str, str, str],
 ) -> tuple[Path, str, str, str, str]:
     """Fixture that returns a testing environment with altered files"""
-    prefix, _, lib_doctor, _, _ = env_ok
+    prefix, _, lib_doctor, ignored_doctor, _ = env_ok
     # Altering the lib_doctor.py file so that it's sha256 checksum will change
     with open(prefix / lib_doctor, "w") as f:
         f.write("print('Hello, World!')")
+    with open(prefix / ignored_doctor, "w") as f:
+        f.write("nonsense")
 
     return env_ok
 
@@ -185,11 +197,12 @@ def test_no_missing_files_action(
 def test_altered_files_action(
     env_altered_files: tuple[Path, str, str, str, str], capsys, verbose
 ):
-    prefix, _, lib_doctor, _, package = env_altered_files
+    prefix, _, lib_doctor, ignored_doctor, package = env_altered_files
     altered_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(lib_doctor) in captured.out
+        assert str(ignored_doctor) not in captured.out
     else:
         assert f"{package}: 1" in captured.out
 
@@ -242,6 +255,56 @@ def test_not_env_txt_check_action(
     assert X_MARK in captured.out
 
 
+def test_requests_ca_bundle_check_action_passes(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+    mocker: MockerFixture,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
+    response = Response()
+    response.status_code = 200
+    mocker.patch(
+        "conda.gateways.connection.session.CondaSession.get", return_value=response
+    )
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
+
+
+def test_requests_ca_bundle_check_action_non_existent_path(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert (
+        f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
+        in captured.out
+    )
+
+
+def test_requests_ca_bundle_check_action_fails(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert (
+        f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`:"
+        in captured.out
+    )
+
+
 def test_json_keys_missing(env_ok: tuple[Path, str, str, str, str], capsys):
     """Test that runs for the case with empty json"""
     prefix, _, _, _, package = env_ok
@@ -273,3 +336,128 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     prefix, _, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(prefix) == {}
+
+
+def test_env_consistency_check_passes(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    with tmp_env("dependent") as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+
+        assert f"{OK_MARK} The environment is consistent.\n" in out
+
+
+def test_env_consistency_check_fails(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+
+
+def test_env_consistency_check_fails_verbose(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    expected_output_dict = {
+        "dependent": {"missing": ["dependency[version='>=1.0,<2.0a0']"]}
+    }
+    expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out
+
+
+def test_env_consistency_constrains_not_met(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_1_to_install = test_recipes_channel / "noarch" / "run_constrained-1.0-0.conda"
+    pkg_2_to_install = test_recipes_channel / "noarch" / "dependency-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_1_to_install, pkg_2_to_install) as prefix:
+        expected_output_dict = {
+            "run_constrained": {
+                "inconsistent": [
+                    {
+                        "expected": "dependency[version='>=2.0']",
+                        "installed": "dependency[version='1.0']",
+                    }
+                ]
+            }
+        }
+        expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out
+
+
+@pytest.mark.parametrize(
+    "pinned_file,expected_output",
+    [
+        ("", OK_MARK),
+        ("conda 1.11", OK_MARK),
+        ("conda 1.11, otherpackages==1", X_MARK),
+        ('"conda"', X_MARK),
+        ("imnotinstalledyet", X_MARK),
+    ],
+)
+def test_pinned_will_formatted_check(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    pinned_file: str,
+    expected_output: str,
+):
+    with tmp_env() as prefix:
+        (prefix / PREFIX_PINNED_FILE).write_text(pinned_file)
+
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert expected_output in out
+
+
+@pytest.mark.parametrize("no_lock_flag", [True, False])
+def test_file_locking_supported(
+    conda_cli: CondaCLIFixture,
+    no_lock_flag: bool,
+    monkeypatch: MonkeyPatch,
+):
+    assert lock.locking_supported()
+
+    monkeypatch.setenv("CONDA_NO_LOCK", no_lock_flag)
+    reset_context()
+
+    assert context.no_lock == no_lock_flag
+
+    out, _, _ = conda_cli("doctor")
+    if no_lock_flag:
+        assert (
+            f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+            in out
+        )
+    else:
+        assert f"{OK_MARK} File locking is supported." in out
+
+
+def test_file_locking_not_supported(
+    conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
+):
+    monkeypatch.setattr(lock, "_lock_impl", lock._lock_noop)
+
+    assert not lock.locking_supported()
+
+    out, _, _ = conda_cli("doctor")
+
+    assert f"{X_MARK} File locking is not supported." in out

@@ -404,7 +404,7 @@ Install using the ``--force`` option.
 
 Download and install the appropriate Miniconda
 for your operating system from the `Miniconda download page
-<https://docs.anaconda.com/free/miniconda/>`_ using the force option
+<https://docs.anaconda.com/miniconda/>`__ using the force option
 ``--force`` or ``-f``:
 
 .. code-block::
@@ -711,7 +711,7 @@ contains the command.
 This is a relatively rare problem, since this happens only in the
 following circumstances:
 
-#. You activate an environment or use the root environment, and
+#. You activate an environment or use the default environment, and
    then run a command from somewhere else.
 
 #. Then you ``conda install`` a program, and then try to run the
@@ -1053,7 +1053,7 @@ Solution
 
 If you receive this warning, you need to activate your environment.
 To do so on Windows, on a terminal via PowerShell or the Command Prompt, run:
-``call <your anaconda/miniconda install location>\Scripts\activate base``.
+``call <your anaconda/miniconda install location>\Scripts\activate``.
 
 .. _path-error:
 

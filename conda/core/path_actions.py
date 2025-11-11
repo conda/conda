@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Atomic actions that make up a package installation or removal transaction."""
 
+from __future__ import annotations
+
 import re
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
-from os.path import basename, dirname, getsize, isdir, join
+from os.path import basename, dirname, getsize, isdir, isfile, join
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from .. import CondaError
@@ -18,7 +20,7 @@ from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
 from ..common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_leaf_directories,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -27,7 +29,9 @@ from ..common.path import (
     url_to_path,
     win_path_ok,
 )
+from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaUpgradeError,
     CondaVerificationError,
@@ -67,6 +71,9 @@ from .envs_manager import get_user_environments_txt_file, register_env, unregist
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 try:
     FileNotFoundError
 except NameError:
@@ -82,27 +89,80 @@ REPR_IGNORE_KWARGS = (
 )
 
 
-class _Action(metaclass=ABCMeta):
+class Action:
+    """Base class for path manipulation actions, including linking, unlinking, and others.
+
+    Pre and post-transaction plugins should inherit this class to implement their
+    own verification, execution, reversing, and cleanup steps. These methods are
+    guaranteed to be called in the following order:
+
+        1. ``verify``
+        2. ``execute``
+        3. ``reverse`` (only if ``execute`` raises an exception)
+        4. ``cleanup``
+
+
+    :param transaction_context: Mapping between target prefixes and PrefixActions
+        instances
+    :param target_prefix: Target prefix for the action
+    :param unlink_precs: Package records to be unlinked
+    :param link_precs: Package records to link
+    :param remove_specs: Specs to be removed
+    :param update_specs: Specs to be updated
+    :param neutered_specs: Specs to be neutered
+    """
+
     _verified = False
 
-    @abstractmethod
-    def verify(self):
-        # if verify fails, it should return an exception object rather than raise
-        #  at the end of a verification run, all errors will be raised as a CondaMultiError
-        # after successful verification, the verify method should set self._verified = True
-        raise NotImplementedError()
+    def __init__(
+        self,
+        transaction_context: dict[str, str] | None = None,
+        target_prefix: str | None = None,
+        unlink_precs: Iterable[PackageRecord] | None = None,
+        link_precs: Iterable[PackageRecord] | None = None,
+        remove_specs: Iterable[MatchSpec] | None = None,
+        update_specs: Iterable[MatchSpec] | None = None,
+        neutered_specs: Iterable[MatchSpec] | None = None,
+    ):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+        self.unlink_precs = unlink_precs
+        self.link_precs = link_precs
+        self.remove_specs = remove_specs
+        self.update_specs = update_specs
+        self.neutered_specs = neutered_specs
 
     @abstractmethod
-    def execute(self):
-        raise NotImplementedError()
+    def verify(self) -> Exception | None:
+        """Carry out any pre-execution verification.
+
+        Should set self._verified = True upon success.
+
+        :return: On failure, this function should return (not raise!) an exception
+        object. At the end of the verification run, all errors will be raised as a
+        CondaMultiError.
+        """
 
     @abstractmethod
-    def reverse(self):
-        raise NotImplementedError()
+    def execute(self) -> None:
+        """Execute the action.
+
+        Called after ``self.verify()``. If this function raises an exception,
+        ``self.reverse()`` will be called.
+        """
 
     @abstractmethod
-    def cleanup(self):
-        raise NotImplementedError()
+    def reverse(self) -> None:
+        """Reverse what was done in execute.
+
+        Called only if ``self.execute()`` raises an exception.
+        """
+        pass
+
+    @abstractmethod
+    def cleanup(self) -> None:
+        """Carry out any post-execution tasks."""
+        pass
 
     @property
     def verified(self):
@@ -117,13 +177,22 @@ class _Action(metaclass=ABCMeta):
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
-class PathAction(_Action, metaclass=ABCMeta):
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "_Action",
+    Action,
+    addendum="Use `conda.core.path_actions.Action` instead.",
+)
+
+
+class PathAction(Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_path(self):
         raise NotImplementedError()
 
 
-class MultiPathAction(_Action, metaclass=ABCMeta):
+class MultiPathAction(Action, metaclass=ABCMeta):
     @abstractproperty
     def target_full_paths(self):
         raise NotImplementedError()
@@ -348,7 +417,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         if self.link_type != LinkType.directory and not lexists(
             self.source_full_path
-        ):  # pragma: no cover  # NOQA
+        ):  # pragma: no cover
             return CondaVerificationError(
                 dals(
                     f"""
@@ -501,7 +570,9 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 self.source_full_path,
             )
             # return
-            assert False, "I don't think this is the right place to ignore this"
+            raise RuntimeError(
+                f"Ignoring prefix update for symlink with source path {self.source_full_path}"
+            )
 
         mkdir_p(self.transaction_context["temp_dir"])
         self.intermediate_path = join(
@@ -591,32 +662,6 @@ class MakeMenuAction(CreateInPrefixPathAction):
         if self._execute_successful:
             log.log(TRACE, "removing menu for %s", self.target_full_path)
             make_menu(self.target_prefix, self.target_short_path, remove=True)
-
-
-class CreateNonadminAction(CreateInPrefixPathAction):
-    @classmethod
-    def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
-    ):
-        if on_win and lexists(join(context.root_prefix, ".nonadmin")):
-            return (cls(transaction_context, package_info, target_prefix),)
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, target_prefix):
-        super().__init__(
-            transaction_context, package_info, None, None, target_prefix, ".nonadmin"
-        )
-        self._file_created = False
-
-    def execute(self):
-        log.log(TRACE, "touching nonadmin %s", self.target_full_path)
-        self._file_created = touch(self.target_full_path)
-
-    def reverse(self):
-        if self._file_created:
-            log.log(TRACE, "removing nonadmin file %s", self.target_full_path)
-            rm_rf(self.target_full_path)
 
 
 class CompileMultiPycAction(MultiPathAction):
@@ -765,7 +810,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = f"{get_bin_directory_short_path()}/{command}"
+                target_short_path = f"{BIN_DIRECTORY}/{command}"
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func
@@ -1022,6 +1067,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             copy(self.target_full_path, self.hold_path)
 
         h = History(self.target_prefix)
+        if not isfile(h.path):
+            PrefixData(self.target_prefix).set_creation_time()
         h.update()
         h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
 
@@ -1029,6 +1076,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
+        if isfile(hpath := History(self.target_prefix).path):
+            rm_rf(hpath)
 
     def cleanup(self):
         rm_rf(self.hold_path)
@@ -1225,7 +1274,8 @@ class CacheUrlAction(PathAction):
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def verify(self):
-        assert "::" not in self.url
+        if "::" in self.url:
+            raise ValueError("URL cannot contain '::'")
         self._verified = True
 
     def execute(self, progress_update_callback=None):
@@ -1388,7 +1438,7 @@ class ExtractPackageAction(PathAction):
 
         try:
             raw_index_json = read_index_json(self.target_full_path)
-        except (OSError, JSONDecodeError, FileNotFoundError):
+        except (OSError, json.JSONDecodeError, FileNotFoundError):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print(
@@ -1400,7 +1450,8 @@ class ExtractPackageAction(PathAction):
 
         if isinstance(self.record_or_spec, MatchSpec):
             url = self.record_or_spec.get_raw_value("url")
-            assert url
+            if not url:
+                raise ValueError("URL cannot be empty.")
             channel = (
                 Channel(url)
                 if has_platform(url, context.known_subdirs)
@@ -1409,8 +1460,10 @@ class ExtractPackageAction(PathAction):
             fn = basename(url)
             sha256 = self.sha256 or compute_sum(self.source_full_path, "sha256")
             size = getsize(self.source_full_path)
-            if self.size is not None:
-                assert size == self.size, (size, self.size)
+            if self.size is not None and size != self.size:
+                raise RuntimeError(
+                    f"Computed size ({size}) does not match expected value {self.size}"
+                )
             md5 = self.md5 or compute_sum(self.source_full_path, "md5")
             repodata_record = PackageRecord.from_objects(
                 raw_index_json,

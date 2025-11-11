@@ -22,8 +22,8 @@ from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
-    from typing import Sequence
 
 log = getLogger(__name__)
 Response = namedtuple("Response", ("stdout", "stderr", "rc"))

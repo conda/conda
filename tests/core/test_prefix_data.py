@@ -1,66 +1,40 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import json
-from contextlib import contextmanager
-from os.path import isdir
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import PREFIX_STATE_FILE
+from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CorruptedEnvironmentError
-from conda.testing import TmpEnvFixture
+from conda.exceptions import CondaError, CorruptedEnvironmentError
+from conda.models.enums import PackageType
+from conda.models.match_spec import MatchSpec
+from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
-from tests.data.env_metadata import (
-    PATH_TEST_ENV_1,
-    PATH_TEST_ENV_2,
-    PATH_TEST_ENV_3,
-    PATH_TEST_ENV_4,
-)
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
 
 
-def _print_output(*args):
-    """Helper function to print output in case of failed tests."""
-    for arg in args:
-        print(arg)
-    print("\n")
+ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
 
 
-class DummyPythonRecord:
-    files = []
-
-
-@contextmanager
-def set_on_win(val):
-    import conda.common.path
-    import conda.common.pkg_formats.python
-    import conda.core.prefix_data
-
-    on_win_saved = conda.common.path.on_win
-    win_path_ok_saved_1 = conda.core.prefix_data.win_path_ok
-    win_path_ok_saved_2 = conda.common.pkg_formats.python.win_path_ok
-    rm_rf_saved = conda.core.prefix_data.rm_rf
-    try:
-        conda.common.path.on_win = val
-        conda.core.prefix_data.rm_rf = lambda x: None
-        if val and not on_win:
-            conda.core.prefix_data.win_path_ok = lambda x: x
-            conda.common.pkg_formats.python.win_path_ok = lambda x: x
-        yield
-    finally:
-        conda.common.path.on_win = on_win_saved
-        conda.core.prefix_data.win_path_ok = win_path_ok_saved_1
-        conda.common.pkg_formats.python.win_path_ok = win_path_ok_saved_2
-        conda.core.prefix_data.rm_rf = rm_rf_saved
-
-
-def test_pip_interop_windows():
-    test_cases = (
-        (
-            PATH_TEST_ENV_3,
-            (
+@pytest.mark.parametrize(
+    "path,expected_output",
+    [
+        pytest.param(
+            PATH_TEST_ENV_3 := ENV_METADATA_DIR / "envpy37win",
+            {
                 "babel",
                 "backports-functools-lru-cache",
                 "chardet",
@@ -98,11 +72,13 @@ def test_pip_interop_windows():
                 "urllib3",
                 "virtualenv",
                 "w3lib",
-            ),
+            },
+            id=PATH_TEST_ENV_3.name,
+            marks=pytest.mark.skipif(not on_win, reason="Windows only"),
         ),
-        (
-            PATH_TEST_ENV_4,
-            (
+        pytest.param(
+            PATH_TEST_ENV_4 := ENV_METADATA_DIR / "envpy27win_whl",
+            {
                 "asn1crypto",
                 "attrs",
                 "automat",
@@ -162,33 +138,13 @@ def test_pip_interop_windows():
                 "virtualenv",
                 "w3lib",
                 "zope-interface",
-            ),
+            },
+            id=PATH_TEST_ENV_4.name,
+            marks=pytest.mark.skipif(not on_win, reason="Windows only"),
         ),
-    )
-
-    for path, expected_output in test_cases:
-        with set_on_win(True):
-            if isdir(path):
-                prefixdata = PrefixData(path, pip_interop_enabled=True)
-                prefixdata.load()
-                records = prefixdata._load_site_packages()
-                record_names = tuple(sorted(records.keys()))
-                print("RECORDS", record_names)
-                assert len(record_names), len(expected_output)
-                _print_output(expected_output, record_names)
-                for record_name in record_names:
-                    _print_output(record_name)
-                    assert record_name in expected_output
-                for record_name in expected_output:
-                    _print_output(record_name)
-                    assert record_name in record_names
-
-
-def test_pip_interop_osx():
-    test_cases = (
-        (
-            PATH_TEST_ENV_1,
-            (
+        pytest.param(
+            PATH_TEST_ENV_1 := ENV_METADATA_DIR / "envpy27osx",
+            {
                 "asn1crypto",
                 "babel",
                 "backports-functools-lru-cache",
@@ -233,11 +189,13 @@ def test_pip_interop_osx():
                 "urllib3",
                 "virtualenv",
                 "w3lib",
-            ),
+            },
+            id=PATH_TEST_ENV_1.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
-        (
-            PATH_TEST_ENV_2,
-            (
+        pytest.param(
+            PATH_TEST_ENV_2 := ENV_METADATA_DIR / "envpy37osx_whl",
+            {
                 "asn1crypto",
                 "attrs",
                 "automat",
@@ -293,58 +251,62 @@ def test_pip_interop_osx():
                 "virtualenv",
                 "w3lib",
                 "zope-interface",
-            ),
+            },
+            id=PATH_TEST_ENV_2.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
-    )
+    ],
+)
+def test_pip_interop(
+    mocker: MockerFixture,
+    path: Path,
+    expected_output: set[str],
+) -> None:
+    # test envs with packages installed using either `pip install <pth-to-wheel>` or
+    # `python setup.py install`
+    mocker.patch("conda.plugins.prefix_data_loaders.pypi.rm_rf")
 
-    for path, expected_output in test_cases:
-        if isdir(path):
-            with set_on_win(False):
-                prefixdata = PrefixData(path, pip_interop_enabled=True)
-                prefixdata.load()
-                records = prefixdata._load_site_packages()
-                record_names = tuple(sorted(records.keys()))
-                print("RECORDS", record_names)
-                assert len(record_names), len(expected_output)
-                _print_output(expected_output, record_names)
-                for record_name in record_names:
-                    _print_output(record_name)
-                    assert record_name in expected_output
-                for record_name in expected_output:
-                    _print_output(record_name)
-                    assert record_name in record_names
+    prefixdata = PrefixData(path, interoperability=True)
+    prefixdata.load()
+    records = load_site_packages(prefixdata.prefix_path, prefixdata._prefix_records)
+
+    assert set(records) == expected_output
 
 
 def test_get_conda_anchor_files_and_records():
-    valid_tests = [
-        "v/site-packages/spam.egg-info/PKG-INFO",
-        "v/site-packages/foo.dist-info/RECORD",
-        "v/site-packages/bar.egg-info",
-    ]
-    invalid_tests = [
-        "v/site-packages/valid-package/_vendor/invalid-now.egg-info/PKG-INFO",
-        "i/site-packages/stuff.egg-link",
-        "i/spam.egg-info/PKG-INFO",
-        "i/foo.dist-info/RECORD",
-        "i/bar.egg-info",
-        "i/site-packages/spam",
-        "i/site-packages/foo",
-        "i/site-packages/bar",
-    ]
-    tests = valid_tests + invalid_tests
-    records = []
-    for path in tests:
-        record = DummyPythonRecord()
-        record.files = [path]
-        records.append(record)
+    @dataclass
+    class DummyPythonRecord:
+        files: list[str]
 
-    output = get_conda_anchor_files_and_records("v/site-packages", records)
-    expected_output = {}
-    for i in range(len(valid_tests)):
-        expected_output[valid_tests[i]] = records[i]
+    valid_records = {
+        path: DummyPythonRecord([path])
+        for path in (
+            "v/site-packages/spam.egg-info/PKG-INFO",
+            "v/site-packages/foo.dist-info/RECORD",
+            "v/site-packages/bar.egg-info",
+        )
+    }
+    invalid_records = {
+        path: DummyPythonRecord([path])
+        for path in (
+            "v/site-packages/valid-package/_vendor/invalid-now.egg-info/PKG-INFO",
+            "i/site-packages/stuff.egg-link",
+            "i/spam.egg-info/PKG-INFO",
+            "i/foo.dist-info/RECORD",
+            "i/bar.egg-info",
+            "i/site-packages/spam",
+            "i/site-packages/foo",
+            "i/site-packages/bar",
+        )
+    }
 
-    _print_output(output, expected_output)
-    assert output == expected_output
+    assert (
+        get_conda_anchor_files_and_records(
+            "v/site-packages",
+            [*valid_records.values(), *invalid_records.values()],
+        )
+        == valid_records
+    )
 
 
 def test_corrupt_unicode_conda_meta_json():
@@ -411,6 +373,27 @@ def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
     assert env_vars_one == env_vars
 
 
+def test_warn_setting_reserved_env_vars(prefix_data: PrefixData):
+    warning_message = r"WARNING: the given environment variable\(s\) are reserved and will be ignored: PATH.+"
+    with pytest.warns(UserWarning, match=warning_message):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
+
+    # Ensure the PATH is still set in the env vars
+    env_vars = prefix_data.get_environment_env_vars()
+    assert env_vars.get("PATH") == "very naughty"
+
+
+def test_unset_reserved_env_vars(prefix_data: PrefixData):
+    # Setup prefix data with reserved env var
+    with pytest.warns(UserWarning):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
+
+    prefix_data.unset_environment_env_vars(["PATH"])
+    # Ensure that the PATH is fully removed from the state tile
+    env_state_file = prefix_data._get_environment_state_file()
+    assert "PATH" not in env_state_file.get("env_vars", {})
+
+
 @pytest.mark.parametrize("remove_auth", (True, False))
 def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
     (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
@@ -427,3 +410,539 @@ def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
         assert "/t/<TOKEN>/" in json_content
     else:
         assert "/t/some-fake-token/" in json_content
+
+
+@pytest.mark.parametrize(
+    "prefix1,prefix2,equals",
+    [
+        ("missing", None, False),
+        ("missing", "missing", True),
+        ("missing", "{path}", False),
+        ("{path}", None, False),
+        ("{path}", "missing", False),
+        ("{path}", "{path}", True),
+    ],
+)
+def test_prefix_data_equality(
+    tmp_path: Path,
+    prefix1: str,
+    prefix2: str | None,
+    equals: bool,
+) -> None:
+    prefix_data1 = PrefixData(prefix1.format(path=tmp_path))
+    prefix_data2 = PrefixData(prefix2.format(path=tmp_path)) if prefix2 else prefix2
+    assert (prefix_data1 == prefix_data2) is equals
+
+
+def test_prefix_insertion_error(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+) -> None:
+    """
+    Ensure that the right error message is displayed when trying to insert a prefix record
+    that already exists in the prefix.
+    """
+    package_name = "small-executable"
+    with tmp_env(package_name) as prefix:
+        prefix_data = PrefixData(prefix)
+
+        expected_error_message = (
+            f"Prefix record '{package_name}' already exists. "
+            f"Try `conda clean --all` to fix."
+        )
+
+        with pytest.raises(CondaError, match=expected_error_message):
+            prefix_data.insert(
+                record(
+                    name=package_name,
+                    version="1.0.0",
+                    build="0",
+                    build_number=0,
+                    channel="test-channel",
+                )
+            )
+
+
+def test_get_conda_packages_returns_sorted_list(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+):
+    """Test that get_conda_packages returns conda packages sorted alphabetically."""
+    # Create environment with known conda package
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        conda_packages = prefix_data.get_conda_packages()
+
+        # Should return a list
+        assert isinstance(conda_packages, list)
+
+        # Should have at least the small-executable package
+        assert len(conda_packages) > 0, "Should have at least one conda package"
+
+        # Should be sorted alphabetically
+        package_names = [pkg.name for pkg in conda_packages]
+        assert package_names == sorted(package_names), (
+            "Conda packages should be sorted alphabetically"
+        )
+
+        # Should include our test package
+        package_names_set = set(package_names)
+        assert "small-executable" in package_names_set, (
+            "Should include small-executable package"
+        )
+
+        # All should be conda packages (not Python packages)
+        for pkg in conda_packages:
+            assert pkg.package_type in {
+                None,
+                PackageType.NOARCH_GENERIC,
+                PackageType.NOARCH_PYTHON,
+            }, (
+                f"Package {pkg.name} should be a conda package type, got {pkg.package_type}"
+            )
+
+
+def test_get_python_packages_basic_functionality(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+):
+    """Test that get_python_packages returns correct structure even with no Python packages."""
+    # Create environment with conda package
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        python_packages = prefix_data.get_python_packages()
+
+        # Should return a list
+        assert isinstance(python_packages, list)
+
+        # This test environment likely has no Python packages, which is fine
+        # The important thing is that the method works and returns the right structure
+
+        # If there are Python packages, they should be sorted
+        if python_packages:
+            package_names = [pkg.name for pkg in python_packages]
+            assert package_names == sorted(package_names), (
+                "Python packages should be sorted alphabetically"
+            )
+
+            # All should be Python packages
+            for pkg in python_packages:
+                assert pkg.package_type in {
+                    PackageType.VIRTUAL_PYTHON_WHEEL,
+                    PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                    PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+                }, (
+                    f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+                )
+
+
+def test_get_packages_behavior_with_interoperability(
+    tmp_env: TmpEnvFixture, pip_cli: PipCLIFixture, wheelhouse: Path
+):
+    """Test that package extraction behaves correctly with interoperability settings."""
+    # Create environment with conda packages and pip
+    packages = ["python=3.10", "pip", "ca-certificates"]
+    with tmp_env(*packages) as prefix:
+        # Install small-python-package wheel for testing pip interoperability
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+        pip_stdout, pip_stderr, pip_code = pip_cli(
+            "install", str(wheel_path), prefix=prefix
+        )
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
+
+        # Clear prefix data cache to ensure fresh data
+        PrefixData._cache_.clear()
+
+        # Enable pip interoperability to detect Python packages
+        prefix_data = PrefixData(prefix, interoperability=True)
+
+        # Test all methods together
+        conda_packages = prefix_data.get_conda_packages()
+        python_packages = prefix_data.get_python_packages()
+
+        # Should have multiple conda packages
+        assert len(conda_packages) >= 3, (
+            f"Should have at least 3 conda packages, got {len(conda_packages)}"
+        )
+
+        # Should have 1 Python package now (small-python-package)
+        assert len(python_packages) == 1, (
+            f"Should have 1 Python package after installing small-python-package, got {len(python_packages)}"
+        )
+
+        # Verify consistency
+        assert conda_packages == conda_packages
+        assert python_packages == python_packages
+
+        # Check that our test packages are included
+        conda_names = {pkg.name for pkg in conda_packages}
+        assert "python" in conda_names, "Should include python"
+        assert "ca-certificates" in conda_names, "Should include ca-certificates"
+
+        # Check that small-python-package is included in Python packages
+        python_names = {pkg.name for pkg in python_packages}
+        assert "small-python-package" in python_names, (
+            f"Should include small-python-package in Python packages: {python_names}"
+        )
+
+        # Verify alphabetical sorting
+        conda_names_list = [pkg.name for pkg in conda_packages]
+        assert conda_names_list == sorted(conda_names_list), (
+            "Conda packages should be sorted"
+        )
+
+        # Verify Python packages sorting and structure
+        python_names_list = [pkg.name for pkg in python_packages]
+        assert python_names_list == sorted(python_names_list), (
+            "Python packages should be sorted"
+        )
+
+        # Verify all Python packages have correct types
+        for pkg in python_packages:
+            assert pkg.package_type in {
+                PackageType.VIRTUAL_PYTHON_WHEEL,
+                PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            }, (
+                f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+            )
+
+
+def test_package_methods_with_required_python_packages(mocker):
+    """Test package extraction methods when Python packages must be found."""
+    # Create mock records - some conda, some Python
+    conda_record1 = mocker.Mock()
+    conda_record1.name = "conda-package-a"
+    conda_record1.package_type = PackageType.NOARCH_GENERIC
+
+    conda_record2 = mocker.Mock()
+    conda_record2.name = "conda-package-b"
+    conda_record2.package_type = PackageType.NOARCH_PYTHON
+
+    python_record1 = mocker.Mock()
+    python_record1.name = "python-package-1"
+    python_record1.package_type = PackageType.VIRTUAL_PYTHON_WHEEL
+
+    python_record2 = mocker.Mock()
+    python_record2.name = "python-package-2"
+    python_record2.package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
+
+    # Create a mock PrefixGraph that returns both conda and Python packages
+    mock_graph = mocker.Mock()
+    mock_graph.graph = [conda_record1, conda_record2, python_record1, python_record2]
+
+    # Create a mock PrefixData instance
+    mock_prefix_data = mocker.Mock(spec=PrefixData)
+
+    # Monkeypatch the methods to use our mock data
+    mock_prefix_data.get_conda_packages = PrefixData.get_conda_packages.__get__(
+        mock_prefix_data
+    )
+    mock_prefix_data.get_python_packages = PrefixData.get_python_packages.__get__(
+        mock_prefix_data
+    )
+
+    # Mock the iter_records and PrefixGraph
+    mock_prefix_data.iter_records.return_value = [
+        conda_record1,
+        conda_record2,
+        python_record1,
+        python_record2,
+    ]
+    mocker.patch("conda.core.prefix_data.PrefixGraph", return_value=mock_graph)
+
+    # Test the methods
+    conda_packages = mock_prefix_data.get_conda_packages()
+    python_packages = mock_prefix_data.get_python_packages()
+
+    # Test conda packages
+    assert len(conda_packages) == 2, "Should have 2 conda packages"
+    assert [pkg.name for pkg in conda_packages] == [
+        "conda-package-a",
+        "conda-package-b",
+    ]
+
+    # Test Python packages - NOW WE REQUIRE THEM
+    assert len(python_packages) == 2, (
+        f"Should have exactly 2 Python packages, got {len(python_packages)}"
+    )
+    assert [pkg.name for pkg in python_packages] == [
+        "python-package-1",
+        "python-package-2",
+    ]
+
+    # Verify all Python packages have correct types
+    for pkg in python_packages:
+        assert pkg.package_type in {
+            PackageType.VIRTUAL_PYTHON_WHEEL,
+            PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+        }, f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+
+
+def test_empty_environment_package_methods(tmp_env: TmpEnvFixture):
+    """Test package extraction methods with an empty environment."""
+    # Create empty environment
+    with tmp_env() as prefix:
+        prefix_data = PrefixData(prefix)
+
+        conda_packages = prefix_data.get_conda_packages()
+        python_packages = prefix_data.get_python_packages()
+
+        # All should be empty lists but still valid
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
+        assert len(conda_packages) == 0, (
+            "Empty environment should have no conda packages"
+        )
+        assert len(python_packages) == 0, (
+            "Empty environment should have no python packages"
+        )
+
+
+@pytest.mark.parametrize(
+    "method_name,expected_types",
+    [
+        (
+            "get_conda_packages",
+            {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON},
+        ),
+        (
+            "get_python_packages",
+            {
+                PackageType.VIRTUAL_PYTHON_WHEEL,
+                PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            },
+        ),
+    ],
+)
+def test_package_extraction_methods_types(
+    tmp_env: TmpEnvFixture,
+    test_recipes_channel: str,
+    method_name: str,
+    expected_types: set,
+):
+    """Test that package extraction methods return packages of expected types."""
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        method = getattr(prefix_data, method_name)
+        packages = method()
+
+        # Should return a list
+        assert isinstance(packages, list)
+
+        # All packages should have expected types
+        for pkg in packages:
+            assert pkg.package_type in expected_types, (
+                f"Package {pkg.name} from {method_name}() has unexpected type {pkg.package_type}"
+            )
+
+        # Packages should be sorted alphabetically
+        if packages:
+            package_names = [pkg.name for pkg in packages]
+            assert package_names == sorted(package_names), (
+                f"Packages from {method_name}() should be sorted"
+            )
+
+
+@pytest.mark.parametrize(
+    "environment_packages,expected_conda_count",
+    [
+        ([], 0),  # Empty environment
+        (["small-executable"], 1),  # Single package
+        (["small-executable", "sample_noarch_python"], 2),  # Multiple packages
+    ],
+)
+def test_package_extraction_package_counts(
+    tmp_env: TmpEnvFixture,
+    test_recipes_channel: str,
+    environment_packages: list,
+    expected_conda_count: int,
+):
+    """Test package extraction with different environment configurations."""
+    with tmp_env(*environment_packages) as prefix:
+        prefix_data = PrefixData(prefix)
+
+        conda_packages = prefix_data.get_conda_packages()
+
+        # Check expected conda package count (allowing for dependencies)
+        assert len(conda_packages) >= expected_conda_count, (
+            f"Should have at least {expected_conda_count} conda packages, got {len(conda_packages)}"
+        )
+
+        # Check that expected packages are present
+        conda_names = {pkg.name for pkg in conda_packages}
+        for expected_package in environment_packages:
+            assert expected_package in conda_names, f"Should include {expected_package}"
+
+
+def test_package_methods_with_mock_data(mocker):
+    """Test package extraction methods with controlled mock data."""
+    # Create mock prefix data
+    mock_prefix_data = mocker.Mock(spec=PrefixData)
+
+    # Create mock records
+    conda_record1 = mocker.Mock()
+    conda_record1.name = "conda-package-a"
+    conda_record1.package_type = None
+
+    conda_record2 = mocker.Mock()
+    conda_record2.name = "conda-package-b"
+    conda_record2.package_type = PackageType.NOARCH_PYTHON
+
+    python_record = mocker.Mock()
+    python_record.name = "python-package"
+    python_record.package_type = PackageType.VIRTUAL_PYTHON_WHEEL
+
+    # Create a mock PrefixGraph that returns our test records
+    mock_graph = mocker.Mock()
+    mock_graph.graph = [conda_record1, conda_record2, python_record]
+
+    # Monkeypatch the methods to use our mock data
+    mock_prefix_data.get_conda_packages = PrefixData.get_conda_packages.__get__(
+        mock_prefix_data
+    )
+    mock_prefix_data.get_python_packages = PrefixData.get_python_packages.__get__(
+        mock_prefix_data
+    )
+
+    # Mock the iter_records and PrefixGraph
+    mock_prefix_data.iter_records.return_value = [
+        conda_record1,
+        conda_record2,
+        python_record,
+    ]
+    mocker.patch("conda.core.prefix_data.PrefixGraph", return_value=mock_graph)
+
+    # Test the methods
+    conda_packages = mock_prefix_data.get_conda_packages()
+    python_packages = mock_prefix_data.get_python_packages()
+
+    # Should have 2 conda packages and 1 Python package
+    assert len(conda_packages) == 2
+    assert len(python_packages) == 1
+
+    # Should have correct names (sorted)
+    assert [pkg.name for pkg in conda_packages] == [
+        "conda-package-a",
+        "conda-package-b",
+    ]
+    assert python_packages[0].name == "python-package"
+
+
+def test_get_python_packages_with_pip_interoperability(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str
+):
+    """Test get_python_packages with pip interoperability enabled."""
+    # Create environment with a basic package and enable pip interoperability
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(
+            prefix, interoperability=True
+        )  # Enable pip interoperability
+
+        # Get Python packages
+        python_packages = prefix_data.get_python_packages()
+
+        # Should return a list
+        assert isinstance(python_packages, list)
+
+        # Test that the method works correctly regardless of whether there are Python packages
+        # The key is testing the extraction logic and ensuring no errors occur
+
+        # If there are Python packages, they should be sorted and have correct types
+        if python_packages:
+            package_names = [pkg.name for pkg in python_packages]
+            assert package_names == sorted(package_names), (
+                "Python packages should be sorted alphabetically"
+            )
+
+            # All should be Python packages
+            for pkg in python_packages:
+                assert pkg.package_type in {
+                    PackageType.VIRTUAL_PYTHON_WHEEL,
+                    PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE,
+                    PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+                }, (
+                    f"Package {pkg.name} should be a Python package type, got {pkg.package_type}"
+                )
+
+        # Test that both conda and Python packages are handled correctly
+        conda_packages = prefix_data.get_conda_packages()
+
+        # Should have conda packages
+        assert len(conda_packages) >= 1, (
+            "Should have at least the small-executable conda package"
+        )
+        conda_names = {pkg.name for pkg in conda_packages}
+        assert "small-executable" in conda_names, "Should have small-executable package"
+
+        # Test that interoperability doesn't break the basic functionality
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
+
+
+def test_method_consistency(tmp_env: TmpEnvFixture, test_recipes_channel: str):
+    """Test that all methods return consistent results."""
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+
+        # Get packages using different methods
+        conda_packages = prefix_data.get_conda_packages()
+        python_packages = prefix_data.get_python_packages()
+
+        # Methods should return valid lists
+        assert isinstance(conda_packages, list)
+        assert isinstance(python_packages, list)
+
+        # Should have expected content
+        assert len(conda_packages) > 0, "Should have conda packages"
+        conda_names = {pkg.name for pkg in conda_packages}
+        assert "small-executable" in conda_names, "Should include small-executable"
+
+
+@pytest.mark.parametrize("package_type", ["conda", "python"])
+def test_api_consistency(
+    tmp_env: TmpEnvFixture, test_recipes_channel: str, package_type: str
+):
+    """Test that package extraction methods return valid results."""
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+
+        # Get packages via individual method
+        if package_type == "conda":
+            packages = prefix_data.get_conda_packages()
+        else:  # python
+            packages = prefix_data.get_python_packages()
+
+        # Should return a list
+        assert isinstance(packages, list)
+
+        # Should be sorted
+        if packages:
+            package_names = [pkg.name for pkg in packages]
+            assert package_names == sorted(package_names)
+
+
+def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
+    # Test pinned specs conda environment file
+    specs = ("scipy ==0.14.2", "openjdk >=8")
+    with tmp_env() as prefix:
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs) + "\n")
+
+        prefix_data = PrefixData(prefix)
+        pinned_specs = prefix_data.get_pinned_specs()
+        assert pinned_specs != specs
+        assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
+    start = datetime.now(tz=timezone.utc)
+    with tmp_env() as prefix:
+        pd = PrefixData(prefix)
+        created = pd.created
+        first_modification = pd.last_modified
+        # On Linux, we allow a rounding error of a <1 second (usually ~5ms)
+        assert abs(created.timestamp() - first_modification.timestamp()) < 1
+        conda_cli("install", "--yes", "--prefix", prefix, "small-executable")
+        second_modification = pd.last_modified
+        assert created == pd.created
+        assert first_modification < second_modification
+        assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)

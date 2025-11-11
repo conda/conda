@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import WARN
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -20,11 +20,11 @@ from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_log_level
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from collections.abc import Iterable
 
     from pytest_mock import MockerFixture
 
-    from conda.testing import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def _get_pkgs(pkgs_dir: str | Path) -> list[Path]:
@@ -256,7 +256,7 @@ def test_clean_logfiles(
         # mimic logfiles being created
         logs_dir = Path(tmp_pkgs_dir, CONDA_LOGS_DIR)
         logs_dir.mkdir(parents=True, exist_ok=True)
-        path = logs_dir / f"{datetime.utcnow():%Y%m%d-%H%M%S-%f}.log"
+        path = logs_dir / f"{datetime.now(timezone.utc):%Y%m%d-%H%M%S-%f}.log"
         path.touch()
 
         # logfiles exist

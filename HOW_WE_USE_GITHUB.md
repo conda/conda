@@ -250,7 +250,6 @@ support:
 Unfortunately, this issue is outside the scope of support we offer via GitHub or is not directly related to this project.
 Community support can be found elsewhere, though, and we encourage you to explore the following options:
 
-- [Conda discourse forum](https://conda.discourse.group/)
 - [Community chat channels](https://conda.org/community#chat)
 - [Stack Overflow posts tagged "conda"](https://stackoverflow.com/questions/tagged/conda)
 </pre>
@@ -267,8 +266,7 @@ In order to not have to manually type or copy/paste the above repeatedly, note t
 
 ## Commit Signing
 
-For all conda maintainers, we require commit signing and strongly recommend it for all others wishing to contribute to conda
-related projects. More information about how to set this up within GitHub can be found here:
+For all maintainers, we require commit signing and strongly recommend it for all others wishing to contribute. More information about how to set this up within GitHub can be found here:
 
 - [GitHub's signing commits docs][docs-commit-signing]
 

@@ -14,15 +14,25 @@ decline to cache incorrect trust metadata that would make further root
 updates impossible.
 """
 
+from ..deprecations import deprecated
+
+# Mark the entire module for deprecation. For more information see
+# https://github.com/conda/conda-content-trust and #14797
+deprecated.module(
+    "25.9",  # deprecate_in version
+    "26.3",  # remove_in version
+    addendum="This module will be moved to conda-anaconda-trust-root.",
+)
+
 INITIAL_TRUST_ROOT = {
     "signatures": {
         "6d4d5888398ad77465e9fd53996309187723e16509144aa6733015c960378e7a": {
-            "other_headers": "04001608001d162104d2ca1d4bf5d77e7c312534284dd9c45328b685ec0502605dbb03",  # noqa: E501
-            "signature": "b71c9b3aa60e77258c402e574397127bcb4bc15ef3055ada8539b0d1e355bf1415a135fb7cecc9244f839a929f6b1f82844a5b3df8d6225ec9a50b181692490f",  # noqa: E501
+            "other_headers": "04001608001d162104d2ca1d4bf5d77e7c312534284dd9c45328b685ec0502605dbb03",
+            "signature": "b71c9b3aa60e77258c402e574397127bcb4bc15ef3055ada8539b0d1e355bf1415a135fb7cecc9244f839a929f6b1f82844a5b3df8d6225ec9a50b181692490f",
         },
         "508debb915ede0b16dc0cff63f250bde73c5923317b44719fcfc25cc95560c44": {
-            "other_headers": "04001608001d162104e6dffee4638f24cfa60a08ba03afe1314a3a38fc050260621281",  # noqa: E501
-            "signature": "29d53d4e7dbea0a3efb07266d22e57cf4df7abe004453981c631245716e1b737c7a6b4ab95f42592af70be67abf56e97020e1aa1f52b49ef39b37481f05d5701",  # noqa: E501
+            "other_headers": "04001608001d162104e6dffee4638f24cfa60a08ba03afe1314a3a38fc050260621281",
+            "signature": "29d53d4e7dbea0a3efb07266d22e57cf4df7abe004453981c631245716e1b737c7a6b4ab95f42592af70be67abf56e97020e1aa1f52b49ef39b37481f05d5701",
         },
     },
     "signed": {

@@ -5,6 +5,7 @@ Authors are sorted alphabetically.
 * Aaron Meurer
 * Abheek Mathur
 * Adrian Freund
+* Agriya Khetarpal
 * Alain Domissy
 * Alan Du
 * Albert DeFusco
@@ -14,6 +15,7 @@ Authors are sorted alphabetically.
 * Alex Hall
 * Alex Liew
 * Alex Wiltschko
+* Ali Abbas Zaidi
 * Alisue
 * Almar Klein
 * Amelio Vazquez-Reina
@@ -23,6 +25,7 @@ Authors are sorted alphabetically.
 * Andrew Achkar
 * Andrew Arendt
 * Andrew M. Farrell
+* Andy Kipp
 * Andy R. Terrel
 * Angela Gloyna
 * Aniket Patil
@@ -122,6 +125,7 @@ Authors are sorted alphabetically.
 * Dzianis Shpektarau
 * Ed Reed
 * Eli Rykoff
+* Elsa Granger
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
@@ -129,6 +133,7 @@ Authors are sorted alphabetically.
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
+* Faith Rider
 * Faustin Carter
 * FelisNivalis
 * Filipe Laíns
@@ -188,6 +193,7 @@ Authors are sorted alphabetically.
 * Jerimiah Willhite
 * Jesse Hamer
 * Jillian Rowe
+* Joao Azevedo
 * Joe D
 * Joe Jevnik
 * Joel Hull
@@ -260,6 +266,7 @@ Authors are sorted alphabetically.
 * Martin Kou
 * Martin Prüsse
 * Martin Raden
+* Mary M
 * Matt Craig
 * Matt Kramer
 * Matthew Anderson
@@ -269,6 +276,7 @@ Authors are sorted alphabetically.
 * Matthew Rocklin
 * Matthew Wardrop
 * Matthieu Guillaumin
+* Matthieu Muffato
 * MatthieuDartiailh
 * Matti Picus
 * Maurice Meyer
@@ -303,12 +311,14 @@ Authors are sorted alphabetically.
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
+* Nicholas Blair
 * Nicholas Pierotti
 * Nick Eubank
 * Nicky Sandhu
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
+* Nils Koch
 * Nir Ganani
 * Nitin Madnani
 * Nixon Kwok
@@ -327,6 +337,7 @@ Authors are sorted alphabetically.
 * Peter Cable
 * Peter Talley
 * Peter Williams
+* Peyton Murray
 * Phil Elson
 * Philip Thomas
 * Philippe Mathieu
@@ -345,10 +356,11 @@ Authors are sorted alphabetically.
 * Rich Lewis
 * Richard Gowers
 * Robert Johansson
+* Robin
 * Roger Erens
 * Rollin Thomas
-* Ryan
 * Ryan Grout
+* Ryan Keith
 * Rüdiger Busche
 * Saad Parwaiz
 * Sachin G Biradar
@@ -375,7 +387,6 @@ Authors are sorted alphabetically.
 * Shannon Green
 * Shaun Thompson
 * Shaun Walbridge
-* Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
 * Simon McLaren
@@ -395,6 +406,7 @@ Authors are sorted alphabetically.
 * Steven Engler
 * Stijn Verstraeten
 * Stuart Berg
+* Sylvain Corlay
 * Tadeu Manoel
 * Tarcisio
 * Teake Nutma

@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Handles all display/view logic."""
 
-import json
-from typing import Sequence
+from collections.abc import Sequence
 
 from ..base.context import context
+from ..common.serialize import json
 from .types import ChannelNotice
 
 

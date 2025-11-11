@@ -28,6 +28,7 @@ version = release = conda.__version__
 extensions = [
     "autoapi.extension",
     "conda_umls",
+    "conda_sphinx_theme.version_anchors",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
@@ -164,7 +165,8 @@ autoapi_root = "dev-guide/api"
 # folder-view
 autoapi_add_toctree_entry = False
 autoapi_template_dir = "_templates/autoapi"
-
+autoapi_python_class_content = "both"
+autoapi_keep_files = True
 
 suppress_warnings = [
     "autosectionlabel.*",

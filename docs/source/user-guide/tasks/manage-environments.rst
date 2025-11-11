@@ -123,6 +123,48 @@ Use the terminal for the following steps:
 
    You can also use ``conda info --envs``.
 
+.. _specifying-environment-platform:
+
+Specifying a different target platform for an environment
+=========================================================
+
+By default, ``conda`` will create environments targeting the platform it's
+currently running on. You can check which platform you are currently on by running
+``conda info`` and checking the ``platform`` entry.
+
+However, in some cases you might want to create an environment for a
+different target platform or architecture. To do so, use the
+``--platform`` flag available in the ``conda create`` and
+``conda env create`` commands. See ``--subdir, --platform``
+in :doc:`/commands/create` for more information about allowed values.
+
+For example, a user running macOS on the Apple Silicon platform
+might want to create a ``python`` environment for Intel processors
+and emulate the executables with Rosetta. The command would be:
+
+.. code::
+
+   conda create --platform osx-64 --name python-x64 python
+
+.. note::
+   You can't specify the ``--platform`` flag for existing environments.
+   When created, the environment will be annotated with the custom configuration and
+   subsequent operations on it will remember the target platform.
+
+This flag also allows specifying a different OS (e.g. creating a Linux
+environment on macOS), but we don't recommend its usage outside of
+``--dry-run`` operations. Common problems with mismatched OSes include:
+
+- The environment cannot be solved because virtual packages are missing.
+  You can workaround this issue by exporting the necessary
+  ``CONDA_OVERRIDE_****`` environment variables. For example, solving
+  for Linux from macOS, you will probably need ``CONDA_OVERRIDE_LINUX=1``
+  and ``CONDA_OVERRIDE_GLIBC=2.17``.
+- The environment can be solved, but extraction and linking fails due
+  filesystem limitations (case insensitive systems, incompatible paths,
+  etc). The only workaround here is to use ``--dry-run --json`` to obtain
+  the solution and process the payload into a lockfile that can be shared
+  with the target machine. See :ref:`dry-run-explicit` for more details.
 
 .. _specifying-location:
 
@@ -176,7 +218,7 @@ This can result in long prefixes::
 To remove this long prefix in your shell prompt, modify the env_prompt
 setting in your ``.condarc`` file::
 
-conda config --set env_prompt '({name})'
+  conda config --set env_prompt '({name})'
 
 This will edit your ``.condarc`` file if you already have one
 or create a ``.condarc`` file if you do not.
@@ -206,13 +248,34 @@ For example, it may be the case that:
 
 If any of these occur, all you need to do is update the contents of
 your ``environment.yml`` file accordingly and then run the following
-command::
+command:
 
-conda env update --file environment.yml  --prune
+.. code::
+
+   conda env update --file environment.yml  --prune
 
 .. note::
    The ``--prune`` option causes conda to remove any dependencies
    that are no longer required from the environment.
+
+.. _frozen-env:
+
+Freezing or locking an environment
+==================================
+
+`CEP 22 <https://conda.org/learn/ceps/cep-0022>`__ introduced an
+environment marker file that will instruct ``conda`` not to allow
+modifications in the given environment. When attempting to add,
+update or remove a package, users will receive an error by default::
+
+   EnvironmentIsFrozenError: Cannot not modify '~/.conda/envs/my-env'.
+   The environment is marked as frozen. You can ignore this error with
+   the `--override-frozen` flag, at your own risk.
+
+As mentioned above, users can pass the ``--override-frozen`` flag, but
+this is really not recommended and should only be done by advanced users
+who are aware of the risks and would have the knowledge to fix potential
+complications derived from that operation.
 
 
 Cloning an environment
@@ -241,6 +304,7 @@ To verify that the copy was made:
 In the environments list that displays, you should see both the
 source environment and the new copy.
 
+.. _identical-conda-envs:
 
 Building identical conda environments
 =====================================
@@ -336,7 +400,7 @@ not global.
    for "All Users", we add it to the *system* PATH. In the former case,
    you can end up with system PATH values taking precedence over
    your entries. In the latter case, you do not. *We do not recommend*
-   `multi-user installs <https://docs.anaconda.com/free/anaconda/install/multi-user/>`_.
+   `multi-user installs <https://docs.anaconda.com/anaconda/install/multi-user/>`__.
 
 To activate an environment: ``conda activate myenv``
 
@@ -355,7 +419,7 @@ You may receive a warning message if you have not activated your environment:
    please see https://conda.io/activation.
 
 If you receive this warning, you need to activate your environment. To do
-so on Windows, run: ``c:\Anaconda3\Scripts\activate base`` in a terminal window.
+so on Windows, run: ``c:\Anaconda3\Scripts\activate`` in a terminal window.
 
 Windows is extremely sensitive to proper activation. This is because
 the Windows library loader does not support the concept of libraries
@@ -384,20 +448,29 @@ behavior uniform across operating systems. Conda 4.4 allowed
 support so that conda works faster and less disruptively on
 a wide variety of shells (bash, zsh, csh, fish, xonsh, and more).
 Now these shells can use the ``conda activate`` command.
-Removing the need to modify PATH makes conda less disruptive to
-other software on your system. For more information, read the
-output from ``conda init --help``.
+
+Alternatively, ``conda init --condabin`` will not install a shell
+function in your profile. Instead, it will only add the ``$CONDA_PREFIX/condabin/``
+directory to ``PATH``. This directory only contains the ``conda``
+executable, so it should be minimally invasive.
+
+For more information, read the output from ``conda init --help``.
 
 One setting may be useful to you when using ``conda init`` is::
 
-  auto_activate_base: bool
+  auto_activate: bool
 
-This setting controls whether or not conda activates your base
+This setting controls whether or not conda activates the given default
 environment when it first starts up. You'll have the ``conda``
 command available either way, but without activating the environment,
-none of the other programs in the environment will be available until
-the environment is activated with ``conda activate base``. People
-sometimes choose this setting to speed up the time their shell takes
+none of the other programs in the default environment will be available until
+the environment is activated with ``conda activate``.
+
+The environment to be activated by default can be configured with::
+
+   default_activation_env: str
+
+People sometimes choose this setting to speed up the time their shell takes
 to start up or to keep conda-installed software from automatically
 hiding their other software.
 
@@ -410,13 +483,13 @@ deactivating the new environment. Sometimes you may want to leave
 the current environment PATH entries in place so that you can continue
 to easily access command-line programs from the first environment.
 This is most commonly encountered when common command-line utilities
-are installed in the base environment. To retain the current environment
+are installed in the default environment. To retain the current environment
 in the PATH, you can activate the new environment using::
 
   conda activate --stack myenv
 
 If you wish to always stack when going from the outermost environment,
-which is typically the base environment, you can set the ``auto_stack``
+which is typically the default environment, you can set the ``auto_stack``
 configuration option::
 
   conda config --set auto_stack 1
@@ -446,7 +519,7 @@ Conda removes the path name for the currently active environment from
 your system command.
 
 .. note::
-   To simply return to the base environment, it's better to call ``conda
+   To simply return to the default environment, it's better to call ``conda
    activate`` with no environment specified, rather than to try to deactivate. If
    you run ``conda deactivate`` from your base environment, you may lose the
    ability to run conda at all. Don't worry, that's local to this shell - you can
@@ -729,11 +802,135 @@ Sharing an environment
 You may want to share your environment with someone else---for
 example, so they can re-create a test that you have done. To
 allow them to quickly reproduce your environment, with all of its
-packages and versions, give them a copy of your
-``environment.yml`` file.
+packages and versions, give them a copy of your environment file.
 
-Exporting the environment.yml file
-----------------------------------
+The recommended way to export conda environments is using the ``conda export`` command,
+which supports multiple formats and provides enhanced functionality:
+
+Exporting environments with conda export
+-----------------------------------------
+
+The ``conda export`` command provides a modern, plugin-based approach to environment export
+with support for multiple output formats.
+
+.. note::
+   The ``conda export`` command has been significantly enhanced in conda 25.7.x with a new
+   plugin-based architecture, multiple export formats, and improved functionality.
+
+**Available Export Formats:**
+
+* ``environment-yaml`` - Cross-platform YAML format (default)
+* ``environment-json`` - Cross-platform JSON format
+* ``explicit`` - Platform-specific explicit URLs (CEP 23 compliant)
+* ``requirements`` - Platform-specific requirements format
+
+Basic Usage
+~~~~~~~~~~~
+
+Export the current environment to YAML format (default):
+
+.. code-block:: bash
+
+   conda export > environment.yaml
+
+Export a specific environment by name:
+
+.. code-block:: bash
+
+   conda export --name myenv --format=environment-yaml
+
+Export using automatic format detection:
+
+.. code-block:: bash
+
+   conda export --file=environment.yaml    # Auto-detects YAML format
+   conda export --file=environment.json    # Auto-detects JSON format
+   conda export --file=explicit.txt        # Auto-detects explicit format
+   conda export --file=requirements.txt    # Auto-detects requirements format
+
+Export Formats in Detail
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Environment YAML Format (Recommended for sharing)**
+
+Best for cross-platform environment sharing:
+
+.. code-block:: bash
+
+   conda export --format=environment-yaml --file=environment.yaml
+
+Creates a file like:
+
+.. code-block:: yaml
+
+   name: myenv
+   channels:
+     - conda-forge
+     - defaults
+   dependencies:
+     - python=3.9
+     - numpy=1.21.0
+     - pandas=1.3.0
+
+**Environment JSON Format**
+
+For programmatic processing or integration with tools:
+
+.. code-block:: bash
+
+   conda export --format=environment-json --file=environment.json
+
+**Explicit Format**
+
+For exact environment reproduction on the same platform:
+
+.. code-block:: bash
+
+   conda export --format=explicit --file=explicit.txt
+
+Creates a file with full package URLs:
+
+.. code-block:: text
+
+   @EXPLICIT
+   https://repo.anaconda.com/pkgs/main/osx-64/python-3.9.7-h88f2d9e_0.tar.bz2
+   https://repo.anaconda.com/pkgs/main/osx-64/numpy-1.21.0-py39h2e5f516_0.tar.bz2
+
+**Requirements Format**
+
+For conda-compatible requirements files:
+
+.. code-block:: bash
+
+   conda export --format=requirements --file=requirements.txt
+
+Creates a file like:
+
+.. code-block:: text
+
+   python=3.9.7
+   numpy=1.21.0
+   pandas=1.3.0
+
+Cross-Platform Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For maximum cross-platform compatibility, use the ``--from-history`` flag:
+
+.. code-block:: bash
+
+   conda export --from-history --format=environment-yaml
+
+This exports only explicitly installed packages, excluding platform-specific dependencies.
+
+.. note::
+   The ``--from-history`` flag only works with structured formats (``environment-yaml``,
+   ``environment-json``). It's not compatible with text formats (``explicit``, ``requirements``).
+
+Alternative: Traditional conda env export
+------------------------------------------
+
+You can also use the traditional ``conda env export`` command for YAML-only export:
 
 .. note::
    If you already have an ``environment.yml`` file in your
@@ -761,9 +958,15 @@ Exporting an environment file across platforms
 ----------------------------------------------
 
 If you want to make your environment file work across platforms,
-you can use the ``conda env export --from-history`` flag. This
-will only include packages that you’ve explicitly asked for,
-as opposed to including every package in your environment.
+you can use the ``--from-history`` flag with either command:
+
+.. code-block:: bash
+
+   # Enhanced export command (recommended)
+   conda export --from-history --format=environment-yaml
+
+   # Traditional command
+   conda env export --from-history
 
 For example, if you create an environment and install Python and a package::
 
@@ -773,13 +976,10 @@ This will download and install numerous additional packages to solve
 for dependencies. This will introduce packages that may not be compatible
 across platforms.
 
-If you use ``conda env export``, it will export all of those packages.
-However, if you use ``conda env export --from-history``, it will
-only export those you specifically chose:
+Both export commands with ``--from-history`` will export only the packages you specifically chose:
 
-.. code-block::
+.. code-block:: yaml
 
-   (env-name) ➜  ~ conda env export --from-history
    name: env-name
    channels:
      - conda-forge
@@ -904,3 +1104,47 @@ To verify that the environment was removed, in your terminal window, run:
 
 The environments list that displays should not show the removed
 environment.
+
+.. _dry-run-explicit:
+
+Create explicit lockfiles without creating an environment
+=========================================================
+
+``@EXPLICIT`` lockfiles allow you to (re)create environments without invoking the solver.
+They consist of an ``@EXPLICIT`` header plus a list of conda package URLs, optionally followed
+by their MD5 or SHA256 hash.
+
+They can be obtained from existing environments via ``conda list --explicit``, as seen in
+:ref:`identical-conda-envs`.
+
+But what if you only need the lockfile? Would you need create to a temporary environment first just
+to delete it later? Fortunately, there's a way: you can invoke ``conda`` in JSON mode and then
+process the output with ``jq``.
+
+.. tip::
+
+   You'll need ``jq`` in your system. If you don't have it yet, you can install it via
+   ``conda`` (e.g. ``conda create -n jq jq``) or via your system package manager.
+
+The command looks like this for Linux and macOS (replace ``MATCHSPECS_GO_HERE`` with the relevant
+packages you want):
+
+.. code-block:: shell
+
+   echo "@EXPLICIT" > explicit.txt
+   CONDA_PKGS_DIRS=$(mktemp -d) conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+
+The syntax in Windows only needs some small changes:
+
+.. code-block:: shell
+
+   echo "@EXPLICIT" > explicit.txt
+   set "CONDA_PKGS_DIRS=%TMP%\conda-%RANDOM%"
+   conda create --dry-run MATCHSPECS_GO_HERE --json | jq -r '.actions.FETCH[] | .url + "#" + .md5' >> explicit.txt
+   set "CONDA_PKGS_DIRS="
+
+The resulting ``explicit.txt`` can be used to create a new environment with:
+
+.. code::
+
+   conda create -n new-environment --file explicit.txt

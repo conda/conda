@@ -8,10 +8,8 @@ Installs the specified packages into an existing environment.
 from __future__ import annotations
 
 import sys
-from argparse import _StoreTrueAction
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
 from ..notices import notices
 
 if TYPE_CHECKING:
@@ -24,6 +22,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
+        add_parser_frozen_env,
         add_parser_prune,
         add_parser_solver,
         add_parser_update_modifiers,
@@ -88,6 +87,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Revert to the specified REVISION.",
         metavar="REVISION",
     )
+    add_parser_frozen_env(p)
 
     solver_mode_options, package_install_options, _ = add_parser_create_install_update(
         p
@@ -103,16 +103,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "reinstalled, even if that package already exists in the environment.",
     )
     add_parser_update_modifiers(solver_mode_options)
-    package_install_options.add_argument(
-        "-m",
-        "--mkdir",
-        action=deprecated.action(
-            "24.9",
-            "25.3",
-            _StoreTrueAction,
-            addendum="Use `conda create` instead.",
-        ),
-    )
     package_install_options.add_argument(
         "--clobber",
         action="store_true",
@@ -137,7 +127,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from .install import install
+    from ..exceptions import CondaValueError
+    from .common import validate_environment_files_consistency
+    from .install import get_revision, install, install_revision
 
     if context.force:
         print(
@@ -149,4 +141,27 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
-    return install(args, parser, "install")
+    # Validate that input files are of the same format type
+    validate_environment_files_consistency(args.file)
+
+    # Ensure that users do not provide incompatible arguments.
+    # revision and packages can not be specified together
+    if args.revision and (args.file or args.packages):
+        raise CondaValueError(
+            "too many arguments, must supply one of command line packages, --file or --revision"
+        )
+
+    # Ensure provided combination of command line arguments are valid
+    if args.revision:
+        get_revision(args.revision, json=context.json)
+    elif not (args.file or args.packages):
+        raise CondaValueError(
+            "too few arguments, must supply one of command line packages, --file or --revision"
+        )
+
+    if args.revision:
+        install_revision(args, parser)
+    else:
+        install(args, parser, "install")
+
+    return 0
