@@ -381,7 +381,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 CONDA_PROMPT_MODIFIER=conda_prompt_modifier,
                 **env_vars,
             )
-            PATH=self.pathsep_join(self._add_prefix_to_path(prefix))
+            PATH = self.pathsep_join(self._add_prefix_to_path(prefix))
             deactivate_scripts = ()
         elif stack:
             export_vars, unset_vars = self.get_export_unset_vars(
@@ -395,7 +395,7 @@ class _Activator(metaclass=abc.ABCMeta):
                     f"CONDA_STACKED_{conda_shlvl}": "true",
                 },
             )
-            PATH=self.pathsep_join(self._add_prefix_to_path(prefix))
+            PATH = self.pathsep_join(self._add_prefix_to_path(prefix))
             deactivate_scripts = ()
         else:
             export_vars, unset_vars = self.get_export_unset_vars(
@@ -408,7 +408,7 @@ class _Activator(metaclass=abc.ABCMeta):
                     f"CONDA_PREFIX_{old_conda_shlvl}": old_conda_prefix,
                 },
             )
-            PATH=self.pathsep_join(
+            PATH = self.pathsep_join(
                 self._replace_prefix_in_path(old_conda_prefix, prefix)
             )
             deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
