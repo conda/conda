@@ -517,16 +517,16 @@ class Clauses:
     def LB_Preprocess(self, literals, coeffs):
         equation = []
         offset = 0
-        for coeff, lit in zip(coeffs, literals):
-            if lit == TRUE:
+        for coeff, literal in zip(coeffs, literals):
+            if literal == TRUE:
                 offset += coeff
                 continue
-            if lit == FALSE or coeff == 0:
+            if literal == FALSE or coeff == 0:
                 continue
             if coeff < 0:
                 offset += coeff
-                coeff, lit = -coeff, -lit
-            equation.append((coeff, lit))
+                coeff, literal = -coeff, -literal
+            equation.append((coeff, literal))
         coeffs, literals = tuple(zip(*sorted(equation))) or ((), ())
         return literals, coeffs, offset
 
