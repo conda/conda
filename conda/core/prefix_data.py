@@ -13,6 +13,8 @@ from pathlib import Path
 from stat import S_ISDIR
 from typing import TYPE_CHECKING
 
+from frozendict import frozendict
+
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     CONDA_PACKAGE_EXTENSIONS,
@@ -152,7 +154,7 @@ class PrefixData(metaclass=PrefixDataType):
             return cls(Path(first_writable_envs_dir(), name), **kwargs)
 
     @classmethod
-    def from_context(cls, validate: bool = False) -> PrefixData:
+    def from_context(cls, validate: bool = False, **kwargs) -> PrefixData:
         """
         Creates a PrefixData instance from the path specified by `context.target_prefix`.
 
@@ -161,8 +163,9 @@ class PrefixData(metaclass=PrefixDataType):
 
         :param validate: Whether the path and name should be validated. Useful for environments
             about to be created.
+        :param kwargs: Additional keyword arguments to pass to the constructor.
         """
-        inst = cls(context.target_prefix)
+        inst = cls(context.target_prefix, **kwargs)
         if validate:
             inst.validate_path()
             inst.validate_name()
@@ -512,6 +515,14 @@ class PrefixData(metaclass=PrefixDataType):
     def iter_records_sorted(self) -> Iterable[PrefixRecord]:
         prefix_graph = PrefixGraph(self.iter_records())
         return iter(prefix_graph.graph)
+
+    def map_records(self) -> frozendict[str, PrefixRecord]:
+        """
+        Map the records to a frozendict of name -> record.
+
+        :return: A mapping of name -> record.
+        """
+        return frozendict(self._prefix_records)
 
     def all_subdir_urls(self) -> set[str]:
         subdir_urls = set()
