@@ -199,7 +199,7 @@
 
 :: check if explicitly updating or if 24 hrs since last update
 @CALL :UPDATING
-@IF NOT %ErrorLevel%==0 @GOTO :UPTODATE
+@IF NOT %ErrorLevel%==0 @GOTO :UP_TO_DATE
 @ECHO Updating %_NAME%...
 
 @CALL :CONDA "%_BASEEXE%" update --yes --quiet --all "--prefix=%_ENV%" > NUL
@@ -233,7 +233,7 @@
 :: update timestamp
 @IF EXIST "%_UPDATED%" @DEL "%_UPDATED%"
 @ECHO > "%_UPDATED%"
-:UPTODATE
+:UP_TO_DATE
 
 :: "install" conda
 :: trick conda into importing from our source code and not from site-packages
