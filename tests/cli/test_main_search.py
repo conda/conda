@@ -2,16 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import json
 import re
 from typing import TYPE_CHECKING
 
 import pytest
 import requests
 
-import conda.common.serialize.json
 from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
+from conda.common.serialize import json
 from conda.exceptions import PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.models.records import PackageRecord
@@ -118,18 +117,19 @@ def test_search_3(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.flaky(reruns=1)
-def test_search_4(conda_cli: CondaCLIFixture):
+def test_search_4(
+    conda_cli: CondaCLIFixture,
+    tmp_pkgs_dir: Path,  # empty cache
+):
     """
     Show error when --use-index-cache is used but index cache is empty.
     """
-    conda_cli("clean", "--index-cache", "--yes")
     try:
-        stdout, stderr, err = conda_cli(
+        conda_cli(
             "search",
             "--json",
             "--override-channels",
-            "--channel",
-            "defaults",
+            "--channel=defaults",
             "--use-index-cache",
             "python",
         )
@@ -137,8 +137,7 @@ def test_search_4(conda_cli: CondaCLIFixture):
         # conda_cli doesn't output json on exception; check that exception is
         # json serializable with CondaJSONEncoder.
 
-        error = conda.common.serialize.json.dumps(e.dump_map())
-
+        error = json.dumps(e.dump_map())
         assert "PackagesNotFoundError" in error  # type: ignore[index]
 
 
