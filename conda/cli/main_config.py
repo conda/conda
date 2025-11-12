@@ -433,12 +433,12 @@ class ContextParameters:
 
         :param context: Context instance containing configuration parameters.
         """
-        self.__grouped_parameter = groupby(
+        self._grouped_parameter = groupby(
             lambda p: context.describe_parameter(p)["parameter_type"],
             context.list_parameters(),
         )
 
-        self.__plugin_grouped_parameters = groupby(
+        self._plugin_grouped_parameters = groupby(
             lambda p: context.plugins.describe_parameter(p)["parameter_type"],
             context.plugins.list_parameters(),
         )
@@ -446,22 +446,22 @@ class ContextParameters:
     @cached_property
     def sequence_parameters(self) -> list[str]:
         """List of sequence parameter names."""
-        return self.__grouped_parameter["sequence"]
+        return self._grouped_parameter["sequence"]
 
     @cached_property
     def plugin_sequence_parameters(self) -> list[str]:
         """List of plugin sequence parameter names."""
-        return self.__plugin_grouped_parameters.get("sequence", [])
+        return self._plugin_grouped_parameters.get("sequence", [])
 
     @cached_property
     def map_parameters(self) -> list[str]:
         """List of map parameter names."""
-        return self.__grouped_parameter["map"]
+        return self._grouped_parameter["map"]
 
     @cached_property
     def plugin_map_parameters(self) -> list[str]:
         """List of plugin map parameter names."""
-        return self.__plugin_grouped_parameters.get("map", [])
+        return self._plugin_grouped_parameters.get("map", [])
 
     @staticmethod
     def validate_provided_parameters(
@@ -505,11 +505,11 @@ class CondaRC:
         content: dict[str, Any] | None = None,
         warning_handler: Callable[[str], None] | None = None,
     ) -> None:
-        self.__path = path
-        self.__content = content
+        self._path = path
+        self._content = content
 
-        self.__context = context
-        self.__context_params = ContextParameters(self.context)
+        self._context = context
+        self._context_params: ContextParameters | None = None
 
         self.warning_handler = warning_handler or (lambda msg: None)
 
@@ -521,10 +521,10 @@ class CondaRC:
         :returns: Path to the configuration file.
         :raises AttributeError: If path has not been set.
         """
-        if self.__path is None:
+        if self._path is None:
             raise AttributeError("Condarc. has not been set")
 
-        return self.__path
+        return self._path
 
     @path.setter
     def path(self, path: str | os.PathLike[str] | Path) -> None:
@@ -533,7 +533,7 @@ class CondaRC:
 
         :param path: Path to the configuration file.
         """
-        self.__path = path
+        self._path = path
 
     @property
     def context(self) -> Context:
@@ -542,16 +542,18 @@ class CondaRC:
 
         :returns: Context instance.
         """
-        if self.__context is None:
+        if self._context is None:
             from ..base.context import context
 
-            self.__context = context
+            self._context = context
 
-        return self.__context
+        return self._context
 
     @property
     def context_params(self) -> ContextParameters:
-        return self.__context_params
+        if self._context_params is None:
+            self._context_params = ContextParameters(self.context)
+        return self._context_params
 
     @property
     def content(self) -> dict[str, Any]:
@@ -560,10 +562,10 @@ class CondaRC:
 
         :returns: Dictionary containing configuration content.
         """
-        if self.__content is None:
+        if self._content is None:
             self.read()
 
-        return self.__content
+        return self._content
 
     def read(self, path: str | os.PathLike[str] | Path | None = None) -> dict[str, Any]:
         """
@@ -574,16 +576,16 @@ class CondaRC:
         """
         from ..common.serialize import yaml_round_trip_load
 
-        path = Path(path or self.__path)
+        path = Path(path or self._path)
 
         try:
-            self.__content = (
-                yaml_round_trip_load(Path(path or self.__path).read_text()) or {}
+            self._content = (
+                yaml_round_trip_load(Path(path or self._path).read_text()) or {}
             )
         except FileNotFoundError:
-            self.__content = {}
+            self._content = {}
 
-        return self.__content
+        return self._content
 
     def write(self, path: str | os.PathLike[str] | Path | None = None) -> None:
         """
@@ -595,7 +597,7 @@ class CondaRC:
         from .. import CondaError
         from ..common.serialize import yaml_round_trip_dump
 
-        path: Path = Path(path or self.__path)
+        path: Path = Path(path or self._path)
         try:
             path.write_text(yaml_round_trip_dump(self.content))
         except OSError as e:
