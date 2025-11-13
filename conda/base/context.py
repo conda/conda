@@ -532,6 +532,11 @@ class Context(Configuration):
         aliases=("conda-build", "conda_build"),
     )
 
+    _override_virtual_packages = ParameterLoader(
+        MapParameter(PrimitiveParameter(None, element_type=(str, NoneType))),
+        aliases=("virtual_packages", "override_virtual_packages"),
+    )
+
     ####################################################
     #               Plugin Configuration               #
     ####################################################
@@ -720,14 +725,15 @@ class Context(Configuration):
 
     @property
     def export_platforms(self) -> tuple[str, ...]:
+        # detect if platforms are overridden by the user
         argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
         if argparse_args.get("override_platforms"):
             platforms = argparse_args.get("export_platforms") or ()
         else:
             platforms = self._export_platforms
-        all_platforms = (self.subdir, *platforms)
-        unique_platforms = tuple(dict.fromkeys(all_platforms))
-        return unique_platforms[1:]  # remove the current platform
+
+        # default to the current platform if no platforms are provided
+        return tuple(unique(platforms)) or (self.subdir,)
 
     @property
     def bits(self) -> int:
@@ -1084,6 +1090,14 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    @property
+    def override_virtual_packages(self) -> dict[str, str | None]:
+        """Remove any dunders in the virtual_package name keys"""
+        return {
+            name.removeprefix("__"): value
+            for name, value in self._override_virtual_packages.items()
+        }
+
     def solver_user_agent(self) -> str:
         user_agent = f"solver/{self.solver}"
         try:
@@ -1367,6 +1381,7 @@ class Context(Configuration):
                 "number_channel_notices",
                 "envvars_force_uppercase",
                 "export_platforms",
+                "override_virtual_packages",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -2019,6 +2034,11 @@ class Context(Configuration):
                 Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
                 """
             ),
+            override_virtual_packages=dals(
+                """
+                Set override values for virtual packages.
+                """
+            ),
         )
 
 
@@ -2193,7 +2213,8 @@ def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> Path
     """Find the location of a prefix given a conda env name.  If the location does not exist, an
     error is raised.
     """
-    assert name
+    if not name:
+        raise ValueError("'name' cannot be empty.")
     if name in RESERVED_ENV_NAMES:
         return context.root_prefix
     if envs_dirs is None:

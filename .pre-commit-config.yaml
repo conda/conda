@@ -67,10 +67,10 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.1
+    rev: v0.14.4
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
@@ -92,7 +92,7 @@ repos:
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.34.0
+    rev: 0.34.1
     hooks:
       # verify github syntaxes
       - id: check-github-workflows
@@ -102,11 +102,3 @@ repos:
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
-  - repo: local
-    hooks:
-      - id: git-diff
-        name: git diff
-        entry: git diff --exit-code
-        language: system
-        pass_filenames: false
-        always_run: true

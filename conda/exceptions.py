@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     import requests
 
     from conda.base.context import Context
+    from conda.common.path import PathType
     from conda.models.match_spec import MatchSpec
     from conda.models.records import PackageRecord
     from conda.plugins.types import CondaEnvironmentExporter
@@ -187,9 +188,7 @@ class ClobberError(CondaError):
 
 
 class BasicClobberError(ClobberError):
-    def __init__(
-        self, source_path: os.PathLike, target_path: os.PathLike, context: Context
-    ):
+    def __init__(self, source_path: PathType, target_path: PathType, context: Context):
         message = dals(
             """
         Conda was asked to clobber an existing path.
@@ -213,7 +212,7 @@ class BasicClobberError(ClobberError):
 class KnownPackageClobberError(ClobberError):
     def __init__(
         self,
-        target_path: os.PathLike,
+        target_path: PathType,
         colliding_dist_being_linked: PackageRecord | str,
         colliding_linked_dist: PackageRecord | str,
         context: Context,
@@ -244,7 +243,7 @@ class KnownPackageClobberError(ClobberError):
 class UnknownPackageClobberError(ClobberError):
     def __init__(
         self,
-        target_path: os.PathLike,
+        target_path: PathType,
         colliding_dist_being_linked: PackageRecord | str,
         context: Context,
     ):
@@ -273,7 +272,7 @@ class UnknownPackageClobberError(ClobberError):
 class SharedLinkPathClobberError(ClobberError):
     def __init__(
         self,
-        target_path: os.PathLike,
+        target_path: PathType,
         incompatible_package_dists: Iterable[PackageRecord | str],
         context: Context,
     ):
@@ -386,19 +385,19 @@ class CommandNotFoundError(CondaError):
 
 
 class PathNotFoundError(CondaError, OSError):
-    def __init__(self, path: os.PathLike):
+    def __init__(self, path: PathType):
         message = "%(path)s"
         super().__init__(message, path=path)
 
 
 class DirectoryNotFoundError(CondaError):
-    def __init__(self, path: os.PathLike):
+    def __init__(self, path: PathType):
         message = "%(path)s"
         super().__init__(message, path=path)
 
 
 class EnvironmentLocationNotFound(CondaError):
-    def __init__(self, location: os.PathLike):
+    def __init__(self, location: PathType):
         message = "Not a conda environment: %(location)s"
         super().__init__(message, location=location)
 
@@ -427,7 +426,7 @@ class NoBaseEnvironmentError(CondaError):
 
 
 class DirectoryNotACondaEnvironmentError(CondaError):
-    def __init__(self, target_directory: os.PathLike):
+    def __init__(self, target_directory: PathType):
         message = dals(
             """
         The target directory exists, but it is not a conda environment.
@@ -498,7 +497,7 @@ class CondaIOError(CondaError, IOError):
 
 
 class CondaFileIOError(CondaIOError):
-    def __init__(self, filepath: os.PathLike, message: str, *args):
+    def __init__(self, filepath: PathType, message: str, *args):
         self.filepath = filepath
 
         msg = f"'{filepath}'. {message}"
@@ -632,7 +631,7 @@ class ChecksumMismatchError(CondaError):
     def __init__(
         self,
         url: str,
-        target_full_path: os.PathLike,
+        target_full_path: PathType,
         checksum_type: str,
         expected_checksum: str,
         actual_checksum: str,
@@ -660,7 +659,7 @@ class ChecksumMismatchError(CondaError):
 
 
 class PackageNotInstalledError(CondaError):
-    def __init__(self, prefix: os.PathLike, package_name: str):
+    def __init__(self, prefix: PathType, package_name: str):
         message = dals(
             """
         Package is not installed in prefix.
@@ -786,7 +785,7 @@ class PackagesNotFoundError(CondaError):
             message,
             packages=packages,
             packages_formatted=packages_formatted,
-            channel_urls=channel_urls,
+            channel_urls=list(channel_urls),
             channels_formatted=channels_formatted,
         )
 
@@ -969,7 +968,7 @@ class SpecsConfigurationConflictError(CondaError):
         self,
         requested_specs: Iterable[MatchSpec],
         pinned_specs: Iterable[MatchSpec],
-        prefix: os.PathLike,
+        prefix: PathType,
     ):
         message = dals(
             """
@@ -1017,7 +1016,10 @@ class CyclicalDependencyError(CondaError, ValueError):
 
 class CorruptedEnvironmentError(CondaError):
     def __init__(
-        self, environment_location: os.PathLike, corrupted_file: os.PathLike, **kwargs
+        self,
+        environment_location: PathType,
+        corrupted_file: PathType,
+        **kwargs,
     ):
         message = dals(
             """
@@ -1065,7 +1067,7 @@ class CondaMemoryError(CondaError, MemoryError):
 
 
 class NotWritableError(CondaError, OSError):
-    def __init__(self, path: os.PathLike, errno: int, **kwargs):
+    def __init__(self, path: PathType, errno: int, **kwargs):
         kwargs.update(
             {
                 "path": path,
@@ -1106,19 +1108,19 @@ class NotWritableError(CondaError, OSError):
 
 
 class NoWritableEnvsDirError(CondaError):
-    def __init__(self, envs_dirs: Iterable[os.PathLike], **kwargs):
+    def __init__(self, envs_dirs: Iterable[PathType], **kwargs):
         message = f"No writeable envs directories configured.{dashlist(envs_dirs)}"
         super().__init__(message, envs_dirs=envs_dirs, **kwargs)
 
 
 class NoWritablePkgsDirError(CondaError):
-    def __init__(self, pkgs_dirs: Iterable[os.PathLike], **kwargs):
+    def __init__(self, pkgs_dirs: Iterable[PathType], **kwargs):
         message = f"No writeable pkgs directories configured.{dashlist(pkgs_dirs)}"
         super().__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
 
 class EnvironmentIsFrozenError(CondaError):
-    def __init__(self, prefix: os.PathLike, message: str = "", **kwargs):
+    def __init__(self, prefix: PathType, message: str = "", **kwargs):
         error = f"Cannot modify '{prefix}'. The environment is marked as frozen. "
         if message:
             error += "Reason:\n\n"
@@ -1132,7 +1134,7 @@ class EnvironmentIsFrozenError(CondaError):
 
 
 class EnvironmentNotWritableError(CondaError):
-    def __init__(self, environment_location: os.PathLike, **kwargs):
+    def __init__(self, environment_location: PathType, **kwargs):
         kwargs.update(
             {
                 "environment_location": environment_location,
@@ -1171,9 +1173,9 @@ class CondaDependencyError(CondaError):
 class BinaryPrefixReplacementError(CondaError):
     def __init__(
         self,
-        path: os.PathLike,
+        path: PathType,
         placeholder: str,
-        new_prefix: os.PathLike,
+        new_prefix: PathType,
         original_data_length: int,
         new_data_length: int,
     ):
@@ -1249,15 +1251,21 @@ class CondaEnvException(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileInvalid(CondaEnvException):
+    def __init__(self, msg: str, *args, **kwargs):
+        msg = f"Provided environment.yaml is invalid: {msg}"
+        super().__init__(msg, *args, **kwargs)
+
+
 class EnvironmentFileNotFound(CondaEnvException):
-    def __init__(self, filename: os.PathLike, *args, **kwargs):
+    def __init__(self, filename: PathType, *args, **kwargs):
         msg = f"'{filename}' file not found"
         self.filename = filename
         super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileExtensionNotValid(CondaEnvException):
-    def __init__(self, filename: os.PathLike, *args, **kwargs):
+    def __init__(self, filename: PathType, *args, **kwargs):
         msg = f"'{filename}' file extension must be one of '.txt', '.yaml' or '.yml'"
         self.filename = filename
         super().__init__(msg, *args, **kwargs)
@@ -1278,7 +1286,7 @@ class EnvironmentFileTypeMismatchError(CondaError):
 
 
 class EnvironmentFileEmpty(CondaEnvException):
-    def __init__(self, filename: os.PathLike, *args, **kwargs):
+    def __init__(self, filename: PathType, *args, **kwargs):
         self.filename = filename
         msg = f"Environment file '{filename}' is empty."
         super().__init__(msg, *args, **kwargs)
@@ -1313,7 +1321,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         self.name = name
         msg = dals(
             f"""
-            Environment at {name} is not readable by any installed environment specifier plugins.
+            Environment at {name} is not able to be detected by any installed environment specifier plugins.
 
             Available plugins: {dashlist(plugin_names, 16)}
 

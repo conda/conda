@@ -6,25 +6,32 @@ from __future__ import annotations
 
 import os
 import re
+import warnings
 from collections import UserDict
+from datetime import datetime, timezone
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
+from stat import S_ISDIR
 from typing import TYPE_CHECKING
+
+from frozendict import frozendict
 
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     CONDA_PACKAGE_EXTENSIONS,
+    PREFIX_CREATION_TIMESTAMP_FILE,
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
     RESERVED_ENV_NAMES,
+    RESERVED_ENV_VARS,
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import on_win
+from ..common.compat import on_mac, on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
 from ..common.path import expand, paths_equal
@@ -160,7 +167,7 @@ class PrefixData(metaclass=PrefixDataType):
             return cls(Path(first_writable_envs_dir(), name), **kwargs)
 
     @classmethod
-    def from_context(cls, validate: bool = False) -> PrefixData:
+    def from_context(cls, validate: bool = False, **kwargs) -> PrefixData:
         """
         Creates a PrefixData instance from the path specified by `context.target_prefix`.
 
@@ -169,8 +176,9 @@ class PrefixData(metaclass=PrefixDataType):
 
         :param validate: Whether the path and name should be validated. Useful for environments
             about to be created.
+        :param kwargs: Additional keyword arguments to pass to the constructor.
         """
-        inst = cls(context.target_prefix)
+        inst = cls(context.target_prefix, **kwargs)
         if validate:
             inst.validate_path()
             inst.validate_name()
@@ -360,6 +368,66 @@ class PrefixData(metaclass=PrefixDataType):
             )
 
     # endregion
+    # region Metadata
+
+    @property
+    def created(self) -> datetime | None:
+        """
+        Returns the time when the environment was created, as evidenced by the `conda-meta`
+        directory creation time (if available). Falls back to `conda-meta/created_at`.
+
+        This may return None in the following cases:
+
+        - If the environment doesn't exist.
+        - If the creation time cannot be determined. This can happen for existing environments
+          created with conda versions before 25.11 in Linux systems, where the 'birthtime' metadata
+          is only available in kernels 4.11+, and not implemented in Python as of Python 3.14.
+        """
+        try:
+            stat = (self.prefix_path / "conda-meta").stat()
+            if not S_ISDIR(stat.st_mode):
+                # check if path is a dir without running stat() again
+                return None
+        except FileNotFoundError:
+            return None
+        else:
+            # On Windows, ctime represents creation time. On other platforms, ctime gives
+            # last metadata change; creation time comes from birthtime.
+            # Birthtime was introduced for Windows in Py312, hence the fallback below.
+            # See https://docs.python.org/3/library/os.html#os.stat_result.st_ctime
+            # On Linux, birthtime is only available in kernel 4.11+ via statx and won't be
+            # available in Python until 3.15. The fallback to ctime would be wrong
+            # because in this platform ctime is last metadata change (not creation time!).
+            # See https://discuss.python.org/t/st-birthtime-not-available/104350/2
+            if on_mac or on_win:
+                creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
+            else:
+                try:
+                    creation_time = stat.st_birthtime
+                except AttributeError:
+                    # Fallback to magic file conda-meta/.creation-timestamp
+                    try:
+                        magicfile = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
+                        creation_time = float(magicfile.read_text().strip())
+                    except (OSError, ValueError, TypeError):
+                        return None
+            return datetime.fromtimestamp(creation_time, tz=timezone.utc)
+
+    @property
+    def last_modified(self) -> datetime | None:
+        """
+        Returns the time when the environment was last modified, as evidenced by the
+        `conda-meta/history` file modification time. If the environment does not exist, returns
+        None.
+        """
+        try:
+            stat = self._magic_file.stat()
+        except FileNotFoundError:
+            return None
+        else:
+            return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+
+    # endregion
     # region Records
 
     @time_recorder(module_name=__name__)
@@ -433,9 +501,9 @@ class PrefixData(metaclass=PrefixDataType):
         self._prefix_records[prefix_record.name] = prefix_record
 
     def remove(self, package_name: str) -> None:
-        assert package_name in self._prefix_records
-
-        prefix_record = self._prefix_records[package_name]
+        prefix_record = self._prefix_records.get(package_name)
+        if not prefix_record:
+            raise ValueError(f"Package {package_name} is not in prefix.")
 
         prefix_record_json_path = (
             self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
@@ -460,6 +528,14 @@ class PrefixData(metaclass=PrefixDataType):
     def iter_records_sorted(self) -> Iterable[PrefixRecord]:
         prefix_graph = PrefixGraph(self.iter_records())
         return iter(prefix_graph.graph)
+
+    def map_records(self) -> frozendict[str, PrefixRecord]:
+        """
+        Map the records to a frozendict of name -> record.
+
+        :return: A mapping of name -> record.
+        """
+        return frozendict(self._prefix_records)
 
     def all_subdir_urls(self) -> set[str]:
         subdir_urls = set()
@@ -491,11 +567,9 @@ class PrefixData(metaclass=PrefixDataType):
                 for prefix_rec in self.iter_records()
                 if param.match(prefix_rec)
             )
-        else:
-            assert isinstance(param, PackageRecord)
-            return (
-                prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param
-            )
+        elif not isinstance(param, PackageRecord):
+            raise TypeError("`package_ref_or_match_spec` is not a valid record.")
+        return (prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param)
 
     def get_conda_packages(self) -> list[PrefixRecord]:
         """Get conda packages sorted alphabetically by name.
@@ -598,6 +672,22 @@ class PrefixData(metaclass=PrefixDataType):
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         env_vars_file.write_text(json.dumps(state, ensure_ascii=False))
 
+    def _ensure_no_reserved_env_vars(self, env_vars_names: Iterable[str]) -> None:
+        """
+        Ensure that the set of env_var_names does not contain any reserved env vars.
+        Will raise an OperationNotAllowed if a reserved env var is found.
+        """
+        invalid_vars = [var for var in RESERVED_ENV_VARS if var in env_vars_names]
+        if invalid_vars:
+            print_reserved_vars = ", ".join(invalid_vars)
+            warnings.warn(
+                f"WARNING: the given environment variable(s) are reserved and "
+                f"will be ignored: {print_reserved_vars}. "
+                "Setting these environment variables may produce unexpected results.\n\n"
+                f"Remove the invalid configuration with `conda env config vars unset "
+                f"-p {self.prefix_path} {' '.join(invalid_vars)}`.",
+            )
+
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
         prefix_state = self._get_environment_state_file()
         env_vars_all = dict(prefix_state.get("env_vars", {}))
@@ -609,6 +699,7 @@ class PrefixData(metaclass=PrefixDataType):
     def set_environment_env_vars(
         self, env_vars: dict[str, str]
     ) -> dict[str, str] | None:
+        self._ensure_no_reserved_env_vars(env_vars.keys())
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
@@ -618,17 +709,30 @@ class PrefixData(metaclass=PrefixDataType):
         self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def unset_environment_env_vars(
-        self, env_vars: dict[str, str]
-    ) -> dict[str, str] | None:
+    def unset_environment_env_vars(self, env_vars: list[str]) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
             for env_var in env_vars:
                 if env_var in current_env_vars.keys():
-                    current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
+                    if env_var in RESERVED_ENV_VARS:
+                        current_env_vars.pop(env_var)
+                    else:
+                        current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
             self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
+
+    def set_creation_time(self) -> None:
+        """
+        Writes a .creation-time file in conda-meta with the current timestamp, meant
+        to be used by .created property as a fallback.
+        """
+        timestamp = (
+            self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
+        )
+        timestamp_file = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
+        timestamp_file.parent.mkdir(parents=True, exist_ok=True)
+        timestamp_file.write_text(str(timestamp))
 
     def set_nonadmin(self) -> None:
         """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""

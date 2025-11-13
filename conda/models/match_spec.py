@@ -342,6 +342,10 @@ class MatchSpec(metaclass=MatchSpecType):
                     builder.append(version)
             elif version[-2:] == ".*":
                 builder.append("=" + version[:-2])
+            # Skip wildcard-only versions, to avoid an empty "=" in the output.
+            # See https://github.com/conda/conda/issues/14357 for more info.
+            elif version == "*":
+                pass
             elif version[-1] == "*":
                 builder.append("=" + version[:-1])
             elif version.startswith("=="):
@@ -387,7 +391,8 @@ class MatchSpec(metaclass=MatchSpecType):
     def conda_build_form(self):
         builder = []
         name = self.get_exact_value("name")
-        assert name
+        if not name:
+            raise ValueError(".conda_build_form() requires a non-empty spec name.")
         builder.append(name)
 
         build = self.get_raw_value("build")
@@ -512,7 +517,8 @@ class MatchSpec(metaclass=MatchSpecType):
         val = self.get_raw_value("fn") or self.get_raw_value("url")
         if val:
             val = basename(val)
-        assert val
+        if not val:
+            raise ValueError(".fn cannot be empty.")
         return val
 
     @classmethod

@@ -52,7 +52,7 @@ as well as possible and follow the submission guidelines (this makes everyone's 
 
 ### Contributing your changes to conda
 
-Here are the steps you need to take to contribute to conda:
+Here are steps you need to take to contribute to conda:
 
 1. [Signup for a GitHub account][github signup] (if you haven't already) and
    [install Git on your system][install git].
@@ -61,26 +61,70 @@ Here are the steps you need to take to contribute to conda:
    "Fork" button on [https://github.com/conda/conda](https://github.com/conda/conda) and follow GitHub's
    instructions.
 4. Work on your proposed solution. [Visit this page if you need help getting your development environment setup][development-environment]
-5. When you are ready to submit a change, create a new pull request so that we can merge your changes to our repository.
+5. When you are ready to submit a change, create a pull request.
 
-### Issue sorting
+#### Your first contribution
 
-Issue sorting is how we filter incoming issues and get them ready for active development.
-To see how this process works for this project, read "[The Issue Sorting Process at conda][sorting]".
+For your first contribution, we recommend:
 
-*The project maintainers are currently not seeking help with issue sorting, but this may change in the future*
+- Look for issues labeled with `good first issue`
+- Start with small changes like documentation or minor bug fixes
+- Read through existing code to understand the project structure and our
+  patterns
+- Asking questions if you need help, see the [getting help](#getting-help)
+  section below.
 
+#### Change process
 
-[conda cla]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
-[clabot]: https://github.com/conda/infra/blob/main/.clabot
-[install git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
-[github signup]: https://github.com/signup
-[github]: https://github.com/
-[anaconda-issues]: https://github.com/ContinuumIO/anaconda-issues/issues
-[anaconda-support]: https://anaconda.cloud/support-center
-[anaconda-bug-report]: https://anaconda.org/contact/report
-[sorting]: https://github.com/conda/infra/blob/main/HOW_WE_USE_GITHUB.md
-[development-environment]: https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html
+In order to maintain proper tracking and visibility, make sure that there are
+issues for adding features, fixing bugs, and major refactoring work. When
+creating a new issue, make sure to use the issue template.
+
+When making a change, try to scope changes to what can be accomplished in less
+than a day of work with minimal code changes to facilitate rapid code
+reviews—typically fewer than 200 lines of code.
+
+Create a new local branch for each change. Keep your changes focused on a
+single issue to make reviews easier.
+
+#### Pull Requests
+
+##### Pre-submission Steps
+
+1. Install and run pre-commit hooks
+2. Make sure all tests are passing
+3. Rebase changes on main if other changes were merged during development
+4. Use the Pull Request template if one exists for the project
+5. Self-review your code with fresh eyes before requesting external review
+6. Draft pull requests are acceptable for early feedback
+
+The Pull Request title should clearly explain the contents of the change. Like
+the first line of a commit message, it should be a maximum of 50 characters,
+written in an imperative mood, and have no ending period.
+
+##### Review requirements
+
+Most code changes require one reviewer from the conda-maintainers team. When
+you submit a Pull Request, that group will automatically be assigned as the
+reviewer.
+
+##### What to expect during code review
+
+The primary goal of code review is to ensure maintainability of
+integrated code. Reviews will focus on:
+
+- Code correctness and logic
+- Maintainability and readability
+- Consistency with project patterns and practices
+
+Reviews will NOT focus on:
+- Code formatting (handled by pre-commit hooks)
+- Minor style preferences
+- Test coverage and performance (measured by CI)
+
+If you receive feedback, don't worry! Code review is a collaborative process
+to make the code as good as possible. Address the feedback and feel free to
+ask questions if anything is unclear.
 
 ## Conda capitalization standards
 
@@ -109,3 +153,12 @@ Titles and headers should use the same capitalization and formatting standards a
 #### In links
 
 Links should use the same capitalization conventions as sentences. Because the conda docs currently use reStructuredText (RST) as a markup language, and [RST does not support nested inline markup](https://docutils.sourceforge.io/FAQ.html#is-nested-inline-markup-possible), documentation writers should avoid using code backtick formatting inside links.
+
+## Getting help
+
+If you need help with your contribution:
+
+- Comment on the issue you're working on
+- Join our [community chat channels](https://conda.zulipchat.com)
+
+We're here to help and appreciate your contribution!

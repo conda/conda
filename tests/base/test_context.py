@@ -266,6 +266,18 @@ def test_context_parameters_have_descriptions(context_testdata: None):
         pprint(context.describe_parameter(name))
 
 
+def test_context_override_with_reset(monkeypatch):
+    from conda.base.context import context, reset_context
+
+    original = context.add_pip_as_python_dependency
+    with context._override("add_pip_as_python_dependency", False):
+        assert context.add_pip_as_python_dependency is False
+        monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "True")
+        reset_context()
+        assert context.add_pip_as_python_dependency is False
+    assert context.add_pip_as_python_dependency is original
+
+
 def test_local_build_root_custom_rc(
     context_testdata: None,
     monkeypatch: MonkeyPatch,
@@ -762,15 +774,15 @@ def test_default_activation_prefix(
 
     with tmp_env() as prefix:
         name = env_name(prefix)
-        monkeypatch.setenv(key, context.root_prefix)
+        monkeypatch.setenv(key, str(context.root_prefix))
         reset_context()
         assert prefix != context.default_activation_prefix
 
-        monkeypatch.setenv(key, prefix)
+        monkeypatch.setenv(key, str(prefix))
         reset_context()
         assert prefix == context.default_activation_prefix
 
-        monkeypatch.setenv(key, name)
+        monkeypatch.setenv(key, str(name))
         reset_context()
         assert prefix == context.default_activation_prefix
 
@@ -829,22 +841,19 @@ def test_create_default_packages_will_warn_for_explicit_packages(
 
 
 def test_export_platforms(monkeypatch: MonkeyPatch):
-    def remove_subdir(*platforms) -> tuple[str, ...]:
-        return tuple(platform for platform in platforms if platform != context.subdir)
-
     reset_context([])
-    assert not context.export_platforms
+    assert context.export_platforms == (context.subdir,)
 
     monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64")
     reset_context()
-    assert context.export_platforms == remove_subdir("linux-64", "osx-64")
+    assert context.export_platforms == ("linux-64", "osx-64")
 
     monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64,win-64")
     reset_context()
-    assert context.export_platforms == remove_subdir("linux-64", "osx-64", "win-64")
+    assert context.export_platforms == ("linux-64", "osx-64", "win-64")
 
     reset_context(argparse_args=Namespace(export_platforms=["linux-32"]))
-    assert context.export_platforms == remove_subdir(
+    assert context.export_platforms == (
         "linux-32",
         "linux-64",
         "osx-64",
@@ -857,4 +866,4 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
             override_platforms=True,
         )
     )
-    assert context.export_platforms == remove_subdir("linux-32")
+    assert context.export_platforms == ("linux-32",)

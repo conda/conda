@@ -19,8 +19,9 @@ from typing import TYPE_CHECKING, overload
 
 import pluggy
 
+from ..auxlib import NULL
 from ..auxlib.ish import dals
-from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
+from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..exceptions import (
@@ -40,12 +41,12 @@ from . import (
     virtual_packages,
 )
 from .config import PluginConfig
-from .hookspec import CondaSpecs, spec_name
+from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-    from typing import Callable, Literal
+    from collections.abc import Callable, Iterable
+    from typing import Literal
 
     from requests.auth import AuthBase
 
@@ -94,11 +95,8 @@ class CondaPluginManager(pluggy.PluginManager):
     #: method.
     get_cached_request_headers: Callable[[str, str], dict[str, str]]
 
-    def __init__(self, project_name: str | None = None, *args, **kwargs):
-        # Setting the default project name to the spec name for ease of use
-        if project_name is None:
-            project_name = spec_name
-        super().__init__(project_name, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(APP_NAME, *args, **kwargs)
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -440,8 +438,9 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
         return tuple(
-            hook.to_virtual_package()
+            virtual_package
             for hook in self.get_hook_results("virtual_packages")
+            if (virtual_package := hook.to_virtual_package()) is not NULL
         )
 
     def get_session_headers(self, host: str) -> dict[str, str]:
@@ -612,12 +611,21 @@ class CondaPluginManager(pluggy.PluginManager):
                 autodetect_disabled_plugins.append(hook_name)
 
         if not found:
-            # raise error if no plugins found that can read the environment file
-            raise EnvironmentSpecPluginNotDetected(
-                name=source,
-                plugin_names=hooks,
-                autodetect_disabled_plugins=autodetect_disabled_plugins,
-            )
+            # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
+            # FUTURE: Remove this final try at using the environment.yml to read the environment
+            # file. This should be removed in "26.9" when the deprecations warning for
+            # environment.yml's that are not compliant with cep-0024 are removed.
+            try:
+                return self.get_environment_specifier_by_name(
+                    source=source, name="environment.yml"
+                )
+            except (PluginError, CondaValueError) as exc:
+                # raise error if no plugins found that can read the environment file
+                raise EnvironmentSpecPluginNotDetected(
+                    name=source,
+                    plugin_names=hooks,
+                    autodetect_disabled_plugins=autodetect_disabled_plugins,
+                ) from exc
         elif len(found) == 1:
             # return the plugin if only one is found
             return found[0]
@@ -838,5 +846,5 @@ def get_plugin_manager() -> CondaPluginManager:
         *environment_specifiers.plugins,
         *environment_exporters.plugins,
     )
-    plugin_manager.load_entrypoints(spec_name)
+    plugin_manager.load_entrypoints(APP_NAME)
     return plugin_manager

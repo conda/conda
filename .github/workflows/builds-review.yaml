@@ -19,14 +19,14 @@ jobs:
             subdir: linux-64
           - runner: macos-latest
             subdir: osx-arm64
-          - runner: macos-13
+          - runner: macos-15-intel
             subdir: osx-64
           - runner: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Remove build label
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           github-token: ${{ secrets.CANARY_ACTION_TOKEN }}
           script: |
@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create and upload review build
-        uses: conda/actions/canary-release@87cb4b58e6a169cb41db8af4d49ace6275f7b213 # v25.9.0
+        uses: conda/actions/canary-release@f05161c6e6e37a49b17c8e0b436197b53830318a # v25.9.2
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}

@@ -137,6 +137,40 @@ def test_url_channel_w_platform():
         ]
 
 
+def test_subdirs_kwarg_takes_precedence_over_platform():
+    """
+    Test that an explicitly passed subdirs parameter will override the channel's platform.
+    Regression test for https://github.com/conda/conda/issues/14258
+    """
+    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+        channel = Channel("conda-forge/linux-aarch64")
+
+        assert channel.urls() == [
+            "https://conda.anaconda.org/conda-forge/linux-aarch64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+
+        assert channel.urls(subdirs=("linux-64", "noarch")) == [
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+        assert channel.urls(subdirs=("osx-64", "noarch")) == [
+            "https://conda.anaconda.org/conda-forge/osx-64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+
+        assert channel.urls(subdirs=("win-64",)) == [
+            "https://conda.anaconda.org/conda-forge/win-64",
+        ]
+
+        # check that URL-based channels also work the same way
+        channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
+        assert channel.urls(subdirs=("linux-64", "noarch")) == [
+            "https://repo.anaconda.com/pkgs/main/linux-64",
+            "https://repo.anaconda.com/pkgs/main/noarch",
+        ]
+
+
 def test_bare_channel_http():
     url = "http://conda-01"
     channel = Channel(url)
@@ -169,6 +203,45 @@ def test_bare_channel_file():
         join_url(url, context.subdir),
         join_url(url, "noarch"),
     ]
+
+
+def test_channel_equality_respects_platform():
+    """
+    Test that Channel equality checks include platform attribute.
+    Channels with different platforms should not be considered equal.
+    This is a regression test for https://github.com/conda/conda/issues/14259
+    """
+    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+        channel_no_platform = Channel("conda-forge")
+        channel_linux64 = Channel("conda-forge/linux-64")
+        channel_aarch64 = Channel("conda-forge/linux-aarch64")
+
+        assert channel_no_platform != channel_linux64
+        assert channel_linux64 != channel_aarch64
+        assert channel_no_platform != channel_aarch64
+
+        # test that channels with the same platform should be equal
+        channel_linux64_2 = Channel("conda-forge/linux-64")
+        assert channel_linux64 == channel_linux64_2
+
+        # test that hashes are distinguishable per platform
+        assert hash(channel_no_platform) != hash(channel_linux64)
+        assert hash(channel_linux64) != hash(channel_aarch64)
+        assert hash(channel_linux64) == hash(channel_linux64_2)
+
+        # test dedup
+        channels = [
+            Channel("conda-forge/noarch"),
+            Channel("conda-forge"),
+            Channel("conda-forge/linux-64"),
+        ]
+        deduped = list(dict.fromkeys(channels))
+        assert len(deduped) == 3
+
+        # test that urls are correct
+        deduped_urls = set(url for c in deduped for url in c.urls())
+        assert "https://conda.anaconda.org/conda-forge/noarch" in deduped_urls
+        assert "https://conda.anaconda.org/conda-forge/linux-64" in deduped_urls
 
 
 def test_channel_name_subdir_only():

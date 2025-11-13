@@ -38,6 +38,7 @@ from .base.constants import (
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
     RESERVED_ENV_NAMES,
+    RESERVED_ENV_VARS,
 )
 from .base.context import context, locate_prefix_by_name
 from .common.compat import on_win
@@ -104,6 +105,8 @@ class _Activator(metaclass=abc.ABCMeta):
     hook_source_path: Path | None
     inline_hook_source: bool
 
+    needs_line_ending_fix: bool
+
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
 
@@ -149,13 +152,18 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
+        content = self.command_join.join(commands)
+
+        # Normalize line endings for Unix shells on Windows
+        if on_win and self.path_conversion == win_path_to_unix:
+            content = content.replace("\r\n", "\n")
+
         if ext is None:
-            return self.command_join.join(commands)
+            return content
         elif ext:
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
-                # command_join should account for that
-                tf.write(self.command_join.join(commands))
+                tf.write(content)
             return tf.name
         else:
             raise NotImplementedError()
@@ -459,7 +467,8 @@ class _Activator(metaclass=abc.ABCMeta):
             activate_scripts = ()
             export_path = {"PATH": new_path}
         else:
-            assert old_conda_shlvl > 1
+            if old_conda_shlvl <= 1:
+                raise ValueError("'old_conda_shlvl' must be 2 or larger")
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
@@ -799,6 +808,25 @@ class _Activator(metaclass=abc.ABCMeta):
                     print(f"variable {dup} duplicated", file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
 
+        # Remove reserved environment variables and warn if they're being set
+        collect_reserved_vars = []
+        for reserved in RESERVED_ENV_VARS:
+            if reserved in env_vars:
+                # Only warn if the variable is actually being set (not unset)
+                if env_vars[reserved] != CONDA_ENV_VARS_UNSET_VAR:
+                    collect_reserved_vars.append(reserved)
+                # Remove from env_vars regardless
+                env_vars.pop(reserved)
+
+        if collect_reserved_vars:
+            print_reserved_vars = ", ".join(collect_reserved_vars)
+            print(
+                f"WARNING: the configured environment variable(s) for prefix '{prefix}' "
+                f"are reserved and will be ignored: {print_reserved_vars}.\n\n"
+                f"Remove the invalid configuration with `conda env config vars unset "
+                f"-p {prefix} {' '.join(collect_reserved_vars)}`.\n",
+                file=sys.stderr,
+            )
         return env_vars
 
 
@@ -824,6 +852,7 @@ class PosixActivator(_Activator):
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = True
 
     # Using `unset %s` would cause issues for people running
     # with shell flag -u set (error on unset).
@@ -868,6 +897,7 @@ class CshActivator(_Activator):
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
+    needs_line_ending_fix = True
 
     unset_var_tmpl = "unsetenv %s"
     export_var_tmpl = 'setenv %s "%s"'
@@ -909,6 +939,7 @@ class XonshActivator(_Activator):
     script_extension = ".bat" if on_win else ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = False
 
     unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
@@ -934,6 +965,7 @@ class CmdExeActivator(_Activator):
     script_extension = ".bat"
     tempfile_extension = ".env"
     command_join = "\n"
+    needs_line_ending_fix = False
 
     # we are not generating a script to run but rather an INI style file
     # with key=value pairs to set environment variables, key= to unset them,
@@ -967,6 +999,7 @@ class FishActivator(_Activator):
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
+    needs_line_ending_fix = True
 
     unset_var_tmpl = "set -e %s || true"
     export_var_tmpl = 'set -gx %s "%s"'
@@ -992,6 +1025,7 @@ class PowerShellActivator(_Activator):
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = False
 
     unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'
