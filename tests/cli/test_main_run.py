@@ -121,9 +121,11 @@ def test_no_newline_in_stdout(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
     # same way across the range of platforms and shells we support.
     with tmp_env("python") as prefix:
         stdout, stderr, err = conda_cli(
-            "run", f"--prefix={prefix}",
-            "python", "-c",
-            "import sys; sys.stdout.write(\"hello\");"
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            "-c",
+            'import sys; sys.stdout.write("hello");',
         )
         assert stdout == "hello"
         assert not stderr
@@ -136,9 +138,11 @@ def test_no_newline_in_stderr(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
     # same way across the range of platforms and shells we support.
     with tmp_env("python") as prefix:
         stdout, stderr, err = conda_cli(
-            "run", f"--prefix={prefix}",
-            "python", "-c",
-            "import sys; sys.stderr.write(\"hello\")",
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            "-c",
+            'import sys; sys.stderr.write("hello")',
         )
         assert not stdout
         assert stderr == "hello"
