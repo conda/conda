@@ -435,8 +435,8 @@ class Environment:
         # Always populate explicit_packages from prefix data (for explicit export format)
         explicit_packages = list(prefix_data.iter_records())
 
-        # Build channels list
-        environment_channels = list(channels or [])
+        # Build channels tuple
+        environment_channels = tuple(channels or ())
 
         # Inject channels from installed conda packages (unless ignoring channels)
         # This applies regardless of override_channels setting
@@ -452,14 +452,14 @@ class Environment:
                 *environment_channels,
             )
 
-        # Channel list is a unique ordered list
-        environment_channels = list(dict.fromkeys(environment_channels))
+        # Channels tuple is a unique ordered sequence
+        environment_channels = tuple(dict.fromkeys(environment_channels))
 
         # Create environment config with comprehensive context settings
         config = EnvironmentConfig.from_context()
 
         # Override/set channels with those extracted from installed packages if any were found
-        config = replace(config, channels=tuple(environment_channels))
+        config = replace(config, channels=environment_channels)
 
         return cls(
             prefix=prefix,
