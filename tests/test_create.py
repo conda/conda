@@ -737,7 +737,7 @@ def test_search_override_channels_enabled(
 
 def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
-        assert (prefix / "conda-meta" / "history").exists()
+        assert (prefix / PREFIX_MAGIC_FILE).exists()
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert stdout == dals(
@@ -1024,7 +1024,7 @@ def test_update_with_pinned_packages(
         assert package_is_installed(prefix, "dependency=1.0")
 
         # removing the history allows dependent to be updated too
-        (prefix / "conda-meta" / "history").write_text("")
+        (prefix / PREFIX_MAGIC_FILE).write_text("")
 
         conda_cli("update", f"--prefix={prefix}", "dependency", "--yes")
 
@@ -2585,7 +2585,7 @@ def test_neutering_of_historic_specs(
 ):
     with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
-        d = (prefix / "conda-meta" / "history").read_text()
+        d = (prefix / PREFIX_MAGIC_FILE).read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.
