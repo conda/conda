@@ -23,7 +23,7 @@ from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.ish import dals
-from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
+from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
 from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
@@ -450,7 +450,16 @@ class TmpEnvFixture:
         """
         prefix = Path(prefix or self.get_path())
 
-        self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        if not packages:
+            # no packages, just create an empty environment
+            (path := (prefix / PREFIX_MAGIC_FILE)).parent.mkdir(
+                parents=True, exist_ok=True
+            )
+            path.touch()
+        else:
+            self.conda_cli(
+                "create", f"--prefix={prefix}", *packages, "--yes", "--quiet"
+            )
         yield prefix
 
         # no need to remove prefix since it is in a temporary directory
@@ -466,6 +475,16 @@ def tmp_env(
     Use this when creating a conda environment that is local to the current test.
     """
     yield TmpEnvFixture(path_factory, conda_cli)
+
+
+@pytest.fixture
+def empty_env(tmp_env: TmpEnvFixture) -> Path:
+    """A function scoped fixture returning an empty environment.
+
+    Use this when creating a conda environment that is empty.
+    """
+    with tmp_env() as prefix:
+        return prefix
 
 
 @pytest.fixture(scope="session")
