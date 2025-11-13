@@ -163,4 +163,3 @@ def test_noarch_type_coerce_with_object_with_type_attribute():
 
     obj_generic = ObjectWithType(NoarchType.generic)
     assert NoarchType.coerce(obj_generic) == NoarchType.generic
-
