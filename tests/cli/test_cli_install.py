@@ -1,14 +1,29 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
-from conda.base.context import context
-from conda.exceptions import UnsatisfiableError
+from conda.base.context import context, reset_context
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
 from conda.models.match_spec import MatchSpec
-from conda.testing import CondaCLIFixture, PathFactoryFixture, TmpEnvFixture
+from conda.testing.integration import package_is_installed
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
+
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -20,8 +35,6 @@ def test_pre_link_message(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    mocker.patch("conda.cli.common.confirm_yn", return_value=True)
-
     with tmp_env() as prefix:
         stdout, _, _ = conda_cli(
             "install",
@@ -92,3 +105,132 @@ def test_find_conflicts_called_once(
             *channels,
         )
     assert mocked_find_conflicts.call_count == 3
+
+
+@pytest.mark.integration
+def test_emscripten_forge(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    with tmp_env(
+        "--platform=emscripten-wasm32",
+        "--override-channels",
+        "-c",
+        "https://repo.mamba.pm/emscripten-forge",
+        "-c",
+        "conda-forge",
+        "pyjs",
+    ) as prefix:
+        assert package_is_installed(prefix, "pyjs")
+
+
+def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
+    with tmp_env("ca-certificates") as prefix:
+        prefix_data = PrefixData(prefix)
+        prefix_data._frozen_file.touch()
+        assert prefix_data.is_frozen()
+
+        # No message
+        conda_cli("install", "-p", prefix, "zlib", raises=EnvironmentIsFrozenError)
+        conda_cli(
+            "remove", "-p", prefix, "ca-certificates", raises=EnvironmentIsFrozenError
+        )
+        conda_cli(
+            "update", "-p", prefix, "ca-certificates", raises=EnvironmentIsFrozenError
+        )
+
+        # Bypass protection with CLI flag
+        conda_cli(
+            "install",
+            "-p",
+            prefix,
+            "zlib",
+            "--dry-run",
+            "--override-frozen",
+            raises=DryRunExit,
+        )
+        conda_cli(
+            "remove",
+            "-p",
+            prefix,
+            "ca-certificates",
+            "--dry-run",
+            "--override-frozen",
+            raises=DryRunExit,
+        )
+        out, err, rc = conda_cli(
+            "update",
+            "-p",
+            prefix,
+            "ca-certificates",
+            "--dry-run",
+            "--override-frozen",
+        )
+        assert rc == 0
+
+        # Bypass protection with env var
+        with monkeypatch.context() as monkeyctx:
+            monkeyctx.setenv("CONDA_PROTECT_FROZEN_ENVS", "0")
+            conda_cli(
+                "install",
+                "-p",
+                prefix,
+                "zlib",
+                "--dry-run",
+                raises=DryRunExit,
+            )
+            conda_cli(
+                "remove",
+                "-p",
+                prefix,
+                "ca-certificates",
+                "--dry-run",
+                raises=DryRunExit,
+            )
+            out, err, rc = conda_cli(
+                "update",
+                "-p",
+                prefix,
+                "ca-certificates",
+                "--dry-run",
+            )
+            assert rc == 0
+
+        # With message
+        prefix_data._frozen_file.write_text('{"message": "EnvOnTheRocks"}')
+        out, err, exc = conda_cli(
+            "install",
+            "-p",
+            prefix,
+            "zlib",
+            raises=EnvironmentIsFrozenError,
+        )
+        assert "EnvOnTheRocks" in str(exc)
+        out, err, exc = conda_cli(
+            "remove",
+            "-p",
+            prefix,
+            "ca-certificates",
+            raises=EnvironmentIsFrozenError,
+        )
+        assert "EnvOnTheRocks" in str(exc)
+        out, err, exc = conda_cli(
+            "update",
+            "-p",
+            prefix,
+            "ca-certificates",
+            raises=EnvironmentIsFrozenError,
+        )
+        assert "EnvOnTheRocks" in str(exc)
+
+        prefix_data._frozen_file.unlink()
+        conda_cli("install", "-p", prefix, "zlib", "--dry-run", raises=DryRunExit)
+        conda_cli(
+            "remove", "-p", prefix, "ca-certificates", "--dry-run", raises=DryRunExit
+        )
+        out, err, rc = conda_cli("update", "-p", prefix, "ca-certificates", "--dry-run")
+        assert rc == 0

@@ -5,7 +5,6 @@ ci:
 # ignore patches/diffs since slight reformatting can break them
 exclude: |
   (?x)^(
-    conda/_vendor |
     conda/auxlib |
     tests/data/(
       conda_format_repo |
@@ -21,7 +20,7 @@ exclude: |
 repos:
   # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -33,8 +32,8 @@ repos:
         exclude: |
           (?x)^(
             (conda\.)?recipe/meta.yaml |
-            tests/test-recipes/font-ttf-inconsolata/meta.yaml |
-            tests/test-recipes/dependent/meta.yaml
+            tests/data/recipes/font-ttf-inconsolata/meta.yaml |
+            tests/data/recipes/dependent/meta.yaml
           )
       # catch git merge/rebase problems
       - id: check-merge-conflict
@@ -46,6 +45,9 @@ repos:
             tests/requirements.*\.txt
           )
         args: [--unique]
+      - id: pretty-format-json
+        args: [--autofix]
+        files: tests/data/test-recipes/.+/repodata\.json
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
@@ -60,20 +62,20 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.16.0
+    rev: 1.20.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.7
+    rev: v0.14.4
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.13.0
+    rev: v2.15.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix, --trailing-commas]
@@ -90,7 +92,7 @@ repos:
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.28.2
+    rev: 0.34.1
     hooks:
       # verify github syntaxes
       - id: check-github-workflows
@@ -100,11 +102,3 @@ repos:
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
-  - repo: local
-    hooks:
-      - id: git-diff
-        name: git diff
-        entry: git diff --exit-code
-        language: system
-        pass_filenames: false
-        always_run: true

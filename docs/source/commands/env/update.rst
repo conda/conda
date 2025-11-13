@@ -2,9 +2,9 @@
 ********************
 
 .. argparse::
-   :module: conda_env.cli.main
-   :func: create_parser
-   :prog: conda env
-   :path: update
+   :module: conda.cli.conda_argparse
+   :func: generate_parser
+   :prog: conda
+   :path: env update
    :nodefault:
    :nodefaultconst:

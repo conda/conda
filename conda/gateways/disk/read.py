@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 from base64 import b64encode
 from collections import namedtuple
@@ -21,18 +20,14 @@ from ...auxlib.collection import first
 from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import open
-from ...common.pkg_formats.python import (
-    PythonDistribution,
-    PythonEggInfoDistribution,
-    PythonEggLinkDistribution,
-    PythonInstalledDistribution,
-)
+from ...common.compat import open_utf8
+from ...common.serialize import json
+from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
-from ...models.enums import FileMode, PackageType, PathType
+from ...models.enums import FileMode, PathType
 from ...models.package_info import PackageInfo, PackageMetadata
-from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
+from ...models.records import PathData, PathDataV1, PathsData
 from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
 
@@ -41,7 +36,7 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-listdir = lambda d: list(entry.name for entry in os.scandir(d))  # noqa
+listdir = lambda d: list(entry.name for entry in os.scandir(d))
 
 
 def yield_lines(path):
@@ -55,12 +50,14 @@ def yield_lines(path):
 
     """
     try:
-        with open(path) as fh:
-            for line in fh:
+        path = Path(path)
+        with path.open() as f:
+            for line in f:
                 line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                yield line
+                if line and not line.startswith("#"):
+                    yield line
+    except FileNotFoundError:
+        pass
     except OSError as e:
         if e.errno == ENOENT:
             pass
@@ -95,7 +92,7 @@ def read_package_info(record, package_cache_record):
     return PackageInfo(
         extracted_package_dir=epd,
         package_tarball_full_path=package_cache_record.package_tarball_full_path,
-        channel=Channel(record.schannel or record.channel),
+        channel=Channel(record.channel_name or record.channel),
         repodata_record=record,
         url=package_cache_record.url,
         icondata=icondata,
@@ -105,7 +102,7 @@ def read_package_info(record, package_cache_record):
 
 
 def read_index_json(extracted_package_directory):
-    with open(join(extracted_package_directory, "info", "index.json")) as fi:
+    with open_utf8(join(extracted_package_directory, "info", "index.json")) as fi:
         return json.load(fi)
 
 
@@ -114,20 +111,22 @@ def read_index_json_from_tarball(package_tarball_full_path):
 
     with TemporaryDirectory() as tmpdir:
         conda_package_handling.api.extract(package_tarball_full_path, tmpdir, "info")
-        with open(join(tmpdir, "info", "index.json")) as f:
+        with open_utf8(join(tmpdir, "info", "index.json")) as f:
             json_data = json.load(f)
     return json_data
 
 
 def read_repodata_json(extracted_package_directory):
-    with open(join(extracted_package_directory, "info", "repodata_record.json")) as fi:
+    with open_utf8(
+        join(extracted_package_directory, "info", "repodata_record.json")
+    ) as fi:
         return json.load(fi)
 
 
 def read_icondata(extracted_package_directory):
     icon_file_path = join(extracted_package_directory, "info", "icon.png")
     if isfile(icon_file_path):
-        with open(icon_file_path, "rb") as f:
+        with open_utf8(icon_file_path, "rb") as f:
             data = f.read()
         return b64encode(data).decode("utf-8")
     else:
@@ -143,7 +142,7 @@ def read_package_metadata(extracted_package_directory):
     if not path:
         return None
     else:
-        with open(path) as f:
+        with open_utf8(path) as f:
             data = json.loads(f.read())
             if data.get("package_metadata_version") != 1:
                 raise CondaUpgradeError(
@@ -163,7 +162,7 @@ def read_paths_json(extracted_package_directory):
     info_dir = join(extracted_package_directory, "info")
     paths_json_path = join(info_dir, "paths.json")
     if isfile(paths_json_path):
-        with open(paths_json_path) as paths_json:
+        with open_utf8(paths_json_path) as paths_json:
             data = json.load(paths_json)
         if data.get("paths_version") != 1:
             raise CondaUpgradeError(
@@ -228,7 +227,7 @@ def read_has_prefix(path):
         elif len(parts) == 3:
             return ParseResult(parts[0], FileMode(parts[1]), parts[2])
         else:
-            raise CondaVerificationError("Invalid has_prefix file at path: %s" % path)
+            raise CondaVerificationError(f"Invalid has_prefix file at path: {path}")
 
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
@@ -247,73 +246,12 @@ def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use 'conda.plugins.prefix_data_loaders.pypi.pkg_format.read_python_record'",
+)
 def read_python_record(prefix_path, anchor_file, python_version):
-    """
-    Convert a python package defined by an anchor file (Metadata information)
-    into a conda prefix record object.
-    """
-    pydist = PythonDistribution.init(prefix_path, anchor_file, python_version)
-    depends, constrains = pydist.get_conda_dependencies()
+    from ...plugins.prefix_data_loaders.pypi.pkg_format import read_python_record
 
-    if isinstance(pydist, PythonInstalledDistribution):
-        channel = Channel("pypi")
-        build = "pypi_0"
-        package_type = PackageType.VIRTUAL_PYTHON_WHEEL
-
-        paths_tups = pydist.get_paths()
-        paths_data = PathsData(
-            paths_version=1,
-            paths=(
-                PathDataV1(
-                    _path=path,
-                    path_type=PathType.hardlink,
-                    sha256=checksum,
-                    size_in_bytes=size,
-                )
-                for (path, checksum, size) in paths_tups
-            ),
-        )
-        files = tuple(p[0] for p in paths_tups)
-
-    elif isinstance(pydist, PythonEggLinkDistribution):
-        channel = Channel("<develop>")
-        build = "dev_0"
-        package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
-
-        paths_data, files = PathsData(paths_version=1, paths=()), ()
-
-    elif isinstance(pydist, PythonEggInfoDistribution):
-        channel = Channel("pypi")
-        build = "pypi_0"
-        if pydist.is_manageable:
-            package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
-
-            paths_tups = pydist.get_paths()
-            files = tuple(p[0] for p in paths_tups)
-            paths_data = PathsData(
-                paths_version=1,
-                paths=(
-                    PathData(_path=path, path_type=PathType.hardlink) for path in files
-                ),
-            )
-        else:
-            package_type = PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
-            paths_data, files = PathsData(paths_version=1, paths=()), ()
-
-    else:
-        raise NotImplementedError()
-
-    return PrefixRecord(
-        package_type=package_type,
-        name=pydist.conda_name,
-        version=pydist.version,
-        channel=channel,
-        subdir="pypi",
-        fn=pydist.sp_reference,
-        build=build,
-        build_number=0,
-        paths_data=paths_data,
-        files=files,
-        depends=depends,
-        constrains=constrains,
-    )
+    return read_python_record(prefix_path, anchor_file, python_version)

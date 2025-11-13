@@ -15,20 +15,24 @@ The following commands are part of conda:
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
 
+   activate
    clean
    compare
    config
    create
+   deactivate
    doctor
    env/index
+   export
    info
    init
    install
    list
    notices
    package
+   repoquery/index
    remove
    rename
    run
@@ -93,7 +97,7 @@ Scroll to the right to see the entire table.
      - ``pip list``
      - X
    * - Create requirements file
-     - ``conda list --export``
+     - ``conda export --format=requirements`` or ``conda list --export``
      - ``pip freeze``
      - X
    * - List all environments

@@ -4,10 +4,10 @@ import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.cli.common import arg2spec, spec_from_line
+from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
 from conda.common.io import env_unmodified
-from conda.exceptions import CondaValueError, InvalidMatchSpec, InvalidSpec
+from conda.exceptions import InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
@@ -242,6 +242,26 @@ def test_canonical_string_forms():
     # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
 
+def test_version_wildcard_serialization():
+    """
+    Regression test for https://github.com/conda/conda/issues/14357
+    """
+    assert m("name[version=*,build=*py27*]") == "name[build=*py27*]"
+
+    spec = MatchSpec(name="name", version="*", build="*py27*")
+
+    assert str(spec) == "name[build=*py27*]"
+
+    assert m("name[version=*]") == "name"
+
+    assert m("conda-forge::name[version=*]") == "conda-forge::name"
+
+    assert m("name[version=1.2.*,build=*py27*]") == "name=1.2[build=*py27*]"
+    assert m("name[version=1.*]") == "name=1"
+
+    assert m("name[version=*,build_number=3]") == "name[build_number=3]"
+
+
 @pytest.mark.skip(reason="key-value features interface has been disabled in conda 4.4")
 def test_key_value_features_canonical_string_forms():
     assert (
@@ -285,7 +305,7 @@ def test_tarball_match_specs():
     )
 
     url = "https://conda.anaconda.org/conda-canary/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-    assert m(url) == "*[url=%s]" % url
+    assert m(url) == f"*[url={url}]"
 
     pref1 = PackageRecord(
         channel=Channel(None),
@@ -306,12 +326,38 @@ def test_tarball_match_specs():
     assert MatchSpec(url=url, md5="1234").get("md5") == "1234"
 
     url = "file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"
-    assert m(url) == "*[url='%s']" % url
+    assert m(url) == f"*[url='{url}']"
     # url = '*[url="file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"]'
 
     # TODO: we need this working correctly with both channel and subdir
     # especially for usages around PrefixData.all_subdir_urls() and Solver._prepare()
     # assert MatchSpec('defaults/zos::python').get_exact_value('channel').urls() == ()
+
+
+def test_url_percent_encoding():
+    """
+    More info here: https://github.com/mamba-org/mamba/issues/3737
+    """
+    # x264 version has an epoch "1!164"; ! is encoded as %21
+    url_with = (
+        "https://anaconda.org/conda-forge/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"
+    )
+    url_without = (
+        "https://anaconda.org/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+    )
+
+    assert MatchSpec(url_with).version == MatchSpec(url_without).version
+
+    # Ficticious channel that yells at you
+    url_with = "https://anaconda.org/conda-forge%21/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"
+    url_without = (
+        "https://anaconda.org/conda-forge!/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+    )
+
+    assert (
+        MatchSpec(url_with).get("channel").name
+        == MatchSpec(url_without).get("channel").name
+    )
 
 
 def test_exact_values():
@@ -586,25 +632,37 @@ def test_license_match():
     assert MatchSpec("*[license='*v3+']").match(record)
 
 
-def test_simple():
-    assert arg2spec("python") == "python"
-    assert arg2spec("python=2.6") == "python=2.6"
-    assert arg2spec("python=2.6*") == "python=2.6"
-    assert arg2spec("ipython=0.13.2") == "ipython=0.13.2"
-    assert arg2spec("ipython=0.13.0") == "ipython=0.13.0"
-    assert arg2spec("ipython==0.13.0") == "ipython==0.13.0"
-    assert arg2spec("foo=1.3.0=3") == "foo==1.3.0=3"
+@pytest.mark.parametrize(
+    "spec,expected_result",
+    [
+        ("python", "python"),
+        ("python=2.6", "python=2.6"),
+        ("python=2.6*", "python=2.6"),
+        ("ipython=0.13.2", "ipython=0.13.2"),
+        ("ipython=0.13.0", "ipython=0.13.0"),
+        ("ipython==0.13.0", "ipython==0.13.0"),
+        ("foo=1.3.0=3", "foo==1.3.0=3"),
+    ],
+)
+def test_simple(spec, expected_result):
+    assert str(MatchSpec(spec)) == expected_result
 
 
-def test_pip_style():
-    assert arg2spec("foo>=1.3") == "foo[version='>=1.3']"
-    assert arg2spec("zope.int>=1.3,<3.0") == "zope.int[version='>=1.3,<3.0']"
-    assert arg2spec("numpy >=1.9") == "numpy[version='>=1.9']"
+@pytest.mark.parametrize(
+    "spec,expected_result",
+    [
+        ("foo>=1.3", "foo[version='>=1.3']"),
+        ("zope.int>=1.3,<3.0", "zope.int[version='>=1.3,<3.0']"),
+        ("numpy >=1.9", "numpy[version='>=1.9']"),
+    ],
+)
+def test_pip_style(spec, expected_result):
+    assert str(MatchSpec(spec)) == expected_result
 
 
-def test_invalid_arg2spec():
-    with pytest.raises(CondaValueError):
-        arg2spec("!xyz 1.3")
+def test_invalid_match_spec():
+    with pytest.raises(InvalidMatchSpec):
+        str(MatchSpec("!xyz 1.3"))
 
 
 def cb_form(spec_str):
@@ -1181,38 +1239,199 @@ def test_build_number_merge():
         MatchSpec.merge(specs)
 
 
-def test_hash_merge_with_name():
-    for hash_type in ("md5", "sha256"):
-        specs = (
-            MatchSpec(f"python[{hash_type}=deadbeef]"),
-            MatchSpec("python=1.2.3"),
-            MatchSpec(f"conda-forge::python[{hash_type}=deadbeef]"),
-        )
-        merged = MatchSpec.merge(specs)
-        assert len(merged) == 1
-        assert str(merged[0]) == f"conda-forge::python=1.2.3[{hash_type}=deadbeef]"
+def test_build_glob_merge():
+    red = {
+        "name": "my_pkg",
+        "version": "1.17.3",
+        "build": "red_habc123_3",
+        "build_number": 3,
+    }
+    blue = {**red, "build": "blue_hdef1234_3"}
 
-        specs = (
-            MatchSpec(f"python[{hash_type}=FFBADD11]"),
-            MatchSpec("python=1.2.3"),
-            MatchSpec(f"python[{hash_type}=ffbadd11]"),
-        )
-        with pytest.raises(ValueError):
-            MatchSpec.merge(specs)
+    no_build = MatchSpec("my_pkg=1.17.*")
+    assert no_build.match(red)
+    assert no_build.match(blue)
+
+    red_prefix = MatchSpec("my_pkg=1.17.*=red_*")
+    assert red_prefix.match(red)
+    assert not red_prefix.match(blue)
+
+    blue_prefix = MatchSpec("my_pkg=1.17.*=blue_*")
+    assert not blue_prefix.match(red)
+    assert blue_prefix.match(blue)
+
+    blue_hash_prefix = MatchSpec("my_pkg=1.17.*=blue_hdef1234_*")
+    assert not blue_hash_prefix.match(red)
+    assert blue_hash_prefix.match(blue)
+
+    red_exact = MatchSpec(f"my_pkg=1.17.*={red['build']}")
+    assert red_exact.match(red)
+    assert not red_exact.match(blue)
+
+    red_scalar_wild = MatchSpec("my_pkg=1.17.*=*red*")
+    assert red_scalar_wild.match(red)
+    assert not red_scalar_wild.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge([red_scalar_wild, red_prefix])
+    assert not unmergeable
+    assert merged.match(red)
+    # resulting build is the regex intersection
+    assert merged.get("build") == "^(?=.*red.*)(?:red_.*)$"
+
+    build_tail_2 = MatchSpec("my_pkg=1.17.*=*_2")
+    build_tail_3 = MatchSpec("my_pkg=1.17.*=*_3")
+    assert build_tail_3.match(red)
+    assert build_tail_3.match(blue)
+
+    hash_build_tail_3 = MatchSpec("my_pkg=1.17.*=*_habc123_3")
+    assert hash_build_tail_3.match(red)
+    assert not hash_build_tail_3.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            no_build,
+            red_prefix,
+        ]
+    )
+    assert not unmergeable
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            red_prefix,
+            red_exact,
+        ]
+    )
+    assert merged.get("build") == red_exact.get("build")
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            red_exact,
+            red_prefix,
+        ]
+    )
+    assert merged.get("build") == red_exact.get("build")
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    # prefix + prefix, we keep the longest if compatible
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            blue_prefix,
+            blue_hash_prefix,
+        ]
+    )
+    assert merged.get("build") == blue_hash_prefix.get("build")
+    assert merged.match(blue)
+    assert not merged.match(red)
+
+    # suffix + suffix, we keep the longest if compatible
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            build_tail_3,
+            hash_build_tail_3,
+        ]
+    )
+    assert merged.get("build") == hash_build_tail_3.get("build")
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            no_build,
+            red_prefix,
+            red_scalar_wild,
+        ]
+    )
+    assert not unmergeable
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    merged, *unmergeable = MatchSpec.merge(
+        [
+            no_build,
+            red_prefix,
+            red_scalar_wild,
+            build_tail_3,
+        ]
+    )
+    assert not unmergeable
+    assert merged.match(red)
+    assert not merged.match(blue)
+
+    # definitely-incompatible combinations
+    with pytest.raises(ValueError):
+        MatchSpec.merge([red_exact, blue_prefix])
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge([blue_prefix, red_exact])
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge([blue_prefix, red_prefix])
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge([build_tail_2, hash_build_tail_3])
 
 
-def test_hash_merge_wo_name():
-    for hash_type in ("md5", "sha256"):
-        specs = (
-            MatchSpec(f"*[{hash_type}=deadbeef]"),
-            MatchSpec(f"*[{hash_type}=FFBADD11]"),
+def test_build_glob_merge_channel():
+    no_channel = {
+        "name": "my_pkg",
+        "version": "1.17.3",
+        "build": "pyhabc123_3",
+        "build_number": 3,
+    }
+    exact_channel = {**no_channel, "channel": "conda-forge"}
+    star_channel = {**no_channel, "channel": "conda-*"}
+    non_matching_star_channel = {**no_channel, "channel": "*-adnoc"}
+
+    merged, *unmergeable = MatchSpec.merge(
+        [MatchSpec(spec) for spec in (no_channel, exact_channel, star_channel)]
+    )
+    assert not unmergeable
+    assert merged.match(exact_channel)
+    assert merged.get("channel") == exact_channel["channel"]
+
+    with pytest.raises(ValueError):
+        MatchSpec.merge(
+            [MatchSpec(spec) for spec in (exact_channel, non_matching_star_channel)]
         )
-        merged = MatchSpec.merge(specs)
-        assert len(merged) == 2
-        str_specs = (f"*[{hash_type}=deadbeef]", f"*[{hash_type}=FFBADD11]")
-        assert str(merged[0]) in str_specs
-        assert str(merged[1]) in str_specs
-        assert str(merged[0]) != str(merged[1])
+
+
+@pytest.mark.parametrize("hash_type", ["md5", "sha256"])
+def test_hash_merge_with_name(hash_type):
+    specs = (
+        MatchSpec(f"python[{hash_type}=deadbeef]"),
+        MatchSpec("python=1.2.3"),
+        MatchSpec(f"conda-forge::python[{hash_type}=deadbeef]"),
+    )
+    merged = MatchSpec.merge(specs)
+    assert len(merged) == 1
+    assert str(merged[0]) == f"conda-forge::python=1.2.3[{hash_type}=deadbeef]"
+
+    specs = (
+        MatchSpec(f"python[{hash_type}=FFBADD11]"),
+        MatchSpec("python=1.2.3"),
+        MatchSpec(f"python[{hash_type}=ffbadd11]"),
+    )
+    with pytest.raises(ValueError):
+        MatchSpec.merge(specs)
+
+
+@pytest.mark.parametrize("hash_type", ["md5", "sha256"])
+def test_hash_merge_wo_name(hash_type):
+    specs = (
+        MatchSpec(f"*[{hash_type}=deadbeef]"),
+        MatchSpec(f"*[{hash_type}=FFBADD11]"),
+    )
+    merged = MatchSpec.merge(specs)
+    assert len(merged) == 2
+    str_specs = (f"*[{hash_type}=deadbeef]", f"*[{hash_type}=FFBADD11]")
+    assert str(merged[0]) in str_specs
+    assert str(merged[1]) in str_specs
+    assert str(merged[0]) != str(merged[1])
 
 
 def test_catch_invalid_regexes():
@@ -1235,3 +1454,82 @@ def test_invalid_version_reports_spec(spec):
     with pytest.raises(InvalidMatchSpec) as exc:
         MatchSpec(spec)
     assert spec in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "build,version,expected_result",
+    [
+        (None, None, "python"),
+        ("*123*", None, "python * *123*"),
+        (None, "3.*", "python 3.*"),
+        ("*123*", "3.17", "python 3.17 *123*"),
+    ],
+    ids=["name_only", "build_only", "version_only", "build_version"],
+)
+def test_conda_build_form(build, version, expected_result):
+    """conda_build_form method handles missing values for build and/or version gracefully"""
+    kwargs = {"build": build, "version": version}
+    # only pass values that are not None
+    kwargs = {key: value for key, value in kwargs.items() if value is not None}
+    assert MatchSpec("python", **kwargs).conda_build_form() == expected_result
+
+
+@pytest.mark.parametrize(
+    "input_spec,expected_output",
+    [
+        # Regular case with build string
+        ("numpy==1.21.0=py39h1234567_0", "numpy=1.21.0=py39h1234567_0"),
+        # No-builds case (fuzzy version)
+        ("numpy=1.21.0", "numpy=1.21.0"),
+        # With channel prefix
+        ("conda-forge::numpy==1.21.0=py39h1234567_0", "numpy=1.21.0=py39h1234567_0"),
+        # With channel/subdir prefix
+        ("pkgs/main::pandas==1.3.0=py39h123_0", "pandas=1.3.0=py39h123_0"),
+        # Simple exact version
+        ("python==3.9.7", "python=3.9.7"),
+        # With namespace (hypothetical future feature)
+        ("scipy==1.7.0=py39h456_0", "scipy=1.7.0=py39h456_0"),
+    ],
+)
+def test_conda_env_form(input_spec, expected_output):
+    """Test MatchSpec.conda_env_form() produces correct conda env export format."""
+    spec = MatchSpec(input_spec)
+    result = spec.conda_env_form()
+    assert result == expected_output
+
+
+def test_conda_env_form_comprehensive():
+    """Test conda_env_form() with comprehensive real-world examples."""
+    # Test cases that would come from actual Environment.from_prefix usage
+    test_cases = [
+        # Regular conda packages
+        MatchSpec("pkgs/main::numpy==1.21.0=py39h1234567_0"),
+        MatchSpec("conda-forge::scipy==1.7.0=py39h9876543_0"),
+        # No-builds versions
+        MatchSpec("pandas=1.3.0"),
+        MatchSpec("matplotlib=3.5.0"),
+        # Simple names
+        MatchSpec("pip==21.2.4=py39h_0"),
+    ]
+
+    expected_results = [
+        "numpy=1.21.0=py39h1234567_0",
+        "scipy=1.7.0=py39h9876543_0",
+        "pandas=1.3.0",
+        "matplotlib=3.5.0",
+        "pip=21.2.4=py39h_0",
+    ]
+
+    for spec, expected in zip(test_cases, expected_results):
+        result = spec.conda_env_form()
+        assert result == expected, (
+            f"Expected {expected!r}, got {result!r} for spec {spec}"
+        )
+
+
+def test_no_triple_equals_roundtrip():
+    """Regression test for https://github.com/conda/conda/issues/15123"""
+    ms = MatchSpec('numpy[version="=2"]')
+    assert "===" not in str(ms)
+    assert str(ms) == "numpy=2"
+    assert MatchSpec("numpy=2").version == ms.version

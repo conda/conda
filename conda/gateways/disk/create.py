@@ -19,8 +19,14 @@ from ...base.context import context
 from ...common.compat import on_linux, on_win
 from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
-from ...common.serialize import json_dump
-from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
+from ...common.serialize import json
+from ...deprecations import deprecated
+from ...exceptions import (
+    BasicClobberError,
+    CondaOSError,
+    NoWritableEnvsDirError,
+    maybe_raise,
+)
 from ...models.enums import LinkType
 from . import mkdir_p
 from .delete import path_is_clean, rm_rf
@@ -94,7 +100,7 @@ if __name__ == '__main__':
     sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
     sys.exit(%(func)s())
 """
-)  # NOQA
+)
 
 application_entry_point_template = dals(
     """
@@ -113,8 +119,7 @@ if __name__ == '__main__':
 def write_as_json_to_file(file_path, obj):
     log.log(TRACE, "writing json to file %s", file_path)
     with codecs.open(file_path, mode="wb", encoding="utf-8") as fo:
-        json_str = json_dump(obj)
-        fo.write(json_str)
+        json.dump(obj, fo)
 
 
 def create_python_entry_point(target_full_path, python_full_path, module, func):
@@ -152,6 +157,7 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     return target_full_path
 
 
+@deprecated("26.3", "26.9")
 def create_application_entry_point(
     source_full_path, target_full_path, python_full_path
 ):
@@ -175,11 +181,12 @@ def create_application_entry_point(
     with open(target_full_path, "w") as fo:
         if " " in python_full_path:
             python_full_path = ensure_pad(python_full_path, '"')
-        fo.write("#!%s\n" % python_full_path)
+        fo.write(f"#!{python_full_path}\n")
         fo.write(entry_point)
     make_executable(target_full_path)
 
 
+@deprecated("26.3", "26.9")
 class ProgressFileWrapper:
     def __init__(self, fileobj, progress_update_callback):
         self.progress_file = fileobj
@@ -306,12 +313,14 @@ def _do_softlink(src, dst):
         symlink(src, dst)
 
 
+@deprecated("26.3", "26.9")
 def create_fake_executable_softlink(src, dst):
-    assert on_win
+    if not on_win:
+        raise RuntimeError("Only runs on Windows.")
     src_root, _ = splitext(src)
     # TODO: this open will clobber, consider raising
     with open(dst, "w") as f:
-        f.write('@echo off\ncall "%s" %%*\n' % src_root)
+        f.write(f'@echo off\ncall "{src_root}" %*\n')
     return dst
 
 
@@ -355,26 +364,26 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if lexists(dst) and not isdir(dst):
             if not force:
                 maybe_raise(BasicClobberError(src, dst, context), context)
-            log.info("file exists, but clobbering for directory: %r" % dst)
+            log.info(f"file exists, but clobbering for directory: {dst!r}")
             rm_rf(dst)
         mkdir_p(dst)
         return
 
     if not lexists(src):
         raise CondaError(
-            "Cannot link a source that does not exist. %s\n"
-            "Running `conda clean --packages` may resolve your problem." % src
+            f"Cannot link a source that does not exist. {src}\n"
+            "Running `conda clean --packages` may resolve your problem."
         )
 
     if lexists(dst):
         if not force:
             maybe_raise(BasicClobberError(src, dst, context), context)
-        log.info("file exists, but clobbering: %r" % dst)
+        log.info(f"file exists, but clobbering: {dst!r}")
         rm_rf(dst)
 
     if link_type == LinkType.hardlink:
         if isdir(src):
-            raise CondaError("Cannot hard link a directory. %s" % src)
+            raise CondaError(f"Cannot hard link a directory. {src}")
         try:
             log.log(TRACE, "hard linking %s => %s", src, dst)
             link(src, dst)
@@ -396,7 +405,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     elif link_type == LinkType.copy:
         copy(src, dst)
     else:
-        raise CondaError("Did not expect linktype=%r" % link_type)
+        raise CondaError(f"Did not expect linktype={link_type!r}")
 
 
 def compile_multiple_pyc(
@@ -497,3 +506,29 @@ def create_envs_directory(envs_dir):
         else:
             raise
     return True
+
+
+def first_writable_envs_dir(create=True):
+    # Calling this function will *create* an envs directory if one does not already
+    # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
+    for envs_dir in context.envs_dirs:
+        if envs_dir == os.devnull:
+            continue
+
+        # The magic file being used here could change in the future.  Don't write programs
+        # outside this code base that rely on the presence of this file.
+        # This value is duplicated in conda.gateways.disk.create.create_envs_directory().
+        envs_dir_magic_file = join(envs_dir, ".conda_envs_dir_test")
+
+        if isfile(envs_dir_magic_file):
+            try:
+                open(envs_dir_magic_file, "a").close()
+                return envs_dir
+            except OSError:
+                log.log(TRACE, "Tried envs_dir but not writable: %s", envs_dir)
+        elif create:
+            was_created = create_envs_directory(envs_dir)
+            if was_created:
+                return envs_dir
+
+    raise NoWritableEnvsDirError(context.envs_dirs)

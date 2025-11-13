@@ -3,29 +3,45 @@
 from __future__ import annotations
 
 import os
-from typing import Type, Union
+from typing import TYPE_CHECKING
 
+from ...base.context import context
+from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
     EnvironmentFileNotFound,
+    EnvironmentSpecPluginNotDetected,
     SpecNotFound,
 )
 from ...gateways.connection.session import CONDA_SESSION_SCHEMES
-from .binstar import BinstarSpec
-from .requirements import RequirementsSpec
-from .yaml_file import YamlFileSpec
 
-FileSpecTypes = Union[Type[YamlFileSpec], Type[RequirementsSpec]]
+if TYPE_CHECKING:
+    from .requirements import RequirementsSpec
+    from .yaml_file import YamlFileSpec
+
+    FileSpecTypes = type[YamlFileSpec] | type[RequirementsSpec]
+    SpecTypes = YamlFileSpec | RequirementsSpec
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use conda.base.context.plugin_manager.detect_environment_specifier.",
+)
 def get_spec_class_from_file(filename: str) -> FileSpecTypes:
     """
     Determine spec class to use from the provided ``filename``
 
     :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
+    from .requirements import RequirementsSpec
+    from .yaml_file import YamlFileSpec
+
+    if filename.startswith("file://"):
+        filename = filename[len("file://") :]
+
     # Check extensions
-    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+    all_valid_exts = {*YamlFileSpec.extensions, *RequirementsSpec.extensions}
     _, ext = os.path.splitext(filename)
 
     # First check if file exists and test the known valid extension for specs
@@ -39,36 +55,26 @@ def get_spec_class_from_file(filename: str) -> FileSpecTypes:
             return YamlFileSpec
         elif ext in RequirementsSpec.extensions:
             return RequirementsSpec
-    else:
-        raise EnvironmentFileNotFound(filename=filename)
+    raise EnvironmentFileNotFound(filename=filename)
 
 
-SpecTypes = Union[BinstarSpec, YamlFileSpec, RequirementsSpec]
-
-
+@deprecated.argument("25.9", "26.3", "name")
+@deprecated.argument(
+    "25.9", "26.3", "directory", addendum="Specify the full path in filename"
+)
 def detect(
-    name: str = None,
-    filename: str = None,
-    directory: str = None,
-    remote_definition: str = None,
+    filename: str | None = None,
 ) -> SpecTypes:
     """
     Return the appropriate spec type to use.
 
     :raises SpecNotFound: Raised if no suitable spec class could be found given the input
-    :raises EnvironmentFileExtensionNotValid | EnvironmentFileNotFound:
     """
-    if remote_definition is not None:
-        spec = BinstarSpec(name=remote_definition)
-        if spec.can_handle():
-            return spec
-        else:
-            raise SpecNotFound(spec.msg)
+    try:
+        spec_hook = context.plugin_manager.detect_environment_specifier(
+            source=filename,
+        )
+    except EnvironmentSpecPluginNotDetected as e:
+        raise SpecNotFound(e.message)
 
-    if filename is not None:
-        spec_class = get_spec_class_from_file(filename)
-        spec = spec_class(name=name, filename=filename, directory=directory)
-        if spec.can_handle():
-            return spec
-
-    raise SpecNotFound(spec.msg)
+    return spec_hook.environment_spec(filename)

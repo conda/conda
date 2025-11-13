@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for deleting files and folders."""
 
+from __future__ import annotations
+
 import fnmatch
+import os
 import shutil
 import sys
-from errno import ENOENT
 from logging import getLogger
-from os import environ, getcwd, makedirs, rename, rmdir, scandir, unlink, walk
 from os.path import (
     abspath,
     basename,
@@ -25,9 +26,9 @@ from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
-from . import MAX_TRIES, exp_backoff_fn
+from . import MAX_TRIES
 from .link import islink, lexists
-from .permissions import make_writable, recursive_make_writable
+from .permissions import make_writable
 
 if not on_win:
     from shutil import which
@@ -36,7 +37,7 @@ if not on_win:
 log = getLogger(__name__)
 
 
-def rmtree(path, *args, **kwargs):
+def rmtree(path):
     # subprocessing to delete large folders can be quite a bit faster
     path = normpath(path)
     if on_win:
@@ -72,8 +73,9 @@ def rmtree(path, *args, **kwargs):
                 # that 'path' appears in it. This is not bulletproof but it could save you (me).
                 with open(name) as contents:
                     content = contents.read()
-                    assert path in content
-                comspec = environ["COMSPEC"]
+                    if path not in content:
+                        raise RuntimeError(f"Path {path} not listed in file {name}")
+                comspec = os.getenv("COMSPEC")
                 CREATE_NO_WINDOW = 0x08000000
                 # It is essential that we `pass stdout=None, stderr=None, stdin=None` here because
                 # if we do not, then the standard console handles get attached and chcp affects the
@@ -99,12 +101,12 @@ def rmtree(path, *args, **kwargs):
                     )
     else:
         try:
-            makedirs(".empty")
+            os.makedirs(".empty")
         except:
             pass
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
-        #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html  # NOQA
+        #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html
 
         if isdir(".empty"):
             rsync = which("rsync")
@@ -117,7 +119,7 @@ def rmtree(path, *args, **kwargs):
                             "-a",
                             "--force",
                             "--delete",
-                            join(getcwd(), ".empty") + "/",
+                            join(os.getcwd(), ".empty") + "/",
                             path + "/",
                         ],
                         stderr=STDOUT,
@@ -139,10 +141,10 @@ def unlink_or_rename_to_trash(path):
     """
     try:
         make_writable(path)
-        unlink(path)
+        os.unlink(path)
     except OSError:
         try:
-            rename(path, path + ".conda_trash")
+            os.rename(path, path + ".conda_trash")
         except OSError:
             if on_win:
                 # on windows, it is important to use the rename program, as just using python's
@@ -179,7 +181,7 @@ def unlink_or_rename_to_trash(path):
                         f"{trash_script} is missing.  Conda was not installed correctly or has been "
                         "corrupted.  Please file an issue on the conda github repo."
                     )
-            log.warn(
+            log.warning(
                 f"Could not remove or rename {path}.  Please remove this file manually (you "
                 "may need to reboot to free file handles)"
             )
@@ -189,47 +191,46 @@ def remove_empty_parent_paths(path):
     # recurse to clean up empty folders that were created to have a nested hierarchy
     parent_path = dirname(path)
 
-    while isdir(parent_path) and not next(scandir(parent_path), None):
-        rmdir(parent_path)
+    while isdir(parent_path) and not next(os.scandir(parent_path), None):
+        os.rmdir(parent_path)
         parent_path = dirname(parent_path)
 
 
-def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **kw):
+def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     """
     Completely delete path
     max_retries is the number of times to retry on failure. The default is 5. This only applies
     to deleting a directory.
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
-    try:
-        path = abspath(path)
-        log.log(TRACE, "rm_rf %s", path)
-        if isdir(path) and not islink(path):
-            backoff_rmdir(path)
-        elif lexists(path):
-            unlink_or_rename_to_trash(path)
-        else:
-            log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
-    finally:
-        if lexists(path):
-            log.info("rm_rf failed for %s", path)
-            return False
-    if isdir(path):
+    path = abspath(path)
+    log.log(TRACE, "rm_rf %s", path)
+
+    # attempt to delete the path
+    if isdir(path) and not islink(path):
+        backoff_rmdir(path)
+    elif lexists(path):
+        unlink_or_rename_to_trash(path)
+    else:
+        log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
+
+    # post-processing to clean up trash and empty parent paths
+    if isdir(path) and not islink(path):
         delete_trash(path)
     if clean_empty_parents:
         remove_empty_parent_paths(path)
+
+    if lexists(path):
+        log.info("rm_rf failed for %s", path)
+        return False
     return True
-
-
-# aliases that all do the same thing (legacy compat)
-try_rmdir_all_empty = move_to_trash = move_path_to_trash = rm_rf
 
 
 def delete_trash(prefix):
     if not prefix:
         prefix = sys.prefix
     exclude = {"envs", "pkgs"}
-    for root, dirs, files in walk(prefix, topdown=True):
+    for root, dirs, files in os.walk(prefix, topdown=True):
         dirs[:] = [d for d in dirs if d not in exclude]
         for fn in files:
             if fnmatch.fnmatch(fn, "*.conda_trash*") or fnmatch.fnmatch(
@@ -237,7 +238,7 @@ def delete_trash(prefix):
             ):
                 filename = join(root, fn)
                 try:
-                    unlink(filename)
+                    os.unlink(filename)
                     remove_empty_parent_paths(filename)
                 except OSError as e:
                     log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, filename)
@@ -247,30 +248,14 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
     if not isdir(dirpath):
         return
 
-    def retry(func, path, exc_info):
-        if getattr(exc_info[1], "errno", None) == ENOENT:
-            return
-        recursive_make_writable(dirname(path), max_tries=max_tries)
-        func(path)
-
-    def _rmdir(path):
-        try:
-            recursive_make_writable(path)
-            exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-        except OSError as e:
-            if e.errno == ENOENT:
-                log.log(TRACE, "no such file or directory: %s", path)
-            else:
-                raise
-
     try:
         rmtree(dirpath)
-    # we don't really care about errors that much.  We'll catch remaining files
-    #    with slower python logic.
     except:
+        # we don't really care about errors that much.  We'll catch remaining files
+        #    with slower python logic.
         pass
 
-    for root, dirs, files in walk(dirpath, topdown=False):
+    for root, dirs, files in os.walk(dirpath, topdown=False):
         for file in files:
             unlink_or_rename_to_trash(join(root, file))
 
@@ -282,7 +267,7 @@ def path_is_clean(path):
     """
     clean = not exists(path)
     if not clean:
-        for root, dirs, fns in walk(path):
+        for root, dirs, fns in os.walk(path):
             for fn in fns:
                 if not (
                     fnmatch.fnmatch(fn, "*.conda_trash*")

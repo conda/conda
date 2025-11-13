@@ -17,12 +17,13 @@ from itertools import islice
 from operator import itemgetter
 from os.path import isdir, isfile, join
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
-from .common.compat import ensure_text_type, open
+from .common.compat import ensure_text_type, open_utf8
 from .common.iterators import groupby_to_dict as groupby
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
@@ -32,6 +33,9 @@ from .models.dist import dist_str_to_quad
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder, version_relation_re
 
+if TYPE_CHECKING:
+    from .common.path import PathType
+
 log = logging.getLogger(__name__)
 
 
@@ -40,9 +44,11 @@ class CondaHistoryWarning(Warning):
 
 
 def write_head(fo):
-    fo.write("==> %s <==\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
-    fo.write("# cmd: %s\n" % (" ".join(ensure_text_type(s) for s in sys.argv)))
-    fo.write("# conda version: %s\n" % ".".join(islice(CONDA_VERSION.split("."), 3)))
+    fo.write("==> {} <==\n".format(time.strftime("%Y-%m-%d %H:%M:%S")))
+    fo.write("# cmd: {}\n".format(" ".join(ensure_text_type(s) for s in sys.argv)))
+    fo.write(
+        "# conda version: {}\n".format(".".join(islice(CONDA_VERSION.split("."), 3)))
+    )
 
 
 def is_diff(content):
@@ -56,7 +62,7 @@ def pretty_diff(diff):
         fn = s[1:]
         name, version, _, channel = dist_str_to_quad(fn)
         if channel != DEFAULTS_CHANNEL_NAME:
-            version += " (%s)" % channel
+            version += f" ({channel})"
         if s.startswith("-"):
             removed[name.lower()] = version
         elif s.startswith("+"):
@@ -82,7 +88,7 @@ class History:
     spec_pat = re.compile(r"#\s*(\w+)\s*specs:\s*(.+)?")
     conda_v_pat = re.compile(r"#\s*conda version:\s*(.+)")
 
-    def __init__(self, prefix):
+    def __init__(self, prefix: PathType):
         self.prefix = prefix
         self.meta_dir = join(prefix, "conda-meta")
         self.path = join(self.meta_dir, "history")
@@ -121,12 +127,15 @@ class History:
         """Parse the history file.
 
         Return a list of tuples(datetime strings, set of distributions/diffs, comments).
+
+        Comments appearing before the first section header (e.g. ``==> 2024-01-01 00:00:00 <==``)
+        in the history file will be ignored.
         """
         res = []
         if not isfile(self.path):
             return res
         sep_pat = re.compile(r"==>\s*(.+?)\s*<==")
-        with open(self.path) as f:
+        with open_utf8(self.path) as f:
             lines = f.read().splitlines()
         for line in lines:
             line = line.strip()
@@ -135,9 +144,9 @@ class History:
             m = sep_pat.match(line)
             if m:
                 res.append((m.group(1), set(), []))
-            elif line.startswith("#"):
+            elif line.startswith("#") and res:
                 res[-1][2].append(line)
-            elif len(res) > 0:
+            elif res:
                 res[-1][1].add(line)
         return res
 
@@ -312,7 +321,7 @@ class History:
                     elif s.startswith("+"):
                         cur.add(s[1:])
                     else:
-                        raise CondaHistoryError("Did not expect: %s" % s)
+                        raise CondaHistoryError(f"Did not expect: {s}")
             res.append((dt, cur.copy()))
         return res
 
@@ -334,7 +343,7 @@ class History:
         for i, (date, content, unused_com) in enumerate(self.parse()):
             print("%s  (rev %d)" % (date, i))
             for line in pretty_content(content):
-                print("    %s" % line)
+                print(f"    {line}")
             print()
 
     def object_log(self):
@@ -391,9 +400,9 @@ class History:
         with codecs.open(self.path, mode="ab", encoding="utf-8") as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
-                fo.write("-%s\n" % fn)
+                fo.write(f"-{fn}\n")
             for fn in sorted(current_state - last_state):
-                fo.write("+%s\n" % fn)
+                fo.write(f"+{fn}\n")
 
     def write_specs(self, remove_specs=(), update_specs=(), neutered_specs=()):
         remove_specs = [str(MatchSpec(s)) for s in remove_specs]
@@ -402,11 +411,11 @@ class History:
         if any((update_specs, remove_specs, neutered_specs)):
             with codecs.open(self.path, mode="ab", encoding="utf-8") as fh:
                 if remove_specs:
-                    fh.write("# remove specs: %s\n" % remove_specs)
+                    fh.write(f"# remove specs: {remove_specs}\n")
                 if update_specs:
-                    fh.write("# update specs: %s\n" % update_specs)
+                    fh.write(f"# update specs: {update_specs}\n")
                 if neutered_specs:
-                    fh.write("# neutered specs: %s\n" % neutered_specs)
+                    fh.write(f"# neutered specs: {neutered_specs}\n")
 
 
 if __name__ == "__main__":

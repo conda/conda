@@ -6,14 +6,15 @@ from __future__ import annotations
 
 import sys
 import warnings
-from argparse import Action
+from argparse import SUPPRESS, Action
 from functools import wraps
 from types import ModuleType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Any, Callable, ParamSpec, Self, TypeVar
+    from collections.abc import Callable
+    from typing import Any, ParamSpec, Self, TypeVar
 
     from packaging.version import Version
 
@@ -86,6 +87,7 @@ class DeprecationHandler:
         *,
         addendum: str | None = None,
         stack: int = 0,
+        deprecation_type: type[Warning] = DeprecationWarning,
     ) -> Callable[[Callable[P, T]], Callable[P, T]]:
         """Deprecation decorator for functions, methods, & classes.
 
@@ -95,27 +97,46 @@ class DeprecationHandler:
         :param stack: Optional stacklevel increment.
         """
 
-        def deprecated_decorator(func: Callable[P, T]) -> Callable[P, T]:
+        def deprecated_decorator(obj: Callable[P, T]) -> Callable[P, T]:
             # detect function name and generate message
             category, message = self._generate_message(
                 deprecate_in=deprecate_in,
                 remove_in=remove_in,
-                prefix=f"{func.__module__}.{func.__qualname__}",
+                prefix=f"{obj.__module__}.{obj.__qualname__}",
                 addendum=addendum,
+                deprecation_type=deprecation_type,
             )
 
             # alert developer that it's time to remove something
             if not category:
                 raise DeprecatedError(message)
 
+            # if obj is a class, wrap the __init__
+            isclass = False
+            func: Callable[P, T]
+            if isinstance(obj, type):
+                try:
+                    func = obj.__init__  # type: ignore[misc]
+                except AttributeError:
+                    # AttributeError: obj has no __init__
+                    func = obj
+                else:
+                    isclass = True
+            else:
+                func = obj
+
             # alert user that it's time to remove something
-            @wraps(func)
+            @wraps(func)  # type: ignore[reportArgumentType]
             def inner(*args: P.args, **kwargs: P.kwargs) -> T:
                 warnings.warn(message, category, stacklevel=2 + stack)
 
                 return func(*args, **kwargs)
 
-            return inner
+            if isclass:
+                obj.__init__ = inner  # type: ignore[misc]
+                return obj
+            else:
+                return inner
 
         return deprecated_decorator
 
@@ -128,6 +149,7 @@ class DeprecationHandler:
         rename: str | None = None,
         addendum: str | None = None,
         stack: int = 0,
+        deprecation_type: type[Warning] = DeprecationWarning,
     ) -> Callable[[Callable[P, T]], Callable[P, T]]:
         """Deprecation decorator for keyword arguments.
 
@@ -149,6 +171,7 @@ class DeprecationHandler:
                 addendum=(
                     f"Use '{rename}' instead." if rename and not addendum else addendum
                 ),
+                deprecation_type=deprecation_type,
             )
 
             # alert developer that it's time to remove something
@@ -181,6 +204,7 @@ class DeprecationHandler:
         *,
         addendum: str | None = None,
         stack: int = 0,
+        deprecation_type: type[Warning] = FutureWarning,
     ) -> ActionType:
         """Wraps any argparse.Action to issue a deprecation warning."""
 
@@ -203,7 +227,7 @@ class DeprecationHandler:
                         else f"`{inner_self.dest}`"
                     ),
                     addendum=addendum,
-                    deprecation_type=FutureWarning,
+                    deprecation_type=deprecation_type,
                 )
 
                 # alert developer that it's time to remove something
@@ -211,7 +235,9 @@ class DeprecationHandler:
                     raise DeprecatedError(message)
 
                 inner_self.category = category
-                inner_self.help = message
+                inner_self.deprecation = message
+                if inner_self.help is not SUPPRESS:
+                    inner_self.help = message
 
             def __call__(
                 inner_self: Self,
@@ -221,11 +247,14 @@ class DeprecationHandler:
                 option_string: str | None = None,
             ) -> None:
                 # alert user that it's time to remove something
-                warnings.warn(
-                    inner_self.help,
-                    inner_self.category,
-                    stacklevel=7 + stack,
-                )
+                from conda.common.constants import NULL
+
+                if values is not NULL:
+                    warnings.warn(
+                        inner_self.deprecation,
+                        inner_self.category,
+                        stacklevel=7 + stack,
+                    )
 
                 super().__call__(parser, namespace, values, option_string)
 
@@ -263,6 +292,7 @@ class DeprecationHandler:
         *,
         addendum: str | None = None,
         stack: int = 0,
+        deprecation_type: type[Warning] = DeprecationWarning,
     ) -> None:
         """Deprecation function for module constant/global.
 
@@ -281,6 +311,7 @@ class DeprecationHandler:
             remove_in=remove_in,
             prefix=f"{fullname}.{constant}",
             addendum=addendum,
+            deprecation_type=deprecation_type,
         )
 
         # alert developer that it's time to remove something
@@ -292,7 +323,7 @@ class DeprecationHandler:
 
         def __getattr__(name: str) -> Any:
             if name == constant:
-                warnings.warn(message, category, stacklevel=2 + stack)
+                warnings.warn(message, category, stacklevel=3 + stack)
                 return value
 
             if super_getattr:
@@ -310,6 +341,7 @@ class DeprecationHandler:
         topic: str,
         addendum: str | None = None,
         stack: int = 0,
+        deprecation_type: type[Warning] = DeprecationWarning,
     ) -> None:
         """Deprecation function for a topic.
 
@@ -325,6 +357,7 @@ class DeprecationHandler:
             remove_in=remove_in,
             prefix=topic,
             addendum=addendum,
+            deprecation_type=deprecation_type,
         )
 
         # alert developer that it's time to remove something
@@ -379,7 +412,7 @@ class DeprecationHandler:
         prefix: str,
         addendum: str | None,
         *,
-        deprecation_type: type[Warning] = DeprecationWarning,
+        deprecation_type: type[Warning],
     ) -> tuple[type[Warning] | None, str]:
         """Generate the standardized deprecation message and determine whether the
         deprecation is pending, active, or past.

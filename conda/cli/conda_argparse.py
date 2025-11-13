@@ -17,10 +17,9 @@ from logging import getLogger
 from subprocess import Popen
 
 from .. import __version__
-from ..auxlib.compat import isiterable
 from ..auxlib.ish import dals
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import on_win
+from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
 from ..deprecations import deprecated
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
@@ -37,6 +36,7 @@ from .helpers import (  # noqa: F401
     add_parser_package_install_options,
     add_parser_platform,
     add_parser_prefix,
+    add_parser_prefix_to_group,
     add_parser_prune,
     add_parser_pscheck,
     add_parser_show_channel_urls,
@@ -46,6 +46,7 @@ from .helpers import (  # noqa: F401
     add_parser_verbose,
 )
 from .main_clean import configure_parser as configure_parser_clean
+from .main_commands import configure_parser as configure_parser_commands
 from .main_compare import configure_parser as configure_parser_compare
 from .main_config import configure_parser as configure_parser_config
 from .main_create import configure_parser as configure_parser_create
@@ -55,8 +56,8 @@ from .main_info import configure_parser as configure_parser_info
 from .main_init import configure_parser as configure_parser_init
 from .main_install import configure_parser as configure_parser_install
 from .main_list import configure_parser as configure_parser_list
-from .main_mock_activate import configure_parser as configure_parser_mock_activate
-from .main_mock_deactivate import configure_parser as configure_parser_mock_deactivate
+from .main_mock_activate import configure_parser as configure_parser_activate
+from .main_mock_deactivate import configure_parser as configure_parser_deactivate
 from .main_notices import configure_parser as configure_parser_notices
 from .main_package import configure_parser as configure_parser_package
 from .main_remove import configure_parser as configure_parser_remove
@@ -74,23 +75,26 @@ escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 BUILTIN_COMMANDS = {
     "activate",  # Mock entry for shell command
     "clean",
+    "commands",
     "compare",
     "config",
     "create",
     "deactivate",  # Mock entry for shell command
+    "env",
     "export",
     "info",
     "init",
     "install",
     "list",
+    "notices",
     "package",
     "remove",
     "rename",
     "run",
     "search",
+    "uninstall",  # remove alias
     "update",
-    "upgrade",
-    "notices",
+    "upgrade",  # update alias
 }
 
 
@@ -125,7 +129,7 @@ def generate_parser(**kwargs) -> ArgumentParser:
         "-V",
         "--version",
         action="version",
-        version="conda %s" % __version__,
+        version=f"conda {__version__}",
         help="Show the conda version number and exit.",
     )
 
@@ -138,12 +142,13 @@ def generate_parser(**kwargs) -> ArgumentParser:
         required=True,
     )
 
-    configure_parser_mock_activate(sub_parsers)
-    configure_parser_mock_deactivate(sub_parsers)
+    configure_parser_activate(sub_parsers)
     configure_parser_clean(sub_parsers)
+    configure_parser_commands(sub_parsers)
     configure_parser_compare(sub_parsers)
     configure_parser_config(sub_parsers)
     configure_parser_create(sub_parsers)
+    configure_parser_deactivate(sub_parsers)
     configure_parser_env(sub_parsers)
     configure_parser_export(sub_parsers)
     configure_parser_info(sub_parsers)
@@ -152,12 +157,12 @@ def generate_parser(**kwargs) -> ArgumentParser:
     configure_parser_list(sub_parsers)
     configure_parser_notices(sub_parsers)
     configure_parser_package(sub_parsers)
+    configure_parser_plugins(sub_parsers)
     configure_parser_remove(sub_parsers, aliases=["uninstall"])
     configure_parser_rename(sub_parsers)
     configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers, aliases=["upgrade"])
-    configure_parser_plugins(sub_parsers)
 
     return parser
 
@@ -179,7 +184,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # run the subcommand from executables; legacy path
         deprecated.topic(
             "23.3",
-            "25.3",
+            "26.3",
             topic="Loading conda subcommands via executables",
             addendum="Use the plugin system instead.",
         )
@@ -217,6 +222,11 @@ class ArgumentParser(ArgumentParserBase):
             add_parser_help(self)
 
     def _check_value(self, action, value):
+        # For our greedy subparsers, sort the choices by their repr for stable output
+        if isinstance(action, _GreedySubParsersAction) and isinstance(
+            action.choices, dict
+        ):
+            action.choices = dict(sorted(action.choices.items()))
         # extend to properly handle when we accept multiple choices and the default is a list
         if action.choices is not None and isiterable(value):
             for element in value:

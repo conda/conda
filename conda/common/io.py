@@ -2,28 +2,27 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
 
-import json
 import logging
 import os
 import signal
 import sys
 from collections import defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
-from concurrent.futures.thread import _WorkItem
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
-from itertools import cycle
-from logging import CRITICAL, NOTSET, WARN, Formatter, StreamHandler, getLogger
+from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-from threading import Event, Lock, RLock, Thread
-from time import sleep, time
+from threading import Lock
+from time import time
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
+from ..common.serialize import json
+from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
@@ -77,7 +76,7 @@ class ContextDecorator:
     makes it a decorator.
     """
 
-    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated  # NOQA
+    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated
 
     def __call__(self, f):
         @wraps(f)
@@ -148,9 +147,6 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
 
 @contextmanager
 def env_var(name, value, callback=None, stack_callback=None):
-    # Maybe, but in env_vars, not here:
-    #    from .compat import ensure_fs_path_encoding
-    #    d = dict({name: ensure_fs_path_encoding(value)})
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
         yield es
@@ -267,6 +263,7 @@ def argv(args_list):
         sys.argv = saved_args
 
 
+@deprecated("25.9", "26.3", addendum="Use `logging._lock` instead.")
 @contextmanager
 def _logger_lock():
     logging._acquireLock()
@@ -281,14 +278,14 @@ def disable_logger(logger_name):
     logr = getLogger(logger_name)
     _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
     null_handler = NullHandler()
-    with _logger_lock():
+    with logging._lock:
         logr.addHandler(null_handler)
         logr.setLevel(CRITICAL + 1)
         logr.disabled, logr.propagate = True, False
     try:
         yield
     finally:
-        with _logger_lock():
+        with logging._lock:
             logr.removeHandler(null_handler)  # restore list logr.handlers
             logr.level, logr.disabled = _lvl, _dsbld
             logr.propagate = _prpgt
@@ -307,7 +304,7 @@ def stderr_log_level(level, logger_name=None):
     handler.name = "stderr"
     handler.setLevel(level)
     handler.setFormatter(_FORMATTER)
-    with _logger_lock():
+    with logging._lock:
         logr.setLevel(level)
         logr.handlers, logr.disabled, logr.propagate = [], False, False
         logr.addHandler(handler)
@@ -315,14 +312,32 @@ def stderr_log_level(level, logger_name=None):
     try:
         yield
     finally:
-        with _logger_lock():
+        with logging._lock:
             logr.handlers, logr.level, logr.disabled = _hndlrs, _lvl, _dsbld
             logr.propagate = _prpgt
 
 
 def attach_stderr_handler(
-    level=WARN, logger_name=None, propagate=False, formatter=None
+    level=WARN,
+    logger_name=None,
+    propagate=False,
+    formatter=None,
+    filters=None,
 ):
+    """Attach a new `stderr` handler to the given logger and configure both.
+
+    This function creates a new StreamHandler that writes to `stderr` and attaches it
+    to the logger given by `logger_name` (which maybe `None`, in which case the root
+    logger is used). If the logger already has a handler by the name of `stderr`, it is
+    removed first.
+
+    The given `level` is set **for the handler**, not for the logger; however, this
+    function also sets the level of the given logger to the minimum of its current
+    effective level and the new handler level, ensuring that the handler will receive the
+    required log records, while minimizing the number of unnecessary log events. It also
+    sets the loggers `propagate` property according to the `propagate` argument.
+    The `formatter` argument can be used to set the formatter of the handler.
+    """
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next(
@@ -334,13 +349,16 @@ def attach_stderr_handler(
     new_stderr_handler.name = "stderr"
     new_stderr_handler.setLevel(level)
     new_stderr_handler.setFormatter(formatter or _FORMATTER)
+    for filter_ in filters or ():
+        new_stderr_handler.addFilter(filter_)
 
     # do the switch
-    with _logger_lock():
+    with logging._lock:
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
-        logr.setLevel(NOTSET)
+        if level < logr.getEffectiveLevel():
+            logr.setLevel(level)
         logr.propagate = propagate
 
 
@@ -372,176 +390,6 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
             return ret
         except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
             return default_return
-
-
-class Spinner:
-    """
-    Args:
-        message (str):
-            A message to prefix the spinner with. The string ': ' is automatically appended.
-        enabled (bool):
-            If False, usage is a no-op.
-        json (bool):
-           If True, will not output non-json to stdout.
-
-    """
-
-    # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
-    spinner_cycle = cycle("/-\\|")
-
-    def __init__(self, message, enabled=True, json=False, fail_message="failed\n"):
-        self.message = message
-        self.enabled = enabled
-        self.json = json
-
-        self._stop_running = Event()
-        self._spinner_thread = Thread(target=self._start_spinning)
-        self._indicator_length = len(next(self.spinner_cycle)) + 1
-        self.fh = sys.stdout
-        self.show_spin = enabled and not json and IS_INTERACTIVE
-        self.fail_message = fail_message
-
-    def start(self):
-        if self.show_spin:
-            self._spinner_thread.start()
-        elif not self.json:
-            self.fh.write("...working... ")
-            self.fh.flush()
-
-    def stop(self):
-        if self.show_spin:
-            self._stop_running.set()
-            self._spinner_thread.join()
-            self.show_spin = False
-
-    def _start_spinning(self):
-        try:
-            while not self._stop_running.is_set():
-                self.fh.write(next(self.spinner_cycle) + " ")
-                self.fh.flush()
-                sleep(0.10)
-                self.fh.write("\b" * self._indicator_length)
-        except OSError as e:
-            if e.errno in (EPIPE, ESHUTDOWN):
-                self.stop()
-            else:
-                raise
-
-    @swallow_broken_pipe
-    def __enter__(self):
-        if not self.json:
-            sys.stdout.write("%s: " % self.message)
-            sys.stdout.flush()
-        self.start()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-        if not self.json:
-            with swallow_broken_pipe:
-                if exc_type or exc_val:
-                    sys.stdout.write(self.fail_message)
-                else:
-                    sys.stdout.write("done\n")
-                sys.stdout.flush()
-
-
-class ProgressBar:
-    @classmethod
-    def get_lock(cls):
-        # Used only for --json (our own sys.stdout.write/flush calls).
-        if not hasattr(cls, "_lock"):
-            cls._lock = RLock()
-        return cls._lock
-
-    def __init__(
-        self, description, enabled=True, json=False, position=None, leave=True
-    ):
-        """
-        Args:
-            description (str):
-                The name of the progress bar, shown on left side of output.
-            enabled (bool):
-                If False, usage is a no-op.
-            json (bool):
-                If true, outputs json progress to stdout rather than a progress bar.
-                Currently, the json format assumes this is only used for "fetch", which
-                maintains backward compatibility with conda 4.3 and earlier behavior.
-        """
-        self.description = description
-        self.enabled = enabled
-        self.json = json
-
-        if json:
-            pass
-        elif enabled:
-            if IS_INTERACTIVE:
-                bar_format = "{desc}{bar} | {percentage:3.0f}% "
-                try:
-                    self.pbar = self._tqdm(
-                        desc=description,
-                        bar_format=bar_format,
-                        ascii=True,
-                        total=1,
-                        file=sys.stdout,
-                        position=position,
-                        leave=leave,
-                    )
-                except OSError as e:
-                    if e.errno in (EPIPE, ESHUTDOWN):
-                        self.enabled = False
-                    else:
-                        raise
-            else:
-                self.pbar = None
-                sys.stdout.write("%s ...working..." % description)
-
-    def update_to(self, fraction):
-        try:
-            if self.enabled:
-                if self.json:
-                    with self.get_lock():
-                        sys.stdout.write(
-                            f'{{"fetch":"{self.description}","finished":false,"maxval":1,"progress":{fraction:f}}}\n\0'
-                        )
-                elif IS_INTERACTIVE:
-                    self.pbar.update(fraction - self.pbar.n)
-                elif fraction == 1:
-                    sys.stdout.write(" done\n")
-        except OSError as e:
-            if e.errno in (EPIPE, ESHUTDOWN):
-                self.enabled = False
-            else:
-                raise
-
-    def finish(self):
-        self.update_to(1)
-
-    def refresh(self):
-        """Force refresh i.e. once 100% has been reached"""
-        if self.enabled and not self.json and IS_INTERACTIVE:
-            self.pbar.refresh()
-
-    @swallow_broken_pipe
-    def close(self):
-        if self.enabled:
-            if self.json:
-                with self.get_lock():
-                    sys.stdout.write(
-                        '{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                        % self.description
-                    )
-                    sys.stdout.flush()
-            elif IS_INTERACTIVE:
-                self.pbar.close()
-            else:
-                sys.stdout.write(" done\n")
-
-    @staticmethod
-    def _tqdm(*args, **kwargs):
-        """Deferred import so it doesn't hit the `conda activate` paths."""
-        from tqdm.auto import tqdm
-
-        return tqdm(*args, **kwargs)
 
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
@@ -579,40 +427,18 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
     def __init__(self, max_workers=10):
         super().__init__(max_workers)
 
-    def submit(self, fn, *args, **kwargs):
-        """
-        This is an exact reimplementation of the `submit()` method on the parent class, except
-        with an added `try/except` around `self._adjust_thread_count()`.  So long as there is at
-        least one living thread, this thread pool will not throw an exception if threads cannot
-        be expanded to `max_workers`.
-
-        In the implementation, we use "protected" attributes from concurrent.futures (`_base`
-        and `_WorkItem`). Consider vendoring the whole concurrent.futures library
-        as an alternative to these protected imports.
-
-        https://github.com/agronholm/pythonfutures/blob/3.2.0/concurrent/futures/thread.py#L121-L131  # NOQA
-        https://github.com/python/cpython/blob/v3.6.4/Lib/concurrent/futures/thread.py#L114-L124
-        """
-        with self._shutdown_lock:
-            if self._shutdown:
-                raise RuntimeError("cannot schedule new futures after shutdown")
-
-            f = _base.Future()
-            w = _WorkItem(f, fn, args, kwargs)
-
-            self._work_queue.put(w)
-            try:
-                self._adjust_thread_count()
-            except RuntimeError:
-                # RuntimeError: can't start new thread
-                # See https://github.com/conda/conda/issues/6624
-                if len(self._threads) > 0:
-                    # It's ok to not be able to start new threads if we already have at least
-                    # one thread alive.
-                    pass
-                else:
-                    raise
-            return f
+    def _adjust_thread_count(self):
+        try:
+            return super()._adjust_thread_count()
+        except RuntimeError:
+            # RuntimeError: can't start new thread
+            # See https://github.com/conda/conda/issues/6624
+            if len(self._threads) > 0:
+                # It's ok to not be able to start new threads if we already have at least
+                # one thread alive.
+                pass
+            else:
+                raise
 
 
 as_completed = as_completed

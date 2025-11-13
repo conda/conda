@@ -5,6 +5,7 @@ Authors are sorted alphabetically.
 * Aaron Meurer
 * Abheek Mathur
 * Adrian Freund
+* Agriya Khetarpal
 * Alain Domissy
 * Alan Du
 * Albert DeFusco
@@ -14,6 +15,7 @@ Authors are sorted alphabetically.
 * Alex Hall
 * Alex Liew
 * Alex Wiltschko
+* Ali Abbas Zaidi
 * Alisue
 * Almar Klein
 * Amelio Vazquez-Reina
@@ -23,6 +25,7 @@ Authors are sorted alphabetically.
 * Andrew Achkar
 * Andrew Arendt
 * Andrew M. Farrell
+* Andy Kipp
 * Andy R. Terrel
 * Angela Gloyna
 * Aniket Patil
@@ -122,12 +125,15 @@ Authors are sorted alphabetically.
 * Dzianis Shpektarau
 * Ed Reed
 * Eli Rykoff
+* Elsa Granger
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
+* Erik Whiting
 * Ernst Reissner
 * Eugene Van den Bulke
 * Evo
+* Faith Rider
 * Faustin Carter
 * FelisNivalis
 * Filipe Laíns
@@ -153,6 +159,7 @@ Authors are sorted alphabetically.
 * Hsin-Hsiang Peng
 * Hugo Buddelmeijer
 * Iain Gillis
+* Ian Fitchet
 * Ian Stokes-Rees
 * Igor Igamberdiev
 * Ikko Eltociear Ashimine
@@ -186,6 +193,7 @@ Authors are sorted alphabetically.
 * Jerimiah Willhite
 * Jesse Hamer
 * Jillian Rowe
+* Joao Azevedo
 * Joe D
 * Joe Jevnik
 * Joel Hull
@@ -203,6 +211,7 @@ Authors are sorted alphabetically.
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
 * Julien Schueller
+* Justin Wood (Callek)
 * Justus Schwabedal
 * Justyn Harriman
 * Kahlil Hodgson
@@ -213,6 +222,7 @@ Authors are sorted alphabetically.
 * Kara de la Marck
 * Katherine Abrikian
 * Katherine Kinnaman
+* Kelvin Ou
 * Ken Odegard
 * Kenneth Laskoski
 * Kenneth Schackart
@@ -256,6 +266,7 @@ Authors are sorted alphabetically.
 * Martin Kou
 * Martin Prüsse
 * Martin Raden
+* Mary M
 * Matt Craig
 * Matt Kramer
 * Matthew Anderson
@@ -265,6 +276,7 @@ Authors are sorted alphabetically.
 * Matthew Rocklin
 * Matthew Wardrop
 * Matthieu Guillaumin
+* Matthieu Muffato
 * MatthieuDartiailh
 * Matti Picus
 * Maurice Meyer
@@ -294,15 +306,19 @@ Authors are sorted alphabetically.
 * Murray Read
 * NaincyKumariKnoldus
 * Nate Coraor
+* Nathan Nguyen
 * Navdeeppal Singh
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
+* Nicholas Blair
 * Nicholas Pierotti
 * Nick Eubank
+* Nicky Sandhu
 * Nikhil Dhandre
 * Nikhil Raverkar
 * Niklas Holm
+* Nils Koch
 * Nir Ganani
 * Nitin Madnani
 * Nixon Kwok
@@ -321,6 +337,7 @@ Authors are sorted alphabetically.
 * Peter Cable
 * Peter Talley
 * Peter Williams
+* Peyton Murray
 * Phil Elson
 * Philip Thomas
 * Philippe Mathieu
@@ -339,10 +356,11 @@ Authors are sorted alphabetically.
 * Rich Lewis
 * Richard Gowers
 * Robert Johansson
+* Robin
 * Roger Erens
 * Rollin Thomas
-* Ryan
 * Ryan Grout
+* Ryan Keith
 * Rüdiger Busche
 * Saad Parwaiz
 * Sachin G Biradar
@@ -365,9 +383,9 @@ Authors are sorted alphabetically.
 * Sean Ross-Ross
 * Sebastien Awwad
 * Sergio Oller
+* Serhii Kupriienko
 * Shannon Green
 * Shaun Thompson
-* Shaun Walbridge
 * Shaun Walbridge
 * Sidhant Bansal
 * Simon Li
@@ -388,6 +406,7 @@ Authors are sorted alphabetically.
 * Steven Engler
 * Stijn Verstraeten
 * Stuart Berg
+* Sylvain Corlay
 * Tadeu Manoel
 * Tarcisio
 * Teake Nutma
@@ -395,6 +414,7 @@ Authors are sorted alphabetically.
 * Thomas Kluyver
 * Thomas Lam
 * Thomas Wiecki
+* Thorsten Beier
 * Théo Segonds
 * Tian Zhang
 * Tianchen Zhong
@@ -444,6 +464,7 @@ Authors are sorted alphabetically.
 * mcopes73
 * oinizan
 * ovz
+* padeoe
 * peter1000
 * pre-commit CI
 * saraneem
