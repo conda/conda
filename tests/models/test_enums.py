@@ -2,10 +2,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Tests for conda.models.enums module."""
 
+from __future__ import annotations
+
+from contextlib import nullcontext
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 import pytest
 
 from conda.exceptions import CondaUpgradeError
 from conda.models.enums import NoarchType
+
+if TYPE_CHECKING:
+    from typing import Any
+
+
+@dataclass
+class ObjectWithType:
+    type: NoarchType
 
 
 @pytest.mark.parametrize(
@@ -14,152 +28,83 @@ from conda.models.enums import NoarchType
         # NoarchType instances should return themselves
         (NoarchType.python, NoarchType.python),
         (NoarchType.generic, NoarchType.generic),
-    ],
-)
-def test_noarch_type_coerce_with_instance(value, expected):
-    """Test that coerce returns the same instance when given a NoarchType."""
-    assert NoarchType.coerce(value) == expected
-
-
-@pytest.mark.parametrize(
-    "value,expected",
-    [
-        # Boolean values
+        # ObjectWithType
+        (ObjectWithType(NoarchType.python), NoarchType.python),
+        (ObjectWithType(NoarchType.generic), NoarchType.generic),
+        # Boolean
         (True, NoarchType.generic),
         (False, None),
-    ],
-)
-def test_noarch_type_coerce_with_bool(value, expected):
-    """Test that coerce handles boolean values correctly."""
-    assert NoarchType.coerce(value) == expected
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "python",
-        "Python",
-        "PYTHON",
-    ],
-)
-def test_noarch_type_coerce_with_python_string(value):
-    """Test that coerce returns python for 'python' strings (case-insensitive)."""
-    assert NoarchType.coerce(value) == NoarchType.python
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "generic",
-        "Generic",
-        "GENERIC",
-    ],
-)
-def test_noarch_type_coerce_with_generic_string(value):
-    """Test that coerce returns generic for 'generic' strings (case-insensitive)."""
-    assert NoarchType.coerce(value) == NoarchType.generic
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
+        # Truthy strings
+        ("true", NoarchType.generic),
+        ("True", NoarchType.generic),
+        ("TRUE", NoarchType.generic),
+        ("yes", NoarchType.generic),
+        ("Yes", NoarchType.generic),
+        ("YES", NoarchType.generic),
+        ("on", NoarchType.generic),
+        ("On", NoarchType.generic),
+        ("ON", NoarchType.generic),
+        ("y", NoarchType.generic),
+        ("Y", NoarchType.generic),
+        ("1", NoarchType.generic),
+        ("42", NoarchType.generic),
+        ("1.0", NoarchType.generic),
+        # Falsy strings
+        ("false", None),
+        ("False", None),
+        ("FALSE", None),
+        ("off", None),
+        ("Off", None),
+        ("OFF", None),
+        ("no", None),
+        ("No", None),
+        ("NO", None),
+        ("n", None),
+        ("N", None),
+        ("non", None),
+        ("Non", None),
+        ("0", None),
+        ("0.0", None),
+        # Python strings
+        ("python", NoarchType.python),
+        ("Python", NoarchType.python),
+        ("PYTHON", NoarchType.python),
+        # Generic strings
+        ("generic", NoarchType.generic),
+        ("Generic", NoarchType.generic),
+        ("GENERIC", NoarchType.generic),
         # This is the fix for PR #14179 - handling 'null' values from malformed repodata
-        "null",
-        "NULL",
-        "Null",
+        ("null", None),
+        ("NULL", None),
+        ("Null", None),
         # Other null-like values
-        "none",
-        "None",
-        "NONE",
+        ("none", None),
+        ("None", None),
+        ("NONE", None),
         # YAML null representation
-        "~",
+        ("~", None),
         # Null byte
-        "\0",
+        ("\0", None),
         # Empty string
-        "",
+        ("", None),
+        # Invalid
+        ("invalid", CondaUpgradeError),
+        ("foobar", CondaUpgradeError),
+        ("unknown", CondaUpgradeError),
+        ("other", CondaUpgradeError),
     ],
 )
-def test_noarch_type_coerce_with_null_values(value):
-    """Test that coerce returns None for null-like strings."""
-    assert NoarchType.coerce(value) is None
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "true",
-        "True",
-        "TRUE",
-        "yes",
-        "Yes",
-        "YES",
-        "on",
-        "On",
-        "ON",
-        "y",
-        "Y",
-        "1",
-        "42",
-        "1.0",
-    ],
-)
-def test_noarch_type_coerce_with_truthy_strings(value):
-    """Test that coerce returns generic for truthy strings and numeric values."""
-    assert NoarchType.coerce(value) == NoarchType.generic
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "false",
-        "False",
-        "FALSE",
-        "off",
-        "Off",
-        "OFF",
-        "no",
-        "No",
-        "NO",
-        "n",
-        "N",
-        "non",
-        "Non",
-        "0",
-        "0.0",
-    ],
-)
-def test_noarch_type_coerce_with_falsy_strings(value):
-    """Test that coerce returns None for falsy strings and zero values."""
-    assert NoarchType.coerce(value) is None
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "invalid",
-        "foobar",
-        "unknown",
-        "other",
-    ],
-)
-def test_noarch_type_coerce_with_invalid_string_raises_error(value):
-    """Test that coerce raises CondaUpgradeError for invalid strings."""
-    with pytest.raises(
-        CondaUpgradeError,
-        match=f"The noarch type for this package is set to '{value}'",
+def test_noarch_type_coercion(
+    value: Any,
+    expected: NoarchType | None | CondaUpgradeError,
+):
+    """Test that NoarchType.coerce returns the expected value for given input."""
+    with (
+        pytest.raises(
+            CondaUpgradeError,
+            match=f"The noarch type for this package is set to '{value}'",
+        )
+        if expected == CondaUpgradeError
+        else nullcontext()
     ):
-        NoarchType.coerce(value)
-
-
-def test_noarch_type_coerce_with_object_with_type_attribute():
-    """Test that coerce extracts type attribute from objects."""
-
-    class ObjectWithType:
-        def __init__(self, noarch_type):
-            self.type = noarch_type
-
-    obj_python = ObjectWithType(NoarchType.python)
-    assert NoarchType.coerce(obj_python) == NoarchType.python
-
-    obj_generic = ObjectWithType(NoarchType.generic)
-    assert NoarchType.coerce(obj_generic) == NoarchType.generic
+        assert NoarchType.coerce(value) == expected
