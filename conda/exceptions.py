@@ -604,6 +604,18 @@ class UnavailableInvalidChannel(ChannelError):
         )
 
 
+class ChannelNotProvided(ChannelError):
+    def __init__(self):
+        message = dals(
+            """
+        No channels found! Configure conda channels by running
+
+            $ conda config --append channels defaults
+        """
+        )
+        super().__init__(message)
+
+
 class OperationNotAllowed(CondaError):
     def __init__(self, message: str):
         super().__init__(message)

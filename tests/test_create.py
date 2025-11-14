@@ -47,6 +47,7 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
+    ChannelNotProvided,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
@@ -645,7 +646,7 @@ def test_no_channels(
         "--channel",
         None,
         "--override-channels",
-        raises=PackagesNotFoundError,
+        raises=ChannelNotProvided,
     )
 
 

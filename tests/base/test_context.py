@@ -38,6 +38,7 @@ from conda.common.url import join_url, path_to_url
 from conda.exceptions import (
     ChannelDenied,
     ChannelNotAllowed,
+    ChannelNotProvided,
     CondaValueError,
     EnvironmentNameNotFound,
 )
@@ -48,7 +49,6 @@ from conda.utils import on_win
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
-    from collections.abc import Iterator
 
     from conda.testing import PathFactoryFixture
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -761,33 +761,34 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 @pytest.mark.parametrize(
-    "channels,expected_channels",
+    "channels",
     [
-        (
-            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
-            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
-        ),
-        (
-            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge", None),
-            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
-        ),
-        (
-            (None,),
-            (),
-        ),
-        (
-            (""),
-            (),
-        ),
-        (
-            (),
-            (),
-        ),
+        
+        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+        ("abc",),
     ],
 )
-def test_validate_channels(channels: Iterator[str], expected_channels: tuple[str, ...]):
-    validated_channels = validate_channels(channels)
-    assert expected_channels == validated_channels
+def test_get_channels(
+    monkeypatch: MonkeyPatch,
+    channels: tuple[str],
+):
+    monkeypatch.setattr(context, "_channels", channels)
+    assert context.channels == channels
+
+
+@pytest.mark.parametrize(
+    "channels",
+    [
+        
+        (),
+        (None,),
+        (""),
+    ],
+)
+def test_get_channels_empty(monkeypatch: MonkeyPatch, channels: tuple[str]):
+    monkeypatch.setattr(context, "_channels", channels)
+    with pytest.raises(ChannelNotProvided):
+        context.channels
 
 
 def test_default_activation_prefix(
