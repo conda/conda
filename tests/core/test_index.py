@@ -12,7 +12,7 @@ import pytest
 
 import conda
 from conda.base.constants import DEFAULTS_CHANNEL_NAME
-from conda.base.context import context, non_x86_machines
+from conda.base.context import context, non_x86_machines, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.core import index
 from conda.core.index import (
@@ -226,7 +226,8 @@ def test_supplement_index_with_system_glibc(monkeypatch: MonkeyPatch) -> None:
 
 @pytest.mark.integration
 @pytest.mark.parametrize("platform", ["linux-64", "osx-64", "win-64"])
-def test_get_index_platform(platform: str) -> None:
+def test_get_index_platform(monkeypatch: MonkeyPatch, platform: str) -> None:
+    reset_context()
     index = Index(platform=platform)
     for dist, record in index.items():
         assert platform_in_record(platform, record), (platform, record.url)

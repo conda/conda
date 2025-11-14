@@ -46,7 +46,6 @@ ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
-        "channels": context.channels,
     }
 )
 
@@ -54,7 +53,6 @@ ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
-        "channels": context.channels,
         "variables": {
             "DUDE": "woah",
             "SWEET": "yaaa",
@@ -67,7 +65,6 @@ ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates", "zlib"],
-        "channels": context.channels,
     }
 )
 
@@ -75,7 +72,6 @@ ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click"]}],
-        "channels": context.channels,
     }
 )
 
@@ -83,7 +79,6 @@ ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click", "attrs"]}],
-        "channels": context.channels,
     }
 )
 
@@ -91,7 +86,6 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["nonexisting_"]}],
-        "channels": context.channels,
     }
 )
 
@@ -99,7 +93,6 @@ ENVIRONMENT_UNSOLVABLE = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["does-not-exist"],
-        "channels": context.channels,
     }
 )
 
