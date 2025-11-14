@@ -452,13 +452,16 @@ class TmpEnvFixture:
 
         if not packages:
             # no packages, just create an empty environment
-            (path := (prefix / PREFIX_MAGIC_FILE)).parent.mkdir(
-                parents=True, exist_ok=True
-            )
+            path = prefix / PREFIX_MAGIC_FILE
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.touch()
         else:
             self.conda_cli(
-                "create", f"--prefix={prefix}", *packages, "--yes", "--quiet"
+                "create",
+                f"--prefix={prefix}",
+                *packages,
+                "--yes",
+                "--quiet",
             )
         yield prefix
 
