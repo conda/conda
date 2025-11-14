@@ -305,16 +305,3 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             }
 
     return MockContext, app_name
-
-
-@pytest.fixture(scope="function")
-def minimal_env(tmp_path: Path) -> Path:
-    """
-    Provides a minimal environment that only contains the "magic" file identifying it as a
-    conda environment.
-    """
-    meta_dir = tmp_path.joinpath("conda-meta")
-    meta_dir.mkdir()
-    (meta_dir / "history").touch()
-
-    return tmp_path

@@ -395,17 +395,15 @@ def test_unset_reserved_env_vars(prefix_data: PrefixData):
 
 
 @pytest.mark.parametrize("remove_auth", (True, False))
-def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
-    (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "conda-meta" / "history").touch()
+def test_no_tokens_dumped(empty_env: Path, remove_auth: bool):
     pkg_record = record(
         channel="fake",
         url="https://conda.anaconda.org/t/some-fake-token/fake/noarch/a-1.0-0.tar.bz2",
     )
-    pd = PrefixData(tmp_path)
+    pd = PrefixData(empty_env)
     pd.insert(pkg_record, remove_auth=remove_auth)
 
-    json_content = (tmp_path / "conda-meta" / "a-1.0-0.json").read_text()
+    json_content = (empty_env / "conda-meta" / "a-1.0-0.json").read_text()
     if remove_auth:
         assert "/t/<TOKEN>/" in json_content
     else:
