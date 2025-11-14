@@ -493,11 +493,7 @@ def test_create_users_environment_file_with_env_name(
     )
 
     stdout, stderr, exp = conda_cli(
-        "env",
-        "create",
-        "--file",
-        str(env_file),
-        "--dry-run"
+        "env", "create", "--file", str(env_file), "--dry-run"
     )
     assert "ca-certificates" in stdout
 
@@ -509,7 +505,7 @@ def test_create_users_environment_file_with_env_name_and_prefix(
 ):
     """
     Ensures an error is raised if the environment.yml provides both
-    a name and prefix. In this situation it isn't clear what the 
+    a name and prefix. In this situation it isn't clear what the
     intended install location should be.
     """
     env_file = path_factory("test_prefix.yml")
@@ -524,28 +520,13 @@ def test_create_users_environment_file_with_env_name_and_prefix(
 
     # Raises an error if no name or prefix is specified in the cli
     with pytest.raises(
-        CondaEnvException,
-        match="Environment location is over specified."
+        CondaEnvException, match="Environment location is over specified."
     ):
-        conda_cli(
-            "env",
-            "create",
-            "--file",
-            str(env_file),
-            "--dry-run"
-        )
-    
+        conda_cli("env", "create", "--file", str(env_file), "--dry-run")
+
     # Don't raise an error if a name or prefix is specified in the
     # cli.
     stdout, _, _ = conda_cli(
-        "env",
-        "create",
-        "--file",
-        str(env_file),
-        "--name",
-        "testenv",
-        "--dry-run"
+        "env", "create", "--file", str(env_file), "--name", "testenv", "--dry-run"
     )
     assert "ca-certificates" in stdout
-
-

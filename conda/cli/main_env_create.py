@@ -143,7 +143,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         # Set the args.name to the env name so that it taken into account
         # when determining the target prefix
         args.name = env.name or args.name
-        # If the prefix from the environment is the same as the one from the 
+        # If the prefix from the environment is the same as the one from the
         # context then we don't need to update the args.prefix
         if env.prefix != context.target_prefix:
             args.prefix = env.prefix or args.prefix
