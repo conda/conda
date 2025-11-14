@@ -299,9 +299,13 @@ def test_list_full_name(conda_cli):
 
 def test_list_full_name_no_results(conda_cli):
     out, err, exc = conda_cli(
-        "list", f"--prefix={sys.prefix}", "--full-name", "does-not-exist", "--json"
+        "list",
+        f"--prefix={sys.prefix}",
+        "--full-name",
+        "does-not-exist",
+        "--json",
+        raises=CondaValueError,
     )
-    assert out == "[]"
 
 
 def test_exit_codes(conda_cli):
