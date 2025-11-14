@@ -47,6 +47,7 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
+    ChannelNotProvided,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
@@ -630,6 +631,23 @@ def test_noarch_python_package_reinstall_on_pyver_change(
 def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
     with tmp_env("font-ttf-inconsolata") as prefix:
         assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
+
+
+def test_no_channels(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+) -> None:
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "zlib",
+        "--yes",
+        "--channel",
+        None,
+        "--override-channels",
+        raises=ChannelNotProvided,
+    )
 
 
 def test_override_channels_disabled(

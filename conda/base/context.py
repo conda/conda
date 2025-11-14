@@ -72,6 +72,7 @@ from .constants import (
     RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    UNKNOWN_CHANNEL,
     ChannelPriority,
     DepsModifier,
     PathConflict,
@@ -987,11 +988,14 @@ class Context(Configuration):
 
     @property
     def channels(self) -> tuple[str, ...]:
+        from ..exceptions import ChannelNotProvided 
+        
         local_channels = ("local",) if self.use_local else ()
         argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
         # TODO: it's args.channel right now, not channels
         cli_channels = argparse_args.get("channel") or ()
 
+        channels = None
         if argparse_args.get("override_channels"):
             if not self.override_channels_enabled:
                 from ..exceptions import OperationNotAllowed
@@ -999,7 +1003,7 @@ class Context(Configuration):
                 raise OperationNotAllowed("Overriding channels has been disabled.")
 
             if cli_channels:
-                return validate_channels((*local_channels, *cli_channels))
+                channels = validate_channels((*local_channels, *cli_channels))
             else:
                 from ..exceptions import ArgumentError
 
@@ -1007,8 +1011,12 @@ class Context(Configuration):
                     "At least one -c / --channel flag must be supplied when using "
                     "--override-channels."
                 )
+        else:
+            channels = validate_channels((*local_channels, *self._channels))
 
-        return validate_channels((*local_channels, *self._channels))
+        if channels:
+            return channels
+        raise ChannelNotProvided
 
     @property
     def config_files(self) -> tuple[PathType, ...]:
@@ -2261,7 +2269,7 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
                 if allowlist and url not in allowlist:
                     raise ChannelNotAllowed(channel)
 
-    return tuple(dict.fromkeys(channels))
+    return tuple(channel for channel in dict.fromkeys(channels) if Channel(channel).canonical_name != UNKNOWN_CHANNEL)
 
 
 @deprecated(
