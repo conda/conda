@@ -394,7 +394,8 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
 def test_channels_empty(context_testdata: None):
     """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())
-    assert context.channels == ()
+    with pytest.raises(ChannelNotProvided):
+        context.channels
 
 
 def test_channels_defaults_condarc(context_testdata: None):
@@ -674,6 +675,7 @@ def test_default_python_validation(value, expected):
     """
     Ensure that ``conda.base.context.default_python_validation`` works as expected
     """
+    reset_context()
     assert default_python_validation(value) == expected
 
 
@@ -759,36 +761,6 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
 
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
-
-@pytest.mark.parametrize(
-    "channels",
-    [
-        
-        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
-        ("abc",),
-    ],
-)
-def test_get_channels(
-    monkeypatch: MonkeyPatch,
-    channels: tuple[str],
-):
-    monkeypatch.setattr(context, "_channels", channels)
-    assert context.channels == channels
-
-
-@pytest.mark.parametrize(
-    "channels",
-    [
-        
-        (),
-        (None,),
-        (""),
-    ],
-)
-def test_get_channels_empty(monkeypatch: MonkeyPatch, channels: tuple[str]):
-    monkeypatch.setattr(context, "_channels", channels)
-    with pytest.raises(ChannelNotProvided):
-        context.channels
 
 
 def test_default_activation_prefix(
@@ -898,3 +870,34 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
         )
     )
     assert context.export_platforms == ("linux-32",)
+
+
+@pytest.mark.parametrize(
+    "channels",
+    [
+        
+        (),
+        (None,),
+        (""),
+    ],
+)
+def test_get_channels_empty(monkeypatch: MonkeyPatch, channels: tuple[str]):
+    monkeypatch.setattr(context, "_channels", channels)
+    with pytest.raises(ChannelNotProvided):
+        context.channels
+
+
+@pytest.mark.parametrize(
+    "channels",
+    [
+        
+        ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+        ("abc",),
+    ],
+)
+def test_get_channels(
+    monkeypatch: MonkeyPatch,
+    channels: tuple[str],
+):
+    monkeypatch.setattr(context, "_channels", channels)
+    assert context.channels == channels
