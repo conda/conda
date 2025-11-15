@@ -188,7 +188,7 @@ def list_packages(
     )
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import CondaValueError
+    from ..exceptions import CondaValueError, PackageNotInstalledError
     from .common import disp_features
 
     exitcode = 0
@@ -257,6 +257,8 @@ def list_packages(
         packages.append(row)
 
     if regex and not packages:
+        if regex_is_full_name:
+            raise PackageNotInstalledError(prefix, regex)
         raise CondaValueError(f"No packages match '{regex}'.")
 
     if reverse:

@@ -12,7 +12,11 @@ import pytest
 from conda.base.constants import CONDA_LIST_FIELDS
 from conda.common.configuration import CustomValidationError
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError, EnvironmentLocationNotFound
+from conda.exceptions import (
+    CondaValueError,
+    EnvironmentLocationNotFound,
+    PackageNotInstalledError,
+)
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -304,7 +308,7 @@ def test_list_full_name_no_results(conda_cli):
         "--full-name",
         "does-not-exist",
         "--json",
-        raises=CondaValueError,
+        raises=PackageNotInstalledError,
     )
 
 
