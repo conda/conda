@@ -235,6 +235,8 @@ def list_packages(
                     value = str(channel_name)
                 else:
                     value = ""
+            elif field == "dist_str":
+                value = prec.dist_str()
             else:
                 value = str(prec.get(field, None) or "").strip()
                 if value == "None":
