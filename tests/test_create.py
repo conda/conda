@@ -10,7 +10,7 @@ from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
-from os.path import basename, isdir
+from os.path import basename
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_output
@@ -908,19 +908,19 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         #   when using rm_rf on a file
         assert any(prefix in key for key in PrefixData._cache_)
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
-        assert prefix not in PrefixData._cache_
+        assert not any(prefix in key for key in PrefixData._cache_)
 
     with tmp_env() as prefix:
-        assert isdir(prefix)
+        assert prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
         rmtree(prefix)
-        assert not isdir(prefix)
+        assert not prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
         _rm_rf(prefix)
-        assert not isdir(prefix)
-        assert all(prefix not in key for key in PrefixData._cache_)
+        assert not prefix.is_dir()
+        assert not any(prefix in key for key in PrefixData._cache_)
 
 
 def test_install_tarball_from_file_based_channel(

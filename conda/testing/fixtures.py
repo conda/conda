@@ -30,6 +30,7 @@ from ..common.configuration import YamlRawParameter
 from ..common.serialize import json, yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
+from ..core.prefix_data import PrefixData, delete_prefix_from_linked_data
 from ..core.subdir_data import SubdirData
 from ..exceptions import CondaExitZero
 from ..gateways.disk.create import TemporaryDirectory
@@ -463,7 +464,14 @@ class TmpEnvFixture:
                 "--yes",
                 "--quiet",
             )
+
+        # load the prefix into PrefixData cache
+        assert len(list(PrefixData(prefix).iter_records())) >= len(packages)
+
         yield prefix
+
+        # remove prefix from PrefixData cache
+        delete_prefix_from_linked_data(prefix)
 
         # no need to remove prefix since it is in a temporary directory
 
