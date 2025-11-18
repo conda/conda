@@ -53,6 +53,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda list ^py
 
+        List name and version only::
+
+            conda list --fields name,version
+
         Save packages for future use::
 
             conda list --export > package-list.txt
@@ -79,7 +83,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         type=comma_separated_stripped,
         dest="list_fields",
         help="Comma-separated list of fields to print. "
-        f"Valid values: {sorted(CONDA_LIST_FIELDS)}.",
+        f"Valid values: {', '.join(sorted(CONDA_LIST_FIELDS))}.",
     )
     p.add_argument(
         "--reverse",
