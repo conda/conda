@@ -442,7 +442,6 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
-        mock: bool = True,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
@@ -452,7 +451,7 @@ class TmpEnvFixture:
         """
         prefix = Path(prefix or self.get_path())
 
-        if not packages and mock:
+        if not packages:
             # no packages, just create an empty environment
             path = prefix / PREFIX_MAGIC_FILE
             path.parent.mkdir(parents=True, exist_ok=True)
