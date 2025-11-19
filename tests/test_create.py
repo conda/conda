@@ -736,7 +736,7 @@ def test_search_override_channels_enabled(
 
 
 def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
+    with tmp_env(mock=False) as prefix:
         assert (prefix / PREFIX_MAGIC_FILE).exists()
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
