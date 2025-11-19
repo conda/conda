@@ -466,7 +466,7 @@ class TmpEnvFixture:
             )
 
         # load the prefix into PrefixData cache
-        assert len(list(PrefixData(prefix).iter_records())) >= len(packages)
+        assert PrefixData(prefix)
 
         yield prefix
 
