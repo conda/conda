@@ -735,37 +735,40 @@ def test_search_override_channels_enabled(
     assert not code
 
 
-def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env(mock=False) as prefix:
-        assert (prefix / PREFIX_MAGIC_FILE).exists()
+def test_create_empty_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+    # not using tmp_env since it mocks an empty environment instead of calling conda to create it
+    prefix = path_factory()
 
-        stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
-        assert stdout == dals(
-            f"""
-            # packages in environment at {prefix}:
-            #
-            # Name                     Version          Build            Channel
-            """
-        )
-        assert not stderr
-        assert not code
+    conda_cli("create", f"--prefix={prefix}", "--yes")
+    assert (prefix / PREFIX_MAGIC_FILE).exists()
 
-        stdout, stderr, code = conda_cli(
-            "list",
-            f"--prefix={prefix}",
-            "--revisions",
-            "--json",
-        )
-        revisions = json.loads(stdout)
-        assert len(revisions) == 1
-        assert datetime.fromisoformat(revisions[0]["date"])
-        assert revisions[0]["downgrade"] == []
-        assert revisions[0]["install"] == []
-        assert revisions[0]["remove"] == []
-        assert revisions[0]["rev"] == 0
-        assert revisions[0]["upgrade"] == []
-        assert not stderr
-        assert not code
+    stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
+    assert stdout == dals(
+        f"""
+        # packages in environment at {prefix}:
+        #
+        # Name                     Version          Build            Channel
+        """
+    )
+    assert not stderr
+    assert not code
+
+    stdout, stderr, code = conda_cli(
+        "list",
+        f"--prefix={prefix}",
+        "--revisions",
+        "--json",
+    )
+    revisions = json.loads(stdout)
+    assert len(revisions) == 1
+    assert datetime.fromisoformat(revisions[0]["date"])
+    assert revisions[0]["downgrade"] == []
+    assert revisions[0]["install"] == []
+    assert revisions[0]["remove"] == []
+    assert revisions[0]["rev"] == 0
+    assert revisions[0]["upgrade"] == []
+    assert not stderr
+    assert not code
 
 
 @pytest.mark.skipif(reason="conda-forge doesn't have a full set of packages")
