@@ -1167,7 +1167,7 @@ def test_posix_basic(
     activator = PosixActivator()
     make_dot_d_files(empty_env, activator.script_extension)
 
-    err = main_sourced("shell.posix", "activate", empty_env)
+    err = main_sourced("shell.posix", "activate", str(empty_env))
     activate_data, stderr = capsys.readouterr()
     assert not stderr
     assert not err
@@ -1257,7 +1257,7 @@ def test_posix_basic(
 @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_cmd_exe_basic(
-    empty_env: str,
+    empty_env: Path,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
@@ -1269,7 +1269,7 @@ def test_cmd_exe_basic(
     activator = CmdExeActivator()
     make_dot_d_files(empty_env, activator.script_extension)
 
-    err = main_sourced("shell.cmd.exe", "activate", empty_env)
+    err = main_sourced("shell.cmd.exe", "activate", str(empty_env))
     activate_result, stderr = capsys.readouterr()
     assert not stderr
     assert not err
@@ -1371,7 +1371,7 @@ def test_cmd_exe_basic(
 
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_csh_basic(
-    empty_env: str,
+    empty_env: Path,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
@@ -1383,7 +1383,7 @@ def test_csh_basic(
     activator = CshActivator()
     make_dot_d_files(empty_env, activator.script_extension)
 
-    err = main_sourced("shell.csh", "activate", empty_env)
+    err = main_sourced("shell.csh", "activate", str(empty_env))
     activate_data, stderr = capsys.readouterr()
     assert not stderr
     assert not err
@@ -1493,7 +1493,7 @@ def test_csh_basic(
 
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_xonsh_basic(
-    empty_env: str,
+    empty_env: Path,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
@@ -1505,7 +1505,7 @@ def test_xonsh_basic(
     activator = XonshActivator()
     make_dot_d_files(empty_env, activator.script_extension)
 
-    err = main_sourced("shell.xonsh", "activate", empty_env)
+    err = main_sourced("shell.xonsh", "activate", str(empty_env))
     activate_data, stderr = capsys.readouterr()
     assert not stderr
     assert not err
@@ -1626,7 +1626,7 @@ def test_xonsh_basic(
 
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_fish_basic(
-    empty_env: str,
+    empty_env: Path,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
@@ -1638,7 +1638,7 @@ def test_fish_basic(
     activator = FishActivator()
     make_dot_d_files(empty_env, activator.script_extension)
 
-    err = main_sourced("shell.fish", "activate", empty_env)
+    err = main_sourced("shell.fish", "activate", str(empty_env))
     activate_data, stderr = capsys.readouterr()
     assert not stderr
     assert not err
@@ -1729,7 +1729,7 @@ def test_fish_basic(
 
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_powershell_basic(
-    empty_env: str,
+    empty_env: Path,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
@@ -1741,7 +1741,7 @@ def test_powershell_basic(
     activator = PowerShellActivator()
     make_dot_d_files(empty_env, activator.script_extension)
 
-    err = main_sourced("shell.powershell", "activate", empty_env)
+    err = main_sourced("shell.powershell", "activate", str(empty_env))
     activate_data, stderr = capsys.readouterr()
     assert not stderr
     assert not err
@@ -1817,7 +1817,7 @@ def test_powershell_basic(
 
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_json_basic(
-    empty_env: str,
+    empty_env: Path,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
@@ -1829,7 +1829,7 @@ def test_json_basic(
     activator = _build_activator_cls("posix+json")()
     make_dot_d_files(empty_env, activator.script_extension)
 
-    err = main_sourced("shell.posix+json", "activate", empty_env)
+    err = main_sourced("shell.posix+json", "activate", str(empty_env))
     activate_data, stderr = capsys.readouterr()
     assert not stderr
     assert not err
