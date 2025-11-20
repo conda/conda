@@ -1510,7 +1510,7 @@ def test_xonsh_basic(
     assert not stderr
     assert not err
 
-    new_path_parts = activator._add_prefix_to_path(empty_env)
+    new_path_parts = activator._add_prefix_to_path(str(empty_env))
     conda_exe_export, unset_vars = get_scripts_export_unset_vars(activator)
     if on_win:
         sourcer = "source-cmd --suppress-skip-message"
