@@ -189,6 +189,7 @@ exclude = [
   "tests/data/conda_format_repo",
   "tests/data/env_metadata",
 ]
+show-fixes = true
 
 [tool.ruff.lint]
 flake8-type-checking = {exempt-modules = [], strict = true}
