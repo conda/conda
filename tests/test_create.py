@@ -910,7 +910,7 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
         assert not any(prefix in key for key in PrefixData._cache_)
 
-    with tmp_env() as prefix:
+    with tmp_env(mock=False) as prefix:
         assert prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
