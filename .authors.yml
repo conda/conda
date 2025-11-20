@@ -2576,3 +2576,19 @@
   github: agriyakhetarpal
   num_commits: 9
   first_commit: 2025-09-14 14:13:47
+- name: Dan Yeaw
+  email: dan@yeaw.me
+  num_commits: 5
+  first_commit: 2025-09-26 10:42:03
+- name: Sumanth
+  email: 33193748+sumanth-manchala@users.noreply.github.com
+  num_commits: 1
+  first_commit: 2025-11-13 19:24:01
+- name: Martin Lang
+  email: 67915889+lang-m@users.noreply.github.com
+  num_commits: 1
+  first_commit: 2025-09-26 16:10:02
+- name: Simon Høxbro Hansen
+  email: hoxbro@protonmail.com
+  num_commits: 2
+  first_commit: 2025-10-14 14:44:11
