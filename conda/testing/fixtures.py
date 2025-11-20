@@ -30,7 +30,6 @@ from ..common.configuration import YamlRawParameter
 from ..common.serialize import json, yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
-from ..core.prefix_data import PrefixData, delete_prefix_from_linked_data
 from ..core.subdir_data import SubdirData
 from ..exceptions import CondaExitZero
 from ..gateways.disk.create import TemporaryDirectory
@@ -440,19 +439,21 @@ class TmpEnvFixture:
     @contextmanager
     def __call__(
         self,
-        *packages: str,
+        *args: str,
         prefix: str | os.PathLike | None = None,
+        mock: bool = True,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
-        :param packages: The packages to install into environment
+        :param args: The arguments to pass to conda create (e.g., packages, flags, etc.)
         :param prefix: The prefix at which to install the conda environment
+        :param mock: Whether to mock the environment creation (default: True)
         :return: The conda environment's prefix
         """
         prefix = Path(prefix or self.get_path())
 
-        if not packages:
-            # no packages, just create an empty environment
+        if mock and not args:
+            # no arguments, just create an empty environment
             path = prefix / PREFIX_MAGIC_FILE
             path.parent.mkdir(parents=True, exist_ok=True)
             path.touch()
@@ -460,18 +461,12 @@ class TmpEnvFixture:
             self.conda_cli(
                 "create",
                 f"--prefix={prefix}",
-                *packages,
+                *args,
                 "--yes",
                 "--quiet",
             )
 
-        # load the prefix into PrefixData cache
-        assert PrefixData(prefix)
-
         yield prefix
-
-        # remove prefix from PrefixData cache
-        delete_prefix_from_linked_data(prefix)
 
         # no need to remove prefix since it is in a temporary directory
 
