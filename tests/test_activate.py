@@ -1836,9 +1836,9 @@ def test_json_basic(
 
     new_path_parts = activator._add_prefix_to_path(empty_env)
     export_vars, unset_vars = activator.get_export_unset_vars(
-        CONDA_PREFIX=empty_env,
+        CONDA_PREFIX=str(empty_env),
         CONDA_SHLVL=1,
-        CONDA_DEFAULT_ENV=empty_env,
+        CONDA_DEFAULT_ENV=str(empty_env),
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(empty_env),
     )
     assert json.loads(activate_data) == {
