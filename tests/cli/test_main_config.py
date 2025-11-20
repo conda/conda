@@ -306,9 +306,7 @@ def test_config_set_and_get_key_for_env(
     test_channel_name = "my-super-special-channel"
     # add config to prefix
     conda_cli(
-        "config",
-        f"--prefix={empty_env}",
-        *("--append", "channels", test_channel_name),
+        "config", "--append", "channels", test_channel_name, "--prefix", empty_env
     )
 
     # check config is added to the prefix config
