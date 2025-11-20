@@ -2408,7 +2408,7 @@ def test_create_env_different_platform(
 
         args = []
 
-    with tmp_env(*args) as prefix:
+    with tmp_env(*args, mock=False) as prefix:
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
         assert (
