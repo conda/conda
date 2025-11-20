@@ -23,7 +23,7 @@ from conda.testing.helpers import record
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
@@ -931,15 +931,19 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
 
-def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
+def test_timestamps(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
     start = datetime.now(tz=timezone.utc)
-    with tmp_env() as prefix:
+    with tmp_env(mock=False) as prefix:
         pd = PrefixData(prefix)
         created = pd.created
         first_modification = pd.last_modified
         # On Linux, we allow a rounding error of a <1 second (usually ~5ms)
         assert abs(created.timestamp() - first_modification.timestamp()) < 1
-        conda_cli("install", "--yes", "--prefix", prefix, "small-executable")
+        conda_cli("install", "--yes", f"--prefix={prefix}", "small-executable")
         second_modification = pd.last_modified
         assert created == pd.created
         assert first_modification < second_modification
