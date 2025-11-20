@@ -19,7 +19,7 @@ import copy
 import sys
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from enum import Enum, EnumMeta
 from functools import wraps
 from itertools import chain
@@ -58,7 +58,7 @@ del _getFreezeConversionMap
 del _register
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable
+    from collections.abc import Hashable, Iterable, Sequence
     from re import Match
     from typing import Any, Final
 
@@ -1775,3 +1775,56 @@ def unique_sequence_map(*, unique_key: str):
         return wrapper
 
     return inner_wrap
+
+
+# Deprecated imports - moved to conda.cli.condarc
+# These are registered as deprecated constants below
+from ..cli.condarc import (
+    MISSING as _MISSING,
+)
+from ..cli.condarc import (
+    ConfigurationFile,
+)
+from ..cli.condarc import (
+    ParameterTypeGroups as _ParameterTypeGroups,
+)
+from ..cli.condarc import (
+    validate_provided_parameters as _validate_provided_parameters,
+)
+from ..deprecations import deprecated
+
+# Register deprecated constants
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "CondaRC",
+    ConfigurationFile,
+    addendum="Use conda.cli.condarc.ConfigurationFile instead.",
+)
+
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "ParameterTypeGroups",
+    _ParameterTypeGroups,
+    addendum="Use conda.cli.condarc.ParameterTypeGroups instead.",
+)
+
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "validate_provided_parameters",
+    _validate_provided_parameters,
+    addendum="Use conda.cli.condarc.validate_provided_parameters instead.",
+)
+
+deprecated.constant(
+    "25.9",
+    "26.3",
+    "MISSING",
+    _MISSING,
+    addendum="Use conda.cli.condarc.MISSING instead.",
+)
+
+# Clean up the namespace - these are only for deprecation
+del ConfigurationFile, _ParameterTypeGroups, _validate_provided_parameters, _MISSING
