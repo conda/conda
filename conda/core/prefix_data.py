@@ -560,6 +560,8 @@ class PrefixData(metaclass=PrefixDataType):
                 and (record := self.get(param.name, None))
             ):
                 if param.match(record):
+                    # Yes, we do want to return the same
+                    # type for all queries
                     return (r for r in (record,))
                 return (_ for _ in ())  # empty generator
             return (
