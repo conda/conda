@@ -10,60 +10,27 @@ from __future__ import annotations
 import os
 import sys
 from argparse import SUPPRESS
-from collections.abc import Mapping, Sequence
-from functools import cached_property
+from collections.abc import Mapping
 from itertools import chain
 from logging import getLogger
 from os.path import isfile, join
-from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
-from ruamel.yaml.representer import RoundTripRepresenter
-
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
-from ..common.iterators import groupby_to_dict as groupby
-from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
+from ..exceptions import CouldntParseError
+from .condarc import (
+    MISSING,
+    ConfigurationFile,
+    validate_provided_parameters,
+)
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
-    from collections.abc import Callable
+    from pathlib import Path
     from typing import Any
 
-    from ..base.context import Context
-
 log = getLogger(__name__)
-
-MISSING = object()
-
-
-def add_enum_representers() -> None:
-    """Register YAML representers for conda enum types."""
-    from ..base.constants import (
-        ChannelPriority,
-        DepsModifier,
-        PathConflict,
-        SafetyChecks,
-        SatSolverChoice,
-        UpdateModifier,
-    )
-
-    # Add representers for enums.
-    # Because a representer cannot be added for the base Enum class (it must be added for
-    # each specific Enum subclass - and because of import rules), I don't know of a better
-    # location to do this.
-    def enum_representer(dumper, data):
-        return dumper.represent_str(str(data))
-
-    RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
-    RoundTripRepresenter.add_representer(PathConflict, enum_representer)
-    RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
-    RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
-    RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
-    RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
-
-
-add_enum_representers()
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -419,399 +386,6 @@ def print_config_item(key, value):
                 stdout_write(" ".join(("--add", key, repr(item))))
 
 
-class ContextParameters:
-    """
-    Groups configuration parameters by their parameter type.
-
-    Organizes configuration parameters from context into sequence and map parameters,
-    handling both regular and plugin parameters separately.
-    """
-
-    def __init__(self, context: Context) -> None:
-        """
-        Initialize ContextParameters by grouping parameters by type.
-
-        :param context: Context instance containing configuration parameters.
-        """
-        self._grouped_parameter = groupby(
-            lambda p: context.describe_parameter(p)["parameter_type"],
-            context.list_parameters(),
-        )
-
-        self._plugin_grouped_parameters = groupby(
-            lambda p: context.plugins.describe_parameter(p)["parameter_type"],
-            context.plugins.list_parameters(),
-        )
-
-    @cached_property
-    def sequence_parameters(self) -> list[str]:
-        """List of sequence parameter names."""
-        return self._grouped_parameter["sequence"]
-
-    @cached_property
-    def plugin_sequence_parameters(self) -> list[str]:
-        """List of plugin sequence parameter names."""
-        return self._plugin_grouped_parameters.get("sequence", [])
-
-    @cached_property
-    def map_parameters(self) -> list[str]:
-        """List of map parameter names."""
-        return self._grouped_parameter["map"]
-
-    @cached_property
-    def plugin_map_parameters(self) -> list[str]:
-        """List of plugin map parameter names."""
-        return self._plugin_grouped_parameters.get("map", [])
-
-    @staticmethod
-    def validate_provided_parameters(
-        parameters: Sequence[str], plugin_parameters: Sequence[str], context: Context
-    ) -> None:
-        """
-        Compares the provided parameters with the available parameters.
-
-        :raises:
-            ArgumentError: If the provided parameters are not valid.
-        """
-        from ..common.io import dashlist
-        from ..exceptions import ArgumentError
-
-        all_names = context.list_parameters(aliases=True)
-        all_plugin_names = context.plugins.list_parameters()
-
-        not_params = set(parameters) - set(all_names)
-        not_plugin_params = set(plugin_parameters) - set(all_plugin_names)
-
-        if not_params or not_plugin_params:
-            not_plugin_params = {f"plugins.{name}" for name in not_plugin_params}
-            error_params = not_params | not_plugin_params
-            raise ArgumentError(
-                f"Invalid configuration parameters: {dashlist(error_params)}"
-            )
-
-
-class CondaRC:
-    """
-    Represents and manipulates a conda configuration (.condarc) file.
-
-    Provides methods to read, write, and modify configuration files while
-    validating keys and maintaining proper structure.
-    """
-
-    def __init__(
-        self,
-        path: str | os.PathLike[str] | Path | None = None,
-        context: Context | None = None,
-        content: dict[str, Any] | None = None,
-        warning_handler: Callable[[str], None] | None = None,
-    ) -> None:
-        self._path = path
-        self._content = content
-
-        self._context = context
-        self._context_params: ContextParameters | None = None
-
-        self.warning_handler = warning_handler or (lambda msg: None)
-
-    @property
-    def path(self) -> str | os.PathLike[str] | Path:
-        """
-        Get the path to the configuration file.
-
-        :returns: Path to the configuration file.
-        :raises AttributeError: If path has not been set.
-        """
-        if self._path is None:
-            raise AttributeError("Condarc. has not been set")
-
-        return self._path
-
-    @path.setter
-    def path(self, path: str | os.PathLike[str] | Path) -> None:
-        """
-        Set the path to the configuration file.
-
-        :param path: Path to the configuration file.
-        """
-        self._path = path
-
-    @property
-    def context(self) -> Context:
-        """
-        Get the context instance, initializing it if needed.
-
-        :returns: Context instance.
-        """
-        if self._context is None:
-            from ..base.context import context
-
-            self._context = context
-
-        return self._context
-
-    @property
-    def context_params(self) -> ContextParameters:
-        if self._context_params is None:
-            self._context_params = ContextParameters(self.context)
-        return self._context_params
-
-    @property
-    def content(self) -> dict[str, Any]:
-        """
-        Get the configuration content, reading from file if needed.
-
-        :returns: Dictionary containing configuration content.
-        """
-        if self._content is None:
-            self.read()
-
-        return self._content
-
-    def read(self, path: str | os.PathLike[str] | Path | None = None) -> dict[str, Any]:
-        """
-        Read configuration content from file.
-
-        :param path: Optional path to read from. If None, uses the instance path.
-        :returns: Dictionary containing configuration content.
-        """
-        from ..common.serialize import yaml_round_trip_load
-
-        path = Path(path or self._path)
-
-        try:
-            self._content = (
-                yaml_round_trip_load(Path(path or self._path).read_text()) or {}
-            )
-        except FileNotFoundError:
-            self._content = {}
-
-        return self._content
-
-    def write(self, path: str | os.PathLike[str] | Path | None = None) -> None:
-        """
-        Write configuration content to file.
-
-        :param path: Optional path to write to. If None, uses the instance path.
-        :raises CondaError: If the file cannot be written.
-        """
-        from .. import CondaError
-        from ..common.serialize import yaml_round_trip_dump
-
-        path: Path = Path(path or self._path)
-        try:
-            path.write_text(yaml_round_trip_dump(self.content))
-        except OSError as e:
-            raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
-
-    def key_exists(self, key: str) -> bool:
-        """
-        Check if a configuration key is valid.
-
-        :param key: Configuration key to check.
-        :returns: True if the key is valid, False otherwise.
-        """
-        first, *rest = key.split(".")
-        if (
-            first == "plugins"
-            and len(rest) > 0
-            and rest[0] in self.context.plugins.list_parameters()
-        ):
-            return True
-
-        if first not in self.context.list_parameters():
-            exists = bool(self.context.name_for_alias(first))
-            if not exists:
-                self.warning_handler(f"Unknown key: {key!r}")
-            return exists
-
-        return True
-
-    def add(self, key: str, item: Any, prepend: bool = False) -> None:
-        """
-        Add an item to a sequence configuration parameter.
-
-        :param key: Configuration key name (may contain dots for nested keys).
-        :param item: Item to add to the sequence.
-        :param prepend: If True, add to the beginning; if False, add to the end.
-        :raises CondaValueError: If the key is not a known sequence parameter.
-        :raises CouldntParseError: If the key should be a list but isn't.
-        """
-        key, subkey = key.split(".", 1) if "." in key else (key, None)
-
-        if key in self.context_params.sequence_parameters:
-            arglist = self.content.setdefault(key, [])
-        elif (
-            key == "plugins"
-            and subkey in self.context_params.plugin_sequence_parameters
-        ):
-            arglist = self.content.setdefault("plugins", {}).setdefault(subkey, [])
-        elif key in self.context_params.map_parameters:
-            arglist = self.content.setdefault(key, {}).setdefault(subkey, [])
-        elif key in self.context_params.plugin_map_parameters:
-            arglist = self.content.setdefault("plugins", {}).setdefault(subkey, {})
-        else:
-            raise CondaValueError(f"Key '{key}' is not a known sequence parameter.")
-
-        if not (isinstance(arglist, Sequence) and not isinstance(arglist, str)):
-            bad = self.content[key].__class__.__name__
-            raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
-
-        if item in arglist:
-            # Right now, all list keys should not contain duplicates
-            location = "top" if prepend else "bottom"
-            message_key = key + "." + subkey if subkey is not None else key
-            message = f"Warning: '{item}' already in '{message_key}' list, moving to the {location}"
-
-            if subkey is None:
-                arglist = self.content[key] = [p for p in arglist if p != item]
-            else:
-                arglist = self.content[key][subkey] = [p for p in arglist if p != item]
-
-            self.warning_handler(msg=message)
-
-        arglist.insert(0 if prepend else len(arglist), item)
-
-    def get_key(
-        self,
-        key: str,
-    ) -> tuple[str, Any]:
-        """
-        Get a configuration value by key.
-
-        :param key: Configuration key name (may contain dots for nested keys).
-        :returns: Configuration value or MISSING if key doesn't exist.
-        """
-        key_parts = key.split(".")
-
-        if not self.key_exists(key):
-            return key, MISSING
-
-        if alias := self.context.name_for_alias(key):
-            key = alias
-            key_parts = alias.split(".")
-
-        sub_config = self.content
-        try:
-            for part in key_parts:
-                sub_config = sub_config[part]
-        except KeyError:
-            pass
-        else:
-            return key, sub_config
-
-        return key, MISSING
-
-    def set_key(self, key: str, item: Any) -> None:
-        """
-        Set a configuration value for a primitive or map parameter.
-
-        :param key: Configuration key name (may contain dots for nested keys).
-        :param item: Value to set.
-        :raises CondaKeyError: If the key is unknown or invalid.
-        """
-        if not self.key_exists(key):
-            raise CondaKeyError(key, "unknown parameter")
-
-        if aliased := self.context.name_for_alias(key):
-            log.warning(
-                "Key %s is an alias of %s; setting value with latter", key, aliased
-            )
-            key = aliased
-
-        first, *rest = key.split(".")
-
-        if first == "plugins":
-            base_context = self.context.plugins
-            base_config = self.content.setdefault("plugins", {})
-            parameter_name, *rest = rest
-        else:
-            base_context = self.context
-            base_config = self.content
-            parameter_name = first
-
-        parameter_type = base_context.describe_parameter(parameter_name)[
-            "parameter_type"
-        ]
-
-        if parameter_type == "primitive" and len(rest) == 0:
-            base_config[parameter_name] = base_context.typify_parameter(
-                parameter_name, item, "--set parameter"
-            )
-
-        elif parameter_type == "map" and len(rest) == 1:
-            base_config.setdefault(parameter_name, {})[rest[0]] = item
-
-        else:
-            raise CondaKeyError(key, "invalid parameter")
-
-    def remove_item(self, key: str, item: Any) -> None:
-        """
-        Remove an item from a sequence configuration parameter.
-
-        :param key: Configuration key name.
-        :param item: Item to remove from the sequence.
-        :raises CondaKeyError: If the key is unknown, undefined, or the item is not present.
-        """
-        first, *rest = key.split(".")
-
-        if first == "plugins":
-            base_context = self.context.plugins
-            base_config = self.content.setdefault("plugins", {})
-            parameter_name = rest[0]
-            rest = []
-        else:
-            base_context = self.context
-            base_config = self.content
-            parameter_name = first
-
-        try:
-            parameter_type = base_context.describe_parameter(parameter_name)[
-                "parameter_type"
-            ]
-        except KeyError:
-            # KeyError: key_parts[0] is an unknown parameter
-            raise CondaKeyError(key, "unknown parameter")
-
-        if parameter_type == "sequence" and len(rest) == 0:
-            if parameter_name not in base_config:
-                if parameter_name != "channels":
-                    raise CondaKeyError(key, "undefined in config")
-                self.content[parameter_name] = ["defaults"]
-
-            if item not in base_config[parameter_name]:
-                raise CondaKeyError(
-                    parameter_name, f"value {item!r} not present in config"
-                )
-            base_config[parameter_name] = [
-                i for i in base_config[parameter_name] if i != item
-            ]
-        else:
-            raise CondaKeyError(key, "invalid parameter")
-
-    def remove_key(self, key: str) -> None:
-        """
-        Remove a configuration key entirely.
-
-        :param key: Configuration key name (may contain dots for nested keys).
-        :raises CondaKeyError: If the key is undefined in the config.
-        """
-        key_parts = key.split(".")
-
-        sub_config = self.content
-        try:
-            for part in key_parts[:-1]:
-                sub_config = sub_config[part]
-            del sub_config[key_parts[-1]]
-        except KeyError:
-            # KeyError: part not found, nothing to remove, but maybe user passed an alias?
-            if alias := self.context.name_for_alias(key):
-                try:
-                    return self.remove_key(alias)
-                except CondaKeyError:
-                    pass  # raise with originally passed key
-            raise CondaKeyError(key, "undefined in config")
-
-
 def set_keys(*args: tuple[str, Any], path: str | os.PathLike[str] | Path) -> None:
     """
     Set multiple configuration keys in a file.
@@ -819,7 +393,7 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike[str] | Path) -> Non
     :param args: Variable number of (key, value) tuples to set.
     :param path: Path to the configuration file.
     """
-    config = CondaRC(path)
+    config = ConfigurationFile(path)
     for key, value in args:
         config.set_key(key, value)
     config.write()
@@ -887,7 +461,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
                 if name.startswith("plugins.")
             )
 
-            ContextParameters.validate_provided_parameters(
+            validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
             )
             provided_parameters = tuple(
@@ -957,7 +531,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
                 for name in args.describe
                 if name.startswith("plugins.")
             )
-            ContextParameters.validate_provided_parameters(
+            validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
             )
             provided_parameters = tuple(
@@ -1057,7 +631,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             fh.write(describe_all_parameters(context.plugins, plugins=True))
         return
 
-    rc_config = CondaRC(
+    rc_config = ConfigurationFile(
         path=rc_path,
         context=context,
         warning_handler=lambda msg: json_warnings.append(msg)

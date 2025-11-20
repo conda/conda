@@ -19,7 +19,7 @@ import copy
 import sys
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from enum import Enum, EnumMeta
 from functools import wraps
 from itertools import chain
@@ -58,13 +58,26 @@ del _getFreezeConversionMap
 del _register
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Sequence
+    from collections.abc import Hashable, Iterable
     from re import Match
     from typing import Any, Final
 
     from ..common.path import PathsType
 
 log = getLogger(__name__)
+
+__all__ = [
+    "Configuration",
+    "ParameterLoader",
+    "PrimitiveParameter",
+    "SequenceParameter",
+    "MapParameter",
+    "ObjectParameter",
+    "DEFAULT_CONDARC_FILENAME",
+    "ConfigurationError",
+    "ConfigurationLoadError",
+    "ValidationError",
+]
 
 EMPTY_MAP = frozendict()
 

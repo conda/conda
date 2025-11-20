@@ -11,11 +11,8 @@ import pytest
 import conda.exceptions
 from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
-from conda.cli.main_config import (
-    MISSING,
-    CondaRC,
-    set_keys,
-)
+from conda.cli.condarc import MISSING, ConfigurationFile
+from conda.cli.main_config import set_keys
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
 
@@ -103,7 +100,7 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
     assert context.json
 
     warnings: list[str] = []
-    config = CondaRC(
+    config = ConfigurationFile(
         context=context, content={}, warning_handler=lambda msg: warnings.append(msg)
     )
     # undefined
@@ -116,7 +113,7 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
     assert warnings == ["Unknown key: 'unknown'"]
 
     # defined
-    config = CondaRC(
+    config = ConfigurationFile(
         context=context,
         content={"changeps1": True, "auto_stack": 5, "channels": ["foo", "bar"]},
     )
@@ -132,7 +129,7 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
 
 
 def test_config_set_key(capsys) -> None:
-    config: CondaRC = CondaRC(content={})
+    config: ConfigurationFile = ConfigurationFile(content={})
 
     with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
         config.set_key("unknown", None)
@@ -157,7 +154,7 @@ def test_config_set_key(capsys) -> None:
 
 
 def test_config_remove_item() -> None:
-    config: CondaRC = CondaRC(content={})
+    config: ConfigurationFile = ConfigurationFile(content={})
 
     # unknown
     with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
@@ -174,7 +171,7 @@ def test_config_remove_item() -> None:
     config.remove_item("channels", "defaults")
     assert config.content["channels"] == []
 
-    config = CondaRC(content={"channels": ["foo", "bar"]})
+    config = ConfigurationFile(content={"channels": ["foo", "bar"]})
     config.remove_item("channels", "foo")
     assert config.content["channels"] == ["bar"]
 
@@ -194,7 +191,7 @@ def test_config_remove_item() -> None:
 
 
 def test_config_remove_key() -> None:
-    config: CondaRC = CondaRC(content={})
+    config: ConfigurationFile = ConfigurationFile(content={})
 
     # unknown/undefined
     with pytest.raises(CondaKeyError, match=r"'unknown': undefined in config"):
@@ -204,7 +201,7 @@ def test_config_remove_key() -> None:
         config.remove_key("changeps1")
 
     # defined
-    config: CondaRC = CondaRC(
+    config: ConfigurationFile = ConfigurationFile(
         content={
             "auto_stack": 5,
             "channels": ["foo", "bar"],
@@ -228,12 +225,15 @@ def test_config_read_rc(tmp_path: Path) -> None:
     condarc = tmp_path / DEFAULT_CONDARC_FILENAME
     condarc.write_text("changeps1: false\nauto_stack: 5\n")
 
-    assert CondaRC(path=condarc).content == {"changeps1": False, "auto_stack": 5}
+    assert ConfigurationFile(path=condarc).content == {
+        "changeps1": False,
+        "auto_stack": 5,
+    }
 
 
 def test_config_write_rc(tmp_path: Path) -> None:
     target_path = tmp_path / DEFAULT_CONDARC_FILENAME
-    config = CondaRC(
+    config = ConfigurationFile(
         target_path,
         content={
             "changeps1": False,
@@ -341,7 +341,7 @@ def test_key_exists(monkeypatch, plugin_config, is_json):
 
     assert mock_context.json == is_json
 
-    config = CondaRC(content={}, context=mock_context)
+    config = ConfigurationFile(content={}, context=mock_context)
 
     assert config.key_exists("json")
     assert config.key_exists("foo")
@@ -553,3 +553,93 @@ def test_config_describe_plugins_yaml_format(
     assert "  bar: ''" in out
 
     assert "plugins.bar: ''" not in out
+
+
+def test_config_file_from_user_condarc(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """Test ConfigurationFile.from_user_condarc() factory method."""
+    # Create a temporary user condarc
+    user_condarc = tmp_path / ".condarc"
+    user_condarc.write_text("channels:\n  - conda-forge\n")
+
+    # Mock the user_rc_path
+    monkeypatch.setattr("conda.cli.condarc.user_rc_path", user_condarc)
+    reset_context()
+
+    # Test factory method
+    config = ConfigurationFile.from_user_condarc()
+    assert config.path == user_condarc
+    assert config.content == {"channels": ["conda-forge"]}
+
+
+def test_config_file_from_system_condarc(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """Test ConfigurationFile.from_system_condarc() factory method."""
+    # Create a temporary system condarc
+    sys_condarc = tmp_path / "system_condarc"
+    sys_condarc.write_text("auto_update_conda: false\n")
+
+    # Mock the sys_rc_path
+    monkeypatch.setattr("conda.cli.condarc.sys_rc_path", sys_condarc)
+    reset_context()
+
+    # Test factory method
+    config = ConfigurationFile.from_system_condarc()
+    assert config.path == sys_condarc
+    assert config.content == {"auto_update_conda": False}
+
+
+def test_config_file_from_env_condarc(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    """Test ConfigurationFile.from_env_condarc() factory method."""
+    # Create a temporary environment with .condarc
+    env_prefix = tmp_path / "myenv"
+    env_prefix.mkdir()
+    env_condarc = env_prefix / ".condarc"
+    env_condarc.write_text("pip_interop_enabled: true\n")
+
+    # Test with explicit prefix
+    config = ConfigurationFile.from_env_condarc(prefix=env_prefix)
+    assert config.path == env_condarc
+    assert config.content == {"pip_interop_enabled": True}
+
+    # Test with CONDA_PREFIX environment variable
+    monkeypatch.setenv("CONDA_PREFIX", str(env_prefix))
+    config2 = ConfigurationFile.from_env_condarc()
+    assert config2.path == env_condarc
+    assert config2.content == {"pip_interop_enabled": True}
+
+
+def test_config_file_context_manager(tmp_path: Path) -> None:
+    """Test ConfigurationFile as context manager for atomic writes."""
+    config_path = tmp_path / ".condarc"
+
+    # Test that changes are written on successful exit
+    with ConfigurationFile(path=config_path, content={}) as config:
+        config.content["channels"] = ["defaults", "conda-forge"]
+        config.content["auto_update_conda"] = False
+
+    # Verify file was written
+    assert config_path.exists()
+    written_content = config_path.read_text()
+    assert "channels:" in written_content
+    assert "defaults" in written_content
+    assert "conda-forge" in written_content
+    assert "auto_update_conda: false" in written_content
+
+
+def test_config_file_context_manager_exception(tmp_path: Path) -> None:
+    """Test that ConfigurationFile context manager doesn't write on exception."""
+    config_path = tmp_path / ".condarc"
+
+    # Test that changes are NOT written if exception occurs
+    try:
+        with ConfigurationFile(path=config_path, content={}) as config:
+            config.content["channels"] = ["defaults"]
+            raise ValueError("Test exception")
+    except ValueError:
+        pass
+
+    # Verify file was NOT written (because exception occurred)
+    assert not config_path.exists()
