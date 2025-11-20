@@ -28,6 +28,45 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+def _register_enum_representers() -> None:
+    """Register YAML representers for conda enum types.
+
+    This function registers custom YAML representers for all conda enum types
+    to ensure they are serialized as strings rather than complex objects.
+
+    This is called once at module load time to ensure representers are available
+    before any YAML serialization occurs.
+    """
+    from ruamel.yaml.representer import RoundTripRepresenter
+
+    from ..base.constants import (
+        ChannelPriority,
+        DepsModifier,
+        PathConflict,
+        SafetyChecks,
+        SatSolverChoice,
+        UpdateModifier,
+    )
+
+    def enum_representer(dumper, data):
+        return dumper.represent_str(str(data))
+
+    # Register each enum type individually (base Enum class registration doesn't work)
+    for enum_class in (
+        SafetyChecks,
+        PathConflict,
+        DepsModifier,
+        UpdateModifier,
+        ChannelPriority,
+        SatSolverChoice,
+    ):
+        RoundTripRepresenter.add_representer(enum_class, enum_representer)
+
+
+# Register enum representers once at module load time
+_register_enum_representers()
+
+
 class _MissingSentinel:
     """Sentinel value to indicate a missing configuration key.
 

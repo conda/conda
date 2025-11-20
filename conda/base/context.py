@@ -551,10 +551,6 @@ class Context(Configuration):
     ):
         super().__init__(argparse_args=argparse_args)
 
-        # Register YAML representers for enum types used in configuration
-        # This needs to happen early, before any YAML serialization occurs
-        self._register_enum_representers()
-
         self._set_search_path(
             SEARCH_PATH if search_path is None else search_path,
             # for proper search_path templating when --name/--prefix is used
@@ -562,29 +558,6 @@ class Context(Configuration):
         )
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
-
-    def _register_enum_representers(self) -> None:
-        """Register YAML representers for conda enum types.
-
-        This is called during Context initialization to ensure representers are
-        registered early in the lifecycle. The representers are registered globally
-        with ruamel.yaml, so subsequent calls have no additional effect.
-        """
-        from ruamel.yaml.representer import RoundTripRepresenter
-
-        def enum_representer(dumper, data):
-            return dumper.represent_str(str(data))
-
-        # Register each enum type individually (base Enum class registration doesn't work)
-        for enum_class in (
-            SafetyChecks,
-            PathConflict,
-            DepsModifier,
-            UpdateModifier,
-            ChannelPriority,
-            SatSolverChoice,
-        ):
-            RoundTripRepresenter.add_representer(enum_class, enum_representer)
 
     def post_build_validation(self) -> list[ValidationError]:
         errors = []
