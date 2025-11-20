@@ -99,6 +99,7 @@ Authors are sorted alphabetically.
 * Dan Dascalescu
 * Dan Lovell
 * Dan Meador
+* Dan Yeaw
 * Daniel Bast
 * Daniel Holth
 * Daniel Hook
@@ -264,6 +265,7 @@ Authors are sorted alphabetically.
 * Marland Sitt
 * Martin Dengler
 * Martin Kou
+* Martin Lang
 * Martin Prüsse
 * Martin Raden
 * Mary M
@@ -388,6 +390,7 @@ Authors are sorted alphabetically.
 * Shaun Thompson
 * Shaun Walbridge
 * Sidhant Bansal
+* Simon Høxbro Hansen
 * Simon Li
 * Simon McLaren
 * Skipper Seabold
@@ -406,6 +409,7 @@ Authors are sorted alphabetically.
 * Steven Engler
 * Stijn Verstraeten
 * Stuart Berg
+* Sumanth
 * Sylvain Corlay
 * Tadeu Manoel
 * Tarcisio
