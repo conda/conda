@@ -27,6 +27,7 @@ from .condarc import (
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
+    from collections.abc import Sequence
     from pathlib import Path
     from typing import Any
 
@@ -697,3 +698,132 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     else:
         for k, v in get_key_pairs:
             print_config_item(k, v)
+
+
+# Deprecated private functions - moved to conda.cli.condarc.ConfigurationFile
+from ..deprecations import deprecated
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.ConfigurationFile.key_exists() instead.",
+)
+def _key_exists(key: str, warnings: list[str], context=None) -> bool:
+    """Deprecated. Use ConfigurationFile.key_exists() instead."""
+    from .condarc import ConfigurationFile
+
+    config = ConfigurationFile(
+        context=context,
+        content={},
+        warning_handler=lambda msg: warnings.append(msg),
+    )
+    return config.key_exists(key)
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.ConfigurationFile.get_key() instead.",
+)
+def _get_key(
+    key: str,
+    warnings: list[str],
+    config: dict[str, Any],
+    context=None,
+) -> tuple[str, Any]:
+    """Deprecated. Use ConfigurationFile.get_key() instead."""
+    from .condarc import MISSING, ConfigurationFile
+
+    config_file = ConfigurationFile(
+        context=context,
+        content=config,
+        warning_handler=lambda msg: warnings.append(msg),
+    )
+    key, value = config_file.get_key(key)
+
+    # Return None instead of MISSING for backward compatibility
+    if value is MISSING:
+        return key, None
+    return key, value
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.ConfigurationFile.set_key() instead.",
+)
+def _set_key(key: str, item: Any, config: dict) -> None:
+    """Deprecated. Use ConfigurationFile.set_key() instead."""
+    from .condarc import ConfigurationFile
+
+    config_file = ConfigurationFile(content=config)
+    config_file.set_key(key, item)
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.ConfigurationFile.remove_item() instead.",
+)
+def _remove_item(key: str, item: Any, config: dict) -> None:
+    """Deprecated. Use ConfigurationFile.remove_item() instead."""
+    from .condarc import ConfigurationFile
+
+    config_file = ConfigurationFile(content=config)
+    config_file.remove_item(key, item)
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.ConfigurationFile.remove_key() instead.",
+)
+def _remove_key(key: str, config: dict) -> None:
+    """Deprecated. Use ConfigurationFile.remove_key() instead."""
+    from .condarc import ConfigurationFile
+
+    config_file = ConfigurationFile(content=config)
+    config_file.remove_key(key)
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.ConfigurationFile.read() instead.",
+)
+def _read_rc(path: str | os.PathLike[str] | Path) -> dict:
+    """Deprecated. Use ConfigurationFile.read() instead."""
+    from .condarc import ConfigurationFile
+
+    config = ConfigurationFile(path=path)
+    return config.read()
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.ConfigurationFile.write() instead.",
+)
+def _write_rc(path: str | os.PathLike[str] | Path, config: dict) -> None:
+    """Deprecated. Use ConfigurationFile.write() instead."""
+    from .condarc import ConfigurationFile
+
+    config_file = ConfigurationFile(path=path, content=config)
+    config_file.write()
+
+
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.cli.condarc.validate_provided_parameters() instead.",
+)
+def _validate_provided_parameters(
+    parameters: Sequence[str],
+    plugin_parameters: Sequence[str],
+    context,
+) -> None:
+    """Deprecated. Use validate_provided_parameters() instead."""
+    from .condarc import validate_provided_parameters
+
+    validate_provided_parameters(parameters, plugin_parameters, context)
