@@ -564,7 +564,7 @@ def test_config_file_from_user_condarc(
     user_condarc.write_text("channels:\n  - conda-forge\n")
 
     # Mock the user_rc_path
-    monkeypatch.setattr("conda.cli.condarc.user_rc_path", user_condarc)
+    monkeypatch.setattr("conda.base.context.user_rc_path", user_condarc)
     reset_context()
 
     # Test factory method
@@ -582,7 +582,7 @@ def test_config_file_from_system_condarc(
     sys_condarc.write_text("auto_update_conda: false\n")
 
     # Mock the sys_rc_path
-    monkeypatch.setattr("conda.cli.condarc.sys_rc_path", sys_condarc)
+    monkeypatch.setattr("conda.base.context.sys_rc_path", sys_condarc)
     reset_context()
 
     # Test factory method
