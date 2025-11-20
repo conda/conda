@@ -943,7 +943,7 @@ def test_timestamps(
         first_modification = pd.last_modified
         # On Linux, we allow a rounding error of a <1 second (usually ~5ms)
         assert abs(created.timestamp() - first_modification.timestamp()) < 1
-        conda_cli("install", "--yes", f"--prefix={prefix}", "small-executable")
+        conda_cli("install", "--yes", "--prefix", prefix, "small-executable")
         second_modification = pd.last_modified
         assert created == pd.created
         assert first_modification < second_modification

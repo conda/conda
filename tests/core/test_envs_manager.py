@@ -100,7 +100,9 @@ def test_prefix_cli_flag(monkeypatch: MonkeyPatch, tmp_path: Path):
 
 
 def test_rewrite_environments_txt_file(
-    tmp_path: Path, empty_env: Path, mocker: MockerFixture
+    tmp_path: Path,
+    empty_env: Path,
+    mocker: MockerFixture,
 ):
     (path := tmp_path / "environments.txt").write_text(
         f"{tmp_path}\n"  # invalid conda env

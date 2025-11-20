@@ -312,7 +312,7 @@ def test_config_set_and_get_key_for_env(
     )
 
     # check config is added to the prefix config
-    stdout, _, _ = conda_cli("config", f"--prefix={empty_env}", "--show", "--json")
+    stdout, _, _ = conda_cli("config", "--show", "--prefix", empty_env, "--json")
     parsed = json.loads(stdout.strip())
     assert test_channel_name in parsed["channels"]
 
