@@ -1,5 +1,77 @@
 [//]: # (current developments)
 
+## 25.11.0 (2025-11-20)
+
+### Enhancements
+
+* Added three new fields to `conda.plugins.types.CondaVirtualPackage` class:
+  * `override_entity`: Controls which field (version or build number) can be overridden
+  * `empty_override`: Specifies behavior when override value is empty
+  * `version_validation`: Validates override version values
+  These fields abstract and generalize the version/build number override logic into the `CondaVirtualPackages` class, removing the need for individual virtual packages to implement their own override handling. (#15248)
+* Add a new `override_virtual_packages` (with alias `virtual_packages`) key to `condarc`. (#15156 via #15318)
+* Add `.created` and `.last_modified` properties to `PrefixData`, which provide information about the creation and last modification times of a given environment, respectively. (#14308 via #15329)
+* Add a new `envs_details` field to the `conda info --json` output to inspect properties of the registered environments. This will also be part of the `conda info --envs --json` and `conda env list --json` outputs. (#15330)
+* `conda.plugins.reporter_backends.JSONReporterRenderer.envs_list` also allows `dict[str, dict[str, str | bool]]` now, which will be passed directly to the JSON dumper. (#15330)
+
+### Bug fixes
+
+* Ensure `MatchSpec` serialization does not contain orphan `=` separator when the `version` field is set to `*`. (#14357 via #15294)
+* Require `conda-libmamba-solver >=25.4.0` (#15289)
+* Fix `Channel.urls()` to respect explicit `subdirs` parameter when the channel has a platform defined. (#14258)
+* Include `platform` in `Channel` equality and hash checks. (#14259 via #15296)
+* Fix where `conda search --json --use-index-cache <package>` could fail to
+  encode message as json, when cache is empty. (#15308)
+* Adjust whitespace in `conda info --envs` header. (#15330)
+* Fix plugin settings YAML serialization to use valid nested YAML format for plugin settings in `conda config --describe` output. (#15339 via #15341)
+* Fix several bugs related to Python 3.14 compatibility. (#15079, #15088 via #15340)
+* Ignore and warn user if the `PATH` environment variable is set in the environment config. Conda should not enable modifying the `PATH` to any arbitrary value. (#15342)
+* Restrict the JSON output to only the `envs` list when `conda info --envs --json` and `conda env list --json` are called. (#15353)
+* Produce a warning when a user tries to add a `PATH` environment variable to their environment configuration. Adding reserved env vars like `PATH` to the environment variables config for an environment may produce unexpected results in conda. (#15292 via #15354)
+* Fix zsh parse error on Windows
+* Remove `return` from `try-finally` per [PEP-765](https://peps.python.org/pep-0765/). (#15370 via #15371)
+
+### Deprecations
+
+* Mark `conda.plugins.hookspec.spec_name` as pending deprecation, to be removed in 26.9. Use `conda.base.constants.APP_NAME` instead. (#15255)
+* Mark `conda.cli.main_compare.get_packages` as pending deprecation. Use `conda.core.prefix_data.PrefixData.map_records` instead. (#15387)
+
+### Docs
+
+* Expand contributor documentation
+* Reference `conda.plugins.types.*` instead of re-exports from `conda.plugins` (#15307)
+* Use `--name` more consistently in getting started docs. (#15346)
+
+### Other
+
+* Reduce some warnings in tests (#15307)
+* Performance improvements for the `conda env list` command, which now defers
+  retrieving environment information until necessary (#15320)
+* Stop using assertions in non-testing code, and enable the corresponding linting rules. (#15357 via #15361)
+
+### Contributors
+
+* @agriyakhetarpal
+* @conda-bot
+* @danyeaw
+* @dholth
+* @jaimergp
+* @jezdez
+* @jakirkham
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @lang-m
+* @ryanskeith
+* @hoxbro
+* @soapy1
+* @sumanth-manchala
+* @travishathaway
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
 ## 25.9.1 (2025-10-10)
 
 ### Bug fixes
