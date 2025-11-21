@@ -28,7 +28,8 @@ _SIGNAL_HANDLER_SCRIPT_WINDOWS = dedent("""
     sys.stdout.write(f'child_ready:{os.getpid()}\\n')
     sys.stdout.flush()
 
-    time.sleep(10)
+    for _ in range(100):
+        time.sleep(0.1)
 """)
 
 _SIGNAL_HANDLER_SCRIPT_UNIX = dedent("""
