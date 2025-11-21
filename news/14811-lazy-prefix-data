@@ -1,0 +1,19 @@
+### Enhancements
+
+* Defer `PrefixData` record instantiation until they are accessed for faster query performance. (#14811)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -12,7 +12,11 @@ import pytest
 from conda.base.constants import CONDA_LIST_FIELDS
 from conda.common.configuration import CustomValidationError
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError, EnvironmentLocationNotFound
+from conda.exceptions import (
+    CondaValueError,
+    EnvironmentLocationNotFound,
+    PackageNotInstalledError,
+)
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -289,6 +293,23 @@ def test_fields_invalid(conda_cli):
     )
     assert "list_fields" in str(exc)
     assert "invalid-field" in str(exc)
+
+
+def test_list_full_name(conda_cli):
+    out, err, exc = conda_cli("list", f"--prefix={sys.prefix}", "--full-name", "python")
+    assert "python" in out
+    assert f"{sys.version_info.major}.{sys.version_info.minor}" in out
+
+
+def test_list_full_name_no_results(conda_cli):
+    out, err, exc = conda_cli(
+        "list",
+        f"--prefix={sys.prefix}",
+        "--full-name",
+        "does-not-exist",
+        "--json",
+        raises=PackageNotInstalledError,
+    )
 
 
 def test_exit_codes(conda_cli):
