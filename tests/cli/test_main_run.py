@@ -55,28 +55,18 @@ def test_run_returns_nonzero_errorlevel(
         assert err == 5
 
 
-def test_run_uncaptured(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+@pytest.mark.parametrize("flag", ["--no-capture-output", "-s"])
+def test_run_uncaptured(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    flag: str,
+):
     with tmp_env() as prefix:
         random_text = uuid.uuid4().hex
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
-            "--no-capture-output",
-            *("echo", random_text),
-        )
-
-        assert not stdout
-        assert not stderr
-        assert not err
-
-
-def test_run_uncaptured_shorthand(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
-        random_text = uuid.uuid4().hex
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "-s",
+            flag,
             *("echo", random_text),
         )
 
