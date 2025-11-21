@@ -137,6 +137,7 @@ def test_run_deactivates_environment(
 
         try:
             script_content = Path(script_path).read_text()
+            lines = script_content.split("\n")
 
             # Verify deactivation is present in the script, and that
             # the deactivation command comes after the user's command.
@@ -144,11 +145,29 @@ def test_run_deactivates_environment(
                 assert "CALL" in script_content and "deactivate" in script_content, (
                     "Windows wrapper script should contain conda deactivate command"
                 )
+
+                echo_line_idx = None
+                deactivate_line_idx = None
+                for idx, line in enumerate(lines):
+                    if "echo" in line and "test" in line:
+                        echo_line_idx = idx
+                    if "CALL" in line and "deactivate" in line:
+                        deactivate_line_idx = idx
+
+                assert deactivate_line_idx is not None, (
+                    "Could not find 'CALL ... deactivate' in the Windows wrapper script"
+                )
+                assert echo_line_idx is not None, (
+                    "Could not find the user's command in the Windows wrapper script"
+                )
+                assert deactivate_line_idx > echo_line_idx, (
+                    "On Windows, 'CALL ... deactivate' should come after the user's command"
+                )
             else:
                 assert "conda deactivate" in script_content, (
                     "Unix wrapper script should contain 'conda deactivate' command"
                 )
-                lines = script_content.split("\n")
+
                 echo_line_idx = None
                 deactivate_line_idx = None
                 for idx, line in enumerate(lines):
@@ -161,7 +180,7 @@ def test_run_deactivates_environment(
                     "Could not find 'conda deactivate' in the wrapper script"
                 )
                 assert echo_line_idx is not None, (
-                    "Could not find the user command in the wrapper script"
+                    "Could not find the user's command in the wrapper script"
                 )
                 assert deactivate_line_idx > echo_line_idx, (
                     "'conda deactivate' should come after the user's command"
