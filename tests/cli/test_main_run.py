@@ -70,6 +70,21 @@ def test_run_uncaptured(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert not err
 
 
+def test_run_uncaptured_shorthand(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env() as prefix:
+        random_text = uuid.uuid4().hex
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "-s",
+            *("echo", random_text),
+        )
+
+        assert not stdout
+        assert not stderr
+        assert not err
+
+
 @pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
 def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
