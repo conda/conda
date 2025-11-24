@@ -94,6 +94,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..common.compat import encode_environment
     from ..core.prefix_data import PrefixData
+    from ..exceptions import CondaError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.subprocess import subprocess_call
     from ..utils import wrap_subprocess_call
@@ -103,8 +104,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Used to separate subcommand from 'conda run' options
     # e.g. conda run -v -- tar -tvf file.tar
-    if args.executable_call[0] == "--":
+    if args.executable_call and args.executable_call[0] == "--":
         args.executable_call = args.executable_call[1:]
+
+    if not args.executable_call:
+        raise CondaError(
+            "No command has been specified to run. Please provide a command after 'conda run'."
+        )
 
     # create run script
     script, command = wrap_subprocess_call(

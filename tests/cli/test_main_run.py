@@ -180,6 +180,17 @@ def test_run_with_separator_combined_options(
         assert not err
 
 
+def test_run_with_separator_empty_command(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        from conda.exceptions import CondaError
+
+        with pytest.raises(CondaError, match="No command specified"):
+            conda_cli("run", f"--prefix={prefix}", "--")
+
+
 def test_run_without_separator(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
