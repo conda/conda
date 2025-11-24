@@ -58,7 +58,9 @@ CONDA_SESSION_SCHEMES = frozenset(
 
 # Forbidden headers, which should never be set by plugins. Based on
 # https://web.archive.org/web/20251124174612/https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
-# (last updated as of November 17, 2025).
+# (last updated as of November 17, 2025). Set-Cookie is a response header and not a request header, but
+# it's semantically invalid, so we include it here.
+
 FORBIDDEN_HEADERS = frozenset(
     [
         "accept-charset",
@@ -75,6 +77,7 @@ FORBIDDEN_HEADERS = frozenset(
         "keep-alive",
         "origin",
         "referer",
+        "set-cookie",
         "te",
         "trailer",
         "transfer-encoding",
