@@ -467,7 +467,7 @@ def test_filter_forbidden_headers_method_override(
     if should_filter:
         assert header not in filtered
         assert mock_log.warning.called
-        assert method in mock_log.warning.call_args[0][1]
+        assert method in mock_log.warning.call_args[0][2]
     else:
         assert filtered[header] == method
         assert not mock_log.warning.called
