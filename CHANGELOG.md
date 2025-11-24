@@ -5,14 +5,14 @@
 ### Enhancements
 
 * Add three new fields to `conda.plugins.types.CondaVirtualPackage` class:
-  * `override_entity`: Controls which field (version or build number) can be overridden
-  * `empty_override`: Specifies behavior when override value is empty
-  * `version_validation`: Validates override version values
+  * `override_entity`: Control which field (version or build number) can be overridden
+  * `empty_override`: Specify behavior when override value is empty
+  * `version_validation`: Validate override version values
   These fields abstract and generalize the version/build number override logic into the `CondaVirtualPackages` class, removing the need for individual virtual packages to implement their own override handling. (#15248)
 * Add a new `override_virtual_packages` (with alias `virtual_packages`) key to `condarc`. (#15156 via #15318)
 * Add `.created` and `.last_modified` properties to `PrefixData`, which provide information about the creation and last modification times of a given environment, respectively. (#14308 via #15329)
-* Add a new `envs_details` field to the `conda info --json` output to inspect properties of the registered environments. This will also be part of the `conda info --envs --json` and `conda env list --json` outputs. (#15330)
-* `conda.plugins.reporter_backends.JSONReporterRenderer.envs_list` now allows `dict[str, dict[str, str | bool]]`, which will be passed directly to the JSON dumper. (#15330)
+* Add a new `envs_details` field to the `conda info --json` output to inspect properties of the registered environments. This is also part of the `conda info --envs --json` and `conda env list --json` outputs. (#15330)
+* `conda.plugins.reporter_backends.JSONReporterRenderer.envs_list` now allows `dict[str, dict[str, str | bool]]`, which is passed directly to the JSON dumper. (#15330)
 
 ### Bug fixes
 
