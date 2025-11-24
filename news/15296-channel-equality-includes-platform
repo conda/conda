@@ -1,3 +1,0 @@
-### Bug fixes
-
-* Include `platform` in `Channel` equality and hash checks. (#14259 via #15296)
