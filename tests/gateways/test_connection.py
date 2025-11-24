@@ -405,6 +405,43 @@ def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize(
+    "header",
+    [
+        "Accept-Charset",
+        "Accept-Encoding",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+        "Connection",
+        "Content-Length",
+        "Cookie",
+        "Date",
+        "DNT",
+        "Expect",
+        "Host",
+        "Keep-Alive",
+        "Origin",
+        "Referer",
+        "Set-Cookie",
+        "TE",
+        "Trailer",
+        "Transfer-Encoding",
+        "Upgrade",
+        "Via",
+    ],
+)
+def test_filter_forbidden_headers(header, mocker):
+    from conda.gateways.connection.session import _filter_forbidden_headers
+
+    mock_log = mocker.patch("conda.gateways.connection.session.log")
+
+    headers = {header: "test-value"}
+    filtered = _filter_forbidden_headers(headers)
+
+    assert header not in filtered
+    assert mock_log.warning.called
+
+
+@pytest.mark.parametrize(
     "url, channels, expected",
     (
         (
