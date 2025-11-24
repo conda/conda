@@ -186,5 +186,4 @@ def test_run_deactivates_environment(
                     "'conda deactivate' should come after the user's command"
                 )
         finally:
-            if Path(script_path).exists():
-                Path(script_path).unlink()
+            Path(script_path).unlink(missing_ok=True)
