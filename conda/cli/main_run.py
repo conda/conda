@@ -25,6 +25,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         $ conda create -y -n my-python-env python=3
         $ conda run -n my-python-env python --version
+
+        Use '--' to separate `conda run`'s options from the executable's options::
+
+        $ conda run -n my-python-env -- python -v
+        $ conda run -v -n my-python-env -- tar -tvf file.tar
         """
     )
 
@@ -77,7 +82,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "executable_call",
         nargs=REMAINDER,
         help="Executable name, with additional arguments to be passed to the executable "
-        "on invocation.",
+        "on invocation. Use '--' to separate conda options from executable options.",
     )
 
     p.set_defaults(func="conda.cli.main_run.execute")
