@@ -113,3 +113,101 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         )
         assert stdout
         assert not stderr
+
+
+def test_run_with_separator(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("python") as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "--",
+            "python",
+            "-v",
+            "-c",
+            "print('test')",
+        )
+
+        assert "test" in stdout
+        assert not err
+
+
+def test_run_with_separator_multiple_v_flags(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("python") as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "--",
+            "python",
+            "-vvv",
+            "-c",
+            "print('test me')",
+        )
+
+        assert "test me" in stdout
+        assert not err
+
+
+def test_run_with_separator_combined_options(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("python") as prefix:
+        script = prefix / "test_script.py"
+        script.write_text(
+            "import sys\n"
+            "for i, arg in enumerate(sys.argv[1:]):\n"
+            "    print(f'arg{i}: {arg}')\n"
+        )
+
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "--",
+            "python",
+            str(script),
+            "-vic",
+            "60",
+        )
+
+        assert "arg0: -vic" in stdout
+        assert "arg1: 60" in stdout
+        assert not err
+
+
+def test_run_without_separator(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("python") as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            "--version",
+        )
+
+        assert "Python" in (stdout + stderr)
+        assert not err
+
+
+def test_run_if_separator_not_at_start(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "echo",
+            "--",
+            "hello",
+        )
+
+        assert "-- hello" in stdout or "hello" in stdout
+        assert not err
