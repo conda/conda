@@ -185,9 +185,9 @@ def test_run_with_separator_empty_command(
     conda_cli: CondaCLIFixture,
 ):
     with tmp_env() as prefix:
-        from conda.exceptions import CondaError
+        from conda.exceptions import ArgumentError
 
-        with pytest.raises(CondaError, match="No command specified"):
+        with pytest.raises(ArgumentError, match="No command specified"):
             conda_cli("run", f"--prefix={prefix}", "--")
 
 
