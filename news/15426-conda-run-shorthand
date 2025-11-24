@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Add `-s` as a shorthand alias for `conda run --no-capture-output`. (#15426)
 
 ### Bug fixes
 
-* Fix zsh parse error on Windows
+* <news item>
 
 ### Deprecations
 
