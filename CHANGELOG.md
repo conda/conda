@@ -27,17 +27,17 @@
 * Ignore and warn user if the `PATH` environment variable is set in the environment config. Conda should not enable modifying the `PATH` to any arbitrary value. (#15342)
 * Restrict the JSON output to only the `envs` list when `conda info --envs --json` and `conda env list --json` are called. (#15353)
 * Produce a warning when a user tries to add a `PATH` environment variable to their environment configuration. Adding reserved env vars like `PATH` to the environment variables config for an environment may produce unexpected results in conda. (#15292 via #15354)
-* Fix zsh parse error on Windows.
+* Fix zsh parse error on Windows. (#13915, #9922 via #15335)
 * Remove `return` from `try-finally` per [PEP-765](https://peps.python.org/pep-0765/). (#15370 via #15371)
 
 ### Deprecations
 
 * Mark `conda.plugins.hookspec.spec_name` as pending deprecation, to be removed in 26.9. Use `conda.base.constants.APP_NAME` instead. (#15255)
-* Mark `conda.cli.main_compare.get_packages` as pending deprecation. Use `conda.core.prefix_data.PrefixData.map_records` instead. (#15387)
+* Mark `conda.cli.main_compare.get_packages` as pending deprecation, to be removed in 26.9. Use `conda.core.prefix_data.PrefixData.map_records` instead. (#15387)
 
 ### Docs
 
-* Expand contributor documentation.
+* Expand contributor documentation. (#15208)
 * Reference `conda.plugins.types.*` instead of re-exports from `conda.plugins`. (#15307)
 * Use `--name` more consistently in getting started docs. (#15346)
 
