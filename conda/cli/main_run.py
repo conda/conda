@@ -99,6 +99,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix_data.assert_environment()
 
     if not args.executable_call:
+        parser.print_help()
         raise ArgumentError(
             "No command has been specified to run. Please provide a command after 'conda run'."
         )
