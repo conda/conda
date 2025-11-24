@@ -308,15 +308,20 @@ class CondaSession(Session, metaclass=CondaSessionType):
         # inject headers from plugins if this is a https/http request
         url = urlparse(request.url)
         if url.scheme in ("https", "http"):
+            session_headers = _filter_forbidden_headers(
+                context.plugin_manager.get_cached_session_headers(host=url.netloc)
+            )
+            request_headers = _filter_forbidden_headers(
+                context.plugin_manager.get_cached_request_headers(
+                    host=url.netloc, path=url.path
+                )
+            )
+
             request.headers = CaseInsensitiveDict(
                 {
                     # hardcoded session headers (self.headers) are injected in super().prepare_request
-                    **context.plugin_manager.get_cached_session_headers(
-                        host=url.netloc
-                    ),
-                    **context.plugin_manager.get_cached_request_headers(
-                        host=url.netloc, path=url.path
-                    ),
+                    **session_headers,
+                    **request_headers,
                     **(request.headers or {}),
                 }
             )
