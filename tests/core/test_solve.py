@@ -3936,11 +3936,8 @@ def test_pinned_specs_all(
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
 
-def test_no_channels_error(tmpdir, monkeypatch):
+def test_no_channels_error(tmpdir):
     from conda.exceptions import NoChannelsError
-
-    monkeypatch.setenv("CONDA_CHANNELS", "")
-    reset_context()
 
     specs = (MatchSpec("numpy"),)
 
