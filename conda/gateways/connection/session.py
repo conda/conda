@@ -56,6 +56,33 @@ CONDA_SESSION_SCHEMES = frozenset(
     )
 )
 
+# Forbidden headers, which should never be set by plugins. Based on
+# https://web.archive.org/web/20251124174612/https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
+# (last updated as of November 17, 2025).
+FORBIDDEN_HEADERS = frozenset(
+    [
+        "accept-charset",
+        "accept-encoding",
+        "access-control-request-headers",
+        "access-control-request-method",
+        "connection",
+        "content-length",
+        "cookie",
+        "date",
+        "dnt",
+        "expect",
+        "host",
+        "keep-alive",
+        "origin",
+        "referer",
+        "te",
+        "trailer",
+        "transfer-encoding",
+        "upgrade",
+        "via",
+    ]
+)
+
 
 class EnforceUnusedAdapter(BaseAdapter):
     def send(self, request: Request, *args, **kwargs):
@@ -73,6 +100,29 @@ def get_channel_name_from_url(url: str) -> str | None:
     Given a URL, determine the channel it belongs to and return its name.
     """
     return Channel.from_url(url).canonical_name
+
+
+def _filter_forbidden_headers(headers: dict) -> dict:
+    """
+    Filter out forbidden headers from plugin-provided headers and return
+    a new dictionary with forbidden headers removed.
+    """
+    filtered = {}
+    for key, value in headers.items():
+        key_lower = key.lower()
+        if (
+            key_lower in FORBIDDEN_HEADERS
+            or key_lower.startswith("proxy-")
+            or key_lower.startswith("sec-")
+        ):
+            log.warning(
+                "Forbidden header '%s' from plugin will be ignored. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
+                key,
+            )
+        else:
+            filtered[key] = value
+    return filtered
 
 
 @cache
