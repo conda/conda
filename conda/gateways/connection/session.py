@@ -82,6 +82,15 @@ FORBIDDEN_HEADERS = frozenset(
         "via",
     ]
 )
+# Headers that override HTTP methods, which are forbidden when they contain the following.
+FORBIDDEN_METHOD_OVERRIDE_HEADERS = frozenset(
+    [
+        "x-http-method",
+        "x-http-method-override",
+        "x-method-override",
+    ]
+)
+FORBIDDEN_HTTP_METHODS = frozenset(["connect", "trace", "track"])
 
 
 class EnforceUnusedAdapter(BaseAdapter):
@@ -110,18 +119,35 @@ def _filter_forbidden_headers(headers: dict) -> dict:
     filtered = {}
     for key, value in headers.items():
         key_lower = key.lower()
-        if (
-            key_lower in FORBIDDEN_HEADERS
-            or key_lower.startswith("proxy-")
-            or key_lower.startswith("sec-")
-        ):
+
+        if key_lower in FORBIDDEN_HEADERS:
             log.warning(
                 "Forbidden header '%s' from plugin will be ignored. "
                 "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
                 key,
             )
-        else:
-            filtered[key] = value
+            continue
+
+        if key_lower.startswith("proxy-") or key_lower.startswith("sec-"):
+            log.warning(
+                "Forbidden header '%s' from plugin will be ignored. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
+                key,
+            )
+            continue
+
+        if key_lower in FORBIDDEN_METHOD_OVERRIDE_HEADERS:
+            if isinstance(value, str) and value.lower() in FORBIDDEN_HTTP_METHODS:
+                log.warning(
+                    "Header '%s' with forbidden method '%s' from plugin will be ignored. "
+                    "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
+                    key,
+                    value,
+                )
+                continue
+
+        filtered[key] = value
+
     return filtered
 
 
