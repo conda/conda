@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Document how to configure temporary file locations using `TMPDIR`/`TEMP`/`TMP` environment variables. Add comprehensive guide covering container environments, HPC systems, and troubleshooting read-only filesystem errors. (#15442)
+
+### Other
+
+* <news item>
