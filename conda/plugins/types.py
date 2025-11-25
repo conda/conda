@@ -590,3 +590,18 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+
+@dataclass
+class CondaSupportedExtensions(CondaPlugin):
+    """
+    Return type to use when defining conda supported packages plugin hook.
+
+    :param name: name of the supported extension
+    :extension: the extension (eg. `.conda`, `.whl`)
+    :install function:
+    """
+
+    name: str
+    extension: str
+    pkg_extraction_function: Callable
