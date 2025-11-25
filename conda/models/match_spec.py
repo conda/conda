@@ -181,6 +181,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "license",
         "license_family",
         "fn",
+        "condition",
     )
     FIELD_NAMES_SET = frozenset(FIELD_NAMES)
     _MATCHER_CACHE = {}
@@ -366,7 +367,7 @@ class MatchSpec(metaclass=MatchSpecType):
             else:
                 brackets.append(f"build={build}")
 
-        _skip = {"channel", "subdir", "name", "version", "build"}
+        _skip = {"channel", "subdir", "name", "version", "build", "condition"}
         if "url" in self._match_components and "fn" in self._match_components:
             _skip.add("fn")
         for key in self.FIELD_NAMES:
@@ -382,6 +383,9 @@ class MatchSpec(metaclass=MatchSpecType):
 
         if brackets:
             builder.append("[{}]".format(",".join(brackets)))
+
+        if condition := self._match_components.get("condition"):
+            builder.append(f"; if {condition}")
 
         return "".join(builder)
 
@@ -710,11 +714,12 @@ def _parse_spec_str(spec_str):
         spec_str, _ = spec_str[:ndx], spec_str[ndx:]
         spec_str.strip()
 
-    # Step 1.b strip ' if ' anticipating future compatibility issues
-    spec_split = spec_str.split(" if ", 1)
-    if len(spec_split) > 1:
-        log.debug("Ignoring conditional in spec %s", spec_str)
-    spec_str = spec_split[0]
+    # Step 1.b save '; if ...' conditions
+    if condition := re.match(r"(.*)\s*;\s*if\s+(.*)\s*", spec_str):
+        spec_str = condition.group(1)
+        condition = condition.group(2)
+    else:
+        condition = None
 
     # Step 2. done if spec_str is a tarball
     if is_package_file(spec_str):
@@ -851,6 +856,8 @@ def _parse_spec_str(spec_str):
         components["version"] = version
     if build is not None:
         components["build"] = build
+    if condition is not None:
+        components["condition"] = condition
 
     # anything in brackets will now strictly override key as set in other area of spec str
     # EXCEPT FOR: name

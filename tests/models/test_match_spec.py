@@ -1533,3 +1533,16 @@ def test_no_triple_equals_roundtrip():
     assert "===" not in str(ms)
     assert str(ms) == "numpy=2"
     assert MatchSpec("numpy=2").version == ms.version
+
+
+def test_conditional_specs():
+    input_spec = "python; if __win"
+    ms = MatchSpec(input_spec)
+    assert ms.get("condition") == "__win"
+    assert str(ms) == input_spec
+
+    # test normalization
+    assert str(MatchSpec("python ;  if  __win")) == "python; if __win"
+
+    # should not be present
+    assert MatchSpec("python").get("condition") is None
