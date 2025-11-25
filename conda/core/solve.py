@@ -94,7 +94,7 @@ class Solver:
 
         """
         self.prefix = prefix
-        self._channels = list(channels) if channels is not None else context.channels
+        self._channels = channels or context.channels
         self.channels = IndexedSet(Channel(c) for c in self._channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
