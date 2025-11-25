@@ -8,11 +8,11 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.utils.wrap_subprocess_call(use_system_tmp_path)` as pending deprecation, to be removed in 27.3. Use the TMPDIR, TEMP, or TMP environment variables to set the system temporary directory location. (#15440 via #15442)
 
 ### Docs
 
-* Document how to configure temporary file locations using `TMPDIR`/`TEMP`/`TMP` environment variables. Add comprehensive guide covering container environments, HPC systems, and troubleshooting read-only filesystem errors. (#15442)
+* Document how to configure temporary file locations using `TMPDIR`/`TEMP`/`TMP` environment variables. Add comprehensive guide covering container environments, HPC systems, and troubleshooting read-only filesystem errors. (#15440 via #15442)
 
 ### Other
 
