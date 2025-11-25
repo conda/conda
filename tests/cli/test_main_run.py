@@ -11,12 +11,14 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.auxlib.ish import dals
+from conda.base.context import context
 from conda.common.compat import on_win
 from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
 from conda.testing.integration import env_or_set, which_or_where
+from conda.utils import wrap_subprocess_call
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -126,9 +128,6 @@ def test_run_deactivates_environment_windows(
     tmp_env: TmpEnvFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    from conda.base.context import context
-    from conda.utils import wrap_subprocess_call
-
     # Set env var to prevent script deletion, so we can inspect it.
     monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
 
@@ -178,9 +177,6 @@ def test_run_deactivates_environment_unix(
     tmp_env: TmpEnvFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    from conda.base.context import context
-    from conda.utils import wrap_subprocess_call
-
     # Set env var to prevent script deletion, so we can inspect it.
     monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
 
