@@ -12,12 +12,16 @@ from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
+from typing import TYPE_CHECKING
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
 from .deprecations import deprecated
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 log = logging.getLogger(__name__)
 
@@ -158,6 +162,7 @@ else:
 # Ensures arguments are a tuple or a list. Strings are converted
 # by shlex_split_unicode() which is bad; we warn about it or else
 # we assert (and fix the code).
+@deprecated("26.9", "27.3")
 def massage_arguments(arguments, errors="assert"):
     # For reference and in-case anything breaks ..
     # .. one of the places (run_command in conda_env/utils.py) this
@@ -195,10 +200,9 @@ def wrap_subprocess_call(
     prefix,
     dev_mode,
     debug_wrapper_scripts,
-    arguments,
+    arguments: Sequence[str],
     use_system_tmp_path=False,
 ):
-    arguments = massage_arguments(arguments)
     if not use_system_tmp_path:
         tmp_prefix = abspath(join(prefix, ".tmp"))
     else:
