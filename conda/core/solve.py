@@ -142,7 +142,7 @@ class Solver:
             UnlinkLinkTransaction:
 
         """
-        if not self.channels or len(self.channels) == 0:
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
             raise NoChannelsError(
                 packages=[s.name for s in self.specs_to_add if s.name],
             )
@@ -297,7 +297,7 @@ class Solver:
 
         """
 
-        if not self.channels or len(self.channels) == 0:
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
             raise NoChannelsError(
                 packages=[s.name for s in self.specs_to_add if s.name],
             )
