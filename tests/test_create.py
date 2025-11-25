@@ -2469,7 +2469,7 @@ def test_conda_downgrade(
                 "-m",
                 "pip",
                 "install",
-                "https://github.com/conda-incubator/conda-rattler-solver/archive/refs/heads/main.zip",
+                "git+https://github.com/conda-incubator/conda-rattler-solver.git#egg=conda-rattler-solver",
                 "--no-deps",
             ]
         )
