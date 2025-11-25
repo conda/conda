@@ -3936,8 +3936,14 @@ def test_pinned_specs_all(
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
 
-def test_no_channels_error(tmpdir):
+def test_no_channels_error(tmpdir, mocker: MockerFixture):
     from conda.exceptions import NoChannelsError
+
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(),
+    )
 
     specs = (MatchSpec("numpy"),)
 
